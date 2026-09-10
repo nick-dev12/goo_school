@@ -1,0 +1,58 @@
+{% load i18n %}
+
+<div class="form-row">
+    <div class="form-group">
+        <label class="form-label" for="{{ prefix }}sexe">
+            <i class="fas fa-venus-mars"></i>
+            {% trans "Sexe" %} <span class="required">*</span>
+        </label>
+        <select class="form-control form-input {% if field_errors.sexe %}is-invalid{% endif %}"
+                id="{{ prefix }}sexe"
+                name="sexe"
+                required>
+            <option value="">{% trans "Sélectionnez" %}</option>
+            <option value="M" {% if form_data.sexe == 'M' %}selected{% endif %}>{% trans "Masculin" %}</option>
+            <option value="F" {% if form_data.sexe == 'F' %}selected{% endif %}>{% trans "Féminin" %}</option>
+        </select>
+        {% if field_errors.sexe %}
+            <div class="invalid-feedback">{{ field_errors.sexe }}</div>
+        {% endif %}
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" for="{{ prefix }}date_embauche">
+            <i class="fas fa-calendar-check"></i>
+            {% trans "Date d'embauche" %}
+            <span class="label-optional">{% trans "(Facultatif)" %}</span>
+        </label>
+        <input type="date"
+               class="form-control form-input {% if field_errors.date_embauche %}is-invalid{% endif %}"
+               id="{{ prefix }}date_embauche"
+               name="date_embauche"
+               value="{{ form_data.date_embauche|default:'' }}">
+        {% if field_errors.date_embauche %}
+            <div class="invalid-feedback">{{ field_errors.date_embauche }}</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="form-row">
+    <div class="form-group">
+        <label class="form-label" for="{{ prefix }}prix_volume_horaire">
+            <i class="fas fa-coins"></i>
+            {% trans "Prix du volume horaire" %}
+            <span class="label-optional">{% trans "(Facultatif — FCFA/heure)" %}</span>
+        </label>
+        <input type="number"
+               step="0.01"
+               min="0"
+               class="form-control form-input {% if field_errors.prix_volume_horaire %}is-invalid{% endif %}"
+               id="{{ prefix }}prix_volume_horaire"
+               name="prix_volume_horaire"
+               value="{{ form_data.prix_volume_horaire|default:'' }}"
+               placeholder="{% trans 'Ex: 5000' %}">
+        {% if field_errors.prix_volume_horaire %}
+            <div class="invalid-feedback">{{ field_errors.prix_volume_horaire }}</div>
+        {% endif %}
+    </div>
+</div>

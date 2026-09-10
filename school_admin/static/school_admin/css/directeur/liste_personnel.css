@@ -80,9 +80,7 @@ body {
 }
 
 .page-subtitle {
-    color: var(--gray-600);
-    font-size: 0.95rem;
-    font-weight: 400;
+    display: none;
 }
 
 .page-actions {
@@ -231,6 +229,10 @@ body {
 }
 
 .tab-header p {
+    display: none;
+}
+
+.tab-header p.tab-header-visible {
     color: var(--gray-600);
     font-size: 0.875rem;
 }
@@ -673,4 +675,557 @@ body {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   UX v2 — Gestion du personnel
+   ============================================================ */
+
+.pers-page-body {
+    background: var(--gray-50);
+}
+
+.pers-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem 5rem;
+}
+
+.page-header-minimal {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.pers-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1rem 1.25rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--gray-200);
+    box-shadow: var(--shadow-sm);
+}
+
+.pers-hero-text {
+    flex: 1 1 280px;
+}
+
+.pers-hero-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pers-hero-title i {
+    color: var(--primary-color);
+}
+
+.pers-hero-sub {
+    font-size: 1rem;
+    color: var(--gray-600);
+    line-height: 1.5;
+    max-width: 40rem;
+}
+
+.pers-hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.pers-stat-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 4rem;
+    padding: 0.5rem 0.875rem;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+}
+
+.pers-stat-pill--ok {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.25);
+}
+
+.pers-stat-pill--off {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.pers-stat-num {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.pers-stat-lbl {
+    font-size: 0.6875rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.pers-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    width: 100%;
+}
+
+.pers-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.125rem;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+}
+
+.pers-action-btn--primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: var(--white);
+}
+
+.pers-action-btn--secondary {
+    background: var(--white);
+    color: var(--gray-700);
+    border: 1px solid var(--gray-300);
+}
+
+.pers-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.pers-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--gray-200);
+    box-shadow: var(--shadow-sm);
+}
+
+.pers-search-wrap {
+    flex: 1 1 240px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+}
+
+.pers-search-wrap i {
+    color: var(--gray-400);
+}
+
+.pers-search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 0.9375rem;
+    outline: none;
+    min-width: 0;
+    font-family: inherit;
+}
+
+.pers-filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: var(--gray-100);
+    border-radius: var(--border-radius);
+}
+
+.pers-filter-btn {
+    padding: 0.5rem 0.875rem;
+    border: none;
+    border-radius: calc(var(--border-radius) - 2px);
+    background: transparent;
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: inherit;
+}
+
+.pers-filter-btn.active {
+    background: var(--white);
+    color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
+}
+
+.pers-results-line {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-bottom: 0.75rem;
+    min-height: 1.25rem;
+}
+
+.pers-tabs-wrap {
+    margin-bottom: 1rem;
+}
+
+.pers-tabs-wrap .tabs-nav {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--gray-200);
+    padding: 0.375rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.pers-tabs-content .tab-pane {
+    display: none;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.pers-tabs-content .tab-pane.active {
+    display: block;
+}
+
+.pers-matiere-nav {
+    margin-bottom: 1rem;
+}
+
+.pers-matiere-nav .matiere-tabs-bar {
+    background: var(--white);
+    padding: 0.5rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--gray-200);
+    box-shadow: var(--shadow-sm);
+}
+
+.matiere-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    background: transparent;
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: var(--transition);
+}
+
+.matiere-tab-btn.active {
+    background: var(--primary-color);
+    color: var(--white);
+}
+
+.matiere-tab-btn:not(.active) .tab-count {
+    background: var(--gray-200);
+    color: var(--gray-600);
+}
+
+.pers-pane-intro {
+    margin-bottom: 1rem;
+}
+
+.pers-pane-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.pers-pane-title i {
+    color: var(--primary-color);
+}
+
+.pers-pane-desc {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.pers-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.pers-member-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    overflow: hidden;
+}
+
+.pers-member-card:not(.pers-hidden):hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(59, 130, 246, 0.35);
+}
+
+.pers-member-card.pers-hidden {
+    display: none !important;
+}
+
+.pers-card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1rem 0.625rem;
+}
+
+.pers-card-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-size: 1rem;
+}
+
+.pers-card-avatar--prof {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.pers-card-head-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.pers-card-name {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.15rem;
+    line-height: 1.35;
+}
+
+.pers-card-role {
+    font-size: 0.8125rem;
+    color: var(--gray-600);
+}
+
+.pers-card-badge {
+    display: inline-block;
+    margin-top: 0.35rem;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 9999px;
+}
+
+.pers-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-radius: 9999px;
+    white-space: nowrap;
+}
+
+.pers-status-chip--ok {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+.pers-status-chip--off {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.pers-status-chip i {
+    font-size: 0.4rem;
+}
+
+.pers-card-body {
+    padding: 0 1rem 0.625rem;
+    flex: 1;
+}
+
+.pers-card-meta {
+    font-size: 0.8125rem;
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+}
+
+.pers-card-meta i {
+    width: 1rem;
+    color: var(--gray-400);
+    text-align: center;
+}
+
+.pers-card-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--gray-100);
+}
+
+.pers-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+    font-family: inherit;
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.pers-btn-primary {
+    background: var(--primary-color);
+    color: var(--white);
+    flex: 1;
+}
+
+.pers-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--gray-200);
+}
+
+.pers-btn-warn {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+    min-width: 2.25rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.pers-btn-success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+.pers-toggle-form {
+    margin: 0;
+    display: inline-flex;
+}
+
+.pers-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    background: var(--white);
+    border-radius: var(--border-radius-lg);
+    border: 1px dashed var(--gray-300);
+}
+
+.pers-empty-state i {
+    font-size: 2.5rem;
+    color: var(--gray-300);
+    margin-bottom: 0.75rem;
+}
+
+.pers-empty-state h3 {
+    font-size: 1.125rem;
+    margin-bottom: 0.35rem;
+}
+
+.pers-empty-state p {
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.pers-pane-empty {
+    text-align: center;
+    padding: 1.25rem;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    border: 1px dashed var(--gray-300);
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .pers-page {
+        padding: 0.75rem 1rem 5rem;
+    }
+
+    .pers-hero-title {
+        font-size: 1.5rem;
+    }
+
+    .pers-hero-sub {
+        font-size: 0.875rem;
+    }
+
+    .pers-hero-actions {
+        flex-direction: column;
+    }
+
+    .pers-action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .pers-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pers-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pers-card-foot {
+        flex-direction: column;
+    }
+
+    .pers-btn-primary {
+        width: 100%;
+    }
 }

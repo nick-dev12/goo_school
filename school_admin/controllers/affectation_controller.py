@@ -141,7 +141,8 @@ class AffectationController:
             'total_professeurs': professeurs.count(),
             'total_classes': classes.count(),
             'total_matieres': matieres_pour_onglets.count(),
-            'professeurs_affectes': 0,  # À calculer
+            'professeurs_affectes': 0,
+            'professeurs_non_affectes': 0,
         }
         
         # Calculer les affectations existantes pour l'année scolaire active uniquement
@@ -162,6 +163,10 @@ class AffectationController:
                         annee_scolaire=annee_scolaire_active
                     ).exists():
                         stats['professeurs_affectes'] += 1
+
+        stats['professeurs_non_affectes'] = (
+            stats['total_professeurs'] - stats['professeurs_affectes']
+        )
         
         # Préparer les classes disponibles pour chaque professeur
         professeurs_with_classes = []

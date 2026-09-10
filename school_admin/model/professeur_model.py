@@ -43,8 +43,22 @@ class Professeur(AbstractUser):
     # Informations personnelles
     nom = models.CharField(max_length=100, verbose_name="Nom de famille")
     prenom = models.CharField(max_length=100, verbose_name="Prénom")
+    sexe = models.CharField(
+        max_length=1,
+        choices=[('M', 'Masculin'), ('F', 'Féminin')],
+        blank=True,
+        default='',
+        verbose_name="Sexe",
+    )
     email = models.EmailField(unique=True, blank=True, null=True, verbose_name="Adresse email", help_text="Ce champ est facultatif")
     telephone = models.CharField(max_length=20, verbose_name="Numéro de téléphone")
+    prix_volume_horaire = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Prix du volume horaire (FCFA/heure)",
+    )
     
     # Informations professionnelles
     numero_employe = models.CharField(max_length=20, unique=True, verbose_name="Numéro d'employé")
@@ -81,8 +95,9 @@ class Professeur(AbstractUser):
         verbose_name="Établissement"
     )
     date_embauche = models.DateField(
-        default=timezone.now, 
-        verbose_name="Date d'embauche"
+        null=True,
+        blank=True,
+        verbose_name="Date d'embauche",
     )
     actif = models.BooleanField(default=True, verbose_name="Actif")
     

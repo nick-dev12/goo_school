@@ -2145,6 +2145,10 @@ def notes_et_resultats(request):
                 for p in periodes_classe:
                     q2 = qbase.copy()
                     q2[f'periode_{classe.id}'] = str(p.id)
+                    if request.GET.get('tab'):
+                        q2['tab'] = request.GET.get('tab')
+                    if request.GET.get('classe'):
+                        q2['classe'] = request.GET.get('classe')
                     periodes_nav.append({
                         'periode': p,
                         'query': q2.urlencode(),
@@ -2247,6 +2251,43 @@ def notes_et_resultats(request):
         classes_grouped[categorie]['classes'].append(classe_info)
         classes_grouped[categorie]['total_eleves'] += classe_info['nombre_eleves']
         classes_grouped[categorie]['nombre_classes'] += 1
+
+    tab_items = list(classes_grouped.items())
+    active_tab_index = 1
+    tab_param = request.GET.get('tab', '')
+    if tab_param.startswith('tab-'):
+        try:
+            active_tab_index = int(tab_param.replace('tab-', ''))
+        except ValueError:
+            active_tab_index = 1
+    if tab_items:
+        active_tab_index = max(1, min(active_tab_index, len(tab_items)))
+
+    active_classe_id = None
+    classes_in_active_tab = tab_items[active_tab_index - 1][1]['classes'] if tab_items else []
+    valid_classe_ids = {item['classe'].id for item in classes_in_active_tab}
+    classe_param = request.GET.get('classe')
+    if classe_param:
+        try:
+            classe_id_nav = int(classe_param)
+            if classe_id_nav in valid_classe_ids:
+                active_classe_id = classe_id_nav
+        except ValueError:
+            pass
+    if active_classe_id is None and classes_in_active_tab:
+        active_classe_id = classes_in_active_tab[0]['classe'].id
+
+    tab_nav_query = f'tab=tab-{active_tab_index}'
+    if active_classe_id:
+        tab_nav_query += f'&classe={active_classe_id}'
+
+    total_eleves = sum(d['total_eleves'] for d in classes_grouped.values())
+    total_classes = sum(d['nombre_classes'] for d in classes_grouped.values())
+    stats_generales = {
+        'total_eleves': total_eleves,
+        'total_classes': total_classes,
+        'nombre_periodes': len(periodes),
+    }
     
     context = {
         'etablissement': etablissement,
@@ -2256,6 +2297,10 @@ def notes_et_resultats(request):
         'periodes': periodes,
         'periode_selectionnee': periode_selectionnee,
         'annee_scolaire_active': annee_scolaire_active,
+        'active_tab_index': active_tab_index,
+        'active_classe_id': active_classe_id,
+        'tab_nav_query': tab_nav_query,
+        'stats_generales': stats_generales,
     }
     
     return render(request, 'school_admin/directeur/notes_et_resultats.html', context)
@@ -2293,24 +2338,28 @@ def justifications_notes_directeur(request):
 
     # Récupérer les périodes scolaires
     from ..model.periode_model import PeriodeScolaire
-    periodes_queryset = PeriodeScolaire.objects.filter(
-        etablissement=etablissement,
-        est_active=True
-    )
     if annee_scolaire_active:
-        periodes_queryset = periodes_queryset.filter(annee_scolaire_fk=annee_scolaire_active)
-    periodes = periodes_queryset.order_by('date_debut')
+        periodes = list(
+            PeriodeScolaire.objects.filter(
+                etablissement=etablissement,
+                annee_scolaire_fk=annee_scolaire_active,
+            ).order_by('date_debut')
+        )
+    else:
+        periodes = list(
+            PeriodeScolaire.objects.filter(etablissement=etablissement).order_by('date_debut')
+        )
     
     # Sélectionner la période (GET paramètre ou période active par défaut)
     periode_active = None
-    if periodes.exists():
+    if periodes:
         if periode_id:
-            try:
-                periode_active = periodes.get(id=periode_id)
-            except PeriodeScolaire.DoesNotExist:
-                pass
+            periode_active = next(
+                (p for p in periodes if str(p.id) == str(periode_id)),
+                None,
+            )
         if not periode_active:
-            periode_active = periodes.filter(est_active=True).first() or periodes.first()
+            periode_active = next((p for p in periodes if p.est_active), None) or periodes[0]
 
     classes = Classe.objects.filter(
         etablissement=etablissement,
@@ -2521,6 +2570,9 @@ def justifications_notes_directeur(request):
         params = []
         if periode_active:
             params.append(f"periode={periode_active.id}")
+        classe_redirect = request.POST.get('classe') or classe_id
+        if classe_redirect:
+            params.append(f"classe={classe_redirect}")
         if params:
             redirect_url = f"{redirect_url}?{'&'.join(params)}"
         return redirect(redirect_url)
@@ -2538,21 +2590,40 @@ def justifications_notes_directeur(request):
         justifications_par_classe[classe_id]['justifications'].append(justification)
         justifications_par_classe[classe_id]['count'] += 1
 
-    # Trier les classes par nom
+    if classe_id:
+        try:
+            classe_id_int = int(classe_id)
+            if classe_id_int not in justifications_par_classe:
+                classe_demandee = Classe.objects.get(
+                    id=classe_id_int,
+                    etablissement=etablissement,
+                    actif=True,
+                )
+                justifications_par_classe[classe_id_int] = {
+                    'classe': classe_demandee,
+                    'justifications': [],
+                    'count': 0,
+                }
+        except (ValueError, Classe.DoesNotExist):
+            pass
+
     classes_avec_justifications = sorted(
         justifications_par_classe.values(),
         key=lambda x: (x['classe'].niveau, x['classe'].nom)
     )
 
-    # Sélectionner la première classe par défaut si aucune n'est sélectionnée
     classe_selectionnee_obj = None
     justifications_classe_selectionnee = []
     if classe_id:
         try:
-            classe_selectionnee_obj = Classe.objects.get(id=classe_id, etablissement=etablissement)
-            if classe_id in justifications_par_classe:
-                justifications_classe_selectionnee = justifications_par_classe[classe_id]['justifications']
-        except Classe.DoesNotExist:
+            classe_id_int = int(classe_id)
+            classe_selectionnee_obj = Classe.objects.get(
+                id=classe_id_int,
+                etablissement=etablissement,
+            )
+            if classe_id_int in justifications_par_classe:
+                justifications_classe_selectionnee = justifications_par_classe[classe_id_int]['justifications']
+        except (ValueError, Classe.DoesNotExist):
             pass
     elif classes_avec_justifications:
         classe_selectionnee_obj = classes_avec_justifications[0]['classe']
@@ -6199,6 +6270,89 @@ def configuration_standards_reussite(request):
     return render(request, 'school_admin/directeur/configuration_standards_reussite.html', context)
 
 
+def _serialize_presence_record(presence):
+    """Sérialise un enregistrement de présence pour l'affichage et le filtrage côté client."""
+    label_parts = [
+        presence.date.strftime('%d/%m/%Y'),
+        f"Appel {presence.numero_appel}",
+    ]
+    if presence.matiere:
+        label_parts.append(presence.matiere.nom)
+    statut_labels = dict(type(presence).STATUT_CHOICES)
+    return {
+        'id': presence.id,
+        'date': presence.date.isoformat(),
+        'statut': presence.statut,
+        'statut_display': statut_labels.get(presence.statut, presence.statut),
+        'numero_appel': presence.numero_appel,
+        'matiere': presence.matiere.nom if presence.matiere else '',
+        'label': ' - '.join(label_parts),
+    }
+
+
+def _compute_presence_stats(presences):
+    """Calcule les statistiques à partir d'une liste de présences sérialisées."""
+    absences_details = [p for p in presences if p['statut'] == 'absent']
+    return {
+        'total_jours': len(presences),
+        'presents': sum(1 for p in presences if p['statut'] == 'present'),
+        'absents': sum(1 for p in presences if p['statut'] == 'absent'),
+        'absents_justifies': sum(1 for p in presences if p['statut'] == 'absent_justifie'),
+        'retards': sum(1 for p in presences if p['statut'] == 'retard'),
+        'absences_details': absences_details,
+    }
+
+
+def _filter_presences_by_date(presences, target_date):
+    date_str = target_date.isoformat()
+    return [p for p in presences if p['date'] == date_str]
+
+
+def _build_mois_filter_options(presences_queryset, periode_selectionnee=None):
+    """Construit la liste des mois disponibles pour le filtre."""
+    from datetime import datetime
+
+    mois_disponibles = []
+    if periode_selectionnee:
+        date_courante = periode_selectionnee.date_debut
+        while date_courante <= periode_selectionnee.date_fin:
+            mois_existant = next(
+                (m for m in mois_disponibles if m['numero'] == date_courante.month and m['annee'] == date_courante.year),
+                None,
+            )
+            if not mois_existant:
+                date_mois = datetime(date_courante.year, date_courante.month, 1)
+                mois_disponibles.append({
+                    'numero': date_courante.month,
+                    'annee': date_courante.year,
+                    'nom': date_mois.strftime('%B'),
+                    'nom_court': date_mois.strftime('%b'),
+                    'value': f"{date_courante.year}-{date_courante.month:02d}",
+                })
+            if date_courante.month == 12:
+                date_courante = date_courante.replace(year=date_courante.year + 1, month=1, day=1)
+            else:
+                date_courante = date_courante.replace(month=date_courante.month + 1, day=1)
+
+    for p in presences_queryset.values('date__month', 'date__year').distinct().order_by('date__year', 'date__month'):
+        mois_existant = next(
+            (m for m in mois_disponibles if m['numero'] == p['date__month'] and m['annee'] == p['date__year']),
+            None,
+        )
+        if not mois_existant:
+            date_mois = datetime(p['date__year'], p['date__month'], 1)
+            mois_disponibles.append({
+                'numero': p['date__month'],
+                'annee': p['date__year'],
+                'nom': date_mois.strftime('%B'),
+                'nom_court': date_mois.strftime('%b'),
+                'value': f"{p['date__year']}-{p['date__month']:02d}",
+            })
+
+    mois_disponibles.sort(key=lambda x: (x['annee'], x['numero']))
+    return mois_disponibles
+
+
 @login_required
 def suivi_presence(request):
     """
@@ -6292,6 +6446,10 @@ def suivi_presence(request):
             for p in periodes_classe:
                 q2 = qbase.copy()
                 q2[f'periode_{classe.id}'] = str(p.id)
+                if request.GET.get('tab'):
+                    q2['tab'] = request.GET.get('tab')
+                if request.GET.get('classe'):
+                    q2['classe'] = request.GET.get('classe')
                 periodes_nav_classe.append({
                     'periode': p,
                     'query': q2.urlencode(),
@@ -6322,125 +6480,91 @@ def suivi_presence(request):
                 date__lte=annee_scolaire_active.date_fin
             )
         
-        # Récupérer les mois distincts où il y a des données de présence pour cette classe
-        presences_classe = presences_queryset.values('date__month', 'date__year').distinct().order_by('date__year', 'date__month')
-        
-        # Créer une liste des mois disponibles
-        mois_disponibles = []
-        
-        # Si une période est sélectionnée, inclure tous les mois de la période même sans présences
-        if periode_selectionnee:
-            date_courante = periode_selectionnee.date_debut
-            while date_courante <= periode_selectionnee.date_fin:
-                mois_existant = next(
-                    (m for m in mois_disponibles if m['numero'] == date_courante.month and m['annee'] == date_courante.year),
-                    None
-                )
-                if not mois_existant:
-                    date_mois = datetime(date_courante.year, date_courante.month, 1)
-                    mois_disponibles.append({
-                        'numero': date_courante.month,
-                        'annee': date_courante.year,
-                        'nom': date_mois.strftime('%B'),
-                        'nom_court': date_mois.strftime('%b'),
-                    })
-                # Passer au mois suivant
-                if date_courante.month == 12:
-                    date_courante = date_courante.replace(year=date_courante.year + 1, month=1, day=1)
-                else:
-                    date_courante = date_courante.replace(month=date_courante.month + 1, day=1)
-        
-        # Ajouter aussi les mois où il y a effectivement des présences (pour éviter les doublons)
-        for p in presences_classe:
-            mois_existant = next(
-                (m for m in mois_disponibles if m['numero'] == p['date__month'] and m['annee'] == p['date__year']),
-                None
-            )
-            if not mois_existant:
-                date_mois = datetime(p['date__year'], p['date__month'], 1)
-                mois_disponibles.append({
-                    'numero': p['date__month'],
-                    'annee': p['date__year'],
-                    'nom': date_mois.strftime('%B'),
-                    'nom_court': date_mois.strftime('%b'),
-                })
-        
-        # Trier les mois par année et mois
-        mois_disponibles.sort(key=lambda x: (x['annee'], x['numero']))
-        
-        # Pour chaque mois, calculer les statistiques de présence pour chaque élève
-        mois_presences = {}
-        
-        for mois in mois_disponibles:
-            eleves_presences = []
-            
-            for eleve in eleves:
-                # Récupérer les présences de l'élève pour ce mois
-                presences = presences_queryset.filter(
-                    eleve=eleve,
-                    date__month=mois['numero'],
-                    date__year=mois['annee']
-                )
-                
-                total_jours = presences.count()
-                presents = presences.filter(statut='present').count()
-                absents = presences.filter(statut='absent').count()
-                absents_justifies = presences.filter(statut='absent_justifie').count()
-                retards = presences.filter(statut='retard').count()
+        mois_disponibles = _build_mois_filter_options(presences_queryset, periode_selectionnee)
+        today = timezone.localdate()
 
-                absences_details = []
-                if absents:
-                    absences_query = presences.filter(statut='absent').order_by('-date', '-numero_appel')
-                    for absence in absences_query:
-                        label_parts = [
-                            absence.date.strftime('%d/%m/%Y'),
-                            f"Appel {absence.numero_appel}"
-                        ]
-                        if absence.matiere:
-                            label_parts.append(absence.matiere.nom)
-                        absences_details.append({
-                            'id': absence.id,
-                            'label': " - ".join(label_parts)
-                        })
-                
-                # Calculer le taux de présence
-                if total_jours > 0:
-                    taux_presence = round((presents / total_jours) * 100, 2)
-                else:
-                    taux_presence = None
-                
-                eleves_presences.append({
-                    'eleve': eleve,
-                    'total_jours': total_jours,
-                    'presents': presents,
-                    'absents': absents,
-                    'absents_justifies': absents_justifies,
-                    'retards': retards,
-                    'taux_presence': taux_presence,
-                    'absences_details': absences_details,
-                })
-            
-            # Trier par taux de présence décroissant (None en dernier)
-            eleves_presences.sort(key=lambda x: (x['taux_presence'] is None, -x['taux_presence'] if x['taux_presence'] is not None else 0))
-            
-            mois_presences[f"{mois['numero']}_{mois['annee']}"] = {
-                'mois': mois,
-                'eleves_presences': eleves_presences,
-            }
-        
+        presences_by_eleve = {}
+        all_presences_qs = presences_queryset.select_related('matiere').order_by('-date', '-numero_appel')
+        for presence in all_presences_qs:
+            presences_by_eleve.setdefault(presence.eleve_id, []).append(_serialize_presence_record(presence))
+
+        eleves_presences = []
+        presences_json = {}
+        for eleve in eleves:
+            eleve_presences = presences_by_eleve.get(eleve.id, [])
+            presences_json[str(eleve.id)] = eleve_presences
+            today_presences = _filter_presences_by_date(eleve_presences, today)
+            stats = _compute_presence_stats(today_presences)
+            eleves_presences.append({
+                'eleve': eleve,
+                **stats,
+            })
+
+        eleves_presences.sort(
+            key=lambda x: (-x['absents'], -x['retards'], x['eleve'].nom.lower(), x['eleve'].prenom.lower())
+        )
+
         classe_info = {
             'classe': classe,
-            'mois_presences': mois_presences,
+            'eleves_presences': eleves_presences,
             'mois_disponibles': mois_disponibles,
             'nombre_eleves': eleves.count(),
             'periode_id': periode_selectionnee.id if periode_selectionnee else None,
             'periodes_nav': periodes_nav_classe if est_superieur else [],
+            'presences_json': json.dumps(presences_json),
         }
         
         classes_grouped[categorie]['classes'].append(classe_info)
         classes_grouped[categorie]['total_eleves'] += classe_info['nombre_eleves']
         classes_grouped[categorie]['nombre_classes'] += 1
-    
+
+    tab_items = list(classes_grouped.items())
+    active_tab_index = 1
+    tab_param = request.GET.get('tab', '')
+    if tab_param.startswith('tab-'):
+        try:
+            active_tab_index = int(tab_param.replace('tab-', ''))
+        except ValueError:
+            active_tab_index = 1
+    if tab_items:
+        active_tab_index = max(1, min(active_tab_index, len(tab_items)))
+
+    active_classe_id = None
+    classes_in_active_tab = tab_items[active_tab_index - 1][1]['classes'] if tab_items else []
+    valid_classe_ids = {item['classe'].id for item in classes_in_active_tab}
+    classe_param = request.GET.get('classe')
+    if classe_param:
+        try:
+            classe_id = int(classe_param)
+            if classe_id in valid_classe_ids:
+                active_classe_id = classe_id
+        except ValueError:
+            pass
+    if active_classe_id is None and classes_in_active_tab:
+        active_classe_id = classes_in_active_tab[0]['classe'].id
+
+    tab_nav_query = f'tab=tab-{active_tab_index}'
+    if active_classe_id:
+        tab_nav_query += f'&classe={active_classe_id}'
+
+    total_eleves = sum(d['total_eleves'] for d in classes_grouped.values())
+    total_classes = sum(d['nombre_classes'] for d in classes_grouped.values())
+    total_absents_aujourdhui = 0
+    total_retards_aujourdhui = 0
+    for data in classes_grouped.values():
+        for classe_info in data['classes']:
+            for ep in classe_info['eleves_presences']:
+                total_absents_aujourdhui += ep.get('absents', 0)
+                total_retards_aujourdhui += ep.get('retards', 0)
+
+    stats_generales = {
+        'total_eleves': total_eleves,
+        'total_classes': total_classes,
+        'nombre_periodes': len(periodes),
+        'absents_aujourdhui': total_absents_aujourdhui,
+        'retards_aujourdhui': total_retards_aujourdhui,
+    }
+
     context = {
         'etablissement': etablissement,
         'classes_grouped': classes_grouped,
@@ -6448,8 +6572,13 @@ def suivi_presence(request):
         'periode_selectionnee': periode_selectionnee if not est_superieur else None,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur,
+        'date_aujourdhui': timezone.localdate().isoformat(),
+        'active_tab_index': active_tab_index,
+        'active_classe_id': active_classe_id,
+        'tab_nav_query': tab_nav_query,
+        'stats_generales': stats_generales,
     }
-    
+
     return render(request, 'school_admin/directeur/suivi_presence.html', context)
 
 

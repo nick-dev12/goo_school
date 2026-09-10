@@ -1,0 +1,23 @@
+{% load i18n static %}
+
+<div id="modalModifierProfesseur"
+     class="modal-creneau-fullscreen personnel-form-modal{% if show_modifier_modal %} active{% endif %}"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="modal-modifier-professeur-title">
+    <div class="modal-creneau-overlay" onclick="closeModifierProfesseurModal()"></div>
+    <div class="modal-creneau-content">
+        <div class="modal-creneau-header">
+            <h2 id="modal-modifier-professeur-title">
+                <i class="fas fa-user-edit"></i>
+                {% trans "Modifier" %} {{ professeur.nom_complet }}
+            </h2>
+            <button type="button" class="modal-creneau-close" onclick="closeModifierProfesseurModal()" aria-label="{% trans 'Fermer' %}">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-creneau-body">
+            {% include 'school_admin/directeur/personnel/partials/form_modifier_professeur_inner.html' with from_detail=True %}
+        </div>
+    </div>
+</div>

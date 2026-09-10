@@ -221,10 +221,52 @@ def _build_matieres_superieur_flat(etablissement):
     return out
 
 
-def _redirect_detail_professeur_informations(professeur_id):
-    """Redirection fiche professeur, onglet Informations (après POST matières secondaires, etc.)."""
+_DETAIL_ONGLET_LEGACY = {
+    'informations': 'profil',
+    'connexion': 'profil',
+    'classes': 'enseignement',
+    'cahier_notes': 'enseignement',
+    'complementaire': 'dossier',
+}
+
+
+def _normalize_detail_onglet(raw):
+    """Normalise les anciens identifiants d'onglet vers profil | enseignement | dossier."""
+    if not raw:
+        return 'profil'
+    if raw in _DETAIL_ONGLET_LEGACY:
+        return _DETAIL_ONGLET_LEGACY[raw]
+    if raw in ('profil', 'enseignement', 'dossier'):
+        return raw
+    return 'profil'
+
+
+def _dossier_section_from_request(request, onglet_raw):
+    """Section active du dossier RH : consulter ou completer."""
+    if onglet_raw == 'complementaire' or request.GET.get('section') == 'completer':
+        return 'completer'
+    return 'consulter'
+
+
+def _enseignement_section_from_request(request, onglet_raw):
+    """Sous-section Enseignement : classes ou notes."""
+    if onglet_raw == 'cahier_notes' or request.GET.get('section') == 'notes' or request.GET.get('matiere'):
+        return 'notes'
+    return 'classes'
+
+
+def _redirect_detail_professeur(professeur_id, onglet='profil', **query):
+    """Redirection vers la fiche professeur avec onglet normalisé."""
     base = reverse('professeur:detail_professeur', kwargs={'professeur_id': professeur_id})
-    return redirect(f'{base}?onglet=informations')
+    params = {'onglet': onglet}
+    params.update(query)
+    qs = '&'.join(f'{k}={v}' for k, v in params.items() if v is not None)
+    return redirect(f'{base}?{qs}')
+
+
+def _redirect_detail_professeur_informations(professeur_id):
+    """Redirection fiche professeur, onglet Profil (après POST matières secondaires, etc.)."""
+    return _redirect_detail_professeur(professeur_id, 'profil')
 
 
 class ProfesseurController:
@@ -386,6 +428,9 @@ class ProfesseurController:
     @staticmethod
     def build_ajouter_form_context(etablissement, form_data=None, field_errors=None, is_valid=True):
         """Contexte partagé pour le formulaire d'ajout de professeur (page ou modal)."""
+        from ..model.employe_dossier_model import TYPE_CONTRAT_CHOICES
+        from ..utils.employe_dossier_utils import DOSSIER_FORM_FIELDS
+
         if form_data is None:
             form_data = {
                 'department': '',
@@ -396,7 +441,12 @@ class ProfesseurController:
                 'prenom': '',
                 'email': '',
                 'telephone': '',
+                'sexe': '',
+                'date_embauche': '',
+                'prix_volume_horaire': '',
             }
+            for field in DOSSIER_FORM_FIELDS:
+                form_data.setdefault(field, '')
         if field_errors is None:
             field_errors = {}
 
@@ -443,6 +493,154 @@ class ProfesseurController:
             'niveau_choices': Professeur.NIVEAU_CHOICES,
             'type_etablissement': etablissement.type_etablissement,
             'est_superieur': etablissement.type_etablissement == 'superieur',
+            'type_contrat_choices': TYPE_CONTRAT_CHOICES,
+        }
+
+    @staticmethod
+    def build_modifier_form_context(professeur, etablissement, form_data=None, field_errors=None, is_valid=True):
+        """Contexte partagé pour le formulaire de modification (page ou modal détail)."""
+        from ..model.matiere_model import Matiere
+        from ..model.academic_structure_model import Department
+        from ..model.employe_dossier_model import TYPE_CONTRAT_CHOICES
+        from ..utils.employe_dossier_utils import (
+            dossier_form_data_from_dossier,
+            get_or_create_dossier,
+        )
+
+        if field_errors is None:
+            field_errors = {}
+
+        dossier = get_or_create_dossier(professeur=professeur)
+
+        if form_data is None:
+            if etablissement.type_etablissement == 'primary':
+                matieres_secondaires_ids = [str(m.id) for m in professeur.matieres_secondaires.all()]
+                form_data = {
+                    'nom': professeur.nom,
+                    'prenom': professeur.prenom,
+                    'email': professeur.email if professeur.email else '',
+                    'telephone': professeur.telephone,
+                    'sexe': professeur.sexe or '',
+                    'date_embauche': (
+                        professeur.date_embauche.strftime('%Y-%m-%d')
+                        if professeur.date_embauche else ''
+                    ),
+                    'prix_volume_horaire': (
+                        str(professeur.prix_volume_horaire)
+                        if professeur.prix_volume_horaire is not None else ''
+                    ),
+                    'department': '',
+                    'niveau_lmd': '',
+                    'matiere_principale': '',
+                    'matieres_secondaires': matieres_secondaires_ids,
+                }
+            elif etablissement.type_etablissement == 'superieur':
+                mp = professeur.matiere_principale
+                dept_s, niv_s, mp_id = '', '', ''
+                if mp and mp.department_id:
+                    mp_id = str(mp.id)
+                    dept_s = str(mp.department_id)
+                    keys_list = _niveau_lmd_keys_for_matiere_superieur(mp)
+                    opts = _niveaux_lmd_disponibles_pour_department(
+                        etablissement, mp.department_id
+                    )
+                    available_keys = {o['key'] for o in opts}
+                    chosen = ''
+                    for k in keys_list:
+                        if k in available_keys:
+                            chosen = k
+                            break
+                    if not chosen and keys_list:
+                        chosen = keys_list[0]
+                    niv_s = chosen
+                form_data = {
+                    'nom': professeur.nom,
+                    'prenom': professeur.prenom,
+                    'email': professeur.email if professeur.email else '',
+                    'telephone': professeur.telephone,
+                    'sexe': professeur.sexe or '',
+                    'date_embauche': (
+                        professeur.date_embauche.strftime('%Y-%m-%d')
+                        if professeur.date_embauche else ''
+                    ),
+                    'prix_volume_horaire': (
+                        str(professeur.prix_volume_horaire)
+                        if professeur.prix_volume_horaire is not None else ''
+                    ),
+                    'department': dept_s,
+                    'niveau_lmd': niv_s,
+                    'matiere_principale': mp_id,
+                    'matieres_secondaires': [],
+                }
+            else:
+                form_data = {
+                    'nom': professeur.nom,
+                    'prenom': professeur.prenom,
+                    'email': professeur.email if professeur.email else '',
+                    'telephone': professeur.telephone,
+                    'sexe': professeur.sexe or '',
+                    'date_embauche': (
+                        professeur.date_embauche.strftime('%Y-%m-%d')
+                        if professeur.date_embauche else ''
+                    ),
+                    'prix_volume_horaire': (
+                        str(professeur.prix_volume_horaire)
+                        if professeur.prix_volume_horaire is not None else ''
+                    ),
+                    'department': '',
+                    'niveau_lmd': '',
+                    'matiere_principale': (
+                        str(professeur.matiere_principale.id)
+                        if professeur.matiere_principale else ''
+                    ),
+                    'matieres_secondaires': [],
+                }
+            form_data.update(dossier_form_data_from_dossier(dossier))
+
+        matieres = Matiere.objects.filter(etablissement=etablissement).order_by('nom')
+        matieres_selectionnees_ids = []
+        if etablissement.type_etablissement == 'primary':
+            matieres_selectionnees_ids = [str(m.id) for m in professeur.matieres_secondaires.all()]
+
+        departments = []
+        matieres_superieur_flat = []
+        niveaux_par_department = {}
+        niveaux_lmd_options_selection = []
+        est_superieur = etablissement.type_etablissement == 'superieur'
+        if est_superieur:
+            departments = list(
+                Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
+            )
+            matieres_superieur_flat = _build_matieres_superieur_flat(etablissement)
+            for dep in departments:
+                niveaux_par_department[str(dep.id)] = _niveaux_lmd_disponibles_pour_department(
+                    etablissement, dep.id
+                )
+            if form_data.get('department'):
+                try:
+                    dep_sel = int(form_data['department'])
+                    niveaux_lmd_options_selection = _niveaux_lmd_disponibles_pour_department(
+                        etablissement, dep_sel
+                    )
+                except (TypeError, ValueError):
+                    niveaux_lmd_options_selection = []
+
+        return {
+            'professeur': professeur,
+            'form_data': form_data,
+            'field_errors': field_errors,
+            'is_valid': is_valid,
+            'etablissement': etablissement,
+            'matieres': matieres,
+            'type_etablissement': etablissement.type_etablissement,
+            'matieres_selectionnees_ids': matieres_selectionnees_ids,
+            'est_superieur': est_superieur,
+            'departments': departments,
+            'matieres_superieur_flat': matieres_superieur_flat,
+            'niveaux_par_department': niveaux_par_department,
+            'niveaux_lmd_options_selection': niveaux_lmd_options_selection,
+            'dossier': dossier,
+            'type_contrat_choices': TYPE_CONTRAT_CHOICES,
         }
     
     @staticmethod
@@ -496,16 +694,22 @@ class ProfesseurController:
             if not telephone_value:
                 telephone_value = request.POST.get('telephone', '').strip()
             
+            from ..utils.employe_dossier_utils import dossier_form_data_from_post
+
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
                 'prenom': request.POST.get('prenom', '').strip(),
                 'email': request.POST.get('email', '').strip(),
                 'telephone': telephone_value,
+                'sexe': request.POST.get('sexe', '').strip(),
+                'date_embauche': request.POST.get('date_embauche', '').strip(),
+                'prix_volume_horaire': request.POST.get('prix_volume_horaire', '').strip(),
                 'department': request.POST.get('department', ''),
                 'niveau_lmd': (request.POST.get('niveau_lmd') or '').strip(),
                 'matiere_principale': request.POST.get('matiere_principale', ''),
                 'matieres_secondaires': request.POST.getlist('matieres_secondaires', []),
             }
+            form_data.update(dossier_form_data_from_post(request.POST))
             
             # Déterminer automatiquement le niveau d'enseignement
             niveau_enseignement_auto = get_niveau_from_etablissement(etablissement.type_etablissement)
@@ -595,6 +799,17 @@ class ProfesseurController:
                     except Matiere.DoesNotExist:
                         field_errors['matiere_principale'] = "La matière sélectionnée n'existe pas."
                         is_valid = False
+
+            if form_data.get('sexe') not in ('M', 'F'):
+                field_errors['sexe'] = "Le sexe est obligatoire."
+                is_valid = False
+
+            from ..utils.employe_dossier_utils import parse_optional_date, parse_optional_decimal
+            date_embauche_val = parse_optional_date(form_data.get('date_embauche'))
+            prix_horaire_val = parse_optional_decimal(form_data.get('prix_volume_horaire'))
+            if form_data.get('prix_volume_horaire') and prix_horaire_val is None:
+                field_errors['prix_volume_horaire'] = "Le prix horaire n'est pas valide."
+                is_valid = False
             
             # Validation de l'email (seulement si fourni)
             if form_data['email']:
@@ -630,8 +845,11 @@ class ProfesseurController:
                         professeur = Professeur(
                             nom=form_data['nom'],
                             prenom=form_data['prenom'],
+                            sexe=form_data['sexe'],
                             email=email_value,  # Peut être None si non fourni
                             telephone=form_data['telephone'],
+                            date_embauche=date_embauche_val,
+                            prix_volume_horaire=prix_horaire_val,
                             matiere_principale=matiere_principale_obj,
                             niveau_enseignement=form_data['niveau_enseignement'],
                             numero_employe=matricule,  # Le matricule est enregistré dans numero_employe
@@ -645,6 +863,13 @@ class ProfesseurController:
                         # Définir le mot de passe provisoire hashé
                         professeur.set_password(mot_de_passe_provisoire)
                         professeur.save()
+
+                        from ..utils.employe_dossier_utils import (
+                            save_documents_from_request,
+                            save_dossier_from_post_if_any,
+                        )
+                        save_dossier_from_post_if_any(professeur=professeur, post_data=request.POST)
+                        save_documents_from_request(request, professeur=professeur)
                         
                         # Matières secondaires (primaire / collège-lycée uniquement — pas pour le supérieur)
                         if (
@@ -732,12 +957,31 @@ class ProfesseurController:
         # Récupérer les classes affectées avec leurs informations
         classes_affectees = professeur.classes.all().order_by('nom')
         
-        # Récupérer l'onglet sélectionné
-        onglet_actif = request.GET.get('onglet', 'informations')
+        # Onglet principal (profil | enseignement | dossier)
+        onglet_raw = request.GET.get('onglet', 'profil')
+        onglet_actif = _normalize_detail_onglet(onglet_raw)
+        dossier_section = _dossier_section_from_request(request, onglet_raw)
+        enseignement_section = _enseignement_section_from_request(request, onglet_raw)
         
         # Gérer l'ajout/suppression de matières secondaires (POST)
         if request.method == 'POST':
             action = request.POST.get('action')
+
+            if action == 'update_dossier':
+                from ..utils.employe_dossier_utils import get_or_create_dossier, update_dossier_from_post
+                dossier = get_or_create_dossier(professeur=professeur)
+                update_dossier_from_post(dossier, request.POST)
+                messages.success(request, "Les informations complémentaires ont été enregistrées.")
+                return _redirect_detail_professeur(professeur.id, 'dossier', section='completer')
+
+            if action == 'ajouter_documents':
+                from ..utils.employe_dossier_utils import save_documents_from_request
+                docs = save_documents_from_request(request, professeur=professeur)
+                if docs:
+                    messages.success(request, f"{len(docs)} document(s) ajouté(s) au dossier.")
+                else:
+                    messages.info(request, "Aucun fichier sélectionné.")
+                return _redirect_detail_professeur(professeur.id, 'dossier', section='completer')
             
             if action == 'ajouter_matiere_secondaire':
                 matiere_id = request.POST.get('matiere_id', '').strip()
@@ -859,7 +1103,7 @@ class ProfesseurController:
             periode_selectionnee = periodes.filter(est_active=True).first() or periodes.first()
             
             # Pour chaque affectation, récupérer les moyennes par matière
-            if onglet_actif == 'cahier_notes' and periode_selectionnee:
+            if periode_selectionnee:
                 from ..model.evaluation_primaire_model import EvaluationPrimaire
                 from ..model.note_primaire_model import NotePrimaire
                 
@@ -1063,20 +1307,57 @@ class ProfesseurController:
         else:
             matieres_disponibles = md_qs.order_by('nom')
 
+        from ..model.employe_dossier_model import TYPE_CONTRAT_CHOICES
+        from ..utils.employe_dossier_utils import (
+            dossier_form_data_from_dossier,
+            get_or_create_dossier,
+            get_documents_for_employe,
+            get_sexe_display,
+        )
+        dossier = get_or_create_dossier(professeur=professeur)
+        documents = get_documents_for_employe(professeur=professeur)
+
+        modifier_field_errors = request.session.pop('modifier_prof_errors', {})
+        modifier_form_data = request.session.pop('modifier_prof_form', None)
+        show_modifier_modal = request.GET.get('modifier') == '1' or bool(modifier_field_errors)
+
+        modifier_ctx = ProfesseurController.build_modifier_form_context(
+            professeur,
+            etablissement,
+            form_data=modifier_form_data,
+            field_errors=modifier_field_errors,
+            is_valid=not modifier_field_errors,
+        )
+
         context = {
             'professeur': professeur,
             'etablissement': etablissement,
             'classes_affectees': classes_affectees,
             'affectations_primaire': affectations_primaire,
             'onglet_actif': onglet_actif,
+            'dossier_section': dossier_section,
+            'enseignement_section': enseignement_section,
             'cahier_notes_data': cahier_notes_data,
             'matieres_disponibles': matieres_disponibles,
             'modal_superieur_departments': modal_superieur_departments,
             'modal_superieur_matieres_flat': modal_superieur_matieres_flat,
             'modal_niveaux_par_department': modal_niveaux_par_department,
+            'dossier': dossier,
+            'documents': documents,
+            'sexe_display': get_sexe_display(professeur.sexe),
+            'type_contrat_choices': TYPE_CONTRAT_CHOICES,
+            'document_download_url_name': 'professeur:telecharger_document',
+            'show_modifier_modal': show_modifier_modal,
+            'employe': professeur,
+            'dossier_form_data': dossier_form_data_from_dossier(dossier) if dossier else {},
         }
-        
-        return render(request, 'school_admin/directeur/personnel/professeurs/detail_professeur.html', context)
+        context.update(modifier_ctx)
+
+        return render(
+            request,
+            'school_admin/directeur/personnel/professeurs/detail_professeur.html',
+            context,
+        )
     
     @staticmethod
     @login_required
@@ -1112,6 +1393,39 @@ class ProfesseurController:
             messages.error(request, "Professeur non trouvé.")
         
         return redirect('professeur:detail_professeur', professeur_id=professeur_id)
+
+    @staticmethod
+    @login_required
+    def telecharger_document(request, document_id):
+        """Affiche ou télécharge un document du dossier professeur."""
+        from django.http import FileResponse, Http404
+        from ..model.employe_dossier_model import DocumentEmploye
+
+        if isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
+            from ..model.personnel_administratif_model import PersonnelAdministratif
+            if isinstance(request.user, PersonnelAdministratif):
+                etablissement = request.user.etablissement
+            else:
+                messages.error(request, "Accès non autorisé.")
+                return redirect('school_admin:connexion_compte_user')
+
+        try:
+            document = DocumentEmploye.objects.select_related('professeur').get(
+                id=document_id,
+                professeur__etablissement=etablissement,
+            )
+        except DocumentEmploye.DoesNotExist:
+            raise Http404("Document introuvable.")
+
+        response = FileResponse(document.fichier.open('rb'), as_attachment=bool(request.GET.get('download')))
+        response['Content-Disposition'] = (
+            f'attachment; filename="{document.nom_fichier}"'
+            if request.GET.get('download')
+            else f'inline; filename="{document.nom_fichier}"'
+        )
+        return response
     
     @staticmethod
     @login_required
@@ -1182,16 +1496,23 @@ class ProfesseurController:
             if not telephone_value:
                 telephone_value = request.POST.get('telephone', '').strip()
             
+            from ..utils.employe_dossier_utils import dossier_form_data_from_post
+
             form_data = {
                 'nom': request.POST.get('nom', '').strip(),
                 'prenom': request.POST.get('prenom', '').strip(),
                 'email': request.POST.get('email', '').strip(),
                 'telephone': telephone_value,
+                'sexe': request.POST.get('sexe', '').strip(),
+                'date_embauche': request.POST.get('date_embauche', '').strip(),
+                'prix_volume_horaire': request.POST.get('prix_volume_horaire', '').strip(),
                 'department': request.POST.get('department', ''),
                 'niveau_lmd': (request.POST.get('niveau_lmd') or '').strip(),
                 'matiere_principale': request.POST.get('matiere_principale', ''),
                 'matieres_secondaires': request.POST.getlist('matieres_secondaires', []),
             }
+            form_data.update(dossier_form_data_from_post(request.POST))
+            from_detail = request.POST.get('from_detail') == '1'
             
             # Déterminer automatiquement le niveau d'enseignement en fonction du type d'établissement
             niveau_enseignement = get_niveau_from_type_etablissement(etablissement.type_etablissement)
@@ -1286,6 +1607,17 @@ class ProfesseurController:
                         field_errors['matiere_principale'] = "La matière sélectionnée n'existe pas."
                         is_valid = False
             
+            if form_data.get('sexe') not in ('M', 'F'):
+                field_errors['sexe'] = "Le sexe est obligatoire."
+                is_valid = False
+
+            from ..utils.employe_dossier_utils import parse_optional_date, parse_optional_decimal
+            date_embauche_val = parse_optional_date(form_data.get('date_embauche'))
+            prix_horaire_val = parse_optional_decimal(form_data.get('prix_volume_horaire'))
+            if form_data.get('prix_volume_horaire') and prix_horaire_val is None:
+                field_errors['prix_volume_horaire'] = "Le prix horaire n'est pas valide."
+                is_valid = False
+
             # Validation de l'email (seulement si fourni)
             if form_data['email']:
                 if '@' not in form_data['email']:
@@ -1315,6 +1647,9 @@ class ProfesseurController:
                         professeur.prenom = form_data['prenom']
                         professeur.email = email_value  # Peut être None si non fourni
                         professeur.telephone = form_data['telephone']
+                        professeur.sexe = form_data['sexe']
+                        professeur.date_embauche = date_embauche_val
+                        professeur.prix_volume_horaire = prix_horaire_val
                         professeur.matiere_principale = matiere_principale_obj
                         # Définir automatiquement le niveau d'enseignement
                         professeur.niveau_enseignement = niveau_enseignement
@@ -1339,6 +1674,13 @@ class ProfesseurController:
                         else:
                             # Collège / lycée / supérieur : pas de matières secondaires via ce formulaire
                             professeur.matieres_secondaires.clear()
+
+                        from ..utils.employe_dossier_utils import (
+                            get_or_create_dossier,
+                            update_dossier_from_post,
+                        )
+                        dossier = get_or_create_dossier(professeur=professeur)
+                        update_dossier_from_post(dossier, request.POST)
                         
                         messages.success(request, f"Les informations de {professeur.nom_complet} ont été mises à jour avec succès !")
                         return redirect('professeur:detail_professeur', professeur_id=professeur.id)
@@ -1347,111 +1689,20 @@ class ProfesseurController:
                     logger.error(f"Erreur lors de la modification du professeur: {str(e)}")
                     field_errors['__all__'] = "Une erreur est survenue lors de la modification du professeur."
                     is_valid = False
-        else:
-            # Préremplir le formulaire avec les données actuelles
-            if etablissement.type_etablissement == 'primary':
-                # Pour le primaire, récupérer les matières secondaires
-                # Convertir les IDs en chaînes pour la comparaison dans le template
-                matieres_secondaires_ids = [str(m.id) for m in professeur.matieres_secondaires.all()]
-                form_data = {
-                    'nom': professeur.nom,
-                    'prenom': professeur.prenom,
-                    'email': professeur.email if professeur.email else '',
-                    'telephone': professeur.telephone,
-                    'department': '',
-                    'niveau_lmd': '',
-                    'matiere_principale': '',  # Pas utilisé pour le primaire
-                    'matieres_secondaires': matieres_secondaires_ids,
-                }
-            elif etablissement.type_etablissement == 'superieur':
-                mp = professeur.matiere_principale
-                dept_s, niv_s, mp_id = '', '', ''
-                if mp and mp.department_id:
-                    mp_id = str(mp.id)
-                    dept_s = str(mp.department_id)
-                    keys_list = _niveau_lmd_keys_for_matiere_superieur(mp)
-                    opts = _niveaux_lmd_disponibles_pour_department(
-                        etablissement, mp.department_id
-                    )
-                    available_keys = {o['key'] for o in opts}
-                    chosen = ''
-                    for k in keys_list:
-                        if k in available_keys:
-                            chosen = k
-                            break
-                    if not chosen and keys_list:
-                        chosen = keys_list[0]
-                    niv_s = chosen
-                form_data = {
-                    'nom': professeur.nom,
-                    'prenom': professeur.prenom,
-                    'email': professeur.email if professeur.email else '',
-                    'telephone': professeur.telephone,
-                    'department': dept_s,
-                    'niveau_lmd': niv_s,
-                    'matiere_principale': mp_id,
-                    'matieres_secondaires': [],
-                }
-            else:
-                # Pour collège/lycée, récupérer la matière principale
-                form_data = {
-                    'nom': professeur.nom,
-                    'prenom': professeur.prenom,
-                    'email': professeur.email if professeur.email else '',
-                    'telephone': professeur.telephone,
-                    'department': '',
-                    'niveau_lmd': '',
-                    'matiere_principale': professeur.matiere_principale.id if professeur.matiere_principale else '',
-                    'matieres_secondaires': [],
-                }
-        
-        # Récupérer les matières de l'établissement
-        from ..model.matiere_model import Matiere
-        from ..model.academic_structure_model import Department
-        matieres = Matiere.objects.filter(etablissement=etablissement).order_by('nom')
-        
-        # Pour le primaire, créer une liste des IDs des matières sélectionnées pour faciliter la comparaison dans le template
-        matieres_selectionnees_ids = []
-        if etablissement.type_etablissement == 'primary':
-            matieres_selectionnees_ids = [str(m.id) for m in professeur.matieres_secondaires.all()]
-        
-        departments = []
-        matieres_superieur_flat = []
-        niveaux_par_department = {}
-        niveaux_lmd_options_selection = []
-        est_superieur = etablissement.type_etablissement == 'superieur'
-        if est_superieur:
-            departments = list(
-                Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
-            )
-            matieres_superieur_flat = _build_matieres_superieur_flat(etablissement)
-            for dep in departments:
-                niveaux_par_department[str(dep.id)] = _niveaux_lmd_disponibles_pour_department(
-                    etablissement, dep.id
+
+            if not is_valid and from_detail:
+                request.session['modifier_prof_errors'] = field_errors
+                request.session['modifier_prof_form'] = form_data
+                return redirect(
+                    f"{reverse('professeur:detail_professeur', args=[professeur.id])}?modifier=1"
                 )
-            if form_data.get('department'):
-                try:
-                    dep_sel = int(form_data['department'])
-                    niveaux_lmd_options_selection = _niveaux_lmd_disponibles_pour_department(
-                        etablissement, dep_sel
-                    )
-                except (TypeError, ValueError):
-                    niveaux_lmd_options_selection = []
         
-        context = {
-            'professeur': professeur,
-            'form_data': form_data,
-            'field_errors': field_errors,
-            'is_valid': is_valid,
-            'etablissement': etablissement,
-            'matieres': matieres,
-            'type_etablissement': etablissement.type_etablissement,
-            'matieres_selectionnees_ids': matieres_selectionnees_ids,  # Liste des IDs des matières déjà sélectionnées
-            'est_superieur': est_superieur,
-            'departments': departments,
-            'matieres_superieur_flat': matieres_superieur_flat,
-            'niveaux_par_department': niveaux_par_department,
-            'niveaux_lmd_options_selection': niveaux_lmd_options_selection,
-        }
+        context = ProfesseurController.build_modifier_form_context(
+            professeur,
+            etablissement,
+            form_data=form_data if form_data else None,
+            field_errors=field_errors,
+            is_valid=is_valid,
+        )
         
         return render(request, 'school_admin/directeur/personnel/professeurs/modifier_professeur.html', context)

@@ -55,8 +55,11 @@ Start-Process powershell -ArgumentList @("-NoExit", "-Command", $celeryCmd)
 Write-Host ""
 Write-Host "Demarrage de Daphne sur http://127.0.0.1:8000" -ForegroundColor Cyan
 Write-Host "WebSocket : ws://127.0.0.1:8000/ws/realtime/" -ForegroundColor Yellow
+Write-Host "Rechargement auto : .py, .html, .css, .js (scripts/daphne_autoreload.py)" -ForegroundColor Green
 Write-Host "Arret : Ctrl+C dans cette fenetre + fermer la fenetre Celery" -ForegroundColor Gray
 Write-Host ""
 
 & $venvActivate
-daphne -b 127.0.0.1 -p 8000 school.asgi:application
+$pythonExe = Join-Path (Split-Path $venvActivate) "python.exe"
+& $pythonExe -m pip install watchdog -q
+& $pythonExe (Join-Path $ProjectRoot "scripts\daphne_autoreload.py")

@@ -11,4 +11,5 @@ urlpatterns = [
     path('professeurs/<int:professeur_id>/', ProfesseurController.detail_professeur, name='detail_professeur'),
     path('professeurs/<int:professeur_id>/modifier/', ProfesseurController.modifier_professeur, name='modifier_professeur'),
     path('professeurs/<int:professeur_id>/toggle/', ProfesseurController.toggle_actif, name='toggle_actif'),
+    path('professeurs/documents/<int:document_id>/', ProfesseurController.telecharger_document, name='telecharger_document'),
 ]

@@ -111,6 +111,7 @@
             <!-- Formulaire de présence -->
             <form method="post" action="{% url 'enseignant_primaire:valider_presence' classe.id %}" id="presence-form">
                 {% csrf_token %}
+                <input type="hidden" name="classe_id" value="{{ classe.id }}">
                 <input type="hidden" name="numero_appel" value="{{ numero_appel_actuel }}">
                 
                 <!-- Actions buttons (top) -->
@@ -225,7 +226,23 @@
         {% endif %}
     </div>
 
+    <script type="application/json" id="presence-offline-context">
+    {
+      "niveau": "primaire",
+      "classe_id": {{ classe.id }},
+      "classe_nom": "{{ classe.nom|escapejs }}",
+      "matiere_id": null,
+      "numero_appel": {{ numero_appel_actuel|default:1 }},
+      "date": "{{ today|date:'Y-m-d' }}",
+      "eleves": [
+        {% for item in eleves_avec_presence %}
+        {"id": {{ item.eleve.id }}, "server_id": {{ item.eleve.id }}, "nom": "{{ item.eleve.nom|escapejs }}", "prenom": "{{ item.eleve.prenom|escapejs }}", "nom_complet": "{{ item.eleve.nom_complet|escapejs }}", "matricule": "{{ item.eleve.matricule|escapejs }}", "classe_id": {{ classe.id }}}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }
+    </script>
     <script src="{% static 'school_admin/js/enseignant/primaire/liste_presence_primaire.js' %}"></script>
+    <script src="{% static 'school_admin/js/enseignant/presence_offline.js' %}"></script>
 
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
 {% include 'school_admin/partials/enseignant_live_scripts.html' %}

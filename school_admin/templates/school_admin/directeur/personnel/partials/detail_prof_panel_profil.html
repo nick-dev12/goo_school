@@ -1,0 +1,138 @@
+{% load i18n %}
+
+<div class="prof-panel-intro">
+    <h2 class="prof-panel-title"><i class="fas fa-user-circle"></i> {% trans "Profil de l'enseignant" %}</h2>
+    <p class="prof-panel-desc">{% trans "Coordonnées, poste et accès à la plateforme." %}</p>
+</div>
+
+<div class="prof-cards-grid">
+    <article class="prof-card">
+        <header class="prof-card-head">
+            <i class="fas fa-id-card"></i>
+            <h3>{% trans "Identité" %}</h3>
+        </header>
+        <dl class="prof-dl">
+            <div class="prof-dl-row"><dt>{% trans "Nom complet" %}</dt><dd>{{ professeur.nom }} {{ professeur.prenom }}</dd></div>
+            <div class="prof-dl-row"><dt>{% trans "Sexe" %}</dt><dd>{{ sexe_display|default:"—" }}</dd></div>
+            <div class="prof-dl-row"><dt>{% trans "Matricule" %}</dt><dd><span class="chip chip-light">{{ professeur.numero_employe }}</span></dd></div>
+            <div class="prof-dl-row"><dt>{% trans "Statut" %}</dt><dd><span class="chip {% if professeur.actif %}chip-success{% else %}chip-muted{% endif %}">{% if professeur.actif %}{% trans "Actif" %}{% else %}{% trans "Inactif" %}{% endif %}</span></dd></div>
+        </dl>
+    </article>
+
+    <article class="prof-card">
+        <header class="prof-card-head">
+            <i class="fas fa-address-book"></i>
+            <h3>{% trans "Contact" %}</h3>
+        </header>
+        <dl class="prof-dl">
+            <div class="prof-dl-row"><dt>{% trans "Email" %}</dt><dd>{% if professeur.email %}<a href="mailto:{{ professeur.email }}" class="link-email">{{ professeur.email }}</a>{% else %}—{% endif %}</dd></div>
+            <div class="prof-dl-row"><dt>{% trans "Téléphone" %}</dt><dd><a href="tel:{{ professeur.telephone }}" class="link-phone">{{ professeur.telephone }}</a></dd></div>
+        </dl>
+    </article>
+
+    <article class="prof-card prof-card-wide">
+        <header class="prof-card-head">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <h3>{% trans "Enseignement" %}</h3>
+        </header>
+        <dl class="prof-dl">
+            <div class="prof-dl-row"><dt>{% trans "Niveau" %}</dt><dd><span class="chip chip-primary">{{ professeur.niveau_display }}</span></dd></div>
+            {% if professeur.etablissement.type_etablissement == 'primary' %}
+                <div class="prof-dl-row"><dt>{% trans "Profil" %}</dt><dd>{% trans "Enseignant primaire polyvalent" %}</dd></div>
+                <div class="prof-dl-row prof-dl-row-stack"><dt>{% trans "Matières" %}</dt><dd>
+                    {% if affectations_primaire %}
+                        <div class="prof-matiere-tags">
+                            {% for affectation in affectations_primaire %}
+                                {% for matiere in affectation.matieres.all %}
+                                    <span class="chip chip-light">{{ matiere.nom }}</span>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% else %}—{% endif %}
+                </dd></div>
+            {% else %}
+                <div class="prof-dl-row"><dt>{% trans "Matière principale" %}</dt><dd><span class="chip chip-primary">{{ professeur.matiere_display }}</span></dd></div>
+                <div class="prof-dl-row prof-dl-row-stack"><dt>{% trans "Matières secondaires" %}</dt><dd>
+                    <div class="matieres-secondaires-container">
+                        <div class="matieres-secondaires-list">
+                            {% for matiere in professeur.matieres_secondaires.all %}
+                                <span class="badge-matiere-secondary">{{ matiere.nom }}
+                                    <button type="button" class="btn-remove-matiere" onclick="retirerMatiereSecondaire({{ professeur.id }}, {{ matiere.id }})" title="{% trans 'Retirer' %}"><i class="fas fa-times"></i></button>
+                                </span>
+                            {% empty %}<span class="text-muted">{% trans "Aucune" %}</span>{% endfor %}
+                        </div>
+                        {% if etablissement.type_etablissement != 'primary' %}
+                        <button type="button" class="btn-add-matiere-secondary" onclick="ouvrirModalAjoutMatiere()" {% if etablissement.type_etablissement == 'superieur' %}{% if not modal_superieur_matieres_flat %}disabled{% endif %}{% else %}{% if not matieres_disponibles %}disabled{% endif %}{% endif %}>
+                            <i class="fas fa-plus"></i> {% trans "Ajouter une matière" %}
+                        </button>
+                        {% endif %}
+                    </div>
+                </dd></div>
+            {% endif %}
+        </dl>
+    </article>
+
+    <article class="prof-card">
+        <header class="prof-card-head">
+            <i class="fas fa-building"></i>
+            <h3>{% trans "Administratif" %}</h3>
+        </header>
+        <dl class="prof-dl">
+            <div class="prof-dl-row"><dt>{% trans "Établissement" %}</dt><dd>{{ professeur.etablissement.nom }}</dd></div>
+            <div class="prof-dl-row"><dt>{% trans "Embauche" %}</dt><dd>{% if professeur.date_embauche %}{{ professeur.date_embauche|date:"d/m/Y" }}{% else %}—{% endif %}</dd></div>
+            <div class="prof-dl-row"><dt>{% trans "Prix horaire" %}</dt><dd>{% if professeur.prix_volume_horaire %}{{ professeur.prix_volume_horaire }} FCFA/h{% else %}—{% endif %}</dd></div>
+            <div class="prof-dl-row"><dt>{% trans "Compte créé" %}</dt><dd>{{ professeur.date_creation|date:"d/m/Y" }}</dd></div>
+        </dl>
+    </article>
+
+    <article class="prof-card prof-card-wide">
+        <header class="prof-card-head">
+            <i class="fas fa-key"></i>
+            <h3>{% trans "Connexion à la plateforme" %}</h3>
+        </header>
+        <div class="prof-connexion-block">
+            {% if professeur.mot_de_passe_provisoire %}
+                <div class="prof-alert prof-alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>{% trans "Mot de passe provisoire actif" %}</strong>
+                        <p>{% trans "À communiquer au professeur pour sa première connexion." %}</p>
+                    </div>
+                </div>
+                <div class="connexion-info-grid">
+                    <div class="connexion-item">
+                        <div class="connexion-label"><i class="fas fa-id-card"></i> {% trans "Identifiant" %}</div>
+                        <div class="connexion-value">
+                            <code class="connexion-code">{{ professeur.username }}</code>
+                            <button type="button" class="btn-copy" onclick="copyToClipboard('{{ professeur.username }}')"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <div class="connexion-item">
+                        <div class="connexion-label"><i class="fas fa-lock"></i> {% trans "Mot de passe provisoire" %}</div>
+                        <div class="connexion-value">
+                            <code class="connexion-code password-code">{{ professeur.mot_de_passe_provisoire }}</code>
+                            <button type="button" class="btn-copy" onclick="copyToClipboard('{{ professeur.mot_de_passe_provisoire }}')"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="prof-alert prof-alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>{% trans "Mot de passe personnalisé" %}</strong>
+                        <p>{% trans "Le professeur a défini son propre mot de passe." %}</p>
+                    </div>
+                </div>
+                <div class="connexion-info-grid">
+                    <div class="connexion-item">
+                        <div class="connexion-label"><i class="fas fa-id-card"></i> {% trans "Identifiant" %}</div>
+                        <div class="connexion-value">
+                            <code class="connexion-code">{{ professeur.username }}</code>
+                            <button type="button" class="btn-copy" onclick="copyToClipboard('{{ professeur.username }}')"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </article>
+</div>

@@ -292,15 +292,16 @@ body {
 
 .tabs-nav {
   display: flex;
-  overflow-x: auto;
-  overflow-y: hidden;
-  flex-wrap: nowrap;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  display: flex;
+  background: var(--bg-tertiary);
+  border-bottom: none;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.categories-tabs .matiere-tabs-bar {
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-light);
-  overflow-x: auto;
+  padding: 0.35rem;
 }
 
 .tab-btn {
@@ -363,6 +364,170 @@ body {
 
 .tab-panel.active {
   display: block;
+}
+
+/* Onglets par catégorie (CE1, CE2…) — même logique que emplois du temps */
+.cls-cat-section {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.cls-cat-nav-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  width: 100%;
+  position: relative;
+  background: var(--bg-tertiary);
+  padding: 0.5rem;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.cls-cat-nav-track {
+  display: flex;
+  flex: 1;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+  align-items: stretch;
+}
+
+.cls-cat-btn {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--border-light);
+  border-radius: 0.625rem;
+  background: var(--bg-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.cls-cat-btn i {
+  color: #3b82f6;
+  font-size: 0.875rem;
+}
+
+.cls-cat-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cls-cat-count {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--gray-200);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  min-width: 1.25rem;
+  text-align: center;
+}
+
+.cls-cat-btn.active {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
+  box-shadow: var(--shadow-sm);
+}
+
+.cls-cat-btn.active .cls-cat-name {
+  color: #1d4ed8;
+}
+
+.cls-cat-more-wrap {
+  flex-shrink: 0;
+  position: relative;
+}
+
+.cls-cat-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 100%;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-light);
+  border-radius: 0.625rem;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.cls-cat-more-btn:hover,
+.cls-cat-more-btn[aria-expanded="true"] {
+  border-color: #3b82f6;
+  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.cls-cat-more-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.cls-cat-overflow-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 100;
+  min-width: 11rem;
+  max-height: min(16rem, 50vh);
+  overflow-y: auto;
+  padding: 0.35rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 0.625rem;
+  box-shadow: var(--shadow-lg);
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cls-cat-overflow-menu[hidden] {
+  display: none !important;
+}
+
+.cls-cat-overflow-menu:not([hidden]) {
+  display: flex;
+}
+
+.cls-cat-overflow-menu .cls-cat-btn {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.cls-panel {
+  display: none;
+}
+
+.cls-panel.active {
+  display: block;
+}
+
+.cls-panels-wrap .cls-panel {
+  padding: var(--space-6);
+}
+
+.cls-panel-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 /* Sous-onglets par niveau LMD (liste classes — supérieur) */
@@ -447,8 +612,10 @@ body {
 /* ===== EN-TÊTE DE CATÉGORIE ===== */
 .category-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-3);
   margin-bottom: var(--space-6);
   padding: var(--space-5);
   background: var(--bg-secondary);

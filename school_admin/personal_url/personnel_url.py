@@ -10,4 +10,5 @@ urlpatterns = [
     path('personnel/<int:personnel_id>/', PersonnelController.detail_personnel, name='detail_personnel'),
     path('personnel/<int:personnel_id>/modifier/', PersonnelController.modifier_personnel, name='modifier_personnel'),
     path('personnel/<int:personnel_id>/toggle/', PersonnelController.toggle_actif, name='toggle_actif'),
+    path('personnel/documents/<int:document_id>/', PersonnelController.telecharger_document, name='telecharger_document'),
 ]

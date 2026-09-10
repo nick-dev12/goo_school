@@ -1,0 +1,34 @@
+{% load i18n %}
+
+<div class="dossier-complementaire-panel">
+    <p class="section-hint dossier-hint">
+        {% trans "Complétez le dossier à votre rythme. Tous les champs sont facultatifs." %}
+    </p>
+
+    <form method="post" action="" class="form-dossier-complementaire">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_dossier">
+
+        {% include 'school_admin/directeur/personnel/partials/champs_dossier_complementaire_form.html' with prefix='comp_' dossier_data=dossier_form_data dossier=dossier type_contrat_choices=type_contrat_choices %}
+
+        <div class="form-actions dossier-form-actions">
+            <button type="submit" class="btn-action btn-primary">
+                <i class="fas fa-save"></i>
+                {% trans "Enregistrer les informations complémentaires" %}
+            </button>
+        </div>
+    </form>
+
+    <div class="info-section" style="margin-top: 1.5rem;">
+        <h3 class="section-title"><i class="fas fa-upload"></i> {% trans "Ajouter des documents" %}</h3>
+        <form method="post" action="" enctype="multipart/form-data" class="form-add-documents">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="ajouter_documents">
+            {% include 'school_admin/directeur/personnel/partials/section_documents_employe.html' with container_id='documents-upload-complementaire' %}
+            <button type="submit" class="btn-action btn-primary btn-save-docs">
+                <i class="fas fa-upload"></i>
+                {% trans "Enregistrer les documents" %}
+            </button>
+        </form>
+    </div>
+</div>

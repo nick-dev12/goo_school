@@ -1,0 +1,427 @@
+{% load i18n %}
+<form method="post" id="{% if modal_mode %}parametresFormModal{% else %}parametresForm{% endif %}" action="{% if is_edit %}{% url 'directeur:modifier_parametres_groupe_directeur' parametre.id %}{% else %}{% url 'directeur:ajouter_parametres_groupe_directeur' %}{% endif %}">
+    {% csrf_token %}
+
+    <div class="parametres-section">
+        <h2 class="section-title">
+            <i class="fas fa-info-circle"></i>
+            {% trans "Informations Générales" %}
+        </h2>
+
+        <div class="form-grid">
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label for="{{ id_prefix }}nom">
+                    <i class="fas fa-tag"></i>
+                    {% trans "Nom du paramètre" %}
+                </label>
+                <input
+                    type="text"
+                    id="{{ id_prefix }}nom"
+                    name="nom"
+                    value="{% if parametre %}{{ parametre.nom }}{% endif %}"
+                    placeholder="{% trans "Ex: Paramètres pour classes primaires" %}"
+                    required
+                />
+                <small>{% trans "Donnez un nom descriptif à ces paramètres spécifiques" %}</small>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.5rem;">
+            <label>
+                <i class="fas fa-layer-group"></i>
+                {% trans "Groupes de classes concernés" %}
+            </label>
+            {% if groupes_deja_assignes %}
+            <div class="info-box">
+                <p>
+                    <i class="fas fa-info-circle"></i>
+                    {% trans "Les groupes suivants sont déjà assignés à d'autres paramètres :" %} <strong>{{ groupes_deja_assignes|join:", " }}</strong>
+                </p>
+            </div>
+            {% endif %}
+            <div class="groupes-checkboxes">
+                {% for groupe in groupes_disponibles %}
+                    <div class="groupe-checkbox-item {% if groupe in groupes_deja_assignes %}disabled{% endif %}">
+                        <input
+                            type="checkbox"
+                            id="{{ id_prefix }}groupe_{{ forloop.counter }}"
+                            name="groupes_classes"
+                            value="{{ groupe }}"
+                            {% if parametre and groupe in parametre.groupes_classes %}checked{% endif %}
+                            {% if groupe in groupes_deja_assignes %}disabled{% endif %}
+                        />
+                        <label for="{{ id_prefix }}groupe_{{ forloop.counter }}">{{ groupe }}</label>
+                    </div>
+                {% empty %}
+                    <p style="color: var(--text-secondary, #6b7280);">{% trans "Aucun groupe de classes disponible" %}</p>
+                {% endfor %}
+            </div>
+            <small>{% trans "Sélectionnez un ou plusieurs groupes de classes pour lesquels ces paramètres seront appliqués" %}</small>
+        </div>
+    </div>
+
+    <div class="parametres-section">
+        <h2 class="section-title">
+            <i class="fas fa-money-bill-wave"></i>
+            {% trans "Montants et Facturation" %}
+        </h2>
+
+        <div class="info-box">
+            <p>
+                <i class="fas fa-info-circle"></i>
+                {% trans "Type d'établissement :" %} <strong>{{ etablissement.get_type_etablissement_comptabilite_display }}</strong>
+            </p>
+        </div>
+
+        <div class="form-grid">
+            {% if etablissement.type_etablissement_comptabilite == 'prive' %}
+            <div class="form-group">
+                <label for="{{ id_prefix }}montant_frais_inscription">
+                    <i class="fas fa-user-plus"></i>
+                    Montant frais d'inscription ({{ devise_monnaie|default:"FCFA" }})
+                </label>
+                <input
+                    type="number"
+                    id="{{ id_prefix }}montant_frais_inscription"
+                    name="montant_frais_inscription"
+                    value="{% if parametre and parametre.montant_frais_inscription %}{{ parametre.montant_frais_inscription|floatformat:2 }}{% else %}0.00{% endif %}"
+                    step="0.01"
+                    min="0"
+                    required
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="{{ id_prefix }}montant_frais_reinscription">
+                    <i class="fas fa-redo"></i>
+                    Montant frais de réinscription ({{ devise_monnaie|default:"FCFA" }})
+                </label>
+                <input
+                    type="number"
+                    id="{{ id_prefix }}montant_frais_reinscription"
+                    name="montant_frais_reinscription"
+                    value="{% if parametre and parametre.montant_frais_reinscription %}{{ parametre.montant_frais_reinscription|floatformat:2 }}{% else %}0.00{% endif %}"
+                    step="0.01"
+                    min="0"
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="{{ id_prefix }}montant_mensualite">
+                    <i class="fas fa-calendar-alt"></i>
+                    Montant mensualité mensuelle ({{ devise_monnaie|default:"FCFA" }})
+                </label>
+                <input
+                    type="number"
+                    id="{{ id_prefix }}montant_mensualite"
+                    name="montant_mensualite"
+                    value="{% if parametre and parametre.montant_mensualite %}{{ parametre.montant_mensualite|floatformat:2 }}{% else %}0.00{% endif %}"
+                    step="0.01"
+                    min="0"
+                    required
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="{{ id_prefix }}type_facturation">
+                    <i class="fas fa-clock"></i>
+                    {% trans "Type de facturation" %}
+                </label>
+                <select id="{{ id_prefix }}type_facturation" name="type_facturation">
+                    <option value="mensuel" {% if parametre and parametre.type_facturation == 'mensuel' %}selected{% endif %}>{% trans "Facturation mensuelle" %}</option>
+                    <option value="annuel" {% if parametre and parametre.type_facturation == 'annuel' %}selected{% endif %}>{% trans "Facturation annuelle" %}</option>
+                </select>
+            </div>
+            {% else %}
+            <div class="form-group">
+                <label for="{{ id_prefix }}montant_facturation_annuelle">
+                    <i class="fas fa-calendar-check"></i>
+                    Montant facturation annuelle ({{ devise_monnaie|default:"FCFA" }})
+                </label>
+                <input
+                    type="number"
+                    id="{{ id_prefix }}montant_facturation_annuelle"
+                    name="montant_facturation_annuelle"
+                    value="{% if parametre and parametre.montant_facturation_annuelle %}{{ parametre.montant_facturation_annuelle|floatformat:2 }}{% else %}0.00{% endif %}"
+                    step="0.01"
+                    min="0"
+                    required
+                />
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="parametres-section">
+        <h2 class="section-title">
+            <i class="fas fa-shield-alt"></i>
+            {% trans "Règles et Autorisations" %}
+        </h2>
+
+        <div class="form-grid">
+            <div class="checkbox-group">
+                <input
+                    type="checkbox"
+                    id="{{ id_prefix }}autoriser_retards"
+                    name="autoriser_retards"
+                    {% if parametre and parametre.autoriser_retards or not parametre %}checked{% endif %}
+                />
+                <label for="{{ id_prefix }}autoriser_retards">
+                    {% trans "Autoriser les retards de paiement" %}
+                </label>
+            </div>
+
+            <div class="checkbox-group">
+                <input
+                    type="checkbox"
+                    id="{{ id_prefix }}autoriser_paiements_partiels"
+                    name="autoriser_paiements_partiels"
+                    {% if parametre and parametre.autoriser_paiements_partiels or not parametre %}checked{% endif %}
+                />
+                <label for="{{ id_prefix }}autoriser_paiements_partiels">
+                    {% trans "Autoriser les paiements partiels" %}
+                </label>
+            </div>
+        </div>
+
+        <div class="form-grid" style="margin-top: 1.5rem;">
+            <div class="form-group">
+                <label for="{{ id_prefix }}delai_tolerance_retard">
+                    <i class="fas fa-hourglass-half"></i>
+                    {% trans "Délai de tolérance pour retard (jours)" %}
+                </label>
+                <input
+                    type="number"
+                    id="{{ id_prefix }}delai_tolerance_retard"
+                    name="delai_tolerance_retard"
+                    value="{% if parametre %}{{ parametre.delai_tolerance_retard }}{% else %}15{% endif %}"
+                    min="0"
+                    required
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="{{ id_prefix }}nombre_max_paiements_partiels">
+                    <i class="fas fa-list-ol"></i>
+                    {% trans "Nombre maximum de paiements partiels" %}
+                </label>
+                <input
+                    type="number"
+                    id="{{ id_prefix }}nombre_max_paiements_partiels"
+                    name="nombre_max_paiements_partiels"
+                    value="{% if parametre %}{{ parametre.nombre_max_paiements_partiels }}{% else %}3{% endif %}"
+                    min="1"
+                    required
+                />
+            </div>
+        </div>
+
+        {% if etablissement.type_etablissement_comptabilite == 'prive' %}
+        <div class="form-grid" style="margin-top: 1.5rem;">
+            <div class="form-group">
+                <label for="{{ id_prefix }}jour_versement">
+                    <i class="fas fa-calendar-day"></i>
+                    {% trans "Jour de versement mensuel" %}
+                </label>
+                <input
+                    type="number"
+                    id="{{ id_prefix }}jour_versement"
+                    name="jour_versement"
+                    value="{% if parametre %}{{ parametre.jour_versement }}{% else %}5{% endif %}"
+                    min="1"
+                    max="31"
+                    required
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="{{ id_prefix }}paiement_en_avance" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input
+                        type="checkbox"
+                        id="{{ id_prefix }}paiement_en_avance"
+                        name="paiement_en_avance"
+                        {% if parametre and parametre.paiement_en_avance %}checked{% endif %}
+                    />
+                    <span><i class="fas fa-forward"></i> {% trans "Paiement en avance" %}</span>
+                </label>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="parametres-section">
+        <h2 class="section-title">
+            <i class="fas fa-bell"></i>
+            {% trans "Notifications et Rappels" %}
+        </h2>
+
+        <div class="form-grid">
+            <div class="checkbox-group">
+                <input
+                    type="checkbox"
+                    id="{{ id_prefix }}envoyer_rappels_automatiques"
+                    name="envoyer_rappels_automatiques"
+                    {% if parametre and parametre.envoyer_rappels_automatiques or not parametre %}checked{% endif %}
+                />
+                <label for="{{ id_prefix }}envoyer_rappels_automatiques">
+                    {% trans "Envoyer des rappels automatiques" %}
+                </label>
+            </div>
+        </div>
+
+        <div class="form-grid" style="margin-top: 1.5rem;">
+            <div class="form-group">
+                <label for="{{ id_prefix }}jours_avant_rappel">
+                    <i class="fas fa-calendar-minus"></i>
+                    {% trans "Jours avant échéance pour rappel" %}
+                </label>
+                <input
+                    type="number"
+                    id="{{ id_prefix }}jours_avant_rappel"
+                    name="jours_avant_rappel"
+                    value="{% if parametre %}{{ parametre.jours_avant_rappel }}{% else %}7{% endif %}"
+                    min="0"
+                    required
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="{{ id_prefix }}jours_apres_retard_rappel">
+                    <i class="fas fa-calendar-plus"></i>
+                    {% trans "Jours après retard pour rappel" %}
+                </label>
+                <input
+                    type="number"
+                    id="{{ id_prefix }}jours_apres_retard_rappel"
+                    name="jours_apres_retard_rappel"
+                    value="{% if parametre %}{{ parametre.jours_apres_retard_rappel }}{% else %}3{% endif %}"
+                    min="0"
+                    required
+                />
+            </div>
+        </div>
+    </div>
+
+    <div class="parametres-section">
+        <h2 class="section-title">
+            <i class="fas fa-calendar-range"></i>
+            {% trans "Période de Facturation" %}
+        </h2>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="{{ id_prefix }}mois_debut_facturation">
+                    <i class="fas fa-play-circle"></i>
+                    {% trans "Mois de début de facturation" %}
+                </label>
+                <select id="{{ id_prefix }}mois_debut_facturation" name="mois_debut_facturation" required>
+                    <option value="1" {% if parametre and parametre.mois_debut_facturation == 1 %}selected{% endif %}>{% trans "01 - Janvier" %}</option>
+                    <option value="2" {% if parametre and parametre.mois_debut_facturation == 2 %}selected{% endif %}>{% trans "02 - Février" %}</option>
+                    <option value="3" {% if parametre and parametre.mois_debut_facturation == 3 %}selected{% endif %}>{% trans "03 - Mars" %}</option>
+                    <option value="4" {% if parametre and parametre.mois_debut_facturation == 4 %}selected{% endif %}>{% trans "04 - Avril" %}</option>
+                    <option value="5" {% if parametre and parametre.mois_debut_facturation == 5 %}selected{% endif %}>{% trans "05 - Mai" %}</option>
+                    <option value="6" {% if parametre and parametre.mois_debut_facturation == 6 %}selected{% endif %}>{% trans "06 - Juin" %}</option>
+                    <option value="7" {% if parametre and parametre.mois_debut_facturation == 7 %}selected{% endif %}>{% trans "07 - Juillet" %}</option>
+                    <option value="8" {% if parametre and parametre.mois_debut_facturation == 8 %}selected{% endif %}>{% trans "08 - Août" %}</option>
+                    <option value="9" {% if parametre and parametre.mois_debut_facturation == 9 %}selected{% elif not parametre %}selected{% endif %}>{% trans "09 - Septembre" %}</option>
+                    <option value="10" {% if parametre and parametre.mois_debut_facturation == 10 %}selected{% endif %}>{% trans "10 - Octobre" %}</option>
+                    <option value="11" {% if parametre and parametre.mois_debut_facturation == 11 %}selected{% endif %}>{% trans "11 - Novembre" %}</option>
+                    <option value="12" {% if parametre and parametre.mois_debut_facturation == 12 %}selected{% endif %}>{% trans "12 - Décembre" %}</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ id_prefix }}mois_fin_facturation">
+                    <i class="fas fa-stop-circle"></i>
+                    {% trans "Mois de fin de facturation" %}
+                </label>
+                <select id="{{ id_prefix }}mois_fin_facturation" name="mois_fin_facturation" required>
+                    <option value="1" {% if parametre and parametre.mois_fin_facturation == 1 %}selected{% endif %}>{% trans "01 - Janvier" %}</option>
+                    <option value="2" {% if parametre and parametre.mois_fin_facturation == 2 %}selected{% endif %}>{% trans "02 - Février" %}</option>
+                    <option value="3" {% if parametre and parametre.mois_fin_facturation == 3 %}selected{% endif %}>{% trans "03 - Mars" %}</option>
+                    <option value="4" {% if parametre and parametre.mois_fin_facturation == 4 %}selected{% endif %}>{% trans "04 - Avril" %}</option>
+                    <option value="5" {% if parametre and parametre.mois_fin_facturation == 5 %}selected{% endif %}>{% trans "05 - Mai" %}</option>
+                    <option value="6" {% if parametre and parametre.mois_fin_facturation == 6 %}selected{% elif not parametre %}selected{% endif %}>{% trans "06 - Juin" %}</option>
+                    <option value="7" {% if parametre and parametre.mois_fin_facturation == 7 %}selected{% endif %}>{% trans "07 - Juillet" %}</option>
+                    <option value="8" {% if parametre and parametre.mois_fin_facturation == 8 %}selected{% endif %}>{% trans "08 - Août" %}</option>
+                    <option value="9" {% if parametre and parametre.mois_fin_facturation == 9 %}selected{% endif %}>{% trans "09 - Septembre" %}</option>
+                    <option value="10" {% if parametre and parametre.mois_fin_facturation == 10 %}selected{% endif %}>{% trans "10 - Octobre" %}</option>
+                    <option value="11" {% if parametre and parametre.mois_fin_facturation == 11 %}selected{% endif %}>{% trans "11 - Novembre" %}</option>
+                    <option value="12" {% if parametre and parametre.mois_fin_facturation == 12 %}selected{% endif %}>{% trans "12 - Décembre" %}</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="parametres-section">
+        <h2 class="section-title">
+            <i class="fas fa-percent"></i>
+            {% trans "Remises et Réductions" %}
+        </h2>
+
+        <div class="form-grid">
+            <div class="checkbox-group">
+                <input
+                    type="checkbox"
+                    id="{{ id_prefix }}appliquer_remise_famille_nombreuse"
+                    name="appliquer_remise_famille_nombreuse"
+                    {% if parametre and parametre.appliquer_remise_famille_nombreuse %}checked{% endif %}
+                />
+                <label for="{{ id_prefix }}appliquer_remise_famille_nombreuse">
+                    {% trans "Appliquer remise famille nombreuse" %}
+                </label>
+            </div>
+        </div>
+
+        <div class="form-grid" style="margin-top: 1.5rem;">
+            <div class="form-group">
+                <label for="{{ id_prefix }}pourcentage_remise_famille_nombreuse">
+                    <i class="fas fa-percentage"></i>
+                    {% trans "Pourcentage de remise famille nombreuse" %}
+                </label>
+                <input
+                    type="number"
+                    id="{{ id_prefix }}pourcentage_remise_famille_nombreuse"
+                    name="pourcentage_remise_famille_nombreuse"
+                    value="{% if parametre and parametre.pourcentage_remise_famille_nombreuse %}{{ parametre.pourcentage_remise_famille_nombreuse|floatformat:2 }}{% else %}0.00{% endif %}"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="{{ id_prefix }}nombre_enfants_minimum_remise">
+                    <i class="fas fa-users"></i>
+                    {% trans "Nombre minimum d'enfants pour remise" %}
+                </label>
+                <input
+                    type="number"
+                    id="{{ id_prefix }}nombre_enfants_minimum_remise"
+                    name="nombre_enfants_minimum_remise"
+                    value="{% if parametre %}{{ parametre.nombre_enfants_minimum_remise }}{% else %}3{% endif %}"
+                    min="1"
+                    required
+                />
+            </div>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        {% if modal_mode %}
+        <button type="button" class="btn btn-secondary" data-close-modal="ajouterParametreModal">
+            <i class="fas fa-times"></i>
+            {% trans "Annuler" %}
+        </button>
+        {% else %}
+        <a href="{% url 'directeur:parametres_comptabilite_directeur' %}" class="btn btn-secondary">
+            <i class="fas fa-times"></i>
+            {% trans "Annuler" %}
+        </a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i>
+            {% if is_edit %}{% trans "Enregistrer les modifications" %}{% else %}{% trans "Créer les paramètres" %}{% endif %}
+        </button>
+    </div>
+</form>

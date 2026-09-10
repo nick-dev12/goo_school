@@ -1,0 +1,187 @@
+{% load i18n %}
+
+<div class="dossier-employe-panel">
+    <!-- Résumé des informations de base -->
+    <div class="info-section">
+        <h3 class="section-title">
+            <i class="fas fa-id-badge"></i>
+            {% trans "Informations de base" %}
+        </h3>
+        <table class="info-table">
+            <tr>
+                <td class="info-label-cell">{% trans "Sexe" %}</td>
+                <td class="info-value-cell">{{ sexe_display|default:"—" }}</td>
+            </tr>
+            <tr>
+                <td class="info-label-cell">{% trans "Date d'embauche" %}</td>
+                <td class="info-value-cell">
+                    {% if employe.date_embauche %}{{ employe.date_embauche|date:"d/m/Y" }}{% else %}—{% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="info-label-cell">{% trans "Prix du volume horaire" %}</td>
+                <td class="info-value-cell">
+                    {% if employe.prix_volume_horaire %}{{ employe.prix_volume_horaire }} FCFA/h{% else %}—{% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Documents existants -->
+    <div class="info-section">
+        <h3 class="section-title">
+            <i class="fas fa-folder-open"></i>
+            {% trans "Documents du dossier" %}
+        </h3>
+        {% if documents %}
+            <div class="documents-list">
+                {% for doc in documents %}
+                    <div class="document-item">
+                        <div class="document-info">
+                            <i class="fas fa-file"></i>
+                            <div>
+                                <strong>{{ doc.libelle|default:doc.nom_fichier }}</strong>
+                                <span class="document-meta">{{ doc.date_ajout|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </div>
+                        <div class="document-actions">
+                            <a href="{{ doc.fichier.url }}" target="_blank" rel="noopener" class="btn-doc btn-doc-view" title="{% trans 'Voir le document' %}">
+                                <i class="fas fa-eye"></i>
+                                {% trans "Voir" %}
+                            </a>
+                            <a href="{% url document_download_url_name doc.id %}?download=1" class="btn-doc btn-doc-download" title="{% trans 'Télécharger' %}">
+                                <i class="fas fa-download"></i>
+                                {% trans "Télécharger" %}
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted dossier-empty">{% trans "Aucun document enregistré pour le moment." %}</p>
+        {% endif %}
+
+        <form method="post" action="" enctype="multipart/form-data" class="form-add-documents">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="ajouter_documents">
+            {% include 'school_admin/directeur/personnel/partials/section_documents_employe.html' with container_id='documents-upload-detail' %}
+            <button type="submit" class="btn-action btn-primary btn-save-docs">
+                <i class="fas fa-upload"></i>
+                {% trans "Enregistrer les documents" %}
+            </button>
+        </form>
+    </div>
+
+    <!-- Informations complémentaires (toutes optionnelles) -->
+    <div class="info-section">
+        <h3 class="section-title">
+            <i class="fas fa-clipboard-list"></i>
+            {% trans "Informations complémentaires du dossier" %}
+        </h3>
+        <p class="section-hint dossier-hint">
+            {% trans "Tous les champs ci-dessous sont facultatifs. Vous pouvez enregistrer partiellement et compléter le dossier plus tard." %}
+        </p>
+
+        <form method="post" action="" class="form-dossier-complementaire">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_dossier">
+
+            <div class="form-grid dossier-grid">
+                <div class="form-group">
+                    <label class="form-label" for="date_naissance">{% trans "Date de naissance" %}</label>
+                    <input type="date" class="form-input" id="date_naissance" name="date_naissance"
+                           value="{% if dossier.date_naissance %}{{ dossier.date_naissance|date:'Y-m-d' }}{% endif %}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="lieu_naissance">{% trans "Lieu de naissance" %}</label>
+                    <input type="text" class="form-input" id="lieu_naissance" name="lieu_naissance"
+                           value="{{ dossier.lieu_naissance|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="nationalite">{% trans "Nationalité" %}</label>
+                    <input type="text" class="form-input" id="nationalite" name="nationalite"
+                           value="{{ dossier.nationalite|default:'' }}">
+                </div>
+                <div class="form-group form-group-full">
+                    <label class="form-label" for="adresse">{% trans "Adresse" %}</label>
+                    <textarea class="form-input" id="adresse" name="adresse" rows="2">{{ dossier.adresse|default:'' }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="numero_cni">{% trans "N° pièce d'identité" %}</label>
+                    <input type="text" class="form-input" id="numero_cni" name="numero_cni"
+                           value="{{ dossier.numero_cni|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="numero_cnss">{% trans "N° CNSS / sécurité sociale" %}</label>
+                    <input type="text" class="form-input" id="numero_cnss" name="numero_cnss"
+                           value="{{ dossier.numero_cnss|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="type_contrat">{% trans "Type de contrat" %}</label>
+                    <select class="form-input" id="type_contrat" name="type_contrat">
+                        <option value="">{% trans "— Non renseigné —" %}</option>
+                        {% for code, label in type_contrat_choices %}
+                            <option value="{{ code }}" {% if dossier.type_contrat == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="date_fin_contrat">{% trans "Date de fin de contrat" %}</label>
+                    <input type="date" class="form-input" id="date_fin_contrat" name="date_fin_contrat"
+                           value="{% if dossier.date_fin_contrat %}{{ dossier.date_fin_contrat|date:'Y-m-d' }}{% endif %}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="salaire_base">{% trans "Salaire de base (FCFA)" %}</label>
+                    <input type="number" step="0.01" min="0" class="form-input" id="salaire_base" name="salaire_base"
+                           value="{{ dossier.salaire_base|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="banque">{% trans "Banque" %}</label>
+                    <input type="text" class="form-input" id="banque" name="banque"
+                           value="{{ dossier.banque|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="numero_compte_bancaire">{% trans "N° compte / RIB" %}</label>
+                    <input type="text" class="form-input" id="numero_compte_bancaire" name="numero_compte_bancaire"
+                           value="{{ dossier.numero_compte_bancaire|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="diplome_plus_eleve">{% trans "Diplôme le plus élevé" %}</label>
+                    <input type="text" class="form-input" id="diplome_plus_eleve" name="diplome_plus_eleve"
+                           value="{{ dossier.diplome_plus_eleve|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="numero_autorisation">{% trans "N° autorisation / agrément" %}</label>
+                    <input type="text" class="form-input" id="numero_autorisation" name="numero_autorisation"
+                           value="{{ dossier.numero_autorisation|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="contact_urgence_nom">{% trans "Contact d'urgence — nom" %}</label>
+                    <input type="text" class="form-input" id="contact_urgence_nom" name="contact_urgence_nom"
+                           value="{{ dossier.contact_urgence_nom|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="contact_urgence_telephone">{% trans "Contact d'urgence — téléphone" %}</label>
+                    <input type="text" class="form-input" id="contact_urgence_telephone" name="contact_urgence_telephone"
+                           value="{{ dossier.contact_urgence_telephone|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="contact_urgence_lien">{% trans "Contact d'urgence — lien" %}</label>
+                    <input type="text" class="form-input" id="contact_urgence_lien" name="contact_urgence_lien"
+                           value="{{ dossier.contact_urgence_lien|default:'' }}" placeholder="{% trans 'Conjoint, parent…' %}">
+                </div>
+                <div class="form-group form-group-full">
+                    <label class="form-label" for="observations">{% trans "Observations" %}</label>
+                    <textarea class="form-input" id="observations" name="observations" rows="3">{{ dossier.observations|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <div class="form-actions dossier-form-actions">
+                <button type="submit" class="btn-action btn-primary">
+                    <i class="fas fa-save"></i>
+                    {% trans "Enregistrer les informations complémentaires" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -9,6 +9,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:convert';
 import 'services/fcm_service.dart';
+import 'services/local_database.dart';
+import 'services/offline_bridge.dart';
+import 'services/sync_service.dart';
 import 'utils/permission_rationale.dart';
 import 'dart:async';
 
@@ -42,6 +45,16 @@ void main() async {
     print('✅ Handler en arrière-plan configuré');
   } catch (e) {
     print('❌ ERREUR lors de la configuration du handler: $e');
+  }
+
+  try {
+    print('💾 Initialisation de SQLite local...');
+    await LocalDatabase.instance.init();
+    SyncService.instance.configure(baseUrl: 'https://aria-edu.com');
+    await SyncService.instance.start();
+    print('✅ SQLite local et sync hors ligne prêts');
+  } catch (e) {
+    print('❌ ERREUR lors de l\'initialisation SQLite: $e');
   }
 
   runApp(const AriaApp());
@@ -92,10 +105,18 @@ class _WebViewScreenState extends State<WebViewScreen>
     _requestPermissions();
     _initializeFCM();
     _loadSavedUrl();
+    SyncService.instance.onStatusChanged = (online, pending) {
+      OfflineBridge.notifyWebView(
+        webViewController,
+        online: online,
+        pending: pending,
+      );
+    };
   }
 
   @override
   void dispose() {
+    SyncService.instance.onStatusChanged = null;
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -258,6 +279,10 @@ class _WebViewScreenState extends State<WebViewScreen>
         return {'success': false, 'error': 'Invalid parameters'};
       },
     );
+
+    if (webViewController != null) {
+      OfflineBridge.register(webViewController!);
+    }
   }
 
   // Gérer la demande de caméra (photo d'identité, document scolaire)
@@ -530,6 +555,34 @@ class _WebViewScreenState extends State<WebViewScreen>
     ''';
 
     await webViewController?.evaluateJavascript(source: jsCode);
+    await webViewController?.evaluateJavascript(
+      source: OfflineBridge.javascriptApi,
+    );
+    await _refreshSyncCookies(pullIfReady: true);
+  }
+
+  Future<void> _refreshSyncCookies({bool pullIfReady = false}) async {
+    try {
+      final cookies = await CookieManager.instance().getCookies(
+        url: WebUri(url),
+      );
+      if (cookies.isEmpty) {
+        return;
+      }
+      final header = cookies
+          .map((cookie) => '${cookie.name}=${cookie.value}')
+          .join('; ');
+      SyncService.instance.setCookieHeader(header);
+      final hasSession = cookies.any(
+        (cookie) => cookie.name == 'sessionid' && cookie.value.isNotEmpty,
+      );
+      if (pullIfReady && hasSession && SyncService.instance.isOnline) {
+        unawaited(SyncService.instance.pull());
+        unawaited(SyncService.instance.flushQueue());
+      }
+    } catch (e) {
+      print('⚠️ Impossible de lire les cookies de session: $e');
+    }
   }
 
   // Enregistrer le token FCM dans la WebView (utilise la session authentifiée)

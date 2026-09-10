@@ -1413,6 +1413,70 @@ body.periode-modal-open {
   gap: 0.5rem;
 }
 
+/* Onglets principaux (Années / Périodes) */
+.periodes-main-tabs {
+  margin-bottom: 1.5rem;
+}
+
+.periodes-main-tab-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.periodes-main-tab-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.875rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+
+.periodes-main-tab-btn.is-active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.periodes-main-tab-panel[hidden] {
+  display: none !important;
+}
+
+.periodes-main-tab-panel.is-active {
+  display: block;
+}
+
+.actions-bar--tab {
+  justify-content: flex-start;
+}
+
+@media (max-width: 768px) {
+  .periodes-main-tab-buttons {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .periodes-main-tab-btn {
+    flex-shrink: 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
 .periodes-niveau-tabs {
   margin-top: 0.5rem;
 }

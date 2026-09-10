@@ -1,32 +1,217 @@
-// ===================================
-// SCRIPT POUR LA PAGE DE DÉTAIL PROFESSEUR
-// ===================================
+// Navigation fiche professeur — 3 sections : profil | enseignement | dossier
 
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Page de détail professeur chargée');
-    
-    // Animation d'apparition des cartes
-    animateCards();
-    
-    // Gestion de l'impression
-    setupPrintHandler();
-    
-    // Gestion des tooltips
-    setupTooltips();
-    
-    // Animation du badge de statut
-    animateStatusBadge();
+var LEGACY_ONGLET_MAP = {
+    informations: 'profil',
+    connexion: 'profil',
+    classes: 'enseignement',
+    cahier_notes: 'enseignement',
+    complementaire: 'dossier'
+};
 
+function normalizeProfOnglet(raw) {
+    if (!raw) {
+        return 'profil';
+    }
+    if (LEGACY_ONGLET_MAP[raw]) {
+        return LEGACY_ONGLET_MAP[raw];
+    }
+    if (raw === 'profil' || raw === 'enseignement' || raw === 'dossier') {
+        return raw;
+    }
+    return 'profil';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    initProfDetailTabs();
+    initDossierSubnav();
+    initEnseignementSubnav();
+    initModifierProfesseurModal();
     initModalMatiereSecondaire();
 });
 
-/**
- * Modal « Ajouter une matière secondaire ».
- * Supérieur : voir initProfesseurSuperieurMatierePicker (ajouter_professeur.js).
- * Collège / lycée : liste + recherche.
- */
+function initProfDetailTabs() {
+    var root = document.querySelector('.prof-detail-page');
+    var tabs = document.querySelectorAll('.prof-nav .prof-nav-btn[data-tab]');
+    var panels = document.querySelectorAll('.prof-panels .prof-panel[data-tab-panel]');
+    if (!tabs.length || !panels.length) {
+        return;
+    }
+
+    function activateTab(tabName, pushState) {
+        tabs.forEach(function (tab) {
+            var isActive = tab.getAttribute('data-tab') === tabName;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+        panels.forEach(function (panel) {
+            panel.classList.toggle('active', panel.getAttribute('data-tab-panel') === tabName);
+        });
+        if (pushState !== false) {
+            var url = new URL(window.location.href);
+            url.searchParams.set('onglet', tabName);
+            if (tabName !== 'dossier') {
+                url.searchParams.delete('section');
+            }
+            if (tabName !== 'enseignement') {
+                url.searchParams.delete('matiere');
+                url.searchParams.delete('section');
+            }
+            window.history.replaceState({ onglet: tabName }, '', url.toString());
+        }
+    }
+
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            activateTab(tab.getAttribute('data-tab'));
+        });
+    });
+
+    var params = new URLSearchParams(window.location.search);
+    var initialRaw = params.get('onglet');
+    var initial = normalizeProfOnglet(initialRaw);
+    if (root && root.getAttribute('data-initial-onglet')) {
+        initial = root.getAttribute('data-initial-onglet');
+    }
+    var hasPanel = document.querySelector('[data-tab-panel="' + initial + '"]');
+    activateTab(hasPanel ? initial : 'profil', false);
+}
+
+function initDossierSubnav() {
+    var root = document.querySelector('.prof-detail-page');
+    var subBtns = document.querySelectorAll('.prof-subnav .prof-subnav-btn[data-dossier-tab]');
+    var subPanels = document.querySelectorAll('.prof-dossier-pane[data-dossier-panel]');
+    if (!subBtns.length || !subPanels.length) {
+        return;
+    }
+
+    function activateSection(section, pushState) {
+        subBtns.forEach(function (btn) {
+            var isActive = btn.getAttribute('data-dossier-tab') === section;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+        subPanels.forEach(function (panel) {
+            panel.classList.toggle('active', panel.getAttribute('data-dossier-panel') === section);
+        });
+        if (pushState !== false) {
+            var url = new URL(window.location.href);
+            url.searchParams.set('onglet', 'dossier');
+            if (section === 'completer') {
+                url.searchParams.set('section', 'completer');
+            } else {
+                url.searchParams.delete('section');
+            }
+            window.history.replaceState({ onglet: 'dossier', section: section }, '', url.toString());
+        }
+    }
+
+    subBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            activateSection(btn.getAttribute('data-dossier-tab'));
+        });
+    });
+
+    var initial = 'consulter';
+    if (root && root.getAttribute('data-dossier-section') === 'completer') {
+        initial = 'completer';
+    }
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('section') === 'completer' || params.get('onglet') === 'complementaire') {
+        initial = 'completer';
+    }
+    activateSection(initial, false);
+}
+
+function initEnseignementSubnav() {
+    var root = document.querySelector('.prof-detail-page');
+    var subBtns = document.querySelectorAll('.prof-enseignement-subnav .prof-subnav-btn[data-enseignement-tab]');
+    var subPanels = document.querySelectorAll('.prof-enseignement-pane[data-enseignement-panel]');
+    if (!subBtns.length || !subPanels.length) {
+        return;
+    }
+
+    function activateSection(section, pushState) {
+        subBtns.forEach(function (btn) {
+            var isActive = btn.getAttribute('data-enseignement-tab') === section;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+        subPanels.forEach(function (panel) {
+            panel.classList.toggle('active', panel.getAttribute('data-enseignement-panel') === section);
+        });
+        if (pushState !== false) {
+            var url = new URL(window.location.href);
+            url.searchParams.set('onglet', 'enseignement');
+            if (section === 'notes') {
+                url.searchParams.set('section', 'notes');
+            } else {
+                url.searchParams.delete('section');
+                url.searchParams.delete('matiere');
+            }
+            window.history.replaceState({ onglet: 'enseignement', section: section }, '', url.toString());
+        }
+    }
+
+    subBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            activateSection(btn.getAttribute('data-enseignement-tab'));
+        });
+    });
+
+    var initial = 'classes';
+    if (root && root.getAttribute('data-enseignement-section') === 'notes') {
+        initial = 'notes';
+    }
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('section') === 'notes' || params.get('matiere') || params.get('onglet') === 'cahier_notes') {
+        initial = 'notes';
+    }
+    activateSection(initial, false);
+}
+
+function openModifierProfesseurModal() {
+    var modal = document.getElementById('modalModifierProfesseur');
+    if (!modal) {
+        return;
+    }
+    modal.classList.add('active');
+    document.body.classList.add('modal-personnel-open');
+    if (typeof window.initAjouterProfesseurSuperieur === 'function' && document.getElementById('matiere-principale-list')) {
+        window.initAjouterProfesseurSuperieur();
+    }
+}
+
+function closeModifierProfesseurModal() {
+    var modal = document.getElementById('modalModifierProfesseur');
+    if (!modal) {
+        return;
+    }
+    modal.classList.remove('active');
+    document.body.classList.remove('modal-personnel-open');
+}
+
+function initModifierProfesseurModal() {
+    var modal = document.getElementById('modalModifierProfesseur');
+    if (!modal) {
+        return;
+    }
+    if (modal.classList.contains('active')) {
+        document.body.classList.add('modal-personnel-open');
+        if (typeof window.initAjouterProfesseurSuperieur === 'function' && document.getElementById('matiere-principale-list')) {
+            window.initAjouterProfesseurSuperieur();
+        }
+    }
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && modal.classList.contains('active')) {
+            closeModifierProfesseurModal();
+        }
+    });
+}
+
+window.openModifierProfesseurModal = openModifierProfesseurModal;
+window.closeModifierProfesseurModal = closeModifierProfesseurModal;
+
 function initModalMatiereSecondaire() {
-    /* Supérieur : même logique que /professeurs/ajouter/ via initProfesseurSuperieurMatierePicker (ajouter_professeur.js). */
     if (document.getElementById('matiere-principale-list')) {
         return;
     }
@@ -58,14 +243,12 @@ function initModalMatiereSecondaire() {
         items.forEach(function (btn) {
             var raw = btn.getAttribute('data-matiere-search');
             var hay = normalizeStr(raw != null && raw !== '' ? raw : btn.textContent);
-            var match = !q || hay.indexOf(q) !== -1;
-            btn.hidden = !match;
+            btn.hidden = q && hay.indexOf(q) === -1;
         });
     }
 
     function selectMatiere(btn) {
-        var id = btn.getAttribute('data-matiere-id');
-        hiddenId.value = id || '';
+        hiddenId.value = btn.getAttribute('data-matiere-id') || '';
         var main = btn.querySelector('.modal-matiere-pick-main');
         var txt = main ? main.textContent.trim() : btn.textContent.trim();
         items.forEach(function (b) {
@@ -86,287 +269,27 @@ function initModalMatiereSecondaire() {
 
     if (searchInput) {
         searchInput.addEventListener('input', filterPickList);
-        searchInput.addEventListener('keyup', filterPickList);
-        searchInput.addEventListener('search', filterPickList);
-        searchInput.addEventListener('paste', function () {
-            requestAnimationFrame(filterPickList);
-        });
     }
 }
 
-/**
- * Animation d'apparition progressive des cartes
- */
-function animateCards() {
-    const cards = document.querySelectorAll('.detail-card');
-    
-    cards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-            card.style.transition = 'all 0.5s ease-out';
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-        }, index * 100);
-    });
-}
-
-/**
- * Configuration du gestionnaire d'impression
- */
-function setupPrintHandler() {
-    // Écouter l'événement avant impression
-    window.addEventListener('beforeprint', function() {
-        console.log('Impression en cours...');
-        
-        // Masquer les éléments non nécessaires
-        const elementsToHide = document.querySelectorAll('.btn-action, .header-actions, .actions-footer');
-        elementsToHide.forEach(element => {
-            element.style.display = 'none';
-        });
-    });
-    
-    // Écouter l'événement après impression
-    window.addEventListener('afterprint', function() {
-        console.log('Impression terminée');
-        
-        // Réafficher les éléments
-        const elementsToShow = document.querySelectorAll('.btn-action, .header-actions, .actions-footer');
-        elementsToShow.forEach(element => {
-            element.style.display = '';
-        });
-    });
-}
-
-/**
- * Configuration des tooltips pour les icônes
- */
-function setupTooltips() {
-    const icons = document.querySelectorAll('.info-label i');
-    
-    icons.forEach(icon => {
-        icon.addEventListener('mouseenter', function(e) {
-            const label = this.parentElement.querySelector('span');
-            if (label) {
-                // Créer un tooltip simple
-                const tooltip = document.createElement('div');
-                tooltip.className = 'custom-tooltip';
-                tooltip.textContent = label.textContent;
-                tooltip.style.cssText = `
-                    position: absolute;
-                    background: rgba(0, 0, 0, 0.8);
-                    color: white;
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    font-size: 0.75rem;
-                    pointer-events: none;
-                    z-index: 1000;
-                    white-space: nowrap;
-                `;
-                
-                document.body.appendChild(tooltip);
-                
-                const rect = this.getBoundingClientRect();
-                tooltip.style.top = (rect.top - tooltip.offsetHeight - 5) + 'px';
-                tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
-                
-                this.tooltip = tooltip;
-            }
-        });
-        
-        icon.addEventListener('mouseleave', function() {
-            if (this.tooltip) {
-                this.tooltip.remove();
-                delete this.tooltip;
-            }
-        });
-    });
-}
-
-/**
- * Animation du badge de statut
- */
-function animateStatusBadge() {
-    const statusDot = document.querySelector('.status-dot');
-    
-    if (statusDot) {
-        // Animation de pulsation
-        setInterval(() => {
-            statusDot.style.transform = 'scale(1.2)';
-            setTimeout(() => {
-                statusDot.style.transform = 'scale(1)';
-            }, 500);
-        }, 2000);
-    }
-}
-
-/**
- * Animation au survol des cartes de classe
- */
-const classeItems = document.querySelectorAll('.classe-item');
-
-classeItems.forEach(item => {
-    item.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-4px) scale(1.02)';
-    });
-    
-    item.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0) scale(1)';
-    });
-});
-
-/**
- * Gestion du bouton de retour avec animation
- */
-const backButton = document.querySelector('.btn-back');
-
-if (backButton) {
-    backButton.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Animation de sortie
-        const mainContent = document.querySelector('.main-content-container');
-        mainContent.style.transition = 'all 0.3s ease-out';
-        mainContent.style.opacity = '0';
-        mainContent.style.transform = 'translateX(-50px)';
-        
-        // Redirection après l'animation
-        setTimeout(() => {
-            window.location.href = this.href;
-        }, 300);
-    });
-}
-
-/**
- * Effet de survol sur les badges
- */
-const badges = document.querySelectorAll('.badge-matiere, .badge-niveau, .badge-employee');
-
-badges.forEach(badge => {
-    badge.addEventListener('mouseenter', function() {
-        this.style.transform = 'scale(1.05)';
-        this.style.transition = 'transform 0.2s ease';
-    });
-    
-    badge.addEventListener('mouseleave', function() {
-        this.style.transform = 'scale(1)';
-    });
-});
-
-/**
- * Animation des cartes au défilement
- */
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-};
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-        }
-    });
-}, observerOptions);
-
-// Observer toutes les cartes
-document.querySelectorAll('.detail-card').forEach(card => {
-    observer.observe(card);
-});
-
-/**
- * Gestion du clic sur les liens email et téléphone
- */
-const emailLinks = document.querySelectorAll('.link-email');
-const phoneLinks = document.querySelectorAll('.link-phone');
-
-emailLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
-        console.log('Ouverture du client email:', this.textContent);
-    });
-});
-
-phoneLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
-        console.log('Appel téléphonique:', this.textContent);
-    });
-});
-
-/**
- * Fonction pour copier les informations dans le presse-papiers
- */
 function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        // Afficher un message de confirmation
-        showNotification('Copié dans le presse-papiers!', 'success');
-    }).catch(err => {
-        console.error('Erreur lors de la copie:', err);
+    navigator.clipboard.writeText(text).then(function () {
+        showNotification('Copié dans le presse-papiers', 'success');
+    }).catch(function () {
         showNotification('Erreur lors de la copie', 'error');
     });
 }
 
-/**
- * Afficher une notification temporaire
- */
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
+function showNotification(message, type) {
+    type = type || 'info';
+    var colors = { success: '#10b981', error: '#ef4444', info: '#3b82f6' };
+    var notification = document.createElement('div');
     notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 100px;
-        right: 20px;
-        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-        color: white;
-        padding: 12px 24px;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        z-index: 9999;
-        animation: slideIn 0.3s ease-out;
-    `;
-    
+    notification.style.cssText = 'position:fixed;top:100px;right:20px;background:' + (colors[type] || colors.info) + ';color:#fff;padding:12px 24px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,.1);z-index:9999;';
     document.body.appendChild(notification);
-    
-    // Retirer la notification après 3 secondes
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-out';
-        setTimeout(() => {
-            notification.remove();
-        }, 300);
+    setTimeout(function () {
+        notification.remove();
     }, 3000);
 }
 
-// Ajouter les animations CSS pour les notifications
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
-
-/**
- * Log pour le débogage
- */
-console.log('Scripts de la page de détail professeur initialisés avec succès');
-
+window.copyToClipboard = copyToClipboard;

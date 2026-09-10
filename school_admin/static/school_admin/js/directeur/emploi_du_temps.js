@@ -1,153 +1,15 @@
-// school_admin/static/school_admin/js/directeur/emploi_du_temps.js
-// JavaScript pour la gestion des emplois du temps
+// Liste emplois du temps — navigation, overflow onglets, filtres (UX v2.1)
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialisation
-    initTabs();
-    initScrollButtons();
-    initAnimations();
+var EDT_CAT_GAP = 6;
+var EDT_MORE_BTN_WIDTH = 130;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initEdtCategoryTabs();
+    initEdtCategoryNavOverflow();
+    initEdtFilters();
+    initEdtSearch();
 });
 
-/**
- * Initialise le système d'onglets
- */
-function initTabs() {
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    
-    tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const category = this.getAttribute('data-category');
-            switchTab(category);
-        });
-    });
-}
-
-/**
- * Change d'onglet
- * @param {string} category - La catégorie à afficher
- */
-function switchTab(category) {
-    // Désactiver tous les onglets
-    const allTabs = document.querySelectorAll('.tab-btn');
-    const allPanels = document.querySelectorAll('.tab-panel');
-    
-    allTabs.forEach(tab => tab.classList.remove('active'));
-    allPanels.forEach(panel => panel.classList.remove('active'));
-    
-    // Activer l'onglet sélectionné
-    const activeTab = document.querySelector(`.tab-btn[data-category="${category}"]`);
-    const activePanel = document.getElementById(`panel-${slugify(category)}`);
-    
-    if (activeTab) {
-        activeTab.classList.add('active');
-        
-        // Faire défiler l'onglet dans la vue si nécessaire
-        activeTab.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'nearest',
-            inline: 'center'
-        });
-    }
-    
-    if (activePanel) {
-        activePanel.classList.add('active');
-    }
-}
-
-/**
- * Initialise les boutons de défilement des onglets
- */
-function initScrollButtons() {
-    const scrollLeft = document.getElementById('scrollLeft');
-    const scrollRight = document.getElementById('scrollRight');
-    const tabsContainer = document.querySelector('.tabs-nav-container');
-    
-    if (!tabsContainer) return;
-    
-    // Défilement vers la gauche
-    if (scrollLeft) {
-        scrollLeft.addEventListener('click', function() {
-            tabsContainer.scrollBy({
-                left: -200,
-                behavior: 'smooth'
-            });
-        });
-    }
-    
-    // Défilement vers la droite
-    if (scrollRight) {
-        scrollRight.addEventListener('click', function() {
-            tabsContainer.scrollBy({
-                left: 200,
-                behavior: 'smooth'
-            });
-        });
-    }
-    
-    // Masquer/afficher les boutons de défilement selon le besoin
-    updateScrollButtons();
-    tabsContainer.addEventListener('scroll', updateScrollButtons);
-    window.addEventListener('resize', updateScrollButtons);
-}
-
-/**
- * Met à jour la visibilité des boutons de défilement
- */
-function updateScrollButtons() {
-    const tabsContainer = document.querySelector('.tabs-nav-container');
-    const scrollLeft = document.getElementById('scrollLeft');
-    const scrollRight = document.getElementById('scrollRight');
-    
-    if (!tabsContainer || !scrollLeft || !scrollRight) return;
-    
-    const isScrollable = tabsContainer.scrollWidth > tabsContainer.clientWidth;
-    const isAtStart = tabsContainer.scrollLeft === 0;
-    const isAtEnd = tabsContainer.scrollLeft + tabsContainer.clientWidth >= tabsContainer.scrollWidth - 1;
-    
-    if (!isScrollable) {
-        scrollLeft.style.display = 'none';
-        scrollRight.style.display = 'none';
-    } else {
-        scrollLeft.style.display = isAtStart ? 'none' : 'flex';
-        scrollRight.style.display = isAtEnd ? 'none' : 'flex';
-    }
-}
-
-/**
- * Initialise les animations au scroll
- */
-function initAnimations() {
-    // Observer pour les animations d'apparition
-    const observer = new IntersectionObserver(
-        (entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        },
-        {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        }
-    );
-    
-    // Observer les cartes de classe
-    const classeCards = document.querySelectorAll('.classe-card');
-    classeCards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        card.style.transition = `all 0.5s ease ${index * 0.1}s`;
-        observer.observe(card);
-    });
-}
-
-/**
- * Convertit une chaîne en slug
- * @param {string} text - Le texte à convertir
- * @returns {string} Le slug
- */
 function slugify(text) {
     return text
         .toString()
@@ -158,180 +20,301 @@ function slugify(text) {
         .replace(/^-+|-+$/g, '');
 }
 
-/**
- * Anime un élément avec un effet de pulsation
- * @param {HTMLElement} element - L'élément à animer
- */
-function pulseAnimation(element) {
-    element.style.animation = 'pulse 0.5s ease-in-out';
-    setTimeout(() => {
-        element.style.animation = '';
-    }, 500);
-}
-
-/**
- * Affiche une notification toast
- * @param {string} message - Le message à afficher
- * @param {string} type - Le type de notification (success, error, warning, info)
- */
-function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-        <i class="fas fa-${getIconForType(type)}"></i>
-        <span>${message}</span>
-    `;
-    
-    document.body.appendChild(toast);
-    
-    // Animation d'entrée
-    setTimeout(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateX(0)';
-    }, 10);
-    
-    // Animation de sortie
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            document.body.removeChild(toast);
-        }, 300);
-    }, 3000);
-}
-
-/**
- * Retourne l'icône FontAwesome appropriée pour un type de notification
- * @param {string} type - Le type de notification
- * @returns {string} Le nom de l'icône
- */
-function getIconForType(type) {
-    const icons = {
-        success: 'check-circle',
-        error: 'exclamation-triangle',
-        warning: 'exclamation-circle',
-        info: 'info-circle'
-    };
-    return icons[type] || 'info-circle';
-}
-
-/**
- * Fonction de recherche dans les classes
- * @param {string} query - La requête de recherche
- */
-function searchClasses(query) {
-    const normalizedQuery = query.toLowerCase().trim();
-    const classeCards = document.querySelectorAll('.classe-card');
-    
-    classeCards.forEach(card => {
-        const className = card.querySelector('.classe-nom').textContent.toLowerCase();
-        const classLevel = card.querySelector('.classe-niveau').textContent.toLowerCase();
-        
-        if (className.includes(normalizedQuery) || classLevel.includes(normalizedQuery)) {
-            card.style.display = '';
-            card.style.animation = 'fadeIn 0.3s ease-out';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-    
-    // Vérifier si des résultats sont affichés dans chaque panel
-    const panels = document.querySelectorAll('.tab-panel');
-    panels.forEach(panel => {
-        const visibleCards = panel.querySelectorAll('.classe-card:not([style*="display: none"])');
-        const emptyMessage = panel.querySelector('.no-results-message');
-        
-        if (visibleCards.length === 0) {
-            if (!emptyMessage) {
-                const message = document.createElement('div');
-                message.className = 'no-results-message empty-state';
-                message.innerHTML = `
-                    <div class="empty-state-icon">
-                        <i class="fas fa-search"></i>
-                    </div>
-                    <h3 class="empty-state-title">Aucun résultat</h3>
-                    <p class="empty-state-text">
-                        Aucune classe ne correspond à votre recherche dans cette catégorie.
-                    </p>
-                `;
-                panel.querySelector('.classes-grid').style.display = 'none';
-                panel.appendChild(message);
-            }
-        } else {
-            if (emptyMessage) {
-                emptyMessage.remove();
-                panel.querySelector('.classes-grid').style.display = '';
-            }
-        }
-    });
-}
-
-/**
- * Filtre les classes par statut d'emploi du temps
- * @param {string} filter - Le filtre à appliquer ('all', 'with-edt', 'without-edt')
- */
-function filterByStatus(filter) {
-    const classeCards = document.querySelectorAll('.classe-card');
-    
-    classeCards.forEach(card => {
-        const hasEdt = !card.classList.contains('classe-card-no-edt');
-        
-        switch(filter) {
-            case 'with-edt':
-                card.style.display = hasEdt ? '' : 'none';
-                break;
-            case 'without-edt':
-                card.style.display = !hasEdt ? '' : 'none';
-                break;
-            default: // 'all'
-                card.style.display = '';
-        }
-    });
-}
-
-/**
- * Gère le défilement fluide vers le haut de la page
- */
-function scrollToTop() {
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-}
-
-// Ajouter un bouton de retour en haut si la page est longue
-window.addEventListener('scroll', function() {
-    const scrollButton = document.getElementById('scrollTopBtn');
-    
-    if (window.pageYOffset > 300) {
-        if (!scrollButton) {
-            const button = document.createElement('button');
-            button.id = 'scrollTopBtn';
-            button.className = 'scroll-top-btn';
-            button.innerHTML = '<i class="fas fa-arrow-up"></i>';
-            button.onclick = scrollToTop;
-            document.body.appendChild(button);
-            
-            // Animation d'entrée
-            setTimeout(() => {
-                button.style.opacity = '1';
-                button.style.transform = 'scale(1)';
-            }, 10);
-        }
-    } else {
-        if (scrollButton) {
-            scrollButton.style.opacity = '0';
-            scrollButton.style.transform = 'scale(0)';
-            setTimeout(() => {
-                scrollButton.remove();
-            }, 300);
-        }
+function getAllEdtCatButtons() {
+    var track = document.getElementById('edtCatNavTrack');
+    var menu = document.getElementById('edtCatOverflowMenu');
+    if (!track || !menu) {
+        return [];
     }
-});
+    var buttons = Array.prototype.slice.call(track.querySelectorAll('.edt-cat-btn'));
+    buttons = buttons.concat(Array.prototype.slice.call(menu.querySelectorAll('.edt-cat-btn')));
+    buttons.sort(function (a, b) {
+        return parseInt(a.getAttribute('data-order') || '0', 10) - parseInt(b.getAttribute('data-order') || '0', 10);
+    });
+    return buttons;
+}
 
-// Exposer les fonctions globalement pour pouvoir les appeler depuis le HTML
-window.switchTab = switchTab;
-window.searchClasses = searchClasses;
-window.filterByStatus = filterByStatus;
-window.scrollToTop = scrollToTop;
+function closeEdtOverflowMenu() {
+    var menu = document.getElementById('edtCatOverflowMenu');
+    var moreBtn = document.getElementById('edtCatMoreBtn');
+    if (!menu || !moreBtn) {
+        return;
+    }
+    menu.hidden = true;
+    moreBtn.setAttribute('aria-expanded', 'false');
+}
 
+function updateEdtMoreButtonLabel(overflowCount) {
+    var bar = document.getElementById('edtCatNavBar');
+    var labelEl = document.getElementById('edtCatMoreLabel');
+    var moreBtn = document.getElementById('edtCatMoreBtn');
+    if (!bar || !labelEl || !moreBtn) {
+        return;
+    }
+
+    var singular = bar.getAttribute('data-overflow-item-label') || 'élément';
+    var plural = bar.getAttribute('data-overflow-items-label') || 'éléments';
+    var count = overflowCount || 0;
+    var word = count > 1 ? plural : singular;
+
+    labelEl.textContent = 'Autres ' + plural;
+    moreBtn.setAttribute(
+        'aria-label',
+        'Afficher ' + count + ' autre' + (count > 1 ? 's' : '') + ' ' + word
+    );
+    moreBtn.setAttribute(
+        'title',
+        'Afficher ' + count + ' autre' + (count > 1 ? 's' : '') + ' ' + word
+    );
+}
+
+function activateEdtCategory(category) {
+    var buttons = getAllEdtCatButtons();
+    var panels = document.querySelectorAll('.edt-panel[data-edt-panel]');
+
+    buttons.forEach(function (btn) {
+        var isActive = btn.getAttribute('data-category') === category;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    panels.forEach(function (panel) {
+        panel.classList.toggle('active', panel.id === 'panel-' + slugify(category));
+    });
+
+    closeEdtOverflowMenu();
+    layoutEdtCategoryNav();
+}
+
+function initEdtCategoryTabs() {
+    var track = document.getElementById('edtCatNavTrack');
+    var menu = document.getElementById('edtCatOverflowMenu');
+    if (!track) {
+        return;
+    }
+
+    function onTabClick(event) {
+        var btn = event.target.closest('.edt-cat-btn[data-category]');
+        if (!btn) {
+            return;
+        }
+        activateEdtCategory(btn.getAttribute('data-category'));
+    }
+
+    track.addEventListener('click', onTabClick);
+    if (menu) {
+        menu.addEventListener('click', onTabClick);
+    }
+}
+
+function layoutEdtCategoryNav() {
+    var bar = document.getElementById('edtCatNavBar');
+    var track = document.getElementById('edtCatNavTrack');
+    var menu = document.getElementById('edtCatOverflowMenu');
+    var moreWrap = document.getElementById('edtCatMoreWrap');
+    var moreBtn = document.getElementById('edtCatMoreBtn');
+    if (!bar || !track || !menu || !moreWrap) {
+        return;
+    }
+
+    var allButtons = getAllEdtCatButtons();
+    if (!allButtons.length) {
+        return;
+    }
+
+    allButtons.forEach(function (btn) {
+        track.appendChild(btn);
+    });
+    menu.innerHTML = '';
+    moreWrap.hidden = true;
+    closeEdtOverflowMenu();
+
+    var totalWidth = 0;
+    allButtons.forEach(function (btn) {
+        totalWidth += btn.offsetWidth + EDT_CAT_GAP;
+    });
+
+    if (totalWidth <= bar.clientWidth) {
+        return;
+    }
+
+    moreWrap.hidden = false;
+    var moreBtnWidth = moreBtn ? moreBtn.offsetWidth + EDT_CAT_GAP : EDT_MORE_BTN_WIDTH;
+    var availableWidth = Math.max(bar.clientWidth - moreBtnWidth, 100);
+    var usedWidth = 0;
+    var splitAt = allButtons.length;
+
+    for (var i = 0; i < allButtons.length; i += 1) {
+        var btnWidth = allButtons[i].offsetWidth + EDT_CAT_GAP;
+        if (i > 0 && usedWidth + btnWidth > availableWidth) {
+            splitAt = i;
+            break;
+        }
+        usedWidth += btnWidth;
+    }
+
+    var activeBtn = allButtons.filter(function (b) {
+        return b.classList.contains('active');
+    })[0];
+    var activeIndex = activeBtn ? allButtons.indexOf(activeBtn) : 0;
+
+    if (activeIndex >= splitAt && splitAt > 0) {
+        var lastVisible = allButtons[splitAt - 1];
+        var active = allButtons[activeIndex];
+        allButtons[splitAt - 1] = active;
+        allButtons[activeIndex] = lastVisible;
+    }
+
+    var visibleButtons = allButtons.slice(0, splitAt);
+    var overflowButtons = allButtons.slice(splitAt);
+
+    visibleButtons.forEach(function (btn) {
+        track.appendChild(btn);
+    });
+
+    if (overflowButtons.length) {
+        overflowButtons.forEach(function (btn) {
+            menu.appendChild(btn);
+        });
+        moreWrap.hidden = false;
+        updateEdtMoreButtonLabel(overflowButtons.length);
+    } else {
+        moreWrap.hidden = true;
+    }
+}
+
+function initEdtCategoryNavOverflow() {
+    var bar = document.getElementById('edtCatNavBar');
+    var moreBtn = document.getElementById('edtCatMoreBtn');
+    var menu = document.getElementById('edtCatOverflowMenu');
+    if (!bar || !moreBtn || !menu) {
+        return;
+    }
+
+    layoutEdtCategoryNav();
+
+    if (typeof ResizeObserver !== 'undefined') {
+        var observer = new ResizeObserver(function () {
+            layoutEdtCategoryNav();
+        });
+        observer.observe(bar);
+    } else {
+        window.addEventListener('resize', layoutEdtCategoryNav);
+    }
+
+    moreBtn.addEventListener('click', function (event) {
+        event.stopPropagation();
+        var isOpen = !menu.hidden;
+        if (isOpen) {
+            closeEdtOverflowMenu();
+        } else {
+            menu.hidden = false;
+            moreBtn.setAttribute('aria-expanded', 'true');
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!bar.contains(event.target)) {
+            closeEdtOverflowMenu();
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeEdtOverflowMenu();
+        }
+    });
+}
+
+function initEdtFilters() {
+    var filterBtns = document.querySelectorAll('.edt-filter-btn[data-edt-filter]');
+    if (!filterBtns.length) {
+        return;
+    }
+
+    filterBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            filterBtns.forEach(function (b) {
+                b.classList.remove('active');
+            });
+            btn.classList.add('active');
+            applyEdtFilters(btn.getAttribute('data-edt-filter'), getEdtSearchQuery());
+        });
+    });
+}
+
+function initEdtSearch() {
+    var input = document.getElementById('edtSearchInput');
+    if (!input) {
+        return;
+    }
+    input.addEventListener('input', function () {
+        var activeFilter = document.querySelector('.edt-filter-btn.active');
+        var filter = activeFilter ? activeFilter.getAttribute('data-edt-filter') : 'all';
+        applyEdtFilters(filter, input.value);
+    });
+}
+
+function getEdtSearchQuery() {
+    var input = document.getElementById('edtSearchInput');
+    return input ? input.value : '';
+}
+
+function applyEdtFilters(statusFilter, searchQuery) {
+    var query = (searchQuery || '').toLowerCase().trim();
+
+    document.querySelectorAll('.edt-panel[data-edt-panel]').forEach(function (panel) {
+        var visibleInPanel = 0;
+
+        panel.querySelectorAll('.edt-classe-card').forEach(function (card) {
+            var hasEdt = card.getAttribute('data-has-edt') === '1';
+            var title = card.querySelector('.edt-classe-card-title');
+            var text = title ? title.textContent.toLowerCase() : '';
+
+            var statusOk = true;
+            if (statusFilter === 'with-edt') {
+                statusOk = hasEdt;
+            } else if (statusFilter === 'without-edt') {
+                statusOk = !hasEdt;
+            }
+
+            var searchOk = !query || text.indexOf(query) !== -1;
+            var show = statusOk && searchOk;
+            card.hidden = !show;
+            if (show) {
+                visibleInPanel += 1;
+            }
+        });
+
+        panel.querySelectorAll('.edt-section').forEach(function (section) {
+            var cards = section.querySelectorAll('.edt-classe-card:not([hidden])');
+            section.classList.toggle('is-empty', cards.length === 0);
+        });
+
+        var noResults = panel.querySelector('.edt-no-results');
+        if (noResults) {
+            noResults.hidden = visibleInPanel > 0;
+        }
+    });
+}
+
+window.switchTab = function (category) {
+    activateEdtCategory(category);
+};
+
+window.searchClasses = function (query) {
+    var input = document.getElementById('edtSearchInput');
+    if (input) {
+        input.value = query;
+    }
+    var activeFilter = document.querySelector('.edt-filter-btn.active');
+    var filter = activeFilter ? activeFilter.getAttribute('data-edt-filter') : 'all';
+    applyEdtFilters(filter, query);
+};
+
+window.filterByStatus = function (filter) {
+    var btn = document.querySelector('.edt-filter-btn[data-edt-filter="' + filter + '"]');
+    if (btn) {
+        btn.click();
+    }
+};

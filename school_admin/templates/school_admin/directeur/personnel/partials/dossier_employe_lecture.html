@@ -1,0 +1,86 @@
+{% load i18n %}
+
+<div class="dossier-employe-panel dossier-employe-lecture">
+    <div class="info-section">
+        <h3 class="section-title"><i class="fas fa-id-badge"></i> {% trans "Informations de base" %}</h3>
+        <table class="info-table">
+            <tr><td class="info-label-cell">{% trans "Sexe" %}</td><td class="info-value-cell">{{ sexe_display|default:"—" }}</td></tr>
+            <tr><td class="info-label-cell">{% trans "Date d'embauche" %}</td><td class="info-value-cell">{% if employe.date_embauche %}{{ employe.date_embauche|date:"d/m/Y" }}{% else %}—{% endif %}</td></tr>
+            <tr><td class="info-label-cell">{% trans "Prix du volume horaire" %}</td><td class="info-value-cell">{% if employe.prix_volume_horaire %}{{ employe.prix_volume_horaire }} FCFA/h{% else %}—{% endif %}</td></tr>
+        </table>
+    </div>
+
+    <div class="info-section">
+        <h3 class="section-title"><i class="fas fa-user-circle"></i> {% trans "État civil" %}</h3>
+        <table class="info-table">
+            <tr><td class="info-label-cell">{% trans "Date de naissance" %}</td><td class="info-value-cell">{% if dossier.date_naissance %}{{ dossier.date_naissance|date:"d/m/Y" }}{% else %}—{% endif %}</td></tr>
+            <tr><td class="info-label-cell">{% trans "Lieu de naissance" %}</td><td class="info-value-cell">{{ dossier.lieu_naissance|default:"—" }}</td></tr>
+            <tr><td class="info-label-cell">{% trans "Nationalité" %}</td><td class="info-value-cell">{{ dossier.nationalite|default:"—" }}</td></tr>
+            <tr><td class="info-label-cell">{% trans "Adresse" %}</td><td class="info-value-cell">{{ dossier.adresse|default:"—"|linebreaksbr }}</td></tr>
+            <tr><td class="info-label-cell">{% trans "N° pièce d'identité" %}</td><td class="info-value-cell">{{ dossier.numero_cni|default:"—" }}</td></tr>
+            <tr><td class="info-label-cell">{% trans "N° CNSS / sécurité sociale" %}</td><td class="info-value-cell">{{ dossier.numero_cnss|default:"—" }}</td></tr>
+        </table>
+    </div>
+
+    <div class="info-section">
+        <h3 class="section-title"><i class="fas fa-file-contract"></i> {% trans "Contrat et rémunération" %}</h3>
+        <table class="info-table">
+            <tr><td class="info-label-cell">{% trans "Type de contrat" %}</td><td class="info-value-cell">{{ dossier.get_type_contrat_display_label|default:"—" }}</td></tr>
+            <tr><td class="info-label-cell">{% trans "Date de fin de contrat" %}</td><td class="info-value-cell">{% if dossier.date_fin_contrat %}{{ dossier.date_fin_contrat|date:"d/m/Y" }}{% else %}—{% endif %}</td></tr>
+            <tr><td class="info-label-cell">{% trans "Salaire de base" %}</td><td class="info-value-cell">{% if dossier.salaire_base %}{{ dossier.salaire_base }} FCFA{% else %}—{% endif %}</td></tr>
+            <tr><td class="info-label-cell">{% trans "Banque" %}</td><td class="info-value-cell">{{ dossier.banque|default:"—" }}</td></tr>
+            <tr><td class="info-label-cell">{% trans "N° compte / RIB" %}</td><td class="info-value-cell">{{ dossier.numero_compte_bancaire|default:"—" }}</td></tr>
+        </table>
+    </div>
+
+    <div class="info-section">
+        <h3 class="section-title"><i class="fas fa-graduation-cap"></i> {% trans "Qualifications" %}</h3>
+        <table class="info-table">
+            <tr><td class="info-label-cell">{% trans "Diplôme le plus élevé" %}</td><td class="info-value-cell">{{ dossier.diplome_plus_eleve|default:"—" }}</td></tr>
+            <tr><td class="info-label-cell">{% trans "N° autorisation / agrément" %}</td><td class="info-value-cell">{{ dossier.numero_autorisation|default:"—" }}</td></tr>
+        </table>
+    </div>
+
+    <div class="info-section">
+        <h3 class="section-title"><i class="fas fa-phone-alt"></i> {% trans "Contact d'urgence" %}</h3>
+        <table class="info-table">
+            <tr><td class="info-label-cell">{% trans "Nom" %}</td><td class="info-value-cell">{{ dossier.contact_urgence_nom|default:"—" }}</td></tr>
+            <tr><td class="info-label-cell">{% trans "Téléphone" %}</td><td class="info-value-cell">{{ dossier.contact_urgence_telephone|default:"—" }}</td></tr>
+            <tr><td class="info-label-cell">{% trans "Lien" %}</td><td class="info-value-cell">{{ dossier.contact_urgence_lien|default:"—" }}</td></tr>
+        </table>
+    </div>
+
+    <div class="info-section">
+        <h3 class="section-title"><i class="fas fa-sticky-note"></i> {% trans "Observations" %}</h3>
+        <p class="dossier-text-block">{% if dossier.observations %}{{ dossier.observations|linebreaksbr }}{% else %}—{% endif %}</p>
+    </div>
+
+    <div class="info-section">
+        <h3 class="section-title"><i class="fas fa-folder-open"></i> {% trans "Documents du dossier" %}</h3>
+        {% if documents %}
+            <div class="documents-list">
+                {% for doc in documents %}
+                    <div class="document-item">
+                        <div class="document-info">
+                            <i class="fas fa-file"></i>
+                            <div>
+                                <strong>{{ doc.libelle|default:doc.nom_fichier }}</strong>
+                                <span class="document-meta">{{ doc.date_ajout|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </div>
+                        <div class="document-actions">
+                            <a href="{{ doc.fichier.url }}" target="_blank" rel="noopener" class="btn-doc btn-doc-view">
+                                <i class="fas fa-eye"></i> {% trans "Voir" %}
+                            </a>
+                            <a href="{% url document_download_url_name doc.id %}?download=1" class="btn-doc btn-doc-download">
+                                <i class="fas fa-download"></i> {% trans "Télécharger" %}
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted dossier-empty">{% trans "Aucun document enregistré." %}</p>
+        {% endif %}
+    </div>
+</div>

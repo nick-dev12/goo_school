@@ -1,0 +1,53 @@
+{% load i18n %}
+<article class="aff-prof-card professor-card"
+         data-professeur-id="{{ professeur.id }}"
+         data-matiere="{% if professeur.matiere_principale %}{{ professeur.matiere_principale.id }}{% endif %}"
+         data-affected="{% if affectations %}1{% else %}0{% endif %}"
+         data-classe-ids="{% for affectation in affectations %}{{ affectation.classe.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+         data-search="{{ professeur.nom|lower }} {{ professeur.email|lower }} {% if professeur.matiere_principale %}{{ professeur.matiere_principale.nom|lower }}{% endif %}">
+    <div class="aff-prof-card-head">
+        <div class="aff-prof-avatar"><i class="fas fa-user-tie" aria-hidden="true"></i></div>
+        <div class="aff-prof-head-text">
+            <h3 class="aff-prof-name">{{ professeur.nom_complet }}</h3>
+            <p class="aff-prof-matiere">
+                {% if professeur.matiere_principale %}
+                    {% if est_superieur and professeur.matiere_principale.department %}{{ professeur.matiere_principale.department.nom }} › {% endif %}
+                    {% if est_superieur and professeur.matiere_principale.module %}{{ professeur.matiere_principale.module.nom }} › {% endif %}
+                    {{ professeur.matiere_principale.nom }}
+                {% else %}—{% endif %}
+            </p>
+        </div>
+        <span class="aff-status-chip {% if affectations %}aff-status-chip--ok{% else %}aff-status-chip--warn{% endif %}">
+            {% if affectations %}<i class="fas fa-check-circle"></i> {% trans "Affecté" %}{% else %}<i class="fas fa-clock"></i> {% trans "À affecter" %}{% endif %}
+        </span>
+    </div>
+
+    <div class="aff-prof-card-body">
+        {% if affectations %}
+            <p class="aff-prof-section-label"><i class="fas fa-door-open"></i> {% trans "Classes" %}</p>
+            <div class="aff-classes-list">
+                {% for affectation in affectations %}
+                    <span class="aff-classe-badge {% if affectation.is_principal %}aff-classe-badge--principal{% endif %}"
+                          {% if type_etablissement != 'primary' and affectation.matiere %}title="{% if est_superieur %}{{ affectation.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=affectation.classe only %} · {% endif %}{% if est_superieur and affectation.matiere.department %}{{ affectation.matiere.department.nom }} › {% endif %}{% if est_superieur and affectation.matiere.module %}{{ affectation.matiere.module.nom }} › {% endif %}{{ affectation.matiere.nom }}"{% endif %}>
+                        {% if est_superieur %}{{ affectation.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=affectation.classe only %}{% else %}{{ affectation.classe.nom }}{% endif %}
+                        {% if type_etablissement != 'primary' and affectation.matiere %}
+                            <span class="aff-classe-matiere">({{ affectation.matiere.nom }})</span>
+                        {% endif %}
+                        {% if affectation.is_principal %}<i class="fas fa-crown" title="{% trans 'Professeur principal' %}"></i>{% endif %}
+                    </span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="aff-prof-empty"><i class="fas fa-info-circle"></i> {% trans "Aucune classe assignée pour cette année." %}</p>
+        {% endif %}
+        {% if professeur.matieres_secondaires.exists %}
+            <p class="aff-prof-meta"><i class="fas fa-plus-circle"></i> {{ professeur.matieres_secondaires.count }} {% trans "matière(s) secondaire(s)" %}</p>
+        {% endif %}
+    </div>
+
+    <div class="aff-prof-card-foot">
+        <button type="button" class="aff-btn aff-btn-primary" onclick="toggleAffectations({{ professeur.id }})">
+            <i class="fas fa-user-check"></i> {% trans "Gérer les affectations" %}
+        </button>
+    </div>
+</article>

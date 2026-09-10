@@ -21,10 +21,8 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3"
     />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=1.1.0"
-    />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=2.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0"
@@ -47,86 +45,55 @@
       href="{% static 'school_admin/css/partials/messages.css' %}"
     />
   </head>
-  <body data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}>
-    <!-- Header -->
+  <body class="ele-page-body" data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content Container -->
-    <div class="container">
-      <!-- Messages -->
+    <div class="content-container ele-page">
       {% include 'school_admin/partials/messages.html' %}
-      
-      <!-- Page Header -->
-      <div class="page-header">
+
+      <div class="page-header page-header-minimal">
         {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-          <h1 class="page-title">
-            <i class="fas fa-users"></i>
-            {% trans "Liste des Élèves" %}
-          </h1>
-          <p class="page-subtitle">
-            Gestion des élèves inscrits dans {{ etablissement.nom }}
-          </p>
-        </div>
-        <div class="page-actions">
-          <button type="button" class="btn-primary" onclick="openModalInscriptionEleve()">
-            <i class="fas fa-user-plus"></i>
-            <span>{% trans "Nouvel élève" %}</span>
-          </button>
-        </div>
       </div>
 
-      <!-- Message d'information sur l'année scolaire active -->
-      {% if annee_scolaire_active %}
-      <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-        <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
-          <i class="fas fa-calendar-check"></i>
-        </span>
-        <div>
-          <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-            Année scolaire active : {{ annee_scolaire_active.libelle }}
-          </p>
-          <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-            {% trans "Seuls les élèves inscrits pour cette session sont affichés." %}
-          </p>
+      <header class="ele-hero">
+        <div class="ele-hero-text">
+          <h1 class="ele-hero-title"><i class="fas fa-user-graduate"></i> {% trans "Liste des élèves" %}</h1>
+          <p class="ele-hero-sub">{% trans "Consultez les effectifs par niveau et par classe, inscrivez ou suivez chaque élève." %}</p>
+          {% if annee_scolaire_active %}
+            <span class="ele-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+          {% endif %}
         </div>
-      </div>
-      {% else %}
-      <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
-        <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
-        <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-          {% trans "Aucune année scolaire active. Tous les élèves actifs sont affichés." %}
-        </span>
+        <div class="ele-hero-stats">
+          <div class="ele-stat-pill"><span class="ele-stat-num">{{ stats_generales.total_eleves }}</span><span class="ele-stat-lbl">{% trans "Élèves" %}</span></div>
+          <div class="ele-stat-pill"><span class="ele-stat-num">{{ stats_generales.total_classes }}</span><span class="ele-stat-lbl">{% trans "Classes" %}</span></div>
+          <div class="ele-stat-pill ele-stat-pill--ok"><span class="ele-stat-num">{{ stats_generales.nouveaux_eleves }}</span><span class="ele-stat-lbl">{% trans "Nouveaux" %}</span></div>
+          <div class="ele-stat-pill"><span class="ele-stat-num">{{ stats_generales.taux_occupation_global }}%</span><span class="ele-stat-lbl">{% trans "Occupation" %}</span></div>
+        </div>
+        <div class="ele-hero-actions">
+          <button type="button" class="ele-action-btn ele-action-btn--primary" onclick="openModalInscriptionEleve()">
+            <i class="fas fa-user-plus"></i> {% trans "Inscrire un élève" %}
+          </button>
+        </div>
+      </header>
+
+      {% if not annee_scolaire_active %}
+      <div class="ele-alert ele-alert-warn">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>{% trans "Aucune année scolaire active. Tous les élèves actifs sont affichés." %}</span>
       </div>
       {% endif %}
 
-      <!-- Cartes de vue d'ensemble -->
-  
-
-      <!-- Système d'onglets par niveau -->
-      <div class="tabs-container">
-        <div class="tabs-header">
-          <div class="tabs-nav">
-            {% for categorie, data in classes_grouped.items %}
-              <button class="tab-button {% if forloop.first %}active{% endif %}" 
-                      data-tab="tab-{{ forloop.counter }}"
-                      onclick="switchMainTab('tab-{{ forloop.counter }}')">
-                <div class="tab-content">
-                  <div class="tab-icon">
-                    <i class="fas fa-layer-group"></i>
-                  </div>
-                  <div class="tab-info">
-                    <h4 class="tab-title">{{ categorie }}</h4>
-                    <p class="tab-subtitle">{{ data.classes|length }} classe{{ data.classes|length|pluralize }}</p>
-                  </div>
-                  <div class="tab-stats">
-                    <span class="students-count">{{ data.total_eleves }}</span>
-                    <span class="students-label">{% trans "élèves" %}</span>
-                  </div>
-                </div>
-              </button>
-            {% endfor %}
-          </div>
+      <div class="tabs-container ele-niveau-tabs">
+        <div class="tabs-nav" role="tablist" aria-label="{% trans 'Niveaux / catégories' %}">
+          {% for cat_key, data in classes_grouped.items %}
+            <button type="button" role="tab" class="tab-button ele-niveau-tab {% if forloop.first %}active{% endif %}"
+                    data-tab="tab-{{ forloop.counter }}"
+                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+              <i class="fas fa-layer-group"></i>
+              <span>{{ data.label }}</span>
+              <span class="tab-count">{{ data.total_eleves }}</span>
+            </button>
+          {% endfor %}
         </div>
 
         <!-- Contenu des onglets -->
@@ -135,316 +102,106 @@
             <div class="tab-panel {% if forloop.first %}active{% endif %}" 
                  id="tab-{{ forloop.counter }}">
               
-              <!-- Sous-onglets par classe -->
-              <div class="classes-subtabs">
-                {% for classe_data in data.classes %}
-                  <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}"
-                          data-subtab="classe-{{ classe_data.classe.id }}"
-                          onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
-                    <span class="classe-name">{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
-                    <span class="classe-count">{{ classe_data.stats.total_eleves }} élève{{ classe_data.stats.total_eleves|pluralize }}</span>
-                  </button>
-                {% endfor %}
+              <div class="ele-classe-nav">
+                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
+                  <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes du niveau' %}">
+                    {% for classe_data in data.classes %}
+                      <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if forloop.first %}active{% endif %}"
+                              data-subtab="classe-{{ classe_data.classe.id }}"
+                              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                        <i class="fas fa-door-open"></i>
+                        <span>{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
+                        <span class="tab-count">{{ classe_data.stats.total_eleves }}</span>
+                      </button>
+                    {% endfor %}
+                  </div>
+                  <div class="matiere-tabs-more-wrap" hidden>
+                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres classes' %}">
+                      <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                      <span class="matiere-tabs-more-label">{% trans "Autres classes" %}</span>
+                    </button>
+                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                  </div>
+                </div>
               </div>
 
-              <!-- Contenu des sous-onglets (classes) -->
               {% for classe_data in data.classes %}
                 <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}" data-main-tab="tab-{{ forloop.parentloop.counter }}">
-                  <!-- En-tête de la classe -->
-                  <div class="class-header">
-                  <div class="class-info">
-                    <h2 class="class-title">
-                      <i class="fas fa-chalkboard"></i>
-                      {% if est_superieur %}
-                        {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
-                      {% else %}
-                        {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                  <header class="ele-classe-header">
+                    <div class="ele-classe-title-block">
+                      <h2 class="ele-classe-title">
+                        <i class="fas fa-chalkboard"></i>
+                        {% if est_superieur %}
+                          {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
+                        {% else %}
+                          {{ classe_data.classe.nom }} — {{ classe_data.classe.get_niveau_display }}
+                        {% endif %}
+                      </h2>
+                      {% if classe_data.classe.description %}
+                        <p class="ele-classe-desc">{{ classe_data.classe.description }}</p>
                       {% endif %}
-                    </h2>
-                    <p class="class-description">{{ classe_data.classe.description|default:"Aucune description" }}</p>
-                  </div>
-                  
-                  <div class="class-stats">
-                    <div class="stat-item">
-                      <span class="stat-label">{% trans "Capacité" %}</span>
-                      <span class="stat-value">{{ classe_data.classe.capacite_max }}</span>
                     </div>
-                    <div class="stat-item">
-                      <span class="stat-label">{% trans "Inscrits" %}</span>
-                      <span class="stat-value">{{ classe_data.stats.total_eleves }}</span>
-                    </div>
-                    <div class="stat-item">
-                      <span class="stat-label">{% trans "Disponibles" %}</span>
-                      <span class="stat-value">{{ classe_data.stats.places_disponibles }}</span>
-                    </div>
-                    <div class="stat-item">
-                      <span class="stat-label">{% trans "Occupation" %}</span>
-                      <span class="stat-value">{{ classe_data.stats.taux_occupation }}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Statistiques détaillées de la classe -->
-                <div class="class-detail-stats">
-                  <div class="detail-stat-card">
-                    <div class="detail-stat-icon new">
-                      <i class="fas fa-user-plus"></i>
-                    </div>
-                    <div class="detail-stat-content">
-                      <span class="detail-stat-number">{{ classe_data.stats.nouveaux_eleves }}</span>
-                      <span class="detail-stat-label">{% trans "Nouvelles inscriptions" %}</span>
-                    </div>
-                  </div>
-
-                  <div class="detail-stat-card">
-                    <div class="detail-stat-icon transfer">
-                      <i class="fas fa-exchange-alt"></i>
-                    </div>
-                    <div class="detail-stat-content">
-                      <span class="detail-stat-number">{{ classe_data.stats.transferts }}</span>
-                      <span class="detail-stat-label">{% trans "Transferts" %}</span>
-                    </div>
-                  </div>
-
-                  <div class="detail-stat-card">
-                    <div class="detail-stat-icon reenroll">
-                      <i class="fas fa-redo"></i>
-                    </div>
-                    <div class="detail-stat-content">
-                      <span class="detail-stat-number">{{ classe_data.stats.reinscriptions }}</span>
-                      <span class="detail-stat-label">{% trans "Réinscriptions" %}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Liste des élèves -->
-                <div class="students-section">
-                  <div class="section-header">
-                    <h3 class="section-title">
-                      <i class="fas fa-list"></i>
-                      Liste des élèves ({{ classe_data.eleves|length }})
-                    </h3>
-                    <div class="section-actions">
-                      <a href="{% url 'directeur:imprimer_liste_nominative' classe_data.classe.id %}" 
-                         {% trans "class=\"btn-print-liste\"" %}
-                         target="_blank"
-                         title="{% trans "Imprimer la liste nominative" %}">
-                        <i class="fas fa-print"></i>
-                        {% trans "Imprimer liste" %}
+                    <div class="ele-classe-meta">
+                      <span class="ele-mini-stat"><i class="fas fa-users"></i> {{ classe_data.stats.total_eleves }}/{{ classe_data.classe.capacite_max }}</span>
+                      <span class="ele-mini-stat"><i class="fas fa-chart-pie"></i> {{ classe_data.stats.taux_occupation }}%</span>
+                      <span class="ele-mini-stat ele-mini-stat--new"><i class="fas fa-user-plus"></i> {{ classe_data.stats.nouveaux_eleves }}</span>
+                      <span class="ele-mini-stat"><i class="fas fa-exchange-alt"></i> {{ classe_data.stats.transferts }}</span>
+                      <span class="ele-mini-stat"><i class="fas fa-redo"></i> {{ classe_data.stats.reinscriptions }}</span>
+                      <a href="{% url 'directeur:imprimer_liste_nominative' classe_data.classe.id %}" class="ele-print-btn" target="_blank" title="{% trans 'Imprimer la liste nominative' %}">
+                        <i class="fas fa-print"></i> {% trans "Imprimer" %}
                       </a>
-                      <button class="btn-filter" onclick="toggleFilter()">
-                        <i class="fas fa-filter"></i>
-                        {% trans "Filtrer" %}
-                      </button>
-                      <button class="btn-export" onclick="exportStudents()">
-                        <i class="fas fa-download"></i>
-                        {% trans "Exporter" %}
-                      </button>
                     </div>
-                  </div>
-                  
-                  <!-- Barre de recherche et filtres pour tous les établissements -->
-                  <div class="search-filter-container" id="search-filter-{{ classe_data.classe.id }}">
-                    <div class="search-box">
-                      <i class="fas fa-search"></i>
-                      <input type="text" 
-                             class="search-input" 
-                             id="search-input-{{ classe_data.classe.id }}" 
-                             placeholder="{% trans "Rechercher un élève (nom, prénom, matricule, email...)" %}"
+                  </header>
+
+                  <div class="ele-toolbar search-filter-container" id="search-filter-{{ classe_data.classe.id }}">
+                    <label class="ele-search-wrap">
+                      <i class="fas fa-search" aria-hidden="true"></i>
+                      <input type="search" class="search-input ele-search-input" id="search-input-{{ classe_data.classe.id }}"
+                             placeholder="{% trans 'Nom, prénom, matricule…' %}" autocomplete="off"
                              oninput="filterStudents('{{ classe_data.classe.id }}')">
-                      <button class="clear-search" id="clear-search-{{ classe_data.classe.id }}" onclick="clearSearch('{{ classe_data.classe.id }}')" style="display: none;">
+                      <button type="button" class="clear-search" id="clear-search-{{ classe_data.classe.id }}" hidden
+                              onclick="clearSearch('{{ classe_data.classe.id }}')" aria-label="{% trans 'Effacer la recherche' %}">
                         <i class="fas fa-times"></i>
                       </button>
-                    </div>
-                    
-                    <div class="filters-box">
+                    </label>
+                    <div class="ele-filters-row filters-box">
                       <div class="filter-group">
-                        <label class="filter-label">
-                          <i class="fas fa-user-tag"></i>
-                          {% trans "Statut" %}
-                        </label>
-                        <select class="filter-select" id="filter-statut-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
-                          <option value="">{% trans "Tous les statuts" %}</option>
+                        <label class="filter-label" for="filter-statut-{{ classe_data.classe.id }}"><i class="fas fa-user-tag"></i> {% trans "Statut" %}</label>
+                        <select class="filter-select ele-filter-select" id="filter-statut-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
+                          <option value="">{% trans "Tous" %}</option>
                           <option value="nouvelle">{% trans "Nouvelle inscription" %}</option>
                           <option value="transfert">{% trans "Transfert" %}</option>
                           <option value="reinscription">{% trans "Réinscription" %}</option>
                         </select>
                       </div>
-                      
                       <div class="filter-group">
-                        <label class="filter-label">
-                          <i class="fas fa-venus-mars"></i>
-                          {% trans "Sexe" %}
-                        </label>
-                        <select class="filter-select" id="filter-sexe-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
+                        <label class="filter-label" for="filter-sexe-{{ classe_data.classe.id }}"><i class="fas fa-venus-mars"></i> {% trans "Sexe" %}</label>
+                        <select class="filter-select ele-filter-select" id="filter-sexe-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
                           <option value="">{% trans "Tous" %}</option>
                           <option value="M">{% trans "Masculin" %}</option>
                           <option value="F">{% trans "Féminin" %}</option>
                         </select>
                       </div>
-                      
                       <div class="filter-group">
-                        <label class="filter-label">
-                          <i class="fas fa-exclamation-triangle"></i>
-                          {% trans "Absences" %}
-                        </label>
-                        <select class="filter-select" id="filter-absences-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
+                        <label class="filter-label" for="filter-absences-{{ classe_data.classe.id }}"><i class="fas fa-calendar-times"></i> {% trans "Absences" %}</label>
+                        <select class="filter-select ele-filter-select" id="filter-absences-{{ classe_data.classe.id }}" onchange="filterStudents('{{ classe_data.classe.id }}')">
                           <option value="">{% trans "Toutes" %}</option>
-                          <option value="0">{% trans "Aucune absence" %}</option>
-                          <option value="1-2">{% trans "1-2 absences" %}</option>
-                          <option value="3-4">{% trans "3-4 absences" %}</option>
-                          <option value="5+">{% trans "5+ absences" %}</option>
+                          <option value="0">{% trans "Aucune" %}</option>
+                          <option value="1-2">1-2</option>
+                          <option value="3-4">3-4</option>
+                          <option value="5+">5+</option>
                         </select>
                       </div>
-                      
-                      <button class="btn-reset-filters" onclick="resetFilters('{{ classe_data.classe.id }}')">
-                        <i class="fas fa-redo"></i>
-                        {% trans "Réinitialiser" %}
+                      <button type="button" class="btn-reset-filters ele-reset-btn" onclick="resetFilters('{{ classe_data.classe.id }}')">
+                        <i class="fas fa-redo"></i> {% trans "Réinitialiser" %}
                       </button>
                     </div>
-                    
-                    <div class="filter-results" id="filter-results-{{ classe_data.classe.id }}" style="display: none;">
-                      <span id="results-count-{{ classe_data.classe.id }}">0</span> {% trans "résultat(s) trouvé(s)" %}
-                    </div>
+                    <p class="filter-results ele-filter-results" id="filter-results-{{ classe_data.classe.id }}" hidden>
+                      <span id="results-count-{{ classe_data.classe.id }}">0</span> {% trans "résultat(s)" %}
+                    </p>
                   </div>
-                  
-                  <style>
-                    /* Styles pour la recherche et les filtres */
-                    .search-filter-container {
-                      background: white;
-                      padding: 20px;
-                      border-radius: 12px;
-                      margin-bottom: 20px;
-                      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-                    }
-                    
-                    .search-box {
-                      position: relative;
-                      margin-bottom: 16px;
-                    }
-                    
-                    .search-box i.fa-search {
-                      position: absolute;
-                      left: 16px;
-                      top: 50%;
-                      transform: translateY(-50%);
-                      color: #9ca3af;
-                      font-size: 16px;
-                    }
-                    
-                    .search-input {
-                      width: 100%;
-                      padding: 12px 48px 12px 48px;
-                      border: 2px solid #e5e7eb;
-                      border-radius: 8px;
-                      font-size: 14px;
-                      transition: all 0.3s;
-                    }
-                    
-                    .search-input:focus {
-                      outline: none;
-                      border-color: #4f46e5;
-                      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-                    }
-                    
-                    .clear-search {
-                      position: absolute;
-                      right: 16px;
-                      top: 50%;
-                      transform: translateY(-50%);
-                      background: #ef4444;
-                      color: white;
-                      border: none;
-                      border-radius: 50%;
-                      width: 24px;
-                      height: 24px;
-                      cursor: pointer;
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      transition: all 0.2s;
-                    }
-                    
-                    .clear-search:hover {
-                      background: #dc2626;
-                      transform: translateY(-50%) scale(1.1);
-                    }
-                    
-                    .filters-box {
-                      display: flex;
-                      gap: 12px;
-                      align-items: flex-end;
-                      flex-wrap: wrap;
-                    }
-                    
-                    .filter-group {
-                      flex: 1;
-                      min-width: 180px;
-                    }
-                    
-                    .filter-label {
-                      display: flex;
-                      align-items: center;
-                      gap: 6px;
-                      font-size: 13px;
-                      font-weight: 600;
-                      color: #4b5563;
-                      margin-bottom: 6px;
-                    }
-                    
-                    .filter-select {
-                      width: 100%;
-                      padding: 10px 12px;
-                      border: 2px solid #e5e7eb;
-                      border-radius: 8px;
-                      font-size: 13px;
-                      cursor: pointer;
-                      transition: all 0.3s;
-                      background: white;
-                    }
-                    
-                    .filter-select:focus {
-                      outline: none;
-                      border-color: #4f46e5;
-                      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-                    }
-                    
-                    .btn-reset-filters {
-                      padding: 10px 16px;
-                      background: #f3f4f6;
-                      border: 2px solid #e5e7eb;
-                      border-radius: 8px;
-                      color: #4b5563;
-                      font-size: 13px;
-                      font-weight: 600;
-                      cursor: pointer;
-                      display: flex;
-                      align-items: center;
-                      gap: 6px;
-                      transition: all 0.3s;
-                    }
-                    
-                    .btn-reset-filters:hover {
-                      background: #e5e7eb;
-                      border-color: #d1d5db;
-                    }
-                    
-                    .filter-results {
-                      margin-top: 12px;
-                      padding: 12px;
-                      background: #eff6ff;
-                      border-left: 4px solid #3b82f6;
-                      border-radius: 6px;
-                      font-size: 14px;
-                      color: #1e40af;
-                      font-weight: 600;
-                    }
-                    
-                    .list-row.hidden {
-                      display: none !important;
-                    }
-                  </style>
 
+                  <div class="students-section">
                   {% if classe_data.eleves %}
                     <div class="students-list">
                       <div class="list-header">
@@ -671,211 +428,6 @@
       </div>
     </div>
 
-    <!-- Scripts JavaScript -->
-    <script>
-      // Gestion des onglets principaux (niveaux)
-      function switchMainTab(tabId) {
-        // Masquer tous les panneaux principaux
-        document.querySelectorAll('.tab-panel').forEach(panel => {
-          panel.classList.remove('active');
-        });
-        
-        // Désactiver tous les boutons principaux
-        document.querySelectorAll('.tab-button').forEach(btn => {
-          btn.classList.remove('active');
-        });
-        
-        // Activer le panneau sélectionné
-        document.getElementById(tabId).classList.add('active');
-        
-        // Activer le bouton cliqué
-        event.target.closest('.tab-button').classList.add('active');
-      }
-
-      // Gestion des sous-onglets (classes)
-      function switchClasseTab(event, classeId) {
-        event.stopPropagation();
-        
-        // Trouver le parent tab-panel
-        const parentPanel = event.target.closest('.tab-panel');
-        
-        // Masquer tous les contenus de classe dans ce panneau
-        parentPanel.querySelectorAll('.classe-subtab-content').forEach(content => {
-          content.classList.remove('active');
-        });
-        
-        // Désactiver tous les boutons de sous-onglets dans ce panneau
-        parentPanel.querySelectorAll('.classe-subtab-btn').forEach(btn => {
-          btn.classList.remove('active');
-        });
-        
-        // Activer le contenu sélectionné
-        document.getElementById(classeId).classList.add('active');
-        
-        // Activer le bouton cliqué
-        event.target.closest('.classe-subtab-btn').classList.add('active');
-      }
-
-      function toggleFilter() {
-        // Fonction pour afficher/masquer les filtres
-        console.log('Filtres à implémenter');
-      }
-
-      function exportStudents() {
-        // Fonction pour exporter la liste des élèves
-        console.log('Export à implémenter');
-      }
-
-      function viewStudent(studentId) {
-        // Fonction pour voir les détails d'un élève
-        console.log('Voir élève:', studentId);
-      }
-
-      function editStudent(studentId) {
-        // Fonction pour modifier un élève
-        console.log('Modifier élève:', studentId);
-      }
-
-      // Gestion du modal de sanctions
-      function ouvrirModalSanction(eleveId, eleveNom, classeId) {
-        const modal = document.getElementById('modalSanction');
-        const eleveIdInput = document.getElementById('sanction_eleve_id');
-        const classeIdInput = document.getElementById('sanction_classe_id');
-        const eleveNomDiv = document.getElementById('eleve_sanction_nom');
-        const dateSanctionInput = document.getElementById('date_sanction');
-        
-        // Remplir les champs cachés
-        eleveIdInput.value = eleveId;
-        classeIdInput.value = classeId;
-        
-        // Afficher le nom de l'élève
-        eleveNomDiv.textContent = `Élève : ${eleveNom}`;
-        
-        // Définir la date d'aujourd'hui
-        const today = new Date().toISOString().split('T')[0];
-        dateSanctionInput.value = today;
-        
-        // Afficher le modal
-        modal.style.display = 'flex';
-      }
-
-      function fermerModalSanction() {
-        const modal = document.getElementById('modalSanction');
-        const form = modal.querySelector('form');
-        
-        // Réinitialiser le formulaire
-        form.reset();
-        
-        // Masquer le modal
-        modal.style.display = 'none';
-      }
-
-      // Fermer le modal en cliquant en dehors
-      window.onclick = function(event) {
-        const modal = document.getElementById('modalSanction');
-        if (event.target == modal) {
-          fermerModalSanction();
-        }
-      }
-      
-      // Fonctions de filtrage pour les établissements secondaires
-      function filterStudents(classeId) {
-        const searchInput = document.getElementById(`search-input-${classeId}`);
-        const filterStatut = document.getElementById(`filter-statut-${classeId}`);
-        const filterSexe = document.getElementById(`filter-sexe-${classeId}`);
-        const filterAbsences = document.getElementById(`filter-absences-${classeId}`);
-        const clearButton = document.getElementById(`clear-search-${classeId}`);
-        const resultsDiv = document.getElementById(`filter-results-${classeId}`);
-        const resultsCount = document.getElementById(`results-count-${classeId}`);
-        
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const statutValue = filterStatut.value;
-        const sexeValue = filterSexe.value;
-        const absencesValue = filterAbsences.value;
-        
-        // Afficher/masquer le bouton de suppression de recherche
-        clearButton.style.display = searchTerm ? 'flex' : 'none';
-        
-        // Récupérer toutes les lignes d'élèves de cette classe
-        const classeContent = document.getElementById(`classe-${classeId}`);
-        const rows = classeContent.querySelectorAll('.list-row');
-        
-        let visibleCount = 0;
-        
-        rows.forEach(row => {
-          const nom = row.dataset.nom || '';
-          const prenom = row.dataset.prenom || '';
-          const email = row.dataset.email || '';
-          const matricule = row.dataset.matricule || '';
-          const statut = row.dataset.statut || '';
-          const sexe = row.dataset.sexe || '';
-          const absences = parseInt(row.dataset.absences || '0');
-          
-          // Filtrage par recherche (nom, prénom, email, matricule)
-          const matchesSearch = !searchTerm || 
-            nom.includes(searchTerm) || 
-            prenom.includes(searchTerm) || 
-            email.includes(searchTerm) || 
-            matricule.includes(searchTerm);
-          
-          // Filtrage par statut
-          const matchesStatut = !statutValue || statut === statutValue;
-          
-          // Filtrage par sexe
-          const matchesSexe = !sexeValue || sexe === sexeValue;
-          
-          // Filtrage par absences
-          let matchesAbsences = true;
-          if (absencesValue === '0') {
-            matchesAbsences = absences === 0;
-          } else if (absencesValue === '1-2') {
-            matchesAbsences = absences >= 1 && absences <= 2;
-          } else if (absencesValue === '3-4') {
-            matchesAbsences = absences >= 3 && absences <= 4;
-          } else if (absencesValue === '5+') {
-            matchesAbsences = absences >= 5;
-          }
-          
-          // Afficher/masquer la ligne selon les critères
-          if (matchesSearch && matchesStatut && matchesSexe && matchesAbsences) {
-            row.classList.remove('hidden');
-            visibleCount++;
-          } else {
-            row.classList.add('hidden');
-          }
-        });
-        
-        // Afficher/masquer le compteur de résultats
-        if (searchTerm || statutValue || sexeValue || absencesValue) {
-          resultsCount.textContent = visibleCount;
-          resultsDiv.style.display = 'block';
-        } else {
-          resultsDiv.style.display = 'none';
-        }
-      }
-      
-      function clearSearch(classeId) {
-        const searchInput = document.getElementById(`search-input-${classeId}`);
-        searchInput.value = '';
-        filterStudents(classeId);
-      }
-      
-      function resetFilters(classeId) {
-        const searchInput = document.getElementById(`search-input-${classeId}`);
-        const filterStatut = document.getElementById(`filter-statut-${classeId}`);
-        const filterSexe = document.getElementById(`filter-sexe-${classeId}`);
-        const filterAbsences = document.getElementById(`filter-absences-${classeId}`);
-        
-        searchInput.value = '';
-        filterStatut.value = '';
-        filterSexe.value = '';
-        filterAbsences.value = '';
-        
-        filterStudents(classeId);
-      }
-
-    </script>
-
     <style>
       .eleve-row-new {
         animation: eleveRowHighlight 2.5s ease;
@@ -964,6 +516,7 @@
     {% endif %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="{% static 'school_admin/js/realtime_page.js' %}?v=1.0.2"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_eleves.js' %}?v=2.0.0"></script>
     <script src="{% static 'school_admin/js/directeur/liste_eleves_live.js' %}?v=1.1.0"></script>
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

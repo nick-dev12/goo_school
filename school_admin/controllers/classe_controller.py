@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.http import JsonResponse
 import logging
 import random
+import re
 import string
 import json
 
@@ -109,9 +110,14 @@ class ClasseController:
                 'filiere_nom': filiere,
                 'niveau_key': niveau_key,
             }
+        from django.utils.text import slugify
+
+        categorie = ClasseController.extract_categorie_from_nom(classe.nom)
         return {
             'est_superieur': False,
             'niveau_scolaire': classe.niveau,
+            'categorie': categorie,
+            'categorie_slug': slugify(categorie),
         }
 
     @staticmethod
@@ -214,6 +220,14 @@ class ClasseController:
     _ORDER_NIVEAU_SCOLAIRE_TABS = ['maternelle', 'primaire', 'college', 'lycee', 'superieur']
 
     @staticmethod
+    def extract_categorie_from_nom(nom):
+        """Extrait la catégorie d'une classe (ex. « CE1 » depuis « CE1 A »)."""
+        match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', nom or '')
+        if match:
+            return match.group(1)
+        return nom
+
+    @staticmethod
     def build_classes_grouped_for_liste(classes_with_teachers, est_superieur):
         """
         Regroupe les classes pour la page liste : supérieur → par filière puis niveaux LMD ;
@@ -271,34 +285,29 @@ class ClasseController:
                 classes_grouped[f] = {'niveaux': items, 'total': total_cl}
             return classes_grouped
 
-        niveau_labels = dict(Classe.NIVEAU_CHOICES)
-        bucket = {}
+        classes_grouped = {}
         for classe_data in classes_with_teachers:
             classe = classe_data['classe']
-            nv = classe.niveau
-            if nv not in bucket:
-                bucket[nv] = {
-                    'niveau': nv,
-                    'niveau_label': niveau_labels.get(nv, nv),
+            categorie = ClasseController.extract_categorie_from_nom(classe.nom)
+            if categorie not in classes_grouped:
+                classes_grouped[categorie] = {
+                    'niveau': classe.niveau,
+                    'niveau_label': categorie,
                     'classes': [],
                     'total_eleves': 0,
                     'total_enseignants': 0,
                     'total_capacite': 0,
+                    'total_classes': 0,
                 }
-            bucket[nv]['classes'].append(classe_data)
-            bucket[nv]['total_eleves'] += classe.nombre_eleves
-            bucket[nv]['total_enseignants'] += classe_data['nombre_enseignants']
-            bucket[nv]['total_capacite'] += classe.capacite_max
+            bucket = classes_grouped[categorie]
+            bucket['classes'].append(classe_data)
+            bucket['total_eleves'] += classe.nombre_eleves
+            bucket['total_enseignants'] += classe_data['nombre_enseignants']
+            bucket['total_capacite'] += classe.capacite_max
+            bucket['total_classes'] += 1
 
-        classes_grouped = {}
-        for nv in ClasseController._ORDER_NIVEAU_SCOLAIRE_TABS:
-            if nv in bucket:
-                bucket[nv]['classes'].sort(key=lambda x: x['classe'].nom)
-                classes_grouped[nv] = bucket[nv]
-        for nv, data in bucket.items():
-            if nv not in classes_grouped:
-                data['classes'].sort(key=lambda x: x['classe'].nom)
-                classes_grouped[nv] = data
+        for data in classes_grouped.values():
+            data['classes'].sort(key=lambda x: x['classe'].nom)
         return classes_grouped
 
     @staticmethod

@@ -58,8 +58,23 @@ class PersonnelAdministratif(AbstractUser):
     # Informations personnelles
     nom = models.CharField(max_length=100, verbose_name="Nom")
     prenom = models.CharField(max_length=100, verbose_name="Prénom")
+    sexe = models.CharField(
+        max_length=1,
+        choices=[('M', 'Masculin'), ('F', 'Féminin')],
+        blank=True,
+        default='',
+        verbose_name="Sexe",
+    )
     email = models.EmailField(unique=True, blank=True, null=True, verbose_name="Email professionnel")
     telephone = models.CharField(max_length=20, verbose_name="Téléphone")
+    date_embauche = models.DateField(null=True, blank=True, verbose_name="Date d'embauche")
+    prix_volume_horaire = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Prix du volume horaire (FCFA/heure)",
+    )
 
     # Informations professionnelles
     fonction = models.CharField(max_length=50, choices=TYPE_FONCTION_CHOICES, verbose_name="Fonction")

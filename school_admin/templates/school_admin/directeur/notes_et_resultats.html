@@ -12,213 +12,168 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/notes_et_resultats.css' %}?v=1.2.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/notes_et_resultats.css' %}?v=2.0.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
 </head>
-<body data-live-page="notes-resultats">
+<body class="nr-page-body" data-live-page="notes-resultats"
+      data-est-primaire="{% if est_primaire %}1{% else %}0{% endif %}"
+      data-est-superieur="{% if est_superieur %}1{% else %}0{% endif %}"
+      data-periode-id="{{ periode_selectionnee.id|default:'' }}"
+      data-debloquer-url="{% url 'directeur:api_debloquer_releve_matiere' %}">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content -->
-    <div class="main-content-container">
-        <!-- Page Header -->
-        <div class="page-header">
+    <div class="content-container nr-page">
+        {% include 'school_admin/partials/messages.html' %}
+
+        <div class="page-header page-header-minimal">
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-chart-line"></i>
-                    {% trans "Notes et Résultats" %}
-                </h1>
-                <p class="page-subtitle">
-                    {% trans "Consultation des moyennes par classe et par matière" %}
-                </p>
-            </div>
         </div>
 
-        <!-- Message d'information sur l'année scolaire active -->
-        {% if annee_scolaire_active %}
-        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-            <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
-                <i class="fas fa-calendar-check"></i>
-            </span>
-            <div>
-                <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-                    Année scolaire active : {{ annee_scolaire_active.libelle }}
-                </p>
-                <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-                    {% trans "Seuls les élèves et les notes de cette session sont affichés." %}
-                </p>
+        <header class="nr-hero">
+            <div class="nr-hero-text">
+                <h1 class="nr-hero-title"><i class="fas fa-chart-line"></i> {% trans "Notes et résultats" %}</h1>
+                <p class="nr-hero-sub">{% trans "Consultez les moyennes par classe et par matière, imprimez les relevés ou traitez les justifications." %}</p>
+                {% if annee_scolaire_active %}
+                    <span class="nr-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+                {% endif %}
             </div>
-        </div>
-        {% else %}
-        <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
-            <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
-            <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-                {% trans "Aucune année scolaire active. Toutes les données sont affichées." %}
-            </span>
-        </div>
-        {% endif %}
+            <div class="nr-hero-stats">
+                <div class="nr-stat-pill"><span class="nr-stat-num">{{ stats_generales.total_eleves }}</span><span class="nr-stat-lbl">{% trans "Élèves" %}</span></div>
+                <div class="nr-stat-pill"><span class="nr-stat-num">{{ stats_generales.total_classes }}</span><span class="nr-stat-lbl">{% trans "Classes" %}</span></div>
+                <div class="nr-stat-pill"><span class="nr-stat-num">{{ stats_generales.nombre_periodes }}</span><span class="nr-stat-lbl">{% trans "Périodes" %}</span></div>
+            </div>
+            <div class="nr-hero-actions">
+                <a href="{% url 'directeur:justifications_notes' %}" class="nr-action-btn nr-action-btn--secondary">
+                    <i class="fas fa-scale-balanced"></i> {% trans "Justifications" %}
+                </a>
+            </div>
+        </header>
 
         {% if periodes and not est_superieur %}
-        <div class="periodes-tabs-container" aria-label="{% trans 'Période scolaire (toutes les classes)' %}">
+        <nav class="nr-periodes-bar periodes-tabs-container" aria-label="{% trans 'Période scolaire' %}">
             {% for periode in periodes %}
-                {% if periode_selectionnee and periode.id == periode_selectionnee.id %}
-                    <a class="periode-tab active" href="?periode={{ periode.id }}">
-                        <span class="periode-nom">{{ periode.nom_periode }}</span>
-                        <span class="periode-annee">{{ periode.annee_scolaire }}</span>
-                    </a>
-                {% else %}
-                    <a class="periode-tab" href="?periode={{ periode.id }}">
-                        <span class="periode-nom">{{ periode.nom_periode }}</span>
-                        <span class="periode-annee">{{ periode.annee_scolaire }}</span>
-                    </a>
-                {% endif %}
+                <a class="periode-tab {% if periode_selectionnee and periode.id == periode_selectionnee.id %}active{% endif %}"
+                   href="?periode={{ periode.id }}&{{ tab_nav_query }}">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="periode-nom">{{ periode.nom_periode }}</span>
+                </a>
             {% endfor %}
-        </div>
+        </nav>
         {% endif %}
 
-        <!-- Onglets principaux par niveau -->
-        <div class="tabs-container">
-            <div class="tabs-nav">
+        <div class="tabs-container nr-niveau-tabs">
+            <div class="tabs-nav" role="tablist" aria-label="{% trans 'Niveaux' %}">
                 {% for categorie, data in classes_grouped.items %}
-                    <button class="tab-btn {% if forloop.first %}active{% endif %}" 
+                    <button type="button" role="tab" class="tab-btn nr-niveau-tab {% if forloop.counter == active_tab_index %}active{% endif %}"
                             data-tab="tab-{{ forloop.counter }}"
-                            onclick="switchMainTab('tab-{{ forloop.counter }}')">
-                        <div class="tab-content">
-                            <span class="tab-title">{{ categorie }}</span>
-                            <span class="tab-badge">{{ data.nombre_classes }} classe{{ data.nombre_classes|pluralize }}</span>
-                        </div>
-                        <div class="tab-info">
-                            <span class="tab-students">{{ data.total_eleves }} élève{{ data.total_eleves|pluralize }}</span>
-                        </div>
+                            aria-selected="{% if forloop.counter == active_tab_index %}true{% else %}false{% endif %}">
+                        <i class="fas fa-layer-group"></i>
+                        <span>{{ categorie }}</span>
+                        <span class="tab-count">{{ data.total_eleves }}</span>
                     </button>
                 {% endfor %}
             </div>
 
             <!-- Contenu des onglets -->
             {% for categorie, data in classes_grouped.items %}
-                <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                <div class="tab-content-panel {% if forloop.counter == active_tab_index %}active{% endif %}" id="tab-{{ forloop.counter }}">
                     
-                    <!-- Sous-onglets par classe -->
-                    <div class="classes-subtabs">
-                        {% for classe_data in data.classes %}
-                            <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}"
-                                    onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
-                                <span class="classe-name">{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
-                                <span class="classe-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
-                            </button>
-                        {% endfor %}
+                    <div class="nr-classe-nav">
+                        <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
+                            <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes' %}">
+                                {% for classe_data in data.classes %}
+                                    <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if classe_data.classe.id == active_classe_id %}active{% endif %}"
+                                            data-subtab="classe-{{ classe_data.classe.id }}"
+                                            aria-selected="{% if classe_data.classe.id == active_classe_id %}true{% else %}false{% endif %}">
+                                        <i class="fas fa-door-open"></i>
+                                        <span>{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
+                                        <span class="tab-count">{{ classe_data.nombre_eleves }}</span>
+                                    </button>
+                                {% endfor %}
+                            </div>
+                            <div class="matiere-tabs-more-wrap" hidden>
+                                <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres classes' %}">
+                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                    <span class="matiere-tabs-more-label">{% trans "Autres classes" %}</span>
+                                </button>
+                                <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Contenu des sous-onglets (classes) -->
                     {% for classe_data in data.classes %}
-                        <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+                        <div class="classe-subtab-content {% if classe_data.classe.id == active_classe_id %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
                             {% if est_superieur %}
-                            <div class="periodes-tabs-container periodes-tabs-container--classe" aria-label="{% trans 'Semestre pour cette classe' %}">
+                            <nav class="nr-periodes-bar nr-periodes-bar--classe periodes-tabs-container periodes-tabs-container--classe" aria-label="{% trans 'Semestre' %}">
                                 {% if classe_data.periodes_nav %}
                                     {% for item in classe_data.periodes_nav %}
-                                        <a class="periode-tab {% if item.active %}active{% endif %}"
-                                           href="{{ request.path }}?{{ item.query }}">
+                                        <a class="periode-tab {% if item.active %}active{% endif %}" href="{{ request.path }}?{{ item.query }}">
+                                            <i class="fas fa-calendar-alt"></i>
                                             <span class="periode-nom">{{ item.periode.libelle_affichage_superieur }}</span>
-                                            <span class="periode-annee">{{ item.periode.annee_scolaire }}</span>
                                         </a>
                                     {% endfor %}
                                 {% else %}
                                     <p class="periodes-classe-empty">
                                         <i class="fas fa-calendar-xmark"></i>
-                                        {% trans "Aucune période ne correspond au niveau de cette classe pour l'année active." %}
+                                        {% trans "Aucune période pour cette classe." %}
                                     </p>
                                 {% endif %}
-                            </div>
+                            </nav>
                             {% endif %}
 
-                            <!-- En-tête de la classe -->
-                            <div class="class-header">
-                                <div class="class-header-info">
-                                    <h2 class="class-title">
+                            <header class="nr-classe-header">
+                                <div class="nr-classe-title-block">
+                                    <h2 class="nr-classe-title">
                                         <i class="fas fa-chalkboard"></i>
                                         {% if est_superieur %}
                                           {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
                                         {% else %}
-                                          {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
+                                          {{ classe_data.classe.nom }} — {{ classe_data.classe.get_niveau_display }}
                                         {% endif %}
                                     </h2>
-                                    <p class="class-description">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }} inscrit{{ classe_data.nombre_eleves|pluralize }}</p>
+                                    <p class="nr-classe-desc">{{ classe_data.nombre_eleves }} {% trans "élève(s)" %} · {{ classe_data.matieres|length }} {% trans "matière(s)" %}</p>
                                 </div>
-                                <div class="class-header-actions">
-                                    <a href="{% url 'directeur:justifications_notes' %}?classe={{ classe_data.classe.id }}" 
-                                       class="btn-justification" 
-                                       title="{% trans "Voir les demandes de justification de notes" %}">
-                                        <i class="fas fa-scale-balanced"></i>
-                                        {% trans "Demandes de justification" %}
+                                <div class="nr-classe-actions">
+                                    <a href="{% url 'directeur:justifications_notes' %}?classe={{ classe_data.classe.id }}" class="nr-link-btn" title="{% trans 'Justifications de notes' %}">
+                                        <i class="fas fa-scale-balanced"></i> {% trans "Justifications" %}
                                     </a>
-                                    <a href="{% url 'directeur:imprimer_releve_notes' classe_data.classe.id %}" 
-                                       class="btn-print-releve" 
-                                       target="_blank"
-                                       title="{% trans "Imprimer le relevé de notes de la classe" %}">
-                                        <i class="fas fa-print"></i>
-                                        {% trans "Imprimer le relevé de notes" %}
+                                    <a href="{% url 'directeur:imprimer_releve_notes' classe_data.classe.id %}" class="nr-print-btn" target="_blank" title="{% trans 'Imprimer le relevé' %}">
+                                        <i class="fas fa-print"></i> {% trans "Relevé" %}
                                     </a>
                                 </div>
-                            </div>
+                            </header>
 
                             {% if classe_data.est_primaire %}
                                 <!-- VUE PRIMAIRE : Tableau avec colonnes par matière -->
                                 {% if classe_data.matieres %}
-                                    <!-- Barre de recherche et filtres pour établissements primaires -->
-                                    <div class="search-filter-container" id="search-filter-notes-primaire-{{ classe_data.classe.id }}" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                                        <div class="search-box" style="position: relative; margin-bottom: 16px;">
-                                            <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 16px;"></i>
-                                            <input type="text" 
-                                                   class="search-input" 
-                                                   id="search-input-notes-primaire-{{ classe_data.classe.id }}" 
-                                                   placeholder="{% trans "Rechercher un élève (nom, prénom...)" %}"
-                                                   oninput="filterNotesPrimaireStudents('{{ classe_data.classe.id }}')"
-                                                   style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
-                                            <button class="clear-search" 
-                                                    id="clear-search-notes-primaire-{{ classe_data.classe.id }}" 
-                                                    onclick="clearNotesPrimaireSearch('{{ classe_data.classe.id }}')" 
-                                                    style="display: none; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                    <div class="nr-toolbar search-filter-container" id="search-filter-notes-primaire-{{ classe_data.classe.id }}">
+                                        <label class="nr-search-wrap">
+                                            <i class="fas fa-search" aria-hidden="true"></i>
+                                            <input type="search" class="search-input nr-search-input" id="search-input-notes-primaire-{{ classe_data.classe.id }}"
+                                                   placeholder="{% trans 'Nom, prénom…' %}" autocomplete="off"
+                                                   oninput="filterNotesPrimaireStudents('{{ classe_data.classe.id }}')">
+                                            <button type="button" class="clear-search" id="clear-search-notes-primaire-{{ classe_data.classe.id }}" hidden
+                                                    onclick="clearNotesPrimaireSearch('{{ classe_data.classe.id }}')" aria-label="{% trans 'Effacer' %}">
                                                 <i class="fas fa-times"></i>
                                             </button>
-                                        </div>
-                                        
-                                        <div class="filters-box" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-                                            <div class="filter-group" style="flex: 1; min-width: 200px;">
-                                                <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
-                                                    <i class="fas fa-chart-line"></i>
-                                                    {% trans "Performance" %}
-                                                </label>
-                                                <select class="filter-select" id="filter-performance-primaire-{{ classe_data.classe.id }}" onchange="filterNotesPrimaireStudents('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                                    <option value="">{% trans "Toutes les performances" %}</option>
-                                                    <option value="excellent">{% trans "Excellent (≥ 16/20)" %}</option>
-                                                    <option value="bien">{% trans "Bien (≥ 14/20)" %}</option>
-                                                    <option value="assez-bien">{% trans "Assez bien (≥ 12/20)" %}</option>
-                                                    <option value="passable">{% trans "Passable (≥ 10/20)" %}</option>
-                                                    <option value="insuffisant">{% trans "Insuffisant (" %}< 10/20)</option>
+                                        </label>
+                                        <div class="nr-filters-row filters-box">
+                                            <div class="filter-group">
+                                                <label class="filter-label" for="filter-performance-primaire-{{ classe_data.classe.id }}"><i class="fas fa-chart-line"></i> {% trans "Performance" %}</label>
+                                                <select class="filter-select nr-filter-select" id="filter-performance-primaire-{{ classe_data.classe.id }}" onchange="filterNotesPrimaireStudents('{{ classe_data.classe.id }}')">
+                                                    <option value="">{% trans "Toutes" %}</option>
+                                                    <option value="excellent">≥ 16</option>
+                                                    <option value="bien">14–16</option>
+                                                    <option value="assez-bien">12–14</option>
+                                                    <option value="passable">10–12</option>
+                                                    <option value="insuffisant">&lt; 10</option>
                                                 </select>
                                             </div>
-                                            
-                                            <div class="filter-group" style="flex: 1; min-width: 200px;">
-                                                <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
-                                                    <i class="fas fa-book"></i>
-                                                    {% trans "Matières complétées" %}
-                                                </label>
-                                                <select class="filter-select" id="filter-matieres-primaire-{{ classe_data.classe.id }}" onchange="filterNotesPrimaireStudents('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                                    <option value="">{% trans "Tous les élèves" %}</option>
-                                                    <option value="all">{% trans "Toutes les matières" %}</option>
-                                                    <option value="partial">{% trans "Partiellement" %}</option>
-                                                    <option value="none">{% trans "Aucune matière" %}</option>
-                                                </select>
-                                            </div>
-                                            
-                                            <button class="btn-reset-filters" onclick="resetNotesPrimaireFilters('{{ classe_data.classe.id }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                                                <i class="fas fa-redo"></i>
-                                                {% trans "Réinitialiser" %}
+                                            <button type="button" class="btn-reset-filters nr-reset-btn" onclick="resetNotesPrimaireFilters('{{ classe_data.classe.id }}')">
+                                                <i class="fas fa-redo"></i> {% trans "Réinitialiser" %}
                                             </button>
-                                        </div>
-                                        
-                                        <div class="filter-results" id="filter-results-notes-primaire-{{ classe_data.classe.id }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
-                                            <span id="results-count-notes-primaire-{{ classe_data.classe.id }}">0</span> {% trans "résultat(s) trouvé(s)" %}
                                         </div>
                                     </div>
                                     
@@ -358,61 +313,32 @@
                             {% elif classe_data.matieres %}
                                 <!-- VUE COLLÈGE/LYCÉE : Tableau avec colonnes par matière -->
                                 
-                                <!-- Barre de recherche et filtres pour établissements secondaires -->
-                                <div class="search-filter-container" id="search-filter-notes-{{ classe_data.classe.id }}" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                                    <div class="search-box" style="position: relative; margin-bottom: 16px;">
-                                        <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 16px;"></i>
-                                        <input type="text" 
-                                               class="search-input" 
-                                               id="search-input-notes-{{ classe_data.classe.id }}" 
-                                               placeholder="{% trans "Rechercher un élève (nom, prénom...)" %}"
-                                               oninput="filterNotesStudents('{{ classe_data.classe.id }}')"
-                                               style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
-                                        <button class="clear-search" 
-                                                id="clear-search-notes-{{ classe_data.classe.id }}" 
-                                                onclick="clearNotesSearch('{{ classe_data.classe.id }}')" 
-                                                style="display: none; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                <div class="nr-toolbar search-filter-container" id="search-filter-notes-{{ classe_data.classe.id }}">
+                                    <label class="nr-search-wrap">
+                                        <i class="fas fa-search" aria-hidden="true"></i>
+                                        <input type="search" class="search-input nr-search-input" id="search-input-notes-{{ classe_data.classe.id }}"
+                                               placeholder="{% trans 'Nom, prénom…' %}" autocomplete="off"
+                                               oninput="filterNotesStudents('{{ classe_data.classe.id }}')">
+                                        <button type="button" class="clear-search" id="clear-search-notes-{{ classe_data.classe.id }}" hidden
+                                                onclick="clearNotesSearch('{{ classe_data.classe.id }}')" aria-label="{% trans 'Effacer' %}">
                                             <i class="fas fa-times"></i>
                                         </button>
-                                    </div>
-                                    
-                                    <div class="filters-box" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-                                        <div class="filter-group" style="flex: 1; min-width: 200px;">
-                                            <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
-                                                <i class="fas fa-chart-line"></i>
-                                                {% trans "Performance" %}
-                                            </label>
-                                            <select class="filter-select" id="filter-performance-{{ classe_data.classe.id }}" onchange="filterNotesStudents('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                                <option value="">{% trans "Toutes les performances" %}</option>
-                                                <option value="excellent">{% trans "Excellent (≥ 16/20)" %}</option>
-                                                <option value="bien">{% trans "Bien (≥ 14/20)" %}</option>
-                                                <option value="assez-bien">{% trans "Assez bien (≥ 12/20)" %}</option>
-                                                <option value="passable">{% trans "Passable (≥ 10/20)" %}</option>
-                                                <option value="insuffisant">{% trans "Insuffisant (" %}< 10/20)</option>
+                                    </label>
+                                    <div class="nr-filters-row filters-box">
+                                        <div class="filter-group">
+                                            <label class="filter-label" for="filter-performance-{{ classe_data.classe.id }}"><i class="fas fa-chart-line"></i> {% trans "Performance" %}</label>
+                                            <select class="filter-select nr-filter-select" id="filter-performance-{{ classe_data.classe.id }}" onchange="filterNotesStudents('{{ classe_data.classe.id }}')">
+                                                <option value="">{% trans "Toutes" %}</option>
+                                                <option value="excellent">≥ 16</option>
+                                                <option value="bien">14–16</option>
+                                                <option value="assez-bien">12–14</option>
+                                                <option value="passable">10–12</option>
+                                                <option value="insuffisant">&lt; 10</option>
                                             </select>
                                         </div>
-                                        
-                                        <div class="filter-group" style="flex: 1; min-width: 200px;">
-                                            <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
-                                                <i class="fas fa-book"></i>
-                                                {% trans "Matières complétées" %}
-                                            </label>
-                                            <select class="filter-select" id="filter-matieres-{{ classe_data.classe.id }}" onchange="filterNotesStudents('{{ classe_data.classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
-                                                <option value="">{% trans "Tous les élèves" %}</option>
-                                                <option value="all">{% trans "Toutes les matières" %}</option>
-                                                <option value="partial">{% trans "Partiellement" %}</option>
-                                                <option value="none">{% trans "Aucune matière" %}</option>
-                                            </select>
-                                        </div>
-                                        
-                                        <button class="btn-reset-filters" onclick="resetNotesFilters('{{ classe_data.classe.id }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                                            <i class="fas fa-redo"></i>
-                                            {% trans "Réinitialiser" %}
+                                        <button type="button" class="btn-reset-filters nr-reset-btn" onclick="resetNotesFilters('{{ classe_data.classe.id }}')">
+                                            <i class="fas fa-redo"></i> {% trans "Réinitialiser" %}
                                         </button>
-                                    </div>
-                                    
-                                    <div class="filter-results" id="filter-results-notes-{{ classe_data.classe.id }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
-                                        <span id="results-count-notes-{{ classe_data.classe.id }}">0</span> {% trans "résultat(s) trouvé(s)" %}
                                     </div>
                                 </div>
                                 
@@ -567,8 +493,7 @@
                 <button
                     id="btn-debloquer-releve"
                     type="button"
-                    class="btn btn-outline"
-                    style="margin-left: auto; margin-right: 0.75rem;"
+                    class="btn-debloquer-releve"
                     onclick="debloquerReleveMatiere()"
                     title="{% trans 'Débloquer la soumission du relevé pour permettre de nouvelles modifications' %}">
                     <i class="fas fa-unlock"></i> {% trans "Débloquer le relevé" %}
@@ -586,559 +511,7 @@
         </div>
     </div>
 
-    <script>
-        const periodeSelectionneeId = "{{ periode_selectionnee.id|default:'' }}";
-        const estSuperieur = {{ est_superieur|yesno:"true,false" }};
-        let detailsMatiereContext = {
-            classeId: null,
-            matiereId: null,
-            matiereNom: null,
-            periodeId: null,
-            estPrimaire: true,
-            apiUrl: null
-        };
-
-        function getCsrfToken() {
-            const name = 'csrftoken=';
-            const decodedCookie = decodeURIComponent(document.cookie || '');
-            const cookies = decodedCookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                let c = cookies[i].trim();
-                if (c.indexOf(name) === 0) {
-                    return c.substring(name.length, c.length);
-                }
-            }
-            return '';
-        }
-        // Gestion des onglets principaux (niveaux)
-        function switchMainTab(tabId) {
-            document.querySelectorAll('.tab-content-panel').forEach(panel => {
-                panel.classList.remove('active');
-            });
-            
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            document.getElementById(tabId).classList.add('active');
-            event.target.closest('.tab-btn').classList.add('active');
-        }
-
-        // Gestion des sous-onglets (classes)
-        function switchClasseTab(event, classeId) {
-            event.stopPropagation();
-            
-            const parentPanel = event.target.closest('.tab-content-panel');
-            
-            parentPanel.querySelectorAll('.classe-subtab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            parentPanel.querySelectorAll('.classe-subtab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            document.getElementById(classeId).classList.add('active');
-            event.target.closest('.classe-subtab-btn').classList.add('active');
-        }
-
-        // Gestion des onglets par matière
-        function switchMatiereTab(event, matiereId) {
-            event.stopPropagation();
-            
-            const parentContent = event.target.closest('.classe-subtab-content');
-            
-            parentContent.querySelectorAll('.matiere-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            parentContent.querySelectorAll('.matiere-tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            document.getElementById(matiereId).classList.add('active');
-            event.target.closest('.matiere-tab-btn').classList.add('active');
-        }
-
-        // Ouvrir la modale de détails de matière
-        function ouvrirDetailsMatiere(classeId, matiereNom, event, matiereId = null) {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            const modal = document.getElementById('modal-details-matiere');
-            const matiereNomElement = document.getElementById('modal-matiere-nom');
-            const modalBody = document.getElementById('modal-body-content');
-            const trigger = event.currentTarget || event.target;
-            
-            // Afficher le nom de la matière
-            matiereNomElement.textContent = matiereNom;
-            
-            // Afficher la modale
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-            
-            // Charger les données via AJAX
-            modalBody.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Chargement des données...</div>';
-            
-            // Déterminer l'API à utiliser selon le type d'établissement
-            const estPrimaire = {{ est_primaire|yesno:"true,false" }};
-            let apiUrl = '';
-            
-            if (estPrimaire) {
-                // API primaire (nécessite periode_id)
-                const periodeId = trigger.dataset.periodeId || periodeSelectionneeId;
-                if (!periodeId) {
-                    modalBody.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-triangle"></i> Période scolaire introuvable pour cette classe.</div>';
-                    return;
-                }
-                apiUrl = `/api/details-notes-matiere/?classe_id=${classeId}&matiere_nom=${encodeURIComponent(matiereNom)}&periode_id=${periodeId}`;
-            } else {
-                // API secondaire / supérieur (période obligatoire pour le supérieur : onglet semestre)
-                const periodeId = trigger.dataset.periodeId || periodeSelectionneeId;
-                if (estSuperieur && !periodeId) {
-                    modalBody.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-triangle"></i> {% trans "Période non indiquée : sélectionnez un semestre pour cette classe." %}</div>';
-                    return;
-                }
-                apiUrl = `/api/details-notes-matiere-secondaire/?classe_id=${classeId}&matiere_nom=${encodeURIComponent(matiereNom)}`;
-                if (periodeId) {
-                    apiUrl += `&periode_id=${periodeId}`;
-                }
-            }
-
-            const periodMatch = apiUrl.match(/[?&]periode_id=([^&]+)/);
-            detailsMatiereContext = {
-                classeId: String(classeId),
-                matiereId: matiereId ? String(matiereId) : (trigger.dataset.matiereId || null),
-                matiereNom: matiereNom,
-                periodeId: periodMatch ? decodeURIComponent(periodMatch[1]) : null,
-                estPrimaire: estPrimaire,
-                apiUrl: apiUrl
-            };
-
-            const unlockBtn = document.getElementById('btn-debloquer-releve');
-            if (unlockBtn) {
-                unlockBtn.disabled = !detailsMatiereContext.periodeId;
-            }
-
-            chargerDetailsMatiere(apiUrl, estPrimaire);
-        }
-
-        function chargerDetailsMatiere(apiUrl, estPrimaire) {
-            const modalBody = document.getElementById('modal-body-content');
-            fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    afficherDetailsNotes(data, estPrimaire);
-                } else {
-                    modalBody.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-triangle"></i> ${data.message || 'Erreur lors du chargement des données'}</div>`;
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                modalBody.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-triangle"></i> Erreur de connexion au serveur</div>';
-            });
-        }
-
-        function debloquerReleveMatiere() {
-            const ctx = detailsMatiereContext || {};
-            const modalBody = document.getElementById('modal-body-content');
-            const btn = document.getElementById('btn-debloquer-releve');
-
-            if (!ctx.classeId || !ctx.matiereNom || !ctx.periodeId) {
-                modalBody.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-triangle"></i> Informations insuffisantes pour débloquer ce relevé.</div>';
-                return;
-            }
-
-            const confirmMsg = `Confirmer le déblocage du relevé pour "${ctx.matiereNom}" ?\nLe professeur pourra modifier à nouveau les notes et soumettre de nouveau.`;
-            if (!window.confirm(confirmMsg)) {
-                return;
-            }
-
-            const oldHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {% trans "Déblocage..." %}';
-
-            fetch("{% url 'directeur:api_debloquer_releve_matiere' %}", {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': getCsrfToken(),
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    classe_id: ctx.classeId,
-                    matiere_id: ctx.matiereId,
-                    matiere_nom: ctx.matiereNom,
-                    periode_id: ctx.periodeId
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    throw new Error(data.message || 'Erreur inconnue');
-                }
-                alert(data.message || 'Déblocage effectué avec succès.');
-                if (window.refreshLiveTabsNow) {
-                    window.refreshLiveTabsNow('Relevé débloqué.', true);
-                }
-                if (ctx.apiUrl) {
-                    chargerDetailsMatiere(ctx.apiUrl, !!ctx.estPrimaire);
-                }
-            })
-            .catch(error => {
-                alert(`Erreur: ${error.message}`);
-            })
-            .finally(() => {
-                btn.disabled = false;
-                btn.innerHTML = oldHtml;
-            });
-        }
-
-        // Fermer la modale
-        function fermerDetailsMatiere() {
-            const modal = document.getElementById('modal-details-matiere');
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-
-        // Afficher les détails des notes dans la modale
-        function afficherDetailsNotes(data, estPrimaire = true) {
-            const modalBody = document.getElementById('modal-body-content');
-            
-            if (!data.eleves || data.eleves.length === 0) {
-                modalBody.innerHTML = '<div class="empty-state-modal"><i class="fas fa-inbox"></i><p>Aucune moyenne calculée pour cette matière</p></div>';
-                return;
-            }
-            
-            // Trouver le nombre maximum de notes retenues parmi tous les élèves
-            let maxNotesRetenues = 0;
-            data.eleves.forEach(eleve => {
-                if (eleve.notes_retenues) {
-                    const nbRetenues = estPrimaire 
-                        ? eleve.notes_retenues.filter(n => n.retenue).length 
-                        : eleve.notes_retenues.length;
-                    if (nbRetenues > maxNotesRetenues) {
-                        maxNotesRetenues = nbRetenues;
-                    }
-                }
-            });
-            
-            let html = '<div class="details-notes-container">';
-            
-            // Info de la classe et période
-            html += '<div class="info-matiere-modal">';
-            html += `<div class="info-item-modal"><i class="fas fa-chalkboard"></i> <strong>Classe:</strong> ${data.classe}</div>`;
-            html += `<div class="info-item-modal"><i class="fas fa-calendar"></i> <strong>Période:</strong> ${data.periode}</div>`;
-            html += `<div class="info-item-modal"><i class="fas fa-users"></i> <strong>Élèves:</strong> ${data.eleves.length}</div>`;
-            html += '</div>';
-            
-            // Nouveau tableau avec colonnes séparées pour chaque note
-            html += '<div class="table-wrapper-modal">';
-            html += '<table class="table-notes-modal">';
-            html += '<thead>';
-            html += '<tr>';
-            html += '<th class="th-rang">Rang</th>';
-            html += '<th class="th-eleve">Élève</th>';
-            
-            // Créer des colonnes pour chaque note retenue
-            for (let i = 1; i <= maxNotesRetenues; i++) {
-                html += `<th class="th-note">Note ${i}</th>`;
-            }
-            
-            html += '<th class="th-examen">Examen</th>';
-            html += '<th class="th-moyenne">Moyenne</th>';
-            html += '</tr>';
-            html += '</thead>';
-            html += '<tbody>';
-            
-            data.eleves.forEach((eleve, index) => {
-                const rankClass = index === 0 ? 'rank-gold' : index === 1 ? 'rank-silver' : index === 2 ? 'rank-bronze' : '';
-                
-                html += '<tr>';
-                
-                // Rang
-                html += `<td class="td-rang"><span class="rank-badge ${rankClass}">${index + 1}</span></td>`;
-                
-                // Élève
-                html += `<td class="td-eleve">`;
-                html += `<span class="eleve-avatar">${eleve.initiales}</span>`;
-                html += `<span class="eleve-nom">${eleve.nom}</span>`;
-                html += `</td>`;
-                
-                // Notes retenues (une par colonne)
-                const notesRetenues = eleve.notes_retenues ? 
-                    (estPrimaire ? eleve.notes_retenues.filter(n => n.retenue) : eleve.notes_retenues) 
-                    : [];
-                for (let i = 0; i < maxNotesRetenues; i++) {
-                    if (i < notesRetenues.length) {
-                        const note = notesRetenues[i];
-                        const noteValue = typeof note.note === 'number' ? note.note : null;
-                        if (noteValue !== null) {
-                            const noteColorClass = getNoteColorClass(noteValue);
-                            html += `<td class="td-note"><span class="note-text ${noteColorClass}">${noteValue.toFixed(2)}/${note.bareme || 20}</span></td>`;
-                        } else {
-                            html += `<td class="td-note"><span class="note-vide">-</span></td>`;
-                        }
-                    } else {
-                        html += `<td class="td-note"><span class="note-vide">-</span></td>`;
-                    }
-                }
-                
-                // Note d'examen
-                html += '<td class="td-examen">';
-                if (eleve.note_examen !== null && eleve.note_examen !== undefined) {
-                    const examenValue = typeof eleve.note_examen === 'number' ? eleve.note_examen : parseFloat(eleve.note_examen);
-                    if (!isNaN(examenValue)) {
-                        const examenColorClass = getNoteColorClass(examenValue);
-                        const absentBadge = eleve.note_examen_absent ? ' <span class=\"note-absent\">(absent)</span>' : '';
-                        html += `<span class="note-text ${examenColorClass}">${examenValue.toFixed(2)}/20</span>${absentBadge}`;
-                    } else {
-                        html += '<span class="note-vide">-</span>';
-                    }
-                } else {
-                    html += '<span class="note-vide">-</span>';
-                }
-                html += '</td>';
-                
-                // Moyenne
-                html += '<td class="td-moyenne">';
-                const moyenneValue = typeof eleve.moyenne === 'number' ? eleve.moyenne : (eleve.moyenne ? parseFloat(eleve.moyenne) : null);
-                if (moyenneValue !== null && !isNaN(moyenneValue)) {
-                    const moyenneColorClass = getMoyenneColorClass(moyenneValue);
-                    html += `<span class="moyenne-text ${moyenneColorClass}">${moyenneValue.toFixed(2)}/20</span>`;
-                } else {
-                    html += '<span class="moyenne-text">-</span>';
-                }
-                html += '</td>';
-                
-                html += '</tr>';
-            });
-            
-            html += '</tbody>';
-            html += '</table>';
-            html += '</div>';
-            html += '</div>';
-            
-            modalBody.innerHTML = html;
-        }
-        
-        // Fonction pour obtenir la classe de couleur d'une note
-        function getNoteColorClass(note) {
-            if (note >= 16) return 'note-excellent';
-            if (note >= 14) return 'note-bien';
-            if (note >= 12) return 'note-assez-bien';
-            if (note >= 10) return 'note-passable';
-            return 'note-insuffisant';
-        }
-
-        // Fonction utilitaire pour obtenir la classe de couleur de la moyenne
-        function getMoyenneColorClass(moyenne) {
-            if (moyenne === null) return '';
-            if (moyenne >= 16) return 'text-excellent';
-            if (moyenne >= 14) return 'text-bien';
-            if (moyenne >= 12) return 'text-assez-bien';
-            if (moyenne >= 10) return 'text-passable';
-            return 'text-insuffisant';
-        }
-
-        // Fermer la modale avec la touche Échap
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                fermerDetailsMatiere();
-            }
-        });
-        
-        // Fonctions de filtrage pour la page notes et résultats
-        function filterNotesStudents(classeId) {
-            const searchInput = document.getElementById(`search-input-notes-${classeId}`);
-            const filterPerformance = document.getElementById(`filter-performance-${classeId}`);
-            const filterMatieres = document.getElementById(`filter-matieres-${classeId}`);
-            const clearButton = document.getElementById(`clear-search-notes-${classeId}`);
-            const resultsDiv = document.getElementById(`filter-results-notes-${classeId}`);
-            const resultsCount = document.getElementById(`results-count-notes-${classeId}`);
-            
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            const performanceValue = filterPerformance.value;
-            const matieresValue = filterMatieres.value;
-            
-            // Afficher/masquer le bouton de suppression de recherche
-            clearButton.style.display = searchTerm ? 'flex' : 'none';
-            
-            // Récupérer toutes les lignes d'élèves de cette classe
-            const classeContent = document.getElementById(`classe-${classeId}`);
-            const rows = classeContent.querySelectorAll('.student-row');
-            
-            let visibleCount = 0;
-            
-            rows.forEach(row => {
-                const nom = row.dataset.nom || '';
-                const prenom = row.dataset.prenom || '';
-                const nomComplet = row.dataset.nomComplet || '';
-                const moyenneTri = parseFloat(row.dataset.moyenneTri || '0');
-                const nbMatieres = parseInt(row.dataset.nbMatieres || '0');
-                
-                // Filtrage par recherche (nom, prénom, nom complet)
-                const matchesSearch = !searchTerm || 
-                    nom.includes(searchTerm) || 
-                    prenom.includes(searchTerm) || 
-                    nomComplet.includes(searchTerm);
-                
-                // Filtrage par performance (moyenne)
-                let matchesPerformance = true;
-                if (performanceValue === 'excellent') {
-                    matchesPerformance = moyenneTri >= 16;
-                } else if (performanceValue === 'bien') {
-                    matchesPerformance = moyenneTri >= 14 && moyenneTri < 16;
-                } else if (performanceValue === 'assez-bien') {
-                    matchesPerformance = moyenneTri >= 12 && moyenneTri < 14;
-                } else if (performanceValue === 'passable') {
-                    matchesPerformance = moyenneTri >= 10 && moyenneTri < 12;
-                } else if (performanceValue === 'insuffisant') {
-                    matchesPerformance = moyenneTri < 10 && moyenneTri > 0;
-                }
-                
-                // Filtrage par matières complétées
-                let matchesMatieres = true;
-                if (matieresValue === 'all') {
-                    // Tous les élèves qui ont au moins une matière complétée
-                    matchesMatieres = nbMatieres > 0;
-                } else if (matieresValue === 'partial') {
-                    // Élèves avec au moins une matière mais pas toutes
-                    matchesMatieres = nbMatieres > 0;
-                } else if (matieresValue === 'none') {
-                    // Élèves sans aucune matière complétée
-                    matchesMatieres = nbMatieres === 0;
-                }
-                
-                // Afficher/masquer la ligne selon les critères
-                if (matchesSearch && matchesPerformance && matchesMatieres) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            // Afficher/masquer le compteur de résultats
-            if (searchTerm || performanceValue || matieresValue) {
-                resultsCount.textContent = visibleCount;
-                resultsDiv.style.display = 'block';
-            } else {
-                resultsDiv.style.display = 'none';
-            }
-        }
-        
-        function clearNotesSearch(classeId) {
-            const searchInput = document.getElementById(`search-input-notes-${classeId}`);
-            searchInput.value = '';
-            filterNotesStudents(classeId);
-        }
-        
-        function resetNotesFilters(classeId) {
-            const searchInput = document.getElementById(`search-input-notes-${classeId}`);
-            const filterPerformance = document.getElementById(`filter-performance-${classeId}`);
-            const filterMatieres = document.getElementById(`filter-matieres-${classeId}`);
-            
-            searchInput.value = '';
-            filterPerformance.value = '';
-            filterMatieres.value = '';
-            
-            filterNotesStudents(classeId);
-        }
-        
-        // Fonctions de filtrage pour les établissements primaires
-        function filterNotesPrimaireStudents(classeId) {
-            const searchInput = document.getElementById(`search-input-notes-primaire-${classeId}`);
-            const filterPerformance = document.getElementById(`filter-performance-primaire-${classeId}`);
-            const filterMatieres = document.getElementById(`filter-matieres-primaire-${classeId}`);
-            const clearButton = document.getElementById(`clear-search-notes-primaire-${classeId}`);
-            const resultsDiv = document.getElementById(`filter-results-notes-primaire-${classeId}`);
-            const resultsCount = document.getElementById(`results-count-notes-primaire-${classeId}`);
-            
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            const performanceValue = filterPerformance.value;
-            const matieresValue = filterMatieres.value;
-            
-            // Afficher/masquer le bouton de suppression de recherche
-            clearButton.style.display = searchTerm ? 'flex' : 'none';
-            
-            // Récupérer toutes les lignes d'élèves de cette classe
-            const classeContent = document.getElementById(`classe-${classeId}`);
-            const rows = classeContent.querySelectorAll('.student-row');
-            
-            let visibleCount = 0;
-            
-            rows.forEach(row => {
-                const nom = row.dataset.nom || '';
-                const prenom = row.dataset.prenom || '';
-                const nomComplet = row.dataset.nomComplet || '';
-                const nbMatieres = parseInt(row.dataset.nbMatieres || '0');
-                
-                // Filtrage par recherche (nom, prénom, nom complet)
-                const matchesSearch = !searchTerm || 
-                    nom.includes(searchTerm) || 
-                    prenom.includes(searchTerm) || 
-                    nomComplet.includes(searchTerm);
-                
-                // Filtrage par performance - Pour le primaire, on se base sur le nombre de matières avec moyenne
-                let matchesPerformance = true;
-                // Note: Pour le primaire, on ne peut pas filtrer par moyenne générale car elle n'est pas calculée
-                // On pourrait améliorer cela plus tard
-                
-                // Filtrage par matières complétées
-                let matchesMatieres = true;
-                if (matieresValue === 'all') {
-                    matchesMatieres = nbMatieres > 0;
-                } else if (matieresValue === 'partial') {
-                    matchesMatieres = nbMatieres > 0;
-                } else if (matieresValue === 'none') {
-                    matchesMatieres = nbMatieres === 0;
-                }
-                
-                // Afficher/masquer la ligne selon les critères
-                if (matchesSearch && matchesPerformance && matchesMatieres) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            // Afficher/masquer le compteur de résultats
-            if (searchTerm || performanceValue || matieresValue) {
-                resultsCount.textContent = visibleCount;
-                resultsDiv.style.display = 'block';
-            } else {
-                resultsDiv.style.display = 'none';
-            }
-        }
-        
-        function clearNotesPrimaireSearch(classeId) {
-            const searchInput = document.getElementById(`search-input-notes-primaire-${classeId}`);
-            searchInput.value = '';
-            filterNotesPrimaireStudents(classeId);
-        }
-        
-        function resetNotesPrimaireFilters(classeId) {
-            const searchInput = document.getElementById(`search-input-notes-primaire-${classeId}`);
-            const filterPerformance = document.getElementById(`filter-performance-primaire-${classeId}`);
-            const filterMatieres = document.getElementById(`filter-matieres-primaire-${classeId}`);
-            
-            searchInput.value = '';
-            filterPerformance.value = '';
-            filterMatieres.value = '';
-            
-            filterNotesPrimaireStudents(classeId);
-        }
-    </script>
-
+    <script src="{% static 'school_admin/js/directeur/notes_et_resultats.js' %}?v=2.0.0"></script>
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
     <script src="{% static 'school_admin/js/directeur/notes_presence_live.js' %}?v=1.0.0"></script>
 

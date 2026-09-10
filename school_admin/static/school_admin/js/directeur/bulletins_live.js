@@ -77,6 +77,9 @@
           }
         });
         restoreBulletinsTabState(state);
+        if (typeof window.layoutTabsOverflowNav === 'function') {
+          window.layoutTabsOverflowNav();
+        }
         var page = document.body.getAttribute('data-live-page');
         if (page === 'bulletins-liste') {
           bindVisibilityForms();

@@ -21,7 +21,7 @@
     />
     <link
         rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/liste_professeurs.css' %}"
+        href="{% static 'school_admin/css/directeur/liste_professeurs.css' %}?v=1.1.0"
     />
 </head>
 <body>
@@ -134,21 +134,30 @@
             
             <!-- Onglets par matière -->
             <div class="matiere-tabs-container">
-                <div class="matiere-tabs">
-                    <button class="matiere-tab-btn active" data-matiere="all">
-                        <i class="fas fa-th"></i>
-                        <span>{% trans "Tous" %}</span>
-                        <span class="tab-count">{{ stats.total }}</span>
-                    </button>
-                    {% for item in matieres_avec_compteurs %}
-                        {% if item.count > 0 %}
-                            <button class="matiere-tab-btn" data-matiere="{{ item.matiere.id }}">
-                                <i class="fas fa-book"></i>
-                                <span>{{ item.matiere.nom }}</span>
-                                <span class="tab-count">{{ item.count }}</span>
-                            </button>
-                        {% endif %}
-                    {% endfor %}
+                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'matière' %}" data-overflow-items-label="{% trans 'matières' %}">
+                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Filtrer par matière' %}">
+                        <button type="button" role="tab" class="matiere-tab-btn active" data-matiere="all" data-order="0" aria-selected="true">
+                            <i class="fas fa-th"></i>
+                            <span>{% trans "Tous" %}</span>
+                            <span class="tab-count">{{ stats.total }}</span>
+                        </button>
+                        {% for item in matieres_avec_compteurs %}
+                            {% if item.count > 0 %}
+                                <button type="button" role="tab" class="matiere-tab-btn" data-matiere="{{ item.matiere.id }}" data-order="{{ forloop.counter }}" aria-selected="false">
+                                    <i class="fas fa-book"></i>
+                                    <span>{{ item.matiere.nom }}</span>
+                                    <span class="tab-count">{{ item.count }}</span>
+                                </button>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="matiere-tabs-more-wrap" hidden>
+                        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Afficher les autres matières' %}">
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            <span class="matiere-tabs-more-label">{% trans "Autres matières" %}</span>
+                        </button>
+                        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                    </div>
                 </div>
             </div>
 
@@ -239,7 +248,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="{% static 'school_admin/js/directeur/liste_professeurs.js' %}"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_professeurs.js' %}?v=1.1.0"></script>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

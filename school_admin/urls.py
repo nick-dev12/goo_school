@@ -8,7 +8,7 @@ from .personal_views.commercial_view import *
 from .personal_views.comptable_view import *
 from .controllers.activites_commerciales_controller import ActivitesCommercialesController
 from .personal_views.directeur_view import verifier_bulletin_qr
-from .api_views import fcm_views, fcm_test_views, test_notes_notifications
+from .api_views import fcm_views, fcm_test_views, test_notes_notifications, sync_views
 from .personal_views.qr_scan_view import scan_qr_eleve, scan_qr_eleve_authenticated
 from .seo_views import robots_txt, sitemap_xml
 
@@ -28,6 +28,8 @@ urlpatterns =[
     path('firebase-messaging-sw.js', views.firebase_messaging_sw, name='firebase_messaging_sw'),
     
     # API FCM
+    path('api/sync/push/', sync_views.sync_push, name='sync_push'),
+    path('api/sync/pull/', sync_views.sync_pull, name='sync_pull'),
     path('api/fcm/save-token/', fcm_views.save_fcm_token, name='save_fcm_token'),
     path('api/fcm/delete-token/', fcm_views.delete_fcm_token, name='delete_fcm_token'),
     path('api/fcm/test-notification/', fcm_test_views.test_notification, name='test_notification'),

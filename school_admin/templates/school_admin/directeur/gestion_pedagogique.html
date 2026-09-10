@@ -21,7 +21,7 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/gestion_pedagogique.css' %}?v=1.0.2"
+      href="{% static 'school_admin/css/directeur/gestion_pedagogique.css' %}?v=1.1.0"
     />
   </head>
   <body>
@@ -40,9 +40,6 @@
                 <i class="fas fa-graduation-cap"></i>
                 {% trans "Gestion Pédagogique" %}
             </h1>
-            <p class="page-subtitle">
-                {% trans "Organisez et gérez tous les aspects pédagogiques de votre établissement" %}
-            </p>
         </div>
     </div>
 
@@ -58,7 +55,6 @@
                 </div>
                 <div class="nav-link-content">
                     <h3>{% trans "Enseignants et personnel administratif" %}</h3>
-                    <p>{% trans "Gestion de l'équipe pédagogique" %}</p>
                 </div>
             </a>
             <a href="{% url 'affectation:affectation_professeurs' %}" class="nav-link-card">
@@ -67,7 +63,6 @@
                 </div>
                 <div class="nav-link-content">
                     <h3>{% trans "Affectation des professeurs" %}</h3>
-                    <p>{% trans "Affectation des professeurs aux classes" %}</p>
                 </div>
             </a>
             <a href="{% url 'administrateur_etablissement:liste_emplois_du_temps' %}" class="nav-link-card">
@@ -76,7 +71,6 @@
                 </div>
                 <div class="nav-link-content">
                     <h3>{% trans "Emplois du temps" %}</h3>
-                    <p>{% trans "Planification des cours" %}</p>
                 </div>
             </a>
             {% comment %} <a href="{% url 'administrateur_etablissement:configuration_horaires' %}" class="nav-link-card">

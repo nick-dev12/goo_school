@@ -19,77 +19,43 @@
         rel="stylesheet"
         href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.0"
     />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/matieres.css' %}?v=1.0.1"
-    />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres.css' %}?v=2.0.1" />
 </head>
-<body data-live-page="matieres">
-    <!-- Header -->
+<body class="mat-page-body" data-live-page="matieres">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content -->
-    <div class="main-content-container">
-        <!-- Page Header -->
-        <div class="page-header">
+    <div class="content-container mat-page">
+        <div class="page-header page-header-minimal">
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-book-open"></i>
-                    {% trans "Gestion des Matières" %}
-                </h1>
-                <p class="page-subtitle">
-                    Organisez et gérez les matières de {{ etablissement.nom }}
-                </p>
-            </div>
-            <div class="page-actions">
-                {% if est_superieur %}
-                    <a href="{% url 'matiere:liste_modules' %}" class="btn-add btn-secondary" style="background: #7c3aed; color: white; border-color: #7c3aed;">
-                        <i class="fas fa-cubes"></i>
-                        <span>{% trans "Modules" %}</span>
-                    </a>
-                {% endif %}
-                {% if not est_superieur %}
-                <button class="btn-add btn-primary" onclick="toggleAddForm()" type="button">
-                    <i class="fas fa-plus"></i>
-                    <span>{% trans "Ajouter une matière" %}</span>
-                </button>
-                {% endif %}
-            </div>
         </div>
 
-        <!-- Statistics -->
-        <div class="stats-container">
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-book"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ stats.total }}</h3>
-                    <p>{% trans "Total" %}</p>
-                </div>
+        <header class="mat-hero">
+            <div class="mat-hero-text">
+                <h1 class="mat-hero-title"><i class="fas fa-book-open"></i> {% trans "Gestion des matières" %}</h1>
+                <p class="mat-hero-sub">{% trans "Organisez le programme d'enseignement, les coefficients et les classes concernées." %}</p>
             </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ stats.actives }}</h3>
-                    <p>{% trans "Actives" %}</p>
-                </div>
+            <div class="mat-hero-stats">
+                <div class="mat-stat-pill"><span class="mat-stat-num">{{ stats.total }}</span><span class="mat-stat-lbl">{% trans "Matières" %}</span></div>
+                <div class="mat-stat-pill mat-stat-pill--ok"><span class="mat-stat-num">{{ stats.actives }}</span><span class="mat-stat-lbl">{% trans "Actives" %}</span></div>
+                {% if not est_superieur %}
+                <div class="mat-stat-pill"><span class="mat-stat-num">{{ stats.obligatoires|default:0 }}</span><span class="mat-stat-lbl">{% trans "Obligatoires" %}</span></div>
+                <div class="mat-stat-pill"><span class="mat-stat-num">{{ stats.optionnelles|default:0 }}</span><span class="mat-stat-lbl">{% trans "Optionnelles" %}</span></div>
+                {% else %}
+                <div class="mat-stat-pill"><span class="mat-stat-num">{{ matieres_par_filiere|length }}</span><span class="mat-stat-lbl">{% trans "Filières" %}</span></div>
+                {% endif %}
             </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-graduation-cap"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ stats.par_niveau|length }}</h3>
-                    <p>{% trans "Niveaux" %}</p>
-                </div>
+            <div class="mat-hero-actions">
+                {% if est_superieur %}
+                    <a href="{% url 'matiere:liste_modules' %}" class="mat-action-btn mat-action-btn--secondary">
+                        <i class="fas fa-cubes"></i> {% trans "Gérer les modules" %}
+                    </a>
+                {% else %}
+                    <button type="button" class="mat-action-btn mat-action-btn--primary" onclick="toggleAddForm()">
+                        <i class="fas fa-plus"></i> {% trans "Ajouter une matière" %}
+                    </button>
+                {% endif %}
             </div>
-        </div>
+        </header>
 
         <!-- Add Matiere Form - Modal plein écran -->
         <div class="add-matiere-modal-overlay" id="addFormContainer" style="{% if not field_errors %}display: none;{% endif %}" onclick="if(event.target===this) toggleAddForm()">
@@ -365,113 +331,98 @@
             </div>
         </div>
 
-        <!-- Matieres List -->
-        <div class="matieres-container">
-            <div class="matieres-header">
-                <h2>{% trans "Liste des Matières" %}</h2>
-                {% if not est_superieur %}
-                <div class="search-container">
-                    <div class="search-box">
-                        <input type="text" placeholder="Rechercher..." class="search-input">
-                        <i class="fas fa-search search-icon"></i>
-                    </div>
-                    <div class="filter-options">
-                        <button class="filter-btn active" data-filter="all">{% trans "Toutes" %}</button>
-                        <button class="filter-btn" data-filter="obligatoire">{% trans "Obligatoires" %}</button>
-                        <button class="filter-btn" data-filter="optionnelle">{% trans "Optionnelles" %}</button>
-                    </div>
-                </div>
-                {% endif %}
+        {% if matieres or est_superieur and matieres_par_filiere %}
+        <div class="mat-toolbar">
+            <label class="mat-search-wrap">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input type="search" id="matSearchInput" class="mat-search-input" placeholder="{% trans 'Rechercher une matière…' %}" autocomplete="off" />
+            </label>
+            {% if not est_superieur %}
+            <div class="mat-filter-group" role="group" aria-label="{% trans 'Filtrer par type' %}">
+                <button type="button" class="mat-filter-btn active" data-mat-filter="all">{% trans "Toutes" %}</button>
+                <button type="button" class="mat-filter-btn" data-mat-filter="obligatoire">{% trans "Obligatoires" %}</button>
+                <button type="button" class="mat-filter-btn" data-mat-filter="optionnelle">{% trans "Optionnelles" %}</button>
             </div>
+            {% endif %}
+        </div>
+        <p class="mat-results-line" id="matResultsLine" aria-live="polite"></p>
+        {% endif %}
 
+        <div class="mat-list-wrap">
             {% if est_superieur and matieres_par_filiere %}
-                <!-- Vue hiérarchique : Filières (onglets principaux) -> Modules (onglets secondaires) -> Matières (cards) -->
-                <div class="matieres-tabs-superieur">
-                    <div class="main-tabs-row">
+                <div class="mat-superieur-nav matieres-tabs-superieur">
+                    <p class="mat-nav-label"><i class="fas fa-graduation-cap"></i> {% trans "Filière" %}</p>
+                    <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'filière' %}" data-overflow-items-label="{% trans 'filières' %}">
+                        <div class="matiere-tabs-track" role="tablist">
                         {% for item in matieres_par_filiere %}
-                        <button class="main-tab-btn {% if forloop.first %}active{% endif %}" 
-                                data-dep-id="{{ item.department.id }}"
-                                type="button">
+                        <button type="button" class="matiere-tab-btn main-tab-btn {% if forloop.first %}active{% endif %}"
+                                data-dep-id="{{ item.department.id }}" data-order="{{ forloop.counter0 }}"
+                                aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
                             <i class="fas fa-graduation-cap"></i>
                             <span>{{ item.department.nom }}</span>
-                            <small class="tab-count">({{ item.niveaux|length }} {% trans "niveau" %}{{ item.niveaux|length|pluralize }})</small>
+                            <span class="tab-count">{{ item.niveaux|length }}</span>
                         </button>
                         {% endfor %}
+                        </div>
+                        <div class="matiere-tabs-more-wrap" hidden>
+                            <button type="button" class="matiere-tabs-more-btn" aria-expanded="false"><i class="fas fa-chevron-down"></i><span class="matiere-tabs-more-label">{% trans "Autres filières" %}</span></button>
+                            <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                        </div>
                     </div>
                     <div class="main-tabs-content">
                         {% for item in matieres_par_filiere %}
                         <div class="department-panel {% if forloop.first %}active{% endif %}" 
                              data-dep-id="{{ item.department.id }}">
                             {% if item.niveaux %}
-                                <div class="niveau-tabs-meta">
-                                    <span class="niveau-tabs-hint"><i class="fas fa-layer-group"></i> {% trans "Niveau d'études" %}</span>
-                                </div>
-                                <div class="niveau-tabs-row">
+                                <p class="mat-nav-label"><i class="fas fa-layer-group"></i> {% trans "Niveau d'études" %}</p>
+                                <div class="matiere-tabs-bar mat-niveau-bar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
+                                    <div class="matiere-tabs-track niveau-tabs-row">
                                     {% for niv in item.niveaux %}
-                                    <button class="niveau-tab-btn {% if forloop.first %}active{% endif %}"
-                                            data-niveau-idx="{{ forloop.counter0 }}"
-                                            type="button">
+                                    <button type="button" class="matiere-tab-btn niveau-tab-btn {% if forloop.first %}active{% endif %}"
+                                            data-niveau-idx="{{ forloop.counter0 }}" data-order="{{ forloop.counter0 }}">
                                         <span>{{ niv.niveau_label }}</span>
-                                        <small class="tab-count">({{ niv.modules|length }} {% trans "module" %}{{ niv.modules|length|pluralize }})</small>
+                                        <span class="tab-count">{{ niv.modules|length }}</span>
                                     </button>
                                     {% endfor %}
+                                    </div>
+                                    <div class="matiere-tabs-more-wrap" hidden>
+                                        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false"><i class="fas fa-chevron-down"></i><span class="matiere-tabs-more-label">{% trans "Autres niveaux" %}</span></button>
+                                        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                                    </div>
                                 </div>
                                 <div class="niveau-tabs-content">
                                     {% for niv in item.niveaux %}
                                     <div class="niveau-panel {% if forloop.first %}active{% endif %}"
                                          data-niveau-idx="{{ forloop.counter0 }}">
                                         {% if niv.modules %}
-                                            <div class="sub-tabs-row">
+                                            <p class="mat-nav-label"><i class="fas fa-cube"></i> {% trans "Module" %}</p>
+                                            <div class="matiere-tabs-bar mat-module-bar" data-overflow-item-label="{% trans 'module' %}" data-overflow-items-label="{% trans 'modules' %}">
+                                                <div class="matiere-tabs-track sub-tabs-row">
                                                 {% for mod_item in niv.modules %}
-                                                <button class="sub-tab-btn {% if forloop.first %}active{% endif %}"
+                                                <button type="button" class="matiere-tab-btn sub-tab-btn {% if forloop.first %}active{% endif %}"
                                                         data-module-id="{% if mod_item.module %}{{ mod_item.module.id }}{% else %}sans-module{% endif %}"
-                                                        type="button">
+                                                        data-order="{{ forloop.counter0 }}">
                                                     {% if mod_item.module %}{{ mod_item.module.nom }}{% if mod_item.module.niveau_lmd %} [{{ mod_item.module.niveau_lmd|libelle_niveau_lmd_key }}]{% endif %}{% else %}{% trans "Sans module" %}{% endif %}
-                                                    <small class="tab-count">({{ mod_item.matieres|length }})</small>
+                                                    <span class="tab-count">{{ mod_item.matieres|length }}</span>
                                                 </button>
                                                 {% endfor %}
+                                                </div>
+                                                <div class="matiere-tabs-more-wrap" hidden>
+                                                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false"><i class="fas fa-chevron-down"></i><span class="matiere-tabs-more-label">{% trans "Autres modules" %}</span></button>
+                                                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                                                </div>
                                             </div>
                                             <div class="sub-tabs-content">
                                                 {% for mod_item in niv.modules %}
                                                 <div class="module-panel {% if forloop.first %}active{% endif %}"
                                                      data-module-id="{% if mod_item.module %}{{ mod_item.module.id }}{% else %}sans-module{% endif %}">
                                                     {% if mod_item.matieres %}
-                                                    <div class="matieres-grid matieres-cards-grid">
+                                                    <div class="mat-cards-grid matieres-cards-grid">
                                                         {% for m_item in mod_item.matieres %}
-                                                        <div class="matiere-card" data-matiere-id="{{ m_item.matiere.id }}" data-matiere="{{ m_item.matiere.nom|lower }}" data-type="{{ m_item.matiere.type_matiere }}">
-                                                            <div class="card-header">
-                                                                <div class="matiere-info">
-                                                                    <h3 class="matiere-nom">{{ m_item.matiere.nom }}</h3>
-                                                                    <p class="matiere-type">{{ m_item.matiere.type_display }}{% if m_item.matiere.credits %} • {{ m_item.matiere.credits }} {% trans "crédits" %}{% endif %}</p>
-                                                                </div>
-                                                                <div class="matiere-actions">
-                                                                    <a href="{% url 'matiere:detail_matiere' m_item.matiere.id %}" class="action-btn primary" title="{% trans "Voir" %}">
-                                                                        <i class="fas fa-eye"></i>
-                                                                    </a>
-                                                                </div>
-                                                            </div>
-                                                            <div class="card-content">
-                                                                <div class="matiere-details">
-                                                                    <div class="detail-item">
-                                                                        <i class="fas fa-users"></i>
-                                                                        <span>{{ m_item.matiere.classes.count }} classe{{ m_item.matiere.classes.count|pluralize }}</span>
-                                                                    </div>
-                                                                </div>
-                                                                {% if m_item.classes %}
-                                                                <div class="classes-list">
-                                                                    {% for classe in m_item.classes %}
-                                                                    <span class="class-tag" title="{{ classe.nom }}">{{ classe.nom }}{% if classe.niveau == 'superieur' %} ({{ classe.get_libelle_niveau_superieur_complet }}){% endif %}</span>
-                                                                    {% endfor %}
-                                                                </div>
-                                                                {% endif %}
-                                                            </div>
-                                                            <div class="card-footer">
-                                                                <span class="status-dot active"></span>
-                                                                <span>{{ m_item.matiere.date_creation|date:"d/m/Y" }}</span>
-                                                            </div>
-                                                        </div>
+                                                            {% include 'school_admin/directeur/pedagogique/matieres/partials/matiere_card.html' with matiere=m_item.matiere classes_list=m_item.classes %}
                                                         {% endfor %}
                                                     </div>
+                                                    <p class="mat-pane-empty mat-module-empty" hidden>{% trans "Aucune matière ne correspond à votre recherche." %}</p>
                                                     {% else %}
                                                     <div class="empty-module">
                                                         <i class="fas fa-info-circle"></i>
@@ -501,130 +452,45 @@
                     </div>
                 </div>
             {% elif matieres %}
-                <div class="matieres-grid">
-                    {% for matiere_data in matieres_avec_coefficients %}
-                        {% with matiere=matiere_data.matiere %}
-                        <div class="matiere-card" data-matiere-id="{{ matiere.id }}" data-matiere="{{ matiere.nom|lower }}" data-type="{{ matiere.type_matiere }}">
-                            <div class="card-header">
-                                <div class="matiere-info">
-                                    <h3 class="matiere-nom">{{ matiere.nom }}</h3>
-                                    <p class="matiere-type">{{ matiere.type_display }}</p>
-                                </div>
-                                <div class="matiere-actions">
-                                    <a href="{% url 'matiere:detail_matiere' matiere.id %}" class="action-btn primary" title="{% trans "Voir" %}">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                </div>
-                            </div>
-                            
-                            <div class="card-content">
-                                <div class="matiere-details">
-                                    <div class="detail-item">
-                                        <i class="fas fa-graduation-cap"></i>
-                                        <span>{{ matiere.niveau_display }}</span>
-                                    </div>
-                                    {% if est_superieur %}
-                                        {% if matiere.department %}
-                                            <div class="detail-item">
-                                                <i class="fas fa-building"></i>
-                                                <span>{{ matiere.department.nom }}</span>
-                                            </div>
-                                        {% endif %}
-                                        {% if matiere.module %}
-                                            <div class="detail-item">
-                                                <i class="fas fa-coins"></i>
-                                                <span>{% trans "Crédits" %}: {{ matiere.credits|default:"0" }} • {{ matiere.module.nom }}</span>
-                                            </div>
-                                        {% endif %}
-                                    {% elif est_lycee and matiere_data.coefficients_par_groupe %}
-                                        <div class="detail-item">
-                                            <i class="fas fa-weight-hanging"></i>
-                                            <span>{% trans "Coeff: Variable par groupe" %}</span>
-                                        </div>
-                                    {% else %}
-                                        <div class="detail-item">
-                                            <i class="fas fa-weight-hanging"></i>
-                                            <span>Coeff: {{ matiere.coefficient }}</span>
-                                        </div>
-                                    {% endif %}
-                                    <div class="detail-item">
-                                        <i class="fas fa-users"></i>
-                                        <span>{{ matiere.classes.count }} classe{{ matiere.classes.count|pluralize }}</span>
-                                    </div>
-                                </div>
-                                
-                                {% if matiere.classes.exists %}
-                                    <div class="classes-list">
-                                        {% if est_lycee and matiere_data.coefficients_par_groupe %}
-                                            <!-- Pour les établissements lycée : afficher les groupes avec leurs coefficients -->
-                                            {% with groupes=matiere.classes.all|group_classes %}
-                                                {% for groupe in groupes %}
-                                                    <div class="groupe-coefficient-item" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 6px 10px; background: #f0f0f0; border-radius: 6px;">
-                                                        <span class="class-tag" style="flex: 1;">
-                                                            <strong>{{ groupe.nom }}</strong>
-                                                            {% if groupe.count > 1 %}
-                                                                <small style="font-size: 10px; opacity: 0.8;"> (×{{ groupe.count }})</small>
-                                                            {% endif %}
-                                                        </span>
-                                                        <span class="coefficient-badge" style="background: var(--primary); color: white; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.85rem;">
-                                                            <i class="fas fa-weight-hanging"></i>
-                                                            {% if groupe.nom in matiere_data.coefficients_par_groupe %}
-                                                                {{ matiere_data.coefficients_par_groupe|get_item:groupe.nom }}
-                                                            {% else %}
-                                                                {{ matiere.coefficient }}
-                                                            {% endif %}
-                                                        </span>
-                                                    </div>
-                                                {% endfor %}
-                                            {% endwith %}
-                                        {% else %}
-                                            <!-- Pour les autres établissements : affichage normal -->
-                                            {% with groupes=matiere.classes.all|group_classes %}
-                                                {% for groupe in groupes %}
-                                                    <span class="class-tag" title="{{ groupe.count }} classe{{ groupe.count|pluralize }}">
-                                                        {{ groupe.nom }}
-                                                        {% if groupe.count > 1 %}
-                                                            <small style="font-size: 10px; opacity: 0.8;"> (×{{ groupe.count }})</small>
-                                                        {% endif %}
-                                                    </span>
-                                                {% endfor %}
-                                            {% endwith %}
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="card-footer">
-                                <div class="matiere-status">
-                                    <span class="status-dot active"></span>
-                                    <span>{% trans "Active" %}</span>
-                                </div>
-                                <div class="matiere-date">
-                                    <i class="fas fa-calendar"></i>
-                                    <span>{{ matiere.date_creation|date:"d/m/Y" }}</span>
-                                </div>
-                            </div>
+                <div class="mat-types-nav">
+                    <div class="tabs-container mat-types-tabs-wrap">
+                        <div class="tabs-nav" role="tablist" aria-label="{% trans 'Types de matière' %}">
+                            {% for groupe in matieres_groupes %}
+                            <button type="button" role="tab" class="tab-btn mat-type-tab-btn {% if forloop.first %}active{% endif %}"
+                                    data-type-tab="{{ groupe.type }}"
+                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                                <span>{{ groupe.label }}</span>
+                                <span class="tab-count">{{ groupe.matieres|length }}</span>
+                            </button>
+                            {% endfor %}
                         </div>
-                        {% endwith %}
+                    </div>
+                </div>
+                <div class="mat-types-content">
+                    {% for groupe in matieres_groupes %}
+                    <div class="mat-type-pane {% if forloop.first %}active{% endif %}" data-type-pane="{{ groupe.type }}" role="tabpanel">
+                        <div class="mat-cards-grid">
+                            {% for matiere_data in groupe.matieres %}
+                                {% include 'school_admin/directeur/pedagogique/matieres/partials/matiere_card.html' with matiere=matiere_data.matiere matiere_data=matiere_data %}
+                            {% endfor %}
+                        </div>
+                        <p class="mat-pane-empty mat-type-empty" hidden>{% trans "Aucune matière ne correspond à votre recherche." %}</p>
+                    </div>
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-book-open"></i>
-                    </div>
+                <div class="mat-empty-state">
+                    <i class="fas fa-book-open"></i>
                     <h3>{% trans "Aucune matière trouvée" %}</h3>
                     {% if est_superieur %}
                     <p>{% trans "Créez des filières et des modules, puis ajoutez les matières depuis la fiche détail de chaque module." %}</p>
-                    <a href="{% url 'matiere:liste_modules' %}" class="btn-primary btn-gradient" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
-                        <i class="fas fa-cubes"></i>
-                        <span>{% trans "Voir les modules" %}</span>
+                    <a href="{% url 'matiere:liste_modules' %}" class="mat-action-btn mat-action-btn--primary">
+                        <i class="fas fa-cubes"></i> {% trans "Voir les modules" %}
                     </a>
                     {% else %}
                     <p>{% trans "Commencez par ajouter votre première matière pour organiser votre programme d'enseignement." %}</p>
-                    <button class="btn-primary btn-gradient" type="button" onclick="toggleAddForm()">
-                        <i class="fas fa-plus"></i>
-                        <span>{% trans "Ajouter une matière" %}</span>
+                    <button type="button" class="mat-action-btn mat-action-btn--primary" onclick="toggleAddForm()">
+                        <i class="fas fa-plus"></i> {% trans "Ajouter une matière" %}
                     </button>
                     {% endif %}
                 </div>
@@ -633,7 +499,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="{% static 'school_admin/js/directeur/matieres.js' %}?v=4"></script>
+    <script src="{% static 'school_admin/js/directeur/matieres.js' %}?v=2.0.1"></script>
     <script>
         {% if est_superieur and field_errors %}
         document.addEventListener('DOMContentLoaded', function() {
@@ -644,72 +510,6 @@
             }
         });
         {% endif %}
-        {% if est_superieur and matieres_par_filiere %}
-        // Filières -> Niveaux -> Modules -> cartes matières (JS : navigation / affichage uniquement)
-        document.addEventListener('DOMContentLoaded', function() {
-            function activateFirstModuleInNiveau(niveauPanel) {
-                if (!niveauPanel) return;
-                var firstSub = niveauPanel.querySelector('.sub-tab-btn');
-                var firstMod = niveauPanel.querySelector('.module-panel');
-                niveauPanel.querySelectorAll('.sub-tab-btn').forEach(function(b) { b.classList.remove('active'); });
-                niveauPanel.querySelectorAll('.module-panel').forEach(function(p) { p.classList.remove('active'); });
-                if (firstSub) firstSub.classList.add('active');
-                if (firstMod) firstMod.classList.add('active');
-            }
-            function resetNiveauTabs(panel) {
-                if (!panel) return;
-                var firstNivBtn = panel.querySelector('.niveau-tab-btn');
-                var firstNivPanel = panel.querySelector('.niveau-panel');
-                panel.querySelectorAll('.niveau-tab-btn').forEach(function(b) { b.classList.remove('active'); });
-                panel.querySelectorAll('.niveau-panel').forEach(function(p) { p.classList.remove('active'); });
-                if (firstNivBtn) firstNivBtn.classList.add('active');
-                if (firstNivPanel) {
-                    firstNivPanel.classList.add('active');
-                    activateFirstModuleInNiveau(firstNivPanel);
-                }
-            }
-            var mainTabs = document.querySelectorAll('.main-tab-btn');
-            mainTabs.forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    var depId = btn.getAttribute('data-dep-id');
-                    mainTabs.forEach(function(b) { b.classList.remove('active'); });
-                    btn.classList.add('active');
-                    document.querySelectorAll('.department-panel').forEach(function(panel) {
-                        panel.classList.toggle('active', panel.getAttribute('data-dep-id') === depId);
-                    });
-                    var panel = document.querySelector('.department-panel[data-dep-id="' + depId + '"]');
-                    resetNiveauTabs(panel);
-                });
-            });
-            document.querySelectorAll('.department-panel').forEach(function(panel) {
-                panel.querySelectorAll('.niveau-tab-btn').forEach(function(btn) {
-                    btn.addEventListener('click', function() {
-                        var idx = btn.getAttribute('data-niveau-idx');
-                        panel.querySelectorAll('.niveau-tab-btn').forEach(function(b) { b.classList.remove('active'); });
-                        btn.classList.add('active');
-                        panel.querySelectorAll('.niveau-panel').forEach(function(p) {
-                            p.classList.toggle('active', p.getAttribute('data-niveau-idx') === idx);
-                        });
-                        var nivPanel = panel.querySelector('.niveau-panel[data-niveau-idx="' + idx + '"]');
-                        activateFirstModuleInNiveau(nivPanel);
-                    });
-                });
-                panel.querySelectorAll('.niveau-panel').forEach(function(niveauPanel) {
-                    niveauPanel.querySelectorAll('.sub-tab-btn').forEach(function(btn) {
-                        btn.addEventListener('click', function() {
-                            var modId = btn.getAttribute('data-module-id');
-                            niveauPanel.querySelectorAll('.sub-tab-btn').forEach(function(b) { b.classList.remove('active'); });
-                            btn.classList.add('active');
-                            niveauPanel.querySelectorAll('.module-panel').forEach(function(p) {
-                                p.classList.toggle('active', p.getAttribute('data-module-id') === modId);
-                            });
-                        });
-                    });
-                });
-            });
-        });
-        {% endif %}
-        // Les fonctions toggleCoefficientField et initCoefficientFields sont définies dans matieres.js
         // Initialiser au chargement de la page si le formulaire est visible
         document.addEventListener('DOMContentLoaded', function() {
             // Debug : vérifier si est_lycee est défini

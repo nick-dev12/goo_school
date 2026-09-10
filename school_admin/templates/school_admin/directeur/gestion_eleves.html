@@ -40,16 +40,11 @@
                     <i class="fas fa-user-graduate"></i>
                     {% trans "Gestion des Élèves" %}
                 </h1>
-                <p class="page-subtitle">
-                    {% trans "Gérez efficacement les dossiers, inscriptions et suivi des élèves" %}
-                </p>
             </div>
         </div>
 
         <!-- Navigation Links Container -->
         <div class="navigation-container">
-            <h2 class="section-title">{% trans "Outils de gestion des élèves" %}</h2>
-            
             <div class="nav-cards-grid">
                 {% check_permission request.user "eleves_inscrire" as can_inscrire_eleves %}
                 {% if can_inscrire_eleves or is_directeur %}
@@ -59,7 +54,6 @@
                     </div>
                     <div class="nav-link-content">
                         <h3>{% trans "Inscrire un élève" %}</h3>
-                        <p>{% trans "Ajout de nouveaux élèves" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -71,7 +65,6 @@
                     </div>
                     <div class="nav-link-content">
                         <h3>{% trans "Liste des élèves" %}</h3>
-                        <p>{% trans "Gestion des dossiers élèves" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -83,7 +76,6 @@
                     </div>
                     <div class="nav-link-content">
                         <h3>{% trans "Notes et resultats" %}</h3>
-                        <p>{% trans "Gestion des notes et resultats" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -104,7 +96,6 @@
                     </div>
                     <div class="nav-link-content">
                         <h3>{% trans "Suivi de présence" %}</h3>
-                        <p>{% trans "Assiduité et absences" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -116,7 +107,6 @@
                     </div>
                     <div class="nav-link-content">
                         <h3>{% trans "Bulletins" %}</h3>
-                        <p>{% trans "Gestion des bulletins de notes" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -128,7 +118,6 @@
                     </div>
                     <div class="nav-link-content">
                         <h3>{% trans "Réinscription" %}</h3>
-                        <p>{% trans "Réinscrire des élèves existants" %}</p>
                     </div>
                 </a>
                 {% endif %}
@@ -139,7 +128,6 @@
                     </div>
                     <div class="nav-link-content">
                         <h3>{% trans "Préinscriptions" %}</h3>
-                        <p>{% trans "Gérer les liens de préinscription" %}</p>
                     </div>
                 </a>
                 <a href="{% url 'directeur:liste_preinscriptions' %}" class="nav-link-card">
@@ -148,7 +136,6 @@
                     </div>
                     <div class="nav-link-content">
                         <h3>{% trans "Liste des préinscriptions" %}</h3>
-                        <p>{% trans "Voir et valider les préinscriptions" %}</p>
                     </div>
                 </a>
                 {% endif %}

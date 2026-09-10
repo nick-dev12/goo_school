@@ -84,7 +84,6 @@
                         <th class="col-absents">{% trans "Absents" %}</th>
                         <th class="col-justifies">{% trans "Abs. Justifiées" %}</th>
                         <th class="col-retards">{% trans "Retards" %}</th>
-                        <th class="col-taux">{% trans "Taux" %}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -98,9 +97,6 @@
                         <td class="col-absents">{{ data.absents }}</td>
                         <td class="col-justifies">{{ data.absents_justifies }}</td>
                         <td class="col-retards">{{ data.retards }}</td>
-                        <td class="col-taux">
-                            <span class="taux-badge">{{ data.taux_presence }}%</span>
-                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -164,13 +160,22 @@
             <i class="fas fa-print"></i>
             {% trans "Imprimer la liste" %}
         </button>
-        <button onclick="window.close()" class="btn-close">
+        <button type="button" onclick="fermerImpression()" class="btn-close">
             <i class="fas fa-times"></i>
             {% trans "Fermer" %}
         </button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script>
+        function fermerImpression() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '{% url "directeur:suivi_presence" %}';
+            }
+        }
+    </script>
 </body>
 </html>
 

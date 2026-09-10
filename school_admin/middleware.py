@@ -109,6 +109,12 @@ class AuthenticationMiddleware:
         )
         
         if not request.user.is_authenticated and not is_public_path:
+            if request.path.startswith('/api/'):
+                from django.http import JsonResponse
+                return JsonResponse(
+                    {'ok': False, 'error': 'Non authentifié'},
+                    status=401,
+                )
             print(f"[MIDDLEWARE] User not authenticated, redirecting to login from {request.path}")
             logger.warning(f"[MIDDLEWARE] User not authenticated, redirecting to login from {request.path}")
             # Sauvegarder l'URL actuelle pour rediriger l'utilisateur après connexion

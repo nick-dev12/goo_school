@@ -219,4 +219,19 @@
                 </div>
             {% endif %}
         </form>
+        <script type="application/json" id="presence-offline-context">
+        {
+          "niveau": "secondaire",
+          "classe_id": {{ classe.id }},
+          "classe_nom": "{{ classe.nom|escapejs }}",
+          "matiere_id": {% if matiere %}{{ matiere.id }}{% else %}null{% endif %},
+          "numero_appel": 1,
+          "date": "{{ today|date:'Y-m-d' }}",
+          "eleves": [
+            {% for item in eleves_avec_presence %}
+            {"id": {{ item.eleve.id }}, "server_id": {{ item.eleve.id }}, "nom": "{{ item.eleve.nom|escapejs }}", "prenom": "{{ item.eleve.prenom|escapejs }}", "nom_complet": "{{ item.eleve.nom_complet|escapejs }}", "matricule": "{{ item.eleve.matricule|escapejs }}", "classe_id": {{ classe.id }}}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+          ]
+        }
+        </script>
 </div>

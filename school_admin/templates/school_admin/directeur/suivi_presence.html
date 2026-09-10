@@ -11,547 +11,140 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}?v=1.2.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}?v=2.0.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
 </head>
-<body data-live-page="suivi-presence">
+<body class="sp-page-body" data-live-page="suivi-presence" data-reference-date="{{ date_aujourdhui }}">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content -->
-    <div class="main-content-container">
-        <!-- Messages -->
+    <div class="content-container sp-page">
         {% include 'school_admin/partials/messages.html' %}
-        
-        <!-- Page Header -->
-        <div class="page-header">
+
+        <div class="page-header page-header-minimal">
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-calendar-check"></i>
-                    {% trans "Suivi de Présence" %}
-                </h1>
-                <p class="page-subtitle">
-                    {% trans "Consultation de l'assiduité par classe et par mois" %}
-                </p>
-            </div>
         </div>
 
-        <!-- Message d'information sur l'année scolaire active -->
-        {% if annee_scolaire_active %}
-        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-            <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
-                <i class="fas fa-calendar-check"></i>
-            </span>
-            <div>
-                <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-                    Année scolaire active : {{ annee_scolaire_active.libelle }}
-                </p>
-                <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-                    {% trans "Seuls les élèves et les présences de cette session sont affichés." %}
-                </p>
+        <header class="sp-hero">
+            <div class="sp-hero-text">
+                <h1 class="sp-hero-title"><i class="fas fa-calendar-check"></i> {% trans "Suivi de présence" %}</h1>
+                <p class="sp-hero-sub">{% trans "Consultez les absences et retards par classe, filtrez par période et justifiez les absences." %}</p>
+                {% if annee_scolaire_active %}
+                    <span class="sp-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+                {% endif %}
             </div>
-        </div>
-        {% else %}
-        <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
-            <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
-            <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-                {% trans "Aucune année scolaire active. Toutes les données sont affichées." %}
-            </span>
-        </div>
-        {% endif %}
+            <div class="sp-hero-stats">
+                <div class="sp-stat-pill"><span class="sp-stat-num">{{ stats_generales.total_eleves }}</span><span class="sp-stat-lbl">{% trans "Élèves" %}</span></div>
+                <div class="sp-stat-pill"><span class="sp-stat-num">{{ stats_generales.total_classes }}</span><span class="sp-stat-lbl">{% trans "Classes" %}</span></div>
+                <div class="sp-stat-pill sp-stat-pill--warn"><span class="sp-stat-num">{{ stats_generales.absents_aujourdhui }}</span><span class="sp-stat-lbl">{% trans "Absents (jour)" %}</span></div>
+                <div class="sp-stat-pill sp-stat-pill--info"><span class="sp-stat-num">{{ stats_generales.retards_aujourdhui }}</span><span class="sp-stat-lbl">{% trans "Retards (jour)" %}</span></div>
+            </div>
+        </header>
 
         {% if periodes and not est_superieur %}
-        <div class="periodes-tabs-container" aria-label="{% trans 'Période scolaire (toutes les classes)' %}">
+        <nav class="sp-periodes-bar periodes-tabs-container" aria-label="{% trans 'Période scolaire' %}">
             {% for periode in periodes %}
-                {% if periode_selectionnee and periode.id == periode_selectionnee.id %}
-                    <a class="periode-tab active" href="?periode={{ periode.id }}">
-                        <span class="periode-nom">{{ periode.nom_periode }}</span>
-                        <span class="periode-annee">{{ periode.annee_scolaire }}</span>
-                    </a>
-                {% else %}
-                    <a class="periode-tab" href="?periode={{ periode.id }}">
-                        <span class="periode-nom">{{ periode.nom_periode }}</span>
-                        <span class="periode-annee">{{ periode.annee_scolaire }}</span>
-                    </a>
-                {% endif %}
+                <a class="periode-tab {% if periode_selectionnee and periode.id == periode_selectionnee.id %}active{% endif %}"
+                   href="?periode={{ periode.id }}&{{ tab_nav_query }}">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="periode-nom">{{ periode.nom_periode }}</span>
+                </a>
             {% endfor %}
-        </div>
+        </nav>
         {% endif %}
 
-        <!-- Onglets principaux par niveau -->
-        <div class="tabs-container">
-            <div class="tabs-nav">
+        <div class="tabs-container sp-niveau-tabs">
+            <div class="tabs-nav" role="tablist" aria-label="{% trans 'Niveaux' %}">
                 {% for categorie, data in classes_grouped.items %}
-                    <button class="tab-btn {% if forloop.first %}active{% endif %}" 
+                    <button type="button" role="tab" class="tab-btn sp-niveau-tab {% if forloop.counter == active_tab_index %}active{% endif %}"
                             data-tab="tab-{{ forloop.counter }}"
-                            onclick="switchMainTab('tab-{{ forloop.counter }}')">
-                        <div class="tab-content">
-                            <span class="tab-title">{{ categorie }}</span>
-                            <span class="tab-badge">{{ data.nombre_classes }} classe{{ data.nombre_classes|pluralize }}</span>
-                        </div>
-                        <div class="tab-info">
-                            <span class="tab-students">{{ data.total_eleves }} élève{{ data.total_eleves|pluralize }}</span>
-                        </div>
+                            aria-selected="{% if forloop.counter == active_tab_index %}true{% else %}false{% endif %}">
+                        <i class="fas fa-layer-group"></i>
+                        <span>{{ categorie }}</span>
+                        <span class="tab-count">{{ data.total_eleves }}</span>
                     </button>
                 {% endfor %}
             </div>
 
             <!-- Contenu des onglets -->
             {% for categorie, data in classes_grouped.items %}
-                <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                <div class="tab-content-panel {% if forloop.counter == active_tab_index %}active{% endif %}" id="tab-{{ forloop.counter }}">
                     
-                    <!-- Sous-onglets par classe -->
-                    <div class="classes-subtabs">
-                        {% for classe_data in data.classes %}
-                            <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}"
-                                    onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
-                                <span class="classe-name">{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
-                                <span class="classe-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
-                            </button>
-                        {% endfor %}
+                    <div class="sp-classe-nav">
+                        <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
+                            <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes' %}">
+                                {% for classe_data in data.classes %}
+                                    <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if classe_data.classe.id == active_classe_id %}active{% endif %}"
+                                            data-subtab="classe-{{ classe_data.classe.id }}"
+                                            aria-selected="{% if classe_data.classe.id == active_classe_id %}true{% else %}false{% endif %}">
+                                        <i class="fas fa-door-open"></i>
+                                        <span>{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
+                                        <span class="tab-count">{{ classe_data.nombre_eleves }}</span>
+                                    </button>
+                                {% endfor %}
+                            </div>
+                            <div class="matiere-tabs-more-wrap" hidden>
+                                <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres classes' %}">
+                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                    <span class="matiere-tabs-more-label">{% trans "Autres classes" %}</span>
+                                </button>
+                                <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Contenu des sous-onglets (classes) -->
                     {% for classe_data in data.classes %}
-                        <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+                        <div class="classe-subtab-content {% if classe_data.classe.id == active_classe_id %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
                             {% if est_superieur %}
-                            <div class="periodes-tabs-container periodes-tabs-container--classe" aria-label="{% trans 'Semestre pour cette classe' %}">
+                            <nav class="sp-periodes-bar sp-periodes-bar--classe periodes-tabs-container periodes-tabs-container--classe" aria-label="{% trans 'Semestre' %}">
                                 {% if classe_data.periodes_nav %}
                                     {% for item in classe_data.periodes_nav %}
-                                        <a class="periode-tab {% if item.active %}active{% endif %}"
-                                           href="{{ request.path }}?{{ item.query }}">
+                                        <a class="periode-tab {% if item.active %}active{% endif %}" href="{{ request.path }}?{{ item.query }}">
+                                            <i class="fas fa-calendar-alt"></i>
                                             <span class="periode-nom">{{ item.periode.libelle_affichage_superieur }}</span>
-                                            <span class="periode-annee">{{ item.periode.annee_scolaire }}</span>
                                         </a>
                                     {% endfor %}
                                 {% else %}
                                     <p class="periodes-classe-empty">
                                         <i class="fas fa-calendar-xmark"></i>
-                                        {% trans "Aucune période ne correspond au niveau de cette classe pour l'année active." %}
+                                        {% trans "Aucune période pour cette classe." %}
                                     </p>
                                 {% endif %}
-                            </div>
+                            </nav>
                             {% endif %}
 
-                            <!-- En-tête de la classe -->
-                            <div class="class-header">
-                                <h2 class="class-title">
-                                    <i class="fas fa-chalkboard"></i>
-                                    {% if est_superieur %}
-                                      {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
-                                    {% else %}
-                                      {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
-                                    {% endif %}
-                                </h2>
-                                <p class="class-description">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }} inscrit{{ classe_data.nombre_eleves|pluralize }}</p>
-                            </div>
+                            {% include 'school_admin/directeur/partials/suivi_presence_classe_panel.html' with classe_data=classe_data %}
 
-                            <!-- Onglets par mois -->
-                            {% if classe_data.mois_disponibles %}
-                                <div class="mois-tabs">
-                                    {% for mois in classe_data.mois_disponibles %}
-                                        <button class="mois-tab-btn {% if forloop.last %}active{% endif %}"
-                                                onclick="switchMoisTab(event, 'mois-{{ classe_data.classe.id }}-{{ forloop.counter }}')">
-                                            <i class="fas fa-calendar"></i>
-                                            <span>{{ mois.nom_court }} {{ mois.annee }}</span>
-                                        </button>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="empty-state">
-                                    <i class="fas fa-calendar-times"></i>
-                                    <p>{% trans "Aucune donnée de présence disponible pour cette classe" %}</p>
-                                </div>
-                            {% endif %}
-
-                            <!-- Contenu par mois -->
-                            {% for mois_key, mois_presences in classe_data.mois_presences.items %}
-                                    <div class="mois-content {% if forloop.last %}active{% endif %}" id="mois-{{ classe_data.classe.id }}-{{ forloop.counter }}">
-                                        
-                                        <!-- Info mois avec bouton d'impression -->
-                                        <div class="mois-info-header">
-                                            <div class="mois-info-card">
-                                                <div class="mois-icon">
-                                                    <i class="fas fa-calendar-alt"></i>
-                                                </div>
-                                                <div class="mois-details">
-                                                    <h4>{{ mois_presences.mois.nom }} {{ mois_presences.mois.annee }}</h4>
-                                                    <p>Période de suivi : {{ mois_presences.mois.nom }} {{ mois_presences.mois.annee }}</p>
-                                                </div>
-                                            </div>
-                                            <div class="mois-actions">
-                                                <a href="{% url 'directeur:imprimer_liste_presence' classe_data.classe.id mois_presences.mois.numero mois_presences.mois.annee %}{% if periode_selectionnee %}?periode={{ periode_selectionnee.id }}{% endif %}" 
-                                                   class="btn-print-presence" 
-                                                   target="_blank"
-                                                   title="{% trans "Imprimer la liste de présence" %}">
-                                                    <i class="fas fa-print"></i>
-                                                    {% trans "Imprimer liste de présence" %}
-                                                </a>
-                                            </div>
-                                        </div>
-
-                                        <!-- Légende des couleurs -->
-                                        <div class="legende-couleurs">
-                                            <h5><i class="fas fa-palette"></i> {% trans "Code couleur du taux de présence :" %}</h5>
-                                            <div class="legende-items">
-                                                <span class="legende-item excellent">
-                                                    <span class="legende-color"></span>
-                                                    <span class="legende-text">{% trans "Excellent (≥ 95%)" %}</span>
-                                                </span>
-                                                <span class="legende-item bon">
-                                                    <span class="legende-color"></span>
-                                                    <span class="legende-text">{% trans "Bon (90-94.99%)" %}</span>
-                                                </span>
-                                                <span class="legende-item moyen">
-                                                    <span class="legende-color"></span>
-                                                    <span class="legende-text">{% trans "Moyen (85-89.99%)" %}</span>
-                                                </span>
-                                                <span class="legende-item faible">
-                                                    <span class="legende-color"></span>
-                                                    <span class="legende-text">{% trans "Faible (80-84.99%)" %}</span>
-                                                </span>
-                                                <span class="legende-item critique">
-                                                    <span class="legende-color"></span>
-                                                    <span class="legende-text">{% trans "Critique (" %}< 80%)</span>
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Barre de recherche et filtres pour tous les établissements -->
-                                        <div class="search-filter-container" id="search-filter-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}">
-                                            <div class="search-box">
-                                                <i class="fas fa-search"></i>
-                                                <input type="text" 
-                                                       class="search-input" 
-                                                       id="search-input-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" 
-                                                       placeholder="{% trans "Rechercher un élève (nom, prénom, matricule...)" %}"
-                                                       oninput="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
-                                                <button class="clear-search" 
-                                                        id="clear-search-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" 
-                                                        onclick="clearPresenceSearch('{{ classe_data.classe.id }}-{{ forloop.counter }}')" 
-                                                        style="display: none;">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </div>
-                                            
-                                            <div class="filters-box">
-                                                <div class="filter-group">
-                                                    <label class="filter-label">
-                                                        <i class="fas fa-percentage"></i>
-                                                        {% trans "Taux de présence" %}
-                                                    </label>
-                                                    <select class="filter-select" id="filter-taux-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
-                                                        <option value="">{% trans "Tous les taux" %}</option>
-                                                        <option value="excellent">{% trans "Excellent (≥ 95%)" %}</option>
-                                                        <option value="bon">{% trans "Bon (90-94%)" %}</option>
-                                                        <option value="moyen">{% trans "Moyen (85-89%)" %}</option>
-                                                        <option value="faible">{% trans "Faible (80-84%)" %}</option>
-                                                        <option value="critique">{% trans "Critique (" %}< 80%)</option>
-                                                    </select>
-                                                </div>
-                                                
-                                                <div class="filter-group">
-                                                    <label class="filter-label">
-                                                        <i class="fas fa-exclamation-triangle"></i>
-                                                        {% trans "Absences" %}
-                                                    </label>
-                                                    <select class="filter-select" id="filter-absences-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
-                                                        <option value="">{% trans "Toutes" %}</option>
-                                                        <option value="0">{% trans "Aucune absence" %}</option>
-                                                        <option value="1-3">{% trans "1-3 absences" %}</option>
-                                                        <option value="4-6">{% trans "4-6 absences" %}</option>
-                                                        <option value="7+">{% trans "7+ absences" %}</option>
-                                                    </select>
-                                                </div>
-                                                
-                                                <div class="filter-group">
-                                                    <label class="filter-label">
-                                                        <i class="fas fa-clock"></i>
-                                                        {% trans "Retards" %}
-                                                    </label>
-                                                    <select class="filter-select" id="filter-retards-{{ classe_data.classe.id }}-{{ forloop.counter }}" onchange="filterPresenceStudents('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
-                                                        <option value="">{% trans "Tous" %}</option>
-                                                        <option value="0">{% trans "Aucun retard" %}</option>
-                                                        <option value="1-2">{% trans "1-2 retards" %}</option>
-                                                        <option value="3-5">{% trans "3-5 retards" %}</option>
-                                                        <option value="6+">{% trans "6+ retards" %}</option>
-                                                    </select>
-                                                </div>
-                                                
-                                                <button class="btn-reset-filters" onclick="resetPresenceFilters('{{ classe_data.classe.id }}-{{ forloop.counter }}')">
-                                                    <i class="fas fa-redo"></i>
-                                                    {% trans "Réinitialiser" %}
-                                                </button>
-                                            </div>
-                                            
-                                            <div class="filter-results" id="filter-results-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}" style="display: none;">
-                                                <span id="results-count-presence-{{ classe_data.classe.id }}-{{ forloop.counter }}">0</span> {% trans "résultat(s) trouvé(s)" %}
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Tableau des présences -->
-                                        <div class="presence-table-container">
-                                            <table class="presence-results-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>{% trans "Rang" %}</th>
-                                                        <th>{% trans "Élève" %}</th>
-                                                        <th>{% trans "Matricule" %}</th>
-                                                        <th>{% trans "Jours" %}</th>
-                                                        <th>{% trans "Présents" %}</th>
-                                                        <th>{% trans "Absents" %}</th>
-                                                        <th>{% trans "Abs. justifiées" %}</th>
-                                                        <th>{% trans "Retards" %}</th>
-                                                        <th>{% trans "Taux de présence" %}</th>
-                                                        <th>{% trans "Statut" %}</th>
-                                                        <th>{% trans "Actions" %}</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {% if mois_presences %}
-                                                        {% for eleve_data in mois_presences.eleves_presences %}
-                                                            <tr class="student-row {% if eleve_data.taux_presence is not None %}{% if eleve_data.taux_presence >= 95 %}presence-excellente{% elif eleve_data.taux_presence >= 90 %}presence-bonne{% elif eleve_data.taux_presence >= 85 %}presence-moyenne{% elif eleve_data.taux_presence >= 80 %}presence-faible{% else %}presence-critique{% endif %}{% endif %}"
-                                                                data-nom="{{ eleve_data.eleve.nom|lower }}"
-                                                                data-prenom="{{ eleve_data.eleve.prenom|lower }}"
-                                                                data-matricule="{{ eleve_data.eleve.numero_eleve|lower }}"
-                                                                data-taux-presence="{{ eleve_data.taux_presence|default:'0' }}"
-                                                                data-absents="{{ eleve_data.absents|default:'0' }}"
-                                                                data-retards="{{ eleve_data.retards|default:'0' }}">
-                                                                <td class="rang-cell">
-                                                                    {% if eleve_data.taux_presence %}
-                                                                        <span class="rang-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
-                                                                            {{ forloop.counter }}
-                                                                        </span>
-                                                                    {% else %}
-                                                                        <span class="rang-badge">-</span>
-                                                                    {% endif %}
-                                                                </td>
-                                                                <td class="eleve-cell">
-                                                                    <div class="eleve-info">
-                                                                        <div class="eleve-avatar">
-                                                                            <i class="fas fa-user"></i>
-                                                                        </div>
-                                                                        <span class="eleve-nom">{{ eleve_data.eleve.nom }} {{ eleve_data.eleve.prenom }}</span>
-                                                                    </div>
-                                                                </td>
-                                                                <td class="matricule-cell">{{ eleve_data.eleve.numero_eleve }}</td>
-                                                                <td class="jours-cell">
-                                                                    <span class="jours-count">{{ eleve_data.total_jours }}</span>
-                                                                </td>
-                                                                <td class="presents-cell">
-                                                                    <span class="presents-badge">{{ eleve_data.presents }}</span>
-                                                                </td>
-                                                                <td class="absents-cell">
-                                                                    <span class="absents-badge">{{ eleve_data.absents }}</span>
-                                                                </td>
-                                                                <td class="justifies-cell">
-                                                                    <span class="justifies-badge">{{ eleve_data.absents_justifies }}</span>
-                                                                </td>
-                                                                <td class="retards-cell">
-                                                                    <span class="retards-badge">{{ eleve_data.retards }}</span>
-                                                                </td>
-                                                                <td class="taux-cell">
-                                                                    {% if eleve_data.taux_presence is not None %}
-                                                                        <span class="taux-badge {% if eleve_data.taux_presence >= 95 %}excellent{% elif eleve_data.taux_presence >= 90 %}bon{% elif eleve_data.taux_presence >= 85 %}moyen{% elif eleve_data.taux_presence >= 80 %}faible{% else %}critique{% endif %}">
-                                                                            {{ eleve_data.taux_presence }}%
-                                                                        </span>
-                                                                    {% else %}
-                                                                        <span class="taux-non-disponible">
-                                                                            <i class="fas fa-hourglass-half"></i>
-                                                                            {% trans "N/A" %}
-                                                                        </span>
-                                                                    {% endif %}
-                                                                </td>
-                                                                <td class="statut-cell">
-                                                                    {% if eleve_data.taux_presence is not None %}
-                                                                        {% if eleve_data.taux_presence >= 95 %}
-                                                                            <span class="statut-badge excellent">{% trans "Excellent" %}</span>
-                                                                        {% elif eleve_data.taux_presence >= 90 %}
-                                                                            <span class="statut-badge bon">{% trans "Bon" %}</span>
-                                                                        {% elif eleve_data.taux_presence >= 85 %}
-                                                                            <span class="statut-badge moyen">{% trans "Moyen" %}</span>
-                                                                        {% elif eleve_data.taux_presence >= 80 %}
-                                                                            <span class="statut-badge faible">{% trans "Faible" %}</span>
-                                                                        {% else %}
-                                                                            <span class="statut-badge critique">{% trans "Critique" %}</span>
-                                                                        {% endif %}
-                                                                    {% else %}
-                                                                        <span class="statut-non-disponible">-</span>
-                                                                    {% endif %}
-                                                                </td>
-                                                                <td class="actions-cell">
-                                                                    <div class="actions-buttons">
-                                                                        <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-mini info" title="{% trans "Voir le profil" %}">
-                                                                            <i class="fas fa-eye"></i>
-                                                                        </a>
-                                                                        {% if eleve_data.absences_details %}
-                                                                        <button type="button"
-                                                                                class="btn-action-mini success"
-                                                                                title="{% trans "Justifier une absence" %}"
-                                                                                onclick="ouvrirModalJustification({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }}, '{{ mois_key }}')">
-                                                                            <i class="fas fa-check-circle"></i>
-                                                                        </button>
-                                                                        {% endif %}
-                                                                        <button class="btn-action-mini warning" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}', {{ classe_data.classe.id }})">
-                                                                            <i class="fas fa-gavel"></i>
-                                                                        </button>
-                                                                    </div>
-                                                                    {% if eleve_data.absences_details %}
-                                                                        <select id="absences-options-{{ eleve_data.eleve.id }}-{{ classe_data.classe.id }}-{{ mois_key }}"
-                                                                                class="absences-options-template"
-                                                                                hidden>
-                                                                            <option value="">{% trans "Sélectionnez une absence" %}</option>
-                                                                            {% for absence in eleve_data.absences_details %}
-                                                                                <option value="{{ absence.id }}">{{ absence.label }}</option>
-                                                                            {% endfor %}
-                                                                        </select>
-                                                                    {% endif %}
-                                                                </td>
-                                                            </tr>
-                                                        {% endfor %}
-                                                    {% else %}
-                                                        <tr>
-                                                            <td colspan="11" class="no-data">
-                                                                <i class="fas fa-info-circle"></i>
-                                                                {% trans "Aucune donnée de présence pour ce mois" %}
-                                                            </td>
-                                                        </tr>
-                                                    {% endif %}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <!-- Cartes pour mobile (≤700px) -->
-                                        <div class="presence-cards-container">
-                                            {% if mois_presences %}
-                                                {% for eleve_data in mois_presences.eleves_presences %}
-                                                    <div class="presence-student-card student-row {% if eleve_data.taux_presence is not None %}{% if eleve_data.taux_presence >= 95 %}presence-excellente{% elif eleve_data.taux_presence >= 90 %}presence-bonne{% elif eleve_data.taux_presence >= 85 %}presence-moyenne{% elif eleve_data.taux_presence >= 80 %}presence-faible{% else %}presence-critique{% endif %}{% endif %}"
-                                                         data-nom="{{ eleve_data.eleve.nom|lower }}"
-                                                         data-prenom="{{ eleve_data.eleve.prenom|lower }}"
-                                                         data-matricule="{{ eleve_data.eleve.numero_eleve|lower }}"
-                                                         data-taux-presence="{{ eleve_data.taux_presence|default:'0' }}"
-                                                         data-absents="{{ eleve_data.absents|default:'0' }}"
-                                                         data-retards="{{ eleve_data.retards|default:'0' }}">
-                                                        <div class="presence-card-header">
-                                                            <div class="presence-card-info">
-                                                                <div class="presence-card-rang">
-                                                                    {% if eleve_data.taux_presence %}
-                                                                        <span class="rang-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
-                                                                            {{ forloop.counter }}
-                                                                        </span>
-                                                                    {% else %}
-                                                                        <span class="rang-badge">-</span>
-                                                                    {% endif %}
-                                                                </div>
-                                                                <div class="presence-card-avatar">
-                                                                    <i class="fas fa-user"></i>
-                                                                </div>
-                                                                <div>
-                                                                    <div class="presence-card-name">{{ eleve_data.eleve.nom }} {{ eleve_data.eleve.prenom }}</div>
-                                                                    <div class="presence-card-matricule">{{ eleve_data.eleve.numero_eleve }}</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="presence-card-stats">
-                                                            <div class="presence-stat-item">
-                                                                <span class="presence-stat-label">{% trans "Jours" %}</span>
-                                                                <span class="presence-stat-value jours-count">{{ eleve_data.total_jours }}</span>
-                                                            </div>
-                                                            <div class="presence-stat-item">
-                                                                <span class="presence-stat-label">{% trans "Présents" %}</span>
-                                                                <span class="presence-stat-value presents-badge">{{ eleve_data.presents }}</span>
-                                                            </div>
-                                                            <div class="presence-stat-item">
-                                                                <span class="presence-stat-label">{% trans "Absents" %}</span>
-                                                                <span class="presence-stat-value absents-badge">{{ eleve_data.absents }}</span>
-                                                            </div>
-                                                            <div class="presence-stat-item">
-                                                                <span class="presence-stat-label">{% trans "Justifiées" %}</span>
-                                                                <span class="presence-stat-value justifies-badge">{{ eleve_data.absents_justifies }}</span>
-                                                            </div>
-                                                            <div class="presence-stat-item">
-                                                                <span class="presence-stat-label">{% trans "Retards" %}</span>
-                                                                <span class="presence-stat-value retards-badge">{{ eleve_data.retards }}</span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="presence-card-taux">
-                                                            <div class="presence-taux-label">{% trans "Taux de présence" %}</div>
-                                                            <div class="presence-taux-value">
-                                                                {% if eleve_data.taux_presence is not None %}
-                                                                    <span class="taux-badge {% if eleve_data.taux_presence >= 95 %}excellent{% elif eleve_data.taux_presence >= 90 %}bon{% elif eleve_data.taux_presence >= 85 %}moyen{% elif eleve_data.taux_presence >= 80 %}faible{% else %}critique{% endif %}">
-                                                                        {{ eleve_data.taux_presence }}%
-                                                                    </span>
-                                                                {% else %}
-                                                                    <span class="taux-non-disponible">
-                                                                        <i class="fas fa-hourglass-half"></i>
-                                                                        {% trans "N/A" %}
-                                                                    </span>
-                                                                {% endif %}
-                                                            </div>
-                                                        </div>
-                                                        <div class="presence-card-statut">
-                                                            <div class="presence-statut-label">{% trans "Statut" %}</div>
-                                                            <div class="presence-statut-value">
-                                                                {% if eleve_data.taux_presence is not None %}
-                                                                    {% if eleve_data.taux_presence >= 95 %}
-                                                                        <span class="statut-badge excellent">{% trans "Excellent" %}</span>
-                                                                    {% elif eleve_data.taux_presence >= 90 %}
-                                                                        <span class="statut-badge bon">{% trans "Bon" %}</span>
-                                                                    {% elif eleve_data.taux_presence >= 85 %}
-                                                                        <span class="statut-badge moyen">{% trans "Moyen" %}</span>
-                                                                    {% elif eleve_data.taux_presence >= 80 %}
-                                                                        <span class="statut-badge faible">{% trans "Faible" %}</span>
-                                                                    {% else %}
-                                                                        <span class="statut-badge critique">{% trans "Critique" %}</span>
-                                                                    {% endif %}
-                                                                {% else %}
-                                                                    <span class="statut-non-disponible">-</span>
-                                                                {% endif %}
-                                                            </div>
-                                                        </div>
-                                                        <div class="presence-card-actions">
-                                                            <div class="actions-buttons">
-                                                                <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-mini info" title="{% trans "Voir le profil" %}">
-                                                                    <i class="fas fa-eye"></i>
-                                                                </a>
-                                                                {% if eleve_data.absences_details %}
-                                                                <button type="button"
-                                                                        class="btn-action-mini success"
-                                                                        title="{% trans "Justifier une absence" %}"
-                                                                        onclick="ouvrirModalJustification({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }}, '{{ mois_key }}')">
-                                                                    <i class="fas fa-check-circle"></i>
-                                                                </button>
-                                                                {% endif %}
-                                                                <button class="btn-action-mini warning" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}', {{ classe_data.classe.id }})">
-                                                                    <i class="fas fa-gavel"></i>
-                                                                </button>
-                                                            </div>
-                                                            {% if eleve_data.absences_details %}
-                                                                <select id="absences-options-{{ eleve_data.eleve.id }}-{{ classe_data.classe.id }}-{{ mois_key }}"
-                                                                        class="absences-options-template"
-                                                                        hidden>
-                                                                    <option value="">{% trans "Sélectionnez une absence" %}</option>
-                                                                    {% for absence in eleve_data.absences_details %}
-                                                                        <option value="{{ absence.id }}">{{ absence.label }}</option>
-                                                                    {% endfor %}
-                                                                </select>
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
-                                                {% endfor %}
-                                            {% else %}
-                                                <div class="no-data-card">
-                                                    <i class="fas fa-info-circle"></i>
-                                                    <p>{% trans "Aucune donnée de présence pour ce mois" %}</p>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                            {% endfor %}
                         </div>
                     {% endfor %}
                 </div>
             {% endfor %}
+        </div>
+    </div>
+
+    <!-- Modal Historique présences -->
+    <div id="modalHistoriquePresence" class="modal-justification modal-historique-presence">
+        <div class="modal-justification-content">
+            <div class="modal-justification-header">
+                <h3>
+                    <i class="fas fa-list"></i>
+                    {% trans "Présences et absences" %}
+                </h3>
+                <button type="button" class="modal-justification-close" onclick="fermerModalHistoriquePresence()">&times;</button>
+            </div>
+            <div class="modal-justification-body">
+                <div class="modal-justification-info">
+                    <strong id="historiqueEleveNom">{% trans "Nom de l'élève" %}</strong>
+                </div>
+                <div id="historiquePresenceList" class="historique-presence-list"></div>
+            </div>
+            <div class="modal-justification-footer">
+                <button type="button" class="btn-cancel" onclick="fermerModalHistoriquePresence()">
+                    <i class="fas fa-times"></i>
+                    {% trans "Fermer" %}
+                </button>
+            </div>
         </div>
     </div>
 
@@ -683,248 +276,10 @@
         </div>
     </div>
 
-    <script>
-        const periodeSelectionneeId = "{{ periode_selectionnee.id|default:'' }}";
-        // Gestion des onglets principaux (niveaux)
-        function switchMainTab(tabId) {
-            document.querySelectorAll('.tab-content-panel').forEach(panel => {
-                panel.classList.remove('active');
-            });
-            
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            document.getElementById(tabId).classList.add('active');
-            event.target.closest('.tab-btn').classList.add('active');
-        }
-
-        // Gestion des sous-onglets (classes)
-        function switchClasseTab(event, classeId) {
-            event.stopPropagation();
-            
-            const parentPanel = event.target.closest('.tab-content-panel');
-            
-            parentPanel.querySelectorAll('.classe-subtab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            parentPanel.querySelectorAll('.classe-subtab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            document.getElementById(classeId).classList.add('active');
-            event.target.closest('.classe-subtab-btn').classList.add('active');
-        }
-
-        // Gestion des onglets par mois
-        function switchMoisTab(event, moisId) {
-            event.stopPropagation();
-            
-            const parentContent = event.target.closest('.classe-subtab-content');
-            
-            parentContent.querySelectorAll('.mois-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            parentContent.querySelectorAll('.mois-tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            document.getElementById(moisId).classList.add('active');
-            event.target.closest('.mois-tab-btn').classList.add('active');
-        }
-
-        // Gestion du modal de justification d'absence
-        function ouvrirModalJustification(eleveId, eleveNom, classeId, moisKey) {
-            const modal = document.getElementById('modalJustification');
-            const selectElement = document.getElementById('presenceSelect');
-            const templateSelect = document.getElementById(`absences-options-${eleveId}-${classeId}-${moisKey}`);
-
-            if (!modal || !selectElement) {
-                console.error('Modal de justification introuvable.');
-                return;
-            }
-
-            if (!templateSelect) {
-                console.warn("Aucune absence disponible pour l'élève sélectionné.");
-                return;
-            }
-
-            selectElement.innerHTML = templateSelect.innerHTML;
-            document.getElementById('justificationEleveNom').textContent = eleveNom;
-
-            modal.classList.add('is-visible');
-            modal.style.display = 'flex';
-        }
-
-        function fermerModalJustification() {
-            const modal = document.getElementById('modalJustification');
-            const selectElement = document.getElementById('presenceSelect');
-            if (modal) {
-                modal.classList.remove('is-visible');
-                modal.style.display = 'none';
-            }
-            if (selectElement) {
-                selectElement.innerHTML = '<option value="">Sélectionnez une absence</option>';
-            }
-            const form = modal ? modal.querySelector('form') : null;
-            if (form) {
-                form.reset();
-            }
-        }
-
-        // Gestion du modal sanction
-        function ouvrirModalSanction(eleveId, eleveNom, classeId) {
-            document.getElementById('eleveIdInput').value = eleveId;
-            document.getElementById('classeIdInput').value = classeId;
-            document.getElementById('eleveNomModal').textContent = eleveNom;
-            
-            // Définir la date du jour par défaut
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('date_sanction').value = today;
-            
-            // Afficher le modal
-            document.getElementById('modalSanction').style.display = 'block';
-        }
-
-        function fermerModalSanction() {
-            document.getElementById('modalSanction').style.display = 'none';
-            
-            // Réinitialiser le formulaire
-            document.querySelector('#modalSanction form').reset();
-        }
-
-        // Fermer le modal si clic en dehors
-        window.onclick = function(event) {
-            const modal = document.getElementById('modalSanction');
-            if (event.target === modal) {
-                fermerModalSanction();
-            }
-            const justificationModal = document.getElementById('modalJustification');
-            if (event.target === justificationModal) {
-                fermerModalJustification();
-            }
-        }
-        
-        // Fonctions de filtrage pour la page de suivi de présence
-        function filterPresenceStudents(moisId) {
-            const searchInput = document.getElementById(`search-input-presence-${moisId}`);
-            const filterTaux = document.getElementById(`filter-taux-${moisId}`);
-            const filterAbsences = document.getElementById(`filter-absences-${moisId}`);
-            const filterRetards = document.getElementById(`filter-retards-${moisId}`);
-            const clearButton = document.getElementById(`clear-search-presence-${moisId}`);
-            const resultsDiv = document.getElementById(`filter-results-presence-${moisId}`);
-            const resultsCount = document.getElementById(`results-count-presence-${moisId}`);
-            
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            const tauxValue = filterTaux.value;
-            const absencesValue = filterAbsences.value;
-            const retardsValue = filterRetards.value;
-            
-            // Afficher/masquer le bouton de suppression de recherche
-            clearButton.style.display = searchTerm ? 'flex' : 'none';
-            
-            // Récupérer toutes les lignes d'élèves pour ce mois
-            const moisContent = document.getElementById(`mois-${moisId}`);
-            const rows = moisContent.querySelectorAll('.student-row');
-            
-            let visibleCount = 0;
-            
-            rows.forEach(row => {
-                const nom = row.dataset.nom || '';
-                const prenom = row.dataset.prenom || '';
-                const matricule = row.dataset.matricule || '';
-                const tauxPresence = parseFloat(row.dataset.tauxPresence || '0');
-                const absents = parseInt(row.dataset.absents || '0');
-                const retards = parseInt(row.dataset.retards || '0');
-                
-                // Filtrage par recherche (nom, prénom, matricule)
-                const matchesSearch = !searchTerm || 
-                    nom.includes(searchTerm) || 
-                    prenom.includes(searchTerm) || 
-                    matricule.includes(searchTerm);
-                
-                // Filtrage par taux de présence
-                let matchesTaux = true;
-                if (tauxValue === 'excellent') {
-                    matchesTaux = tauxPresence >= 95;
-                } else if (tauxValue === 'bon') {
-                    matchesTaux = tauxPresence >= 90 && tauxPresence < 95;
-                } else if (tauxValue === 'moyen') {
-                    matchesTaux = tauxPresence >= 85 && tauxPresence < 90;
-                } else if (tauxValue === 'faible') {
-                    matchesTaux = tauxPresence >= 80 && tauxPresence < 85;
-                } else if (tauxValue === 'critique') {
-                    matchesTaux = tauxPresence < 80 && tauxPresence > 0;
-                }
-                
-                // Filtrage par absences
-                let matchesAbsences = true;
-                if (absencesValue === '0') {
-                    matchesAbsences = absents === 0;
-                } else if (absencesValue === '1-3') {
-                    matchesAbsences = absents >= 1 && absents <= 3;
-                } else if (absencesValue === '4-6') {
-                    matchesAbsences = absents >= 4 && absents <= 6;
-                } else if (absencesValue === '7+') {
-                    matchesAbsences = absents >= 7;
-                }
-                
-                // Filtrage par retards
-                let matchesRetards = true;
-                if (retardsValue === '0') {
-                    matchesRetards = retards === 0;
-                } else if (retardsValue === '1-2') {
-                    matchesRetards = retards >= 1 && retards <= 2;
-                } else if (retardsValue === '3-5') {
-                    matchesRetards = retards >= 3 && retards <= 5;
-                } else if (retardsValue === '6+') {
-                    matchesRetards = retards >= 6;
-                }
-                
-                // Afficher/masquer la ligne/carte selon les critères
-                if (matchesSearch && matchesTaux && matchesAbsences && matchesRetards) {
-                    // Pour les cartes (div), utiliser 'block', pour les lignes (tr), utiliser ''
-                    row.style.display = row.tagName === 'DIV' ? 'block' : '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            // Afficher/masquer le compteur de résultats
-            if (searchTerm || tauxValue || absencesValue || retardsValue) {
-                resultsCount.textContent = visibleCount;
-                resultsDiv.style.display = 'block';
-            } else {
-                resultsDiv.style.display = 'none';
-            }
-        }
-        
-        function clearPresenceSearch(moisId) {
-            const searchInput = document.getElementById(`search-input-presence-${moisId}`);
-            searchInput.value = '';
-            filterPresenceStudents(moisId);
-        }
-        
-        function resetPresenceFilters(moisId) {
-            const searchInput = document.getElementById(`search-input-presence-${moisId}`);
-            const filterTaux = document.getElementById(`filter-taux-${moisId}`);
-            const filterAbsences = document.getElementById(`filter-absences-${moisId}`);
-            const filterRetards = document.getElementById(`filter-retards-${moisId}`);
-            
-            searchInput.value = '';
-            filterTaux.value = '';
-            filterAbsences.value = '';
-            filterRetards.value = '';
-            
-            filterPresenceStudents(moisId);
-        }
-    </script>
-
+    <script src="{% static 'school_admin/js/directeur/suivi_presence.js' %}?v=2.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/suivi_presence_filters.js' %}?v=1.2.2"></script>
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
-    <script src="{% static 'school_admin/js/directeur/notes_presence_live.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/notes_presence_live.js' %}?v=1.0.1"></script>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

@@ -2,304 +2,248 @@
 {% load static %}
 {% load i18n %}
 {% load eleve_filters %}
-{% load pagination_tags %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cartes d'identité scolaires - {{ etablissement.nom }}</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=1.1.0"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/partials/messages.css' %}"
-    />
-  </head>
-  <body>
+    <title>{% trans "Cartes d'identité scolaires" %} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cartes_identite_eleves.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="sci-page-body" data-live-page="cartes-identite">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <div class="container">
-      {% include 'school_admin/partials/messages.html' %}
+    <div class="content-container sci-page">
+        {% include 'school_admin/partials/messages.html' %}
 
-      <div class="page-header">
-        {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-          <h1 class="page-title">
-            <i class="fas fa-id-card"></i>
-            {% trans "Cartes d'identité scolaires" %}
-          </h1>
-          <p class="page-subtitle">
-            Consultez et imprimez les cartes d'identité des élèves de {{ etablissement.nom }}{% if annee_scolaire_active %} - Année scolaire {{ annee_scolaire_active.libelle }}{% endif %}
-          </p>
-        </div>
-      </div>
-
-      <div class="tabs-container">
-        <div class="tabs-header">
-          <div class="tabs-nav">
-            {% for categorie, data in classes_grouped.items %}
-              <button class="tab-button {% if forloop.first %}active{% endif %}"
-                      data-tab="tab-{{ forloop.counter }}"
-                      onclick="switchMainTab('tab-{{ forloop.counter }}')">
-                <div class="tab-content">
-                  <div class="tab-icon">
-                    <i class="fas fa-layer-group"></i>
-                  </div>
-                  <div class="tab-info">
-                    <h4 class="tab-title">{{ data.label }}</h4>
-                    <p class="tab-subtitle">{{ data.classes|length }} classe{{ data.classes|length|pluralize }}</p>
-                  </div>
-                  <div class="tab-stats">
-                    <span class="students-count">{{ data.total_eleves }}</span>
-                    <span class="students-label">{% trans "élèves" %}</span>
-                  </div>
-                </div>
-              </button>
-            {% endfor %}
-          </div>
+        <div class="page-header page-header-minimal">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
         </div>
 
-        <div class="tabs-content">
-          {% for categorie, data in classes_grouped.items %}
-            <div class="tab-panel {% if forloop.first %}active{% endif %}"
-                 id="tab-{{ forloop.counter }}">
-              <div class="classes-subtabs">
-                {% for classe_data in data.classes %}
-                  <button class="classe-subtab-btn {% if forloop.first %}active{% endif %}"
-                          data-subtab="classe-{{ classe_data.classe.id }}"
-                          onclick="switchClasseTab(event, 'classe-{{ classe_data.classe.id }}')">
-                    <span class="classe-name">{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
-                    <span class="classe-count">{{ classe_data.stats.total_eleves }} élève{{ classe_data.stats.total_eleves|pluralize }}</span>
-                  </button>
-                {% endfor %}
-              </div>
-
-              {% for classe_data in data.classes %}
-                <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
-                  <div class="class-header">
-                    <div class="class-info">
-                      <h2 class="class-title">
-                        <i class="fas fa-id-card"></i>
-                        {% if est_superieur %}
-                        {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
-                        {% else %}
-                        {{ classe_data.classe.nom }} - {{ classe_data.classe.get_niveau_display }}
-                        {% endif %}
-                      </h2>
-                      <p class="class-description">{% trans "Sélectionnez un élève pour afficher sa carte d'identité." %}</p>
-                    </div>
-                    <div class="class-stats">
-                      <div class="stat-item">
-                        <span class="stat-label">{% trans "Inscrits" %}</span>
-                        <span class="stat-value">{{ classe_data.stats.total_eleves }}</span>
-                      </div>
-                      <div class="stat-item">
-                        <span class="stat-label">{% trans "Capacité" %}</span>
-                        <span class="stat-value">{{ classe_data.classe.capacite_max }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="students-section">
-                    <div class="section-header">
-                      <h3 class="section-title">
-                        <i class="fas fa-list"></i>
-                        Élèves de la classe ({{ classe_data.eleves|length }})
-                      </h3>
-                      <div class="section-actions">
-                        <a href="{% url 'directeur:imprimer_liste_nominative' classe_data.classe.id %}"
-                           {% trans "class=\"btn-print-liste\" target=\"_blank\">" %}
-                          <i class="fas fa-print"></i>
-                          {% trans "Imprimer liste" %}
-                        </a>
-                        <a href="{% url 'secretaire:cartes_identite_classe' classe_data.classe.id %}"
-                           class="btn-print-cards" target="_blank">
-                          <i class="fas fa-id-card"></i>
-                          {% trans "Imprimer les cartes" %}
-                        </a>
-                      </div>
-                    </div>
-
-                    <div class="search-filter-container" id="search-filter-{{ classe_data.classe.id }}">
-                      <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text"
-                               class="search-input"
-                               id="search-input-{{ classe_data.classe.id }}"
-                               placeholder="{% trans "Rechercher un élève (nom, prénom, matricule...)" %}"
-                               oninput="filterStudents('{{ classe_data.classe.id }}')">
-                        <button class="clear-search" id="clear-search-{{ classe_data.classe.id }}" onclick="clearSearch('{{ classe_data.classe.id }}')" style="display: none;">
-                          <i class="fas fa-times"></i>
-                        </button>
-                      </div>
-                    </div>
-
-                    {% if classe_data.eleves %}
-                      <div class="students-list">
-                        <div class="list-header">
-                          <div class="list-cell header-cell">{% trans "Élève" %}</div>
-                          <div class="list-cell header-cell">{% trans "Numéro" %}</div>
-                          <div class="list-cell header-cell">{% trans "Carte d'identité" %}</div>
-                        </div>
-
-                        {% for eleve_data in classe_data.eleves %}
-                          <div class="list-row"
-                               data-nom="{{ eleve_data.eleve.nom|lower }}"
-                               data-prenom="{{ eleve_data.eleve.prenom|lower }}"
-                               data-matricule="{{ eleve_data.eleve.matricule_eleve|default:eleve_data.eleve.numero_eleve|lower }}">
-                            <div class="list-cell student-cell">
-                              <div class="student-avatar-small">
-                                <i class="fas fa-user"></i>
-                              </div>
-                              <div class="student-info-compact">
-                                <h4 class="student-name">
-                                    <span class="student-name-full">{{ eleve_data.eleve.nom_complet }}</span>
-                                    <span class="student-name-mobile">{{ eleve_data.eleve.nom|premier_nom }} {{ eleve_data.eleve.prenom|premier_prenom }}</span>
-                                </h4>
-                                <p class="student-email">Matricule : {{ eleve_data.eleve.matricule_eleve|default:"Non défini" }}</p>
-                              </div>
-                            </div>
-
-                            <div class="list-cell" data-label="Numéro">
-                              <span class="student-number">{{ eleve_data.eleve.numero_eleve }}</span>
-                            </div>
-
-                            <div class="list-cell" data-label="Carte d'identité">
-                              <div class="student-actions-compact">
-                                <a href="{% url 'secretaire:carte_identite_eleve' eleve_data.eleve.id %}"
-                                   class="btn-action-small btn-view"
-                                   title="{% trans "Voir la carte d" %}'identité" target="_blank">
-                                  <i class="fas fa-id-card"></i>
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-                        {% endfor %}
-                      </div>
-                    {% else %}
-                      <div class="empty-state">
-                        <div class="empty-icon">
-                          <i class="fas fa-user-slash"></i>
-                        </div>
-                        <h3 class="empty-title">{% trans "Aucun élève inscrit" %}</h3>
-                        <p class="empty-description">{% trans "Cette classe ne contient aucun élève pour le moment." %}</p>
-                        <a href="{% url 'secretaire:liste_eleves' %}?inscrire=1" class="btn-primary">
-                          <i class="fas fa-user-plus"></i>
-                          {% trans "Inscrire un élève" %}
-                        </a>
-                      </div>
-                    {% endif %}
-                  </div>
-                </div>
-              {% endfor %}
+        <header class="sci-hero">
+            <div class="sci-hero-text">
+                <h1 class="sci-hero-title"><i class="fas fa-id-card"></i> {% trans "Cartes d'identité scolaires" %}</h1>
+                <p class="sci-hero-sub">
+                    {% trans "Consultez et imprimez les cartes d'identité des élèves de" %} {{ etablissement.nom }}.
+                    {% trans "Sélectionnez un niveau, une classe, puis un élève ou imprimez toute la classe." %}
+                </p>
+                {% if annee_scolaire_active %}
+                    <span class="sci-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+                {% endif %}
             </div>
-          {% endfor %}
+            <div class="sci-hero-stats">
+                <div class="sci-stat-pill">
+                    <span class="sci-stat-num">{{ stats_generales.total_eleves }}</span>
+                    <span class="sci-stat-lbl">{% trans "Élèves" %}</span>
+                </div>
+                <div class="sci-stat-pill sci-stat-pill--accent">
+                    <span class="sci-stat-num">{{ stats_generales.total_classes }}</span>
+                    <span class="sci-stat-lbl">{% trans "Classes" %}</span>
+                </div>
+                <div class="sci-stat-pill">
+                    <span class="sci-stat-num">{{ stats_generales.taux_occupation_global }}%</span>
+                    <span class="sci-stat-lbl">{% trans "Occupation" %}</span>
+                </div>
+            </div>
+            <div class="sci-hero-actions">
+                <a href="{% url 'secretaire:liste_eleves' %}" class="sci-action-btn sci-action-btn--secondary">
+                    <i class="fas fa-users"></i> {% trans "Gestion des élèves" %}
+                </a>
+                <a href="{% url 'directeur:gestion_administrative' %}" class="sci-action-btn sci-action-btn--secondary">
+                    <i class="fas fa-folder-open"></i> {% trans "Gestion administrative" %}
+                </a>
+            </div>
+        </header>
+
+        <div class="sci-guide" role="note" aria-label="{% trans 'Comment utiliser cette page' %}">
+            <div class="sci-guide-step">
+                <span class="sci-guide-num">1</span>
+                <span>{% trans "Choisissez un niveau ou une catégorie dans les onglets du haut." %}</span>
+            </div>
+            <div class="sci-guide-step">
+                <span class="sci-guide-num">2</span>
+                <span>{% trans "Sélectionnez la classe concernée." %}</span>
+            </div>
+            <div class="sci-guide-step">
+                <span class="sci-guide-num">3</span>
+                <span>{% trans "Recherchez un élève ou utilisez les boutons d'impression pour la classe entière." %}</span>
+            </div>
         </div>
-      </div>
+
+        {% if classes_grouped %}
+        <div class="tabs-container sci-niveau-tabs">
+            <div class="tabs-nav" role="tablist" aria-label="{% trans 'Niveaux' %}">
+                {% for categorie, data in classes_grouped.items %}
+                    <button type="button" role="tab" class="tab-button sci-niveau-tab {% if forloop.first %}active{% endif %}"
+                            data-tab="tab-{{ forloop.counter }}"
+                            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                        <i class="fas fa-layer-group"></i>
+                        <span>{{ data.label }}</span>
+                        <span class="tab-count">{{ data.total_eleves }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+
+            <div class="tabs-content sci-tabs-content">
+                {% for categorie, data in classes_grouped.items %}
+                    <div class="tab-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+
+                        <div class="sci-classe-nav">
+                            <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
+                                <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes' %}">
+                                    {% for classe_data in data.classes %}
+                                        <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if forloop.first %}active{% endif %}"
+                                                data-subtab="classe-{{ classe_data.classe.id }}"
+                                                aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                                            <i class="fas fa-door-open"></i>
+                                            <span>{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
+                                            <span class="tab-count">{{ classe_data.nombre_eleves }}</span>
+                                        </button>
+                                    {% endfor %}
+                                </div>
+                                <div class="matiere-tabs-more-wrap" hidden>
+                                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres classes' %}">
+                                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                        <span class="matiere-tabs-more-label">{% trans "Autres classes" %}</span>
+                                    </button>
+                                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% for classe_data in data.classes %}
+                            <div class="classe-subtab-content sci-classe-panel {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+
+                                <header class="sci-classe-header">
+                                    <div>
+                                        <h2 class="sci-classe-title">
+                                            <i class="fas fa-chalkboard"></i>
+                                            {% if est_superieur %}
+                                                {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
+                                            {% else %}
+                                                {{ classe_data.classe.nom }} — {{ classe_data.classe.get_niveau_display }}
+                                            {% endif %}
+                                        </h2>
+                                        <p class="sci-classe-desc">{% trans "Imprimez les cartes de toute la classe ou ouvrez la carte d'un élève." %}</p>
+                                    </div>
+                                    <div class="sci-classe-meta">
+                                        <span class="sci-mini-stat"><strong>{{ classe_data.stats.total_eleves }}</strong> {% trans "inscrits" %}</span>
+                                        <span class="sci-mini-stat"><strong>{{ classe_data.classe.capacite_max }}</strong> {% trans "places" %}</span>
+                                        <span class="sci-mini-stat"><strong>{{ classe_data.stats.taux_occupation }}%</strong> {% trans "occupation" %}</span>
+                                    </div>
+                                </header>
+
+                                <div class="sci-print-actions">
+                                    <a href="{% url 'directeur:imprimer_liste_nominative' classe_data.classe.id %}"
+                                       class="sci-print-btn sci-print-btn--list" target="_blank" rel="noopener">
+                                        <i class="fas fa-print"></i> {% trans "Imprimer la liste nominative" %}
+                                    </a>
+                                    <a href="{% url 'secretaire:cartes_identite_classe' classe_data.classe.id %}"
+                                       class="sci-print-btn sci-print-btn--cards" target="_blank" rel="noopener">
+                                        <i class="fas fa-id-card"></i> {% trans "Imprimer toutes les cartes" %}
+                                    </a>
+                                </div>
+
+                                <section class="sci-students-section">
+                                    <h3 class="sci-section-title"><i class="fas fa-users"></i> {% trans "Élèves" %} ({{ classe_data.eleves|length }})</h3>
+
+                                    <div class="sci-toolbar search-filter-container" id="search-filter-{{ classe_data.classe.id }}">
+                                        <div class="sci-search-wrap">
+                                            <i class="fas fa-search"></i>
+                                            <input type="text"
+                                                   class="sci-search-input search-input"
+                                                   id="search-input-{{ classe_data.classe.id }}"
+                                                   data-classe-id="{{ classe_data.classe.id }}"
+                                                   placeholder="{% trans "Rechercher un élève (nom, prénom, matricule…)" %}" />
+                                            <button type="button" class="clear-search" id="clear-search-{{ classe_data.classe.id }}" data-clear-search="{{ classe_data.classe.id }}" hidden aria-label="{% trans 'Effacer la recherche' %}">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                        <div class="sci-filter-results filter-results" id="filter-results-{{ classe_data.classe.id }}" hidden>
+                                            <span id="results-count-{{ classe_data.classe.id }}">0</span> {% trans "résultat(s)" %}
+                                        </div>
+                                    </div>
+
+                                    {% if classe_data.eleves %}
+                                        <div class="sci-list-scroll table-responsive">
+                                            <div class="students-list">
+                                                <div class="list-header">
+                                                    <div class="list-cell header-cell">{% trans "Élève" %}</div>
+                                                    <div class="list-cell header-cell">{% trans "N° élève" %}</div>
+                                                    <div class="list-cell header-cell">{% trans "Carte" %}</div>
+                                                </div>
+
+                                                {% for eleve_data in classe_data.eleves %}
+                                                    {% with eleve=eleve_data.eleve %}
+                                                    <div class="list-row"
+                                                         data-nom="{{ eleve.nom|lower }}"
+                                                         data-prenom="{{ eleve.prenom|lower }}"
+                                                         data-matricule="{{ eleve.matricule_eleve|default:eleve.numero_eleve|lower }}"
+                                                         data-numero="{{ eleve.numero_eleve|lower }}">
+                                                        <div class="list-cell student-cell">
+                                                            <div class="student-avatar-small"><i class="fas fa-user"></i></div>
+                                                            <div class="student-info-compact">
+                                                                <h4 class="student-name">
+                                                                    <span class="student-name-full">{{ eleve.nom_complet }}</span>
+                                                                    <span class="student-name-mobile">{{ eleve.nom|premier_nom }} {{ eleve.prenom|premier_prenom }}</span>
+                                                                </h4>
+                                                                <p class="student-matricule">{% trans "Matricule" %} : {{ eleve.matricule_eleve|default:"—" }}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="list-cell">
+                                                            <span class="student-number">{{ eleve.numero_eleve }}</span>
+                                                        </div>
+                                                        <div class="list-cell">
+                                                            <a href="{% url 'secretaire:carte_identite_eleve' eleve.id %}"
+                                                               class="sci-view-btn"
+                                                               title="{% trans "Voir la carte d'identité" %}"
+                                                               target="_blank" rel="noopener">
+                                                                <i class="fas fa-id-card"></i>
+                                                                <span>{% trans "Voir" %}</span>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                    {% endwith %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="sci-empty-state">
+                                            <i class="fas fa-user-slash"></i>
+                                            <h3>{% trans "Aucun élève inscrit" %}</h3>
+                                            <p>{% trans "Cette classe ne contient aucun élève pour le moment." %}</p>
+                                            <a href="{% url 'secretaire:liste_eleves' %}?inscrire=1" class="sci-action-btn sci-action-btn--primary">
+                                                <i class="fas fa-user-plus"></i> {% trans "Inscrire un élève" %}
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </section>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="sci-empty-page">
+            <i class="fas fa-school"></i>
+            <h3>{% trans "Aucune classe disponible" %}</h3>
+            <p>{% trans "Créez des classes et inscrivez des élèves pour générer leurs cartes d'identité." %}</p>
+            <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="sci-action-btn sci-action-btn--primary">
+                <i class="fas fa-plus"></i> {% trans "Gérer les classes" %}
+            </a>
+        </div>
+        {% endif %}
     </div>
 
-    <script src="{% static 'school_admin/js/directeur/gestion_eleves.js' %}"></script>
-    <script>
-      function switchMainTab(tabId) {
-        document.querySelectorAll('.tab-panel').forEach((panel) => {
-          panel.classList.remove('active');
-        });
-
-        document.querySelectorAll('.tab-button').forEach((btn) => {
-          btn.classList.remove('active');
-        });
-
-        const targetPanel = document.getElementById(tabId);
-        if (targetPanel) {
-          targetPanel.classList.add('active');
-        }
-
-        const triggerButton = event.target.closest('.tab-button');
-        if (triggerButton) {
-          triggerButton.classList.add('active');
-        }
-      }
-
-      function switchClasseTab(event, classeId) {
-        event.stopPropagation();
-
-        const parentPanel = event.target.closest('.tab-panel');
-        if (!parentPanel) {
-          return;
-        }
-
-        parentPanel.querySelectorAll('.classe-subtab-content').forEach((content) => {
-          content.classList.remove('active');
-        });
-
-        parentPanel.querySelectorAll('.classe-subtab-btn').forEach((btn) => {
-          btn.classList.remove('active');
-        });
-
-        const targetContent = document.getElementById(classeId);
-        if (targetContent) {
-          targetContent.classList.add('active');
-        }
-
-        const triggerSubTab = event.target.closest('.classe-subtab-btn');
-        if (triggerSubTab) {
-          triggerSubTab.classList.add('active');
-        }
-      }
-
-      function filterStudents(classeId) {
-        const searchInput = document.getElementById(`search-input-${classeId}`);
-        const clearButton = document.getElementById(`clear-search-${classeId}`);
-
-        const searchTerm = searchInput.value.trim().toLowerCase();
-        clearButton.style.display = searchTerm ? 'flex' : 'none';
-
-        const classeContent = document.getElementById(`classe-${classeId}`);
-        if (!classeContent) {
-          return;
-        }
-
-        const rows = classeContent.querySelectorAll('.list-row');
-        rows.forEach((row) => {
-          const nom = row.dataset.nom || '';
-          const prenom = row.dataset.prenom || '';
-          const matricule = row.dataset.matricule || '';
-
-          const matchesSearch =
-            !searchTerm ||
-            nom.includes(searchTerm) ||
-            prenom.includes(searchTerm) ||
-            matricule.includes(searchTerm);
-
-          row.style.display = matchesSearch ? '' : 'none';
-        });
-      }
-
-      function clearSearch(classeId) {
-        const input = document.getElementById(`search-input-${classeId}`);
-        if (!input) {
-          return;
-        }
-        input.value = '';
-        filterStudents(classeId);
-      }
-    </script>
-  
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    <script src="{% static 'school_admin/js/directeur/matiere_tabs_overflow.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/cartes_identite_eleves.js' %}?v=2.0.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

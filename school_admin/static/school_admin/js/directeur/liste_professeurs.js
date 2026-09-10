@@ -35,9 +35,13 @@ document.addEventListener('DOMContentLoaded', function() {
         matiereTabBtns.forEach(btn => {
             btn.addEventListener('click', function() {
                 // Retirer la classe active de tous les boutons
-                matiereTabBtns.forEach(b => b.classList.remove('active'));
+                matiereTabBtns.forEach(b => {
+                    b.classList.remove('active');
+                    b.setAttribute('aria-selected', 'false');
+                });
                 // Ajouter la classe active au bouton cliqué
                 this.classList.add('active');
+                this.setAttribute('aria-selected', 'true');
                 
                 const matiereId = this.getAttribute('data-matiere');
                 const professeurCards = document.querySelectorAll('.professeur-card');
@@ -54,6 +58,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 });
+
+                if (typeof window.layoutMatiereTabsNav === 'function') {
+                    window.layoutMatiereTabsNav();
+                }
             });
         });
     }

@@ -3,483 +3,303 @@
 {% load i18n %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestion du Personnel - {{ etablissement.nom }}</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.1.1"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/liste_personnel.css' %}?v=1.1.1"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/formulaires_personnel.css' %}?v=1.0.1"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/personnel_modals.css' %}?v=1.0.0"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/ajouter_professeur.css' %}?v=1.0.6"
-    />
-    <!-- intl-tel-input CSS -->
+    <title>{% trans "Gestion du Personnel" %} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.1.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_personnel.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/formulaires_personnel.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/personnel_modals.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/ajouter_professeur.css' %}?v=1.0.6" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
-  </head>
-  <body data-live-page="personnel"{% if field_errors %} data-open-modal-personnel="1"{% endif %}>
-    <!-- Header -->
+</head>
+<body class="pers-page-body" data-live-page="personnel"{% if field_errors %} data-open-modal-personnel="1"{% endif %}>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content -->
-    <div class="main-content-container">
-      <!-- Page Header -->
-      <div class="page-header">
-        {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-          <h1 class="page-title">
-            <i class="fas fa-users"></i>
-            {% trans "Gestion du Personnel" %}
-          </h1>
-          <p class="page-subtitle">
-            {% trans "Gérez tous les membres de votre équipe éducative" %}
-          </p>
+    <div class="content-container pers-page">
+        <div class="page-header page-header-minimal">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
         </div>
-        <div class="page-actions">
-          <button type="button" class="btn-add btn-primary" onclick="openModalProfesseur()">
-            <i class="fas fa-chalkboard-teacher"></i>
-            <span>{% trans "Ajouter un professeur" %}</span>
-          </button>
-          <button type="button" class="btn-add btn-secondary" onclick="openModalPersonnel()">
-            <i class="fas fa-user-tie"></i>
-            <span>{% trans "Ajouter du personnel" %}</span>
-          </button>
-        </div>
-      </div>
 
-      <!-- Modals d'ajout (plein écran) -->
-      <div id="modalAjouterPersonnel" class="modal-creneau-fullscreen personnel-form-modal">
-        <div class="modal-creneau-overlay" onclick="closeModalPersonnel()"></div>
-        <div class="modal-creneau-content">
-          <div class="modal-creneau-header">
-            <h2><i class="fas fa-user-plus"></i> {% trans "Ajouter un Membre du Personnel" %}</h2>
-            <button type="button" class="modal-creneau-close" onclick="closeModalPersonnel()" aria-label="{% trans 'Fermer' %}">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          <div class="modal-creneau-body">
-        <div class="form-ajouter-wrapper">
-          <form id="formAjouterPersonnel" method="post" action="{% url 'personnel:ajouter_personnel' %}">
-            {% csrf_token %}
-            
-            <div class="form-ajouter-body">
-              <!-- Messages d'erreur -->
-              {% if messages %}
-                {% for message in messages %}
-                  <div class="alert alert-{{ message.tags }}">
-                    {{ message }}
-                  </div>
-                {% endfor %}
-              {% endif %}
-              
-              {% if field_errors %}
-                <div class="alert alert-danger">
-                  <strong>{% trans "Erreurs détectées :" %}</strong>
-                  <ul>
-                    {% for field, errors in field_errors.items %}
-                      {% for error in errors %}
-                        <li>{{ error }}</li>
-                      {% endfor %}
-                    {% endfor %}
-                  </ul>
-                </div>
-              {% endif %}
-              
-              <!-- Informations personnelles -->
-              <div class="form-section">
-                <h3 class="section-title-form">
-                  <i class="fas fa-user"></i>
-                  {% trans "Informations Personnelles" %}
-                </h3>
-                
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label for="personnel_nom" class="form-label">
-                      {% trans "Nom" %} <span class="required">*</span>
-                    </label>
-                    <input type="text" 
-                           id="personnel_nom" 
-                           name="nom" 
-                           class="form-input" 
-                           required
-                           value="{{ form_data.nom|default:'' }}">
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="personnel_prenom" class="form-label">
-                      {% trans "Prénom <span class=\"required\">*</span>" %}
-                    </label>
-                    <input type="text" 
-                           id="personnel_prenom" 
-                           name="prenom" 
-                           class="form-input" 
-                           required
-                           value="{{ form_data.prenom|default:'' }}">
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="personnel_email" class="form-label">
-                      {% trans "Email" %}
-                      <span class="label-optional" style="font-weight: normal; color: var(--gray-500); font-size: 0.75rem;">{% trans "(Facultatif)" %}</span>
-                    </label>
-                    <input type="email" 
-                           id="personnel_email" 
-                           name="email" 
-                           class="form-input" 
-                           value="{{ form_data.email|default:'' }}"
-                           placeholder="Ex: nom.prenom@email.com">
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="personnel_telephone" class="form-label">
-                      {% trans "Téléphone <span class=\"required\">*</span>" %}
-                    </label>
-                    <input type="tel" 
-                           id="personnel_telephone" 
-                           name="telephone"
-                           class="form-input" 
-                           required
-                           value="{{ form_data.telephone|default:'' }}">
-                    <input type="hidden" name="telephone_full" id="personnel_telephone_full">
-                    <small class="form-text" id="personnel_phone-error" style="color: #dc3545; display: none; font-size: 0.75rem; margin-top: 4px;"></small>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Fonction -->
-              <div class="form-section">
-                <h3 class="section-title-form">
-                  <i class="fas fa-briefcase"></i>
-                  {% trans "Fonction" %}
-                </h3>
-                
-                <div class="form-group">
-                  <label for="personnel_fonction" class="form-label">
-                    {% trans "Fonction" %} <span class="required">*</span>
-                  </label>
-                  <select id="personnel_fonction" 
-                          name="fonction" 
-                          class="form-input" 
-                          required
-                          onchange="updatePermissionsByFunction()">
-                    <option value="">{% trans "Sélectionnez une fonction" %}</option>
-                    {% if fonctions_disponibles and fonctions_disponibles|length > 0 %}
-                      {% for code, label in fonctions_disponibles %}
-                        <option value="{{ code }}" {% if form_data.fonction == code %}selected{% endif %}>
-                          {{ label }}
-                        </option>
-                      {% endfor %}
-                    {% else %}
-                      <option value="" disabled style="color: red;">
-                        ⚠ Aucune fonction disponible pour "{{ etablissement.get_type_etablissement_display }}"
-                      </option>
-                    {% endif %}
-                  </select>
-                </div>
-              </div>
-              
-              <!-- Autorisations -->
-              <div class="form-section">
-                <h3 class="section-title-form">
-                  <i class="fas fa-key"></i>
-                  {% trans "Autorisations" %}
-                </h3>
-                
-                <div class="permissions-container-form">
-                  {% for category, permissions in permissions_par_categorie.items %}
-                    <div class="permission-category-form">
-                      <h4 class="permission-category-title-form">
-                        <i class="fas fa-folder"></i>
-                        {{ category }}
-                      </h4>
-                      <div class="permissions-grid-form">
-                        {% for perm in permissions %}
-                          <div class="permission-item-form">
-                            <label class="permission-checkbox-form">
-                              <input type="checkbox" 
-                                     name="permission_{{ perm.key }}" 
-                                     id="permission_{{ perm.key }}"
-                                     value="on"
-                                     {% if perm.key in permissions_defaut %}checked{% endif %}>
-                              <span class="permission-label-form">{{ perm.label }}</span>
-                            </label>
-                          </div>
-                        {% endfor %}
-                      </div>
-                    </div>
-                  {% endfor %}
-                </div>
-              </div>
+        <header class="pers-hero">
+            <div class="pers-hero-text">
+                <h1 class="pers-hero-title"><i class="fas fa-users"></i> {% trans "Gestion du personnel" %}</h1>
+                <p class="pers-hero-sub">{% trans "Professeurs et équipe administrative — consultez, filtrez et ajoutez des membres en quelques clics." %}</p>
             </div>
-            
-            <div class="form-ajouter-footer">
-              <button type="button" class="btn-modal-cancel" onclick="closeModalPersonnel()">
-                <i class="fas fa-times"></i>
-                {% trans "Annuler" %}
-              </button>
-              <button type="submit" class="btn-form btn-submit">
-                <i class="fas fa-save"></i>
-                {% trans "Ajouter le personnel" %}
-              </button>
+            <div class="pers-hero-stats">
+                <div class="pers-stat-pill"><span class="pers-stat-num">{{ stats.total_equipe }}</span><span class="pers-stat-lbl">{% trans "Équipe" %}</span></div>
+                <div class="pers-stat-pill"><span class="pers-stat-num">{{ stats.total_professeurs }}</span><span class="pers-stat-lbl">{% trans "Professeurs" %}</span></div>
+                <div class="pers-stat-pill"><span class="pers-stat-num">{{ stats.total_personnel }}</span><span class="pers-stat-lbl">{% trans "Administration" %}</span></div>
+                <div class="pers-stat-pill pers-stat-pill--ok"><span class="pers-stat-num">{{ stats.total_actifs }}</span><span class="pers-stat-lbl">{% trans "Actifs" %}</span></div>
+                {% if stats.total_inactifs %}
+                <div class="pers-stat-pill pers-stat-pill--off"><span class="pers-stat-num">{{ stats.total_inactifs }}</span><span class="pers-stat-lbl">{% trans "Inactifs" %}</span></div>
+                {% endif %}
             </div>
-          </form>
-        </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="modalAjouterProfesseur" class="modal-creneau-fullscreen personnel-form-modal">
-        <div class="modal-creneau-overlay" onclick="closeModalProfesseur()"></div>
-        <div class="modal-creneau-content">
-          <div class="modal-creneau-header">
-            <h2><i class="fas fa-chalkboard-teacher"></i> {% trans "Ajouter un Professeur" %}</h2>
-            <button type="button" class="modal-creneau-close" onclick="closeModalProfesseur()" aria-label="{% trans 'Fermer' %}">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          <div class="modal-creneau-body">
-            {% with form_data=prof_form_data field_errors=prof_field_errors %}
-              {% include 'school_admin/directeur/personnel/partials/form_ajouter_professeur_inner.html' %}
-            {% endwith %}
-          </div>
-        </div>
-      </div>
-
-      <!-- Onglets -->
-      <div class="tabs-container">
-        <div class="tabs-nav">
-          <button class="tab-btn active" data-tab="professeurs">
-            <i class="fas fa-chalkboard-teacher"></i>
-            <span>{% trans "Professeurs" %}</span>
-            <span class="tab-count">{{ stats.total_professeurs }}</span>
-          </button>
-          {% for key, categorie in categories_personnel.items %}
-            {% if categorie.personnel|length > 0 %}
-              <button class="tab-btn" data-tab="{{ key }}">
-                <i class="fas {{ categorie.icon }}"></i>
-                <span>{{ categorie.label }}</span>
-                <span class="tab-count">{{ categorie.personnel|length }}</span>
-              </button>
-            {% endif %}
-          {% endfor %}
-        </div>
-      </div>
-
-      <!-- Contenu des onglets -->
-      <div class="tabs-content">
-        <!-- Onglet Professeurs -->
-        <div class="tab-pane active" id="professeurs-pane">
-          <div class="tab-header">
-            <h2>{% trans "Professeurs" %}</h2>
-            <p>{% trans "Gérez les enseignants de votre établissement" %}</p>
-          </div>
-          
-          <!-- Menu déroulant pour les matières -->
-          <div class="matiere-filter-container">
-            <div class="filter-wrapper">
-              <label for="matiere-select" class="filter-label">
-                <i class="fas fa-filter"></i>
-                {% trans "Filtrer par matière" %}
-              </label>
-              <select id="matiere-select" class="matiere-select">
-                <option value="all">Toutes les matières ({{ stats.total_professeurs }})</option>
-                {% for item in matieres_avec_compteurs %}
-                  {% if item.count > 0 %}
-                    <option value="{{ item.matiere.id }}">{{ item.matiere.nom }} ({{ item.count }})</option>
-                  {% endif %}
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-          
-          <div class="personnel-grid" id="professeurs-grid">
-            {% for professeur in professeurs %}
-              <div class="personnel-card professeur-card" data-professeur-id="{{ professeur.id }}" data-matiere="{{ professeur.matiere_principale.id }}">
-                <div class="card-header">
-                  <div class="avatar">
-                    <i class="fas fa-chalkboard-teacher"></i>
-                  </div>
-                  <div class="info">
-                    <h3 class="name">{{ professeur.nom_complet }}</h3>
-                    <p class="role">{{ professeur.matiere_display }}</p>
-                    <span class="badge">{{ professeur.niveau_display }}</span>
-                  </div>
-                  <div class="status">
-                    <span class="status-dot {% if professeur.actif %}active{% else %}inactive{% endif %}"></span>
-                  </div>
-                </div>
-                <div class="card-content">
-                  <div class="contact-info">
-                    <div class="contact-item">
-                      <i class="fas fa-envelope"></i>
-                      <span>{{ professeur.email|truncatechars:25 }}</span>
-                    </div>
-                    <div class="contact-item">
-                      <i class="fas fa-phone"></i>
-                      <span>{{ professeur.telephone|truncatechars:15 }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="card-actions">
-                  <a href="{% url 'professeur:detail_professeur' professeur.id %}" class="action-btn primary" title="{% trans "Voir détails" %}">
-                    <i class="fas fa-eye"></i>
-                  </a>
-                  <button class="action-btn secondary" onclick="alert('Fonctionnalité de modification à venir')" title="Modifier">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="action-btn {% if professeur.actif %}danger{% else %}success{% endif %}" onclick="alert('Fonctionnalité de toggle à venir')" title="{% if professeur.actif %}Désactiver{% else %}Activer{% endif %}">
-                    <i class="fas fa-{% if professeur.actif %}pause{% else %}play{% endif %}"></i>
-                  </button>
-                </div>
-              </div>
-            {% empty %}
-              <div class="empty-state">
-                <div class="empty-icon">
-                  <i class="fas fa-chalkboard-teacher"></i>
-                </div>
-                <h3>{% trans "Aucun professeur" %}</h3>
-                <p>{% trans "Commencez par ajouter des professeurs à votre équipe" %}</p>
-                <button type="button" class="btn-add" onclick="openModalProfesseur()">
-                  <i class="fas fa-plus"></i>
-                  <span>{% trans "Ajouter le premier professeur" %}</span>
+            <div class="pers-hero-actions">
+                <button type="button" class="pers-action-btn pers-action-btn--primary" onclick="openModalProfesseur()">
+                    <i class="fas fa-chalkboard-teacher"></i> {% trans "Ajouter un professeur" %}
                 </button>
-              </div>
-            {% endfor %}
-          </div>
+                <button type="button" class="pers-action-btn pers-action-btn--secondary" onclick="openModalPersonnel()">
+                    <i class="fas fa-user-tie"></i> {% trans "Ajouter du personnel" %}
+                </button>
+            </div>
+        </header>
+
+        <div class="pers-toolbar">
+            <label class="pers-search-wrap">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input type="search" id="persSearchInput" class="pers-search-input" placeholder="{% trans 'Rechercher par nom, email, fonction…' %}" autocomplete="off" />
+            </label>
+            <div class="pers-filter-group" role="group" aria-label="{% trans 'Filtrer par statut' %}">
+                <button type="button" class="pers-filter-btn active" data-pers-filter="all">{% trans "Tous" %}</button>
+                <button type="button" class="pers-filter-btn" data-pers-filter="active">{% trans "Actifs" %}</button>
+                <button type="button" class="pers-filter-btn" data-pers-filter="inactive">{% trans "Inactifs" %}</button>
+            </div>
         </div>
 
-        <!-- Onglets dynamiques pour les catégories de personnel -->
-        {% for key, categorie in categories_personnel.items %}
-          <div class="tab-pane" id="{{ key }}-pane">
-            <div class="tab-header">
-              <h2><i class="fas {{ categorie.icon }}"></i> {{ categorie.label }}</h2>
-              <p>Gérez le personnel de la catégorie {{ categorie.label }}</p>
+        <p class="pers-results-line" id="persResultsLine" aria-live="polite"></p>
+
+        <div class="tabs-container pers-tabs-wrap">
+            <div class="tabs-nav">
+                <button type="button" class="tab-btn active" data-tab="professeurs" aria-selected="true">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <span>{% trans "Professeurs" %}</span>
+                    <span class="tab-count">{{ stats.total_professeurs }}</span>
+                </button>
+                {% for key, categorie in categories_personnel.items %}
+                    {% if categorie.personnel|length > 0 %}
+                        <button type="button" class="tab-btn" data-tab="{{ key }}" aria-selected="false">
+                            <i class="fas {{ categorie.icon }}"></i>
+                            <span>{{ categorie.label }}</span>
+                            <span class="tab-count">{{ categorie.personnel|length }}</span>
+                        </button>
+                    {% endif %}
+                {% endfor %}
             </div>
-            <div class="personnel-grid" id="{{ key }}-grid">
-              {% for membre in categorie.personnel %}
-                <div class="personnel-card" data-personnel-id="{{ membre.id }}">
-                  <div class="card-header">
-                    <div class="avatar">
-                      <i class="fas {{ categorie.icon }}"></i>
+        </div>
+
+        <div class="tabs-content pers-tabs-content">
+            <div class="tab-pane active" id="professeurs-pane" data-tab-pane="professeurs">
+                {% if professeurs %}
+                <div class="pers-matiere-nav">
+                    <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'matière' %}" data-overflow-items-label="{% trans 'matières' %}">
+                        <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Filtrer par matière' %}">
+                            <button type="button" role="tab" class="matiere-tab-btn active" data-matiere="all" data-order="0" aria-selected="true">
+                                <i class="fas fa-users"></i>
+                                <span>{% trans "Toutes" %}</span>
+                                <span class="tab-count">{{ stats.total_professeurs }}</span>
+                            </button>
+                            {% for item in matieres_avec_compteurs %}
+                                {% if item.count > 0 %}
+                                    <button type="button" role="tab" class="matiere-tab-btn" data-matiere="{{ item.matiere.id }}" data-order="{{ forloop.counter }}" aria-selected="false">
+                                        <i class="fas fa-book"></i>
+                                        <span>{{ item.matiere.nom }}</span>
+                                        <span class="tab-count">{{ item.count }}</span>
+                                    </button>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="matiere-tabs-more-wrap" hidden>
+                            <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Afficher les autres matières' %}">
+                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                <span class="matiere-tabs-more-label">{% trans "Autres matières" %}</span>
+                            </button>
+                            <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                        </div>
                     </div>
-                    <div class="info">
-                      <h3 class="name">{{ membre.nom_complet }}</h3>
-                      <p class="role">{{ membre.get_fonction_display }}</p>
-                      <span class="badge">{{ membre.numero_employe }}</span>
-                    </div>
-                    <div class="status">
-                      <span class="status-dot {% if membre.actif %}active{% else %}inactive{% endif %}"></span>
-                    </div>
-                  </div>
-                  <div class="card-content">
-                    <div class="contact-info">
-                      <div class="contact-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>{{ membre.email|truncatechars:25 }}</span>
-                      </div>
-                      <div class="contact-item">
-                        <i class="fas fa-phone"></i>
-                        <span>{{ membre.telephone|truncatechars:15 }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="card-actions">
-                    <a href="{% url 'personnel:detail_personnel' membre.id %}" class="action-btn primary" title="{% trans "Voir détails" %}">
-                      <i class="fas fa-eye"></i>
-                    </a>
-                    <a href="{% url 'personnel:toggle_actif' membre.id %}" class="action-btn {% if membre.actif %}danger{% else %}success{% endif %}" title="{% if membre.actif %}Désactiver{% else %}Activer{% endif %}">
-                      <i class="fas fa-{% if membre.actif %}pause{% else %}play{% endif %}"></i>
-                    </a>
-                  </div>
                 </div>
-              {% empty %}
-                <div class="empty-state">
-                  <div class="empty-icon">
-                    <i class="fas {{ categorie.icon }}"></i>
-                  </div>
-                  <h3>Aucun membre dans {{ categorie.label }}</h3>
-                  <p>{% trans "Commencez par ajouter du personnel" %}</p>
-                  <button type="button" class="btn-add" onclick="openModalPersonnel()">
-                    <i class="fas fa-plus"></i>
-                    <span>{% trans "Ajouter un membre" %}</span>
-                  </button>
+                {% endif %}
+
+                <div class="pers-cards-grid" id="professeurs-grid">
+                    {% for professeur in professeurs %}
+                        {% include 'school_admin/directeur/personnel/partials/personnel_member_card.html' with member=professeur card_type='professeur' %}
+                    {% empty %}
+                        <div class="pers-empty-state">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            <h3>{% trans "Aucun professeur" %}</h3>
+                            <p>{% trans "Commencez par ajouter des enseignants à votre équipe." %}</p>
+                            <button type="button" class="pers-action-btn pers-action-btn--primary" onclick="openModalProfesseur()">
+                                <i class="fas fa-plus"></i> {% trans "Ajouter le premier professeur" %}
+                            </button>
+                        </div>
+                    {% endfor %}
                 </div>
-              {% endfor %}
+                <p class="pers-pane-empty" id="professeurs-empty-filter" hidden>{% trans "Aucun professeur ne correspond à votre recherche." %}</p>
             </div>
-          </div>
-        {% endfor %}
-      </div>
+
+            {% for key, categorie in categories_personnel.items %}
+                {% if categorie.personnel|length > 0 %}
+                <div class="tab-pane" id="{{ key }}-pane" data-tab-pane="{{ key }}">
+                    <div class="pers-pane-intro">
+                        <h2 class="pers-pane-title"><i class="fas {{ categorie.icon }}"></i> {{ categorie.label }}</h2>
+                        <p class="pers-pane-desc">{% blocktrans with label=categorie.label %}Membres du personnel classés dans la catégorie « {{ label }} ».{% endblocktrans %}</p>
+                    </div>
+                    <div class="pers-cards-grid" id="{{ key }}-grid">
+                        {% for membre in categorie.personnel %}
+                            {% include 'school_admin/directeur/personnel/partials/personnel_member_card.html' with member=membre card_type='personnel' category_icon=categorie.icon %}
+                        {% endfor %}
+                    </div>
+                    <p class="pers-pane-empty" id="{{ key }}-empty-filter" hidden>{% trans "Aucun membre ne correspond à votre recherche." %}</p>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
     </div>
 
-    <!-- Scripts -->
-    <!-- intl-tel-input JS -->
+    <!-- Modals d'ajout (plein écran) -->
+    <div id="modalAjouterPersonnel" class="modal-creneau-fullscreen personnel-form-modal">
+        <div class="modal-creneau-overlay" onclick="closeModalPersonnel()"></div>
+        <div class="modal-creneau-content">
+            <div class="modal-creneau-header">
+                <h2><i class="fas fa-user-plus"></i> {% trans "Ajouter un Membre du Personnel" %}</h2>
+                <button type="button" class="modal-creneau-close" onclick="closeModalPersonnel()" aria-label="{% trans 'Fermer' %}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-creneau-body">
+                <div class="form-ajouter-wrapper">
+                    <form id="formAjouterPersonnel" method="post" action="{% url 'personnel:ajouter_personnel' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="form-ajouter-body">
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                                {% endfor %}
+                            {% endif %}
+                            {% if field_errors %}
+                                <div class="alert alert-danger">
+                                    <strong>{% trans "Erreurs détectées :" %}</strong>
+                                    <ul>
+                                        {% for field, errors in field_errors.items %}
+                                            {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                            <div class="form-section">
+                                <h3 class="section-title-form"><i class="fas fa-user"></i> {% trans "Informations Personnelles" %}</h3>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="personnel_nom" class="form-label">{% trans "Nom" %} <span class="required">*</span></label>
+                                        <input type="text" id="personnel_nom" name="nom" class="form-input" required value="{{ form_data.nom|default:'' }}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="personnel_prenom" class="form-label">{% trans "Prénom" %} <span class="required">*</span></label>
+                                        <input type="text" id="personnel_prenom" name="prenom" class="form-input" required value="{{ form_data.prenom|default:'' }}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="personnel_email" class="form-label">{% trans "Email" %} <span class="label-optional">({% trans "Facultatif" %})</span></label>
+                                        <input type="email" id="personnel_email" name="email" class="form-input" value="{{ form_data.email|default:'' }}" placeholder="Ex: nom.prenom@email.com">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="personnel_telephone" class="form-label">{% trans "Téléphone" %} <span class="required">*</span></label>
+                                        <input type="tel" id="personnel_telephone" name="telephone" class="form-input" required value="{{ form_data.telephone|default:'' }}">
+                                        <input type="hidden" name="telephone_full" id="personnel_telephone_full">
+                                        <small class="form-text" id="personnel_phone-error" style="color: #dc3545; display: none; font-size: 0.75rem; margin-top: 4px;"></small>
+                                    </div>
+                                </div>
+                                {% with form_data=form_data field_errors=field_errors prefix='personnel_' %}
+                                    {% include 'school_admin/directeur/personnel/partials/champs_employe_communs.html' %}
+                                {% endwith %}
+                            </div>
+                            {% include 'school_admin/directeur/personnel/partials/champs_dossier_complementaire_form.html' with prefix='pers_doss_' dossier_data=form_data type_contrat_choices=type_contrat_choices %}
+                            {% include 'school_admin/directeur/personnel/partials/section_documents_employe.html' with container_id='documents-upload-personnel' %}
+                            <div class="form-section">
+                                <h3 class="section-title-form"><i class="fas fa-briefcase"></i> {% trans "Fonction" %}</h3>
+                                <div class="form-group">
+                                    <label for="personnel_fonction" class="form-label">{% trans "Fonction" %} <span class="required">*</span></label>
+                                    <select id="personnel_fonction" name="fonction" class="form-input" required onchange="updatePermissionsByFunction()">
+                                        <option value="">{% trans "Sélectionnez une fonction" %}</option>
+                                        {% if fonctions_disponibles %}
+                                            {% for code, label in fonctions_disponibles %}
+                                                <option value="{{ code }}" {% if form_data.fonction == code %}selected{% endif %}>{{ label }}</option>
+                                            {% endfor %}
+                                        {% else %}
+                                            <option value="" disabled>⚠ {% trans "Aucune fonction disponible" %}</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-section">
+                                <h3 class="section-title-form"><i class="fas fa-key"></i> {% trans "Autorisations" %}</h3>
+                                <div class="permissions-container-form">
+                                    {% for category, permissions in permissions_par_categorie.items %}
+                                        <div class="permission-category-form">
+                                            <h4 class="permission-category-title-form"><i class="fas fa-folder"></i> {{ category }}</h4>
+                                            <div class="permissions-grid-form">
+                                                {% for perm in permissions %}
+                                                    <div class="permission-item-form">
+                                                        <label class="permission-checkbox-form">
+                                                            <input type="checkbox" name="permission_{{ perm.key }}" id="permission_{{ perm.key }}" value="on" {% if perm.key in permissions_defaut %}checked{% endif %}>
+                                                            <span class="permission-label-form">{{ perm.label }}</span>
+                                                        </label>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-ajouter-footer">
+                            <button type="button" class="btn-modal-cancel" onclick="closeModalPersonnel()"><i class="fas fa-times"></i> {% trans "Annuler" %}</button>
+                            <button type="submit" class="btn-form btn-submit"><i class="fas fa-save"></i> {% trans "Ajouter le personnel" %}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalAjouterProfesseur" class="modal-creneau-fullscreen personnel-form-modal">
+        <div class="modal-creneau-overlay" onclick="closeModalProfesseur()"></div>
+        <div class="modal-creneau-content">
+            <div class="modal-creneau-header">
+                <h2><i class="fas fa-chalkboard-teacher"></i> {% trans "Ajouter un Professeur" %}</h2>
+                <button type="button" class="modal-creneau-close" onclick="closeModalProfesseur()" aria-label="{% trans 'Fermer' %}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-creneau-body">
+                {% with form_data=prof_form_data field_errors=prof_field_errors type_contrat_choices=type_contrat_choices %}
+                    {% include 'school_admin/directeur/personnel/partials/form_ajouter_professeur_inner.html' %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/intlTelInput.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
-    
-    <script src="{% static 'school_admin/js/directeur/liste_personnel.js' %}"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_personnel.js' %}?v=2.0.0"></script>
     <script src="{% static 'school_admin/js/directeur/liste_personnel_modals.js' %}?v=1.0.0"></script>
     <script src="{% static 'school_admin/js/directeur/ajouter_professeur.js' %}?v=1.0.5"></script>
+    <script src="{% static 'school_admin/js/directeur/employe_documents.js' %}?v=1.0.0"></script>
     <script>
       function updatePermissionsByFunction() {
         const fonctionSelect = document.getElementById('personnel_fonction');
-        if (!fonctionSelect) return;
-        
-        const fonction = fonctionSelect.value;
-        if (!fonction) return;
-        
-        fetch('{% url "personnel:get_permissions" %}?fonction=' + fonction, {
+        if (!fonctionSelect || !fonctionSelect.value) return;
+        fetch('{% url "personnel:get_permissions" %}?fonction=' + fonctionSelect.value, {
           method: 'GET',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-          }
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
           if (data.success) {
-            document.querySelectorAll('#modalAjouterPersonnel input[type="checkbox"][name^="permission_"]').forEach(cb => {
-              cb.checked = false;
-            });
-            
+            document.querySelectorAll('#modalAjouterPersonnel input[type="checkbox"][name^="permission_"]').forEach(cb => { cb.checked = false; });
             data.permissions.forEach(perm => {
-              const checkbox = document.getElementById(`permission_${perm}`);
-              if (checkbox) {
-                checkbox.checked = true;
-              }
+              const cb = document.getElementById('permission_' + perm);
+              if (cb) cb.checked = true;
             });
           }
         })
-        .catch(error => {
-          console.error('Erreur lors de la récupération des permissions:', error);
-        });
+        .catch(err => console.error(err));
       }
     </script>
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
-  
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

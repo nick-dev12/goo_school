@@ -251,6 +251,10 @@
                     <i class="fas fa-shield-alt"></i>
                     <span>{% trans "Autorisations" %}</span>
                 </a>
+                <a href="?onglet=dossier" class="tab-item {% if onglet_actif == 'dossier' %}active{% endif %}">
+                    <i class="fas fa-folder-open"></i>
+                    <span>{% trans "Dossier employé" %}</span>
+                </a>
             </div>
 
             <div class="tabs-content">
@@ -269,6 +273,10 @@
                                     <tr>
                                         <td class="info-label-cell">{% trans "Nom complet" %}</td>
                                         <td class="info-value-cell">{{ personnel.nom }} {{ personnel.prenom }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">{% trans "Sexe" %}</td>
+                                        <td class="info-value-cell">{{ sexe_display|default:"—" }}</td>
                                     </tr>
                                     <tr>
                                         <td class="info-label-cell">{% trans "Email" %}</td>
@@ -315,6 +323,14 @@
                                         <td class="info-value-cell">
                                             <span class="badge-employee">{{ personnel.numero_employe|default:"N/A" }}</span>
                                         </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">{% trans "Date d'embauche" %}</td>
+                                        <td class="info-value-cell">{% if personnel.date_embauche %}{{ personnel.date_embauche|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="info-label-cell">{% trans "Prix du volume horaire" %}</td>
+                                        <td class="info-value-cell">{% if personnel.prix_volume_horaire %}{{ personnel.prix_volume_horaire }} FCFA/h{% else %}—{% endif %}</td>
                                     </tr>
                                 </table>
                             </div>
@@ -515,10 +531,17 @@
                         </div>
                     </div>
                 {% endif %}
+
+                {% if onglet_actif == 'dossier' %}
+                    <div class="tab-panel active">
+                        {% include 'school_admin/directeur/personnel/partials/dossier_employe_panel.html' with employe=personnel %}
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
+    <script src="{% static 'school_admin/js/directeur/employe_documents.js' %}?v=1.0.0"></script>
     <script>
         function toggleFormModifier() {
             const container = document.getElementById('formModifierPersonnelContainer');

@@ -22,7 +22,7 @@
     />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/classes_clean.css' %}?v=1.2.0"
+      href="{% static 'school_admin/css/directeur/classes_clean.css' %}?v=1.3.0"
     />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/classe_add_modal.css' %}?v=1.0.0" />
   </head>
@@ -101,7 +101,7 @@
                 <i class="fas fa-graduation-cap"></i>
               </div>
               <div class="stat-content">
-                <div class="stat-number">{{ stats.par_niveau|length }}</div>
+                <div class="stat-number">{% if classes_grouped %}{{ classes_grouped|length }}{% else %}0{% endif %}</div>
                 <div class="stat-label">{% trans "Niveaux" %}</div>
               </div>
             </div>
@@ -123,14 +123,23 @@
             {% if est_superieur %}
             <!-- LMD : Onglets Spécialité > sous-sections par Niveau (L1, L2, L3...) > Classes -->
             <div class="categories-tabs">
-              <div class="tabs-nav">
-                {% for filiere_nom, filiere_data in classes_grouped.items %}
-                  <button class="tab-btn {% if forloop.first %}active{% endif %}" data-filiere-idx="{{ forloop.counter0 }}">
-                    <i class="fas fa-sitemap"></i>
-                    <span>{{ filiere_nom }}</span>
-                    <span class="tab-count">({{ filiere_data.total }})</span>
+              <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'spécialité' %}" data-overflow-items-label="{% trans 'spécialités' %}">
+                <div class="matiere-tabs-track tabs-nav">
+                  {% for filiere_nom, filiere_data in classes_grouped.items %}
+                    <button type="button" class="tab-btn matiere-tab-btn {% if forloop.first %}active{% endif %}" data-filiere-idx="{{ forloop.counter0 }}" data-order="{{ forloop.counter0 }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                      <i class="fas fa-sitemap"></i>
+                      <span>{{ filiere_nom }}</span>
+                      <span class="tab-count">({{ filiere_data.total }})</span>
+                    </button>
+                  {% endfor %}
+                </div>
+                <div class="matiere-tabs-more-wrap" hidden>
+                  <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Afficher les autres spécialités' %}">
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    <span class="matiere-tabs-more-label">{% trans "Autres spécialités" %}</span>
                   </button>
-                {% endfor %}
+                  <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                </div>
               </div>
             </div>
             <div class="tabs-content">
@@ -169,22 +178,32 @@
               {% endfor %}
             </div>
             {% else %}
-            <!-- Primaire/Secondaire : onglets par niveau (cycle) -->
-            <div class="categories-tabs">
-              <div class="tabs-nav">
-                {% for niveau_code, data in classes_grouped.items %}
-                  <button type="button" class="tab-btn {% if forloop.first %}active{% endif %}" data-niveau-scolaire="{{ niveau_code }}">
-                    <i class="fas fa-{% if data.niveau == 'maternelle' %}baby{% elif data.niveau == 'primaire' %}child{% elif data.niveau == 'college' %}graduation-cap{% elif data.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
-                    <span>{{ data.niveau_label }}</span>
-                    <span class="tab-count">({{ data.classes|length }})</span>
+            <!-- Primaire/Secondaire : onglets par catégorie (CE1, CE2, CM1…) -->
+            <div class="categories-tabs cls-cat-section">
+              <div class="cls-cat-nav-bar" id="clsCatNavBar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
+                <div class="cls-cat-nav-track" id="clsCatNavTrack" role="tablist" aria-label="{% trans 'Niveaux / catégories' %}">
+                  {% for categorie, data in classes_grouped.items %}
+                    <button type="button" role="tab" class="cls-cat-btn {% if forloop.first %}active{% endif %}" data-category="{{ categorie }}" data-order="{{ forloop.counter0 }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                      <i class="fas fa-{% if data.niveau == 'maternelle' %}baby{% elif data.niveau == 'primaire' %}child{% elif data.niveau == 'college' %}graduation-cap{% elif data.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+                      <span class="cls-cat-name">{{ categorie }}</span>
+                      <span class="cls-cat-count">{{ data.total_classes }}</span>
+                    </button>
+                  {% endfor %}
+                </div>
+                <div class="cls-cat-more-wrap" id="clsCatMoreWrap" hidden>
+                  <button type="button" class="cls-cat-more-btn" id="clsCatMoreBtn" aria-expanded="false" aria-haspopup="true" aria-controls="clsCatOverflowMenu" aria-label="{% trans 'Afficher les autres niveaux' %}">
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    <span class="cls-cat-more-label" id="clsCatMoreLabel">{% trans "Autres niveaux" %}</span>
                   </button>
-                {% endfor %}
+                  <div class="cls-cat-overflow-menu" id="clsCatOverflowMenu" role="menu" hidden></div>
+                </div>
               </div>
             </div>
-            <div class="tabs-content">
-              {% for niveau_code, data in classes_grouped.items %}
-                <div class="tab-panel {% if forloop.first %}active{% endif %}" id="niveau-scolaire-{{ niveau_code }}">
+            <div class="tabs-content cls-panels-wrap">
+              {% for categorie, data in classes_grouped.items %}
+                <div class="cls-panel tab-panel {% if forloop.first %}active{% endif %}" id="panel-{{ categorie|slugify }}" data-cls-panel>
                   <div class="category-header">
+                    <h2 class="cls-panel-title">{{ categorie }}</h2>
                     <div class="category-stats">
                       <div class="stat-item"><span class="stat-number">{{ data.total_eleves }}</span> <span class="stat-label">{% if libelle_eleves %}{{ libelle_eleves }}{% else %}{% trans "Élèves" %}{% endif %}</span></div>
                       <div class="stat-item"><span class="stat-number">{{ data.total_enseignants }}</span> <span class="stat-label">{% trans "Enseignants" %}</span></div>
@@ -406,7 +425,8 @@
     </div>
 
     <script src="{% static 'school_admin/js/directeur/classes.js' %}"></script>
-    <script src="{% static 'school_admin/js/directeur/liste_classes_realtime.js' %}?v=1.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/classes_liste_tabs.js' %}?v=1.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_classes_realtime.js' %}?v=1.2.0"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function() {
         const addClasseBtn = document.getElementById('addClasseBtn');
@@ -466,20 +486,6 @@
           }
         });
 
-        // Onglets par niveau scolaire (maternelle, primaire, collège, lycée…)
-        const niveauScolaireTabs = document.querySelectorAll('.tab-btn[data-niveau-scolaire]');
-        const niveauScolairePanels = document.querySelectorAll('.tab-panel[id^="niveau-scolaire-"]');
-        niveauScolaireTabs.forEach(tab => {
-          tab.addEventListener('click', function() {
-            const code = this.getAttribute('data-niveau-scolaire');
-            niveauScolaireTabs.forEach(t => t.classList.remove('active'));
-            niveauScolairePanels.forEach(p => p.classList.remove('active'));
-            this.classList.add('active');
-            const targetPanel = document.getElementById('niveau-scolaire-' + code);
-            if (targetPanel) targetPanel.classList.add('active');
-          });
-        });
-
         function resetNiveauLmdTabsInFiliere(filierePanel) {
           if (!filierePanel) return;
           const wrap = filierePanel.querySelector('.classes-niveau-tabs-inner');
@@ -525,13 +531,20 @@
         filiereTabs.forEach(tab => {
           tab.addEventListener('click', function() {
             const idx = this.getAttribute('data-filiere-idx');
-            filiereTabs.forEach(t => t.classList.remove('active'));
+            filiereTabs.forEach(t => {
+              t.classList.remove('active');
+              t.setAttribute('aria-selected', 'false');
+            });
             filierePanels.forEach(p => p.classList.remove('active'));
             this.classList.add('active');
+            this.setAttribute('aria-selected', 'true');
             const targetPanel = document.getElementById('filiere-' + idx);
             if (targetPanel) {
               targetPanel.classList.add('active');
               resetNiveauLmdTabsInFiliere(targetPanel);
+            }
+            if (typeof window.layoutMatiereTabsNav === 'function') {
+              window.layoutMatiereTabsNav();
             }
           });
         });

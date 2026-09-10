@@ -39,19 +39,25 @@
                     <i class="fas fa-school"></i>
                     {% trans "Gestion de l'Établissement" %}
                 </h1>
-                <p class="page-subtitle">
-                    {% trans "Gérez les informations, paramètres et organisation de votre établissement" %}
-                </p>
             </div>
         </div>
 
         <!-- Navigation Links Container -->
         <div class="navigation-container">
-            <h2 class="section-title">{% trans "Outils de gestion de l'établissement" %}</h2>
-            
             <div class="nav-cards-grid">
-                <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="nav-link-card">
+                <a href="{% url 'directeur:gestion_periodes_scolaires' %}" class="nav-link-card">
                     <span class="nav-card-number">1</span>
+                    <div class="nav-card-icon neo-orange">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>{% trans "Périodes scolaires" %}</h3>
+                        <p>{% trans "Trimestres et semestres" %}</p>
+                    </div>
+                </a>
+
+                <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="nav-link-card">
+                    <span class="nav-card-number">2</span>
                     <div class="nav-card-icon neo-blue">
                         <i class="fas fa-chalkboard"></i>
                     </div>
@@ -62,7 +68,7 @@
                 </a>
                 
                 <a href="{% url 'matiere:liste_matieres' %}" class="nav-link-card">
-                    <span class="nav-card-number">2</span>
+                    <span class="nav-card-number">3</span>
                     <div class="nav-card-icon neo-purple">
                         <i class="fas fa-book-open"></i>
                     </div>
@@ -73,24 +79,13 @@
                 </a>
 
                 <a href="{% url 'salle:liste_salles' %}" class="nav-link-card">
-                    <span class="nav-card-number">3</span>
+                    <span class="nav-card-number">4</span>
                     <div class="nav-card-icon neo-blue">
                         <i class="fas fa-door-open"></i>
                     </div>
                     <div class="nav-link-content">
                         <h3>{% trans "Salles" %}</h3>
                         <p>{% trans "Gestion des salles" %}</p>
-                    </div>
-                </a>
-               
-                <a href="{% url 'directeur:gestion_periodes_scolaires' %}" class="nav-link-card">
-                    <span class="nav-card-number">4</span>
-                    <div class="nav-card-icon neo-orange">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <div class="nav-link-content">
-                        <h3>{% trans "Périodes scolaires" %}</h3>
-                        <p>{% trans "Trimestres et semestres" %}</p>
                     </div>
                 </a>
                 
@@ -101,7 +96,7 @@
                         <i class="fas fa-calculator"></i>
                     </div>
                     <div class="nav-link-content">
-                        <h3>{% trans "Comptabilité" %}</h3>
+                        <h3>{% trans "Scolarité" %}</h3>
                         <p>{% trans "Gestion des paiements des élèves" %}</p>
                     </div>
                 </a>

@@ -219,14 +219,28 @@ class ComptabiliteController:
         total_eleves = sum(data['total_eleves'] for data in classes_grouped.values())
         eleves_a_jour = 0
         eleves_non_en_regle = 0
-        
+        montant_total_global = Decimal('0.00')
+        montant_paye_global = Decimal('0.00')
+
         for categorie_data in classes_grouped.values():
             for classe_data in categorie_data['classes']:
+                montant_total_global += classe_data.get('montant_total_classe', Decimal('0.00'))
+                montant_paye_global += classe_data.get('montant_total_paye_classe', Decimal('0.00'))
                 for eleve_data in classe_data['eleves']:
                     if eleve_data.get('est_non_en_regle', False):
                         eleves_non_en_regle += 1
                     else:
                         eleves_a_jour += 1
+
+        stats_generales = {
+            'total_eleves': total_eleves,
+            'total_classes': classes.count(),
+            'eleves_a_jour': eleves_a_jour,
+            'eleves_non_en_regle': eleves_non_en_regle,
+            'montant_total': montant_total_global,
+            'montant_paye': montant_paye_global,
+            'montant_reste': montant_total_global - montant_paye_global,
+        }
         
         # Récupérer la devise monétaire
         devise_monnaie = ComptabiliteController._get_devise_monnaie(etablissement)
@@ -235,6 +249,7 @@ class ComptabiliteController:
             'etablissement': etablissement,
             'annee_scolaire_active': annee_scolaire_active,
             'classes_grouped': dict(classes_grouped),
+            'stats_generales': stats_generales,
             'total_eleves': total_eleves,
             'eleves_a_jour': eleves_a_jour,
             'eleves_non_en_regle': eleves_non_en_regle,
@@ -409,11 +424,17 @@ class ComptabiliteController:
         # Récupérer la devise monétaire
         devise_monnaie = ComptabiliteController._get_devise_monnaie(etablissement)
         
+        pct_paye = 0
+        if total_du and total_du > 0:
+            pct_paye = int((total_paye / total_du) * 100)
+
         context = {
             'eleve': eleve,
+            'inscription': inscription,
             'etablissement': etablissement,
             'annee_scolaire': annee_scolaire_active,
             'comptabilite': comptabilite,
+            'pct_paye': pct_paye,
             'frais_inscription': frais_inscription,  # Garder pour compatibilité
             'frais_inscription_avec_paiements': frais_inscription_avec_paiements,  # Nouveau avec montants calculés depuis PaiementEleve
             'mensualites': mensualites,  # Garder pour compatibilité
@@ -1081,200 +1102,51 @@ class ComptabiliteController:
     @login_required
     def parametres_comptabilite_directeur(request):
         """
-        Page de gestion des paramètres de comptabilité pour l'établissement
+        Page de gestion des paramètres de scolarité par groupes de classes
         """
         result = ComptabiliteController._get_user_etablissement(request)
         if result[0] is None:
             messages.error(request, "Accès non autorisé.")
             return redirect('directeur:dashboard_directeur')
-        
+
         etablissement, is_directeur, personnel = result
-        
-        # Vérifier les permissions pour les paramètres : seul le gestionnaire/comptable ou le directeur peut modifier
+
         if not is_directeur:
-            # Vérifier si c'est un gestionnaire ou un comptable (fonctions qui peuvent modifier les paramètres)
             if not personnel or personnel.fonction not in ['gestionnaire', 'comptable']:
-                messages.error(request, "Seul le gestionnaire ou le comptable peut modifier les paramètres de comptabilité.")
+                messages.error(request, "Seul le gestionnaire ou le comptable peut modifier les paramètres de scolarité.")
                 return redirect('directeur:dashboard_directeur')
-        
-        # Vérifier que le module comptabilité est activé
+
         if not etablissement.module_comptabilite:
-            messages.warning(request, "Le module comptabilité n'est pas activé pour cet établissement.")
+            messages.warning(request, "Le module scolarité n'est pas activé pour cet établissement.")
             return redirect('directeur:profil_etablissement')
-        
-        # Récupérer les paramètres existants ou None
-        parametres = None
-        parametres_configures = False
-        
-        try:
-            parametres = ParametresComptabilite.objects.get(etablissement=etablissement)
-            # Vérifier si les paramètres ont été réellement configurés
-            if etablissement.type_etablissement_comptabilite == 'prive':
-                if (parametres.montant_frais_inscription and parametres.montant_frais_inscription > Decimal('0.00') and
-                    parametres.montant_mensualite and parametres.montant_mensualite > Decimal('0.00')):
-                    parametres_configures = True
-            else:  # public
-                if (parametres.montant_facturation_annuelle and parametres.montant_facturation_annuelle > Decimal('0.00')):
-                    parametres_configures = True
-        except ParametresComptabilite.DoesNotExist:
-            parametres = None
-            parametres_configures = False
-        
-        if request.method == 'POST':
-            try:
-                # Récupérer les données du formulaire
-                montant_frais_inscription = request.POST.get('montant_frais_inscription', '0')
-                montant_frais_reinscription = request.POST.get('montant_frais_reinscription', '0')
-                montant_mensualite = request.POST.get('montant_mensualite', '0')
-                montant_facturation_annuelle = request.POST.get('montant_facturation_annuelle', '0')
-                type_facturation = request.POST.get('type_facturation', 'mensuel')
-                
-                autoriser_retards = request.POST.get('autoriser_retards') == 'on'
-                autoriser_paiements_partiels = request.POST.get('autoriser_paiements_partiels') == 'on'
-                delai_tolerance_retard = int(request.POST.get('delai_tolerance_retard', 15))
-                
-                envoyer_rappels_automatiques = request.POST.get('envoyer_rappels_automatiques') == 'on'
-                jours_avant_rappel = int(request.POST.get('jours_avant_rappel', 7))
-                jours_apres_retard_rappel = int(request.POST.get('jours_apres_retard_rappel', 3))
-                
-                mois_debut_facturation = int(request.POST.get('mois_debut_facturation', 9))
-                mois_fin_facturation = int(request.POST.get('mois_fin_facturation', 6))
-                
-                appliquer_remise_famille_nombreuse = request.POST.get('appliquer_remise_famille_nombreuse') == 'on'
-                pourcentage_remise_famille_nombreuse = request.POST.get('pourcentage_remise_famille_nombreuse', '0')
-                nombre_enfants_minimum_remise = int(request.POST.get('nombre_enfants_minimum_remise', 3))
-                
-                nombre_max_paiements_partiels = int(request.POST.get('nombre_max_paiements_partiels', 3))
-                
-                # Nouveaux champs pour les établissements privés
-                jour_versement = int(request.POST.get('jour_versement', 5)) if etablissement.type_etablissement_comptabilite == 'prive' else 5
-                paiement_en_avance = request.POST.get('paiement_en_avance') == 'on' if etablissement.type_etablissement_comptabilite == 'prive' else False
-                
-                # Créer ou mettre à jour les paramètres
-                modifie_par_user = None
-                if isinstance(request.user, CompteUser):
-                    modifie_par_user = request.user
-                
-                if not parametres:
-                    # Créer les paramètres
-                    parametres_data = {
-                        'etablissement': etablissement,
-                        'montant_frais_inscription': Decimal(montant_frais_inscription) if montant_frais_inscription else Decimal('0.00'),
-                        'montant_frais_reinscription': Decimal(montant_frais_reinscription) if montant_frais_reinscription else Decimal('0.00'),
-                        'montant_mensualite': Decimal(montant_mensualite) if montant_mensualite else Decimal('0.00'),
-                        'montant_facturation_annuelle': Decimal(montant_facturation_annuelle) if montant_facturation_annuelle else Decimal('0.00'),
-                        'type_facturation': type_facturation,
-                        'autoriser_retards': autoriser_retards,
-                        'autoriser_paiements_partiels': autoriser_paiements_partiels,
-                        'delai_tolerance_retard': delai_tolerance_retard,
-                        'envoyer_rappels_automatiques': envoyer_rappels_automatiques,
-                        'jours_avant_rappel': jours_avant_rappel,
-                        'jours_apres_retard_rappel': jours_apres_retard_rappel,
-                        'mois_debut_facturation': mois_debut_facturation,
-                        'mois_fin_facturation': mois_fin_facturation,
-                        'appliquer_remise_famille_nombreuse': appliquer_remise_famille_nombreuse,
-                        'pourcentage_remise_famille_nombreuse': Decimal(pourcentage_remise_famille_nombreuse) if pourcentage_remise_famille_nombreuse else Decimal('0.00'),
-                        'nombre_enfants_minimum_remise': nombre_enfants_minimum_remise,
-                        'nombre_max_paiements_partiels': nombre_max_paiements_partiels,
-                        'jour_versement': jour_versement,
-                        'paiement_en_avance': paiement_en_avance,
-                    }
-                    if modifie_par_user:
-                        parametres_data['modifie_par'] = modifie_par_user
-                    
-                    parametres = ParametresComptabilite.objects.create(**parametres_data)
-                else:
-                    # Mettre à jour les paramètres existants
-                    parametres.montant_frais_inscription = Decimal(montant_frais_inscription) if montant_frais_inscription else Decimal('0.00')
-                    parametres.montant_frais_reinscription = Decimal(montant_frais_reinscription) if montant_frais_reinscription else Decimal('0.00')
-                    parametres.montant_mensualite = Decimal(montant_mensualite) if montant_mensualite else Decimal('0.00')
-                    parametres.montant_facturation_annuelle = Decimal(montant_facturation_annuelle) if montant_facturation_annuelle else Decimal('0.00')
-                    parametres.type_facturation = type_facturation
-                    
-                    parametres.autoriser_retards = autoriser_retards
-                    parametres.autoriser_paiements_partiels = autoriser_paiements_partiels
-                    parametres.delai_tolerance_retard = delai_tolerance_retard
-                    
-                    parametres.envoyer_rappels_automatiques = envoyer_rappels_automatiques
-                    parametres.jours_avant_rappel = jours_avant_rappel
-                    parametres.jours_apres_retard_rappel = jours_apres_retard_rappel
-                    
-                    parametres.mois_debut_facturation = mois_debut_facturation
-                    parametres.mois_fin_facturation = mois_fin_facturation
-                    
-                    parametres.appliquer_remise_famille_nombreuse = appliquer_remise_famille_nombreuse
-                    parametres.pourcentage_remise_famille_nombreuse = Decimal(pourcentage_remise_famille_nombreuse) if pourcentage_remise_famille_nombreuse else Decimal('0.00')
-                    parametres.nombre_enfants_minimum_remise = nombre_enfants_minimum_remise
-                    
-                    parametres.nombre_max_paiements_partiels = nombre_max_paiements_partiels
-                    
-                    # Mettre à jour les nouveaux champs pour les établissements privés
-                    if etablissement.type_etablissement_comptabilite == 'prive':
-                        parametres.jour_versement = jour_versement
-                        parametres.paiement_en_avance = paiement_en_avance
-                    
-                    if modifie_par_user:
-                        parametres.modifie_par = modifie_par_user
-                    
-                    parametres.save()
-                
-                # Mettre à jour aussi les champs dans l'établissement pour compatibilité
-                etablissement.montant_frais_inscription = parametres.montant_frais_inscription
-                etablissement.montant_mensualite = parametres.montant_mensualite
-                etablissement.montant_facturation_annuelle = parametres.montant_facturation_annuelle
-                etablissement.save(update_fields=['montant_frais_inscription', 'montant_mensualite', 'montant_facturation_annuelle'])
-                
-                # La mise à jour automatique du système est gérée par le signal post_save
-                # qui appelle automatiquement mettre_a_jour_systeme_comptabilite() après la sauvegarde
-                messages.success(request, "Paramètres de comptabilité enregistrés avec succès. Le système a été mis à jour automatiquement.")
 
-                from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
-                from ..services.live_serializers import serialize_comptabilite_parametres
+        parametres_groupes = ParametresComptabiliteGroupeClasse.objects.filter(
+            etablissement=etablissement
+        ).order_by('-date_modification')
 
-                item = serialize_comptabilite_parametres(parametres, etablissement)
-                emit_live(
-                    etablissement.id,
-                    'comptabilite.parametres',
-                    {'event': 'comptabilite.parametres', 'item': item},
-                )
-                if wants_json_response(request):
-                    return json_ok(message="Paramètres enregistrés.", item=item)
+        groupes_disponibles = ParametresComptabiliteGroupeClasse.get_groupes_disponibles(etablissement)
+        groupes_deja_assignes = ParametresComptabiliteGroupeClasse.get_groupes_deja_assignes(etablissement)
 
-                return redirect('directeur:parametres_comptabilite_directeur')
-            
-            except Exception as e:
-                messages.error(request, f"Erreur lors de l'enregistrement des paramètres : {str(e)}")
-        
-        # Re-vérifier si les paramètres sont réellement configurés après POST (si création/mise à jour)
-        if parametres:
-            if etablissement.type_etablissement_comptabilite == 'prive':
-                # Pour les établissements privés, vérifier que les montants sont configurés
-                if (parametres.montant_frais_inscription and parametres.montant_frais_inscription > Decimal('0.00') and
-                    parametres.montant_mensualite and parametres.montant_mensualite > Decimal('0.00')):
-                    parametres_configures = True
-                else:
-                    parametres_configures = False
-            else:  # public
-                # Pour les établissements publics, vérifier que le montant annuel est configuré
-                if (parametres.montant_facturation_annuelle and parametres.montant_facturation_annuelle > Decimal('0.00')):
-                    parametres_configures = True
-                else:
-                    parametres_configures = False
-        else:
-            parametres_configures = False
-        
-        # Récupérer la devise monétaire
         devise_monnaie = ComptabiliteController._get_devise_monnaie(etablissement)
-        
+
+        stats_generales = {
+            'total_parametres': parametres_groupes.count(),
+            'groupes_assignes': len(groupes_deja_assignes),
+            'groupes_disponibles': len(groupes_disponibles),
+        }
+
         context = {
             'etablissement': etablissement,
-            'parametres': parametres,
-            'parametres_configures': parametres_configures,
+            'parametres_groupes': parametres_groupes,
+            'groupes_disponibles': groupes_disponibles,
+            'groupes_deja_assignes': groupes_deja_assignes,
+            'stats_generales': stats_generales,
+            'open_ajouter_modal': request.GET.get('modal') == 'ajouter',
             'is_directeur': is_directeur,
             'personnel': personnel,
-            'devise_monnaie': devise_monnaie,  # Ajouter la devise au contexte
+            'devise_monnaie': devise_monnaie,
         }
-        
+
         return render(request, 'school_admin/directeur/comptabilite/parametres_comptabilite.html', context)
 
     @staticmethod
@@ -1527,10 +1399,49 @@ class ComptabiliteController:
         
         # Récupérer la devise monétaire
         devise_monnaie = ComptabiliteController._get_devise_monnaie(etablissement)
+
+        stats_generales = {
+            'total_eleves': total_eleves,
+            'eleves_a_jour': eleves_a_jour,
+            'eleves_en_retard': eleves_en_retard,
+            'eleves_impayes': eleves_impayes,
+            'taux_recouvrement': taux_recouvrement_annuel,
+            'total_du': total_du_annuel,
+            'total_paye': total_paye_annuel,
+            'total_reste': total_reste_annuel,
+            'total_paiements': total_paiements,
+        }
+
+        mois_chart = {
+            'labels': [s['periode'] for s in mois_stats.values()],
+            'montantsDus': [float(s['montant_du']) for s in mois_stats.values()],
+            'montantsPayes': [float(s['montant_paye']) for s in mois_stats.values()],
+            'montantsCollectes': [float(s['montant_collecte']) for s in mois_stats.values()],
+            'tauxRecouvrement': [float(s['taux_recouvrement']) for s in mois_stats.values()],
+            'elevesEnRetard': [s['eleves_en_retard'] for s in mois_stats.values()],
+            'elevesImpayes': [s['eleves_impayes'] for s in mois_stats.values()],
+        }
+        modes_chart = {
+            'labels': [d['label'] for d in paiements_par_mode.values()],
+            'montants': [float(d['montant']) for d in paiements_par_mode.values()],
+            'couleurs': ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+        }
+        classes_chart = {
+            'labels': [cs['classe'].nom for cs in classes_stats],
+            'montantsDus': [float(cs['montant_du']) for cs in classes_stats],
+            'montantsPayes': [float(cs['montant_paye']) for cs in classes_stats],
+        }
+        chart_data = {
+            'devise': devise_monnaie or 'FCFA',
+            'mois': mois_chart,
+            'modes': modes_chart,
+            'classes': classes_chart,
+        }
         
         context = {
             'etablissement': etablissement,
             'annee_scolaire_active': annee_scolaire_active,
+            'stats_generales': stats_generales,
             'parametres': parametres_generaux,  # Paramètres généraux pour référence
             'mois_stats': mois_stats,
             'mois_a_analyser': mois_a_analyser,
@@ -1556,6 +1467,7 @@ class ComptabiliteController:
             'total_montant_collecte': total_montant_collecte,
             'paiements_par_mode': paiements_par_mode,
             'classes_stats': classes_stats,
+            'chart_data': chart_data,
             'is_directeur': is_directeur,
             'personnel': personnel,
         }
@@ -1787,12 +1699,45 @@ class ComptabiliteController:
         
         # Récupérer la devise monétaire
         devise_monnaie = ComptabiliteController._get_devise_monnaie(etablissement)
+
+        stats_generales = {
+            'total_eleves': total_eleves,
+            'eleves_a_jour': eleves_a_jour,
+            'eleves_en_retard': eleves_en_retard,
+            'eleves_impayes': eleves_impayes,
+            'taux_recouvrement': taux_recouvrement_annuel,
+            'total_du': total_du_annuel,
+            'total_paye': total_paye_annuel,
+            'total_reste': total_reste_annuel,
+            'total_paiements': total_paiements,
+        }
+
+        chart_data = {
+            'devise': devise_monnaie or 'FCFA',
+            'mois': {
+                'labels': [s['periode'] for s in mois_stats.values()],
+                'montantsDus': [float(s['montant_du']) for s in mois_stats.values()],
+                'montantsPayes': [float(s['montant_paye']) for s in mois_stats.values()],
+                'montantsCollectes': [float(s['montant_collecte']) for s in mois_stats.values()],
+                'tauxRecouvrement': [float(s['taux_recouvrement']) for s in mois_stats.values()],
+                'elevesEnRetard': [s['eleves_en_retard'] for s in mois_stats.values()],
+                'elevesImpayes': [s['eleves_impayes'] for s in mois_stats.values()],
+            },
+            'modes': {
+                'labels': [d['label'] for d in paiements_par_mode.values()],
+                'montants': [float(d['montant']) for d in paiements_par_mode.values()],
+                'couleurs': ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+            },
+            'classes': {'labels': [], 'montantsDus': [], 'montantsPayes': []},
+        }
         
         context = {
             'etablissement': etablissement,
             'annee_scolaire_active': annee_scolaire_active,
             'classe': classe,
             'devise_monnaie': devise_monnaie,  # Ajouter la devise au contexte
+            'stats_generales': stats_generales,
+            'chart_data': chart_data,
             'parametres': parametres,
             'mois_stats': mois_stats,
             'mois_a_analyser': mois_a_analyser,
@@ -1827,43 +1772,9 @@ class ComptabiliteController:
     @login_required
     def liste_parametres_groupes_directeur(request):
         """
-        Liste tous les paramètres spécifiques par groupe de classes
+        Redirige vers la page principale des paramètres de scolarité
         """
-        result = ComptabiliteController._get_user_etablissement(request)
-        if result[0] is None:
-            messages.error(request, "Accès non autorisé.")
-            return redirect('directeur:dashboard_directeur')
-        
-        etablissement, is_directeur, personnel = result
-        
-        # Vérifier les permissions pour les paramètres : seul le gestionnaire/comptable ou le directeur peut modifier
-        if not is_directeur:
-            if not personnel or personnel.fonction not in ['gestionnaire', 'comptable']:
-                messages.error(request, "Seul le gestionnaire ou le comptable peut accéder aux paramètres de comptabilité.")
-                return redirect('directeur:dashboard_directeur')
-        
-        # Vérifier que le module comptabilité est activé
-        if not etablissement.module_comptabilite:
-            messages.warning(request, "Le module comptabilité n'est pas activé pour cet établissement.")
-            return redirect('directeur:profil_etablissement')
-        
-        # Récupérer tous les paramètres spécifiques
-        parametres_groupes = ParametresComptabiliteGroupeClasse.objects.filter(
-            etablissement=etablissement
-        ).order_by('-date_modification')
-        
-        # Récupérer la devise monétaire
-        devise_monnaie = ComptabiliteController._get_devise_monnaie(etablissement)
-        
-        context = {
-            'etablissement': etablissement,
-            'parametres_groupes': parametres_groupes,
-            'is_directeur': is_directeur,
-            'personnel': personnel,
-            'devise_monnaie': devise_monnaie,
-        }
-        
-        return render(request, 'school_admin/directeur/comptabilite/liste_parametres_groupes.html', context)
+        return redirect('directeur:parametres_comptabilite_directeur')
 
     @staticmethod
     @login_required
@@ -1901,8 +1812,12 @@ class ComptabiliteController:
                 is_edit = True
             except ParametresComptabiliteGroupeClasse.DoesNotExist:
                 messages.error(request, "Paramètre spécifique introuvable.")
-                return redirect('directeur:liste_parametres_groupes_directeur')
+                return redirect('directeur:parametres_comptabilite_directeur')
         
+        if request.method == 'GET' and not parametre_id:
+            from django.urls import reverse
+            return redirect(f"{reverse('directeur:parametres_comptabilite_directeur')}?modal=ajouter")
+
         # Récupérer les groupes de classes disponibles
         groupes_disponibles = ParametresComptabiliteGroupeClasse.get_groupes_disponibles(etablissement)
         groupes_deja_assignes = ParametresComptabiliteGroupeClasse.get_groupes_deja_assignes(
@@ -1945,17 +1860,17 @@ class ComptabiliteController:
                 # Validation
                 if not nom:
                     messages.error(request, "Le nom du paramètre est obligatoire.")
-                    return redirect('directeur:liste_parametres_groupes_directeur')
+                    return redirect('directeur:parametres_comptabilite_directeur')
                 
                 if not groupes_classes_selected:
                     messages.error(request, "Vous devez sélectionner au moins un groupe de classes.")
-                    return redirect('directeur:liste_parametres_groupes_directeur')
+                    return redirect('directeur:parametres_comptabilite_directeur')
                 
                 # Vérifier que les groupes sélectionnés ne sont pas déjà assignés
                 groupes_deja_utilises = set(groupes_classes_selected) & set(groupes_deja_assignes)
                 if groupes_deja_utilises:
                     messages.error(request, f"Les groupes suivants sont déjà assignés à un autre paramètre : {', '.join(groupes_deja_utilises)}")
-                    return redirect('directeur:liste_parametres_groupes_directeur')
+                    return redirect('directeur:parametres_comptabilite_directeur')
                 
                 # Créer ou mettre à jour
                 modifie_par_user = None
@@ -2037,7 +1952,7 @@ class ComptabiliteController:
                     except Exception as e:
                         messages.warning(request, f"Paramètre spécifique modifié avec succès, mais erreur lors de la mise à jour automatique : {str(e)}")
                 
-                return redirect('directeur:liste_parametres_groupes_directeur')
+                return redirect('directeur:parametres_comptabilite_directeur')
             
             except Exception as e:
                 messages.error(request, f"Erreur lors de l'enregistrement : {str(e)}")
@@ -2119,5 +2034,5 @@ class ComptabiliteController:
         except ParametresComptabiliteGroupeClasse.DoesNotExist:
             messages.error(request, "Paramètre spécifique introuvable.")
         
-        return redirect('directeur:liste_parametres_groupes_directeur')
+        return redirect('directeur:parametres_comptabilite_directeur')
 

@@ -5,10 +5,16 @@
   rel="stylesheet"
   href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.4"
 />
+<link
+  rel="stylesheet"
+  href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.0"
+/>
+<script src="{% static 'school_admin/js/directeur/tabs_nav_overflow.js' %}?v=1.0.0"></script>
 <nav
   class="enseignant-bottom-nav bottom-nav-directeur"
   aria-label="Navigation principale de l’espace directeur"
 >
+  {% with nav_path=request.path nav_url=request.resolver_match.url_name %}
   <ul class="bottom-nav-list">
     <li
       class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'dashboard_directeur' %}active{% endif %}"
@@ -22,7 +28,7 @@
     {% check_permission request.user "professeurs_liste" as can_view_professeurs %}
     {% check_permission request.user "personnel_liste" as can_view_personnel %}
     {% if can_view_classes or can_view_professeurs or can_view_personnel or is_directeur %}
-    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_etablissement' or request.resolver_match.url_name == 'liste_salles' or request.resolver_match.url_name == 'liste_affectations' or request.resolver_match.url_name == 'liste_classes' or request.resolver_match.url_name == 'configuration_horaires' or request.resolver_match.url_name == 'liste_professeurs' or request.resolver_match.url_name == 'liste_personnel' %}active{% endif %}">
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if '/gestion-etablissement' in nav_path or '/classes' in nav_path or '/salles' in nav_path or '/matieres' in nav_path or '/affectations-salles' in nav_path or '/configuration-horaires' in nav_path or nav_url == 'gestion_etablissement' or nav_url == 'liste_salles' or nav_url == 'liste_affectations' or nav_url == 'liste_classes' or nav_url == 'configuration_horaires' %}active{% endif %}">
       <a href="{% url 'directeur:gestion_etablissement' %}">
         <span class="icon-wrapper icon-etablissement"
           ><i class="fas fa-school"></i
@@ -34,7 +40,7 @@
     {% check_permission request.user "notes_liste" as can_view_notes %}
     {% check_permission request.user "presences_liste" as can_view_presences %}
     {% if can_view_notes or can_view_presences or is_directeur %}
-    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if request.resolver_match.url_name == 'gestion_pedagogique' or request.resolver_match.url_name == 'gestion_periodes_scolaires' or request.resolver_match.url_name == 'configuration_moyennes_generales' or request.resolver_match.url_name == 'configuration_standards_reussite' %}active{% endif %}">
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if '/gestion-pedagogique' in nav_path or '/personnel' in nav_path or '/professeurs' in nav_path or '/affectation/' in nav_path or '/emplois-du-temps' in nav_path or '/notes-et-resultats' in nav_path or '/suivi-presence' in nav_path or nav_url == 'gestion_pedagogique' or nav_url == 'gestion_periodes_scolaires' or nav_url == 'configuration_moyennes_generales' or nav_url == 'configuration_standards_reussite' or nav_url == 'notes_et_resultats' or nav_url == 'justifications_notes' or nav_url == 'justifications_notes_classe' or nav_url == 'suivi_presence' %}active{% endif %}">
       <a href="{% url 'directeur:gestion_pedagogique' %}">
         <span class="icon-wrapper icon-pedagogie"
           ><i class="fas fa-graduation-cap"></i
@@ -110,7 +116,7 @@
         <span class="icon-wrapper icon-comptabilite"
           ><i class="fas fa-calculator"></i
         ></span>
-        <span class="label">{% trans "Comptabilité" %}</span>
+        <span class="label">{% trans "Scolarité" %}</span>
       </a>
     </li>
     {% endif %}
@@ -130,6 +136,7 @@
       </button>
     </li>
   </ul>
+  {% endwith %}
 </nav>
 
 <script>

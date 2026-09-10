@@ -1,0 +1,183 @@
+{% load i18n %}
+<div class="presence-panel sp-classe-panel" id="presence-panel-{{ classe_data.classe.id }}" data-classe-id="{{ classe_data.classe.id }}">
+    <script type="application/json" id="presence-json-{{ classe_data.classe.id }}">{{ classe_data.presences_json|safe }}</script>
+
+    <header class="sp-classe-header">
+        <div class="sp-classe-title-block">
+            <h2 class="sp-classe-title">
+                <i class="fas fa-chalkboard"></i>
+                {% if est_superieur %}
+                    {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
+                {% else %}
+                    {{ classe_data.classe.nom }} — {{ classe_data.classe.get_niveau_display }}
+                {% endif %}
+            </h2>
+            <p class="sp-classe-desc">{{ classe_data.nombre_eleves }} {% trans "élève(s)" %} · {% trans "Suivi des présences" %}</p>
+        </div>
+    </header>
+
+    <div class="sp-toolbar search-filter-container" id="search-filter-presence-{{ classe_data.classe.id }}">
+        <label class="sp-search-wrap">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input type="search" class="search-input sp-search-input" id="search-input-presence-{{ classe_data.classe.id }}"
+                   placeholder="{% trans 'Nom, prénom, matricule…' %}" autocomplete="off"
+                   oninput="filterPresenceStudents('{{ classe_data.classe.id }}')">
+            <button type="button" class="clear-search" id="clear-search-presence-{{ classe_data.classe.id }}" hidden
+                    onclick="clearPresenceSearch('{{ classe_data.classe.id }}')" aria-label="{% trans 'Effacer' %}">
+                <i class="fas fa-times"></i>
+            </button>
+        </label>
+
+        <div class="sp-filters-grid filters-box presence-period-filters">
+            <div class="sp-filter-section">
+                <span class="sp-filter-section-label"><i class="fas fa-clock"></i> {% trans "Période rapide" %}</span>
+                <select class="filter-select sp-filter-select" id="filter-periode-{{ classe_data.classe.id }}" onchange="handlePeriodFilterChange('{{ classe_data.classe.id }}')">
+                    <option value="today" selected>{% trans "Aujourd'hui" %}</option>
+                    <option value="yesterday">{% trans "Hier" %}</option>
+                    <option value="this_week">{% trans "Cette semaine" %}</option>
+                    <option value="last_week">{% trans "Semaine précédente" %}</option>
+                </select>
+            </div>
+
+            <div class="sp-filter-section">
+                <span class="sp-filter-section-label"><i class="fas fa-calendar-alt"></i> {% trans "Mois" %}</span>
+                <select class="filter-select sp-filter-select" id="filter-mois-{{ classe_data.classe.id }}" onchange="handleMonthFilterChange('{{ classe_data.classe.id }}')">
+                    <option value="">{% trans "— Choisir un mois —" %}</option>
+                    {% for mois in classe_data.mois_disponibles %}
+                        <option value="{{ mois.value }}">{{ mois.nom }} {{ mois.annee }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sp-filter-section sp-filter-section--dates">
+                <span class="sp-filter-section-label"><i class="fas fa-calendar-range"></i> {% trans "Plage personnalisée" %}</span>
+                <div class="sp-date-range">
+                    <input type="date" class="filter-date-input sp-date-input" id="filter-date-debut-{{ classe_data.classe.id }}"
+                           aria-label="{% trans 'Date de début' %}" onchange="handleCustomDateChange('{{ classe_data.classe.id }}')">
+                    <span class="sp-date-sep">→</span>
+                    <input type="date" class="filter-date-input sp-date-input" id="filter-date-fin-{{ classe_data.classe.id }}"
+                           aria-label="{% trans 'Date de fin' %}" onchange="handleCustomDateChange('{{ classe_data.classe.id }}')">
+                </div>
+            </div>
+
+            <div class="sp-filter-actions">
+                {% now "n" as current_mois %}
+                {% now "Y" as current_annee %}
+                <a href="{% url 'directeur:imprimer_liste_presence' classe_data.classe.id current_mois current_annee %}{% if periode_selectionnee %}?periode={{ periode_selectionnee.id }}{% endif %}"
+                   class="sp-print-btn btn-print-presence btn-print-presence-inline"
+                   id="print-link-{{ classe_data.classe.id }}"
+                   data-print-pattern="{% url 'directeur:imprimer_liste_presence' classe_data.classe.id 0 0 %}"
+                   data-periode-query="{% if periode_selectionnee %}?periode={{ periode_selectionnee.id }}{% endif %}"
+                   title="{% trans 'Imprimer la liste de présence' %}">
+                    <i class="fas fa-print"></i> {% trans "Imprimer" %}
+                </a>
+                <button type="button" class="btn-reset-filters sp-reset-btn" onclick="resetPresenceFilters('{{ classe_data.classe.id }}')">
+                    <i class="fas fa-redo"></i> {% trans "Réinitialiser" %}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="presence-table-container sp-table-wrap">
+        <table class="presence-results-table presence-results-table--large">
+            <thead>
+                <tr>
+                    <th>{% trans "Élève" %}</th>
+                    <th>{% trans "Jours" %}</th>
+                    <th>{% trans "Présents" %}</th>
+                    <th>{% trans "Absents" %}</th>
+                    <th>{% trans "Retards" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody id="presence-tbody-{{ classe_data.classe.id }}">
+                {% for eleve_data in classe_data.eleves_presences %}
+                    <tr class="student-row"
+                        data-eleve-id="{{ eleve_data.eleve.id }}"
+                        data-nom="{{ eleve_data.eleve.nom|lower }}"
+                        data-prenom="{{ eleve_data.eleve.prenom|lower }}"
+                        data-matricule="{{ eleve_data.eleve.numero_eleve|lower }}"
+                        data-absents="{{ eleve_data.absents|default:'0' }}"
+                        data-retards="{{ eleve_data.retards|default:'0' }}">
+                        <td class="eleve-cell">
+                            <div class="eleve-info">
+                                <div class="eleve-avatar"><i class="fas fa-user"></i></div>
+                                <span class="eleve-nom">{{ eleve_data.eleve.nom }} {{ eleve_data.eleve.prenom }}</span>
+                            </div>
+                        </td>
+                        <td class="jours-cell"><span class="jours-count">{{ eleve_data.total_jours }}</span></td>
+                        <td class="presents-cell"><span class="presents-badge">{{ eleve_data.presents }}</span></td>
+                        <td class="absents-cell"><span class="absents-badge">{{ eleve_data.absents }}</span></td>
+                        <td class="retards-cell"><span class="retards-badge">{{ eleve_data.retards }}</span></td>
+                        <td class="actions-cell">
+                            <div class="actions-buttons">
+                                <button type="button" class="btn-action-mini info"
+                                        title="{% trans 'Voir les présences et absences' %}"
+                                        onclick="ouvrirModalHistoriquePresence({{ eleve_data.eleve.id }}, {{ classe_data.classe.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn-action-mini success btn-justify-absence"
+                                        title="{% trans 'Justifier une absence' %}"
+                                        style="{% if not eleve_data.absences_details %}display:none;{% endif %}"
+                                        onclick="ouvrirModalJustification({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }})">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                                <button type="button" class="btn-action-mini warning" title="{% trans 'Ajouter une sanction' %}"
+                                        onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }})">
+                                    <i class="fas fa-gavel"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr class="presence-empty-row">
+                        <td colspan="6" class="no-data">
+                            <i class="fas fa-info-circle"></i>
+                            {% trans "Aucun élève inscrit dans cette classe" %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="presence-cards-container" id="presence-cards-{{ classe_data.classe.id }}">
+        {% for eleve_data in classe_data.eleves_presences %}
+            <div class="presence-student-card student-row"
+                 data-eleve-id="{{ eleve_data.eleve.id }}"
+                 data-nom="{{ eleve_data.eleve.nom|lower }}"
+                 data-prenom="{{ eleve_data.eleve.prenom|lower }}"
+                 data-matricule="{{ eleve_data.eleve.numero_eleve|lower }}"
+                 data-absents="{{ eleve_data.absents|default:'0' }}"
+                 data-retards="{{ eleve_data.retards|default:'0' }}">
+                <div class="presence-card-header">
+                    <div class="presence-card-info">
+                        <div class="presence-card-avatar"><i class="fas fa-user"></i></div>
+                        <div>
+                            <div class="presence-card-name">{{ eleve_data.eleve.nom }} {{ eleve_data.eleve.prenom }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="presence-card-stats">
+                    <div class="presence-stat-item"><span class="presence-stat-label">{% trans "Jours" %}</span><span class="presence-stat-value jours-count">{{ eleve_data.total_jours }}</span></div>
+                    <div class="presence-stat-item"><span class="presence-stat-label">{% trans "Présents" %}</span><span class="presence-stat-value presents-badge">{{ eleve_data.presents }}</span></div>
+                    <div class="presence-stat-item"><span class="presence-stat-label">{% trans "Absents" %}</span><span class="presence-stat-value absents-badge">{{ eleve_data.absents }}</span></div>
+                    <div class="presence-stat-item"><span class="presence-stat-label">{% trans "Retards" %}</span><span class="presence-stat-value retards-badge">{{ eleve_data.retards }}</span></div>
+                </div>
+                <div class="presence-card-actions">
+                    <div class="actions-buttons">
+                        <button type="button" class="btn-action-mini info" title="{% trans 'Voir les présences et absences' %}" onclick="ouvrirModalHistoriquePresence({{ eleve_data.eleve.id }}, {{ classe_data.classe.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn-action-mini success btn-justify-absence" title="{% trans 'Justifier une absence' %}" style="{% if not eleve_data.absences_details %}display:none;{% endif %}" onclick="ouvrirModalJustification({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }})">
+                            <i class="fas fa-check-circle"></i>
+                        </button>
+                        <button type="button" class="btn-action-mini warning" title="{% trans 'Ajouter une sanction' %}" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }})">
+                            <i class="fas fa-gavel"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>

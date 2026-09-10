@@ -1,0 +1,63 @@
+{% load i18n %}
+<article class="pers-member-card {% if card_type == 'professeur' %}pers-member-card--prof professeur-card{% endif %}"
+         data-actif="{% if member.actif %}1{% else %}0{% endif %}"
+         {% if card_type == 'professeur' and member.matiere_principale %}data-matiere="{{ member.matiere_principale.id }}"{% endif %}
+         data-search="{{ member.nom_complet|lower }} {{ member.email|lower|default:'' }} {{ member.telephone|default:''|lower }} {% if card_type == 'professeur' %}{{ member.matiere_display|lower }}{% else %}{{ member.get_fonction_display|lower }}{% endif %}">
+    <div class="pers-card-head">
+        <div class="pers-card-avatar {% if card_type == 'professeur' %}pers-card-avatar--prof{% endif %}">
+            <i class="fas {% if card_type == 'professeur' %}fa-chalkboard-teacher{% else %}{{ category_icon|default:'fa-user-tie' }}{% endif %}" aria-hidden="true"></i>
+        </div>
+        <div class="pers-card-head-text">
+            <h3 class="pers-card-name">{{ member.nom_complet }}</h3>
+            <p class="pers-card-role">
+                {% if card_type == 'professeur' %}
+                    {{ member.matiere_display }}
+                {% else %}
+                    {{ member.get_fonction_display }}
+                {% endif %}
+            </p>
+            {% if card_type == 'professeur' and member.niveau_display %}
+                <span class="pers-card-badge">{{ member.niveau_display }}</span>
+            {% elif card_type != 'professeur' and member.numero_employe %}
+                <span class="pers-card-badge">{{ member.numero_employe }}</span>
+            {% endif %}
+        </div>
+        <span class="pers-status-chip {% if member.actif %}pers-status-chip--ok{% else %}pers-status-chip--off{% endif %}" title="{% if member.actif %}{% trans 'Actif' %}{% else %}{% trans 'Inactif' %}{% endif %}">
+            {% if member.actif %}<i class="fas fa-circle"></i> {% trans "Actif" %}{% else %}<i class="fas fa-circle"></i> {% trans "Inactif" %}{% endif %}
+        </span>
+    </div>
+
+    <div class="pers-card-body">
+        {% if member.email %}
+            <p class="pers-card-meta"><i class="fas fa-envelope"></i> {{ member.email|truncatechars:32 }}</p>
+        {% endif %}
+        {% if member.telephone %}
+            <p class="pers-card-meta"><i class="fas fa-phone"></i> {{ member.telephone|truncatechars:18 }}</p>
+        {% endif %}
+    </div>
+
+    <div class="pers-card-foot">
+        {% if card_type == 'professeur' %}
+            <a href="{% url 'professeur:detail_professeur' member.id %}" class="pers-btn pers-btn-ghost" title="{% trans 'Voir le profil' %}">
+                <i class="fas fa-eye"></i> {% trans "Profil" %}
+            </a>
+            <a href="{% url 'professeur:modifier_professeur' member.id %}" class="pers-btn pers-btn-primary" title="{% trans 'Modifier' %}">
+                <i class="fas fa-edit"></i> {% trans "Modifier" %}
+            </a>
+            <form method="post" action="{% url 'professeur:toggle_actif' member.id %}" class="pers-toggle-form">
+                {% csrf_token %}
+                <button type="submit" class="pers-btn {% if member.actif %}pers-btn-warn{% else %}pers-btn-success{% endif %}" title="{% if member.actif %}{% trans 'Désactiver' %}{% else %}{% trans 'Activer' %}{% endif %}">
+                    <i class="fas fa-{% if member.actif %}pause{% else %}play{% endif %}"></i>
+                </button>
+            </form>
+        {% else %}
+            <a href="{% url 'personnel:detail_personnel' member.id %}" class="pers-btn pers-btn-ghost" title="{% trans 'Voir le profil' %}">
+                <i class="fas fa-eye"></i> {% trans "Profil" %}
+            </a>
+            <a href="{% url 'personnel:toggle_actif' member.id %}" class="pers-btn {% if member.actif %}pers-btn-warn{% else %}pers-btn-success{% endif %}" title="{% if member.actif %}{% trans 'Désactiver' %}{% else %}{% trans 'Activer' %}{% endif %}">
+                <i class="fas fa-{% if member.actif %}pause{% else %}play{% endif %}"></i>
+                {% if member.actif %}{% trans "Désactiver" %}{% else %}{% trans "Activer" %}{% endif %}
+            </a>
+        {% endif %}
+    </div>
+</article>

@@ -159,7 +159,7 @@
                 </span>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     {% for periode in periodes %}
-                        <a href="?periode={{ periode.id }}" 
+                        <a href="?periode={{ periode.id }}{% if classe_selectionnee %}&classe={{ classe_selectionnee.id }}{% endif %}" 
                            class="periode-tab-btn {% if periode_active and periode_active.id == periode.id %}active{% endif %}"
                            style="padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 0.8rem; 
                                   background: {% if periode_active and periode_active.id == periode.id %}var(--primary); color: white;{% else %}white; color: var(--text-primary); border: 1px solid var(--gray-300);{% endif %};
@@ -172,11 +172,11 @@
         </div>
         {% endif %}
 
-        {% if classes_avec_justifications %}
+        {% if classes_avec_justifications or classe_selectionnee %}
         <div class="classes-tabs-container">
             <div class="classes-tabs">
                 {% for classe_data in classes_avec_justifications %}
-                    <a href="?periode={{ periode_active.id|default:'' }}&classe={{ classe_data.classe.id }}" 
+                    <a href="?{% if periode_active %}periode={{ periode_active.id }}&{% endif %}classe={{ classe_data.classe.id }}" 
                        class="classe-tab {% if classe_selectionnee and classe_selectionnee.id == classe_data.classe.id %}active{% elif not classe_selectionnee and forloop.first %}active{% endif %}">
                         <i class="fas fa-chalkboard"></i>
                         <span>{{ classe_data.classe.nom }}</span>
@@ -277,6 +277,9 @@
                                     <input type="hidden" name="justification_id" value="{{ justification.id }}">
                                     {% if periode_active %}
                                         <input type="hidden" name="periode" value="{{ periode_active.id }}">
+                                    {% endif %}
+                                    {% if classe_selectionnee %}
+                                        <input type="hidden" name="classe" value="{{ classe_selectionnee.id }}">
                                     {% endif %}
                                     <div class="form-commentaire">
                                         <label for="commentaire-{{ justification.id }}">{% trans "Commentaire (optionnel)" %}</label>

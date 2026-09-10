@@ -273,6 +273,9 @@ class MatiereController:
             'par_niveau': {},
         }
         
+        stats['obligatoires'] = matieres.filter(type_matiere='obligatoire').count()
+        stats['optionnelles'] = matieres.filter(type_matiere='optionnelle').count()
+
         # Compter par type
         for type_matiere, label in Matiere.TYPE_MATIERE_CHOICES:
             count = matieres.filter(type_matiere=type_matiere).count()
@@ -308,6 +311,19 @@ class MatiereController:
                     matiere_data['coefficients_par_groupe'][coeff.nom_groupe] = coeff.coefficient
             
             matieres_avec_coefficients.append(matiere_data)
+
+        matieres_groupes = []
+        for type_matiere, label in Matiere.TYPE_MATIERE_CHOICES:
+            groupe_items = [
+                item for item in matieres_avec_coefficients
+                if item['matiere'].type_matiere == type_matiere
+            ]
+            if groupe_items:
+                matieres_groupes.append({
+                    'type': type_matiere,
+                    'label': label,
+                    'matieres': groupe_items,
+                })
         
         departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom') if est_superieur else []
         
@@ -345,6 +361,7 @@ class MatiereController:
         context = {
             'matieres': matieres,
             'matieres_avec_coefficients': matieres_avec_coefficients,
+            'matieres_groupes': matieres_groupes,
             'matieres_par_filiere': matieres_par_filiere,
             'classes': classes,
             'groupes_classes': groupes_liste,
@@ -708,6 +725,8 @@ class MatiereController:
             'total': matieres.count(),
             'actives': matieres.filter(actif=True).count(),
             'inactives': matieres.filter(actif=False).count(),
+            'obligatoires': matieres.filter(type_matiere='obligatoire').count(),
+            'optionnelles': matieres.filter(type_matiere='optionnelle').count(),
             'par_type': {},
             'par_niveau': {},
         }
@@ -719,6 +738,19 @@ class MatiereController:
             count = matieres.filter(niveau=niveau).count()
             if count > 0:
                 stats['par_niveau'][label] = count
+
+        matieres_groupes = []
+        for type_matiere, label in Matiere.TYPE_MATIERE_CHOICES:
+            groupe_items = [
+                item for item in matieres_avec_coefficients
+                if item['matiere'].type_matiere == type_matiere
+            ]
+            if groupe_items:
+                matieres_groupes.append({
+                    'type': type_matiere,
+                    'label': label,
+                    'matieres': groupe_items,
+                })
         
         departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom') if est_superieur else []
         
@@ -781,6 +813,7 @@ class MatiereController:
             'coefficients_existants': coefficients_existants,
             'matieres': matieres,
             'matieres_avec_coefficients': matieres_avec_coefficients,
+            'matieres_groupes': matieres_groupes,
             'matieres_par_filiere': matieres_par_filiere,
             'stats': stats,
             'departments': departments,

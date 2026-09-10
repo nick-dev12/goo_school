@@ -1,0 +1,25 @@
+{% load i18n %}
+
+<div class="prof-panel-intro">
+    <h2 class="prof-panel-title"><i class="fas fa-folder-open"></i> {% trans "Dossier employé" %}</h2>
+    <p class="prof-panel-desc">{% trans "Consultez le dossier complet ou complétez les informations manquantes." %}</p>
+</div>
+
+<nav class="prof-subnav" role="tablist" aria-label="{% trans 'Sections du dossier' %}">
+    <button type="button" role="tab" class="prof-subnav-btn {% if dossier_section != 'completer' %}active{% endif %}" data-dossier-tab="consulter" aria-selected="{% if dossier_section != 'completer' %}true{% else %}false{% endif %}">
+        <i class="fas fa-eye"></i>
+        <span>{% trans "Consulter" %}</span>
+    </button>
+    <button type="button" role="tab" class="prof-subnav-btn {% if dossier_section == 'completer' %}active{% endif %}" data-dossier-tab="completer" aria-selected="{% if dossier_section == 'completer' %}true{% else %}false{% endif %}">
+        <i class="fas fa-edit"></i>
+        <span>{% trans "Mettre à jour" %}</span>
+    </button>
+</nav>
+
+<div class="prof-dossier-pane {% if dossier_section != 'completer' %}active{% endif %}" data-dossier-panel="consulter" role="tabpanel">
+    {% include 'school_admin/directeur/personnel/partials/dossier_employe_lecture.html' with employe=professeur %}
+</div>
+
+<div class="prof-dossier-pane {% if dossier_section == 'completer' %}active{% endif %}" data-dossier-panel="completer" role="tabpanel">
+    {% include 'school_admin/directeur/personnel/partials/dossier_complementaire_edition.html' %}
+</div>

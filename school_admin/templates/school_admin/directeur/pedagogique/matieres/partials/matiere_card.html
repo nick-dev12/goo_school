@@ -1,0 +1,70 @@
+{% load i18n classe_tags notes_tags %}
+<article class="mat-matiere-card matiere-card"
+         data-matiere-id="{{ matiere.id }}"
+         data-matiere="{{ matiere.nom|lower }}"
+         data-type="{{ matiere.type_matiere }}"
+         data-search="{{ matiere.nom|lower }} {{ matiere.type_display|lower }}">
+    <div class="mat-card-head">
+        <div class="mat-card-icon"><i class="fas fa-book" aria-hidden="true"></i></div>
+        <div class="mat-card-head-text">
+            <h3 class="mat-card-name">{{ matiere.nom }}</h3>
+            <p class="mat-card-type">{{ matiere.type_display }}</p>
+        </div>
+        <span class="mat-type-chip mat-type-chip--{{ matiere.type_matiere }}">{{ matiere.type_display }}</span>
+    </div>
+
+    <div class="mat-card-body">
+        <div class="mat-card-meta">
+            {% if est_superieur %}
+                {% if matiere.credits %}<span><i class="fas fa-coins"></i> {{ matiere.credits }} {% trans "crédits" %}</span>{% endif %}
+                {% if matiere.department %}<span><i class="fas fa-graduation-cap"></i> {{ matiere.department.nom }}</span>{% endif %}
+                {% if matiere.module %}<span><i class="fas fa-cube"></i> {{ matiere.module.nom }}</span>{% endif %}
+            {% elif est_lycee and matiere_data and matiere_data.coefficients_par_groupe %}
+                <span><i class="fas fa-weight-hanging"></i> {% trans "Coeff. par groupe" %}</span>
+            {% else %}
+                <span><i class="fas fa-weight-hanging"></i> {% trans "Coeff." %} {{ matiere.coefficient }}</span>
+            {% endif %}
+            <span><i class="fas fa-users"></i> {{ matiere.classes.count }} {% trans "classe" %}{{ matiere.classes.count|pluralize }}</span>
+            {% if not est_superieur and matiere.niveau_display %}
+                <span><i class="fas fa-layer-group"></i> {{ matiere.niveau_display }}</span>
+            {% endif %}
+        </div>
+
+        {% if classes_list %}
+            <div class="mat-classes-list">
+                {% for classe in classes_list|slice:":6" %}
+                    <span class="mat-classe-badge" title="{{ classe.nom }}">{{ classe.nom }}{% if classe.niveau == 'superieur' %} ({{ classe.get_libelle_niveau_superieur_complet }}){% endif %}</span>
+                {% endfor %}
+                {% if classes_list|length > 6 %}
+                    <span class="mat-classe-badge mat-classe-badge--more">+{{ classes_list|length|add:"-6" }}</span>
+                {% endif %}
+            </div>
+        {% elif matiere.classes.exists %}
+            <div class="mat-classes-list">
+                {% if est_lycee and matiere_data and matiere_data.coefficients_par_groupe %}
+                    {% with groupes=matiere.classes.all|group_classes %}
+                        {% for groupe in groupes|slice:":4" %}
+                            <span class="mat-classe-badge" title="{{ groupe.nom }}">
+                                {{ groupe.nom }}
+                                {% if groupe.nom in matiere_data.coefficients_par_groupe %}· {{ matiere_data.coefficients_par_groupe|get_item:groupe.nom }}{% endif %}
+                            </span>
+                        {% endfor %}
+                    {% endwith %}
+                {% else %}
+                    {% with groupes=matiere.classes.all|group_classes %}
+                        {% for groupe in groupes|slice:":6" %}
+                            <span class="mat-classe-badge">{{ groupe.nom }}{% if groupe.count > 1 %} ×{{ groupe.count }}{% endif %}</span>
+                        {% endfor %}
+                    {% endwith %}
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="mat-card-foot">
+        <span class="mat-card-date"><i class="fas fa-calendar-alt"></i> {{ matiere.date_creation|date:"d/m/Y" }}</span>
+        <a href="{% url 'matiere:detail_matiere' matiere.id %}" class="mat-btn mat-btn-primary">
+            <i class="fas fa-eye"></i> {% trans "Voir la fiche" %}
+        </a>
+    </div>
+</article>

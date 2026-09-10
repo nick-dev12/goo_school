@@ -137,6 +137,10 @@
       );
       return niveauPanel ? niveauPanel.querySelector('.classes-grid') : null;
     }
+    if (item.categorie_slug) {
+      var panel = document.getElementById('panel-' + item.categorie_slug);
+      return panel ? panel.querySelector('.classes-grid') : null;
+    }
     var tab = document.getElementById('niveau-scolaire-' + item.niveau_scolaire);
     return tab ? tab.querySelector('.classes-grid') : null;
   }

@@ -620,3 +620,147 @@
   }
 }
 
+/* ===== Documents employé & dossier ===== */
+.section-hint,
+.dossier-hint {
+  font-size: 0.8125rem;
+  color: var(--gray-600, #4b5563);
+  margin: 0 0 0.75rem 0;
+}
+
+.documents-section {
+  margin-top: 0.5rem;
+}
+
+.documents-upload-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.document-upload-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--gray-50, #f9fafb);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 8px;
+}
+
+.btn-add-document-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  background: var(--primary-light, rgba(59, 130, 246, 0.1));
+  color: var(--primary, #3b82f6);
+  border: 1px dashed var(--primary, #3b82f6);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-add-document-row:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-bottom: 1rem;
+}
+
+.document-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--white, #fff);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.document-info {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.document-info i {
+  color: var(--primary, #3b82f6);
+  font-size: 1.125rem;
+}
+
+.document-meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--gray-500, #6b7280);
+}
+
+.document-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-doc {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.btn-doc-view {
+  background: var(--primary-light, rgba(59, 130, 246, 0.1));
+  color: var(--primary, #3b82f6);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.btn-doc-download {
+  background: var(--gray-100, #f3f4f6);
+  color: var(--gray-800, #1f2937);
+  border-color: var(--gray-300, #d1d5db);
+}
+
+.dossier-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.dossier-grid .form-group-full {
+  grid-column: 1 / -1;
+}
+
+.dossier-form-actions,
+.form-add-documents {
+  margin-top: 1rem;
+}
+
+.btn-save-docs {
+  margin-top: 0.75rem;
+}
+
+.dossier-empty {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .document-upload-row,
+  .dossier-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

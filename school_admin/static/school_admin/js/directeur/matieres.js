@@ -1,281 +1,288 @@
 /**
- * Gestion des Matières - JavaScript
- * Fonctionnalités pour la page de gestion des matières
+ * Gestion des matières — UI v2
  */
 
-// Fonction pour afficher/masquer le champ coefficient selon la sélection du groupe
-window.toggleCoefficientField = function(checkbox) {
-    console.log('toggleCoefficientField appelée', checkbox);
-    if (!checkbox) {
-        console.error('toggleCoefficientField: checkbox est null');
-        return;
-    }
-    
-    const groupeWrapper = checkbox.closest('.groupe-with-coefficient');
-    if (!groupeWrapper) {
-        console.error('toggleCoefficientField: groupeWrapper non trouvé');
-        return;
-    }
-    
-    const coefficientField = groupeWrapper.querySelector('.coefficient-field-wrapper');
-    if (!coefficientField) {
-        console.error('toggleCoefficientField: coefficientField non trouvé');
-        return;
-    }
-    
-    const coefficientInput = coefficientField.querySelector('.coefficient-input');
-    if (!coefficientInput) {
-        console.error('toggleCoefficientField: coefficientInput non trouvé');
-        return;
-    }
-    
-    console.log('toggleCoefficientField: checkbox.checked =', checkbox.checked);
+window.toggleCoefficientField = function (checkbox) {
+    if (!checkbox) return;
+    var groupeWrapper = checkbox.closest('.groupe-with-coefficient');
+    if (!groupeWrapper) return;
+    var coefficientField = groupeWrapper.querySelector('.coefficient-field-wrapper');
+    var coefficientInput = coefficientField && coefficientField.querySelector('.coefficient-input');
+    if (!coefficientField || !coefficientInput) return;
     if (checkbox.checked) {
-        // Utiliser la classe 'show' pour afficher le champ (le CSS avec !important gère l'affichage)
         coefficientField.classList.add('show');
         coefficientInput.required = true;
-        console.log('toggleCoefficientField: champ coefficient affiché pour', checkbox.value);
-        console.log('toggleCoefficientField: coefficientField.classList =', coefficientField.classList.toString());
     } else {
-        // Retirer la classe 'show' pour masquer le champ
         coefficientField.classList.remove('show');
         coefficientInput.required = false;
-        console.log('toggleCoefficientField: champ coefficient masqué pour', checkbox.value);
     }
 };
 
-// Initialiser l'affichage des champs coefficient
-window.initCoefficientFields = function() {
-    console.log('initCoefficientFields appelée');
-    const checkboxes = document.querySelectorAll('.groupe-checkbox-input');
-    console.log('Nombre de checkboxes trouvées:', checkboxes.length);
-    checkboxes.forEach(function(checkbox) {
-        console.log('Initialisation checkbox:', checkbox.value, 'checked:', checkbox.checked);
-        if (typeof window.toggleCoefficientField === 'function') {
-            window.toggleCoefficientField(checkbox);
-        } else {
-            console.error('toggleCoefficientField n\'est pas définie');
-        }
+window.initCoefficientFields = function () {
+    document.querySelectorAll('.groupe-checkbox-input').forEach(function (checkbox) {
+        window.toggleCoefficientField(checkbox);
     });
 };
 
-// Toggle du formulaire d'ajout - Modal plein écran
-window.toggleAddForm = function() {
-    const formContainer = document.getElementById('addFormContainer');
-    if (formContainer) {
-        const isVisible = formContainer.style.display === 'flex';
-        formContainer.style.display = isVisible ? 'none' : 'flex';
-        document.body.style.overflow = isVisible ? '' : 'hidden';
-        
-        if (!isVisible) {
-            // Focus sur le premier champ
-            const firstInput = formContainer.querySelector('input[type="text"]');
-            if (firstInput) {
-                setTimeout(() => firstInput.focus(), 100);
+window.toggleAddForm = function () {
+    var formContainer = document.getElementById('addFormContainer');
+    if (!formContainer) return;
+    var isVisible = formContainer.style.display === 'flex';
+    formContainer.style.display = isVisible ? 'none' : 'flex';
+    document.body.style.overflow = isVisible ? '' : 'hidden';
+    if (!isVisible) {
+        var firstInput = formContainer.querySelector('input[type="text"]');
+        if (firstInput) setTimeout(function () { firstInput.focus(); }, 100);
+        setTimeout(function () {
+            if (typeof window.initCoefficientFields === 'function') {
+                window.initCoefficientFields();
             }
-            
-            // Initialiser les champs coefficient pour les établissements lycée
-            setTimeout(function() {
-                if (typeof window.initCoefficientFields === 'function') {
-                    window.initCoefficientFields();
-                } else {
-                    console.error('initCoefficientFields n\'est pas définie');
-                }
-            }, 200);
-        }
+        }, 200);
     }
 };
 
-// Fermer le modal avec Escape
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const formContainer = document.getElementById('addFormContainer');
-        if (formContainer && formContainer.style.display === 'flex') {
-            window.toggleAddForm();
+window.confirmDelete = function (matiereId) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette matière ? Cette action est irréversible.')) {
+        window.location.href = '/matieres/' + matiereId + '/supprimer/';
+    }
+};
+
+(function () {
+    'use strict';
+
+    var state = { search: '', type: 'all' };
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            var formContainer = document.getElementById('addFormContainer');
+            if (formContainer && formContainer.style.display === 'flex') {
+                window.toggleAddForm();
+            }
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initToolbar();
+        initTypeTabs();
+        initSuperieurNav();
+        applyFilters();
+        if (typeof window.layoutTabsOverflowNav === 'function') {
+            window.layoutTabsOverflowNav();
+        }
+    });
+
+    function activateTypeTab(typeId) {
+        var tabs = document.querySelectorAll('.mat-type-tab-btn');
+        var panes = document.querySelectorAll('.mat-type-pane');
+        var matched = false;
+        tabs.forEach(function (btn) {
+            var isTarget = btn.getAttribute('data-type-tab') === typeId;
+            btn.classList.toggle('active', isTarget);
+            btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+            if (isTarget) matched = true;
+        });
+        panes.forEach(function (pane) {
+            pane.classList.toggle('active', pane.getAttribute('data-type-pane') === typeId);
+        });
+        if (!matched && tabs[0]) {
+            tabs[0].click();
         }
     }
-});
 
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Page de gestion des matières chargée');
-    
-    // Filtres par type de matière
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    if (filterBtns.length > 0) {
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                // Retirer la classe active de tous les boutons
-                filterBtns.forEach(b => b.classList.remove('active'));
-                // Ajouter la classe active au bouton cliqué
+    function initTypeTabs() {
+        document.querySelectorAll('.mat-type-tab-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                activateTypeTab(this.getAttribute('data-type-tab'));
+                if (typeof window.layoutTabsOverflowNav === 'function') {
+                    window.layoutTabsOverflowNav();
+                }
+                applyFilters();
+            });
+        });
+    }
+
+    function initToolbar() {
+        var searchInput = document.getElementById('matSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                state.search = this.value.trim().toLowerCase();
+                applyFilters();
+            });
+        }
+        document.querySelectorAll('[data-mat-filter]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('[data-mat-filter]').forEach(function (b) {
+                    b.classList.remove('active');
+                });
                 this.classList.add('active');
-                
-                const filter = this.getAttribute('data-filter');
-                const allCards = document.querySelectorAll('.matiere-card');
-                
-                allCards.forEach(card => {
-                    if (filter === 'all') {
-                        card.style.display = 'block';
-                    } else {
-                        const cardType = card.getAttribute('data-type');
-                        if (cardType === filter) {
-                            card.style.display = 'block';
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    }
+                state.type = this.getAttribute('data-mat-filter');
+                if (state.type === 'obligatoire' || state.type === 'optionnelle') {
+                    activateTypeTab(state.type);
+                }
+                applyFilters();
+            });
+        });
+    }
+
+    function getVisibleCardsContainer() {
+        var activeModule = document.querySelector('.module-panel.active');
+        if (activeModule) {
+            return activeModule.querySelector('.mat-cards-grid');
+        }
+        return document.querySelector('.mat-list-wrap');
+    }
+
+    function cardMatches(card) {
+        var searchBlob = (card.getAttribute('data-search') || card.getAttribute('data-matiere') || '').toLowerCase();
+        var cardType = card.getAttribute('data-type') || '';
+        if (state.search && searchBlob.indexOf(state.search) === -1) return false;
+        if (state.type !== 'all' && cardType !== state.type) return false;
+        return true;
+    }
+
+    function applyFilters() {
+        var scope = document.querySelector('.mat-list-wrap');
+        if (!scope) return;
+
+        var cards = scope.querySelectorAll('.mat-matiere-card');
+        var visible = 0;
+
+        cards.forEach(function (card) {
+            var panel = card.closest('.module-panel');
+            if (panel && !panel.classList.contains('active')) {
+                card.classList.remove('mat-hidden');
+                return;
+            }
+            var typePane = card.closest('.mat-type-pane');
+            if (typePane && !typePane.classList.contains('active')) {
+                card.classList.remove('mat-hidden');
+                return;
+            }
+            var show = cardMatches(card);
+            card.classList.toggle('mat-hidden', !show);
+            if (show && (!panel || panel.classList.contains('active')) && (!typePane || typePane.classList.contains('active'))) {
+                visible += 1;
+            }
+        });
+
+        document.querySelectorAll('.mat-type-pane.active').forEach(function (pane) {
+            var paneCards = pane.querySelectorAll('.mat-matiere-card');
+            var paneVisible = 0;
+            paneCards.forEach(function (card) {
+                if (!card.classList.contains('mat-hidden')) paneVisible += 1;
+            });
+            var emptyMsg = pane.querySelector('.mat-type-empty');
+            if (emptyMsg) {
+                emptyMsg.hidden = paneVisible > 0 || paneCards.length === 0;
+            }
+        });
+
+        var activeModule = document.querySelector('.module-panel.active');
+        if (activeModule) {
+            var modEmpty = activeModule.querySelector('.mat-module-empty');
+            var modCards = activeModule.querySelectorAll('.mat-matiere-card');
+            var modVisible = 0;
+            modCards.forEach(function (c) {
+                if (!c.classList.contains('mat-hidden')) modVisible += 1;
+            });
+            if (modEmpty) modEmpty.hidden = modVisible > 0 || modCards.length === 0;
+        }
+
+        var resultsLine = document.getElementById('matResultsLine');
+        if (resultsLine) {
+            var filtering = state.search || state.type !== 'all';
+            var count = 0;
+            cards.forEach(function (c) {
+                var panel = c.closest('.module-panel');
+                if (panel && !panel.classList.contains('active')) return;
+                var typePane = c.closest('.mat-type-pane');
+                if (typePane && !typePane.classList.contains('active')) return;
+                if (!c.classList.contains('mat-hidden')) count += 1;
+            });
+            if (filtering && cards.length > 0) {
+                resultsLine.textContent = count + ' matière' + (count > 1 ? 's' : '') + ' affichée' + (count > 1 ? 's' : '');
+            } else {
+                resultsLine.textContent = '';
+            }
+        }
+    }
+
+    function initSuperieurNav() {
+        if (!document.querySelector('.mat-superieur-nav')) return;
+
+        function activateFirstModuleInNiveau(niveauPanel) {
+            if (!niveauPanel) return;
+            var subs = niveauPanel.querySelectorAll('.sub-tab-btn');
+            var mods = niveauPanel.querySelectorAll('.module-panel');
+            subs.forEach(function (b) { b.classList.remove('active'); });
+            mods.forEach(function (p) { p.classList.remove('active'); });
+            if (subs[0]) subs[0].classList.add('active');
+            if (mods[0]) mods[0].classList.add('active');
+        }
+
+        function resetNiveauTabs(panel) {
+            if (!panel) return;
+            var nivBtns = panel.querySelectorAll('.niveau-tab-btn');
+            var nivPanels = panel.querySelectorAll('.niveau-panel');
+            nivBtns.forEach(function (b) { b.classList.remove('active'); });
+            nivPanels.forEach(function (p) { p.classList.remove('active'); });
+            if (nivBtns[0]) nivBtns[0].classList.add('active');
+            if (nivPanels[0]) {
+                nivPanels[0].classList.add('active');
+                activateFirstModuleInNiveau(nivPanels[0]);
+            }
+        }
+
+        function relayout() {
+            if (typeof window.layoutTabsOverflowNav === 'function') {
+                window.layoutTabsOverflowNav();
+            }
+            applyFilters();
+        }
+
+        document.querySelectorAll('.main-tab-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var depId = btn.getAttribute('data-dep-id');
+                document.querySelectorAll('.main-tab-btn').forEach(function (b) {
+                    b.classList.remove('active');
+                    b.setAttribute('aria-selected', 'false');
+                });
+                btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
+                document.querySelectorAll('.department-panel').forEach(function (panel) {
+                    panel.classList.toggle('active', panel.getAttribute('data-dep-id') === depId);
+                });
+                resetNiveauTabs(document.querySelector('.department-panel[data-dep-id="' + depId + '"]'));
+                relayout();
+            });
+        });
+
+        document.querySelectorAll('.department-panel').forEach(function (panel) {
+            panel.querySelectorAll('.niveau-tab-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var idx = btn.getAttribute('data-niveau-idx');
+                    panel.querySelectorAll('.niveau-tab-btn').forEach(function (b) { b.classList.remove('active'); });
+                    btn.classList.add('active');
+                    panel.querySelectorAll('.niveau-panel').forEach(function (p) {
+                        p.classList.toggle('active', p.getAttribute('data-niveau-idx') === idx);
+                    });
+                    activateFirstModuleInNiveau(panel.querySelector('.niveau-panel[data-niveau-idx="' + idx + '"]'));
+                    relayout();
+                });
+            });
+            panel.querySelectorAll('.niveau-panel').forEach(function (niveauPanel) {
+                niveauPanel.querySelectorAll('.sub-tab-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var modId = btn.getAttribute('data-module-id');
+                        niveauPanel.querySelectorAll('.sub-tab-btn').forEach(function (b) { b.classList.remove('active'); });
+                        btn.classList.add('active');
+                        niveauPanel.querySelectorAll('.module-panel').forEach(function (p) {
+                            p.classList.toggle('active', p.getAttribute('data-module-id') === modId);
+                        });
+                        relayout();
+                    });
                 });
             });
         });
     }
-    
-    // Recherche en temps réel
-    const searchInput = document.querySelector('.search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const searchCards = document.querySelectorAll('.matiere-card');
-            
-            searchCards.forEach(card => {
-                const matiereName = card.getAttribute('data-matiere') || '';
-                if (matiereName.includes(searchTerm)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
-    }
-    
-    // Animation d'apparition des cartes
-    const animatedCards = document.querySelectorAll('.matiere-card');
-    animatedCards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-            card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-        }, index * 100);
-    });
-    
-    // Effet de survol sur les cartes de matières
-    const hoverCards = document.querySelectorAll('.matiere-card');
-    hoverCards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-2px)';
-            this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-            this.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
-        });
-    });
-    
-    // Gestion des boutons d'action
-    const actionBtns = document.querySelectorAll('.action-btn');
-    actionBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            const action = this.classList.contains('btn-edit') ? 'modifier' : 
-                          this.classList.contains('btn-delete') ? 'supprimer' : 'voir';
-            
-            if (action === 'supprimer') {
-                if (confirm('Êtes-vous sûr de vouloir supprimer cette matière ?')) {
-                    // Logique de suppression ici
-                    console.log('Suppression de la matière');
-                }
-            } else if (action === 'modifier') {
-                // Logique de modification ici
-                console.log('Modification de la matière');
-            } else {
-                // Redirection vers la page de détail
-                const href = this.getAttribute('href');
-                if (href) {
-                    window.location.href = href;
-                }
-            }
-        });
-    });
-    
-    // Validation du formulaire d'ajout
-    const addForm = document.getElementById('ajouterMatiereForm');
-    if (addForm) {
-        addForm.addEventListener('submit', function(e) {
-            const nom = document.getElementById('nom').value.trim();
-            const type = document.getElementById('type_matiere').value;
-            const niveau = document.getElementById('niveau').value;
-            
-            if (!nom) {
-                e.preventDefault();
-                alert('Le nom de la matière est obligatoire');
-                document.getElementById('nom').focus();
-                return false;
-            }
-            
-            if (!type) {
-                e.preventDefault();
-                alert('Le type de matière est obligatoire');
-                document.getElementById('type_matiere').focus();
-                return false;
-            }
-            
-            if (!niveau) {
-                e.preventDefault();
-                alert('Le niveau d\'enseignement est obligatoire');
-                document.getElementById('niveau').focus();
-                return false;
-            }
-        });
-    }
-    
-    // Gestion des checkboxes de classes
-    const classCheckboxes = document.querySelectorAll('.class-checkbox input[type="checkbox"]');
-    classCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const label = this.closest('.class-checkbox');
-            if (this.checked) {
-                label.style.backgroundColor = 'var(--primary-color)';
-                label.style.color = 'white';
-            } else {
-                label.style.backgroundColor = 'var(--gray-100)';
-                label.style.color = 'var(--gray-700)';
-            }
-        });
-    });
-    
-    // Message de confirmation pour les actions
-    function showMessage(message, type = 'info') {
-        const messageEl = document.createElement('div');
-        messageEl.className = `alert alert-${type}`;
-        messageEl.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
-            <span>${message}</span>
-        `;
-        
-        document.body.appendChild(messageEl);
-        
-        setTimeout(() => {
-            messageEl.style.opacity = '0';
-            messageEl.style.transform = 'translateY(-10px)';
-            setTimeout(() => {
-                messageEl.remove();
-            }, 300);
-        }, 3000);
-    }
-    
-    // Exposer la fonction globalement
-    window.showMessage = showMessage;
-});
-
-/**
- * Fonction globale pour confirmer la suppression d'une matière
- */
-window.confirmDelete = function(matiereId) {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette matière ? Cette action est irréversible.')) {
-        // Rediriger vers l'URL de suppression
-        window.location.href = `/matieres/${matiereId}/supprimer/`;
-    }
-};
+})();

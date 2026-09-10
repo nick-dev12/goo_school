@@ -1,0 +1,312 @@
+{% load i18n notes_tags %}
+
+
+
+<div class="prof-panel-intro">
+
+    <h2 class="prof-panel-title"><i class="fas fa-school"></i> {% trans "Enseignement" %}</h2>
+
+    <p class="prof-panel-desc">{% trans "Classes assignées et suivi des notes (primaire)." %}</p>
+
+</div>
+
+
+
+{% if etablissement.type_etablissement == 'primary' and affectations_primaire %}
+
+<nav class="prof-subnav prof-enseignement-subnav" role="tablist" aria-label="{% trans 'Sections enseignement' %}">
+
+    <button type="button" role="tab" class="prof-subnav-btn {% if enseignement_section != 'notes' %}active{% endif %}" data-enseignement-tab="classes" aria-selected="{% if enseignement_section != 'notes' %}true{% else %}false{% endif %}">
+
+        <i class="fas fa-users-class"></i>
+
+        <span>{% trans "Classes affectées" %}</span>
+
+    </button>
+
+    <button type="button" role="tab" class="prof-subnav-btn {% if enseignement_section == 'notes' %}active{% endif %}" data-enseignement-tab="notes" aria-selected="{% if enseignement_section == 'notes' %}true{% else %}false{% endif %}">
+
+        <i class="fas fa-book-open"></i>
+
+        <span>{% trans "Cahier de notes" %}</span>
+
+    </button>
+
+</nav>
+
+{% endif %}
+
+
+
+<div class="prof-enseignement-pane {% if enseignement_section != 'notes' %}active{% endif %}" data-enseignement-panel="classes" role="tabpanel">
+
+    <section class="prof-section-block prof-section-classes">
+
+        <h3 class="prof-section-label"><i class="fas fa-users-class"></i> {% trans "Classes affectées" %}</h3>
+
+        {% if affectations_primaire %}
+
+            <div class="classes-grid">
+
+                {% for affectation in affectations_primaire %}
+
+                    <article class="classe-item">
+
+                        <div class="classe-icon"><i class="fas fa-users"></i></div>
+
+                        <div class="classe-info">
+
+                            <h4 class="classe-name">{{ affectation.classe.nom }}</h4>
+
+                            <p class="classe-niveau"><i class="fas fa-graduation-cap"></i> {{ affectation.get_statut_display }}</p>
+
+                            <p class="classe-effectif"><i class="fas fa-user-friends"></i> {{ affectation.classe.nombre_eleves }} {% trans "élève(s)" %}</p>
+
+                            <div class="matieres-affectees">
+
+                                {% for matiere in affectation.matieres.all %}
+
+                                    <span class="badge-matiere-mini">{{ matiere.code }}</span>
+
+                                {% endfor %}
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                {% endfor %}
+
+            </div>
+
+        {% elif professeur.classes.all %}
+
+            <div class="classes-grid">
+
+                {% for classe in professeur.classes.all %}
+
+                    <article class="classe-item">
+
+                        <div class="classe-icon"><i class="fas fa-users"></i></div>
+
+                        <div class="classe-info">
+
+                            <h4 class="classe-name">{{ classe.nom }}</h4>
+
+                            <p class="classe-niveau"><i class="fas fa-graduation-cap"></i> {{ classe.get_niveau_display }}</p>
+
+                            <p class="classe-effectif"><i class="fas fa-user-friends"></i> {{ classe.nombre_eleves }} {% trans "élève(s)" %}</p>
+
+                        </div>
+
+                    </article>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="prof-empty">
+
+                <i class="fas fa-users-class"></i>
+
+                <p>{% trans "Aucune classe affectée pour le moment." %}</p>
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+
+
+{% if etablissement.type_etablissement == 'primary' and affectations_primaire %}
+
+<div class="prof-enseignement-pane {% if enseignement_section == 'notes' %}active{% endif %}" data-enseignement-panel="notes" role="tabpanel">
+
+    <section class="prof-section-block prof-section-notes">
+
+        <h3 class="prof-section-label"><i class="fas fa-book-open"></i> {% trans "Cahier de notes" %}</h3>
+
+        {% for classe_data in cahier_notes_data %}
+
+            <div class="cahier-notes-container">
+
+                <div class="classe-header-cahier">
+
+                    <h4><i class="fas fa-chalkboard"></i> {{ classe_data.classe.nom }}</h4>
+
+                    <span class="badge-info">{{ classe_data.classe.nombre_eleves }} {% trans "élève(s)" %}</span>
+
+                </div>
+
+                <div class="matieres-tabs">
+
+                    {% for matiere_info in classe_data.matieres_info %}
+
+                        <a href="?onglet=enseignement&amp;section=notes&amp;matiere={{ matiere_info.matiere.id }}"
+
+                           class="matiere-tab {% if matiere_info.est_selectionnee %}active{% endif %}">
+
+                            <i class="fas fa-book"></i>
+
+                            <span>{{ matiere_info.matiere.code }}</span>
+
+                            {% if matiere_info.nombre_moyennes > 0 %}<span class="tab-badge">{{ matiere_info.nombre_moyennes }}</span>{% endif %}
+
+                        </a>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+            {% for matiere_info in classe_data.matieres_info %}
+
+                {% if matiere_info.est_selectionnee %}
+
+                    <div class="notes-modal-backdrop" onclick="window.location.href='?onglet=enseignement&amp;section=notes'"></div>
+
+                    <div class="notes-modal">
+
+                        <div class="notes-modal-header">
+
+                            <div>
+
+                                <h2><i class="fas fa-book-open"></i> {{ matiere_info.matiere.nom }}</h2>
+
+                                <p class="modal-subtitle">{{ classe_data.classe.nom }} — {{ matiere_info.nombre_moyennes }} {% trans "élève(s)" %}</p>
+
+                            </div>
+
+                            <a href="?onglet=enseignement&amp;section=notes" class="btn-close-modal"><i class="fas fa-times"></i></a>
+
+                        </div>
+
+                        <div class="notes-modal-content">
+
+                            {% if matiere_info.notes_detaillees %}
+
+                                <div class="notes-table-wrapper table-responsive">
+
+                                    <table class="notes-detail-table">
+
+                                        <thead>
+
+                                            <tr>
+
+                                                <th rowspan="2" class="eleve-col-header">{% trans "Élève" %}</th>
+
+                                                {% if matiere_info.evaluations %}<th colspan="{{ matiere_info.evaluations|length }}" class="evals-header">{% trans "Évaluations" %}</th>{% endif %}
+
+                                                <th rowspan="2" class="moyenne-col-header">{% trans "Moyenne" %}</th>
+
+                                                <th rowspan="2" class="appreciation-col-header">{% trans "Appréciation" %}</th>
+
+                                            </tr>
+
+                                            <tr>
+
+                                                {% for eval in matiere_info.evaluations %}
+
+                                                    <th class="eval-col-header">{{ eval.type_label }}<br><small>/{{ eval.bareme|floatformat:0 }}</small></th>
+
+                                                {% endfor %}
+
+                                            </tr>
+
+                                        </thead>
+
+                                        <tbody>
+
+                                            {% for eleve_data in matiere_info.notes_detaillees %}
+
+                                                <tr>
+
+                                                    <td class="eleve-cell">
+
+                                                        <div class="eleve-info-detail">
+
+                                                            <div class="avatar-detail">{{ eleve_data.eleve.prenom.0 }}{{ eleve_data.eleve.nom.0 }}</div>
+
+                                                            <span class="eleve-nom-detail">{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}</span>
+
+                                                        </div>
+
+                                                    </td>
+
+                                                    {% for eval in matiere_info.evaluations %}
+
+                                                        <td class="note-cell">
+
+                                                            {% with note_data=eleve_data.notes_evaluations|get_item:eval.id %}
+
+                                                                {% if note_data.note_obj %}
+
+                                                                    {% if note_data.note_obj.absent %}<span class="note-absent">{% trans "ABS" %}</span>
+
+                                                                    {% elif note_data.note_obj.note is not None %}<span class="note-valeur" style="color: {{ note_data.couleur }};">{{ note_data.note_obj.note|floatformat:2 }}</span>
+
+                                                                    {% else %}<span class="note-empty">--</span>{% endif %}
+
+                                                                {% else %}<span class="note-empty">--</span>{% endif %}
+
+                                                            {% endwith %}
+
+                                                        </td>
+
+                                                    {% endfor %}
+
+                                                    <td class="moyenne-cell">
+
+                                                        {% if eleve_data.moyenne %}
+
+                                                            <span class="moyenne-valeur">{{ eleve_data.moyenne|floatformat:2 }}/20</span>
+
+                                                        {% else %}<span class="note-empty">--</span>{% endif %}
+
+                                                    </td>
+
+                                                    <td class="appreciation-cell">{% if eleve_data.appreciation %}{{ eleve_data.appreciation }}{% else %}<span class="text-muted">--</span>{% endif %}</td>
+
+                                                </tr>
+
+                                            {% endfor %}
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+
+                            {% else %}
+
+                                <div class="empty-state-modal"><i class="fas fa-clipboard-list"></i><p>{% trans "Aucune note enregistrée" %}</p></div>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+            {% endfor %}
+
+        {% empty %}
+
+            <div class="prof-empty"><i class="fas fa-inbox"></i><p>{% trans "Aucune donnée de notes disponible" %}</p></div>
+
+        {% endfor %}
+
+    </section>
+
+</div>
+
+{% endif %}
+

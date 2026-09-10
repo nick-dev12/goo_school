@@ -1,6 +1,6 @@
 {% load i18n %}
 
-                 <form method="post" action="{% url 'professeur:ajouter_professeur' %}" class="professeur-form" id="ajouterProfesseurForm">
+                 <form method="post" action="{% url 'professeur:ajouter_professeur' %}" class="professeur-form" id="ajouterProfesseurForm" enctype="multipart/form-data">
                      {% csrf_token %}
                     
                     <!-- Messages d'erreur généraux -->
@@ -93,6 +93,8 @@
                                 <small class="form-text" id="phone-error" style="color: #dc3545; display: none;"></small>
                             </div>
                         </div>
+
+                        {% include 'school_admin/directeur/personnel/partials/champs_employe_communs.html' with prefix='prof_' form_data=form_data field_errors=field_errors %}
                     </div>
 
                     <!-- Informations professionnelles -->
@@ -278,23 +280,9 @@
                         {% endif %}
                     </div>
 
-                    <!-- Informations de connexion -->
-                    <div class="form-section">
-                        <div class="section-header">
-                            <div class="section-icon">
-                                <i class="fas fa-key"></i>
-                            </div>
-                            <h3 class="section-title">{% trans "Informations de connexion" %}</h3>
-                        </div>
-                        
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            <div>
-                                <strong>{% trans "Génération automatique du mot de passe" %}</strong>
-                                <p>{% trans "Un mot de passe provisoire sera généré automatiquement lors de la création du compte. Ce mot de passe sera affiché dans la page de détails du professeur après l'ajout." %}</p>
-                            </div>
-                        </div>
-                    </div>
+                    {% include 'school_admin/directeur/personnel/partials/champs_dossier_complementaire_form.html' with prefix='prof_doss_' dossier_data=form_data type_contrat_choices=type_contrat_choices %}
+
+                    {% include 'school_admin/directeur/personnel/partials/section_documents_employe.html' with container_id='documents-upload-prof' %}
 
                     <!-- Actions -->
                     <div class="form-actions">

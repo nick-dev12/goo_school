@@ -247,40 +247,37 @@ p {
   border-radius: 3px;
 }
 
-.key-indicators {
+.dashboard-overview .key-indicators {
   display: grid;
+  width: 100%;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.25rem;
   align-items: stretch;
 }
 
-/* Responsive pour key-indicators */
+/* Tablette : 3 cartes par ligne */
 @media (min-width: 769px) and (max-width: 1024px) {
-  .key-indicators {
+  .dashboard-overview .key-indicators {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
   }
 }
 
+/* Mobile : 2 cartes par ligne */
 @media (max-width: 768px) {
-  .key-indicators {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.875rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .key-indicators {
+  .dashboard-overview .key-indicators {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
   }
 }
 
-.indicator-card {
+.dashboard-overview .indicator-card {
   background-color: var(--white);
   border-radius: 10px;
   padding: 1.25rem;
-  min-width: 0; /* Permet au flex de fonctionner correctement */
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   display: flex;
   position: relative;
   box-shadow: var(--shadow-light);
@@ -290,9 +287,31 @@ p {
 }
 
 @media (max-width: 768px) {
-  .indicator-card {
-    padding: 1rem;
+  .dashboard-overview .indicator-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0.875rem 0.625rem;
     border-radius: 8px;
+  }
+
+  .dashboard-overview .indicator-card .indicator-icon {
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  .dashboard-overview .indicator-card .indicator-content h3 {
+    font-size: 0.8125rem;
+    line-height: 1.3;
+  }
+
+  .dashboard-overview .indicator-card .indicator-value {
+    font-size: 1.125rem;
+  }
+
+  .dashboard-overview .indicator-card .indicator-trend {
+    font-size: 0.6875rem;
+    line-height: 1.35;
   }
 }
 

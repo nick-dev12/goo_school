@@ -3677,154 +3677,30 @@ def valider_presence_primaire(request, classe_id):
         return redirect('school_admin:connexion_compte_user')
     
     professeur = request.user
-    classe = get_object_or_404(Classe, id=classe_id)
-    
-    # Récupérer l'année scolaire active
-    annee_scolaire_active = get_session_active(request, professeur.etablissement)
-    if not annee_scolaire_active:
-        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
-        return redirect('enseignant_primaire:liste_presence', classe_id=classe_id)
-    
-    # Vérifier l'affectation primaire
-    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
-        professeur=professeur,
-        classe=classe,
-        actif=True
+    from ..services.presence_sync_service import (
+        PresenceSyncError,
+        enregistrer_liste_presence,
+        presences_from_post,
     )
-    if annee_scolaire_active:
-        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
-    affectation = get_object_or_404(affectation_qs)
-    
-    # Date du jour
-    from datetime import date
-    from ..model.presence_model import Presence, ListePresence
-    from django.utils import timezone
-    today = date.today()
-    
-    # Récupérer le numéro d'appel depuis le formulaire
-    numero_appel = int(request.POST.get('numero_appel', 1))
-    
+
     try:
-        with transaction.atomic():
-            # Récupérer la liste de présence pour ce numéro d'appel
-            liste_presence_qs = ListePresence.objects.filter(
-                classe=classe,
-                date=today,
-                numero_appel=numero_appel
-            )
-            if annee_scolaire_active:
-                liste_presence_qs = liste_presence_qs.filter(annee_scolaire=annee_scolaire_active)
-            liste_presence = get_object_or_404(liste_presence_qs)
-            
-            # Si déjà validée, interdire la modification
-            if liste_presence.validee:
-                messages.warning(request, f"L'appel n°{numero_appel} a déjà été validé pour aujourd'hui.")
-                return redirect('enseignant_primaire:liste_presence', classe_id=classe_id)
-            
-            # Parcourir les données POST pour enregistrer les présences
-            nombre_presents = 0
-            nombre_absents = 0
-            nombre_retards = 0
-            
-            # Log pour déboguer
-            logger.info(f"Validation présence primaire - POST keys: {list(request.POST.keys())}")
-            logger.info(f"Validation présence primaire - Nombre d'éléments POST: {len(request.POST)}")
-            
-            # Récupérer tous les élèves de la classe pour s'assurer qu'on traite tous les élèves
-            eleves_classe = _get_eleves_classe_par_inscription(classe, professeur.etablissement, annee_scolaire_active)
-            logger.info(f"Validation présence primaire - Nombre d'élèves dans la classe: {eleves_classe.count()}")
-            
-            # Parcourir les données POST pour récupérer les statuts
-            presences_post = {}
-            for key, value in request.POST.items():
-                if key.startswith('presence_'):
-                    eleve_id = key.replace('presence_', '')
-                    presences_post[eleve_id] = value
-                    logger.info(f"Traitement présence primaire - Key: {key}, Value: {value}, Eleve ID: {eleve_id}")
-            
-            logger.info(f"Validation présence primaire - Nombre de présences dans POST: {len(presences_post)}")
-            
-            # Traiter chaque élève de la classe
-            for eleve in eleves_classe:
-                eleve_id_str = str(eleve.id)
-                statut = presences_post.get(eleve_id_str, 'present')  # Par défaut 'present' si non spécifié
-                
-                try:
-                    # Créer ou mettre à jour la présence avec le numéro d'appel
-                    presence, created = Presence.objects.update_or_create(
-                        eleve=eleve,
-                        classe=classe,
-                        date=today,
-                        numero_appel=numero_appel,
-                        matiere=None,  # Pas de matière pour le primaire
-                        defaults={
-                            'professeur': professeur,
-                            'etablissement': classe.etablissement,
-                            'statut': statut,
-                            'annee_scolaire': annee_scolaire_active,
-                        }
-                    )
-                    
-                    # Si la présence existait déjà, mettre à jour le statut et s'assurer que l'année scolaire est correcte
-                    if not created:
-                        presence.statut = statut
-                        if annee_scolaire_active:
-                            presence.annee_scolaire = annee_scolaire_active
-                        presence.save()
-                    
-                    # Compter les présents, absents et retards
-                    if statut == 'present':
-                        nombre_presents += 1
-                    elif statut in ['absent', 'absent_justifie']:
-                        nombre_absents += 1
-                    elif statut == 'retard':
-                        nombre_retards += 1
-                    
-                    logger.info(f"Présence primaire enregistrée - Élève: {eleve.nom_complet}, Statut: {statut}, Créée: {created}")
-                    
-                except Eleve.DoesNotExist:
-                    logger.warning(f"Élève {eleve.id} non trouvé ou inactif")
-                    continue
-                except Exception as e:
-                    logger.error(f"Erreur lors de l'enregistrement de la présence pour l'élève {eleve.id}: {str(e)}")
-                    continue
-            
-            # Valider la liste de présence
-            liste_presence.validee = True
-            liste_presence.date_validation = timezone.now()
-            liste_presence.nombre_presents = nombre_presents
-            liste_presence.nombre_absents = nombre_absents
-            liste_presence.save()
-            
-            # Récupérer les IDs des présences créées/mises à jour pour les notifications
-            presences_ids = []
-            try:
-                presences_qs = Presence.objects.filter(
-                    classe=classe,
-                    date=today,
-                    numero_appel=numero_appel
-                )
-                if annee_scolaire_active:
-                    presences_qs = presences_qs.filter(annee_scolaire=annee_scolaire_active)
-                presences_ids = list(presences_qs.values_list('id', flat=True))
-            except Exception as e:
-                logger.error(f"Erreur lors de la récupération des IDs de présence: {str(e)}")
-            
-            # Programmer l'envoi des notifications en arrière-plan
-            if presences_ids:
-                from ..services.notification_tasks import schedule_presence_notifications
-                schedule_presence_notifications(presences_ids)
-                logger.info(f"Envoi des notifications programmé en arrière-plan pour {len(presences_ids)} présence(s)")
-            
-            messages.success(
-                request, 
-                f"✓ Appel n°{numero_appel} validé avec succès ! {nombre_presents} présent(s), {nombre_absents} absent(s), {nombre_retards} retard(s)."
-            )
-            
+        result = enregistrer_liste_presence(professeur, {
+            'classe_id': classe_id,
+            'numero_appel': request.POST.get('numero_appel', 1),
+            'niveau': 'primaire',
+            'presences': presences_from_post(request.POST),
+        })
+        messages.success(request, result['message'])
+    except PresenceSyncError as exc:
+        logger.warning(f"Validation présence primaire refusée: {exc.message}")
+        if exc.code == 'already_submitted':
+            messages.warning(request, exc.message)
+        else:
+            messages.error(request, exc.message)
     except Exception as e:
         logger.error(f"Erreur lors de la validation de la présence: {str(e)}")
         messages.error(request, f"Erreur lors de la validation : {str(e)}")
-    
+
     return redirect('enseignant_primaire:liste_presence', classe_id=classe_id)
 
 

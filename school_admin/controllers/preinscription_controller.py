@@ -1,4 +1,5 @@
 import logging
+import urllib.parse
 from datetime import date, datetime
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -14,9 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class PreinscriptionController:
-    """
-    Contrôleur pour gérer les préinscriptions d'élèves
-    """
+    """Contrôleur pour gérer les préinscriptions d'élèves."""
     
     @staticmethod
     def formulaire_preinscription(request, token):
@@ -211,11 +210,35 @@ class PreinscriptionController:
         
         # Générer l'URL absolue
         url_absolue = lien.get_url_absolue(request)
+
+        en_attente = PreinscriptionEleve.objects.filter(
+            etablissement=etablissement,
+            statut='en_attente',
+        ).count()
+
+        message_partage = (
+            f"Bonjour,\n\n"
+            f"Pour préinscrire votre enfant à {etablissement.nom}, veuillez cliquer sur le lien ci-dessous :\n\n"
+            f"{url_absolue}\n\n"
+            f"Merci de votre confiance."
+        )
+        message_sms = (
+            f"Bonjour, pour préinscrire votre enfant à {etablissement.nom}, cliquez sur : {url_absolue}"
+        )
+
+        stats_generales = {
+            'utilisations': lien.nombre_utilisations,
+            'en_attente': en_attente,
+            'actif': lien.actif,
+        }
         
         context = {
             'etablissement': etablissement,
             'lien': lien,
             'url_absolue': url_absolue,
+            'stats_generales': stats_generales,
+            'whatsapp_url': f"https://wa.me/?text={urllib.parse.quote(message_partage)}",
+            'sms_url': f"sms:?body={urllib.parse.quote(message_sms)}",
             'is_directeur': True,
         }
         
@@ -227,12 +250,15 @@ class PreinscriptionController:
         """
         Active ou désactive le lien de préinscription
         """
-        from django.http import JsonResponse
         from ..model.etablissement_model import Etablissement
         
+        if request.method != 'POST':
+            return redirect('directeur:gerer_liens_preinscription')
+
         user = request.user
         if not isinstance(user, Etablissement):
-            return JsonResponse({'success': False, 'message': 'Accès non autorisé.'}, status=403)
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
         
         etablissement = user
         
@@ -240,13 +266,14 @@ class PreinscriptionController:
             lien = LienPreinscription.objects.get(etablissement=etablissement)
             lien.actif = not lien.actif
             lien.save()
-            return JsonResponse({
-                'success': True,
-                'actif': lien.actif,
-                'message': 'Lien activé' if lien.actif else 'Lien désactivé'
-            })
+            if lien.actif:
+                messages.success(request, "Le lien de préinscription a été activé.")
+            else:
+                messages.success(request, "Le lien de préinscription a été désactivé.")
         except LienPreinscription.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Lien introuvable.'}, status=404)
+            messages.error(request, "Lien de préinscription introuvable.")
+
+        return redirect('directeur:gerer_liens_preinscription')
     
     @staticmethod
     @login_required
@@ -511,4 +538,6 @@ class PreinscriptionController:
         except Exception as e:
             logger.error(f"Erreur lors du rejet de la préinscription: {str(e)}")
             return JsonResponse({'success': False, 'message': 'Une erreur est survenue.'}, status=500)
+
+
 

@@ -1,0 +1,32 @@
+{% load i18n %}
+<article class="edt-classe-card {% if not classe_data.a_emploi_du_temps %}edt-classe-card--pending{% endif %}" data-has-edt="{% if classe_data.a_emploi_du_temps %}1{% else %}0{% endif %}">
+    <div class="edt-classe-card-head">
+        <div class="edt-classe-card-title">
+            <h4>{{ classe_data.classe.nom }}</h4>
+            <p>{% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe_data.classe only %}</p>
+        </div>
+        {% if classe_data.a_emploi_du_temps %}
+            <span class="edt-status-chip edt-status-chip--ok"><i class="fas fa-check-circle"></i> {% trans "Configuré" %}</span>
+        {% else %}
+            <span class="edt-status-chip edt-status-chip--pending"><i class="fas fa-clock"></i> {% trans "À configurer" %}</span>
+        {% endif %}
+    </div>
+    <dl class="edt-classe-meta">
+        <div><dt>{% trans "Effectif" %}</dt><dd>{{ classe_data.classe.nombre_eleves }}/{{ classe_data.classe.capacite_max }}</dd></div>
+        {% if classe_data.a_emploi_du_temps %}
+            <div><dt>{% trans "Créneaux" %}</dt><dd>{{ classe_data.nombre_creneaux }}</dd></div>
+            <div><dt>{% trans "Modifié" %}</dt><dd>{{ classe_data.emploi_du_temps.date_modification|date:"d/m/Y" }}</dd></div>
+        {% endif %}
+    </dl>
+    <div class="edt-classe-card-action">
+        {% if classe_data.a_emploi_du_temps %}
+            <a href="{% url 'administrateur_etablissement:detail_emploi_du_temps' classe_data.classe.id %}" class="edt-btn edt-btn-primary">
+                <i class="fas fa-eye"></i> {% trans "Consulter" %}
+            </a>
+        {% else %}
+            <a href="{% url 'administrateur_etablissement:creer_emploi_du_temps' classe_data.classe.id %}" class="edt-btn edt-btn-success">
+                <i class="fas fa-plus"></i> {% trans "Créer" %}
+            </a>
+        {% endif %}
+    </div>
+</article>

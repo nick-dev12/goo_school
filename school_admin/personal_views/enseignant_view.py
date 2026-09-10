@@ -5814,255 +5814,69 @@ def valider_presence_enseignant(request, classe_id):
         return redirect('school_admin:connexion_compte_user')
     
     professeur = request.user
-    from ..model.classe_model import Classe
-    from ..model.eleve_model import Eleve
-    from ..model.affectation_model import AffectationProfesseur
-    from ..model.presence_model import Presence, ListePresence, SoumissionListePresence
-    from ..model.matiere_model import Matiere
-    from ..model.etablissement_model import Etablissement
-    from ..utils.session_utils import get_session_active
-    from django.shortcuts import get_object_or_404
-    from django.utils import timezone
-    from datetime import date
-    from django.db import transaction
-    
-    # Récupérer les données des champs cachés
+    from ..services.presence_sync_service import (
+        PresenceSyncError,
+        enregistrer_liste_presence,
+        presences_from_post,
+    )
+    from ..services.realtime_helpers import wants_json_response, json_ok
+    from django.urls import reverse
+
     classe_id_post = request.POST.get('classe_id', '').strip()
     professeur_id_post = request.POST.get('professeur_id', '').strip()
     etablissement_id_post = request.POST.get('etablissement_id', '').strip()
     matiere_id_post = request.POST.get('matiere_id', '').strip()
-    
-    # Validation des données reçues
+
     if not classe_id_post or not professeur_id_post or not etablissement_id_post:
-        logger.error(f"Données manquantes dans la soumission - Classe: {classe_id_post}, Prof: {professeur_id_post}, Etab: {etablissement_id_post}")
+        logger.error(
+            f"Données manquantes dans la soumission - Classe: {classe_id_post}, "
+            f"Prof: {professeur_id_post}, Etab: {etablissement_id_post}"
+        )
         err = _presence_json_error(request, "Données manquantes. Veuillez réessayer.")
         if err:
             return err
         messages.error(request, "Données manquantes. Veuillez réessayer.")
         return redirect('enseignant:liste_presence', classe_id=classe_id)
-    
-    # Vérifier que les IDs correspondent
+
     try:
-        classe = get_object_or_404(Classe, id=int(classe_id_post))
-        professeur_obj = get_object_or_404(Professeur, id=int(professeur_id_post))
-        etablissement = get_object_or_404(Etablissement, id=int(etablissement_id_post))
-        
-        # Récupérer l'année scolaire active
-        annee_scolaire_active = None
-        if etablissement:
-            annee_scolaire_active = get_session_active(request, etablissement)
-    except (ValueError, TypeError) as e:
-        logger.error(f"Erreur de conversion des IDs - {str(e)}")
+        if int(professeur_id_post) != professeur.id:
+            messages.error(request, "Erreur d'authentification.")
+            return redirect('enseignant:gestion_eleves')
+    except (TypeError, ValueError):
         messages.error(request, "Données invalides. Veuillez réessayer.")
         return redirect('enseignant:liste_presence', classe_id=classe_id)
-    
-    # Vérifier que le professeur connecté correspond
-    if professeur.id != professeur_obj.id:
-        logger.warning(f"Tentative de soumission par un autre professeur - User: {request.user.id}, Prof ID: {professeur_id_post}")
-        messages.error(request, "Erreur d'authentification.")
-        return redirect('enseignant:gestion_eleves')
-    
-    # Vérifier que la classe correspond à l'établissement
-    if classe.etablissement.id != etablissement.id:
-        logger.error(f"Incohérence classe/établissement - Classe: {classe.id}, Etab: {etablissement.id}")
-        messages.error(request, "Données incohérentes. Veuillez réessayer.")
-        return redirect('enseignant:gestion_eleves')
-    
-    # Vérifier que le professeur est affecté à cette classe
-    affectations = AffectationProfesseur.objects.filter(
-        professeur=professeur,
-        classe=classe,
-        actif=True
-    )
-    
-    if not affectations.exists():
-        messages.error(request, "Vous n'êtes pas affecté à cette classe.")
-        return redirect('enseignant:gestion_eleves')
-    
-    # Récupérer la matière si fournie
-    matiere_selectionnee = None
-    est_secondaire = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
-    
-    if matiere_id_post:
-        try:
-            matiere_selectionnee = Matiere.objects.get(id=int(matiere_id_post), etablissement=etablissement)
-        except (Matiere.DoesNotExist, ValueError, TypeError) as e:
-            logger.warning(f"Matière non trouvée ou invalide - ID: {matiere_id_post}, Erreur: {str(e)}")
-            if est_secondaire:
-                messages.error(request, "Matière non trouvée ou invalide.")
-                return redirect('enseignant:liste_presence', classe_id=classe_id)
-    
-    # Pour les établissements secondaires, la matière est obligatoire
-    if est_secondaire and not matiere_selectionnee:
-        messages.error(request, "La matière est obligatoire pour les établissements secondaires.")
-        return redirect('enseignant:liste_presence', classe_id=classe_id)
-    
-    # Date du jour
-    today = date.today()
-    numero_appel = 1  # Par défaut, premier appel
-    
+
     try:
-        with transaction.atomic():
-            # Vérifier si une soumission existe déjà pour cette combinaison
-            # IMPORTANT: Filtrer par année scolaire active pour éviter les conflits entre années
-            # Utiliser matiere=None si pas de matière pour le primaire
-            filters_soumission = {
-                'classe': classe,
-                'professeur': professeur,
-                'matiere': matiere_selectionnee if matiere_selectionnee else None,
-                'date': today
-            }
-            # Filtrer par année scolaire active
-            if annee_scolaire_active:
-                filters_soumission['annee_scolaire'] = annee_scolaire_active
-            else:
-                # Si pas d'année scolaire active, chercher uniquement celles sans année scolaire
-                filters_soumission['annee_scolaire__isnull'] = True
-            soumission_existante = SoumissionListePresence.objects.filter(**filters_soumission).first()
-            
-            if soumission_existante:
-                matiere_msg = f" pour la matière {matiere_selectionnee.nom}" if matiere_selectionnee else ""
-                warn_msg = f"Les présences{matiere_msg} ont déjà été soumises pour aujourd'hui."
-                err = _presence_json_error(request, warn_msg)
-                if err:
-                    return err
-                messages.warning(
-                    request, 
-                    f"La liste de présence{matiere_msg} a déjà été soumise pour aujourd'hui."
-                )
-                # Rediriger avec le paramètre matiere si applicable
-                from django.urls import reverse
-                if matiere_selectionnee:
-                    url = reverse('enseignant:liste_presence', args=[classe_id]) + f'?matiere={matiere_selectionnee.id}'
-                    return redirect(url)
-                return redirect('enseignant:liste_presence', classe_id=classe_id)
-            
-            # Parcourir les données POST pour enregistrer les présences
-            nombre_presents = 0
-            nombre_absents = 0
-            presences_creees = []
-            
-            # Log pour déboguer
-            logger.info(f"Validation présence - POST keys: {list(request.POST.keys())}")
-            logger.info(f"Validation présence - Nombre d'éléments POST: {len(request.POST)}")
-            
-            # Récupérer tous les élèves de la classe pour s'assurer qu'on traite tous les élèves
-            eleves_classe = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
-            logger.info(f"Validation présence - Nombre d'élèves dans la classe: {eleves_classe.count()}")
-            
-            # Parcourir les données POST pour enregistrer les présences
-            presences_post = {}
-            for key, value in request.POST.items():
-                if key.startswith('presence_'):
-                    eleve_id = key.replace('presence_', '')
-                    presences_post[eleve_id] = value
-                    logger.info(f"Traitement présence - Key: {key}, Value: {value}, Eleve ID: {eleve_id}")
-            
-            logger.info(f"Validation présence - Nombre de présences dans POST: {len(presences_post)}")
-            
-            # Traiter chaque élève de la classe
-            for eleve in eleves_classe:
-                eleve_id_str = str(eleve.id)
-                statut = presences_post.get(eleve_id_str, 'present')  # Par défaut 'present' si non spécifié
-                
-                try:
-                    # Créer ou mettre à jour la présence
-                    # Le unique_together est (eleve, classe, date, numero_appel, matiere)
-                    presence, created = Presence.objects.update_or_create(
-                        eleve=eleve,
-                        classe=classe,
-                        date=today,
-                        numero_appel=numero_appel,
-                        matiere=matiere_selectionnee,
-                        defaults={
-                            'professeur': professeur,
-                            'etablissement': etablissement,
-                            'statut': statut,
-                            'annee_scolaire': annee_scolaire_active
-                        }
-                    )
-                    
-                    # Si la présence existait déjà, mettre à jour le statut et s'assurer que la matière est correcte
-                    if not created:
-                        presence.professeur = professeur
-                        presence.etablissement = etablissement
-                        presence.statut = statut
-                        # S'assurer que la matière est toujours correcte (important pour les établissements secondaires)
-                        if matiere_selectionnee and not presence.matiere:
-                            presence.matiere = matiere_selectionnee
-                        # S'assurer que l'année scolaire active est toujours correcte
-                        if annee_scolaire_active:
-                            presence.annee_scolaire = annee_scolaire_active
-                        presence.save()
-                    
-                    presences_creees.append(presence)
-                    
-                    # Compter les présents et absents
-                    if statut == 'present':
-                        nombre_presents += 1
-                    elif statut in ['absent', 'absent_justifie']:
-                        nombre_absents += 1
-                    
-                    logger.info(f"Présence enregistrée - Élève: {eleve.nom_complet}, Statut: {statut}, Créée: {created}")
-                    
-                except Eleve.DoesNotExist:
-                    logger.warning(f"Élève {eleve.id} non trouvé ou inactif")
-                    continue
-                except Exception as e:
-                    logger.error(f"Erreur lors de l'enregistrement de la présence pour l'élève {eleve.id}: {str(e)}")
-                    continue
-            
-            # Créer l'enregistrement de soumission avec l'année scolaire active
-            soumission = SoumissionListePresence.objects.create(
-                classe=classe,
-                professeur=professeur,
-                etablissement=etablissement,
-                matiere=matiere_selectionnee,
-                date=today,
-                date_soumission=timezone.now(),
-                annee_scolaire=annee_scolaire_active
-            )
-            
-            logger.info(
-                f"Liste de présence soumise avec succès - Classe: {classe.nom}, "
-                f"Matière: {matiere_selectionnee.nom if matiere_selectionnee else 'N/A'}, "
-                f"Présents: {nombre_presents}, Absents: {nombre_absents}"
-            )
-            
-            # Programmer l'envoi des notifications en arrière-plan
-            if presences_creees:
-                presence_ids = [p.id for p in presences_creees]
-                from ..services.notification_tasks import schedule_presence_notifications
-                schedule_presence_notifications(presence_ids)
-                logger.info(f"Envoi des notifications programmé en arrière-plan pour {len(presence_ids)} présence(s)")
-            
-            matiere_msg = f" pour la matière {matiere_selectionnee.nom}" if matiere_selectionnee else ""
-            success_msg = (
-                f"Liste de présence{matiere_msg} soumise avec succès ! "
-                f"{nombre_presents} présent(s), {nombre_absents} absent(s)."
-            )
-            _emit_enseignant_live(
-                professeur,
-                'presence.mise_a_jour',
-                classe_id=classe.id,
-                classe_nom=classe.nom,
-                count=len(presences_creees),
-            )
-            from ..services.realtime_helpers import wants_json_response, json_ok
-            if wants_json_response(request):
-                return json_ok(message=success_msg, classe_id=classe.id)
-            messages.success(request, success_msg)
-            
+        result = enregistrer_liste_presence(professeur, {
+            'classe_id': classe_id_post,
+            'matiere_id': matiere_id_post or None,
+            'numero_appel': 1,
+            'niveau': 'secondaire',
+            'presences': presences_from_post(request.POST),
+        })
+        if wants_json_response(request):
+            return json_ok(message=result['message'], classe_id=result['classe_id'])
+        messages.success(request, result['message'])
+    except PresenceSyncError as exc:
+        logger.warning(f"Validation présence refusée: {exc.message}")
+        err = _presence_json_error(request, exc.message)
+        if err:
+            return err
+        if exc.code == 'already_submitted':
+            messages.warning(request, exc.message)
+        else:
+            messages.error(request, exc.message)
+            if exc.code == 'not_assigned':
+                return redirect('enseignant:gestion_eleves')
     except Exception as e:
         logger.error(f"Erreur lors de la soumission de la liste de présence: {str(e)}", exc_info=True)
         err = _presence_json_error(request, f"Erreur lors de la soumission : {str(e)}")
         if err:
             return err
         messages.error(request, f"Erreur lors de la soumission : {str(e)}")
-    
-    from django.urls import reverse
-    if matiere_selectionnee:
-        url = reverse('enseignant:liste_presence', args=[classe_id]) + f'?matiere={matiere_selectionnee.id}'
+
+    if matiere_id_post:
+        url = reverse('enseignant:liste_presence', args=[classe_id]) + f'?matiere={matiere_id_post}'
         return redirect(url)
     return redirect('enseignant:liste_presence', classe_id=classe_id)
 

@@ -44,3 +44,6 @@ from .carte_identite_personnalisation_model import CarteIdentitePersonnalisation
 from .comptabilite_eleve_model import ComptabiliteEleve, FraisInscription, Mensualite, PaiementEleve
 from .parametres_comptabilite_model import ParametresComptabilite
 from .parametres_comptabilite_groupe_classe_model import ParametresComptabiliteGroupeClasse
+from .personnel_administratif_model import PersonnelAdministratif
+from .employe_dossier_model import DocumentEmploye, DossierEmployeComplementaire
+from .sync_action_model import SyncAction

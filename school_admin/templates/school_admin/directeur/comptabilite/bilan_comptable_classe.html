@@ -6,1063 +6,372 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bilan Comptable - {{ classe.nom }} - {{ etablissement.nom }}</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet"
-    />
-    <link
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-        rel="stylesheet"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/partials/messages.css' %}"
-    />
-    <!-- Chart.js -->
+    <title>{% trans "Bilan scolarité" %} — {{ classe.nom }} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bilan_comptabilite.css' %}?v=2.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: var(--gray-50, #f9fafb);
-            color: var(--text-primary, #1f2937);
-            line-height: 1.6;
-        }
-        
-        .bilan-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem 1rem;
-        }
-        
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        
-        .page-title-section h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-primary, #1f2937);
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .page-title-section p {
-            color: var(--text-secondary, #6b7280);
-            font-size: 0.9375rem;
-        }
-        
-        .classe-badge {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: var(--primary-light, rgba(59, 130, 246, 0.1));
-            color: var(--primary, #3b82f6);
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-        }
-        
-        .page-actions {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 0.875rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-        }
-        
-        .btn-primary {
-            background: var(--primary, #3b82f6);
-            color: white;
-        }
-        
-        .btn-secondary {
-            background: var(--gray-200, #e5e7eb);
-            color: var(--text-primary, #1f2937);
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        /* Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            border-left: 4px solid var(--primary, #3b82f6);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.12);
-        }
-        
-        .stat-card.success {
-            border-left-color: var(--success, #10b981);
-        }
-        
-        .stat-card.warning {
-            border-left-color: var(--warning, #fbbf24);
-        }
-        
-        .stat-card.danger {
-            border-left-color: var(--accent, #ef4444);
-        }
-        
-        .stat-card.info {
-            border-left-color: var(--info, #8b5cf6);
-        }
-        
-        .stat-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
-        .stat-card-title {
-            font-size: 0.875rem;
-            color: var(--text-secondary, #6b7280);
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .stat-card-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-        }
-        
-        .stat-card-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-primary, #1f2937);
-            margin-bottom: 0.5rem;
-        }
-        
-        .stat-card-subtitle {
-            font-size: 0.8125rem;
-            color: var(--text-light, #9ca3af);
-        }
-        
-        /* Section */
-        .section {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--gray-200, #e5e7eb);
-        }
-        
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--text-primary, #1f2937);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        /* Charts */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        .chart-container {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .chart-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: var(--text-primary, #1f2937);
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .chart-wrapper {
-            position: relative;
-            height: 300px;
-        }
-        
-        /* Table */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.875rem;
-        }
-        
-        .table thead {
-            background: var(--gray-100, #f3f4f6);
-        }
-        
-        .table th {
-            padding: 1rem;
-            text-align: left;
-            font-weight: 600;
-            color: var(--text-primary, #1f2937);
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-        }
-        
-        .table td {
-            padding: 1rem;
-            border-top: 1px solid var(--gray-200, #e5e7eb);
-            color: var(--text-secondary, #6b7280);
-        }
-        
-        .table tbody tr:hover {
-            background: var(--gray-50, #f9fafb);
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .badge-success {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success, #10b981);
-        }
-        
-        .badge-warning {
-            background: rgba(251, 191, 36, 0.1);
-            color: var(--warning, #d97706);
-        }
-        
-        .badge-danger {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--accent, #ef4444);
-        }
-        
-        .text-right {
-            text-align: right;
-        }
-        
-        .text-center {
-            text-align: center;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: var(--gray-200, #e5e7eb);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 0.5rem;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: var(--success, #10b981);
-            transition: width 0.3s ease;
-        }
-        
-        .progress-fill.warning {
-            background: var(--warning, #fbbf24);
-        }
-        
-        .progress-fill.danger {
-            background: var(--accent, #ef4444);
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .bilan-container {
-                padding: 1rem 0.5rem;
-            }
-            
-            .page-title-section h1 {
-                font-size: 1.5rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .stat-card-value {
-                font-size: 1.5rem;
-            }
-            
-            .section {
-                padding: 1rem;
-            }
-            
-            .table {
-                font-size: 0.8125rem;
-            }
-            
-            .table th,
-            .table td {
-                padding: 0.75rem 0.5rem;
-            }
-            
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .chart-wrapper {
-                height: 250px;
-            }
-        }
-        
-        @media (max-width: 1024px) {
-            .table th,
-            .table td {
-                font-size: 0.8125rem;
-            }
-        }
-    </style>" %}
 </head>
-<body>
-    <!-- Header -->
+<body class="scb-page-body" data-live-page="compta-bilan-classe">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
-    
-    <!-- Messages -->
-    {% if messages %}
+
+    <div class="content-container scb-page">
         {% include 'school_admin/partials/messages.html' %}
-    {% endif %}
-    
-    <!-- Main Content -->
-    <div class="bilan-container">
-        <!-- Page Header -->
-        <div class="page-header">
+
+        <div class="page-header page-header-minimal">
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-                <h1>
-                    <i class="fas fa-chart-line"></i>
-                    Bilan Comptable - {{ classe.nom }}
-                </h1>
-                <p>
-                    Statistiques détaillées de la comptabilité pour la classe {{ classe.nom }} - {{ annee_scolaire_active.libelle }}
-                </p>
-                <span class="classe-badge">
-                    <i class="fas fa-chalkboard"></i>
-                    {{ classe.get_niveau_display }}
-                </span>
-            </div>
         </div>
-        
-        <!-- Bilan Annuel -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-calendar-alt"></i>
-                    Bilan Annuel {{ annee_scolaire_active.libelle }} - {{ classe.nom }}
-                </h2>
-            </div>
-            
-            <div class="stats-grid">
-                <div class="stat-card success">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">{% trans "Total Élèves" %}</span>
-                        <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success, #10b981);">
-                            <i class="fas fa-users"></i>
-                        </div>
-                    </div>
-                    <div class="stat-card-value">{{ total_eleves }}</div>
-                    <div class="stat-card-subtitle">{% trans "Élèves de la classe" %}</div>
-                </div>
-                
-                <div class="stat-card success">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">{% trans "Élèves à Jour" %}</span>
-                        <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success, #10b981);">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                    </div>
-                    <div class="stat-card-value">{{ eleves_a_jour }}</div>
-                    <div class="stat-card-subtitle">{{ eleves_a_jour|floatformat:0|default:"0" }} / {{ total_eleves }}</div>
-                </div>
-                
-                <div class="stat-card warning">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">{% trans "Élèves en Retard" %}</span>
-                        <div class="stat-card-icon" style="background: rgba(251, 191, 36, 0.1); color: var(--warning, #d97706);">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                    </div>
-                    <div class="stat-card-value">{{ eleves_en_retard }}</div>
-                    <div class="stat-card-subtitle">{{ eleves_en_retard|floatformat:0|default:"0" }} / {{ total_eleves }}</div>
-                </div>
-                
-                <div class="stat-card danger">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">{% trans "Élèves Impayés" %}</span>
-                        <div class="stat-card-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--accent, #ef4444);">
-                            <i class="fas fa-times-circle"></i>
-                        </div>
-                    </div>
-                    <div class="stat-card-value">{{ eleves_impayes }}</div>
-                    <div class="stat-card-subtitle">{{ eleves_impayes|floatformat:0|default:"0" }} / {{ total_eleves }}</div>
-                </div>
-                
-                <div class="stat-card info">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">{% trans "Total Dû" %}</span>
-                        <div class="stat-card-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--info, #8b5cf6);">
-                            <i class="fas fa-money-bill-wave"></i>
-                        </div>
-                    </div>
-                    <div class="stat-card-value">{{ total_du_annuel|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
-                    <div class="stat-card-subtitle">{% trans "Montant total à collecter" %}</div>
-                </div>
-                
-                <div class="stat-card success">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">{% trans "Total Payé" %}</span>
-                        <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success, #10b981);">
-                            <i class="fas fa-check"></i>
-                        </div>
-                    </div>
-                    <div class="stat-card-value">{{ total_paye_annuel|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
-                    <div class="stat-card-subtitle">{{ taux_recouvrement_annuel|floatformat:1|default:"0" }}% de recouvrement</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: {{ taux_recouvrement_annuel|default:0 }}%"></div>
-                    </div>
-                </div>
-                
-                <div class="stat-card warning">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">{% trans "Reste à Payer" %}</span>
-                        <div class="stat-card-icon" style="background: rgba(251, 191, 36, 0.1); color: var(--warning, #d97706);">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                    </div>
-                    <div class="stat-card-value">{{ total_reste_annuel|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
-                    <div class="stat-card-subtitle">{% trans "Montant restant à collecter" %}</div>
-                </div>
-                
-                <div class="stat-card info">
-                    <div class="stat-card-header">
-                        <span class="stat-card-title">{% trans "Total Paiements" %}</span>
-                        <div class="stat-card-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--info, #8b5cf6);">
-                            <i class="fas fa-receipt"></i>
-                        </div>
-                    </div>
-                    <div class="stat-card-value">{{ total_paiements }}</div>
-                    <div class="stat-card-subtitle">{{ total_montant_collecte|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }} collectés</div>
+
+        <header class="scb-hero">
+            <div class="scb-hero-text">
+                <h1 class="scb-hero-title"><i class="fas fa-chalkboard"></i> {% trans "Bilan scolarité" %} — {{ classe.nom }}</h1>
+                <p class="scb-hero-sub">{% trans "Situation financière et suivi des paiements pour cette classe." %}</p>
+                <div class="scb-hero-badges">
+                    <span class="scb-hero-badge">
+                        <i class="fas fa-calendar-alt"></i> {{ annee_scolaire_active.libelle }}
+                    </span>
+                    <span class="scb-hero-badge">
+                        <i class="fas fa-layer-group"></i> {{ classe.get_niveau_display }}
+                    </span>
                 </div>
             </div>
-        </div>
-        
-        <!-- Graphiques Statistiques -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-chart-bar"></i>
-                    {% trans "Visualisations Graphiques" %}
-                </h2>
-            </div>
-            
-            <div class="charts-grid">
-                <!-- Graphique 1: Évolution des Paiements par Mois -->
-                <div class="chart-container">
-                    <h3 class="chart-title">
-                        <i class="fas fa-line-chart"></i>
-                        {% trans "Évolution des Paiements par Mois" %}
-                    </h3>
-                    <div class="chart-wrapper">
-                        <canvas id="evolutionPaiementsChart"></canvas>
-                    </div>
+            <div class="scb-hero-stats">
+                <div class="scb-stat-pill">
+                    <span class="scb-stat-num">{{ stats_generales.total_eleves }}</span>
+                    <span class="scb-stat-lbl">{% trans "Élèves" %}</span>
                 </div>
-                
-                <!-- Graphique 2: Répartition des Modes de Paiement -->
-                <div class="chart-container">
-                    <h3 class="chart-title">
-                        <i class="fas fa-pie-chart"></i>
-                        {% trans "Répartition des Modes de Paiement" %}
-                    </h3>
-                    <div class="chart-wrapper">
-                        <canvas id="modesPaiementChart"></canvas>
-                    </div>
+                <div class="scb-stat-pill scb-stat-pill--ok">
+                    <span class="scb-stat-num">{{ stats_generales.taux_recouvrement|floatformat:1 }}%</span>
+                    <span class="scb-stat-lbl">{% trans "Recouvrement" %}</span>
                 </div>
-                
-                <!-- Graphique 3: Montants Dûs vs Payés par Mois -->
-                <div class="chart-container">
-                    <h3 class="chart-title">
-                        <i class="fas fa-balance-scale"></i>
-                        {% trans "Montants Dûs vs Payés" %}
-                    </h3>
-                    <div class="chart-wrapper">
-                        <canvas id="montantsDusPayesChart"></canvas>
-                    </div>
+                <div class="scb-stat-pill scb-stat-pill--warn">
+                    <span class="scb-stat-num">{{ stats_generales.eleves_en_retard }}</span>
+                    <span class="scb-stat-lbl">{% trans "En retard" %}</span>
                 </div>
-                
-                <!-- Graphique 4: Taux de Recouvrement par Mois -->
-                <div class="chart-container">
-                    <h3 class="chart-title">
-                        <i class="fas fa-percentage"></i>
-                        {% trans "Taux de Recouvrement par Mois" %}
-                    </h3>
-                    <div class="chart-wrapper">
-                        <canvas id="tauxRecouvrementChart"></canvas>
-                    </div>
-                </div>
-                
-                <!-- Graphique 5: Élèves en Retard/Impayés par Mois -->
-                <div class="chart-container">
-                    <h3 class="chart-title">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        {% trans "Élèves en Retard/Impayés par Mois" %}
-                    </h3>
-                    <div class="chart-wrapper">
-                        <canvas id="elevesRetardChart"></canvas>
-                    </div>
+                <div class="scb-stat-pill scb-stat-pill--danger">
+                    <span class="scb-stat-num">{{ stats_generales.eleves_impayes }}</span>
+                    <span class="scb-stat-lbl">{% trans "Impayés" %}</span>
                 </div>
             </div>
-        </div>
-        
-        <!-- Détails par Mois -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-calendar-week"></i>
-                    {% trans "Statistiques par Mois" %}
-                </h2>
+            <div class="scb-hero-actions">
+                <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="scb-action-btn scb-action-btn--primary">
+                    <i class="fas fa-wallet"></i> {% trans "Scolarité des élèves" %}
+                </a>
+                <a href="{% url 'directeur:bilan_comptable_directeur' %}" class="scb-action-btn scb-action-btn--secondary">
+                    <i class="fas fa-chart-line"></i> {% trans "Bilan établissement" %}
+                </a>
             </div>
-            
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>{% trans "Période" %}</th>
-                            <th class="text-center">{% trans "Élèves Total" %}</th>
-                            <th class="text-center">{% trans "En Retard" %}</th>
-                            <th class="text-center">{% trans "Impayés" %}</th>
-                            <th class="text-right">{% trans "Montant Dû" %}</th>
-                            <th class="text-right">{% trans "Montant Payé" %}</th>
-                            <th class="text-right">{% trans "Reste à Payer" %}</th>
-                            <th class="text-right">{% trans "Taux Recouvrement" %}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for mois_key, stats in mois_stats.items %}
-                        <tr>
-                            <td><strong>{{ stats.periode }}</strong></td>
-                            <td class="text-center">{{ stats.eleves_total }}</td>
-                            <td class="text-center">
-                                {% if stats.eleves_en_retard > 0 %}
-                                    <span class="badge badge-warning">{{ stats.eleves_en_retard }}</span>
-                                {% else %}
-                                    <span class="badge badge-success">0</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                {% if stats.eleves_impayes > 0 %}
-                                    <span class="badge badge-danger">{{ stats.eleves_impayes }}</span>
-                                {% else %}
-                                    <span class="badge badge-success">0</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-right">{{ stats.montant_du|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                            <td class="text-right">{{ stats.montant_paye|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                            <td class="text-right">
-                                {% if stats.reste_a_payer > 0 %}
-                                    <span style="color: var(--accent, #ef4444); font-weight: 600;">{{ stats.reste_a_payer|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</span>
-                                {% else %}
-                                    <span style="color: var(--success, #10b981); font-weight: 600;">0 {{ devise_monnaie|default:"FCFA" }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-right">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: flex-end;">
-                                    <span style="font-weight: 600;">{{ stats.taux_recouvrement|floatformat:1|default:"0" }}%</span>
-                                    <div class="progress-bar" style="width: 80px;">
-                                        <div class="progress-fill {% if stats.taux_recouvrement >= 80 %}success{% elif stats.taux_recouvrement >= 50 %}warning{% else %}danger{% endif %}" 
-                                             style="width: {{ stats.taux_recouvrement|default:0 }}%"></div>
+        </header>
+
+        <div class="scb-tabs-wrap">
+            <nav class="scb-tabs-nav" role="tablist" aria-label="{% trans 'Sections du bilan classe' %}">
+                <button type="button" class="scb-tab-btn active" data-scb-tab="scb-panel-synthese" role="tab" aria-selected="true" aria-controls="scb-panel-synthese">
+                    <i class="fas fa-th-large"></i> {% trans "Synthèse" %}
+                </button>
+                <button type="button" class="scb-tab-btn" data-scb-tab="scb-panel-graphiques" role="tab" aria-selected="false" aria-controls="scb-panel-graphiques">
+                    <i class="fas fa-chart-bar"></i> {% trans "Graphiques" %}
+                </button>
+                <button type="button" class="scb-tab-btn" data-scb-tab="scb-panel-mois" role="tab" aria-selected="false" aria-controls="scb-panel-mois">
+                    <i class="fas fa-calendar-week"></i> {% trans "Par mois" %}
+                </button>
+                <button type="button" class="scb-tab-btn" data-scb-tab="scb-panel-eleves" role="tab" aria-selected="false" aria-controls="scb-panel-eleves">
+                    <i class="fas fa-user-graduate"></i> {% trans "Par élève" %}
+                </button>
+                <button type="button" class="scb-tab-btn" data-scb-tab="scb-panel-modes" role="tab" aria-selected="false" aria-controls="scb-panel-modes">
+                    <i class="fas fa-credit-card"></i> {% trans "Modes paiement" %}
+                </button>
+                <button type="button" class="scb-tab-btn" data-scb-tab="scb-panel-inscription" role="tab" aria-selected="false" aria-controls="scb-panel-inscription">
+                    <i class="fas fa-file-invoice-dollar"></i> {% trans "Frais inscription" %}
+                </button>
+            </nav>
+
+            <!-- Synthèse -->
+            <section id="scb-panel-synthese" class="scb-tab-panel active" role="tabpanel">
+                <h2 class="scb-section-title"><i class="fas fa-money-bill-wave"></i> {% trans "Situation financière de la classe" %}</h2>
+                <div class="scb-cards-grid">
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Total dû" %}</div>
+                        <div class="scb-mini-card-value">{{ total_du_annuel|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Montant à collecter" %}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Total payé" %}</div>
+                        <div class="scb-mini-card-value scb-amount-success">{{ total_paye_annuel|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{{ taux_recouvrement_annuel|floatformat:1 }}% {% trans "recouvré" %}</div>
+                        <div class="scb-progress-wrap">
+                            <div class="scb-progress-bar">
+                                <div class="scb-progress-fill" style="width: {{ taux_recouvrement_annuel|default:0 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Reste à payer" %}</div>
+                        <div class="scb-mini-card-value scb-amount-danger">{{ total_reste_annuel|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Encours restant" %}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Paiements enregistrés" %}</div>
+                        <div class="scb-mini-card-value">{{ total_paiements }}</div>
+                        <div class="scb-mini-card-sub">{{ total_montant_collecte|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }} {% trans "collectés" %}</div>
+                    </div>
+                </div>
+
+                <h2 class="scb-section-title"><i class="fas fa-users"></i> {% trans "Situation des élèves" %}</h2>
+                <div class="scb-cards-grid">
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Total inscrits" %}</div>
+                        <div class="scb-mini-card-value">{{ total_eleves }}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "À jour" %}</div>
+                        <div class="scb-mini-card-value scb-amount-success">{{ eleves_a_jour }}</div>
+                        <div class="scb-mini-card-sub">{{ eleves_a_jour }} / {{ total_eleves }}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "En retard" %}</div>
+                        <div class="scb-mini-card-value">{{ eleves_en_retard }}</div>
+                        <div class="scb-mini-card-sub">{{ eleves_en_retard }} / {{ total_eleves }}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Impayés" %}</div>
+                        <div class="scb-mini-card-value scb-amount-danger">{{ eleves_impayes }}</div>
+                        <div class="scb-mini-card-sub">{{ eleves_impayes }} / {{ total_eleves }}</div>
+                    </div>
+                    {% if eleves_non_en_regle %}
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Non en règle" %}</div>
+                        <div class="scb-mini-card-value scb-amount-danger">{{ eleves_non_en_regle }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Selon règles établissement" %}</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <h2 class="scb-section-title"><i class="fas fa-layer-group"></i> {% trans "Répartition mensualités / inscription" %}</h2>
+                <div class="scb-cards-grid">
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Mensualités dûes" %}</div>
+                        <div class="scb-mini-card-value">{{ total_mensualites_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Payé" %} : {{ total_mensualites_paye|floatformat:0 }} — {% trans "Reste" %} : {{ total_mensualites_reste|floatformat:0 }}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Frais d'inscription dus" %}</div>
+                        <div class="scb-mini-card-value">{{ total_frais_inscription_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Payé" %} : {{ total_frais_inscription_paye|floatformat:0 }} — {% trans "Reste" %} : {{ total_frais_inscription_reste|floatformat:0 }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Graphiques -->
+            <section id="scb-panel-graphiques" class="scb-tab-panel" role="tabpanel">
+                <h2 class="scb-section-title"><i class="fas fa-chart-bar"></i> {% trans "Visualisations" %}</h2>
+                <div class="scb-charts-grid">
+                    <div class="scb-chart-card">
+                        <h3 class="scb-chart-title"><i class="fas fa-line-chart"></i> {% trans "Évolution des paiements par mois" %}</h3>
+                        <div class="scb-chart-wrapper"><canvas id="evolutionPaiementsChart"></canvas></div>
+                    </div>
+                    <div class="scb-chart-card">
+                        <h3 class="scb-chart-title"><i class="fas fa-pie-chart"></i> {% trans "Modes de paiement" %}</h3>
+                        <div class="scb-chart-wrapper"><canvas id="modesPaiementChart"></canvas></div>
+                    </div>
+                    <div class="scb-chart-card">
+                        <h3 class="scb-chart-title"><i class="fas fa-balance-scale"></i> {% trans "Montants dûs vs payés" %}</h3>
+                        <div class="scb-chart-wrapper"><canvas id="montantsDusPayesChart"></canvas></div>
+                    </div>
+                    <div class="scb-chart-card">
+                        <h3 class="scb-chart-title"><i class="fas fa-percentage"></i> {% trans "Taux de recouvrement" %}</h3>
+                        <div class="scb-chart-wrapper"><canvas id="tauxRecouvrementChart"></canvas></div>
+                    </div>
+                    <div class="scb-chart-card">
+                        <h3 class="scb-chart-title"><i class="fas fa-exclamation-triangle"></i> {% trans "Élèves en retard / impayés" %}</h3>
+                        <div class="scb-chart-wrapper"><canvas id="elevesRetardChart"></canvas></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Par mois -->
+            <section id="scb-panel-mois" class="scb-tab-panel" role="tabpanel">
+                <h2 class="scb-section-title"><i class="fas fa-calendar-week"></i> {% trans "Statistiques mensuelles" %}</h2>
+                <div class="scb-table-wrap">
+                    <table class="scb-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Période" %}</th>
+                                <th class="scb-text-center">{% trans "Élèves" %}</th>
+                                <th class="scb-text-center">{% trans "Retard" %}</th>
+                                <th class="scb-text-center">{% trans "Impayés" %}</th>
+                                <th class="scb-text-right">{% trans "Dû" %}</th>
+                                <th class="scb-text-right">{% trans "Payé" %}</th>
+                                <th class="scb-text-right">{% trans "Reste" %}</th>
+                                <th class="scb-text-right">{% trans "Recouvrement" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mois_key, stats in mois_stats.items %}
+                            <tr>
+                                <td><strong>{{ stats.periode }}</strong></td>
+                                <td class="scb-text-center">{{ stats.eleves_total }}</td>
+                                <td class="scb-text-center">
+                                    {% if stats.eleves_en_retard > 0 %}
+                                        <span class="scb-badge scb-badge--warn">{{ stats.eleves_en_retard }}</span>
+                                    {% else %}
+                                        <span class="scb-badge scb-badge--ok">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="scb-text-center">
+                                    {% if stats.eleves_impayes > 0 %}
+                                        <span class="scb-badge scb-badge--danger">{{ stats.eleves_impayes }}</span>
+                                    {% else %}
+                                        <span class="scb-badge scb-badge--ok">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="scb-text-right">{{ stats.montant_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                <td class="scb-text-right">{{ stats.montant_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                <td class="scb-text-right">
+                                    {% if stats.reste_a_payer > 0 %}
+                                        <span class="scb-amount-danger">{{ stats.reste_a_payer|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                    {% else %}
+                                        <span class="scb-amount-success">0 {{ devise_monnaie|default:"FCFA" }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="scb-text-right">
+                                    <div class="scb-inline-progress">
+                                        <span>{{ stats.taux_recouvrement|floatformat:1 }}%</span>
+                                        <div class="scb-progress-bar">
+                                            <div class="scb-progress-fill{% if stats.taux_recouvrement < 50 %} scb-progress-fill--danger{% elif stats.taux_recouvrement < 80 %} scb-progress-fill--warn{% endif %}" style="width: {{ stats.taux_recouvrement|default:0 }}%"></div>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="8" class="text-center" style="padding: 2rem; color: var(--text-light, #9ca3af);">
-                                {% trans "Aucune donnée disponible pour cette période" %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- Paiements par Mode -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-credit-card"></i>
-                    {% trans "Paiements par Mode de Paiement" %}
-                </h2>
-            </div>
-            
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>{% trans "Mode de Paiement" %}</th>
-                            <th class="text-center">{% trans "Nombre" %}</th>
-                            <th class="text-right">{% trans "Montant Total" %}</th>
-                            <th class="text-right">{% trans "Pourcentage" %}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for mode, data in paiements_par_mode.items %}
-                        <tr>
-                            <td><strong>{{ data.label }}</strong></td>
-                            <td class="text-center">{{ data.nombre }}</td>
-                            <td class="text-right">{{ data.montant|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                            <td class="text-right">
-                                <span>{{ data.pourcentage|floatformat:1|default:"0" }}%</span>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center" style="padding: 2rem; color: var(--text-light, #9ca3af);">
-                                {% trans "Aucun paiement enregistré" %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- Statistiques par Élève -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-user-graduate"></i>
-                    {% trans "Statistiques par Élève" %}
-                </h2>
-            </div>
-            
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>{% trans "Élève" %}</th>
-                            <th class="text-center">{% trans "Statut" %}</th>
-                            <th class="text-right">{% trans "Montant Dû" %}</th>
-                            <th class="text-right">{% trans "Montant Payé" %}</th>
-                            <th class="text-right">{% trans "Reste à Payer" %}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for eleve_stat in eleves_stats %}
-                        <tr>
-                            <td>
-                                <strong>{{ eleve_stat.eleve.nom_complet }}</strong><br>
-                                <small style="color: var(--text-light, #9ca3af);">{{ eleve_stat.eleve.matricule|default:"N/A" }}</small>
-                            </td>
-                            <td class="text-center">
-                                {% if eleve_stat.statut == 'a_jour' %}
-                                    <span class="badge badge-success">{% trans "À jour" %}</span>
-                                {% elif eleve_stat.statut == 'en_retard' %}
-                                    <span class="badge badge-warning">{% trans "En retard" %}</span>
-                                {% elif eleve_stat.statut == 'impaye' %}
-                                    <span class="badge badge-danger">{% trans "Impayé" %}</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-right">{{ eleve_stat.montant_du|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                            <td class="text-right">{{ eleve_stat.montant_paye|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                            <td class="text-right">
-                                {% if eleve_stat.reste_a_payer > 0 %}
-                                    <span style="color: var(--accent, #ef4444); font-weight: 600;">{{ eleve_stat.reste_a_payer|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</span>
-                                {% else %}
-                                    <span style="color: var(--success, #10b981); font-weight: 600;">0 {{ devise_monnaie|default:"FCFA" }}</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-center" style="padding: 2rem; color: var(--text-light, #9ca3af);">
-                                {% trans "Aucun élève trouvé" %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="scb-empty">{% trans "Aucune donnée pour cette période." %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Par élève -->
+            <section id="scb-panel-eleves" class="scb-tab-panel" role="tabpanel">
+                <h2 class="scb-section-title"><i class="fas fa-user-graduate"></i> {% trans "Situation par élève" %}</h2>
+                <div class="scb-table-wrap">
+                    <table class="scb-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Élève" %}</th>
+                                <th class="scb-text-center">{% trans "Statut" %}</th>
+                                <th class="scb-text-right">{% trans "Dû" %}</th>
+                                <th class="scb-text-right">{% trans "Payé" %}</th>
+                                <th class="scb-text-right">{% trans "Reste" %}</th>
+                                <th>{% trans "Détail" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for eleve_stat in eleves_stats %}
+                            <tr>
+                                <td>
+                                    <strong>{{ eleve_stat.eleve.nom_complet }}</strong>
+                                    <div class="scb-mini-card-sub">{{ eleve_stat.eleve.matricule|default:"—" }}</div>
+                                </td>
+                                <td class="scb-text-center">
+                                    {% if eleve_stat.statut == 'a_jour' %}
+                                        <span class="scb-badge scb-badge--ok">{% trans "À jour" %}</span>
+                                    {% elif eleve_stat.statut == 'en_retard' %}
+                                        <span class="scb-badge scb-badge--warn">{% trans "En retard" %}</span>
+                                    {% elif eleve_stat.statut == 'impaye' %}
+                                        <span class="scb-badge scb-badge--danger">{% trans "Impayé" %}</span>
+                                    {% endif %}
+                                    {% if eleve_stat.est_non_en_regle %}
+                                        <span class="scb-badge scb-badge--danger" title="{% trans 'Non en règle' %}">!</span>
+                                    {% endif %}
+                                </td>
+                                <td class="scb-text-right">{{ eleve_stat.montant_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                <td class="scb-text-right">{{ eleve_stat.montant_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                <td class="scb-text-right">
+                                    {% if eleve_stat.reste_a_payer > 0 %}
+                                        <span class="scb-amount-danger">{{ eleve_stat.reste_a_payer|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                    {% else %}
+                                        <span class="scb-amount-success">0 {{ devise_monnaie|default:"FCFA" }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'directeur:details_comptabilite_eleve_directeur' eleve_stat.eleve.id %}" class="scb-classe-link">
+                                        <i class="fas fa-external-link-alt"></i> {% trans "Comptabilité" %}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="scb-empty">{% trans "Aucun élève trouvé dans cette classe." %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Modes paiement -->
+            <section id="scb-panel-modes" class="scb-tab-panel" role="tabpanel">
+                <h2 class="scb-section-title"><i class="fas fa-credit-card"></i> {% trans "Paiements par mode" %}</h2>
+                <div class="scb-table-wrap">
+                    <table class="scb-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Mode" %}</th>
+                                <th class="scb-text-center">{% trans "Nombre" %}</th>
+                                <th class="scb-text-right">{% trans "Montant" %}</th>
+                                <th class="scb-text-right">{% trans "Part" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mode, data in paiements_par_mode.items %}
+                            <tr>
+                                <td><strong>{{ data.label }}</strong></td>
+                                <td class="scb-text-center">{{ data.nombre }}</td>
+                                <td class="scb-text-right">{{ data.montant|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                <td class="scb-text-right">{{ data.pourcentage|floatformat:1 }}%</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="scb-empty">{% trans "Aucun paiement enregistré." %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Frais inscription -->
+            <section id="scb-panel-inscription" class="scb-tab-panel" role="tabpanel">
+                <h2 class="scb-section-title"><i class="fas fa-file-invoice-dollar"></i> {% trans "Frais d'inscription" %}</h2>
+                <div class="scb-cards-grid">
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Total dû" %}</div>
+                        <div class="scb-mini-card-value">{{ total_frais_inscription_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Montant total des frais d'inscription" %}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Total payé" %}</div>
+                        <div class="scb-mini-card-value scb-amount-success">{{ total_frais_inscription_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Montant collecté" %}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Reste" %}</div>
+                        <div class="scb-mini-card-value scb-amount-danger">{{ total_frais_inscription_reste|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Montant restant à collecter" %}</div>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
-    
-    <!-- Scripts pour les graphiques Chart.js -->
-    <script>
-        // Configuration globale de Chart.js
-        Chart.defaults.font.family = "'Poppins', sans-serif";
-        Chart.defaults.font.size = 12;
-        Chart.defaults.color = '#6b7280';
-        
-        // Données pour les graphiques
-        const moisData = {
-            labels: [
-                {% for mois_key, stats in mois_stats.items %}
-                "{{ stats.periode }}"{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ],
-            montantsDus: [
-                {% for mois_key, stats in mois_stats.items %}
-                {{ stats.montant_du|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ],
-            montantsPayes: [
-                {% for mois_key, stats in mois_stats.items %}
-                {{ stats.montant_paye|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ],
-            montantsCollectes: [
-                {% for mois_key, stats in mois_stats.items %}
-                {{ stats.montant_collecte|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ],
-            tauxRecouvrement: [
-                {% for mois_key, stats in mois_stats.items %}
-                {{ stats.taux_recouvrement|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ],
-            elevesEnRetard: [
-                {% for mois_key, stats in mois_stats.items %}
-                {{ stats.eleves_en_retard|default:"0" }}{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ],
-            elevesImpayes: [
-                {% for mois_key, stats in mois_stats.items %}
-                {{ stats.eleves_impayes|default:"0" }}{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ]
-        };
-        
-        const modesPaiementData = {
-            labels: [
-                {% for mode, data in paiements_par_mode.items %}
-                "{{ data.label }}"{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ],
-            montants: [
-                {% for mode, data in paiements_par_mode.items %}
-                {{ data.montant|floatformat:2|default:"0" }}{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ],
-            couleurs: [
-                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
-            ]
-        };
-        
-        // Graphique 1: Évolution des Paiements par Mois
-        const ctxEvolutionPaiements = document.getElementById('evolutionPaiementsChart').getContext('2d');
-        new Chart(ctxEvolutionPaiements, {
-            type: 'line',
-            data: {
-                labels: moisData.labels,
-                datasets: [
-                    {
-                        label: 'Montant Collecté',
-                        data: moisData.montantsCollectes,
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    },
-                    {
-                        label: 'Montant Payé',
-                        data: moisData.montantsPayes,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }}';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return value.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }}';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        
-        // Graphique 2: Répartition des Modes de Paiement
-        const ctxModesPaiement = document.getElementById('modesPaiementChart').getContext('2d');
-        new Chart(ctxModesPaiement, {
-            type: 'doughnut',
-            data: {
-                labels: modesPaiementData.labels,
-                datasets: [{
-                    data: modesPaiementData.montants,
-                    backgroundColor: modesPaiementData.couleurs,
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return label + ': ' + value.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }} (' + percentage + '%)';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        
-        // Graphique 3: Montants Dûs vs Payés par Mois
-        const ctxMontantsDusPayes = document.getElementById('montantsDusPayesChart').getContext('2d');
-        new Chart(ctxMontantsDusPayes, {
-            type: 'bar',
-            data: {
-                labels: moisData.labels,
-                datasets: [
-                    {
-                        label: 'Montant Dû',
-                        data: moisData.montantsDus,
-                        backgroundColor: 'rgba(239, 68, 68, 0.7)',
-                        borderColor: '#ef4444',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Montant Payé',
-                        data: moisData.montantsPayes,
-                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
-                        borderColor: '#10b981',
-                        borderWidth: 1
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }}';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return value.toLocaleString('fr-FR') + ' {{ devise_monnaie|default:"FCFA" }}';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        
-        // Graphique 4: Taux de Recouvrement par Mois
-        const ctxTauxRecouvrement = document.getElementById('tauxRecouvrementChart').getContext('2d');
-        new Chart(ctxTauxRecouvrement, {
-            type: 'line',
-            data: {
-                labels: moisData.labels,
-                datasets: [{
-                    label: 'Taux de Recouvrement (%)',
-                    data: moisData.tauxRecouvrement,
-                    borderColor: '#8b5cf6',
-                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                    pointBackgroundColor: '#8b5cf6',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return 'Taux: ' + context.parsed.y.toFixed(1) + '%';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        ticks: {
-                            callback: function(value) {
-                                return value + '%';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        
-        // Graphique 5: Élèves en Retard/Impayés par Mois
-        const ctxElevesRetard = document.getElementById('elevesRetardChart').getContext('2d');
-        new Chart(ctxElevesRetard, {
-            type: 'bar',
-            data: {
-                labels: moisData.labels,
-                datasets: [
-                    {
-                        label: 'Élèves en Retard',
-                        data: moisData.elevesEnRetard,
-                        backgroundColor: 'rgba(251, 191, 36, 0.7)',
-                        borderColor: '#fbbf24',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Élèves Impayés',
-                        data: moisData.elevesImpayes,
-                        backgroundColor: 'rgba(239, 68, 68, 0.7)',
-                        borderColor: '#ef4444',
-                        borderWidth: 1
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + context.parsed.y + ' élève(s)';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                            callback: function(value) {
-                                return value + ' élève(s)';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    </script>
+
+    {{ chart_data|json_script:"scb-chart-data" }}
+
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    <script src="{% static 'school_admin/js/directeur/bilan_comptabilite.js' %}?v=2.0.1"></script>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>
-

@@ -278,6 +278,22 @@
 
         restoreTabState(state);
 
+        if (typeof window.layoutTabsOverflowNav === 'function') {
+
+          window.layoutTabsOverflowNav();
+
+        }
+
+        if (document.body.getAttribute('data-live-page') === 'suivi-presence' && typeof window.filterPresenceStudents === 'function') {
+
+          document.querySelectorAll('.presence-panel[data-classe-id]').forEach(function (panel) {
+
+            window.filterPresenceStudents(panel.getAttribute('data-classe-id'));
+
+          });
+
+        }
+
         if (message) {
 
           showLiveRefreshToast(message);

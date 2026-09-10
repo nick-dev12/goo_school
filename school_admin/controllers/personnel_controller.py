@@ -343,6 +343,7 @@ class PersonnelController:
         stats = {
             'total_personnel': personnel.count(),
             'total_professeurs': professeurs.count(),
+            'total_equipe': personnel.count() + professeurs.count(),
             'total_actifs': personnel.filter(actif=True).count() + professeurs.filter(actif=True).count(),
             'total_inactifs': personnel.filter(actif=False).count() + professeurs.filter(actif=False).count(),
             'par_role': {}
@@ -413,6 +414,7 @@ class PersonnelController:
             'niveaux_par_department': prof_ctx['niveaux_par_department'],
             'est_superieur': prof_ctx['est_superieur'],
             'type_etablissement': prof_ctx['type_etablissement'],
+            'type_contrat_choices': prof_ctx['type_contrat_choices'],
         }
         
         # Nettoyer la session après utilisation
@@ -450,6 +452,9 @@ class PersonnelController:
                 'prenom': request.POST.get('prenom', '').strip(),
                 'email': request.POST.get('email', '').strip(),
                 'telephone': telephone_value,
+                'sexe': request.POST.get('sexe', '').strip(),
+                'date_embauche': request.POST.get('date_embauche', '').strip(),
+                'prix_volume_horaire': request.POST.get('prix_volume_horaire', '').strip(),
                 'fonction': request.POST.get('fonction', ''),
             }
             
@@ -502,6 +507,17 @@ class PersonnelController:
             # Validation du type de personnel selon le type d'établissement
             if form_data['fonction'] and form_data['fonction'] not in fonctions_valides_codes:
                 field_errors['fonction'] = f"Cette fonction n'est pas disponible pour un établissement de type {etablissement.get_type_etablissement_display()}."
+                is_valid = False
+
+            if form_data.get('sexe') not in ('M', 'F'):
+                field_errors['sexe'] = "Le sexe est obligatoire."
+                is_valid = False
+
+            from ..utils.employe_dossier_utils import parse_optional_date, parse_optional_decimal
+            date_embauche_val = parse_optional_date(form_data.get('date_embauche'))
+            prix_horaire_val = parse_optional_decimal(form_data.get('prix_volume_horaire'))
+            if form_data.get('prix_volume_horaire') and prix_horaire_val is None:
+                field_errors['prix_volume_horaire'] = "Le prix horaire n'est pas valide."
                 is_valid = False
             
             # Récupérer les autorisations depuis le formulaire
@@ -580,8 +596,11 @@ class PersonnelController:
                         personnel = PersonnelAdministratif(
                             nom=form_data['nom'],
                             prenom=form_data['prenom'],
+                            sexe=form_data['sexe'],
                             email=email_value,  # None si non fourni
                             telephone=form_data['telephone'],  # Contient déjà l'indicatif si telephone_full était fourni
+                            date_embauche=date_embauche_val,
+                            prix_volume_horaire=prix_horaire_val,
                             fonction=form_data['fonction'],
                             username=username,
                             numero_employe=numero_employe,
@@ -593,6 +612,13 @@ class PersonnelController:
                         # Définir le mot de passe (haché)
                         personnel.set_password(mot_de_passe)
                         personnel.save()
+
+                        from ..utils.employe_dossier_utils import (
+                            save_documents_from_request,
+                            save_dossier_from_post_if_any,
+                        )
+                        save_dossier_from_post_if_any(personnel=personnel, post_data=request.POST)
+                        save_documents_from_request(request, personnel=personnel)
                         
                         from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
                         from ..services.live_serializers import serialize_personnel_liste_item
@@ -751,6 +777,26 @@ class PersonnelController:
         
         # Récupérer l'onglet actif
         onglet_actif = request.GET.get('onglet', 'informations')
+
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            from django.urls import reverse
+
+            if action == 'update_dossier':
+                from ..utils.employe_dossier_utils import get_or_create_dossier, update_dossier_from_post
+                dossier = get_or_create_dossier(personnel=personnel)
+                update_dossier_from_post(dossier, request.POST)
+                messages.success(request, "Les informations complémentaires ont été enregistrées.")
+                return redirect(f"{reverse('personnel:detail_personnel', args=[personnel.id])}?onglet=dossier")
+
+            if action == 'ajouter_documents':
+                from ..utils.employe_dossier_utils import save_documents_from_request
+                docs = save_documents_from_request(request, personnel=personnel)
+                if docs:
+                    messages.success(request, f"{len(docs)} document(s) ajouté(s) au dossier.")
+                else:
+                    messages.info(request, "Aucun fichier sélectionné.")
+                return redirect(f"{reverse('personnel:detail_personnel', args=[personnel.id])}?onglet=dossier")
         
         # Récupérer les données du formulaire depuis la session (si erreur lors de la modification)
         form_data_modifier = request.session.get('form_data_personnel_modifier', {})
@@ -813,8 +859,18 @@ class PersonnelController:
                 if perm_key in permissions_defaut:
                     permissions_combinees.add(perm_key)
         
+        from ..model.employe_dossier_model import TYPE_CONTRAT_CHOICES
+        from ..utils.employe_dossier_utils import (
+            get_or_create_dossier,
+            get_documents_for_employe,
+            get_sexe_display,
+        )
+        dossier = get_or_create_dossier(personnel=personnel)
+        documents = get_documents_for_employe(personnel=personnel)
+
         context = {
             'personnel': personnel,
+            'employe': personnel,
             'etablissement': etablissement,
             'onglet_actif': onglet_actif,
             'user_permissions': user_permissions,
@@ -823,6 +879,11 @@ class PersonnelController:
             'permissions_combinees': permissions_combinees,
             'form_data_modifier': form_data_modifier,
             'field_errors_modifier': field_errors_modifier,
+            'dossier': dossier,
+            'documents': documents,
+            'sexe_display': get_sexe_display(personnel.sexe),
+            'type_contrat_choices': TYPE_CONTRAT_CHOICES,
+            'document_download_url_name': 'personnel:telecharger_document',
         }
         
         return render(request, 'school_admin/directeur/personnel/detail_personnel.html', context)
@@ -854,6 +915,34 @@ class PersonnelController:
             messages.error(request, "Personnel non trouvé.")
         
         return redirect('personnel:liste_personnel')
+
+    @staticmethod
+    @login_required
+    def telecharger_document(request, document_id):
+        """Affiche ou télécharge un document du dossier personnel."""
+        from django.http import FileResponse, Http404
+        from ..model.employe_dossier_model import DocumentEmploye
+        from ..model.etablissement_model import Etablissement
+
+        if not isinstance(request.user, Etablissement):
+            messages.error(request, "Accès non autorisé.")
+            return redirect('school_admin:connexion_compte_user')
+
+        try:
+            document = DocumentEmploye.objects.select_related('personnel_administratif').get(
+                id=document_id,
+                personnel_administratif__etablissement=request.user,
+            )
+        except DocumentEmploye.DoesNotExist:
+            raise Http404("Document introuvable.")
+
+        response = FileResponse(document.fichier.open('rb'), as_attachment=bool(request.GET.get('download')))
+        response['Content-Disposition'] = (
+            f'attachment; filename="{document.nom_fichier}"'
+            if request.GET.get('download')
+            else f'inline; filename="{document.nom_fichier}"'
+        )
+        return response
     
     @staticmethod
     @login_required

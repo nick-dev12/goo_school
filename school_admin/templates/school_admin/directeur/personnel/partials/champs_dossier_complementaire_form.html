@@ -1,0 +1,107 @@
+{% load i18n %}
+{# dossier_data = dict prérempli ; dossier = instance optionnelle (fallback) #}
+
+<div class="form-section dossier-complementaire-section">
+    <div class="section-header">
+        <div class="section-icon">
+            <i class="fas fa-clipboard-list"></i>
+        </div>
+        <div>
+            <h3 class="section-title">{% trans "Informations complémentaires" %}</h3>
+            <p class="section-hint">{% trans "Tous les champs sont facultatifs." %}</p>
+        </div>
+    </div>
+
+    <div class="form-grid dossier-grid">
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}date_naissance">{% trans "Date de naissance" %}</label>
+            <input type="date" class="form-input form-control" id="{{ prefix }}date_naissance" name="date_naissance"
+                   value="{% if dossier_data.date_naissance %}{{ dossier_data.date_naissance }}{% elif dossier and dossier.date_naissance %}{{ dossier.date_naissance|date:'Y-m-d' }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}lieu_naissance">{% trans "Lieu de naissance" %}</label>
+            <input type="text" class="form-input form-control" id="{{ prefix }}lieu_naissance" name="lieu_naissance"
+                   value="{% if dossier_data.lieu_naissance %}{{ dossier_data.lieu_naissance }}{% elif dossier %}{{ dossier.lieu_naissance|default:'' }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}nationalite">{% trans "Nationalité" %}</label>
+            <input type="text" class="form-input form-control" id="{{ prefix }}nationalite" name="nationalite"
+                   value="{% if dossier_data.nationalite %}{{ dossier_data.nationalite }}{% elif dossier %}{{ dossier.nationalite|default:'' }}{% endif %}">
+        </div>
+        <div class="form-group form-group-full">
+            <label class="form-label" for="{{ prefix }}adresse">{% trans "Adresse" %}</label>
+            <textarea class="form-input form-control" id="{{ prefix }}adresse" name="adresse" rows="2">{% if dossier_data.adresse %}{{ dossier_data.adresse }}{% elif dossier %}{{ dossier.adresse|default:'' }}{% endif %}</textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}numero_cni">{% trans "N° pièce d'identité" %}</label>
+            <input type="text" class="form-input form-control" id="{{ prefix }}numero_cni" name="numero_cni"
+                   value="{% if dossier_data.numero_cni %}{{ dossier_data.numero_cni }}{% elif dossier %}{{ dossier.numero_cni|default:'' }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}numero_cnss">{% trans "N° CNSS / sécurité sociale" %}</label>
+            <input type="text" class="form-input form-control" id="{{ prefix }}numero_cnss" name="numero_cnss"
+                   value="{% if dossier_data.numero_cnss %}{{ dossier_data.numero_cnss }}{% elif dossier %}{{ dossier.numero_cnss|default:'' }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}type_contrat">{% trans "Type de contrat" %}</label>
+            <select class="form-input form-control" id="{{ prefix }}type_contrat" name="type_contrat">
+                <option value="">{% trans "— Non renseigné —" %}</option>
+                {% for code, label in type_contrat_choices %}
+                    <option value="{{ code }}"
+                        {% if dossier_data.type_contrat == code %}selected
+                        {% elif not dossier_data.type_contrat and dossier and dossier.type_contrat == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}date_fin_contrat">{% trans "Date de fin de contrat" %}</label>
+            <input type="date" class="form-input form-control" id="{{ prefix }}date_fin_contrat" name="date_fin_contrat"
+                   value="{% if dossier_data.date_fin_contrat %}{{ dossier_data.date_fin_contrat }}{% elif dossier and dossier.date_fin_contrat %}{{ dossier.date_fin_contrat|date:'Y-m-d' }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}salaire_base">{% trans "Salaire de base (FCFA)" %}</label>
+            <input type="number" step="0.01" min="0" class="form-input form-control" id="{{ prefix }}salaire_base" name="salaire_base"
+                   value="{% if dossier_data.salaire_base %}{{ dossier_data.salaire_base }}{% elif dossier and dossier.salaire_base is not None %}{{ dossier.salaire_base }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}banque">{% trans "Banque" %}</label>
+            <input type="text" class="form-input form-control" id="{{ prefix }}banque" name="banque"
+                   value="{% if dossier_data.banque %}{{ dossier_data.banque }}{% elif dossier %}{{ dossier.banque|default:'' }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}numero_compte_bancaire">{% trans "N° compte / RIB" %}</label>
+            <input type="text" class="form-input form-control" id="{{ prefix }}numero_compte_bancaire" name="numero_compte_bancaire"
+                   value="{% if dossier_data.numero_compte_bancaire %}{{ dossier_data.numero_compte_bancaire }}{% elif dossier %}{{ dossier.numero_compte_bancaire|default:'' }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}diplome_plus_eleve">{% trans "Diplôme le plus élevé" %}</label>
+            <input type="text" class="form-input form-control" id="{{ prefix }}diplome_plus_eleve" name="diplome_plus_eleve"
+                   value="{% if dossier_data.diplome_plus_eleve %}{{ dossier_data.diplome_plus_eleve }}{% elif dossier %}{{ dossier.diplome_plus_eleve|default:'' }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}numero_autorisation">{% trans "N° autorisation / agrément" %}</label>
+            <input type="text" class="form-input form-control" id="{{ prefix }}numero_autorisation" name="numero_autorisation"
+                   value="{% if dossier_data.numero_autorisation %}{{ dossier_data.numero_autorisation }}{% elif dossier %}{{ dossier.numero_autorisation|default:'' }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}contact_urgence_nom">{% trans "Contact d'urgence — nom" %}</label>
+            <input type="text" class="form-input form-control" id="{{ prefix }}contact_urgence_nom" name="contact_urgence_nom"
+                   value="{% if dossier_data.contact_urgence_nom %}{{ dossier_data.contact_urgence_nom }}{% elif dossier %}{{ dossier.contact_urgence_nom|default:'' }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}contact_urgence_telephone">{% trans "Contact d'urgence — téléphone" %}</label>
+            <input type="text" class="form-input form-control" id="{{ prefix }}contact_urgence_telephone" name="contact_urgence_telephone"
+                   value="{% if dossier_data.contact_urgence_telephone %}{{ dossier_data.contact_urgence_telephone }}{% elif dossier %}{{ dossier.contact_urgence_telephone|default:'' }}{% endif %}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="{{ prefix }}contact_urgence_lien">{% trans "Contact d'urgence — lien" %}</label>
+            <input type="text" class="form-input form-control" id="{{ prefix }}contact_urgence_lien" name="contact_urgence_lien"
+                   value="{% if dossier_data.contact_urgence_lien %}{{ dossier_data.contact_urgence_lien }}{% elif dossier %}{{ dossier.contact_urgence_lien|default:'' }}{% endif %}"
+                   placeholder="{% trans 'Conjoint, parent…' %}">
+        </div>
+        <div class="form-group form-group-full">
+            <label class="form-label" for="{{ prefix }}observations">{% trans "Observations" %}</label>
+            <textarea class="form-input form-control" id="{{ prefix }}observations" name="observations" rows="3">{% if dossier_data.observations %}{{ dossier_data.observations }}{% elif dossier %}{{ dossier.observations|default:'' }}{% endif %}</textarea>
+        </div>
+    </div>
+</div>

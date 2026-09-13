@@ -15,6 +15,10 @@ NIVEAU_LMD_LIBELLES_COMPLETS = {
     'D1': 'Doctorat 1',
     'D2': 'Doctorat 2',
     'D3': 'Doctorat 3',
+    'BTS1': 'BTS 1',
+    'BTS2': 'BTS 2',
+    'DUT1': 'DUT 1',
+    'DUT2': 'DUT 2',
     'BTS': 'Brevet de Technicien Supérieur',
     'DUT': 'Diplôme Universitaire de Technologie',
     'BUT': 'Bachelor Universitaire de Technologie',
@@ -127,6 +131,18 @@ class Classe(models.Model):
         if self.capacite_max == 0:
             return 0
         return round((self.nombre_eleves / self.capacite_max) * 100, 1)
+
+    def get_intitule_liste_superieur(self):
+        """
+        Intitulé complet pour les listes (ex. « GL L1 A — Licence 1, Informatique et Génie Logiciel »).
+        """
+        if self.niveau != 'superieur':
+            return self.nom
+        libelle_niveau = self.get_libelle_niveau_superieur_complet()
+        intitule = f'{self.nom} — {libelle_niveau}'
+        if self.department_id:
+            intitule = f'{intitule}, {self.department.nom}'
+        return intitule
 
     def get_libelle_niveau_superieur_complet(self):
         """

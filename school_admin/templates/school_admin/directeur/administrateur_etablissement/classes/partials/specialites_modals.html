@@ -1,0 +1,78 @@
+{% load i18n %}
+<!-- Modal - Modifier une spécialité -->
+<div class="modal-overlay-fullscreen modal-filiere-fullscreen" id="modifierFiliereModal">
+  <div class="modal-container-fullscreen">
+    <div class="modal-header-fullscreen">
+      <h2 class="modal-title-fullscreen">
+        <i class="fas fa-edit"></i>
+        {% trans "Modifier la spécialité" %}
+      </h2>
+      <button type="button" class="modal-close-fullscreen" id="closeModifierFiliereModal" aria-label="{% trans 'Fermer' %}">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <form method="post" id="formModifierFiliere" class="modal-form-fullscreen" data-action-template="{% url 'administrateur_etablissement:modifier_filiere' 0 %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label" for="modifier_nom_filiere">{% trans "Nom de la spécialité *" %}</label>
+        <input type="text" class="form-control" id="modifier_nom_filiere" name="nom_filiere" required placeholder="{% trans 'Ex: Logistique et Transport, Informatique' %}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="modifier_sigle_filiere">{% trans "Code / Sigle de la spécialité *" %}</label>
+        <input type="text" class="form-control" id="modifier_sigle_filiere" name="sigle_filiere" required maxlength="12" placeholder="{% trans 'Ex: GL, TL, QHSE' %}" style="text-transform: uppercase;">
+        <small class="form-text">{% trans "Utilisé sur les bulletins et relevés de notes (2 à 12 caractères)." %}</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="modifier_domaine">{% trans "Domaine" %}</label>
+        <input type="text" class="form-control" id="modifier_domaine" name="domaine" placeholder="{% trans 'Ex: Sciences et Technologies, Sciences Humaines' %}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="modifier_mention">{% trans "Mention" %}</label>
+        <input type="text" class="form-control" id="modifier_mention" name="mention" placeholder="{% trans 'Ex: Informatique, Logistique' %}">
+      </div>
+      <div class="modal-actions-fullscreen">
+        <button type="button" class="btn-cancel" id="cancelModifierFiliere">{% trans "Annuler" %}</button>
+        <button type="submit" class="btn-submit"><i class="fas fa-save"></i> {% trans "Enregistrer" %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal - Ajouter une spécialité -->
+<div class="modal-overlay-fullscreen modal-filiere-fullscreen" id="addFiliereModal">
+  <div class="modal-container-fullscreen">
+    <div class="modal-header-fullscreen">
+      <h2 class="modal-title-fullscreen">
+        <i class="fas fa-sitemap"></i>
+        {% trans "Ajouter une spécialité" %}
+      </h2>
+      <button type="button" class="modal-close-fullscreen" id="closeFiliereModal" aria-label="{% trans 'Fermer' %}">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <form method="post" action="{% url 'administrateur_etablissement:ajouter_filiere' %}" class="modal-form-fullscreen">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label" for="nom_filiere">{% trans "Nom de la spécialité *" %}</label>
+        <input type="text" class="form-control" id="nom_filiere" name="nom_filiere" required placeholder="{% trans 'Ex: Logistique et Transport, Informatique' %}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="sigle_filiere">{% trans "Code / Sigle de la spécialité *" %}</label>
+        <input type="text" class="form-control" id="sigle_filiere" name="sigle_filiere" required maxlength="12" placeholder="{% trans 'Ex: GL, TL, QHSE' %}" style="text-transform: uppercase;">
+        <small class="form-text">{% trans "Utilisé sur les bulletins et relevés de notes (2 à 12 caractères)." %}</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="domaine">{% trans "Domaine" %}</label>
+        <input type="text" class="form-control" id="domaine" name="domaine" placeholder="{% trans 'Ex: Sciences et Technologies, Sciences Humaines' %}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="mention">{% trans "Mention" %}</label>
+        <input type="text" class="form-control" id="mention" name="mention" placeholder="{% trans 'Ex: Informatique, Logistique' %}">
+      </div>
+      <div class="modal-actions-fullscreen">
+        <button type="button" class="btn-cancel" id="cancelFiliere">{% trans "Annuler" %}</button>
+        <button type="submit" class="btn-submit"><i class="fas fa-save"></i> {% trans "Créer la spécialité" %}</button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -7,118 +7,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Emploi du temps examens" %} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_examens.css' %}">
-    <title>Emploi du Temps des Examens - {{ etablissement.nom }}</title>
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_examens.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
-<body>
+<body class="edtex-page-body">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <div class="container">
-        <!-- Page Header -->
-        <div class="page-header">
-            {% include 'school_admin/directeur/partials/page_header_back.html' %}
-<h1>
-                <i class="fas fa-calendar-alt"></i>
-                {% trans "Emploi du Temps des Examens" %}
-            </h1>
-            <div class="header-actions">
-            </div>
+    <div class="content-container edtex-page">
+        {% include 'school_admin/partials/messages.html' %}
+
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:gestion_examens' as back_examens_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_examens_url %}
         </div>
 
-        <!-- Message d'information sur l'année scolaire active -->
-        {% if annee_scolaire_active %}
-        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
-            <i class="fas fa-calendar-check"></i>
-          </span>
-          <div>
-            <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-              Année scolaire active : {{ annee_scolaire_active.libelle }}
-            </p>
-            <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              {% trans "Seuls les créneaux d'examens de cette année scolaire sont affichés." %}
-            </p>
-          </div>
+        <header class="edtex-hero">
+            <div class="edtex-hero-text">
+                <h1 class="edtex-hero-title"><i class="fas fa-calendar-alt"></i> {% trans "Emploi du temps examens" %}</h1>
+                {% if annee_scolaire_active %}
+                    <span class="edtex-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+                {% endif %}
+            </div>
+            <div class="edtex-hero-stats">
+                <div class="edtex-stat-pill">
+                    <span class="edtex-stat-num">{{ stats_generales.total_sessions }}</span>
+                    <span class="edtex-stat-lbl">{% trans "Sessions" %}</span>
+                </div>
+                <div class="edtex-stat-pill edtex-stat-pill--accent">
+                    <span class="edtex-stat-num">{{ stats_generales.total_creneaux }}</span>
+                    <span class="edtex-stat-lbl">{% trans "Créneaux" %}</span>
+                </div>
+            </div>
+            <div class="edtex-hero-actions">
+                <button type="button" class="edtex-action-btn edtex-action-btn--primary" onclick="openModal()">
+                    <i class="fas fa-plus"></i> {% trans "Ajouter un créneau" %}
+                </button>
+                <button type="button" class="edtex-action-btn edtex-action-btn--secondary" onclick="printTimetable()">
+                    <i class="fas fa-print"></i> {% trans "Imprimer" %}
+                </button>
+                <a href="{% url 'directeur:gestion_examens' %}" class="edtex-action-btn edtex-action-btn--secondary">
+                    <i class="fas fa-clipboard-list"></i> {% trans "Gérer les sessions" %}
+                </a>
+            </div>
+        </header>
+
+        {% if sessions_avec_grille %}
+        <section class="edtex-main-panel" aria-label="{% trans 'Planning par session' %}">
+            <div class="edtex-session-nav">
+                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'session' %}" data-overflow-items-label="{% trans 'sessions' %}">
+                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Sessions d\'examen' %}">
+                        {% for item in sessions_avec_grille %}
+                            <button type="button" role="tab"
+                                    class="matiere-tab-btn edtex-session-tab {% if forloop.first %}active{% endif %}"
+                                    data-tab="session-{{ item.session.id }}"
+                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                                    onclick="switchSessionTab('session-{{ item.session.id }}', this)">
+                                <i class="fas fa-file-alt"></i>
+                                <span>{{ item.session.nom_examen|truncatechars:28 }}</span>
+                                <span class="tab-count">{{ item.creneaux_count }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+                    <div class="matiere-tabs-more-wrap" hidden>
+                        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres sessions' %}">
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            <span class="matiere-tabs-more-label">{% trans "Autres sessions" %}</span>
+                        </button>
+                        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edtex-tabs-content">
+                {% for item in sessions_avec_grille %}
+                    {% with session=item.session %}
+                    <div id="session-{{ session.id }}" class="edtex-session-panel {% if forloop.first %}active{% endif %}">
+
+                        <div class="edtex-session-header">
+                            <div class="edtex-session-info">
+                                <h2 class="edtex-session-title">{{ session.nom_examen }}</h2>
+                                <div class="edtex-session-meta">
+                                    <span><i class="fas fa-calendar-week"></i> {{ session.periode.nom_periode }}</span>
+                                    <span><i class="fas fa-calendar"></i> {{ session.date_debut|date:"d/m/Y" }} → {{ session.date_fin|date:"d/m/Y" }}</span>
+                                    <span><i class="fas fa-users"></i> {{ session.classes_str }}</span>
+                                    <span><i class="fas fa-book"></i> {{ session.nombre_matieres }} {% trans "matière(s)" %}</span>
+                                </div>
+                            </div>
+                            <div class="edtex-session-actions">
+                                <a href="{% url 'directeur:configurer_creneaux_examen' session.id %}" class="edtex-mini-btn edtex-mini-btn--primary">
+                                    <i class="fas fa-clock"></i> {% trans "Configurer" %}
+                                </a>
+                            </div>
+                        </div>
+
+                        {% if item.grille_emploi and item.plages_horaires %}
+                        <div class="edtex-grid-scroll table-responsive" id="edtex-grid-{{ session.id }}">
+                            <table class="edtex-calendar-table">
+                                <thead>
+                                    <tr>
+                                        <th class="edtex-time-col">{% trans "Horaire" %}</th>
+                                        {% for date in item.dates_triees %}
+                                        <th class="edtex-day-col">
+                                            <span class="edtex-day-name">{{ item.grille_emploi|dict_value:date|dict_value:'jour_semaine' }}</span>
+                                            <span class="edtex-day-date">{{ date|date:"d/m" }}</span>
+                                        </th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for plage in item.plages_horaires %}
+                                    <tr class="edtex-time-row">
+                                        <td class="edtex-time-label">{{ plage.label }}</td>
+                                        {% for date in item.dates_triees %}
+                                            {% with date_masquees=item.cellules_masquees|dict_value:date %}
+                                                {% if date_masquees and date_masquees|dict_value:plage.label %}
+                                                {% else %}
+                                                    {% with creneaux_list=item.grille_emploi|dict_value:date|dict_value:'plages'|dict_value:plage.label %}
+                                                        {% if creneaux_list and creneaux_list|length > 0 %}
+                                                            {% with max_rowspan=creneaux_list.0.rowspan %}
+                                                            <td class="edtex-exam-cell" rowspan="{{ max_rowspan }}">
+                                                                {% for creneau_data in creneaux_list %}
+                                                                    <div class="exam-block edtex-exam-block {{ creneau_data.creneau.matiere.nom|get_matiere_css_class }}">
+                                                                        <div class="exam-time">
+                                                                            {{ creneau_data.creneau.heure_debut|time:"H:i" }} - {{ creneau_data.creneau.heure_fin|time:"H:i" }}
+                                                                        </div>
+                                                                        <div class="exam-subject">
+                                                                            <i class="{{ creneau_data.creneau.matiere.nom|get_matiere_icon }}"></i>
+                                                                            {{ creneau_data.creneau.matiere.nom }}
+                                                                        </div>
+                                                                        {% if creneau_data.creneau.surveillant %}
+                                                                        <div class="exam-teacher">
+                                                                            <i class="fas fa-user-tie"></i> {{ creneau_data.creneau.surveillant.nom_complet }}
+                                                                        </div>
+                                                                        {% endif %}
+                                                                        {% if creneau_data.creneau.salle %}
+                                                                        <div class="exam-room">
+                                                                            <i class="fas fa-door-open"></i> {{ creneau_data.creneau.salle.nom }}
+                                                                        </div>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                {% endfor %}
+                                                            </td>
+                                                            {% endwith %}
+                                                        {% else %}
+                                                            <td class="edtex-empty-cell"></td>
+                                                        {% endif %}
+                                                    {% endwith %}
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="edtex-empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <h3>{% trans "Aucun créneau programmé" %}</h3>
+                            <p>{% trans "Planifiez les épreuves de cette session en ajoutant des créneaux." %}</p>
+                            <button type="button" class="edtex-action-btn edtex-action-btn--primary edtex-action-btn--sm" onclick="openModalWithSession({{ session.id }})">
+                                <i class="fas fa-plus"></i> {% trans "Ajouter un créneau" %}
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                {% endfor %}
+            </div>
+        </section>
+        {% else %}
+        <div class="edtex-empty-page">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>{% trans "Aucune session d'examen" %}</h3>
+            <p>{% trans "Créez d'abord une session d'examen pour planifier l'emploi du temps." %}</p>
+            <a href="{% url 'directeur:gestion_examens' %}" class="edtex-action-btn edtex-action-btn--primary">
+                <i class="fas fa-plus"></i> {% trans "Créer une session" %}
+            </a>
         </div>
         {% endif %}
-
-        <!-- Timetable Display -->
-        <div class="timetable-container">
-            {% if grille_emploi %}
-                <table class="calendar-timetable">
-                    <thead>
-                        <tr>
-                            {% for date in dates_triees %}
-                            <th class="day-header">{{ grille_emploi|dict_value:date|dict_value:'jour_semaine' }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for plage in plages_horaires %}
-                        <tr class="time-row">
-                            {% for date in dates_triees %}
-                                {% comment %} Afficher la cellule seulement si ce n'est pas une continuation d'un rowspan {% endcomment %}
-                                {% with date_masquees=cellules_masquees|dict_value:date %}
-                                    {% if date_masquees and date_masquees|dict_value:plage.label %}
-                                        {% comment %} Cette cellule est masquée par un rowspan, ne rien afficher {% endcomment %}
-                                    {% else %}
-                                        {% with creneaux_list=grille_emploi|dict_value:date|dict_value:'plages'|dict_value:plage.label %}
-                                            {% if creneaux_list and creneaux_list|length > 0 %}
-                                                {% comment %} Calculer le rowspan maximal parmi tous les créneaux de cette cellule {% endcomment %}
-                                                {% with max_rowspan=creneaux_list.0.rowspan %}
-                                                <td class="exam-cell" rowspan="{{ max_rowspan }}">
-                                                    {% for creneau_data in creneaux_list %}
-                                                        <div class="exam-block {{ creneau_data.creneau.matiere.nom|get_matiere_css_class }}">
-                                                            <div class="exam-time">
-                                                                {{ creneau_data.creneau.heure_debut|time:"H:i" }} - {{ creneau_data.creneau.heure_fin|time:"H:i" }}
-                                                            </div>
-                                                            <div class="exam-subject">
-                                                                <i class="{{ creneau_data.creneau.matiere.nom|get_matiere_icon }}"></i>
-                                                                {{ creneau_data.creneau.matiere.nom }}
-                                                            </div>
-                                                            {% if creneau_data.creneau.surveillant %}
-                                                            <div class="exam-teacher">
-                                                                {{ creneau_data.creneau.surveillant.nom_complet }}
-                                                            </div>
-                                                            {% endif %}
-                                                            {% if creneau_data.creneau.salle %}
-                                                            <div class="exam-room">
-                                                                <i class="fas fa-building"></i>
-                                                                {{ creneau_data.creneau.salle.nom }}
-                                                            </div>
-                                                            {% endif %}
-                                                        </div>
-                                                    {% endfor %}
-                                                </td>
-                                                {% endwith %}
-                                            {% else %}
-                                                <td class="empty-cell"></td>
-                                            {% endif %}
-                                        {% endwith %}
-                                    {% endif %}
-                                {% endwith %}
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
-                    <h3>{% trans "Aucun créneau d'examen programmé" %}</h3>
-                    <p>{% trans "Utilisez le bouton «Ajouter un créneau» pour commencer à planifier les examens." %}</p>
-                </div>
-            {% endif %}
-        </div>
     </div>
 
-    <!-- Modal for Adding Exam Slot -->
-    <div id="creneauModal" class="modal">
+    <!-- Modal créneau -->
+    <div id="creneauModal" class="modal edtex-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>{% trans "Ajouter un créneau d'examen" %}</h2>
-                <span class="close" onclick="closeModal()">&times;</span>
+                <h2><i class="fas fa-plus-circle"></i> {% trans "Ajouter un créneau d'examen" %}</h2>
+                <span class="close" onclick="closeModal()" aria-label="{% trans 'Fermer' %}">&times;</span>
             </div>
             <form method="post" action="{% url 'directeur:emploi_du_temps_examens' %}">
                 {% csrf_token %}
@@ -126,7 +207,7 @@
                     <div class="form-group">
                         <label for="session_examen_id">{% trans "Session d'examen" %} <span class="required">*</span></label>
                         <select id="session_examen_id" name="session_examen_id" class="form-control" required onchange="updateMatieresForSession()">
-                            <option value="">{% trans "Sélectionnez un examen programmé" %}</option>
+                            <option value="">{% trans "Choisir une session…" %}</option>
                             {% for session in sessions_examens %}
                             <option value="{{ session.id }}"
                                     data-matieres="{% for matiere in session.matieres.all %}{{ matiere.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
@@ -134,24 +215,18 @@
                             </option>
                             {% endfor %}
                         </select>
-                        <small style="color: var(--text-muted); font-size: 12px; margin-top: 5px; display: block;">
-                            {% trans "Sélectionnez d'abord l'examen programmé pour voir les matières concernées" %}
-                        </small>
                     </div>
 
                     <div class="form-group">
                         <label for="matiere_id">{% trans "Matière" %} <span class="required">*</span></label>
                         <select id="matiere_id" name="matiere_id" class="form-control" required disabled>
-                            <option value="">{% trans "Sélectionnez d'abord un examen" %}</option>
+                            <option value="">{% trans "Sélectionnez d'abord une session" %}</option>
                         </select>
-                        <small style="color: var(--text-muted); font-size: 12px; margin-top: 5px; display: block;">
-                            {% trans "Seules les matières de l'examen sélectionné sont affichées" %}
-                        </small>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="date_examen">{% trans "Date de l'examen" %} <span class="required">*</span></label>
+                            <label for="date_examen">{% trans "Date" %} <span class="required">*</span></label>
                             <input type="date" id="date_examen" name="date_examen" class="form-control" required />
                         </div>
                     </div>
@@ -190,37 +265,32 @@
 
                     <div class="form-group">
                         <label for="consignes_specifiques">{% trans "Consignes spécifiques" %}</label>
-                        <textarea id="consignes_specifiques" name="consignes_specifiques" class="form-control" placeholder="{% trans "Instructions particulières pour ce créneau..." %}"></textarea>
+                        <textarea id="consignes_specifiques" name="consignes_specifiques" class="form-control" placeholder="{% trans 'Instructions particulières pour ce créneau…' %}"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">
-                        {% trans "Annuler" %}
-                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">{% trans "Annuler" %}</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i>
-                        {% trans "Enregistrer" %}
+                        <i class="fas fa-save"></i> {% trans "Enregistrer" %}
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Données pour JavaScript -->
-    <script>
-        // Données des matières par session
-        const matieresParSession = {
-            {% for session in sessions_examens %}
-            '{{ session.id }}': [
-                {% for matiere in session.matieres.all %}
-                { id: '{{ matiere.id }}', nom: '{{ matiere.nom }}' }{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ]{% if not forloop.last %},{% endif %}
+    <script id="exam-matieres-session-data" type="application/json">
+    {
+        {% for session in sessions_examens %}
+        "{{ session.id }}": [
+            {% for matiere in session.matieres.all %}
+            {"id": "{{ matiere.id }}", "nom": "{{ matiere.nom|escapejs }}"}{% if not forloop.last %},{% endif %}
             {% endfor %}
-        };
+        ]{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    }
     </script>
-    <script src="{% static 'school_admin/js/directeur/emploi_du_temps_examens.js' %}"></script>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script src="{% static 'school_admin/js/directeur/emploi_du_temps_examens.js' %}?v=2.0.0"></script>
 </body>
 </html>

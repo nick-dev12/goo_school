@@ -1,0 +1,47 @@
+{% load i18n classe_tags notes_tags %}
+<div class="matiere-card">
+  <div class="card-header">
+    <div class="matiere-info">
+      <h3 class="matiere-nom">{{ module.nom }}</h3>
+      <p class="matiere-type">{{ module.code }}{% if module.niveau_lmd %} • {{ module.niveau_lmd|libelle_niveau_lmd_key }}{% endif %}{% if module.classes.exists %} • {{ module.classes.count }} classe{{ module.classes.count|pluralize }}{% with niveaux=module.classes.all|classes_niveaux_lmd %}{% if niveaux %} <span class="niveaux-inline">({{ niveaux|join:", " }})</span>{% endif %}{% endwith %}{% endif %}</p>
+    </div>
+    <div class="matiere-actions">
+      <a href="{% url 'matiere:detail_module' module.id %}" class="action-btn primary" title="{% trans 'Voir' %}">
+        <i class="fas fa-eye"></i>
+      </a>
+      <form method="post" action="{% url 'matiere:supprimer_module' module.id %}" style="display:inline;" onsubmit="return confirm('{% trans "Supprimer ce module ? Les matières seront retirées du module." %}');">
+        {% csrf_token %}
+        <button type="submit" class="action-btn danger" title="{% trans 'Supprimer' %}">
+          <i class="fas fa-trash"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="card-content">
+    <div class="matiere-details">
+      <div class="detail-item">
+        <i class="fas fa-graduation-cap"></i>
+        <span>{% if module.is_shared %}{% trans "Mutualisé" %} ({{ module.get_departments_display }}){% elif module.department %}{{ module.department.nom }}{% else %}{% trans "Toutes filières" %}{% endif %}</span>
+      </div>
+      <div class="detail-item">
+        <i class="fas fa-book"></i>
+        <span>{{ module.matieres.count }} {% trans "matière(s)" %}</span>
+      </div>
+      <div class="detail-item">
+        <i class="fas fa-coins"></i>
+        <span>{{ module.total_credits }} {% trans "crédits" %}</span>
+      </div>
+      {% if module.classes.exists %}
+      <div class="detail-item">
+        <i class="fas fa-users"></i>
+        <span>{{ module.classes.count }} {% trans "classe(s)" %}{% with niveaux=module.classes.all|classes_niveaux_lmd %}{% if niveaux %} <span class="niveaux-badge">({{ niveaux|join:", " }})</span>{% endif %}{% endwith %}</span>
+      </div>
+      {% endif %}
+      <div class="detail-item">
+        <span class="badge {% if module.actif %}badge-success{% else %}badge-secondary{% endif %}">
+          {% if module.actif %}{% trans "Actif" %}{% else %}{% trans "Inactif" %}{% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>

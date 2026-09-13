@@ -286,7 +286,9 @@ body {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-light);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 5;
   margin-bottom: var(--space-6);
 }
 
@@ -302,6 +304,16 @@ body {
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-light);
   padding: 0.35rem;
+  overflow: visible;
+}
+
+.categories-tabs .matiere-tabs-more-wrap {
+  position: relative;
+  z-index: 40;
+}
+
+.categories-tabs .matiere-tabs-overflow-menu {
+  z-index: 150;
 }
 
 .tab-btn {
@@ -749,9 +761,11 @@ body {
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--space-1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
 }
 
 .classe-niveau {
@@ -760,6 +774,14 @@ body {
   margin-bottom: var(--space-2);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.classe-filiere {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-2);
+  line-height: 1.4;
   font-weight: 500;
 }
 
@@ -1365,4 +1387,392 @@ body {
 .modal-loading i {
   color: var(--primary);
   font-size: 1.25rem;
+}
+
+/* Onglets principaux Spécialités / Classes */
+.classes-main-tabs {
+  margin-bottom: 1.5rem;
+}
+
+.classes-main-tab-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light, var(--gray-200));
+}
+
+.classes-main-tab-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, var(--gray-600));
+  padding: 0.875rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast, all 0.2s ease);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+
+.classes-main-tab-btn.is-active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.classes-main-tab-panel[hidden] {
+  display: none !important;
+}
+
+.classes-main-tab-panel.is-active {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .classes-main-tab-buttons {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .classes-main-tab-btn {
+    flex-shrink: 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Grille spécialités */
+.filieres-section {
+  margin-top: 0.25rem;
+}
+
+.filieres-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 1.25rem;
+}
+
+.specialite-card {
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--gray-200);
+  overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.specialite-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.specialite-card-header {
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+  color: #ffffff;
+}
+
+.specialite-card-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.3;
+  color: #ffffff;
+}
+
+.specialite-card-title span {
+  color: #ffffff;
+}
+
+.specialite-card-title i {
+  color: #ffffff;
+  opacity: 0.95;
+  flex-shrink: 0;
+}
+
+.specialite-card-sigle {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.specialite-card-body {
+  padding: 1rem 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.specialite-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--gray-600);
+}
+
+.specialite-card-meta i {
+  color: var(--info);
+  width: 1rem;
+  flex-shrink: 0;
+}
+
+.specialite-card-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-word;
+}
+
+@media (max-width: 360px) {
+  .specialite-card-meta span {
+    white-space: normal;
+  }
+}
+
+.specialite-card-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.specialite-card-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--gray-200);
+  background: var(--gray-50);
+}
+
+.specialite-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.specialite-card-actions .btn-spec {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.btn-spec-classes {
+  background: var(--primary);
+  color: var(--white);
+}
+
+.btn-spec-classes:hover {
+  background: #2563eb;
+}
+
+.btn-spec-modifier {
+  background: var(--white);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+}
+
+.btn-spec-modifier:hover {
+  background: var(--gray-100);
+}
+
+.btn-spec-supprimer {
+  background: var(--white);
+  color: var(--accent);
+  border: 1px solid var(--gray-300);
+}
+
+.btn-spec-supprimer:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.btn-spec-supprimer:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.specialite-delete-form {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.specialite-delete-form button {
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .specialite-card-actions {
+    flex-direction: column;
+  }
+
+  .specialite-card-actions .btn-spec {
+    width: 100%;
+  }
+}
+
+.modal-filiere-fullscreen .modal-container-fullscreen {
+  max-width: 500px;
+}
+
+.classes-main-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: var(--warning-light, rgba(251, 191, 36, 0.15));
+  color: #d97706;
+}
+
+/* Onglet Examens & concours */
+.examens-concours-section {
+  margin-top: 0.25rem;
+}
+
+.ec-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+}
+
+.ec-section-intro {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ec-section-intro i {
+  color: var(--info);
+}
+
+.ec-total-pill {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e40af;
+  background: #eff6ff;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid #bfdbfe;
+  white-space: nowrap;
+}
+
+.ec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 1.25rem;
+}
+
+.ec-card {
+  background: var(--white);
+  border-radius: 14px;
+  border: 1px solid var(--gray-200);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+}
+
+.ec-card-top {
+  padding: 1rem 1.15rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(124, 58, 237, 0.08));
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.ec-card-top h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.ec-meta {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+}
+
+.ec-card-body {
+  padding: 1rem 1.15rem 1.15rem;
+}
+
+.ec-card-examens {
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+}
+
+.ec-card-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ec-btn-detail {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: var(--primary);
+  color: var(--white);
+}
+
+.ec-btn-detail:hover {
+  background: #2563eb;
+  color: var(--white);
+}
+
+.ec-empty-state {
+  margin-top: 0.5rem;
 }

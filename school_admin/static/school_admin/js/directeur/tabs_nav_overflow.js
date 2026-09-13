@@ -304,12 +304,35 @@ function layoutTabsOverflowBar(bar, preset) {
     }
 }
 
+function resolveOverflowPreset(bar) {
+    var i;
+    for (i = 0; i < OVERFLOW_PRESETS.length; i += 1) {
+        if (bar.matches(OVERFLOW_PRESETS[i].bar)) {
+            return OVERFLOW_PRESETS[i];
+        }
+    }
+    return null;
+}
+
+function toggleTabsOverflowMenu(bar, preset) {
+    var menu = bar.querySelector(preset.menu);
+    var moreBtn = bar.querySelector(preset.moreBtn);
+    if (!menu || !moreBtn) {
+        return;
+    }
+    if (!menu.hidden) {
+        closeTabsOverflowMenu(bar, preset);
+    } else {
+        menu.hidden = false;
+        moreBtn.setAttribute('aria-expanded', 'true');
+    }
+}
+
 function initTabsOverflowBar(bar, preset) {
     if (bar.dataset.overflowInit === '1') {
         layoutTabsOverflowBar(bar, preset);
         return;
     }
-    bar.dataset.overflowInit = '1';
 
     var moreBtn = bar.querySelector(preset.moreBtn);
     var menu = bar.querySelector(preset.menu);
@@ -317,6 +340,7 @@ function initTabsOverflowBar(bar, preset) {
         return;
     }
 
+    bar.dataset.overflowInit = '1';
     layoutTabsOverflowBar(bar, preset);
 
     if (typeof ResizeObserver !== 'undefined') {
@@ -329,17 +353,6 @@ function initTabsOverflowBar(bar, preset) {
             layoutTabsOverflowBar(bar, preset);
         });
     }
-
-    moreBtn.addEventListener('click', function (event) {
-        event.stopPropagation();
-        var isOpen = !menu.hidden;
-        if (isOpen) {
-            closeTabsOverflowMenu(bar, preset);
-        } else {
-            menu.hidden = false;
-            moreBtn.setAttribute('aria-expanded', 'true');
-        }
-    });
 
     bar.addEventListener('click', function (event) {
         var btnSelector = preset.btn || TAB_BUTTON_SELECTORS.join(',');
@@ -362,6 +375,27 @@ function initTabsOverflowBar(bar, preset) {
             closeTabsOverflowMenu(bar, preset);
         }
     });
+}
+
+if (!window.__tabsOverflowCaptureBound) {
+    window.__tabsOverflowCaptureBound = true;
+    document.addEventListener('click', function (event) {
+        var moreBtn = event.target.closest('.matiere-tabs-more-btn, .tabs-overflow-more-btn, .cls-cat-more-btn');
+        if (!moreBtn) {
+            return;
+        }
+        var bar = moreBtn.closest('.matiere-tabs-bar, .tabs-overflow-bar, .cls-cat-nav-bar');
+        if (!bar) {
+            return;
+        }
+        var preset = resolveOverflowPreset(bar);
+        if (!preset) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        toggleTabsOverflowMenu(bar, preset);
+    }, true);
 }
 
 window.layoutTabsOverflowNav = function () {

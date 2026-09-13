@@ -19,43 +19,56 @@
         rel="stylesheet"
         href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.0"
     />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres.css' %}?v=2.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres_liste.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
+    {% if est_superieur %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/modules_ajout_modal.css' %}?v=2.3.0" />
+    {% else %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres.css' %}?v=2.1.0" />
+    {% endif %}
 </head>
-<body class="mat-page-body" data-live-page="matieres">
+<body class="gml-page-body mat-page-body" data-live-page="matieres">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <div class="content-container mat-page">
+    <div class="content-container gml-page mat-page">
         <div class="page-header page-header-minimal">
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
         </div>
 
-        <header class="mat-hero">
-            <div class="mat-hero-text">
-                <h1 class="mat-hero-title"><i class="fas fa-book-open"></i> {% trans "Gestion des matières" %}</h1>
-                <p class="mat-hero-sub">{% trans "Organisez le programme d'enseignement, les coefficients et les classes concernées." %}</p>
+        <header class="gml-hero mat-hero">
+            <div class="gml-hero-text mat-hero-text">
+                <h1 class="gml-hero-title mat-hero-title"><i class="fas fa-{% if est_superieur %}cubes{% else %}book-open{% endif %}"></i> {% if est_superieur %}{% trans "Gestion des modules" %}{% else %}{% trans "Gestion des matières" %}{% endif %}</h1>
+                <p class="gml-hero-sub mat-hero-sub">{% if est_superieur %}{% trans "Organisez les modules par filière et niveau LMD. Ajoutez les matières depuis la fiche de chaque module." %}{% else %}{% trans "Organisez le programme d'enseignement, les coefficients et les classes concernées." %}{% endif %}</p>
             </div>
-            <div class="mat-hero-stats">
-                <div class="mat-stat-pill"><span class="mat-stat-num">{{ stats.total }}</span><span class="mat-stat-lbl">{% trans "Matières" %}</span></div>
-                <div class="mat-stat-pill mat-stat-pill--ok"><span class="mat-stat-num">{{ stats.actives }}</span><span class="mat-stat-lbl">{% trans "Actives" %}</span></div>
-                {% if not est_superieur %}
-                <div class="mat-stat-pill"><span class="mat-stat-num">{{ stats.obligatoires|default:0 }}</span><span class="mat-stat-lbl">{% trans "Obligatoires" %}</span></div>
-                <div class="mat-stat-pill"><span class="mat-stat-num">{{ stats.optionnelles|default:0 }}</span><span class="mat-stat-lbl">{% trans "Optionnelles" %}</span></div>
+            <div class="gml-hero-stats mat-hero-stats">
+                {% if est_superieur %}
+                <div class="gml-stat-pill mat-stat-pill"><span class="gml-stat-num mat-stat-num">{{ modules_stats.total }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Modules" %}</span></div>
+                <div class="gml-stat-pill gml-stat-pill--ok mat-stat-pill mat-stat-pill--ok"><span class="gml-stat-num mat-stat-num">{{ modules_stats.actives }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Actifs" %}</span></div>
+                <div class="gml-stat-pill mat-stat-pill"><span class="gml-stat-num mat-stat-num">{{ modules_par_filiere|length }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Filières" %}</span></div>
                 {% else %}
-                <div class="mat-stat-pill"><span class="mat-stat-num">{{ matieres_par_filiere|length }}</span><span class="mat-stat-lbl">{% trans "Filières" %}</span></div>
+                <div class="gml-stat-pill mat-stat-pill"><span class="gml-stat-num mat-stat-num">{{ stats.total }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Matières" %}</span></div>
+                <div class="gml-stat-pill gml-stat-pill--ok mat-stat-pill mat-stat-pill--ok"><span class="gml-stat-num mat-stat-num">{{ stats.actives }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Actives" %}</span></div>
+                <div class="gml-stat-pill mat-stat-pill"><span class="gml-stat-num mat-stat-num">{{ stats.obligatoires|default:0 }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Obligatoires" %}</span></div>
+                <div class="gml-stat-pill mat-stat-pill"><span class="gml-stat-num mat-stat-num">{{ stats.optionnelles|default:0 }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Optionnelles" %}</span></div>
                 {% endif %}
             </div>
-            <div class="mat-hero-actions">
+            <div class="gml-hero-actions mat-hero-actions">
                 {% if est_superieur %}
-                    <a href="{% url 'matiere:liste_modules' %}" class="mat-action-btn mat-action-btn--secondary">
-                        <i class="fas fa-cubes"></i> {% trans "Gérer les modules" %}
-                    </a>
+                    <button type="button" class="gml-action-btn gml-action-btn--primary mat-action-btn mat-action-btn--primary" id="addModuleBtnHeader" title="{% trans 'Ajouter un module' %}">
+                        <i class="fas fa-plus"></i> {% trans "Ajouter un module" %}
+                    </button>
                 {% else %}
-                    <button type="button" class="mat-action-btn mat-action-btn--primary" onclick="toggleAddForm()">
+                    <button type="button" class="gml-action-btn gml-action-btn--primary mat-action-btn mat-action-btn--primary" onclick="toggleAddForm()">
                         <i class="fas fa-plus"></i> {% trans "Ajouter une matière" %}
                     </button>
                 {% endif %}
             </div>
         </header>
+
+        {% if est_superieur %}
+            {% include 'school_admin/directeur/pedagogique/matieres/partials/gml_modules_list_panel.html' %}
+        {% else %}
 
         <!-- Add Matiere Form - Modal plein écran -->
         <div class="add-matiere-modal-overlay" id="addFormContainer" style="{% if not field_errors %}display: none;{% endif %}" onclick="if(event.target===this) toggleAddForm()">
@@ -331,7 +344,7 @@
             </div>
         </div>
 
-        {% if matieres or est_superieur and matieres_par_filiere %}
+        {% if not est_superieur and matieres %}
         <div class="mat-toolbar">
             <label class="mat-search-wrap">
                 <i class="fas fa-search" aria-hidden="true"></i>
@@ -484,9 +497,9 @@
                     <h3>{% trans "Aucune matière trouvée" %}</h3>
                     {% if est_superieur %}
                     <p>{% trans "Créez des filières et des modules, puis ajoutez les matières depuis la fiche détail de chaque module." %}</p>
-                    <a href="{% url 'matiere:liste_modules' %}" class="mat-action-btn mat-action-btn--primary">
+                    <button type="button" class="mat-action-btn mat-action-btn--primary" id="addModuleBtnFromMatieresEmpty">
                         <i class="fas fa-cubes"></i> {% trans "Voir les modules" %}
-                    </a>
+                    </button>
                     {% else %}
                     <p>{% trans "Commencez par ajouter votre première matière pour organiser votre programme d'enseignement." %}</p>
                     <button type="button" class="mat-action-btn mat-action-btn--primary" onclick="toggleAddForm()">
@@ -496,10 +509,20 @@
                 </div>
             {% endif %}
         </div>
+
+        {% endif %}{# fin est_superieur else (primaire/secondaire) #}
+
+        {% if est_superieur %}
+        {% include 'school_admin/directeur/pedagogique/modules/partials/modal_ajouter_module.html' %}
+        {% endif %}
     </div>
 
     <!-- Scripts -->
     <script src="{% static 'school_admin/js/directeur/matieres.js' %}?v=2.0.1"></script>
+    <script src="{% static 'school_admin/js/directeur/matieres_liste_tabs.js' %}?v=2.0.0"></script>
+    {% if est_superieur %}
+    <script src="{% static 'school_admin/js/directeur/matieres_modules.js' %}?v=2.4.0"></script>
+    {% endif %}
     <script>
         {% if est_superieur and field_errors %}
         document.addEventListener('DOMContentLoaded', function() {

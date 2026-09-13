@@ -1,60 +1,81 @@
 /**
- * Liste des élèves — navigation onglets + filtres (UI v2)
+ * Liste des élèves — navigation onglets niveau/classe + overflow + filtres (UI v2.1)
  */
-
 (function () {
   'use strict';
 
-  window.switchMainTab = function (tabId, btn) {
-    document.querySelectorAll('.tab-panel').forEach(function (panel) {
-      panel.classList.remove('active');
-    });
-    document.querySelectorAll('.tab-button').forEach(function (b) {
-      b.classList.remove('active');
-      b.setAttribute('aria-selected', 'false');
-    });
-    var panel = document.getElementById(tabId);
-    if (panel) panel.classList.add('active');
-    var targetBtn = btn || document.querySelector('.tab-button[data-tab="' + tabId + '"]');
-    if (targetBtn) {
-      targetBtn.classList.add('active');
-      targetBtn.setAttribute('aria-selected', 'true');
-    }
+  function layoutOverflow() {
     if (typeof window.layoutTabsOverflowNav === 'function') {
       window.layoutTabsOverflowNav();
     }
+  }
+
+  function setPanelVisible(panel, show) {
+    if (!panel) return;
+    panel.classList.toggle('active', show);
+    panel.hidden = !show;
+  }
+
+  function resetClasseTabsInNiveau(niveauPanel) {
+    if (!niveauPanel) return;
+    var zone = niveauPanel.querySelector('[data-ele-classe-zone]');
+    if (!zone) return;
+
+    var btns = zone.querySelectorAll('.classe-subtab-btn');
+    var panels = zone.querySelectorAll('.ele-classe-panel');
+    btns.forEach(function (b, i) {
+      var active = i === 0;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    panels.forEach(function (p, i) {
+      setPanelVisible(p, i === 0);
+    });
+  }
+
+  window.switchMainTab = function (tabId, btn) {
+    document.querySelectorAll('.ele-niveau-panel.tab-panel').forEach(function (panel) {
+      setPanelVisible(panel, panel.id === tabId);
+    });
+    document.querySelectorAll('.ele-niveau-tab.tab-button').forEach(function (b) {
+      var active = b.getAttribute('data-tab') === tabId;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+
+    var activePanel = document.getElementById(tabId);
+    if (activePanel) {
+      resetClasseTabsInNiveau(activePanel);
+    }
+
+    if (btn) {
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+    }
+
+    layoutOverflow();
   };
 
-  window.switchClasseTab = function (event, classeId) {
+  window.switchClasseTab = function (event, subtabId) {
     if (event) event.stopPropagation();
-    var parentPanel = (event && event.target)
-      ? event.target.closest('.tab-panel')
-      : document.querySelector('.classe-subtab-content#classe-' + classeId);
-    if (!parentPanel) return;
-    if (!parentPanel.classList.contains('tab-panel')) {
-      parentPanel = parentPanel.closest('.tab-panel');
-    }
-    if (!parentPanel) return;
 
-    parentPanel.querySelectorAll('.classe-subtab-content').forEach(function (content) {
-      content.classList.remove('active');
+    var btn = event && event.target ? event.target.closest('.classe-subtab-btn') : null;
+    var niveauPanel = btn
+      ? btn.closest('.ele-niveau-panel')
+      : document.querySelector('.ele-classe-panel#' + subtabId)?.closest('.ele-niveau-panel');
+
+    if (!niveauPanel) return;
+
+    niveauPanel.querySelectorAll('.ele-classe-panel').forEach(function (content) {
+      setPanelVisible(content, content.id === subtabId);
     });
-    parentPanel.querySelectorAll('.classe-subtab-btn').forEach(function (b) {
-      b.classList.remove('active');
-      b.setAttribute('aria-selected', 'false');
+    niveauPanel.querySelectorAll('.classe-subtab-btn').forEach(function (b) {
+      var active = b.getAttribute('data-subtab') === subtabId;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
     });
 
-    var content = document.getElementById(classeId);
-    if (content) content.classList.add('active');
-
-    var subBtn = parentPanel.querySelector('.classe-subtab-btn[data-subtab="' + classeId + '"]');
-    if (subBtn) {
-      subBtn.classList.add('active');
-      subBtn.setAttribute('aria-selected', 'true');
-    }
-    if (typeof window.layoutTabsOverflowNav === 'function') {
-      window.layoutTabsOverflowNav();
-    }
+    layoutOverflow();
   };
 
   window.filterStudents = function (classeId) {
@@ -157,21 +178,34 @@
     modal.style.display = 'none';
   };
 
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.tab-button').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        window.switchMainTab(this.getAttribute('data-tab'), this);
+  function initEleListeTabs() {
+    var niveauZone = document.querySelector('[data-ele-niveau-zone]');
+    if (niveauZone) {
+      niveauZone.addEventListener('click', function (event) {
+        var btn = event.target.closest('.ele-niveau-tab[data-tab]');
+        if (!btn || !niveauZone.contains(btn)) return;
+        window.switchMainTab(btn.getAttribute('data-tab'), btn);
       });
-    });
-    document.querySelectorAll('.classe-subtab-btn').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        window.switchClasseTab(e, btn.getAttribute('data-subtab'));
+
+      niveauZone.querySelectorAll('[data-ele-classe-zone]').forEach(function (zone) {
+        if (zone.dataset.eleClasseInit === '1') return;
+        zone.dataset.eleClasseInit = '1';
+        zone.addEventListener('click', function (event) {
+          var btn = event.target.closest('.classe-subtab-btn');
+          if (!btn || !zone.contains(btn)) return;
+          window.switchClasseTab(event, btn.getAttribute('data-subtab'));
+        });
       });
-    });
-    if (typeof window.layoutTabsOverflowNav === 'function') {
-      window.layoutTabsOverflowNav();
     }
-  });
+
+    layoutOverflow();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEleListeTabs);
+  } else {
+    initEleListeTabs();
+  }
 
   window.addEventListener('click', function (event) {
     var modal = document.getElementById('modalSanction');

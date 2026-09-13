@@ -41,6 +41,13 @@ class Department(models.Model):
     Optionnel pour établissements supérieurs.
     """
     nom = models.CharField(max_length=255, verbose_name="Nom de la spécialité")
+    sigle = models.CharField(
+        max_length=12,
+        blank=True,
+        default='',
+        verbose_name="Code / Sigle de la spécialité",
+        help_text="Ex: GL (Génie Logiciel), TL (Transport & Logistique) — utilisé sur bulletins et relevés.",
+    )
     domaine = models.CharField(
         max_length=255,
         blank=True,
@@ -66,6 +73,13 @@ class Department(models.Model):
         verbose_name_plural = "Spécialités"
         ordering = ['etablissement', 'ordre', 'nom']
         unique_together = ['etablissement', 'nom']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['etablissement', 'sigle'],
+                condition=models.Q(sigle__gt=''),
+                name='unique_department_sigle_par_etablissement',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.nom} - {self.etablissement.nom}"

@@ -1,0 +1,73 @@
+{% load i18n %}
+<div class="filieres-section">
+  {% if filieres %}
+    <div class="filieres-grid">
+      {% for item in filieres %}
+        <article class="specialite-card">
+          <header class="specialite-card-header">
+            <h3 class="specialite-card-title">
+              <i class="fas fa-graduation-cap"></i>
+              <span>{{ item.department.nom }}</span>
+            </h3>
+            {% if item.department.sigle %}
+            <p class="specialite-card-sigle">{{ item.department.sigle }}</p>
+            {% endif %}
+          </header>
+          <div class="specialite-card-body">
+            {% if item.department.domaine %}
+            <div class="specialite-card-meta">
+              <i class="fas fa-folder-open"></i>
+              <span title="{{ item.department.domaine }}">{{ item.department.domaine }}</span>
+            </div>
+            {% endif %}
+            {% if item.department.mention %}
+            <div class="specialite-card-meta">
+              <i class="fas fa-tag"></i>
+              <span title="{{ item.department.mention }}">{{ item.department.mention }}</span>
+            </div>
+            {% endif %}
+            <div class="specialite-card-stat">
+              <i class="fas fa-chalkboard"></i>
+              {% blocktrans count counter=item.nb_classes %}
+                {{ counter }} classe
+              {% plural %}
+                {{ counter }} classes
+              {% endblocktrans %}
+            </div>
+          </div>
+          <footer class="specialite-card-footer">
+            <div class="specialite-card-actions">
+              <a href="{% url 'administrateur_etablissement:liste_classes_specialite' item.department.id %}" class="btn-spec btn-spec-classes">
+                <i class="fas fa-list"></i>
+                <span>{% trans "Voir les classes" %}</span>
+              </a>
+              <button type="button" class="btn-spec btn-spec-modifier btn-filiere-modifier" data-filiere-id="{{ item.department.id }}" data-filiere-nom="{{ item.department.nom }}" data-filiere-sigle="{{ item.department.sigle|default:'' }}" data-filiere-domaine="{{ item.department.domaine|default:'' }}" data-filiere-mention="{{ item.department.mention|default:'' }}">
+                <i class="fas fa-edit"></i>
+                <span>{% trans "Modifier" %}</span>
+              </button>
+              <form method="post" action="{% url 'administrateur_etablissement:supprimer_filiere' item.department.id %}" class="specialite-delete-form" data-filiere-nom="{{ item.department.nom }}">
+                {% csrf_token %}
+                <button type="submit" class="btn-spec btn-spec-supprimer" {% if item.nb_classes > 0 %}disabled title="{% trans 'Impossible de supprimer : cette spécialité contient des classes' %}"{% endif %}>
+                  <i class="fas fa-trash-alt"></i>
+                  <span>{% trans "Supprimer" %}</span>
+                </button>
+              </form>
+            </div>
+          </footer>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">
+        <i class="fas fa-sitemap"></i>
+      </div>
+      <h3>{% trans "Aucune spécialité" %}</h3>
+      <p>{% trans "Commencez par créer une spécialité pour organiser vos classes (ex: Logistique et Transport, Informatique)" %}</p>
+      <button type="button" class="btn-add-classe" id="addFiliereBtnEmpty">
+        <i class="fas fa-plus"></i>
+        <span>{% trans "Ajouter une spécialité" %}</span>
+      </button>
+    </div>
+  {% endif %}
+</div>

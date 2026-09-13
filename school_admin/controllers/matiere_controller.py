@@ -20,6 +20,47 @@ from ..services.live_serializers import serialize_matiere_item
 
 logger = logging.getLogger(__name__)
 
+
+def _index_modules_par_filiere(modules_list, department_ids):
+    """Regroupe les modules par spécialité (y compris modules mutualisés)."""
+    indexed = {dep_id: [] for dep_id in department_ids}
+    for module in modules_list:
+        linked_ids = {md.department_id for md in module.module_departments.all()}
+        if not linked_ids and module.department_id:
+            linked_ids = {module.department_id}
+        for dep_id in linked_ids:
+            if dep_id in indexed and module not in indexed[dep_id]:
+                indexed[dep_id].append(module)
+    return indexed
+
+
+def enrich_liste_matieres_superieur_context(request, etablissement, context, matieres_main_tab=None):
+    """Ajoute l'onglet modules et les données associées pour les établissements supérieurs."""
+    if not context.get('est_superieur'):
+        context.setdefault('matieres_main_tab', 'matieres')
+        return context
+
+    from .module_controller import _build_liste_modules_context, _modal_ajouter_from_query
+
+    if matieres_main_tab is None:
+        matieres_main_tab = 'modules'
+
+    mods = _build_liste_modules_context(request, etablissement)
+    if request.GET.get('ouvrir_modal'):
+        mods.update(_modal_ajouter_from_query(request, etablissement))
+
+    context['matieres_main_tab'] = matieres_main_tab
+    context['modules'] = mods['modules']
+    context['modules_par_filiere'] = mods['modules_par_filiere']
+    context['modules_stats'] = mods['stats']
+    context['show_modal_ajouter'] = mods.get('show_modal_ajouter', False)
+    context['modal_form_data'] = mods.get('modal_form_data', {})
+    context['modal_field_errors'] = mods.get('modal_field_errors', {})
+    context['modal_groupes_classes'] = mods.get('modal_groupes_classes', {})
+    context['modal_niveaux_par_filiere'] = mods.get('modal_niveaux_par_filiere', [])
+    context['modal_periodes_par_niveau'] = mods.get('modal_periodes_par_niveau', {})
+    return context
+
 # Clé interne pour l’onglet « sans niveau LMD » (modules sans niveau ni classes côté filière)
 NIVEAU_TAB_SANS_NIVEAU = '__sans_niveau__'
 
@@ -211,23 +252,8 @@ class MatiereController:
         return mapping.get(type_etablissement, 'tous')
     
     @staticmethod
-    @login_required
-    def liste_matieres(request):
-        """
-        Affiche la liste des matières avec possibilité d'ajout
-        """
-        # Vérifier que l'utilisateur est soit du personnel administratif soit un directeur
-        if isinstance(request.user, Etablissement):
-            etablissement = request.user
-        else:
-            # Si c'est du personnel administratif, récupérer son établissement
-            from ..model.personnel_administratif_model import PersonnelAdministratif
-            if isinstance(request.user, PersonnelAdministratif):
-                etablissement = request.user.etablissement
-            else:
-                messages.error(request, "Accès non autorisé.")
-                return redirect('school_admin:connexion_compte_user')
-        
+    def build_liste_matieres_context(request, etablissement):
+        """Construit le contexte de la page liste matières (sans onglet modules)."""
         # Récupérer les matières (avec department pour affichage filière)
         _classes_qs = Classe.objects.select_related('department', 'academic_level')
         matieres = Matiere.objects.filter(etablissement=etablissement).select_related(
@@ -343,11 +369,11 @@ class MatiereController:
                 classes_by_department[dep_id].append(classe)
             modules_list = Module.objects.filter(
                 etablissement=etablissement,
-                department_id__in=department_ids,
-                actif=True
-            ).select_related('department').prefetch_related('classes').order_by('department', 'ordre', 'nom')
-            for dep_id in department_ids:
-                modules_by_department[dep_id] = [m for m in modules_list if m.department_id == dep_id]
+                actif=True,
+            ).select_related('department').prefetch_related(
+                'module_departments', 'classes'
+            ).order_by('ordre', 'nom')
+            modules_by_department = _index_modules_par_filiere(modules_list, department_ids)
         
         form_data = {'department': '', 'module': '', 'departments_ids': [], 'modules_ids': [], 'credits': '', 'classes_ids': []}
         
@@ -376,9 +402,29 @@ class MatiereController:
             'form_data': form_data,
             'field_errors': {},
         }
-        
+
+        return context
+
+    @staticmethod
+    @login_required
+    def liste_matieres(request):
+        """
+        Affiche la liste des matières avec possibilité d'ajout
+        """
+        if isinstance(request.user, Etablissement):
+            etablissement = request.user
+        else:
+            from ..model.personnel_administratif_model import PersonnelAdministratif
+            if isinstance(request.user, PersonnelAdministratif):
+                etablissement = request.user.etablissement
+            else:
+                messages.error(request, "Accès non autorisé.")
+                return redirect('school_admin:connexion_compte_user')
+
+        context = MatiereController.build_liste_matieres_context(request, etablissement)
+        context = enrich_liste_matieres_superieur_context(request, etablissement, context)
         return render(request, 'school_admin/directeur/pedagogique/matieres/liste_matieres.html', context)
-    
+
     @staticmethod
     @login_required
     def ajouter_matiere(request):
@@ -484,7 +530,8 @@ class MatiereController:
                             nom__iexact=form_data['nom'],
                             etablissement=etablissement,
                             department=mod.department,
-                            module=mod
+                            module=mod,
+                            niveau_lmd_key='',
                         ).exists():
                             field_errors['nom'] = f"Cette matière existe déjà dans le module '{mod.nom}'."
                             is_valid = False
@@ -772,11 +819,11 @@ class MatiereController:
                 classes_by_department[dep_id].append(classe)
             modules_list = Module.objects.filter(
                 etablissement=etablissement,
-                department_id__in=department_ids,
-                actif=True
-            ).select_related('department').prefetch_related('classes').order_by('department', 'ordre', 'nom')
-            for dep_id in department_ids:
-                modules_by_department[dep_id] = [m for m in modules_list if m.department_id == dep_id]
+                actif=True,
+            ).select_related('department').prefetch_related(
+                'module_departments', 'classes'
+            ).order_by('ordre', 'nom')
+            modules_by_department = _index_modules_par_filiere(modules_list, department_ids)
         
         if est_superieur and departments:
             matieres_par_filiere = build_matieres_par_filiere_superieur(
@@ -998,13 +1045,15 @@ class MatiereController:
             # Vérification de l'unicité du nom (sauf pour la matière actuelle, selon module pour supérieur)
             if form_data['nom']:
                 if est_superieur and department_obj and module_obj:
+                    niveau_key = (getattr(matiere, 'niveau_lmd_key', None) or '').strip()
                     if Matiere.objects.filter(
                         nom__iexact=form_data['nom'],
                         etablissement=etablissement,
                         department=department_obj,
-                        module=module_obj
+                        module=module_obj,
+                        niveau_lmd_key=niveau_key,
                     ).exclude(id=matiere.id).exists():
-                        field_errors['nom'] = "Cette matière existe déjà dans ce module."
+                        field_errors['nom'] = "Cette matière existe déjà dans ce module pour ce niveau."
                         is_valid = False
                 elif not est_superieur:
                     if Matiere.objects.filter(
@@ -1242,11 +1291,11 @@ class MatiereController:
                 classes_by_department[dep_id].append(classe)
             modules_list = Module.objects.filter(
                 etablissement=etablissement,
-                department_id__in=department_ids,
-                actif=True
-            ).select_related('department').prefetch_related('classes').order_by('department', 'ordre', 'nom')
-            for dep_id in department_ids:
-                modules_by_department[dep_id] = [m for m in modules_list if m.department_id == dep_id]
+                actif=True,
+            ).select_related('department').prefetch_related(
+                'module_departments', 'classes'
+            ).order_by('ordre', 'nom')
+            modules_by_department = _index_modules_par_filiere(modules_list, department_ids)
         
         context = {
             'matiere': matiere,

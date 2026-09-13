@@ -1,0 +1,535 @@
+/* Convocations de classe — liste UX v2 */
+
+.cvl-page-body {
+  background: var(--gray-50, #f9fafb);
+}
+
+.content-container.cvl-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 5rem;
+}
+
+.page-header-minimal {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.cvl-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 1.25rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  background: var(--white, #fff);
+  border-radius: 12px;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.cvl-hero-text {
+  flex: 1 1 280px;
+}
+
+.cvl-hero-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--gray-800, #1f2937);
+  margin: 0 0 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cvl-hero-title i {
+  color: var(--primary, #3b82f6);
+}
+
+.cvl-hero-sub {
+  font-size: 1rem;
+  color: var(--gray-600, #4b5563);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cvl-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--directeur-secondary, #1d4ed8);
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 999px;
+}
+
+.cvl-hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cvl-stat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 4.5rem;
+  padding: 0.5rem 0.875rem;
+  background: var(--gray-50, #f9fafb);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 8px;
+}
+
+.cvl-stat-pill--accent {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.cvl-stat-pill--info {
+  background: rgba(139, 92, 246, 0.08);
+  border-color: rgba(139, 92, 246, 0.35);
+}
+
+.cvl-stat-num {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--gray-800, #1f2937);
+}
+
+.cvl-stat-lbl {
+  font-size: 0.6875rem;
+  color: var(--gray-600, #4b5563);
+  font-weight: 500;
+  text-align: center;
+}
+
+.cvl-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  width: 100%;
+}
+
+.cvl-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.cvl-action-btn--primary {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+}
+
+.cvl-action-btn:hover {
+  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
+  transform: translateY(-1px);
+}
+
+.cvl-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+}
+
+.cvl-alert-warn {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: var(--gray-800, #1f2937);
+}
+
+.cvl-alert-warn i {
+  color: var(--warning, #fbbf24);
+  margin-top: 0.15rem;
+}
+
+.cvl-guide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.875rem 1rem;
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 10px;
+}
+
+.cvl-guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  flex: 1 1 180px;
+  font-size: 0.8125rem;
+  color: var(--gray-700, #374151);
+  line-height: 1.45;
+}
+
+.cvl-guide-num {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.cvl-classe-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: 0.875rem 1.25rem;
+  margin-bottom: 1rem;
+  background: var(--white, #fff);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.cvl-classe-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--primary, #3b82f6);
+  font-size: 1.125rem;
+}
+
+.cvl-classe-details {
+  flex: 1 1 200px;
+}
+
+.cvl-classe-details h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--gray-800, #1f2937);
+}
+
+.cvl-classe-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--gray-600, #4b5563);
+}
+
+.cvl-classe-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cvl-section {
+  margin-bottom: 1rem;
+}
+
+.cvl-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.cvl-section-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--gray-800, #1f2937);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cvl-section-title i {
+  color: var(--primary, #3b82f6);
+}
+
+.cvl-convocations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.cvl-convocation-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--white, #fff);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.cvl-convocation-card:hover {
+  box-shadow: var(--shadow-card, 0 10px 15px -3px rgba(0, 0, 0, 0.08));
+  transform: translateY(-2px);
+}
+
+.cvl-convocation-card--past {
+  opacity: 0.85;
+  border-color: var(--gray-300, #d1d5db);
+}
+
+.cvl-convocation-header {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--gray-100, #f3f4f6);
+}
+
+.cvl-convocation-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.cvl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.cvl-badge--en_attente {
+  background: rgba(251, 191, 36, 0.15);
+  color: #b45309;
+}
+
+.cvl-badge--vue {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+}
+
+.cvl-badge--honoree {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.cvl-badge--non-honoree {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.cvl-badge--eleves {
+  background: var(--gray-100, #f3f4f6);
+  color: var(--gray-700, #374151);
+}
+
+.cvl-badge--past {
+  background: var(--gray-200, #e5e7eb);
+  color: var(--gray-600, #4b5563);
+}
+
+.cvl-convocation-objet {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray-800, #1f2937);
+  line-height: 1.35;
+}
+
+.cvl-convocation-body {
+  flex: 1;
+  padding: 0.75rem 1rem;
+}
+
+.cvl-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.8125rem;
+  color: var(--gray-700, #374151);
+  line-height: 1.45;
+}
+
+.cvl-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.cvl-info-row i {
+  flex-shrink: 0;
+  width: 1rem;
+  color: var(--gray-400, #9ca3af);
+  margin-top: 0.1rem;
+}
+
+.cvl-convocation-meta {
+  margin-top: 0.625rem;
+  padding-top: 0.625rem;
+  border-top: 1px dashed var(--gray-200, #e5e7eb);
+  font-size: 0.75rem;
+  color: var(--gray-500, #6b7280);
+}
+
+.cvl-convocation-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cvl-convocation-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--gray-50, #f9fafb);
+  border-top: 1px solid var(--gray-200, #e5e7eb);
+}
+
+.cvl-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  border: 1px solid var(--gray-300, #d1d5db);
+  background: var(--white, #fff);
+  color: var(--gray-700, #374151);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cvl-card-btn--print {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: transparent;
+  color: #fff;
+}
+
+.cvl-card-btn--toggle[aria-expanded="true"] {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: var(--directeur-secondary, #1d4ed8);
+}
+
+.cvl-card-btn:hover {
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.cvl-eleves-panel {
+  display: none;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--gray-200, #e5e7eb);
+  background: var(--gray-50, #f9fafb);
+}
+
+.cvl-eleves-panel.is-open {
+  display: block;
+}
+
+.cvl-eleves-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--gray-600, #4b5563);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cvl-eleves-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cvl-eleve-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.65rem;
+  background: var(--white, #fff);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--gray-800, #1f2937);
+}
+
+.cvl-empty {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: var(--white, #fff);
+  border: 1px dashed var(--gray-300, #d1d5db);
+  border-radius: 12px;
+}
+
+.cvl-empty-icon {
+  font-size: 2.5rem;
+  color: var(--gray-300, #d1d5db);
+  margin-bottom: 0.75rem;
+}
+
+.cvl-empty-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--gray-800, #1f2937);
+}
+
+.cvl-empty-desc {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--gray-600, #4b5563);
+}
+
+@media (max-width: 768px) {
+  .content-container.cvl-page {
+    padding: 0.75rem 0.875rem 4.5rem;
+  }
+
+  .cvl-hero-title {
+    font-size: 1.5rem;
+  }
+
+  .cvl-hero-sub {
+    font-size: 0.875rem;
+  }
+
+  .cvl-convocations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cvl-convocation-footer {
+    flex-direction: column;
+  }
+
+  .cvl-card-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

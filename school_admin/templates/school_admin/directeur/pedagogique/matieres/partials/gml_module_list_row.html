@@ -1,0 +1,42 @@
+{% load i18n classe_tags notes_tags %}
+<div class="gml-list-row" data-module-id="{{ module.id }}">
+    <div class="gml-list-cell gml-list-cell--title">
+        <p class="gml-item-title">
+            <i class="fas fa-cube"></i> {{ module.nom }}
+        </p>
+        <p class="gml-item-sub">{{ module.code }}{% if module.niveau_lmd %} • {{ module.niveau_lmd|libelle_niveau_lmd_key }}{% endif %}</p>
+    </div>
+    <div class="gml-list-cell gml-list-cell--tags">
+        {% if module.is_shared %}
+            <span class="gml-badge gml-badge--info">{% trans "Mutualisé" %}</span>
+            <span class="gml-badge gml-badge--muted">{{ module.get_departments_display|truncatechars:28 }}</span>
+        {% elif module.department %}
+            <span class="gml-badge gml-badge--info">{{ module.department.nom|truncatechars:24 }}</span>
+        {% else %}
+            <span class="gml-badge gml-badge--muted">{% trans "Toutes filières" %}</span>
+        {% endif %}
+    </div>
+    <div class="gml-list-cell gml-list-cell--num">{{ module.matieres.count }}</div>
+    <div class="gml-list-cell gml-list-cell--num">{{ module.total_credits }}</div>
+    <div class="gml-list-cell gml-list-cell--num">{% if module.classes.exists %}{{ module.classes.count }}{% else %}0{% endif %}</div>
+    <div class="gml-list-cell">
+        {% if module.actif %}
+            <span class="gml-badge gml-badge--ok">{% trans "Actif" %}</span>
+        {% else %}
+            <span class="gml-badge gml-badge--muted">{% trans "Inactif" %}</span>
+        {% endif %}
+    </div>
+    <div class="gml-list-cell gml-list-cell--actions">
+        <div class="gml-actions-group">
+            <a href="{% url 'matiere:detail_module' module.id %}" class="gml-act-btn gml-act-btn--view">
+                <i class="fas fa-eye"></i><span>{% trans "Détails" %}</span>
+            </a>
+            <form method="post" action="{% url 'matiere:supprimer_module' module.id %}" class="gml-inline-form" onsubmit="return confirm('{% trans "Supprimer ce module ? Les matières seront retirées du module." %}');">
+                {% csrf_token %}
+                <button type="submit" class="gml-act-btn gml-act-btn--danger">
+                    <i class="fas fa-trash"></i><span>{% trans "Suppr." %}</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

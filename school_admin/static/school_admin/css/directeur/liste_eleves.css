@@ -664,7 +664,7 @@ body {
 
 .list-header {
   display: grid;
-  grid-template-columns: 2.5fr 1.2fr 0.8fr 1.2fr 1.2fr 1.2fr 1.5fr;
+  grid-template-columns: 2fr 1.1fr 0.75fr 0.85fr 1fr 1.1fr;
   gap: var(--spacing-4);
   padding: var(--spacing-5) var(--spacing-6);
   background: var(--gray-50);
@@ -676,7 +676,7 @@ body {
 
 .list-row {
   display: grid;
-  grid-template-columns: 2.5fr 1.2fr 0.8fr 1.2fr 1.2fr 1.2fr 1.5fr;
+  grid-template-columns: 2fr 1.1fr 0.75fr 0.85fr 1fr 1.1fr;
   gap: var(--spacing-4);
   padding: var(--spacing-4) var(--spacing-6);
   border-bottom: 1px solid var(--gray-100);
@@ -1056,7 +1056,7 @@ body {
 @media (max-width: 1200px) {
   .list-header,
   .list-row {
-    grid-template-columns: 2.2fr 1fr 0.7fr 1fr 1fr 1fr 1.2fr;
+    grid-template-columns: 1.9fr 1fr 0.7fr 0.8fr 0.95fr 1fr;
     gap: var(--spacing-3);
   }
   
@@ -2471,6 +2471,354 @@ body {
 
   .ele-page .list-cell,
   .ele-page .list-cell.header-cell {
+    font-size: 0.8125rem;
+  }
+}
+
+/* UX v2.1 — overflow niveaux + panneaux */
+.ele-page-body [hidden] {
+  display: none !important;
+}
+
+.ele-main-panel {
+  background: #fff;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 12px;
+  padding: 0.875rem 1rem 1rem;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1rem;
+}
+
+.ele-panel-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 0.875rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--gray-600, #4b5563);
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 8px;
+}
+
+.ele-panel-hint i {
+  color: #3b82f6;
+  margin-top: 0.1rem;
+}
+
+.ele-niveau-nav {
+  margin-bottom: 0.875rem;
+}
+
+.ele-niveau-nav .matiere-tab-btn.ele-niveau-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 8px;
+  background: var(--gray-50, #f9fafb);
+  color: var(--gray-700, #374151);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.ele-niveau-nav .matiere-tab-btn.ele-niveau-tab.active {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-color: transparent;
+  color: #fff;
+}
+
+.ele-niveau-nav .matiere-tab-btn.ele-niveau-tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.ele-niveau-panel[hidden],
+.ele-classe-panel[hidden] {
+  display: none !important;
+}
+
+.ele-panel-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  background: var(--gray-50, #f9fafb);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 8px;
+}
+
+.ele-panel-stat {
+  font-size: 0.8125rem;
+  color: var(--gray-700, #374151);
+}
+
+.ele-panel-stat strong {
+  font-size: 0.9375rem;
+  color: var(--gray-800, #1f2937);
+  margin-right: 0.2rem;
+}
+
+.ele-panel-stat--new strong {
+  color: #047857;
+}
+
+.ele-classe-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--gray-800, #1f2937);
+}
+
+.ele-classe-label i {
+  color: #3b82f6;
+}
+
+.ele-classe-zone {
+  margin-top: 0.25rem;
+}
+
+/* ========================================
+   TABLE ÉLÈVES v2.2 — liste tabulaire
+   ======================================== */
+
+.ele-page .students-section {
+  margin-top: 0.75rem;
+}
+
+.ele-page .ele-list-scroll {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  box-shadow: var(--shadow-sm);
+  background: #fff;
+}
+
+.ele-page .ele-list-scroll::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28px;
+  height: 100%;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.06), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ele-page .students-list.ele-list {
+  min-width: 760px;
+  background: #fff;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.ele-page .students-list.ele-list::after {
+  display: none;
+}
+
+.ele-page .ele-list-header,
+.ele-page .ele-list-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(100px, 1.1fr) minmax(70px, 0.7fr) minmax(90px, 0.85fr) minmax(100px, 1fr) minmax(110px, 1.1fr);
+  gap: 0.625rem;
+  align-items: center;
+  padding: 0.625rem 1rem;
+}
+
+.ele-page .ele-list-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 2px solid rgba(59, 130, 246, 0.22);
+}
+
+.ele-page .ele-list-header .header-cell {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gray-600, #4b5563);
+}
+
+.ele-page .ele-list-header .header-cell.ele-list-cell--center,
+.ele-page .ele-list-cell.ele-list-cell--center {
+  justify-content: center;
+  text-align: center;
+}
+
+.ele-page .ele-list-header .header-cell.ele-list-cell--actions,
+.ele-page .ele-list-cell.ele-list-cell--actions {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.ele-page .ele-list-row {
+  border-bottom: 1px solid var(--gray-100, #f3f4f6);
+  font-size: 0.875rem;
+  transition: background 0.15s ease;
+}
+
+.ele-page .ele-list-row:nth-child(even) {
+  background: rgba(249, 250, 251, 0.65);
+}
+
+.ele-page .ele-list-row:hover {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.ele-page .ele-list-row:last-child {
+  border-bottom: none;
+}
+
+.ele-page .ele-list-cell {
+  min-width: 70px;
+  white-space: nowrap;
+}
+
+.ele-page .ele-list-cell--student {
+  white-space: normal;
+  min-width: 180px;
+  overflow: visible;
+}
+
+.ele-page .ele-list-cell--actions {
+  overflow: visible;
+  min-width: 100px;
+}
+
+.ele-page .student-number {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 6px;
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  letter-spacing: 0.02em;
+}
+
+.ele-page .student-age,
+.ele-page .inscription-date {
+  font-size: 0.8125rem;
+  color: var(--gray-600, #4b5563);
+}
+
+.ele-page .student-avatar-small {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  font-size: 0.8125rem;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
+}
+
+.ele-page .student-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--gray-800, #1f2937);
+}
+
+.ele-page .badge-absences {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  border-radius: 999px;
+}
+
+.ele-page .student-actions-compact {
+  gap: 0.375rem;
+}
+
+.ele-page .btn-action-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.ele-page .btn-action-small.btn-view {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.ele-page .btn-action-small.btn-view:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-1px);
+}
+
+.ele-page .ele-list-row.eleve-row-new {
+  animation: ele-row-highlight 1.2s ease;
+}
+
+@keyframes ele-row-highlight {
+  from { background: rgba(59, 130, 246, 0.15); }
+  to { background: transparent; }
+}
+
+@media (max-width: 1024px) {
+  .ele-page .ele-list-header,
+  .ele-page .ele-list-row {
+    padding: 0.5625rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .ele-page .ele-list-header .header-cell,
+  .ele-page .ele-list-cell {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .ele-page .students-list.ele-list {
+    min-width: 720px;
+  }
+
+  .ele-page .list-header.ele-list-header {
+    display: grid !important;
+  }
+
+  .ele-page .list-row.ele-list-row {
+    display: grid !important;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0.5625rem 0.75rem;
+    margin-bottom: 0;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .ele-page .list-row.ele-list-row:hover {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .ele-page .ele-list-row .list-cell::before {
+    display: none;
+  }
+
+  .ele-page .ele-list-header .header-cell,
+  .ele-page .ele-list-cell {
     font-size: 0.8125rem;
   }
 }

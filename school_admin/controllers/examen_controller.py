@@ -220,6 +220,84 @@ def _classes_depuis_formulaire_session(etablissement, post):
     return classes_out, None
 
 
+def _build_grille_emploi_examens(session, creneaux_list):
+    """
+    Construit la grille horaire (dates × plages) pour une session d'examen.
+    """
+    from datetime import timedelta
+
+    heures_uniques = set()
+    dates_uniques = set()
+
+    if session and session.date_debut and session.date_fin:
+        date_courante = session.date_debut
+        while date_courante <= session.date_fin:
+            dates_uniques.add(date_courante)
+            date_courante += timedelta(days=1)
+
+    for creneau in creneaux_list:
+        dates_uniques.add(creneau.date_examen)
+        heures_uniques.add((creneau.heure_debut, creneau.heure_fin))
+
+    dates_triees = sorted(dates_uniques)
+    heures_triees = sorted(heures_uniques, key=lambda x: x[0])
+
+    plages_horaires = []
+    if heures_triees:
+        heure_min = min(h[0] for h in heures_triees)
+        heure_max = max(h[1] for h in heures_triees)
+        heure_actuelle = heure_min
+        while heure_actuelle < heure_max:
+            dt = datetime.combine(datetime.today(), heure_actuelle)
+            dt_suivant = dt + timedelta(hours=1)
+            heure_suivante = dt_suivant.time()
+            plages_horaires.append({
+                'debut': heure_actuelle,
+                'fin': heure_suivante,
+                'label': f"{heure_actuelle.strftime('%H:%M')} - {heure_suivante.strftime('%H:%M')}",
+            })
+            heure_actuelle = heure_suivante
+
+    jours_semaine_fr = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+    grille_emploi = {}
+    for date in dates_triees:
+        grille_emploi[date] = {
+            'date_obj': date,
+            'jour_semaine': jours_semaine_fr[date.weekday()],
+            'plages': {plage['label']: [] for plage in plages_horaires},
+        }
+
+    cellules_masquees = {}
+    for creneau in creneaux_list:
+        date = creneau.date_examen
+        debut_dt = datetime.combine(datetime.today(), creneau.heure_debut)
+        fin_dt = datetime.combine(datetime.today(), creneau.heure_fin)
+        duree_heures = (fin_dt - debut_dt).total_seconds() / 3600
+        rowspan = max(1, int(duree_heures))
+
+        for idx, plage in enumerate(plages_horaires):
+            if plage['debut'] != creneau.heure_debut:
+                continue
+            if date in grille_emploi:
+                grille_emploi[date]['plages'][plage['label']].append({
+                    'creneau': creneau,
+                    'rowspan': rowspan,
+                })
+            if date not in cellules_masquees:
+                cellules_masquees[date] = {}
+            for i in range(1, rowspan):
+                if idx + i < len(plages_horaires):
+                    cellules_masquees[date][plages_horaires[idx + i]['label']] = True
+            break
+
+    return {
+        'grille_emploi': grille_emploi,
+        'plages_horaires': plages_horaires,
+        'dates_triees': dates_triees,
+        'cellules_masquees': cellules_masquees,
+    }
+
+
 @login_required
 @require_permission('examens_voir')
 def gestion_examens(request):
@@ -360,13 +438,37 @@ def gestion_examens(request):
     matieres_session_superieur_meta = (
         _build_matieres_session_superieur_meta(etablissement) if est_superieur else []
     )
-    
+
+    from ..templatetags.exam_filters import has_classe_groupe_examen
+
+    periodes_avec_stats = []
+    for periode in periodes:
+        periode_sessions = sessions_par_periode.get(periode.id, {}).get('sessions', [])
+        groupe_counts = {}
+        for cle in groupes_classes:
+            groupe_counts[cle] = sum(
+                1 for s in periode_sessions if has_classe_groupe_examen(s, cle)
+            )
+        periodes_avec_stats.append({
+            'periode': periode,
+            'session_count': len(periode_sessions),
+            'groupe_counts': groupe_counts,
+        })
+
+    stats_generales = {
+        'total_sessions': sessions.count(),
+        'total_periodes': periodes.count(),
+        'total_groupes': len(groupes_classes),
+    }
+
     context = {
         'etablissement': etablissement,
         'periodes': periodes,
+        'periodes_avec_stats': periodes_avec_stats,
         'groupes_classes': groupes_classes,
         'matieres': matieres,
         'sessions_par_periode': sessions_par_periode,
+        'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur,
         'matieres_session_superieur_meta': matieres_session_superieur_meta,
@@ -446,7 +548,7 @@ def emploi_du_temps_examens(request):
                     annee_scolaire=annee_scolaire_active
                 )
                 
-                messages.success(request, f"C Créneau d'examen créé avec succès : {creneau}")
+                messages.success(request, f"Créneau d'examen créé avec succès : {creneau}")
                 return redirect('directeur:emploi_du_temps_examens')
                 
         except Exception as e:
@@ -476,103 +578,26 @@ def emploi_du_temps_examens(request):
         creneaux = creneaux.filter(annee_scolaire=annee_scolaire_active)
     
     creneaux = creneaux.select_related('session_examen', 'session_examen__periode', 'matiere', 'surveillant', 'salle').order_by('date_examen', 'heure_debut')
-    
-    # Organiser les créneaux en grille horaire (comme un emploi du temps classique)
-    # Étape 1: Trouver toutes les heures uniques et les dates
-    heures_uniques = set()
-    dates_uniques = set()
-    
-    # Ajouter toutes les dates de la période d'examen
+
+    creneaux_par_session = {}
+    for creneau in creneaux:
+        creneaux_par_session.setdefault(creneau.session_examen_id, []).append(creneau)
+
+    sessions_avec_grille = []
     for session in sessions_examens:
-        if session.date_debut and session.date_fin:
-            from datetime import timedelta
-            date_courante = session.date_debut
-            while date_courante <= session.date_fin:
-                dates_uniques.add(date_courante)
-                date_courante += timedelta(days=1)
-    
-    # Ajouter les heures des créneaux existants
-    for creneau in creneaux:
-        dates_uniques.add(creneau.date_examen)
-        heures_uniques.add((creneau.heure_debut, creneau.heure_fin))
-    
-    # Convertir en listes triées
-    dates_triees = sorted(list(dates_uniques))
-    heures_triees = sorted(list(heures_uniques), key=lambda x: x[0])
-    
-    # Étape 2: Générer les plages horaires (par heure)
-    plages_horaires = []
-    if heures_triees:
-        heure_min = min([h[0] for h in heures_triees])
-        heure_max = max([h[1] for h in heures_triees])
-        
-        # Générer les plages horaires d'une heure
-        from datetime import datetime, time
-        heure_actuelle = heure_min
-        while heure_actuelle < heure_max:
-            # Calculer l'heure suivante
-            dt = datetime.combine(datetime.today(), heure_actuelle)
-            dt_suivant = dt + timedelta(hours=1)
-            heure_suivante = dt_suivant.time()
-            
-            plages_horaires.append({
-                'debut': heure_actuelle,
-                'fin': heure_suivante,
-                'label': f"{heure_actuelle.strftime('%H:%M')} - {heure_suivante.strftime('%H:%M')}"
-            })
-            heure_actuelle = heure_suivante
-    
-    # Étape 3: Organiser les créneaux dans la grille
-    # Structure: grille[date][jour_semaine][plage_horaire] = liste de créneaux
-    grille_emploi = {}
-    jours_semaine_fr = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
-    
-    for date in dates_triees:
-        jour_semaine = jours_semaine_fr[date.weekday()]
-        grille_emploi[date] = {
-            'date_obj': date,
-            'jour_semaine': jour_semaine,
-            'plages': {}
-        }
-        
-        # Initialiser toutes les plages horaires pour ce jour
-        for plage in plages_horaires:
-            grille_emploi[date]['plages'][plage['label']] = []
-    
-    # Placer les créneaux dans la grille et calculer le rowspan
-    # Aussi marquer les cellules à masquer à cause du rowspan
-    cellules_masquees = {}  # Structure: cellules_masquees[date][plage_label] = True
-    
-    for creneau in creneaux:
-        date = creneau.date_examen
-        
-        # Calculer le nombre de cellules (heures) que le créneau occupe
-        debut_dt = datetime.combine(datetime.today(), creneau.heure_debut)
-        fin_dt = datetime.combine(datetime.today(), creneau.heure_fin)
-        duree_heures = (fin_dt - debut_dt).total_seconds() / 3600
-        rowspan = int(duree_heures)
-        
-        # Trouver la plage horaire correspondante (première heure du créneau)
-        plage_index = -1
-        for idx, plage in enumerate(plages_horaires):
-            if plage['debut'] == creneau.heure_debut:
-                plage_index = idx
-                if date in grille_emploi:
-                    grille_emploi[date]['plages'][plage['label']].append({
-                        'creneau': creneau,
-                        'rowspan': rowspan
-                    })
-                
-                # Marquer les cellules suivantes comme masquées
-                if date not in cellules_masquees:
-                    cellules_masquees[date] = {}
-                
-                for i in range(1, rowspan):
-                    if plage_index + i < len(plages_horaires):
-                        plage_suivante = plages_horaires[plage_index + i]
-                        cellules_masquees[date][plage_suivante['label']] = True
-                break
-    
+        session_creneaux = creneaux_par_session.get(session.id, [])
+        grille_data = _build_grille_emploi_examens(session, session_creneaux)
+        sessions_avec_grille.append({
+            'session': session,
+            'creneaux_count': len(session_creneaux),
+            **grille_data,
+        })
+
+    stats_generales = {
+        'total_sessions': sessions_examens.count(),
+        'total_creneaux': creneaux.count(),
+    }
+
     # Récupérer les matières, professeurs et salles
     matieres = Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
     professeurs = Professeur.objects.filter(etablissement=etablissement, actif=True).order_by('nom', 'prenom')
@@ -581,10 +606,8 @@ def emploi_du_temps_examens(request):
     from ..model.personnel_administratif_model import PersonnelAdministratif
     context = {
         'etablissement': etablissement,
-        'grille_emploi': grille_emploi,
-        'plages_horaires': plages_horaires,
-        'dates_triees': dates_triees,
-        'cellules_masquees': cellules_masquees,
+        'sessions_avec_grille': sessions_avec_grille,
+        'stats_generales': stats_generales,
         'sessions_examens': sessions_examens,
         'matieres': matieres,
         'professeurs': professeurs,
@@ -594,7 +617,7 @@ def emploi_du_temps_examens(request):
         'is_personnel_administratif': isinstance(request.user, PersonnelAdministratif),
         'personnel': personnel,
     }
-    
+
     return render(request, 'school_admin/directeur/emploi_du_temps_examens.html', context)
 
 

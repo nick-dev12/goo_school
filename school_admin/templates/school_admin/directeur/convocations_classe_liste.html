@@ -6,217 +6,209 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Convocations de {{ classe.nom }} - {{ etablissement.nom }}</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet"
-    />
-    <link
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-        rel="stylesheet"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/voir_convocations_eleve.css' %}"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/partials/messages.css' %}"
-    />
+    <title>{% trans "Convocations de" %} {{ classe.nom }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/convocations_classe_liste.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
-<body>
-    <!-- Header -->
+<body class="cvl-page-body" data-live-page="convocations-classe-liste">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content Container -->
-    <div class="container">
-        <!-- Page Header -->
-        <div class="page-header">
-            {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-chalkboard"></i>
-                    Convocations de {{ classe.nom }}
-                </h1>
-                <p class="page-subtitle">
-                    {% trans "Vue d'ensemble des convocations pour tous les élèves de la classe" %}
-                </p>
-            </div>
-            <div class="page-actions">
-                <a href="{% url 'directeur:convocation_classe' classe.id %}" class="btn-primary">
-                    <i class="fas fa-plus"></i>
-                    <span>{% trans "Nouvelle convocation de classe" %}</span>
-                </a>
-            </div>
+    <div class="content-container cvl-page">
+        {% include 'school_admin/partials/messages.html' %}
+
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:convocation_liste' as back_conv_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_conv_url %}
         </div>
 
-        <!-- Message d'information sur l'année scolaire active -->
-        {% if annee_scolaire_active %}
-        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
-            <i class="fas fa-calendar-check"></i>
-          </span>
-          <div>
-            <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-              Année scolaire active : {{ annee_scolaire_active.libelle }}
-            </p>
-            <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              {% trans "Seules les convocations de cette année scolaire sont affichées." %}
-            </p>
-          </div>
-        </div>
-        {% else %}
-        <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
-          <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            {% trans "Aucune année scolaire active. Toutes les convocations sont affichées." %}
-          </span>
+        <header class="cvl-hero">
+            <div class="cvl-hero-text">
+                <h1 class="cvl-hero-title">
+                    <i class="fas fa-chalkboard"></i>
+                    {% trans "Convocations de" %} {{ classe.nom }}
+                </h1>
+                <p class="cvl-hero-sub">
+                    {% trans "Vue d'ensemble des convocations groupées pour tous les élèves de la classe." %}
+                </p>
+                {% if annee_scolaire_active %}
+                    <span class="cvl-hero-badge">
+                        <i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}
+                    </span>
+                {% endif %}
+            </div>
+            <div class="cvl-hero-stats">
+                <div class="cvl-stat-pill cvl-stat-pill--info">
+                    <span class="cvl-stat-num">{{ nombre_convocations }}</span>
+                    <span class="cvl-stat-lbl">{% trans "Convocations" %}</span>
+                </div>
+                <div class="cvl-stat-pill cvl-stat-pill--accent">
+                    <span class="cvl-stat-num">{{ nombre_eleves }}</span>
+                    <span class="cvl-stat-lbl">{% trans "Élèves" %}</span>
+                </div>
+            </div>
+            <div class="cvl-hero-actions">
+                <a href="{% url 'directeur:convocation_classe' classe.id %}" class="cvl-action-btn cvl-action-btn--primary">
+                    <i class="fas fa-plus"></i>
+                    {% trans "Nouvelle convocation de classe" %}
+                </a>
+            </div>
+        </header>
+
+        {% if not annee_scolaire_active %}
+        <div class="cvl-alert cvl-alert-warn">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>{% trans "Aucune année scolaire active. Toutes les convocations sont affichées." %}</span>
         </div>
         {% endif %}
 
-        <!-- Informations de la classe -->
-        <div class="eleve-info-card">
-            <div class="eleve-info-header">
-                <div class="eleve-avatar">
-                    <i class="fas fa-chalkboard"></i>
-                </div>
-                <div class="eleve-details">
-                    <h3>{{ classe.nom }}</h3>
-                    <p><i class="fas fa-graduation-cap"></i> {{ classe.get_niveau_display }}</p>
-                    <p><i class="fas fa-users"></i> {{ eleves_data|length }} élève{{ eleves_data|length|pluralize }}</p>
-                    <p><i class="fas fa-info-circle"></i> {{ classe.description|default:"Aucune description" }}</p>
+        <div class="cvl-guide" role="note" aria-label="{% trans 'Comment utiliser cette page' %}">
+            <div class="cvl-guide-step">
+                <span class="cvl-guide-num">1</span>
+                <span>{% trans "Consultez les convocations groupées créées pour cette classe." %}</span>
+            </div>
+            <div class="cvl-guide-step">
+                <span class="cvl-guide-num">2</span>
+                <span>{% trans "Imprimez toutes les convocations d'une session en un clic." %}</span>
+            </div>
+            <div class="cvl-guide-step">
+                <span class="cvl-guide-num">3</span>
+                <span>{% trans "Affichez la liste des élèves concernés par chaque convocation." %}</span>
+            </div>
+        </div>
+
+        <div class="cvl-classe-card">
+            <div class="cvl-classe-icon">
+                <i class="fas fa-chalkboard"></i>
+            </div>
+            <div class="cvl-classe-details">
+                <h2>{{ classe.nom }}</h2>
+                <div class="cvl-classe-meta">
+                    <span><i class="fas fa-graduation-cap"></i> {{ classe.get_niveau_display }}</span>
+                    <span><i class="fas fa-users"></i> {{ nombre_eleves }} {% trans "élève" %}{{ nombre_eleves|pluralize }}</span>
+                    {% if classe.description %}
+                        <span><i class="fas fa-info-circle"></i> {{ classe.description }}</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Liste des convocations de classe -->
-        <div class="convocations-section">
-            <div class="section-header">
-                <h2 class="section-title">
+        <section class="cvl-section" aria-labelledby="cvl-list-title">
+            <div class="cvl-section-header">
+                <h2 id="cvl-list-title" class="cvl-section-title">
                     <i class="fas fa-list"></i>
-                    Convocations de classe ({{ nombre_convocations }})
+                    {% trans "Convocations de classe" %} ({{ nombre_convocations }})
                 </h2>
             </div>
 
             {% if convocations %}
-                <div class="convocations-grid">
+                <div class="cvl-convocations-grid">
                     {% for data in convocations %}
-                        <div class="convocation-card-large {% if data.convocation.est_passee %}passee{% endif %}">
-                            <div class="convocation-header-large">
-                                <div class="convocation-status">
-                                    <span class="status-badge status-{{ data.convocation.statut }}">
+                        <article class="cvl-convocation-card {% if data.convocation.est_passee %}cvl-convocation-card--past{% endif %}"
+                                 data-cvl-card>
+                            <div class="cvl-convocation-header">
+                                <div class="cvl-convocation-badges">
+                                    <span class="cvl-badge cvl-badge--{{ data.convocation.statut }}">
                                         {% if data.convocation.statut == 'en_attente' %}
-                                            <i class="fas fa-clock"></i> En attente
+                                            <i class="fas fa-clock"></i> {% trans "En attente" %}
                                         {% elif data.convocation.statut == 'vue' %}
-                                            <i class="fas fa-eye"></i> Vue
+                                            <i class="fas fa-eye"></i> {% trans "Vue" %}
                                         {% elif data.convocation.statut == 'honoree' %}
-                                            <i class="fas fa-check-circle"></i> Honorée
+                                            <i class="fas fa-check-circle"></i> {% trans "Honorée" %}
                                         {% elif data.convocation.statut == 'non_honoree' %}
-                                            <i class="fas fa-times-circle"></i> Non honorée
+                                            <i class="fas fa-times-circle"></i> {% trans "Non honorée" %}
                                         {% endif %}
                                     </span>
-                                    <span class="classe-badge">
-                                        <i class="fas fa-users"></i> {{ data.nombre_eleves }} élève{{ data.nombre_eleves|pluralize }}
+                                    <span class="cvl-badge cvl-badge--eleves">
+                                        <i class="fas fa-users"></i> {{ data.nombre_eleves }} {% trans "élève" %}{{ data.nombre_eleves|pluralize }}
                                     </span>
                                     {% if data.convocation.est_passee %}
-                                        <span class="passee-badge">
+                                        <span class="cvl-badge cvl-badge--past">
                                             <i class="fas fa-history"></i> {% trans "Passée" %}
                                         </span>
                                     {% endif %}
                                 </div>
-                                <h3 class="convocation-objet">{{ data.convocation.objet }}</h3>
+                                <h3 class="cvl-convocation-objet">{{ data.convocation.objet }}</h3>
                             </div>
 
-                            <div class="convocation-body">
-                                <div class="convocation-info">
-                                    <div class="info-row">
-                                        <i class="fas fa-calendar"></i>
-                                        <span><strong>{% trans "Date :" %}</strong> {{ data.convocation.date_convocation|date:"d/m/Y" }}</span>
-                                    </div>
-                                    <div class="info-row">
-                                        <i class="fas fa-clock"></i>
-                                        <span><strong>{% trans "Heure :" %}</strong> {{ data.convocation.heure_convocation }}</span>
-                                    </div>
-                                    <div class="info-row">
-                                        <i class="fas fa-map-marker-alt"></i>
-                                        <span><strong>{% trans "Lieu :" %}</strong> {{ data.convocation.lieu }}</span>
-                                    </div>
+                            <div class="cvl-convocation-body">
+                                <div class="cvl-info-row">
+                                    <i class="fas fa-calendar"></i>
+                                    <span><strong>{% trans "Date :" %}</strong> {{ data.convocation.date_convocation|date:"d/m/Y" }}</span>
                                 </div>
-
-                                <div class="convocation-meta">
-                                    <span class="meta-item">
+                                <div class="cvl-info-row">
+                                    <i class="fas fa-clock"></i>
+                                    <span><strong>{% trans "Heure :" %}</strong> {{ data.convocation.heure_convocation }}</span>
+                                </div>
+                                <div class="cvl-info-row">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span><strong>{% trans "Lieu :" %}</strong> {{ data.convocation.lieu }}</span>
+                                </div>
+                                <div class="cvl-convocation-meta">
+                                    <span>
                                         <i class="fas fa-calendar-plus"></i>
-                                        Créée le {{ data.convocation.date_creation|date:"d/m/Y" }}
+                                        {% trans "Créée le" %} {{ data.convocation.date_creation|date:"d/m/Y" }}
                                     </span>
                                 </div>
                             </div>
 
-                            <div class="convocation-footer">
-                                <a href="{% url 'directeur:imprimer_convocations_classe' classe.id %}?convocation_id={{ data.convocation.id }}" 
-                                   class="btn-action btn-print-all"
+                            <div class="cvl-convocation-footer">
+                                <a href="{% url 'directeur:imprimer_convocations_classe' classe.id %}?convocation_id={{ data.convocation.id }}"
+                                   class="cvl-card-btn cvl-card-btn--print"
                                    target="_blank"
-                                   title="{% trans "Imprimer toutes les convocations" %}">
+                                   rel="noopener"
+                                   title="{% trans 'Imprimer toutes les convocations' %}">
                                     <i class="fas fa-print"></i>
-                                    Imprimer tout ({{ data.nombre_eleves }})
+                                    {% trans "Imprimer tout" %} ({{ data.nombre_eleves }})
                                 </a>
-                                <button class="btn-action btn-details"
-                                        onclick="toggleEleves('eleves-{{ forloop.counter }}')"
-                                        title="{% trans "Voir les élèves concernés" %}">
+                                <button type="button"
+                                        class="cvl-card-btn cvl-card-btn--toggle"
+                                        data-cvl-toggle-eleves
+                                        aria-expanded="false"
+                                        aria-controls="cvl-eleves-{{ forloop.counter }}">
                                     <i class="fas fa-users"></i>
-                                    Élèves ({{ data.nombre_eleves }})
+                                    {% trans "Élèves" %} ({{ data.nombre_eleves }})
                                 </button>
                             </div>
 
-                            <!-- Liste des élèves (masquée par défaut) -->
-                            <div id="eleves-{{ forloop.counter }}" class="eleves-list" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 2px solid #e5e7eb;">
-                                <p style="font-weight: 700; color: #64748b; margin-bottom: 10px; font-size: 13px;">
+                            <div id="cvl-eleves-{{ forloop.counter }}"
+                                 class="cvl-eleves-panel"
+                                 data-cvl-eleves-panel>
+                                <p class="cvl-eleves-title">
                                     <i class="fas fa-users"></i> {% trans "Élèves concernés :" %}
                                 </p>
-                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                <div class="cvl-eleves-tags">
                                     {% for eleve in data.eleves %}
-                                        <span style="background: #f3f4f6; padding: 6px 12px; border-radius: 15px; font-size: 12px; color: #1a1a1a; border: 1px solid #e5e7eb;">
+                                        <span class="cvl-eleve-tag">
                                             <i class="fas fa-user"></i> {{ eleve.prenom }} {{ eleve.nom }}
                                         </span>
                                     {% endfor %}
                                 </div>
                             </div>
-                        </div>
+                        </article>
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="empty-state">
-                    <div class="empty-icon">
+                <div class="cvl-empty">
+                    <div class="cvl-empty-icon">
                         <i class="fas fa-inbox"></i>
                     </div>
-                    <h3 class="empty-title">{% trans "Aucune convocation de classe" %}</h3>
-                    <p class="empty-description">
-                        Aucune convocation de classe n'a encore été créée pour {{ classe.nom }}.
+                    <h3 class="cvl-empty-title">{% trans "Aucune convocation de classe" %}</h3>
+                    <p class="cvl-empty-desc">
+                        {% trans "Aucune convocation de classe n'a encore été créée pour" %} {{ classe.nom }}.
                     </p>
-                    <a href="{% url 'directeur:convocation_classe' classe.id %}" class="btn-primary">
+                    <a href="{% url 'directeur:convocation_classe' classe.id %}" class="cvl-action-btn cvl-action-btn--primary">
                         <i class="fas fa-plus"></i>
                         {% trans "Créer une convocation de classe" %}
                     </a>
                 </div>
             {% endif %}
-        </div>
+        </section>
     </div>
 
-    <script>
-        function toggleEleves(eleveId) {
-            const elevesList = document.getElementById(eleveId);
-            if (elevesList.style.display === 'none') {
-                elevesList.style.display = 'block';
-            } else {
-                elevesList.style.display = 'none';
-            }
-        }
-    </script>
-
+    <script src="{% static 'school_admin/js/directeur/convocations_classe_liste.js' %}?v=2.0.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>
-

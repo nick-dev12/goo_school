@@ -1,0 +1,157 @@
+{% load i18n classe_tags %}
+{% if modules_par_filiere %}
+<section class="gml-main-panel" data-gml-modules-zone>
+    <p class="gml-panel-hint">
+        <i class="fas fa-info-circle"></i>
+        {% trans "Choisissez une filière, puis un niveau LMD pour afficher les modules." %}
+    </p>
+
+    <div class="gml-filiere-zone" data-gml-filiere-zone>
+        <div class="gml-filiere-nav">
+            <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'filière' %}" data-overflow-items-label="{% trans 'filières' %}">
+                <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Filières' %}">
+                    {% for item in modules_par_filiere %}
+                    <button type="button" role="tab"
+                            class="matiere-tab-btn gml-filiere-tab {% if forloop.first %}active{% endif %}"
+                            data-filiere-idx="{{ forloop.counter0 }}"
+                            data-order="{{ forloop.counter0 }}"
+                            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>{% if item.department %}{{ item.department.nom|truncatechars:22 }}{% else %}{% trans "Sans filière" %}{% endif %}</span>
+                        <span class="tab-count">{% if item.niveaux %}{{ item.niveaux|length }}{% else %}{{ item.modules|length }}{% endif %}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+                <div class="matiere-tabs-more-wrap" hidden>
+                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres filières' %}">
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        <span class="matiere-tabs-more-label">{% trans "Autres filières" %}</span>
+                    </button>
+                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                </div>
+            </div>
+        </div>
+
+        {% for item in modules_par_filiere %}
+        <div class="gml-filiere-panel {% if forloop.first %}active{% endif %}"
+             data-filiere-idx="{{ forloop.counter0 }}"
+             role="tabpanel"
+             {% if not forloop.first %}hidden{% endif %}>
+            {% if item.niveaux %}
+            <div class="gml-niveau-zone" data-gml-niveau-zone>
+                <div class="gml-niveau-nav">
+                    <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
+                        <div class="matiere-tabs-track" role="tablist">
+                            {% for niv in item.niveaux %}
+                            <button type="button" role="tab"
+                                    class="matiere-tab-btn gml-niveau-tab {% if forloop.first %}active{% endif %}"
+                                    data-niveau-idx="{{ forloop.counter0 }}"
+                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                                <span>{{ niv.niveau_label }}</span>
+                                <span class="tab-count">{{ niv.modules|length }}</span>
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <div class="matiere-tabs-more-wrap" hidden>
+                            <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres niveaux' %}">
+                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                <span class="matiere-tabs-more-label">{% trans "Autres niveaux" %}</span>
+                            </button>
+                            <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                        </div>
+                    </div>
+                </div>
+
+                {% for niv in item.niveaux %}
+                <div class="gml-niveau-panel {% if forloop.first %}active{% endif %}"
+                     data-niveau-idx="{{ forloop.counter0 }}"
+                     role="tabpanel"
+                     {% if not forloop.first %}hidden{% endif %}>
+                    {% with module_count=niv.modules|length %}
+                    <div class="gml-panel-stats">
+                        <span class="gml-panel-stat"><strong>{{ module_count }}</strong> {% trans "Module(s)" %}</span>
+                        <span class="gml-panel-stat"><strong>{{ niv.niveau_label }}</strong> {% trans "Niveau" %}</span>
+                    </div>
+                    {% if niv.modules %}
+                    <div class="gml-list-scroll table-responsive">
+                        <div class="gml-list gml-list--modules">
+                            <div class="gml-list-header">
+                                <div class="gml-list-cell gml-list-cell--title">{% trans "Module" %}</div>
+                                <div class="gml-list-cell">{% trans "Filière" %}</div>
+                                <div class="gml-list-cell">{% trans "Mat." %}</div>
+                                <div class="gml-list-cell">{% trans "Créd." %}</div>
+                                <div class="gml-list-cell">{% trans "Cl." %}</div>
+                                <div class="gml-list-cell">{% trans "Statut" %}</div>
+                                <div class="gml-list-cell gml-list-cell--actions">{% trans "Actions" %}</div>
+                            </div>
+                            {% for module in niv.modules %}
+                                {% include 'school_admin/directeur/pedagogique/matieres/partials/gml_module_list_row.html' with module=module %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="gml-empty-state">
+                        <i class="fas fa-cube"></i>
+                        <p>{% trans "Aucun module pour ce niveau." %}</p>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="gml-panel-stats">
+                <span class="gml-panel-stat"><strong>{{ item.modules|length }}</strong> {% trans "Module(s)" %}</span>
+            </div>
+            {% if item.modules %}
+            <div class="gml-list-scroll table-responsive">
+                <div class="gml-list gml-list--modules">
+                    <div class="gml-list-header">
+                        <div class="gml-list-cell gml-list-cell--title">{% trans "Module" %}</div>
+                        <div class="gml-list-cell">{% trans "Filière" %}</div>
+                        <div class="gml-list-cell">{% trans "Mat." %}</div>
+                        <div class="gml-list-cell">{% trans "Créd." %}</div>
+                        <div class="gml-list-cell">{% trans "Cl." %}</div>
+                        <div class="gml-list-cell">{% trans "Statut" %}</div>
+                        <div class="gml-list-cell gml-list-cell--actions">{% trans "Actions" %}</div>
+                    </div>
+                    {% for module in item.modules %}
+                        {% include 'school_admin/directeur/pedagogique/matieres/partials/gml_module_list_row.html' with module=module %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% elif modules %}
+<section class="gml-main-panel">
+    <div class="gml-list-scroll table-responsive">
+        <div class="gml-list gml-list--modules">
+            <div class="gml-list-header">
+                <div class="gml-list-cell gml-list-cell--title">{% trans "Module" %}</div>
+                <div class="gml-list-cell">{% trans "Filière" %}</div>
+                <div class="gml-list-cell">{% trans "Mat." %}</div>
+                <div class="gml-list-cell">{% trans "Créd." %}</div>
+                <div class="gml-list-cell">{% trans "Cl." %}</div>
+                <div class="gml-list-cell">{% trans "Statut" %}</div>
+                <div class="gml-list-cell gml-list-cell--actions">{% trans "Actions" %}</div>
+            </div>
+            {% for module in modules %}
+                {% include 'school_admin/directeur/pedagogique/matieres/partials/gml_module_list_row.html' with module=module %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% else %}
+<div class="gml-empty-state">
+    <i class="fas fa-cubes"></i>
+    <h3>{% trans "Aucun module" %}</h3>
+    <p>{% trans "Créez votre premier module pour organiser les matières par crédits LMD." %}</p>
+    <button type="button" class="gml-action-btn gml-action-btn--primary" id="addModuleBtnEmpty">
+        <i class="fas fa-plus"></i> {% trans "Ajouter un module" %}
+    </button>
+</div>
+{% endif %}

@@ -26,456 +26,147 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/emploi_du_temps.css' %}?v=1.1.0"
     />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/emploi_du_temps_detail.css' %}?v=1.0.1"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/emploi_du_temps_examens_classe.css' %}"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/emploi_du_temps_examens.css' %}"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.0"
-    />
-    <style>
-      /* Masquer les boutons d'action par défaut */
-      .creneau-interactif .creneau-actions {
-        display: none !important;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-      }
-
-      /* Afficher les boutons au survol du créneau */
-      .creneau-interactif:hover .creneau-actions,
-      .creneau-interactif.active .creneau-actions {
-        display: flex !important;
-        opacity: 1;
-      }
-
-      /* Style pour le créneau actif (cliqué) */
-      .creneau-interactif.active {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      }
-
-      /* Améliorer l'interaction au survol */
-      .creneau-interactif {
-        cursor: pointer;
-        transition: box-shadow 0.2s ease;
-      }
-
-      .creneau-interactif:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
-    </style>
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_detail.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_emploi_du_temps_v2.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_examens_classe.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_examens.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
   </head>
-  <body data-live-page="emploi-detail" data-classe-id="{{ classe.id }}">
+  <body class="edtd-page-body"
+        data-live-page="emploi-detail"
+        data-classe-id="{{ classe.id }}"
+        data-show-modal-creneau="{% if show_modal_creneau %}1{% else %}0{% endif %}"
+        data-show-modal-modifier="{% if show_modal_modifier_creneau %}1{% else %}0{% endif %}">
     <!-- Header -->
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content Container -->
-    <div class="content-container">
-      <div class="container">
-        <!-- Breadcrumb -->
-        <nav class="breadcrumb-nav">
-          <a href="{% url 'administrateur_etablissement:liste_emplois_du_temps' %}" class="breadcrumb-link">
-            <i class="fas fa-calendar-week"></i>
-            {% trans "Emplois du temps" %}
-          </a>
-          <i class="fas fa-chevron-right breadcrumb-separator"></i>
-          <span class="breadcrumb-current">{{ classe.nom }}</span>
-        </nav>
+    <div class="content-container edtd-page">
+        {% include 'school_admin/partials/messages.html' %}
 
-        <!-- Page Header -->
-        <div class="page-header">
-          {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-            <h1 class="page-title">
-              <i class="fas fa-calendar-alt"></i>
-              Emploi du Temps - {{ classe.nom }}
-            </h1>
-            <p class="page-subtitle">
-              {% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %} — {{ emploi_du_temps.annee_scolaire }}
-            </p>
-            <div class="classe-info-badges">
-              <span class="info-badge">
-                <i class="fas fa-users"></i>
-                {{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize }}
-              </span>
-              <span class="info-badge">
-                <i class="fas fa-clock"></i>
-                {{ emploi_du_temps.nombre_creneaux }} créneau{{ emploi_du_temps.nombre_creneaux|pluralize }}
-              </span>
-              <span class="info-badge info-badge-success">
-                <i class="fas fa-check-circle"></i>
-                {% trans "Actif" %}
-              </span>
-              <span class="info-badge {% if emploi_du_temps.est_publie %}info-badge-success{% else %}info-badge-warning{% endif %}">
-                <i class="fas {% if emploi_du_temps.est_publie %}fa-bullhorn{% elif emploi_du_temps.doit_republier %}fa-sync-alt{% else %}fa-hourglass-half{% endif %}"></i>
-                {% if emploi_du_temps.est_publie %}
-                  Publié{% if emploi_du_temps.date_publication %} le {{ emploi_du_temps.date_publication|date:"d/m/Y H:i" }}{% endif %}
-                {% elif emploi_du_temps.doit_republier %}
-                  À republier{% if emploi_du_temps.date_publication %} - dernière publication le {{ emploi_du_temps.date_publication|date:"d/m/Y H:i" }}{% endif %}
-                {% else %}
-                  Non publié
+        <div class="page-header page-header-minimal">
+            {% url 'administrateur_etablissement:liste_emplois_du_temps' as back_edt_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_edt_url %}
+        </div>
+
+        <header class="edtd-hero">
+            <div class="edtd-hero-text">
+                <h1 class="edtd-hero-title"><i class="fas fa-calendar-alt"></i> {{ classe.nom }}</h1>
+                <p class="edtd-hero-sub">
+                    {% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}
+                    — {% trans "Emploi du temps" %} {{ emploi_du_temps.annee_scolaire }}
+                </p>
+                <div class="edtd-hero-badges">
+                    {% if annee_scolaire_active %}
+                        <span class="edtd-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+                    {% endif %}
+                    <span class="edtd-hero-badge edtd-hero-badge--ok"><i class="fas fa-check-circle"></i> {% trans "Actif" %}</span>
+                    {% if emploi_du_temps.est_publie %}
+                        <span class="edtd-hero-badge edtd-hero-badge--ok">
+                            <i class="fas fa-bullhorn"></i>
+                            {% trans "Publié" %}{% if emploi_du_temps.date_publication %} — {{ emploi_du_temps.date_publication|date:"d/m/Y H:i" }}{% endif %}
+                        </span>
+                    {% elif emploi_du_temps.doit_republier %}
+                        <span class="edtd-hero-badge edtd-hero-badge--warn">
+                            <i class="fas fa-sync-alt"></i> {% trans "À republier" %}
+                        </span>
+                    {% else %}
+                        <span class="edtd-hero-badge edtd-hero-badge--warn">
+                            <i class="fas fa-hourglass-half"></i> {% trans "Non publié" %}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="edtd-hero-stats">
+                <div class="edtd-stat-pill"><span class="edtd-stat-num">{{ classe.nombre_eleves }}</span><span class="edtd-stat-lbl">{% trans "Élèves" %}</span></div>
+                <div class="edtd-stat-pill edtd-stat-pill--accent"><span class="edtd-stat-num">{{ emploi_du_temps.nombre_creneaux }}</span><span class="edtd-stat-lbl">{% trans "Créneaux" %}</span></div>
+                <div class="edtd-stat-pill"><span class="edtd-stat-num">{{ jours_semaine|length }}</span><span class="edtd-stat-lbl">{% trans "Jours" %}</span></div>
+            </div>
+            <div class="edtd-hero-actions">
+                {% if not emploi_du_temps.est_publie %}
+                    <form method="post" action="{% url 'administrateur_etablissement:publier_emploi_du_temps' emploi_du_temps.id %}" class="edtd-publish-form">
+                        {% csrf_token %}
+                        <button type="submit" class="edtd-action-btn edtd-action-btn--success">
+                            <i class="fas {% if emploi_du_temps.doit_republier %}fa-sync-alt{% else %}fa-paper-plane{% endif %}"></i>
+                            {% if emploi_du_temps.doit_republier %}{% trans "Republier" %}{% else %}{% trans "Publier" %}{% endif %}
+                        </button>
+                    </form>
                 {% endif %}
-              </span>
-            </div>
-          </div>
-          <div class="page-actions">
-            {% if not emploi_du_temps.est_publie %}
-              <form method="post" action="{% url 'administrateur_etablissement:publier_emploi_du_temps' emploi_du_temps.id %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-success">
-                  <i class="fas {% if emploi_du_temps.doit_republier %}fa-sync-alt{% else %}fa-paper-plane{% endif %}"></i>
-                  <span>{% if emploi_du_temps.doit_republier %}Republier{% else %}Publier{% endif %} l'emploi du temps</span>
+                <a href="{% url 'administrateur_etablissement:imprimer_emploi_du_temps' classe.id %}" class="edtd-action-btn edtd-action-btn--secondary" target="_blank" rel="noopener">
+                    <i class="fas fa-print"></i> {% trans "Imprimer" %}
+                </a>
+                <button type="button" class="edtd-action-btn edtd-action-btn--primary" id="btnOuvrirModalAjouterCreneau">
+                    <i class="fas fa-plus"></i> {% trans "Ajouter un créneau" %}
                 </button>
-              </form>
-            {% endif %}
-            <a href="{% url 'administrateur_etablissement:imprimer_emploi_du_temps' classe.id %}" class="btn btn-secondary" target="_blank">
-              <i class="fas fa-print"></i>
-              <span>{% trans "Imprimer" %}</span>
-            </a>
-            <button type="button" class="btn btn-primary" id="btnOuvrirModalAjouterCreneau">
-              <i class="fas fa-plus"></i>
-              <span>{% trans "Ajouter un créneau" %}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Messages Django -->
-       
-
-        <!-- Emploi du temps -->
-        <div class="emploi-du-temps-section">
-          <div class="emploi-du-temps-wrapper">
-            {% if grille_emploi and plages_horaires %}
-              <table class="calendar-timetable">
-                <thead>
-                  <tr>
-                    {% for jour in jours_semaine %}
-                      <th class="day-header">{{ jour|title }}</th>
-                    {% endfor %}
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for plage in plages_horaires %}
-                    <tr class="time-row">
-                      {% for jour in jours_semaine %}
-                        {% with jour_masquees=cellules_masquees|dict_value:jour plage_label=plage|dict_value:'label' %}
-                          {% if jour_masquees and jour_masquees|dict_value:plage_label %}
-                            <!-- Cette cellule est masquée par un rowspan, ne rien afficher -->
-                          {% else %}
-                            {% with creneaux_list=grille_emploi|dict_value:jour|dict_value:'plages'|dict_value:plage_label %}
-                              {% if creneaux_list and creneaux_list|length > 0 %}
-                                {% with max_rowspan=creneaux_list.0.rowspan %}
-                                  <td class="exam-cell" rowspan="{{ max_rowspan }}">
-                                    {% for creneau_data in creneaux_list %}
-                                      {% with creneau=creneau_data.creneau %}
-                                            {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
-                                              <div class="exam-block creneau-interactif" style="border-top: 4px solid {{ creneau.matiere_couleur|default:'#3b82f6' }};">
-                                                <div class="exam-time">
-                                                  {{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}
-                                                </div>
-                                                <div class="exam-subject">
-                                                  <i class="fas fa-{{ creneau.matiere_icone|default:'book' }}" style="color: {{ creneau.matiere_couleur|default:'#3b82f6' }};"></i>
-                                                  {{ matiere_nom }}
-                                                </div>
-                                            {% if creneau.professeur %}
-                                              <div class="exam-teacher">
-                                                <i class="fas fa-user-tie"></i>
-                                                {% with prenom_parts=creneau.professeur.prenom|split:" " nom_parts=creneau.professeur.nom|split:" " %}
-                                                  {{ prenom_parts.0 }} {{ nom_parts.0 }}
-                                                {% endwith %}
-                                              </div>
-                                            {% endif %}
-                                                {% if creneau.salle %}
-                                                  <div class="exam-room">
-                                                    <i class="fas fa-building"></i>
-                                                    {{ creneau.salle.nom }}
-                                                  </div>
-                                                {% endif %}
-                                                <div class="creneau-actions" style="margin-top: 8px; display: none; gap: 5px;">
-                                                  <button
-                                                    type="button"
-                                                    class="btn-icon btn-icon-edit js-ouvrir-modal-modifier-creneau"
-                                                    title="{% trans "Modifier" %}"
-                                                    style="padding: 4px 8px; font-size: 12px; border: none; cursor: pointer;"
-                                                    data-action-url="{% url 'administrateur_etablissement:modifier_creneau' creneau.id %}"
-                                                    data-jour="{{ creneau.jour }}"
-                                                    data-heure-debut="{{ creneau.heure_debut|time:'H:i' }}"
-                                                    data-heure-fin="{{ creneau.heure_fin|time:'H:i' }}"
-                                                    data-matiere-id="{{ creneau.matiere.id|default:'' }}"
-                                                    data-professeur-id="{{ creneau.professeur.id|default:'' }}"
-                                                    data-salle-id="{{ creneau.salle.id|default:'' }}"
-                                                    data-type-cours="{{ creneau.type_cours }}"
-                                                  >
-                                                    <i class="fas fa-edit"></i>
-                                                  </button>
-                                                  <form method="post" action="{% url 'administrateur_etablissement:supprimer_creneau' creneau.id %}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce créneau ?');">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn-icon btn-icon-delete" title="{% trans "Supprimer" %}" style="padding: 4px 8px; font-size: 12px;">
-                                                      <i class="fas fa-trash"></i>
-                                                    </button>
-                                                  </form>
-                                                </div>
-                                              </div>
-                                          {% if not forloop.last %}
-                                            <hr class="exam-separator-classe" style="margin: 8px 0; border: none; border-top: 1px solid #e5e7eb;">
-                                          {% endif %}
-                                        {% endwith %}
-                                      {% endwith %}
-                                    {% endfor %}
-                                  </td>
-                                {% endwith %}
-                              {% else %}
-                                <td class="empty-cell"></td>
-                              {% endif %}
-                            {% endwith %}
-                          {% endif %}
-                        {% endwith %}
-                      {% endfor %}
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            {% else %}
-              <div class="empty-state">
-                <i class="fas fa-calendar-times"></i>
-                <h3>{% trans "Aucun créneau programmé" %}</h3>
-                <p>{% trans "Utilisez le bouton «Ajouter un créneau» pour commencer à planifier l'emploi du temps." %}</p>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-
-        <!-- Légende -->
-        <div class="legend-section">
-          <div class="legend-card">
-            <h3 class="legend-title">
-              <i class="fas fa-info-circle"></i>
-              {% trans "Légende des types de cours" %}
-            </h3>
-            <div class="legend-items">
-              <div class="legend-item">
-                <span class="type-badge type-cours">{% trans "Cours" %}</span>
-                <span class="legend-desc">{% trans "Cours magistral" %}</span>
-              </div>
-              <div class="legend-item">
-                <span class="type-badge type-td">{% trans "TD" %}</span>
-                <span class="legend-desc">{% trans "Travaux Dirigés" %}</span>
-              </div>
-              <div class="legend-item">
-                <span class="type-badge type-tp">{% trans "TP" %}</span>
-                <span class="legend-desc">{% trans "Travaux Pratiques" %}</span>
-              </div>
-              <div class="legend-item">
-                <span class="type-badge type-controle">{% trans "Contrôle" %}</span>
-                <span class="legend-desc">{% trans "Contrôle continu" %}</span>
-              </div>
-              <div class="legend-item">
-                <span class="type-badge type-examen">{% trans "Examen" %}</span>
-                <span class="legend-desc">{% trans "Examen" %}</span>
-              </div>
-              <div class="legend-item">
-                <span class="type-badge type-sport">{% trans "Sport" %}</span>
-                <span class="legend-desc">{% trans "Éducation physique" %}</span>
-              </div>
-              <div class="legend-item">
-                <span class="type-badge type-pause">{% trans "Pause" %}</span>
-                <span class="legend-desc">{% trans "Pause/Récréation" %}</span>
-              </div>
             </div>
-          </div>
+        </header>
+
+        <div class="edtd-guide" role="note">
+            <div class="edtd-guide-step"><span class="edtd-guide-num">1</span><span>{% trans "Consultez le planning hebdomadaire ci-dessous." %}</span></div>
+            <div class="edtd-guide-step"><span class="edtd-guide-num">2</span><span>{% trans "Survolez ou cliquez un créneau pour le modifier ou le supprimer." %}</span></div>
+            <div class="edtd-guide-step"><span class="edtd-guide-num">3</span><span>{% trans "Publiez l'emploi du temps quand il est prêt pour informer élèves et enseignants." %}</span></div>
         </div>
 
-        <!-- Emploi du Temps des Examens -->
-        {% if sessions_examens %}
-        <div class="emploi-temps-examens-section">
-          <div class="section-header">
-            <h2>
-              <i class="fas fa-clipboard-list"></i>
-              Emploi du Temps des Examens - {{ classe.nom }}
-            </h2>
-            <p class="section-subtitle">
-              {% for session in sessions_examens %}
-                {{ session.nom_examen }} ({{ session.date_debut|date:"d/m/Y" }} - {{ session.date_fin|date:"d/m/Y" }}){% if not forloop.last %}, {% endif %}
-              {% endfor %}
-            </p>
-          </div>
+        <div class="edtd-main-tabs">
+            <div class="edtd-main-tabs-nav" role="tablist">
+                <button type="button" role="tab" class="edtd-main-tab active" data-edtd-tab="edtd-panel-cours" aria-selected="true">
+                    <i class="fas fa-calendar-week"></i> {% trans "Planning hebdomadaire" %}
+                </button>
+                {% if sessions_examens %}
+                <button type="button" role="tab" class="edtd-main-tab" data-edtd-tab="edtd-panel-examens" aria-selected="false">
+                    <i class="fas fa-clipboard-list"></i> {% trans "Examens" %}
+                </button>
+                {% endif %}
+            </div>
 
-          {% load exam_filters %}
-          
-          <div class="timetable-container-examens">
-            {% if grille_emploi_examens %}
-              <table class="calendar-timetable-examens">
-                <thead>
-                  <tr>
-                    {% for date in dates_examens_triees %}
-                    <th class="day-header-examens">{{ grille_emploi_examens|dict_value:date|dict_value:'jour_semaine' }} <br><small>{{ date|date:"d/m/Y" }}</small></th>
-                    {% endfor %}
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for plage in plages_horaires_examens %}
-                  <tr class="time-row-examens">
-                    {% for date in dates_examens_triees %}
-                      {% comment %} Afficher la cellule seulement si ce n'est pas une continuation d'un rowspan {% endcomment %}
-                      {% with date_masquees=cellules_masquees_examens|dict_value:date %}
-                        {% if date_masquees and date_masquees|dict_value:plage.label %}
-                          {% comment %} Cette cellule est masquée par un rowspan, ne rien afficher {% endcomment %}
-                        {% else %}
-                          {% with creneaux_list=grille_emploi_examens|dict_value:date|dict_value:'plages'|dict_value:plage.label %}
-                            {% if creneaux_list and creneaux_list|length > 0 %}
-                              {% comment %} Calculer le rowspan maximal parmi tous les créneaux de cette cellule {% endcomment %}
-                              {% with max_rowspan=creneaux_list.0.rowspan %}
-                              <td class="exam-cell-classe" rowspan="{{ max_rowspan }}">
-                                {% for creneau_data in creneaux_list %}
-                                  <div class="exam-block-classe {{ creneau_data.creneau.matiere.nom|get_matiere_css_class }}">
-                                    <div class="exam-time-classe">
-                                      {{ creneau_data.creneau.heure_debut|time:"H:i" }} - {{ creneau_data.creneau.heure_fin|time:"H:i" }}
-                                    </div>
-                                    <div class="exam-subject-classe">
-                                      <i class="{{ creneau_data.creneau.matiere.nom|get_matiere_icon }}"></i>
-                                      {{ creneau_data.creneau.matiere.nom }}
-                                    </div>
-                                    {% if creneau_data.creneau.surveillant %}
-                                    <div class="exam-teacher-classe">
-                                      <i class="fas fa-user-tie"></i>
-                                      {{ creneau_data.creneau.surveillant.nom_complet }}
-                                    </div>
-                                    {% endif %}
-                                    {% if creneau_data.creneau.salle %}
-                                    <div class="exam-room-classe">
-                                      <i class="fas fa-building"></i>
-                                      {{ creneau_data.creneau.salle.nom }}
-                                    </div>
-                                    {% endif %}
-                                  </div>
-                                  {% if not forloop.last %}
-                                  <hr class="exam-separator-classe">
-                                  {% endif %}
-                                {% endfor %}
-                              </td>
-                              {% endwith %}
-                            {% else %}
-                              <td class="empty-cell-examens"></td>
-                            {% endif %}
-                          {% endwith %}
-                        {% endif %}
-                      {% endwith %}
-                    {% endfor %}
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            {% else %}
-              <div class="empty-state-examens">
-                <i class="fas fa-calendar-times"></i>
-                <h3>{% trans "Aucun examen programmé" %}</h3>
-                <p>{% trans "Cette classe n'a pas d'examens programmés pour le moment." %}</p>
-              </div>
+            <div id="edtd-panel-cours" class="edtd-main-panel active" role="tabpanel">
+                <section class="edtd-section-card edtd-page">
+                    <div class="edtd-section-head">
+                        <div>
+                            <h2 class="edtd-section-title"><i class="fas fa-table"></i> {% trans "Grille horaire" %}</h2>
+                            <p class="edtd-section-hint">{% trans "Défilez horizontalement sur mobile pour voir tous les jours." %}</p>
+                        </div>
+                    </div>
+                    <div class="emploi-du-temps-wrapper">
+                        {% include 'school_admin/directeur/administrateur_etablissement/emploi_du_temps/partials/edtd_grille_cours.html' %}
+                    </div>
+                    <div class="edtd-legend-wrap">
+                        <button type="button" class="edtd-legend-toggle">
+                            <span><i class="fas fa-info-circle"></i> {% trans "Légende des types de cours" %}</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="edtd-legend-body">
+                            <div class="edtd-legend-grid legend-items">
+                                <div class="edtd-legend-item legend-item"><span class="type-badge type-cours">{% trans "Cours" %}</span><span>{% trans "Cours magistral" %}</span></div>
+                                <div class="edtd-legend-item legend-item"><span class="type-badge type-td">{% trans "TD" %}</span><span>{% trans "Travaux Dirigés" %}</span></div>
+                                <div class="edtd-legend-item legend-item"><span class="type-badge type-tp">{% trans "TP" %}</span><span>{% trans "Travaux Pratiques" %}</span></div>
+                                <div class="edtd-legend-item legend-item"><span class="type-badge type-controle">{% trans "Contrôle" %}</span><span>{% trans "Contrôle continu" %}</span></div>
+                                <div class="edtd-legend-item legend-item"><span class="type-badge type-examen">{% trans "Examen" %}</span><span>{% trans "Examen" %}</span></div>
+                                <div class="edtd-legend-item legend-item"><span class="type-badge type-sport">{% trans "Sport" %}</span><span>{% trans "Éducation physique" %}</span></div>
+                                <div class="edtd-legend-item legend-item"><span class="type-badge type-pause">{% trans "Pause" %}</span><span>{% trans "Pause/Récréation" %}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            {% if sessions_examens %}
+            <div id="edtd-panel-examens" class="edtd-main-panel" role="tabpanel">
+                <section class="edtd-section-card edtd-page">
+                    <div class="edtd-section-head">
+                        <div>
+                            <h2 class="edtd-section-title"><i class="fas fa-clipboard-list"></i> {% trans "Emploi du temps des examens" %}</h2>
+                            <p class="edtd-section-hint">{% trans "Sessions d'examen associées à cette classe." %}</p>
+                        </div>
+                    </div>
+                    <div class="timetable-container-examens">
+                        {% include 'school_admin/directeur/administrateur_etablissement/emploi_du_temps/partials/edtd_grille_examens.html' %}
+                    </div>
+                </section>
+            </div>
             {% endif %}
-          </div>
         </div>
-        {% endif %}
-
-      </div>
     </div>
-
-    <!-- JavaScript -->
-    <script src="{% static 'school_admin/js/directeur/emploi_du_temps.js' %}"></script>
-    <script>
-      // Filtrer les créneaux pour obtenir un dictionnaire en JavaScript
-      const creneauxParJour = {
-        {% for jour in jours_semaine %}
-          '{{ jour }}': [
-            {% for creneau in creneaux_par_jour|get_item:jour %}
-              {
-                id: {{ creneau.id }},
-                jour: '{{ creneau.jour }}',
-                heureDebut: '{{ creneau.heure_debut|time:"H:i" }}',
-                heureFin: '{{ creneau.heure_fin|time:"H:i" }}',
-                matiere: '{{ creneau.matiere.nom|default:"" }}',
-                professeur: '{% if creneau.professeur %}{% with prenom_parts=creneau.professeur.prenom|split:" " nom_parts=creneau.professeur.nom|split:" " %}{{ prenom_parts.0 }} {{ nom_parts.0 }}{% endwith %}{% endif %}',
-                salle: '{{ creneau.salle.numero|default:"" }}',
-                type: '{{ creneau.type_cours }}',
-                couleur: '{{ creneau.couleur }}'
-              }{% if not forloop.last %},{% endif %}
-            {% endfor %}
-          ]{% if not forloop.last %},{% endif %}
-        {% endfor %}
-      };
-
-      // Gestion des interactions avec les créneaux
-      document.addEventListener('DOMContentLoaded', function() {
-        initCreneauInteractions();
-      });
-
-      function initCreneauInteractions() {
-        const creneauCards = document.querySelectorAll('.creneau-card');
-        let selectedCreneau = null;
-
-        creneauCards.forEach(card => {
-          // Ajouter un gestionnaire de clic sur le contenu du créneau
-          const content = card.querySelector('.creneau-content');
-          if (content) {
-            content.addEventListener('click', function(e) {
-              e.stopPropagation();
-              
-              // Masquer les actions du créneau précédemment sélectionné
-              if (selectedCreneau && selectedCreneau !== card) {
-                const prevActions = selectedCreneau.querySelector('.creneau-actions');
-                if (prevActions) {
-                  prevActions.style.display = 'none';
-                }
-                selectedCreneau.classList.remove('selected');
-              }
-
-              // Afficher/masquer les actions du créneau cliqué
-              const actions = card.querySelector('.creneau-actions');
-              if (actions) {
-                if (actions.style.display === 'none' || actions.style.display === '') {
-                  actions.style.display = 'flex';
-                  card.classList.add('selected');
-                  selectedCreneau = card;
-                } else {
-                  actions.style.display = 'none';
-                  card.classList.remove('selected');
-                  selectedCreneau = null;
-                }
-              }
-            });
-          }
-
-          // Empêcher la propagation du clic sur les boutons d'action
-          const actionButtons = card.querySelectorAll('.btn-icon');
-          actionButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-              e.stopPropagation();
-            });
-          });
-        });
-
-        // Masquer les actions si on clique ailleurs
-        document.addEventListener('click', function(e) {
-          if (!e.target.closest('.creneau-card')) {
-            if (selectedCreneau) {
-              const actions = selectedCreneau.querySelector('.creneau-actions');
-              if (actions) {
-                actions.style.display = 'none';
-                selectedCreneau.classList.remove('selected');
-                selectedCreneau = null;
-              }
-            }
-          }
-        });
-      }
-    </script>
 
     <!-- Modal pour ajouter un créneau -->
     <div id="modalAjouterCreneau" class="modal-creneau-fullscreen">
@@ -803,209 +494,8 @@
       </div>
     </div>
 
-    <!-- JavaScript pour le modal -->
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const modal = document.getElementById('modalAjouterCreneau');
-        const modalModifier = document.getElementById('modalModifierCreneau');
-        const btnOuvrir = document.getElementById('btnOuvrirModalAjouterCreneau');
-        const btnFermer = document.getElementById('btnFermerModalAjouterCreneau');
-        const btnAnnuler = document.getElementById('btnAnnulerModal');
-        const overlay = document.getElementById('modalOverlay');
-        const form = document.getElementById('formAjouterCreneau');
-        const overlayModifier = document.getElementById('modalOverlayModifier');
-        const btnFermerModifier = document.getElementById('btnFermerModalModifierCreneau');
-        const btnAnnulerModifier = document.getElementById('btnAnnulerModalModifier');
-        const formModifier = document.getElementById('formModifierCreneau');
-
-        function setBodyScrollForModals() {
-          var oneOpen = (modal && modal.classList.contains('active')) ||
-            (modalModifier && modalModifier.classList.contains('active'));
-          document.body.style.overflow = oneOpen ? 'hidden' : '';
-        }
-
-        function fermerModalAjouter() {
-          if (!modal) return;
-          modal.classList.remove('active');
-          setBodyScrollForModals();
-          if (form) {
-            form.reset();
-            modal.querySelectorAll('.error-message-modal').forEach(function(el) {
-              el.style.display = 'none';
-            });
-            var g = document.getElementById('modalErrorsGlobales');
-            if (g) g.style.display = 'none';
-          }
-        }
-
-        function fermerModalModifier() {
-          if (!modalModifier) return;
-          modalModifier.classList.remove('active');
-          setBodyScrollForModals();
-          if (formModifier) {
-            formModifier.reset();
-            modalModifier.querySelectorAll('.error-message-modal').forEach(function(el) {
-              el.style.display = 'none';
-            });
-            var gm = document.getElementById('modalModifErrorsGlobales');
-            if (gm) gm.style.display = 'none';
-          }
-        }
-
-        if (btnOuvrir) {
-          btnOuvrir.addEventListener('click', function() {
-            fermerModalModifier();
-            modal.classList.add('active');
-            setBodyScrollForModals();
-          });
-        }
-
-        {% if show_modal_modifier_creneau %}
-        if (modalModifier) {
-          modalModifier.classList.add('active');
-          setBodyScrollForModals();
-        }
-        {% elif show_modal_creneau %}
-        if (modal) {
-          modal.classList.add('active');
-          setBodyScrollForModals();
-        }
-        {% endif %}
-
-        if (btnFermer) {
-          btnFermer.addEventListener('click', fermerModalAjouter);
-        }
-        if (btnAnnuler) {
-          btnAnnuler.addEventListener('click', fermerModalAjouter);
-        }
-        if (overlay) {
-          overlay.addEventListener('click', fermerModalAjouter);
-        }
-        if (modal) {
-          var modalContent = modal.querySelector('.modal-creneau-content');
-          if (modalContent) {
-            modalContent.addEventListener('click', function(e) {
-              e.stopPropagation();
-            });
-          }
-        }
-
-        if (btnFermerModifier) {
-          btnFermerModifier.addEventListener('click', fermerModalModifier);
-        }
-        if (btnAnnulerModifier) {
-          btnAnnulerModifier.addEventListener('click', fermerModalModifier);
-        }
-        if (overlayModifier) {
-          overlayModifier.addEventListener('click', fermerModalModifier);
-        }
-        if (modalModifier) {
-          var modalContentMod = modalModifier.querySelector('.modal-creneau-content');
-          if (modalContentMod) {
-            modalContentMod.addEventListener('click', function(e) {
-              e.stopPropagation();
-            });
-          }
-        }
-
-        document.querySelectorAll('.js-ouvrir-modal-modifier-creneau').forEach(function(btn) {
-          btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!modalModifier || !formModifier) return;
-            if (modal) modal.classList.remove('active');
-            formModifier.action = btn.dataset.actionUrl || '#';
-            var elJour = document.getElementById('modalModifJour');
-            var elDeb = document.getElementById('modalModifHeureDebut');
-            var elFin = document.getElementById('modalModifHeureFin');
-            var elMat = document.getElementById('modalModifMatiere');
-            var elProf = document.getElementById('modalModifProfesseur');
-            var elSalle = document.getElementById('modalModifSalle');
-            var elType = document.getElementById('modalModifTypeCours');
-            if (elJour) elJour.value = btn.dataset.jour || '';
-            if (elDeb) elDeb.value = btn.dataset.heureDebut || '';
-            if (elFin) elFin.value = btn.dataset.heureFin || '';
-            if (elMat) elMat.value = btn.dataset.matiereId ? String(btn.dataset.matiereId) : '';
-            if (elProf) elProf.value = btn.dataset.professeurId ? String(btn.dataset.professeurId) : '';
-            if (elSalle) elSalle.value = btn.dataset.salleId ? String(btn.dataset.salleId) : '';
-            if (elType) elType.value = btn.dataset.typeCours || 'cours';
-            modalModifier.querySelectorAll('.error-message-modal').forEach(function(el) {
-              el.style.display = 'none';
-            });
-            var gm = document.getElementById('modalModifErrorsGlobales');
-            if (gm) gm.style.display = 'none';
-            modalModifier.classList.add('active');
-            setBodyScrollForModals();
-          });
-        });
-
-        function validerHeuresModales(heureDebut, heureFin, errorHeureFinId) {
-          if (!heureDebut || !heureFin) {
-            return false;
-          }
-          if (heureFin <= heureDebut) {
-            var errorHeureFin = document.getElementById(errorHeureFinId);
-            if (errorHeureFin) {
-              var sp = errorHeureFin.querySelector('span');
-              if (sp) sp.textContent = "L'heure de fin doit être après l'heure de début.";
-              errorHeureFin.style.display = 'flex';
-            }
-            return false;
-          }
-          return true;
-        }
-
-        if (form) {
-          form.addEventListener('submit', function(e) {
-            var heureDebut = document.getElementById('modalHeureDebut').value;
-            var heureFin = document.getElementById('modalHeureFin').value;
-            if (!validerHeuresModales(heureDebut, heureFin, 'errorHeureFin')) {
-              e.preventDefault();
-              return false;
-            }
-          });
-        }
-
-        if (formModifier) {
-          formModifier.addEventListener('submit', function(e) {
-            var heureDebut = document.getElementById('modalModifHeureDebut').value;
-            var heureFin = document.getElementById('modalModifHeureFin').value;
-            if (!validerHeuresModales(heureDebut, heureFin, 'errorModifHeureFin')) {
-              e.preventDefault();
-              return false;
-            }
-          });
-        }
-
-        const creneauxInteractifs = document.querySelectorAll('.creneau-interactif');
-        creneauxInteractifs.forEach(function(creneau) {
-          creneau.addEventListener('click', function(e) {
-            // Ne pas activer/désactiver si on clique sur un bouton d'action
-            if (e.target.closest('.creneau-actions')) {
-              return;
-            }
-
-            // Retirer la classe active de tous les autres créneaux
-            creneauxInteractifs.forEach(function(otherCreneau) {
-              if (otherCreneau !== creneau) {
-                otherCreneau.classList.remove('active');
-              }
-            });
-
-            // Toggle la classe active sur le créneau cliqué
-            creneau.classList.toggle('active');
-          });
-
-          // Retirer la classe active si on clique ailleurs
-          document.addEventListener('click', function(e) {
-            if (!creneau.contains(e.target)) {
-              creneau.classList.remove('active');
-            }
-          });
-        });
-      });
-    </script>
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    <script src="{% static 'school_admin/js/directeur/detail_emploi_du_temps.js' %}?v=2.0.0"></script>
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

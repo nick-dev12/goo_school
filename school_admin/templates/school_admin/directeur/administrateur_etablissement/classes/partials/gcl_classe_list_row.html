@@ -1,0 +1,42 @@
+{% load i18n %}
+<div class="gcl-list-row" data-classe-id="{{ classe.id }}">
+    <div class="gcl-list-cell gcl-list-cell--title">
+        <p class="gcl-item-title">
+            <i class="fas fa-chalkboard"></i> {{ classe.nom }}
+        </p>
+        <p class="gcl-item-sub">{{ classe.code_classe }}</p>
+    </div>
+    <div class="gcl-list-cell gcl-list-cell--tags">
+        {% if est_superieur %}
+            {% if classe.department %}
+                <span class="gcl-badge gcl-badge--info">{{ classe.department.nom|truncatechars:24 }}</span>
+            {% endif %}
+            {% if classe.get_libelle_niveau_superieur_complet %}
+                <span class="gcl-badge gcl-badge--muted">{{ classe.get_libelle_niveau_superieur_complet|truncatechars:20 }}</span>
+            {% endif %}
+        {% else %}
+            <span class="gcl-badge gcl-badge--info">{{ classe.get_niveau_display }}</span>
+        {% endif %}
+    </div>
+    <div class="gcl-list-cell gcl-list-cell--num">{{ classe.nombre_eleves }}/{{ classe.capacite_max }}</div>
+    <div class="gcl-list-cell gcl-list-cell--num">{{ classe_data.nombre_enseignants }}</div>
+    <div class="gcl-list-cell gcl-list-cell--num">{{ classe.taux_occupation }}%</div>
+    <div class="gcl-list-cell">
+        {% if classe.actif %}
+            <span class="gcl-badge gcl-badge--ok">{% trans "Active" %}</span>
+        {% else %}
+            <span class="gcl-badge gcl-badge--muted">{% trans "Inactive" %}</span>
+        {% endif %}
+    </div>
+    <div class="gcl-list-cell gcl-list-cell--actions">
+        <div class="gcl-actions-group">
+            <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="gcl-act-btn gcl-act-btn--view">
+                <i class="fas fa-eye"></i><span>{% trans "Détails" %}</span>
+            </a>
+            <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="gcl-act-btn gcl-act-btn--toggle{% if classe.actif %} gcl-act-btn--toggle-on{% endif %}">
+                <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
+                <span>{% if classe.actif %}{% trans "Désactiver" %}{% else %}{% trans "Activer" %}{% endif %}</span>
+            </a>
+        </div>
+    </div>
+</div>

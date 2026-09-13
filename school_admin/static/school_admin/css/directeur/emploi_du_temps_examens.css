@@ -1,4 +1,350 @@
-/* Emploi du Temps des Examens - Styles */
+/* Emploi du temps examens — UX v2 */
+
+.edtex-page-body {
+    background: var(--gray-50, #f9fafb);
+    font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.content-container.edtex-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem 5rem;
+}
+
+.page-header-minimal {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.edtex-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1rem 1.25rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200, #e5e7eb);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.edtex-hero-text { flex: 1 1 240px; }
+
+.edtex-hero-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800, #1f2937);
+    margin: 0 0 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.edtex-hero-title i { color: #3b82f6; }
+
+.edtex-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #1d4ed8;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 999px;
+}
+
+.edtex-hero-stats { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.edtex-stat-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 4.25rem;
+    padding: 0.5rem 0.875rem;
+    background: var(--gray-50, #f9fafb);
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 8px;
+}
+
+.edtex-stat-pill--accent {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+.edtex-stat-num {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--gray-800, #1f2937);
+}
+
+.edtex-stat-lbl {
+    font-size: 0.6875rem;
+    color: var(--gray-600, #4b5563);
+    font-weight: 500;
+}
+
+.edtex-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    width: 100%;
+}
+
+.edtex-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.edtex-action-btn--primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: #fff;
+}
+
+.edtex-action-btn--secondary {
+    background: #fff;
+    color: var(--gray-700, #374151);
+    border: 1px solid var(--gray-300, #d1d5db);
+}
+
+.edtex-action-btn--sm {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+}
+
+.edtex-action-btn:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.edtex-main-panel {
+    background: #fff;
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 12px;
+    padding: 0.875rem 1rem 1rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.edtex-session-nav { margin-bottom: 0.875rem; }
+
+.edtex-session-nav .matiere-tab-btn.edtex-session-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    padding: 0.5rem 0.875rem;
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 8px;
+    background: var(--gray-50, #f9fafb);
+    color: var(--gray-700, #374151);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.edtex-session-nav .matiere-tab-btn.edtex-session-tab.active {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-color: transparent;
+    color: #fff;
+}
+
+.edtex-session-nav .matiere-tab-btn .tab-count {
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    background: var(--gray-200, #e5e7eb);
+}
+
+.edtex-session-nav .matiere-tab-btn.active .tab-count {
+    background: rgba(255, 255, 255, 0.25);
+    color: #fff;
+}
+
+.edtex-tabs-content .edtex-session-panel { display: none; }
+.edtex-tabs-content .edtex-session-panel.active { display: block; }
+
+.edtex-session-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.875rem;
+    padding: 0.875rem 1rem;
+    background: var(--gray-50, #f9fafb);
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 10px;
+}
+
+.edtex-session-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--gray-800, #1f2937);
+    margin: 0 0 0.35rem;
+}
+
+.edtex-session-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+    color: var(--gray-600, #4b5563);
+}
+
+.edtex-session-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.edtex-mini-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.edtex-mini-btn--primary {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+}
+
+.edtex-grid-scroll {
+    position: relative;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 10px;
+}
+
+.edtex-grid-scroll::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 30px;
+    height: 100%;
+    background: linear-gradient(to left, rgba(0, 0, 0, 0.06), transparent);
+    pointer-events: none;
+}
+
+.edtex-calendar-table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.edtex-calendar-table th,
+.edtex-calendar-table td {
+    border: 1px solid var(--gray-200, #e5e7eb);
+    vertical-align: top;
+    font-size: 0.8125rem;
+}
+
+.edtex-time-col,
+.edtex-time-label {
+    min-width: 110px;
+    background: var(--gray-50, #f9fafb);
+    font-weight: 600;
+    color: var(--gray-600, #4b5563);
+    padding: 0.5rem;
+    white-space: nowrap;
+}
+
+.edtex-day-col {
+    min-width: 140px;
+    padding: 0.5rem;
+    text-align: center;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: #fff;
+}
+
+.edtex-day-name {
+    display: block;
+    font-weight: 700;
+    font-size: 0.8125rem;
+}
+
+.edtex-day-date {
+    display: block;
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+.edtex-exam-cell {
+    padding: 0.35rem;
+    min-width: 140px;
+    background: #fff;
+}
+
+.edtex-empty-cell {
+    min-height: 44px;
+    background: var(--gray-50, #f9fafb);
+}
+
+.edtex-exam-block {
+    margin-bottom: 0.25rem;
+}
+
+.edtex-empty-state,
+.edtex-empty-page {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--gray-500, #6b7280);
+}
+
+.edtex-empty-page {
+    background: #fff;
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 12px;
+    padding: 3rem 1.5rem;
+}
+
+.edtex-empty-state i,
+.edtex-empty-page i {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.45;
+}
+
+@media (max-width: 768px) {
+    .content-container.edtex-page { padding: 0.75rem 0.875rem 4.5rem; }
+    .edtex-hero-title { font-size: 1.5rem; }
+    .edtex-hero-actions { flex-direction: column; }
+    .edtex-action-btn { justify-content: center; width: 100%; }
+    .edtex-calendar-table th,
+    .edtex-calendar-table td { font-size: 0.75rem; }
+}
+
+@media print {
+    .edtex-hero-actions,
+    .edtex-session-nav,
+    .edtex-session-actions,
+    .enseignant-bottom-nav { display: none !important; }
+    .edtex-session-panel { display: none !important; }
+    .edtex-session-panel.active { display: block !important; }
+}
+
+/* Emploi du Temps des Examens - Styles modals / legacy */
 
 :root {
     --primary-color: #2c3e50;

@@ -1,0 +1,135 @@
+{% load i18n %}
+{% if filiere_panels %}
+<section class="gml-main-panel" data-gmd-detail-zone>
+    <p class="gml-panel-hint">
+        <i class="fas fa-info-circle"></i>
+        {% trans "Choisissez une filière, puis un niveau LMD pour gérer les matières du module." %}
+    </p>
+
+    <div class="gml-filiere-zone" data-gml-filiere-zone>
+        <div class="gml-filiere-nav">
+            <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'filière' %}" data-overflow-items-label="{% trans 'filières' %}">
+                <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Filières' %}">
+                    {% for panel in filiere_panels %}
+                    <button type="button" role="tab"
+                            class="matiere-tab-btn gml-filiere-tab {% if forloop.first %}active{% endif %}"
+                            data-filiere-idx="{{ forloop.counter0 }}"
+                            data-order="{{ forloop.counter0 }}"
+                            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>{{ panel.department.nom|truncatechars:22 }}{% if panel.department.sigle %} ({{ panel.department.sigle }}){% endif %}</span>
+                        <span class="tab-count">{{ panel.niveaux_cards|length }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+                <div class="matiere-tabs-more-wrap" hidden>
+                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres filières' %}">
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        <span class="matiere-tabs-more-label">{% trans "Autres filières" %}</span>
+                    </button>
+                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                </div>
+            </div>
+        </div>
+
+        {% for panel in filiere_panels %}
+        <div class="gml-filiere-panel {% if forloop.first %}active{% endif %}"
+             data-filiere-idx="{{ forloop.counter0 }}"
+             data-department-id="{{ panel.department.id }}"
+             role="tabpanel"
+             {% if not forloop.first %}hidden{% endif %}>
+            <div class="gml-niveau-zone" data-gml-niveau-zone>
+                <div class="gml-niveau-nav">
+                    <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
+                        <div class="matiere-tabs-track" role="tablist">
+                            {% for item in panel.niveaux_cards %}
+                            <button type="button" role="tab"
+                                    class="matiere-tab-btn gml-niveau-tab {% if forloop.first %}active{% endif %}"
+                                    data-niveau-idx="{{ forloop.counter0 }}"
+                                    data-niveau-key="{{ item.niveau_key }}"
+                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                                <span>{{ item.niveau_label }}</span>
+                                <span class="tab-count">{{ item.matieres_pour_niveau|length }}</span>
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <div class="matiere-tabs-more-wrap" hidden>
+                            <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres niveaux' %}">
+                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                <span class="matiere-tabs-more-label">{% trans "Autres niveaux" %}</span>
+                            </button>
+                            <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                        </div>
+                    </div>
+                </div>
+
+                {% for item in panel.niveaux_cards %}
+                <div class="gml-niveau-panel {% if forloop.first %}active{% endif %}"
+                     data-niveau-idx="{{ forloop.counter0 }}"
+                     data-niveau-key="{{ item.niveau_key }}"
+                     role="tabpanel"
+                     {% if not forloop.first %}hidden{% endif %}>
+                    <div class="gml-panel-stats">
+                        <span class="gml-panel-stat"><strong>{{ item.matieres_pour_niveau|length }}</strong> {% trans "Matière(s)" %}</span>
+                        <span class="gml-panel-stat"><strong>{{ item.nb_classes }}</strong> {% trans "Classe(s)" %}</span>
+                        <span class="gml-panel-stat"><strong>{{ item.credits_total }}</strong> {% trans "Crédits" %}</span>
+                    </div>
+                    <div class="gmd-niveau-meta">
+                        {% if item.numeros_ue %}
+                        <span class="gml-badge gml-badge--info">UE {{ item.numeros_ue|join:", " }}</span>
+                        {% endif %}
+                        {% for periode in item.periodes %}
+                        <span class="gml-badge gml-badge--muted">{{ periode.nom_periode }}</span>
+                        {% endfor %}
+                    </div>
+                    {% if item.classes %}
+                    <div class="gmd-classes-links">
+                        {% for classe in item.classes %}
+                        <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="gmd-classe-link">{{ classe.nom }}</a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if item.matieres_pour_niveau %}
+                    <div class="gml-list-scroll table-responsive">
+                        <div class="gml-list gml-list--matieres">
+                            <div class="gml-list-header">
+                                <div class="gml-list-cell gml-list-cell--title">{% trans "Matière" %}</div>
+                                <div class="gml-list-cell">{% trans "Coef." %}</div>
+                                <div class="gml-list-cell">{% trans "Créd." %}</div>
+                                <div class="gml-list-cell gml-list-cell--actions">{% trans "Actions" %}</div>
+                            </div>
+                            {% for m in item.matieres_pour_niveau %}
+                                {% include 'school_admin/directeur/pedagogique/modules/partials/gmd_matiere_list_row.html' with matiere=m module=module niveau_key=item.niveau_key department_id=panel.department.id %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="gml-empty-state">
+                        <i class="fas fa-book"></i>
+                        <p>{% trans "Aucune matière liée à ce niveau pour l'instant." %}</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="gmd-add-row">
+                        <button type="button" class="gmd-add-btn btn-open-modal-matiere"
+                                data-department-id="{{ panel.department.id }}"
+                                data-niveau-key="{{ item.niveau_key }}"
+                                data-niveau-label="{{ item.niveau_label|escape }}">
+                            <i class="fas fa-plus-circle"></i> {% trans "Ajouter une matière" %}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% else %}
+<div class="gml-empty-state">
+    <i class="fas fa-layer-group"></i>
+    <h3>{% trans "Aucun niveau configuré" %}</h3>
+    <p>{% trans "Aucun niveau n'est associé à ce module." %}</p>
+</div>
+{% endif %}

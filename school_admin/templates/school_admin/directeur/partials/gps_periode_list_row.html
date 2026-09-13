@@ -1,0 +1,62 @@
+{% load i18n %}
+<div class="gps-list-row" data-periode-id="{{ periode.id }}">
+    <div class="gps-list-cell gps-list-cell--title">
+        <p class="gps-item-title">
+            {% if est_superieur %}{{ periode.libelle_affichage_superieur }}{% else %}{{ periode.nom_periode }}{% endif %}
+        </p>
+        {% if not est_superieur %}
+        <p class="gps-item-sub">{{ periode.get_type_periode_display }}</p>
+        {% endif %}
+    </div>
+    <div class="gps-list-cell">
+        {% if est_superieur %}
+            {% if periode.niveau_lmd %}
+                <span class="gps-badge gps-badge--info">{{ periode.niveau_lmd }}</span>
+            {% else %}
+                <span class="gps-badge gps-badge--muted">{% trans "Global" %}</span>
+            {% endif %}
+        {% else %}
+            <span class="gps-badge gps-badge--info">{{ periode.get_type_periode_display }}</span>
+        {% endif %}
+    </div>
+    <div class="gps-list-cell">
+        {{ periode.date_debut|date:"d/m/Y" }} — {{ periode.date_fin|date:"d/m/Y" }}
+    </div>
+    <div class="gps-list-cell">{{ periode.duree_jours }} {% trans "j" %}</div>
+    <div class="gps-list-cell">
+        {% if periode.est_en_cours %}
+            <span class="gps-badge gps-badge--live"><i class="fas fa-circle"></i> {% trans "En cours" %}</span>
+        {% elif periode.est_future %}
+            <span class="gps-badge gps-badge--warn"><i class="fas fa-hourglass-half"></i> {% trans "À venir" %}</span>
+        {% else %}
+            <span class="gps-badge gps-badge--muted"><i class="fas fa-check-circle"></i> {% trans "Terminée" %}</span>
+        {% endif %}
+        {% if periode.est_active %}
+            <span class="gps-badge gps-badge--ok">{% trans "Actif" %}</span>
+        {% endif %}
+    </div>
+    <div class="gps-list-cell gps-list-cell--actions">
+        <div class="gps-actions-group">
+            <button type="button"
+                    class="gps-act-btn gps-act-btn--edit"
+                    data-id="{{ periode.id }}"
+                    data-nom="{{ periode.nom_periode|escape }}"
+                    data-type="{{ periode.type_periode }}"
+                    data-niveau-lmd="{{ periode.niveau_lmd|default:'' }}"
+                    data-debut="{{ periode.date_debut|date:'Y-m-d' }}"
+                    data-fin="{{ periode.date_fin|date:'Y-m-d' }}"
+                    data-annee="{{ periode.annee_scolaire }}"
+                    data-active="{{ periode.est_active|yesno:'true,false' }}"
+                    onclick="openEditPeriodeModal(this)">
+                <i class="fas fa-pen"></i><span>{% trans "Modifier" %}</span>
+            </button>
+            <button type="button"
+                    class="gps-act-btn gps-act-btn--delete"
+                    data-id="{{ periode.id }}"
+                    data-nom="{% if est_superieur %}{{ periode.libelle_affichage_superieur|escape }}{% else %}{{ periode.nom_periode|escape }}{% endif %}"
+                    onclick="openDeletePeriodeModal(this)">
+                <i class="fas fa-trash"></i><span>{% trans "Supprimer" %}</span>
+            </button>
+        </div>
+    </div>
+</div>

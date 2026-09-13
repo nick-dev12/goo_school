@@ -1,0 +1,163 @@
+{% load i18n classe_tags %}
+{% if classes_grouped %}
+    {% if est_superieur %}
+    <div class="gcl-filiere-zone" data-gcl-filiere-zone>
+        <div class="gcl-filiere-nav">
+            <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'spécialité' %}" data-overflow-items-label="{% trans 'spécialités' %}">
+                <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Spécialités' %}">
+                    {% for filiere_nom, filiere_data in classes_grouped.items %}
+                    <button type="button" role="tab"
+                            class="matiere-tab-btn gcl-filiere-tab {% if forloop.first %}active{% endif %}"
+                            data-filiere-idx="{{ forloop.counter0 }}"
+                            data-filiere-nom="{{ filiere_nom }}"
+                            data-order="{{ forloop.counter0 }}"
+                            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>{{ filiere_nom|truncatechars:22 }}</span>
+                        <span class="tab-count">{{ filiere_data.total }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+                <div class="matiere-tabs-more-wrap" hidden>
+                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres spécialités' %}">
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        <span class="matiere-tabs-more-label">{% trans "Autres spécialités" %}</span>
+                    </button>
+                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                </div>
+            </div>
+        </div>
+
+        {% for filiere_nom, filiere_data in classes_grouped.items %}
+        <div class="gcl-filiere-panel {% if forloop.first %}active{% endif %}"
+             data-filiere-idx="{{ forloop.counter0 }}"
+             data-filiere-nom="{{ filiere_nom }}"
+             role="tabpanel"
+             {% if not forloop.first %}hidden{% endif %}>
+            <div class="gcl-niveau-zone" data-gcl-niveau-zone>
+                <div class="gcl-niveau-nav">
+                    <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
+                        <div class="matiere-tabs-track" role="tablist">
+                            {% for niveau_code, data in filiere_data.niveaux %}
+                            <button type="button" role="tab"
+                                    class="matiere-tab-btn gcl-niveau-tab {% if forloop.first %}active{% endif %}"
+                                    data-niveau-idx="{{ forloop.counter0 }}"
+                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                                <span>{{ niveau_code|libelle_niveau_lmd_key }}</span>
+                                <span class="tab-count">{{ data.classes|length }}</span>
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <div class="matiere-tabs-more-wrap" hidden>
+                            <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres niveaux' %}">
+                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                <span class="matiere-tabs-more-label">{% trans "Autres niveaux" %}</span>
+                            </button>
+                            <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                        </div>
+                    </div>
+                </div>
+
+                {% for niveau_code, data in filiere_data.niveaux %}
+                <div class="gcl-niveau-panel {% if forloop.first %}active{% endif %}"
+                     data-niveau-idx="{{ forloop.counter0 }}"
+                     data-niveau-key="{{ niveau_code }}"
+                     role="tabpanel"
+                     {% if not forloop.first %}hidden{% endif %}>
+                    <div class="gcl-panel-stats">
+                        <span class="gcl-panel-stat"><strong>{{ data.total_eleves }}</strong> {% if libelle_eleves %}{{ libelle_eleves }}{% else %}{% trans "Élèves" %}{% endif %}</span>
+                        <span class="gcl-panel-stat"><strong>{{ data.total_enseignants }}</strong> {% trans "Enseignants" %}</span>
+                        <span class="gcl-panel-stat"><strong>{{ data.total_capacite }}</strong> {% trans "Capacité" %}</span>
+                    </div>
+                    <div class="gcl-list-scroll table-responsive">
+                        <div class="gcl-list">
+                            <div class="gcl-list-header">
+                                <div class="gcl-list-cell gcl-list-cell--title">{% trans "Classe" %}</div>
+                                <div class="gcl-list-cell">{% trans "Filière / Niveau" %}</div>
+                                <div class="gcl-list-cell">{% trans "Élèves" %}</div>
+                                <div class="gcl-list-cell">{% trans "Ens." %}</div>
+                                <div class="gcl-list-cell">{% trans "Occ." %}</div>
+                                <div class="gcl-list-cell">{% trans "Statut" %}</div>
+                                <div class="gcl-list-cell gcl-list-cell--actions">{% trans "Actions" %}</div>
+                            </div>
+                            {% for classe_data in data.classes %}
+                                {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/gcl_classe_list_row.html' with classe=classe_data.classe classe_data=classe_data est_superieur=True %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="gcl-cat-zone" data-gcl-cat-zone>
+        <div class="gcl-filiere-nav">
+            <div class="cls-cat-nav-bar" id="clsCatNavBar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
+                <div class="cls-cat-nav-track" id="clsCatNavTrack" role="tablist" aria-label="{% trans 'Niveaux / catégories' %}">
+                    {% for categorie, data in classes_grouped.items %}
+                    <button type="button" role="tab"
+                            class="cls-cat-btn {% if forloop.first %}active{% endif %}"
+                            data-category="{{ categorie }}"
+                            data-order="{{ forloop.counter0 }}"
+                            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                        <i class="fas fa-{% if data.niveau == 'maternelle' %}baby{% elif data.niveau == 'primaire' %}child{% elif data.niveau == 'college' %}graduation-cap{% elif data.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
+                        <span class="cls-cat-name">{{ categorie }}</span>
+                        <span class="cls-cat-count">{{ data.total_classes }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+                <div class="cls-cat-more-wrap" id="clsCatMoreWrap" hidden>
+                    <button type="button" class="cls-cat-more-btn" id="clsCatMoreBtn" aria-expanded="false" aria-haspopup="true" aria-controls="clsCatOverflowMenu" aria-label="{% trans 'Afficher les autres niveaux' %}">
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        <span class="cls-cat-more-label" id="clsCatMoreLabel">{% trans "Autres niveaux" %}</span>
+                    </button>
+                    <div class="cls-cat-overflow-menu" id="clsCatOverflowMenu" role="menu" hidden></div>
+                </div>
+            </div>
+        </div>
+
+        {% for categorie, data in classes_grouped.items %}
+        <div class="gcl-cat-panel cls-panel {% if forloop.first %}active{% endif %}"
+             id="panel-{{ categorie|slugify }}"
+             data-category="{{ categorie }}"
+             role="tabpanel"
+             {% if not forloop.first %}hidden{% endif %}>
+            <div class="gcl-panel-stats">
+                <span class="gcl-panel-stat"><strong>{{ data.total_eleves }}</strong> {% if libelle_eleves %}{{ libelle_eleves }}{% else %}{% trans "Élèves" %}{% endif %}</span>
+                <span class="gcl-panel-stat"><strong>{{ data.total_enseignants }}</strong> {% trans "Enseignants" %}</span>
+                <span class="gcl-panel-stat"><strong>{{ data.total_capacite }}</strong> {% trans "Capacité" %}</span>
+            </div>
+            <div class="gcl-list-scroll table-responsive">
+                <div class="gcl-list">
+                    <div class="gcl-list-header">
+                        <div class="gcl-list-cell gcl-list-cell--title">{% trans "Classe" %}</div>
+                        <div class="gcl-list-cell">{% trans "Niveau" %}</div>
+                        <div class="gcl-list-cell">{% trans "Élèves" %}</div>
+                        <div class="gcl-list-cell">{% trans "Ens." %}</div>
+                        <div class="gcl-list-cell">{% trans "Occ." %}</div>
+                        <div class="gcl-list-cell">{% trans "Statut" %}</div>
+                        <div class="gcl-list-cell gcl-list-cell--actions">{% trans "Actions" %}</div>
+                    </div>
+                    {% for classe_data in data.classes %}
+                        {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/gcl_classe_list_row.html' with classe=classe_data.classe classe_data=classe_data est_superieur=False %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+{% else %}
+<div class="gcl-empty-state">
+    <i class="fas fa-chalkboard"></i>
+    <h3>{% trans "Aucune classe trouvée" %}</h3>
+    <p>{% trans "Commencez par ajouter des classes à votre établissement." %}</p>
+    <button type="button" class="gcl-action-btn gcl-action-btn--primary" id="addClasseBtnEmpty">
+        <i class="fas fa-plus"></i> {% trans "Ajouter la première classe" %}
+    </button>
+</div>
+{% endif %}

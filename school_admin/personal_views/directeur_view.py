@@ -6871,10 +6871,12 @@ def gestion_periodes_scolaires(request):
                         type_periode = 'semestre'
                         if not est_semestre_valide_pour_niveau(nom_periode, niveau_lmd):
                             return _periode_fail(
-                                "Le semestre choisi ne correspond pas au niveau (ex. Licence 1 : Semestre 1–2 ; Licence 2 : Semestre 3–4 ; Master 1 : Semestre 7–8, etc.)."
+                                "Le semestre choisi ne correspond pas au niveau "
+                                "(ex. Licence 1, BTS 1 ou DUT 1 : Semestre 1–2 ; "
+                                "Licence 2, BTS 2 ou DUT 2 : Semestre 3–4 ; Master 1 : Semestre 7–8, etc.)."
                             )
                         if niveau_lmd not in NIVEAUX_PERIODE_SUPERIEUR_KEYS:
-                            return _periode_fail("Veuillez sélectionner un niveau (Licence à Doctorat).")
+                            return _periode_fail("Veuillez sélectionner un niveau (Licence, BTS, DUT, Master ou Doctorat).")
                         if not all([date_debut_str, date_fin_str]):
                             return _periode_fail("Les dates de début et de fin sont obligatoires.")
                     else:
@@ -6925,10 +6927,12 @@ def gestion_periodes_scolaires(request):
                         niveau_lmd = request.POST.get('niveau_lmd', '').strip()
                         if not est_semestre_valide_pour_niveau(nom_periode, niveau_lmd):
                             return _periode_fail(
-                                "Le semestre choisi ne correspond pas au niveau (ex. Licence 1 : Semestre 1–2 ; Licence 2 : Semestre 3–4 ; Master 1 : Semestre 7–8, etc.)."
+                                "Le semestre choisi ne correspond pas au niveau "
+                                "(ex. Licence 1, BTS 1 ou DUT 1 : Semestre 1–2 ; "
+                                "Licence 2, BTS 2 ou DUT 2 : Semestre 3–4 ; Master 1 : Semestre 7–8, etc.)."
                             )
                         if niveau_lmd not in NIVEAUX_PERIODE_SUPERIEUR_KEYS:
-                            return _periode_fail("Veuillez sélectionner un niveau (Licence à Doctorat).")
+                            return _periode_fail("Veuillez sélectionner un niveau (Licence, BTS, DUT, Master ou Doctorat).")
                         periode.nom_periode = nom_periode
                         periode.niveau_lmd = niveau_lmd
                         periode.type_periode = 'semestre'
@@ -7070,6 +7074,11 @@ def gestion_periodes_scolaires(request):
         ensure_ascii=False,
     )
     
+    stats_generales = {
+        'total_annees': annees_scolaires.count(),
+        'total_periodes': periodes.count(),
+    }
+
     context = {
         'user': etablissement,
         'etablissement': etablissement,
@@ -7080,6 +7089,7 @@ def gestion_periodes_scolaires(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur,
         'periodes_tabs': periodes_tabs,
+        'stats_generales': stats_generales,
         'semestres_par_niveau_json': semestres_par_niveau_json,
         'niveaux_lmd_periode_choices': NIVEAUX_PERIODE_SUPERIEUR,
     }
@@ -7912,14 +7922,26 @@ def certificat_scolarite_liste(request):
         
         classes_grouped[categorie]['classes'].append(classe_data)
         classes_grouped[categorie]['total_eleves'] += eleves.count()
-    
+
+    total_eleves = sum(data['total_eleves'] for data in classes_grouped.values())
+    stats_generales = {
+        'total_eleves': total_eleves,
+        'total_classes': classes.count(),
+        'total_niveaux': len(classes_grouped),
+    }
+
+    for categorie, data in classes_grouped.items():
+        data['label'] = categorie
+        data['nombre_classes'] = len(data['classes'])
+
     context = {
         'etablissement': etablissement,
         'classes_grouped': dict(classes_grouped),
+        'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
     }
-    
+
     return render(request, 'school_admin/directeur/certificat_scolarite_liste.html', context)
 
 
@@ -8032,10 +8054,22 @@ def convocation_liste(request):
         
         classes_grouped[categorie]['classes'].append(classe_data)
         classes_grouped[categorie]['total_eleves'] += eleves.count()
-    
+
+    total_eleves = sum(data['total_eleves'] for data in classes_grouped.values())
+    stats_generales = {
+        'total_eleves': total_eleves,
+        'total_classes': classes.count(),
+        'total_niveaux': len(classes_grouped),
+    }
+
+    for categorie, data in classes_grouped.items():
+        data['label'] = categorie
+        data['nombre_classes'] = len(data['classes'])
+
     context = {
         'etablissement': etablissement,
         'classes_grouped': dict(classes_grouped),
+        'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
     }
@@ -8372,6 +8406,7 @@ def convocations_classe_liste(request, classe_id):
     from ..model.classe_model import Classe
     from ..model.eleve_model import Eleve
     from ..model.convocation_model import Convocation
+    from ..model.inscription_eleve_model import InscriptionEleve
     from ..utils.session_utils import get_session_active
     from collections import defaultdict
     
@@ -8390,6 +8425,19 @@ def convocations_classe_liste(request, classe_id):
     except Classe.DoesNotExist:
         messages.error(request, "Classe non trouvée.")
         return redirect('directeur:convocation_liste')
+    
+    # Compter les élèves inscrits de la classe (année scolaire active si disponible)
+    eleves_classe = Eleve.objects.filter(
+        classe=classe,
+        etablissement=etablissement,
+        actif=True,
+    )
+    if annee_scolaire_active:
+        eleves_ids = InscriptionEleve.objects.filter(
+            annee_scolaire=annee_scolaire_active
+        ).values_list('eleve_id', flat=True)
+        eleves_classe = eleves_classe.filter(id__in=eleves_ids)
+    nombre_eleves = eleves_classe.count()
     
     # Récupérer toutes les convocations de classe pour cette classe filtrées par année scolaire active
     # On regroupe par (objet, motif, date, heure, lieu) pour éviter les doublons
@@ -8427,6 +8475,7 @@ def convocations_classe_liste(request, classe_id):
         'classe': classe,
         'convocations': convocations_list,
         'nombre_convocations': len(convocations_list),
+        'nombre_eleves': nombre_eleves,
         'annee_scolaire_active': annee_scolaire_active,
     }
     
@@ -8577,14 +8626,26 @@ def attestation_reussite_liste(request):
         
         classes_grouped[categorie]['classes'].append(classe_data)
         classes_grouped[categorie]['total_eleves'] += eleves.count()
-    
+
+    total_eleves = sum(data['total_eleves'] for data in classes_grouped.values())
+    stats_generales = {
+        'total_eleves': total_eleves,
+        'total_classes': classes.count(),
+        'total_niveaux': len(classes_grouped),
+    }
+
+    for categorie, data in classes_grouped.items():
+        data['label'] = categorie
+        data['nombre_classes'] = len(data['classes'])
+
     context = {
         'etablissement': etablissement,
         'classes_grouped': dict(classes_grouped),
+        'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
     }
-    
+
     return render(request, 'school_admin/directeur/attestation_reussite_liste.html', context)
 
 
@@ -8692,10 +8753,22 @@ def attestation_conduite_liste(request):
         
         classes_grouped[categorie]['classes'].append(classe_data)
         classes_grouped[categorie]['total_eleves'] += eleves.count()
-    
+
+    total_eleves = sum(data['total_eleves'] for data in classes_grouped.values())
+    stats_generales = {
+        'total_eleves': total_eleves,
+        'total_classes': classes.count(),
+        'total_niveaux': len(classes_grouped),
+    }
+
+    for categorie, data in classes_grouped.items():
+        data['label'] = categorie
+        data['nombre_classes'] = len(data['classes'])
+
     context = {
         'etablissement': etablissement,
         'classes_grouped': dict(classes_grouped),
+        'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
     }
@@ -8812,10 +8885,22 @@ def fiche_inscription_liste(request):
         
         classes_grouped[categorie]['classes'].append(classe_data)
         classes_grouped[categorie]['total_eleves'] += eleves.count()
-    
+
+    total_eleves = sum(data['total_eleves'] for data in classes_grouped.values())
+    stats_generales = {
+        'total_eleves': total_eleves,
+        'total_classes': classes.count(),
+        'total_niveaux': len(classes_grouped),
+    }
+
+    for categorie, data in classes_grouped.items():
+        data['label'] = categorie
+        data['nombre_classes'] = len(data['classes'])
+
     context = {
         'etablissement': etablissement,
         'classes_grouped': dict(classes_grouped),
+        'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
     }
@@ -9447,18 +9532,18 @@ def annonces_directeur(request):
     if annee_scolaire_active:
         annonces = annonces.filter(annee_scolaire=annee_scolaire_active)
     
-    annonces = annonces.order_by('-date_publication', '-date_creation')
-    
-    # Filtrer par statut si demandé
-    statut_filtre = request.GET.get('statut', '')
-    if statut_filtre:
-        annonces = annonces.filter(statut=statut_filtre)
-    
-    # Statistiques
+    # Statistiques (sur l'ensemble, avant filtre statut)
     total_annonces = annonces.count()
     annonces_publiees = annonces.filter(statut='publiee').count()
     annonces_brouillon = annonces.filter(statut='brouillon').count()
     annonces_archivees = annonces.filter(statut='archivee').count()
+
+    # Filtrer par statut si demandé
+    statut_filtre = request.GET.get('statut', '')
+    if statut_filtre:
+        annonces = annonces.filter(statut=statut_filtre)
+
+    annonces = annonces.order_by('-date_publication', '-date_creation')
     
     from ..model.personnel_administratif_model import PersonnelAdministratif
     context = {
@@ -10307,12 +10392,13 @@ def creer_annee_scolaire_obligatoire(request):
         
         date_debut_str = request.POST.get('date_debut', '')
         date_fin_str = request.POST.get('date_fin', '')
-        est_ouverte = request.POST.get('est_ouverte') == 'on'
         
         if not all([date_debut_str, date_fin_str]):
             messages.error(request, "Veuillez remplir les dates de début et de fin.")
         else:
             try:
+                from ..utils.session_utils import set_session_consultee
+
                 date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
                 date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date()
                 
@@ -10331,11 +10417,26 @@ def creer_annee_scolaire_obligatoire(request):
                         annee_fin=annee_fin,
                         date_debut=date_debut,
                         date_fin=date_fin,
-                        est_ouverte=est_ouverte
+                        est_ouverte=True,
                     )
-                    
-                    messages.success(request, f"Année scolaire {libelle} créée avec succès. Veuillez l'activer pour continuer.")
-                    return redirect('directeur:creer_annee_scolaire_obligatoire')
+
+                    annee_scolaire, stats = AnneeScolaireController.activer_annee_scolaire(
+                        etablissement, annee_scolaire, initialiser=True
+                    )
+
+                    request.session['annee_scolaire_consultee_id'] = annee_scolaire.id
+                    request.session['school_year_id'] = annee_scolaire.id
+                    set_session_consultee(request, annee_scolaire)
+
+                    message = f"Année scolaire {libelle} créée et activée avec succès."
+                    if stats:
+                        message += (
+                            f" Initialisation : {stats.get('classes_copiees', 0)} classes, "
+                            f"{stats.get('matieres_copiees', 0)} matières, "
+                            f"{stats.get('salles_copiees', 0)} salles."
+                        )
+                    messages.success(request, message)
+                    return redirect('directeur:dashboard_directeur')
                     
             except Exception as e:
                 messages.error(request, f"Erreur lors de la création : {str(e)}")

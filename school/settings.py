@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     'corsheaders',  # Django CORS Headers
     'django_countries',  # Django Countries pour la gestion des pays
     'school_admin',
@@ -348,6 +349,20 @@ WASENDER_API_TOKEN = os.getenv(
     "ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1",
 )
 WASENDER_DEFAULT_SESSION_ID = os.getenv("WASENDER_DEFAULT_SESSION_ID", "31658")
+
+# ============================================
+# Assistant vocal directeur (DeepSeek + edge-tts)
+# ============================================
+DEEPSEEK_API_KEY = env('DEEPSEEK_API_KEY', default='').strip()
+DEEPSEEK_API_BASE_URL = env(
+    'DEEPSEEK_API_BASE_URL',
+    default='https://api.deepseek.com',
+).strip()
+DEEPSEEK_MODEL = env('DEEPSEEK_MODEL', default='deepseek-flash').strip()
+EDGE_TTS_VOICE = env('EDGE_TTS_VOICE', default='fr-BE-CharlineNeural').strip()
+EDGE_TTS_RATE = env('EDGE_TTS_RATE', default='').strip()
+EDGE_TTS_PITCH = env('EDGE_TTS_PITCH', default='').strip()
+EDGE_TTS_VOLUME = env('EDGE_TTS_VOLUME', default='').strip()
 
 # ============================================
 # Configuration de sécurité pour la production

@@ -21,8 +21,9 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3"
     />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=2.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=2.2.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0"
@@ -83,25 +84,47 @@
       </div>
       {% endif %}
 
-      <div class="tabs-container ele-niveau-tabs">
-        <div class="tabs-nav" role="tablist" aria-label="{% trans 'Niveaux / catégories' %}">
-          {% for cat_key, data in classes_grouped.items %}
-            <button type="button" role="tab" class="tab-button ele-niveau-tab {% if forloop.first %}active{% endif %}"
-                    data-tab="tab-{{ forloop.counter }}"
-                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
-              <i class="fas fa-layer-group"></i>
-              <span>{{ data.label }}</span>
-              <span class="tab-count">{{ data.total_eleves }}</span>
-            </button>
-          {% endfor %}
-        </div>
+      <section class="ele-main-panel" data-ele-liste-zone>
+        <p class="ele-panel-hint">
+          <i class="fas fa-info-circle"></i>
+          {% trans "Choisissez un niveau ou une catégorie, puis une classe pour consulter ou inscrire des élèves." %}
+        </p>
 
-        <!-- Contenu des onglets -->
-        <div class="tabs-content">
+        <div class="ele-niveau-zone" data-ele-niveau-zone>
+          <div class="ele-niveau-nav">
+            <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
+              <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Niveaux / catégories' %}">
+                {% for cat_key, data in classes_grouped.items %}
+                <button type="button" role="tab"
+                        class="matiere-tab-btn ele-niveau-tab tab-button {% if forloop.first %}active{% endif %}"
+                        data-tab="tab-{{ forloop.counter }}"
+                        data-niveau-idx="{{ forloop.counter0 }}"
+                        data-order="{{ forloop.counter0 }}"
+                        aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                  <i class="fas fa-layer-group"></i>
+                  <span>{{ data.label|truncatechars:22 }}</span>
+                  <span class="tab-count">{{ data.total_eleves }}</span>
+                </button>
+                {% endfor %}
+              </div>
+              <div class="matiere-tabs-more-wrap" hidden>
+                <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres niveaux' %}">
+                  <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                  <span class="matiere-tabs-more-label">{% trans "Autres niveaux" %}</span>
+                </button>
+                <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+              </div>
+            </div>
+          </div>
+
           {% for categorie, data in classes_grouped.items %}
-            <div class="tab-panel {% if forloop.first %}active{% endif %}" 
-                 id="tab-{{ forloop.counter }}">
-              
+            <div class="ele-niveau-panel tab-panel {% if forloop.first %}active{% endif %}"
+                 id="tab-{{ forloop.counter }}"
+                 data-niveau-idx="{{ forloop.counter0 }}"
+                 role="tabpanel"
+                 {% if not forloop.first %}hidden{% endif %}>
+
+              <div class="ele-classe-zone" data-ele-classe-zone>
               <div class="ele-classe-nav">
                 <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
                   <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes du niveau' %}">
@@ -126,32 +149,29 @@
               </div>
 
               {% for classe_data in data.classes %}
-                <div class="classe-subtab-content {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}" data-main-tab="tab-{{ forloop.parentloop.counter }}">
-                  <header class="ele-classe-header">
-                    <div class="ele-classe-title-block">
-                      <h2 class="ele-classe-title">
-                        <i class="fas fa-chalkboard"></i>
-                        {% if est_superieur %}
-                          {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
-                        {% else %}
-                          {{ classe_data.classe.nom }} — {{ classe_data.classe.get_niveau_display }}
-                        {% endif %}
-                      </h2>
-                      {% if classe_data.classe.description %}
-                        <p class="ele-classe-desc">{{ classe_data.classe.description }}</p>
-                      {% endif %}
-                    </div>
-                    <div class="ele-classe-meta">
-                      <span class="ele-mini-stat"><i class="fas fa-users"></i> {{ classe_data.stats.total_eleves }}/{{ classe_data.classe.capacite_max }}</span>
-                      <span class="ele-mini-stat"><i class="fas fa-chart-pie"></i> {{ classe_data.stats.taux_occupation }}%</span>
-                      <span class="ele-mini-stat ele-mini-stat--new"><i class="fas fa-user-plus"></i> {{ classe_data.stats.nouveaux_eleves }}</span>
-                      <span class="ele-mini-stat"><i class="fas fa-exchange-alt"></i> {{ classe_data.stats.transferts }}</span>
-                      <span class="ele-mini-stat"><i class="fas fa-redo"></i> {{ classe_data.stats.reinscriptions }}</span>
-                      <a href="{% url 'directeur:imprimer_liste_nominative' classe_data.classe.id %}" class="ele-print-btn" target="_blank" title="{% trans 'Imprimer la liste nominative' %}">
-                        <i class="fas fa-print"></i> {% trans "Imprimer" %}
-                      </a>
-                    </div>
-                  </header>
+                <div class="ele-classe-panel classe-subtab-content {% if forloop.first %}active{% endif %}"
+                     id="classe-{{ classe_data.classe.id }}"
+                     data-main-tab="tab-{{ forloop.parentloop.counter }}"
+                     role="tabpanel"
+                     {% if not forloop.first %}hidden{% endif %}>
+                  <div class="ele-panel-stats">
+                    <span class="ele-panel-stat"><strong>{{ classe_data.stats.total_eleves }}/{{ classe_data.classe.capacite_max }}</strong> {% trans "Élèves" %}</span>
+                    <span class="ele-panel-stat"><strong>{{ classe_data.stats.taux_occupation }}%</strong> {% trans "Occupation" %}</span>
+                    <span class="ele-panel-stat ele-panel-stat--new"><strong>{{ classe_data.stats.nouveaux_eleves }}</strong> {% trans "Nouveaux" %}</span>
+                    <span class="ele-panel-stat"><strong>{{ classe_data.stats.transferts }}</strong> {% trans "Transferts" %}</span>
+                    <span class="ele-panel-stat"><strong>{{ classe_data.stats.reinscriptions }}</strong> {% trans "Réinscr." %}</span>
+                    <a href="{% url 'directeur:imprimer_liste_nominative' classe_data.classe.id %}" class="ele-print-btn" target="_blank" title="{% trans 'Imprimer la liste nominative' %}">
+                      <i class="fas fa-print"></i> {% trans "Imprimer" %}
+                    </a>
+                  </div>
+                  <p class="ele-classe-label">
+                    <i class="fas fa-chalkboard"></i>
+                    {% if est_superieur %}
+                      {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
+                    {% else %}
+                      {{ classe_data.classe.nom }} — {{ classe_data.classe.get_niveau_display }}
+                    {% endif %}
+                  </p>
 
                   <div class="ele-toolbar search-filter-container" id="search-filter-{{ classe_data.classe.id }}">
                     <label class="ele-search-wrap">
@@ -203,19 +223,19 @@
 
                   <div class="students-section">
                   {% if classe_data.eleves %}
-                    <div class="students-list">
-                      <div class="list-header">
-                        <div class="list-cell header-cell">{% trans "Élève" %}</div>
+                    <div class="ele-list-scroll">
+                    <div class="students-list ele-list">
+                      <div class="list-header ele-list-header">
+                        <div class="list-cell header-cell ele-list-cell--student">{% trans "Élève" %}</div>
                         <div class="list-cell header-cell">{% trans "Numéro" %}</div>
-                        <div class="list-cell header-cell">{% trans "Âge" %}</div>
-                      
-                        <div class="list-cell header-cell">{% trans "Absences" %}</div>
-                        <div class="list-cell header-cell">{% trans "Inscription" %}</div>
-                        <div class="list-cell header-cell">{% trans "Actions" %}</div>
+                        <div class="list-cell header-cell ele-list-cell--center">{% trans "Âge" %}</div>
+                        <div class="list-cell header-cell ele-list-cell--center">{% trans "Absences" %}</div>
+                        <div class="list-cell header-cell ele-list-cell--center">{% trans "Inscription" %}</div>
+                        <div class="list-cell header-cell ele-list-cell--actions">{% trans "Actions" %}</div>
                       </div>
                       
                       {% for eleve_data in classe_data.eleves %}
-                        <div class="list-row {% if not eleve_data.eleve.actif %}eleve-desactive{% endif %}" 
+                        <div class="list-row ele-list-row {% if not eleve_data.eleve.actif %}eleve-desactive{% endif %}" 
                              data-eleve-id="{{ eleve_data.eleve.id }}"
                              data-nom="{{ eleve_data.eleve.nom|lower }}"
                              data-prenom="{{ eleve_data.eleve.prenom|lower }}"
@@ -225,7 +245,7 @@
                              data-sexe="{{ eleve_data.eleve.sexe }}"
                              data-absences="{{ eleve_data.nombre_absences }}"
                              data-actif="{{ eleve_data.eleve.actif|yesno:'true,false' }}">
-                          <div class="list-cell student-cell">
+                          <div class="list-cell ele-list-cell ele-list-cell--student student-cell">
                             <div class="student-avatar-small">
                               <i class="fas fa-user"></i>
                             </div>
@@ -244,16 +264,15 @@
                             </div>
                           </div>
                           
-                          <div class="list-cell" data-label="Numéro">
+                          <div class="list-cell ele-list-cell" data-label="Numéro">
                             <span class="student-number">{{ eleve_data.eleve.matricule_eleve|default:eleve_data.eleve.numero_eleve }}</span>
                           </div>
                           
-                          <div class="list-cell" data-label="Âge">
+                          <div class="list-cell ele-list-cell ele-list-cell--center" data-label="Âge">
                             <span class="student-age">{{ eleve_data.eleve.age }} ans</span>
                           </div>
-                        
                           
-                          <div class="list-cell" data-label="Absences">
+                          <div class="list-cell ele-list-cell ele-list-cell--center" data-label="Absences">
                             {% if eleve_data.nombre_absences > 0 %}
                               <span class="badge-absences {% if eleve_data.nombre_absences >= 5 %}danger{% elif eleve_data.nombre_absences >= 3 %}warning{% else %}info{% endif %}">
                                 <i class="fas fa-exclamation-triangle"></i>
@@ -267,11 +286,11 @@
                             {% endif %}
                           </div>
                           
-                          <div class="list-cell" data-label="Inscription">
+                          <div class="list-cell ele-list-cell ele-list-cell--center" data-label="Inscription">
                             <span class="inscription-date">{{ eleve_data.eleve.date_inscription|date:"d/m/Y" }}</span>
                           </div>
                           
-                          <div class="list-cell" data-label="Actions">
+                          <div class="list-cell ele-list-cell ele-list-cell--actions" data-label="Actions">
                             <div class="student-actions-compact">
                               <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-small btn-view" title="{% trans "Voir détails" %}">
                                 <i class="fas fa-eye"></i>
@@ -283,6 +302,7 @@
                           </div>
                         </div>
                       {% endfor %}
+                    </div>
                     </div>
                   {% else %}
                     <div class="empty-state">
@@ -300,10 +320,11 @@
                   </div>
                 </div>
               {% endfor %}
+              </div>
             </div>
           {% endfor %}
         </div>
-      </div>
+      </section>
     </div>
 
     <!-- Modal inscription élève (plein écran) -->
@@ -516,7 +537,7 @@
     {% endif %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="{% static 'school_admin/js/realtime_page.js' %}?v=1.0.2"></script>
-    <script src="{% static 'school_admin/js/directeur/liste_eleves.js' %}?v=2.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_eleves.js' %}?v=2.1.0"></script>
     <script src="{% static 'school_admin/js/directeur/liste_eleves_live.js' %}?v=1.1.0"></script>
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

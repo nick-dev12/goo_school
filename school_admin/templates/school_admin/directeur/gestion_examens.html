@@ -7,155 +7,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Gestion des examens" %} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_examens.css' %}?v=1.3.1">
-    <title>Gestion des Examens - {{ etablissement.nom }}</title>
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_examens.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
-<body>
+<body class="gex-page-body">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <div class="container" id="gestion-examens-root" data-est-superieur="{{ est_superieur|yesno:'true,false' }}">
-        <!-- Page Header -->
-        <div class="page-header">
+    <div class="content-container gex-page" id="gestion-examens-root" data-est-superieur="{{ est_superieur|yesno:'true,false' }}">
+        {% include 'school_admin/partials/messages.html' %}
+
+        <div class="page-header page-header-minimal">
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
-<h1>
-                <i class="fas fa-clipboard-list"></i>
-                {% trans "Gestion des Examens" %}
-            </h1>
-            <div class="header-actions">
-                <button class="btn btn-primary" onclick="openModal()">
-                    <i class="fas fa-plus"></i>
-                    {% trans "Ajouter une session d'examen" %}
-                </button>
-            </div>
         </div>
 
-        <!-- Message d'information sur l'année scolaire active -->
-        {% if annee_scolaire_active %}
-        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
-            <i class="fas fa-calendar-check"></i>
-          </span>
-          <div>
-            <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-              Année scolaire active : {{ annee_scolaire_active.libelle }}
-            </p>
-            <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              {% trans "Seules les sessions d'examens de cette année scolaire sont affichées." %}
-            </p>
-          </div>
-        </div>
-        {% endif %}
+        <header class="gex-hero">
+            <div class="gex-hero-text">
+                <h1 class="gex-hero-title"><i class="fas fa-clipboard-list"></i> {% trans "Gestion des examens" %}</h1>
+                {% if annee_scolaire_active %}
+                    <span class="gex-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+                {% endif %}
+            </div>
+            <div class="gex-hero-stats">
+                <div class="gex-stat-pill">
+                    <span class="gex-stat-num">{{ stats_generales.total_sessions }}</span>
+                    <span class="gex-stat-lbl">{% trans "Sessions" %}</span>
+                </div>
+                <div class="gex-stat-pill gex-stat-pill--accent">
+                    <span class="gex-stat-num">{{ stats_generales.total_periodes }}</span>
+                    <span class="gex-stat-lbl">{% trans "Périodes" %}</span>
+                </div>
+                <div class="gex-stat-pill">
+                    <span class="gex-stat-num">{{ stats_generales.total_groupes }}</span>
+                    <span class="gex-stat-lbl">{% if est_superieur %}{% trans "Filières" %}{% else %}{% trans "Niveaux" %}{% endif %}</span>
+                </div>
+            </div>
+            <div class="gex-hero-actions">
+                <button type="button" class="gex-action-btn gex-action-btn--primary" onclick="openModal()">
+                    <i class="fas fa-plus"></i> {% trans "Nouvelle session" %}
+                </button>
+                <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="gex-action-btn gex-action-btn--secondary">
+                    <i class="fas fa-calendar-alt"></i> {% trans "Emploi du temps examens" %}
+                </a>
+            </div>
+        </header>
 
         {% if est_superieur %}
-        <div class="active-year-info" style="background: var(--secondary-light, rgba(124,58,237,0.08)); padding: 0.85rem 1rem; border-radius: 10px; margin-bottom: 1.25rem; border: 1px solid rgba(124,58,237,0.25);">
-          <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-            <i class="fas fa-graduation-cap" style="color: var(--secondary, #7c3aed); margin-right: 0.5rem;"></i>
-            {% trans "Enseignement supérieur" %}
-          </p>
-          <p style="margin: 0.35rem 0 0 0; color: var(--gray-600, #4b5563); font-size: 0.875rem; line-height: 1.45;">
-            {% trans "Rattachez la session à une période (semestre S1/S2). À la création : choisissez d'abord une filière, puis cochez les promotions — le détail LMD s'affiche pour chaque classe." %}
-          </p>
+        <div class="gex-alert gex-alert-info">
+            <i class="fas fa-graduation-cap"></i>
+            <span>{% trans "Enseignement supérieur : rattachez chaque session à un semestre, choisissez une filière puis cochez les promotions concernées." %}</span>
         </div>
         {% endif %}
 
-        <!-- Tabs for Periods -->
-        <div class="tabs-container">
-            <div class="tabs">
-                {% for periode in periodes %}
-                <button class="tab-button {% if forloop.first %}active{% endif %}" onclick="showTab('periode-{{ periode.id }}')">
-                    <i class="fas fa-calendar-alt"></i>
-                    {{ periode.nom_periode }}
-                </button>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Tab Content -->
-        <div class="tab-content">
-            {% for periode in periodes %}
-            <div id="periode-{{ periode.id }}" class="tab-panel {% if forloop.first %}active{% endif %}">
-                <!-- Sub-tabs for Class Groups -->
-                <div class="sub-tabs-container">
-                    <div class="sub-tabs">
-                        {% for cle, groupe in groupes_classes.items %}
-                        <button class="sub-tab-button {% if forloop.first %}active{% endif %}" onclick="showSubTab('pt{{ periode.id }}-sg{{ forloop.counter0 }}')">
-                            <i class="fas fa-users"></i>
-                            {{ groupe.label }}
-                        </button>
+        {% if periodes_avec_stats %}
+        <section class="gex-main-panel" aria-label="{% trans 'Sessions par période' %}">
+            <div class="gex-periode-nav">
+                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'période' %}" data-overflow-items-label="{% trans 'périodes' %}">
+                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Périodes scolaires' %}">
+                        {% for item in periodes_avec_stats %}
+                            <button type="button" role="tab"
+                                    class="matiere-tab-btn gex-periode-tab {% if forloop.first %}active{% endif %}"
+                                    data-tab="periode-{{ item.periode.id }}"
+                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                                    onclick="switchPeriodeTab('periode-{{ item.periode.id }}', this)">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>{{ item.periode.nom_periode }}</span>
+                                <span class="tab-count">{{ item.session_count }}</span>
+                            </button>
                         {% endfor %}
                     </div>
-                </div>
-
-                <!-- Sub-tab Content -->
-                <div class="sub-tab-content">
-                    {% for cle, groupe in groupes_classes.items %}
-                    <div id="pt{{ periode.id }}-sg{{ forloop.counter0 }}" class="sub-tab-panel {% if forloop.first %}active{% endif %}">
-                        <div class="sessions-grid">
-                            {% if sessions_par_periode|get_item:periode.id %}
-                                {% for session in sessions_par_periode|get_item:periode.id|get_item:'sessions' %}
-                                    {% if session|has_classe_groupe_examen:cle %}
-                                        <div class="session-card">
-                                            <div class="session-header">
-                                                <h3>{{ session.nom_examen }}</h3>
-                                                <span class="session-period">{{ session.periode.nom_periode }}</span>
-                                            </div>
-                                            <div class="session-details">
-                                                <div class="detail-item detail-item--classes">
-                                                    <i class="fas fa-users"></i>
-                                                    <span class="session-classes-detail">
-                                                        {% if est_superieur %}
-                                                            {% for classe in session.classes.all %}
-                                                                <span class="session-classe-chip">
-                                                                    <strong>{{ classe.nom }}</strong>
-                                                                    <span class="exam-class-niveau"> — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}</span>
-                                                                </span>{% if not forloop.last %}<span class="session-classe-sep"> ; </span>{% endif %}
-                                                            {% empty %}
-                                                                {{ session.classes_str }}
-                                                            {% endfor %}
-                                                        {% else %}
-                                                            {{ session.classes_str }}
-                                                        {% endif %}
-                                                    </span>
-                                                </div>
-                                                <div class="detail-item">
-                                                    <i class="fas fa-book"></i>
-                                                    <span>{{ session.nombre_matieres }} matière(s)</span>
-                                                </div>
-                                                <div class="detail-item">
-                                                    <i class="fas fa-calendar"></i>
-                                                    <span>{{ session.date_debut|date:"d/m/Y" }} - {{ session.date_fin|date:"d/m/Y" }}</span>
-                                                </div>
-                                                <div class="detail-item">
-                                                    <i class="fas fa-clock"></i>
-                                                    <span>{{ session.duree_format }}</span>
-                                                </div>
-                                            </div>
-                                            <div class="session-actions">
-                                                <a href="{% url 'directeur:configurer_creneaux_examen' session.id %}" class="btn btn-sm btn-primary" title="{% trans "Configurer les créneaux" %}">
-                                                    <i class="fas fa-clock"></i> {% trans "Créneaux" %}
-                                                </a>
-                                                <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="btn btn-sm btn-secondary" title="{% trans "Voir l" %}'emploi du temps">
-                                                    <i class="fas fa-calendar-alt"></i> {% trans "Emploi du temps" %}
-                                                </a>
-                                                <button type="button" class="btn btn-sm btn-warning" onclick="openEditModal({{ session.id }}, '{{ session.nom_examen|escapejs }}', {{ session.periode.id }}, '{{ session.date_debut|date:'Y-m-d' }}', '{{ session.date_fin|date:'Y-m-d' }}', '{{ session.description|escapejs }}'{% if est_superieur %}, [{% for c in session.classes.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}], [{% for m in session.matieres.all %}{{ m.id }}{% if not forloop.last %},{% endif %}{% endfor %}]{% endif %})" title="Modifier">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-danger" onclick="deleteSession({{ session.id }}, '{{ session.nom_examen|escapejs }}')" title="Supprimer">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            {% endif %}
-                        </div>
+                    <div class="matiere-tabs-more-wrap" hidden>
+                        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres périodes' %}">
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            <span class="matiere-tabs-more-label">{% trans "Autres périodes" %}</span>
+                        </button>
+                        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
-            {% endfor %}
+
+            <div class="gex-tabs-content">
+                {% for item in periodes_avec_stats %}
+                    {% with periode=item.periode %}
+                    <div id="periode-{{ periode.id }}" class="gex-periode-panel {% if forloop.first %}active{% endif %}">
+
+                        <div class="gex-groupe-nav">
+                            <div class="matiere-tabs-bar" data-overflow-item-label="{% if est_superieur %}{% trans 'filière' %}{% else %}{% trans 'niveau' %}{% endif %}" data-overflow-items-label="{% if est_superieur %}{% trans 'filières' %}{% else %}{% trans 'niveaux' %}{% endif %}">
+                                <div class="matiere-tabs-track" role="tablist" aria-label="{% if est_superieur %}{% trans 'Filières' %}{% else %}{% trans 'Niveaux' %}{% endif %}">
+                                    {% for cle, groupe in groupes_classes.items %}
+                                        <button type="button" role="tab"
+                                                class="matiere-tab-btn gex-groupe-tab {% if forloop.first %}active{% endif %}"
+                                                data-subtab="pt{{ periode.id }}-sg{{ forloop.counter0 }}"
+                                                aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                                                onclick="switchGroupeTab(event, 'pt{{ periode.id }}-sg{{ forloop.counter0 }}')">
+                                            <i class="fas fa-layer-group"></i>
+                                            <span>{{ groupe.label }}</span>
+                                            <span class="tab-count">{{ item.groupe_counts|get_item:cle|default:0 }}</span>
+                                        </button>
+                                    {% endfor %}
+                                </div>
+                                <div class="matiere-tabs-more-wrap" hidden>
+                                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% if est_superieur %}{% trans 'Autres filières' %}{% else %}{% trans 'Autres niveaux' %}{% endif %}">
+                                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                        <span class="matiere-tabs-more-label">{% if est_superieur %}{% trans "Autres filières" %}{% else %}{% trans "Autres niveaux" %}{% endif %}</span>
+                                    </button>
+                                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% for cle, groupe in groupes_classes.items %}
+                            <div id="pt{{ periode.id }}-sg{{ forloop.counter0 }}" class="gex-groupe-panel {% if forloop.first %}active{% endif %}">
+                                {% with sessions_list=sessions_par_periode|get_item:periode.id %}
+                                {% with groupe_count=item.groupe_counts|get_item:cle|default:0 %}
+                                {% if groupe_count > 0 and sessions_list %}
+                                    <div class="gex-list-scroll table-responsive">
+                                        <div class="gex-list">
+                                            <div class="gex-list-header">
+                                                <div class="gex-list-cell gex-list-cell--title">{% trans "Session" %}</div>
+                                                <div class="gex-list-cell">{% trans "Classes" %}</div>
+                                                <div class="gex-list-cell">{% trans "Matières" %}</div>
+                                                <div class="gex-list-cell">{% trans "Dates" %}</div>
+                                                <div class="gex-list-cell gex-list-cell--actions">{% trans "Actions" %}</div>
+                                            </div>
+                                            {% for session in sessions_list.sessions %}
+                                                {% if session|has_classe_groupe_examen:cle %}
+                                                <article class="gex-list-row">
+                                                    <div class="gex-list-cell gex-list-cell--title">
+                                                        <div class="gex-title-block">
+                                                            <span class="gex-icon-wrap" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
+                                                            <div>
+                                                                <h3 class="gex-item-title">{{ session.nom_examen }}</h3>
+                                                                {% if session.description %}
+                                                                    <p class="gex-item-excerpt">{{ session.description|truncatewords:14 }}</p>
+                                                                {% endif %}
+                                                                <span class="gex-item-meta"><i class="fas fa-clock"></i> {{ session.duree_format }}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="gex-list-cell">
+                                                        <span class="gex-classes-text">
+                                                            {% if est_superieur %}
+                                                                {% for classe in session.classes.all %}
+                                                                    <span class="gex-classe-chip">{{ classe.nom }}</span>
+                                                                {% empty %}
+                                                                    {{ session.classes_str }}
+                                                                {% endfor %}
+                                                            {% else %}
+                                                                {{ session.classes_str }}
+                                                            {% endif %}
+                                                        </span>
+                                                    </div>
+                                                    <div class="gex-list-cell">
+                                                        <span class="gex-matiere-badge"><i class="fas fa-book"></i> {{ session.nombre_matieres }}</span>
+                                                    </div>
+                                                    <div class="gex-list-cell gex-list-cell--date">
+                                                        {{ session.date_debut|date:"d/m/Y" }}
+                                                        <span class="gex-date-sep">→</span>
+                                                        {{ session.date_fin|date:"d/m/Y" }}
+                                                    </div>
+                                                    <div class="gex-list-cell gex-list-cell--actions">
+                                                        <div class="gex-actions-group">
+                                                            <a href="{% url 'directeur:configurer_creneaux_examen' session.id %}" class="gex-act-btn gex-act-btn--primary" title="{% trans 'Créneaux' %}">
+                                                                <i class="fas fa-clock"></i><span>{% trans "Créneaux" %}</span>
+                                                            </a>
+                                                            <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="gex-act-btn gex-act-btn--secondary" title="{% trans 'Emploi du temps' %}">
+                                                                <i class="fas fa-calendar-alt"></i><span>{% trans "EDT" %}</span>
+                                                            </a>
+                                                            <button type="button" class="gex-act-btn gex-act-btn--edit" title="{% trans 'Modifier' %}"
+                                                                    onclick="openEditModal({{ session.id }}, '{{ session.nom_examen|escapejs }}', {{ session.periode.id }}, '{{ session.date_debut|date:'Y-m-d' }}', '{{ session.date_fin|date:'Y-m-d' }}', '{{ session.description|escapejs }}'{% if est_superieur %}, [{% for c in session.classes.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}], [{% for m in session.matieres.all %}{{ m.id }}{% if not forloop.last %},{% endif %}{% endfor %}]{% endif %})">
+                                                                <i class="fas fa-edit"></i><span>{% trans "Modifier" %}</span>
+                                                            </button>
+                                                            <button type="button" class="gex-act-btn gex-act-btn--delete" title="{% trans 'Supprimer' %}" onclick="deleteSession({{ session.id }}, '{{ session.nom_examen|escapejs }}')">
+                                                                <i class="fas fa-trash"></i><span>{% trans "Supprimer" %}</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </article>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="gex-empty-groupe">
+                                        <i class="fas fa-inbox"></i>
+                                        <p>
+                                            {% if not sessions_list %}
+                                                {% trans "Aucune session pour cette période." %}
+                                            {% else %}
+                                                {% trans "Aucune session pour ce groupe dans cette période." %}
+                                            {% endif %}
+                                        </p>
+                                        <button type="button" class="gex-action-btn gex-action-btn--primary gex-action-btn--sm" onclick="openModal()">
+                                            <i class="fas fa-plus"></i> {% trans "Créer une session" %}
+                                        </button>
+                                    </div>
+                                {% endif %}
+                                {% endwith %}
+                                {% endwith %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endwith %}
+                {% endfor %}
+            </div>
+        </section>
+        {% else %}
+        <div class="gex-empty-page">
+            <i class="fas fa-calendar-times"></i>
+            <h3>{% trans "Aucune période scolaire active" %}</h3>
+            <p>{% trans "Créez et activez des périodes scolaires pour organiser vos sessions d'examen." %}</p>
         </div>
+        {% endif %}
     </div>
 
     <!-- Modal for Adding Exam Session -->
@@ -511,8 +579,7 @@
         </div>
     </div>
 
-    <script src="{% static 'school_admin/js/directeur/gestion_examens.js' %}?v=6"></script>
-
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script src="{% static 'school_admin/js/directeur/gestion_examens.js' %}?v=7.0.0"></script>
 </body>
 </html>

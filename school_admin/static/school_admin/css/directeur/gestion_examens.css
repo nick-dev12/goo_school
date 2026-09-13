@@ -1,4 +1,413 @@
-/* Gestion des Examens - Styles */
+/* Gestion des Examens — UX v2 (page) + modals */
+
+.gex-page-body {
+  background: var(--gray-50, #f9fafb);
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.content-container.gex-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 5rem;
+}
+
+.page-header-minimal {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.gex-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 1.25rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.gex-hero-text { flex: 1 1 240px; }
+
+.gex-hero-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--gray-800, #1f2937);
+  margin: 0 0 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gex-hero-title i { color: #3b82f6; }
+
+.gex-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 999px;
+}
+
+.gex-hero-stats { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.gex-stat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 4.25rem;
+  padding: 0.5rem 0.875rem;
+  background: var(--gray-50, #f9fafb);
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 8px;
+}
+
+.gex-stat-pill--accent {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.gex-stat-num {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--gray-800, #1f2937);
+}
+
+.gex-stat-lbl {
+  font-size: 0.6875rem;
+  color: var(--gray-600, #4b5563);
+  font-weight: 500;
+  text-align: center;
+}
+
+.gex-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  width: 100%;
+}
+
+.gex-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.gex-action-btn--primary {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+}
+
+.gex-action-btn--secondary {
+  background: #fff;
+  color: var(--gray-700, #374151);
+  border: 1px solid var(--gray-300, #d1d5db);
+}
+
+.gex-action-btn--sm {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+}
+
+.gex-action-btn:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.gex-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+}
+
+.gex-alert-info {
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  color: var(--gray-800, #1f2937);
+}
+
+.gex-alert-info i { color: #7c3aed; margin-top: 0.15rem; }
+
+.gex-main-panel {
+  background: #fff;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 12px;
+  padding: 0.875rem 1rem 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.gex-periode-nav { margin-bottom: 0.875rem; }
+
+.gex-periode-nav .matiere-tab-btn.gex-periode-tab,
+.gex-groupe-nav .matiere-tab-btn.gex-groupe-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  min-width: auto;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 8px;
+  background: var(--gray-50, #f9fafb);
+  color: var(--gray-700, #374151);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.gex-periode-nav .matiere-tab-btn.gex-periode-tab.active {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-color: transparent;
+  color: #fff;
+}
+
+.gex-groupe-nav {
+  margin-top: 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.gex-groupe-nav .matiere-tab-btn.gex-groupe-tab {
+  background: #fff;
+}
+
+.gex-groupe-nav .matiere-tab-btn.gex-groupe-tab.active {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.gex-periode-nav .matiere-tab-btn .tab-count,
+.gex-groupe-nav .matiere-tab-btn .tab-count {
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: var(--gray-200, #e5e7eb);
+}
+
+.gex-periode-nav .matiere-tab-btn.active .tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.gex-tabs-content .gex-periode-panel { display: none; }
+.gex-tabs-content .gex-periode-panel.active { display: block; }
+.gex-groupe-panel { display: none; padding: 0.25rem 0; }
+.gex-groupe-panel.active { display: block; }
+
+.gex-list-scroll {
+  position: relative;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 10px;
+}
+
+.gex-list-scroll::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 30px;
+  height: 100%;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.06), transparent);
+  pointer-events: none;
+}
+
+.gex-list { min-width: 920px; }
+
+.gex-list-header,
+.gex-list-row {
+  display: grid;
+  grid-template-columns: 1.8fr 1.3fr 0.7fr 1fr 1.6fr;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.625rem 0.875rem;
+}
+
+.gex-list-header {
+  background: var(--gray-50, #f9fafb);
+  border-bottom: 1px solid var(--gray-200, #e5e7eb);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--gray-600, #4b5563);
+}
+
+.gex-list-row {
+  border-bottom: 1px solid var(--gray-100, #f3f4f6);
+  font-size: 0.875rem;
+}
+
+.gex-list-row:last-child { border-bottom: none; }
+
+.gex-list-cell { min-width: 90px; white-space: nowrap; }
+.gex-list-cell--title { white-space: normal; min-width: 200px; }
+
+.gex-title-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+}
+
+.gex-icon-wrap {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+  font-size: 0.875rem;
+}
+
+.gex-item-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--gray-800, #1f2937);
+  margin: 0 0 0.2rem;
+}
+
+.gex-item-excerpt {
+  font-size: 0.8125rem;
+  color: var(--gray-600, #4b5563);
+  margin: 0 0 0.25rem;
+  line-height: 1.4;
+}
+
+.gex-item-meta {
+  font-size: 0.75rem;
+  color: var(--gray-500, #6b7280);
+}
+
+.gex-classes-text {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  white-space: normal;
+}
+
+.gex-classe-chip {
+  display: inline-flex;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  border-radius: 999px;
+}
+
+.gex-matiere-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border-radius: 999px;
+}
+
+.gex-list-cell--date {
+  font-weight: 600;
+  color: var(--gray-700, #374151);
+}
+
+.gex-date-sep {
+  margin: 0 0.25rem;
+  color: var(--gray-400, #9ca3af);
+}
+
+.gex-actions-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.gex-act-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 2rem;
+  padding: 0.35rem 0.55rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: inherit;
+}
+
+.gex-act-btn--primary { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; }
+.gex-act-btn--secondary { background: var(--gray-100, #f3f4f6); color: var(--gray-700, #374151); }
+.gex-act-btn--edit { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+.gex-act-btn--delete { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+.gex-empty-groupe,
+.gex-empty-page {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--gray-500, #6b7280);
+}
+
+.gex-empty-groupe i,
+.gex-empty-page i {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+  opacity: 0.45;
+}
+
+.gex-empty-groupe p,
+.gex-empty-page p {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+}
+
+.gex-empty-page {
+  background: #fff;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 12px;
+  padding: 3rem 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .content-container.gex-page { padding: 0.75rem 0.875rem 4.5rem; }
+  .gex-hero-title { font-size: 1.5rem; }
+  .gex-hero-actions { flex-direction: column; }
+  .gex-action-btn { justify-content: center; width: 100%; }
+  .gex-list { min-width: 760px; }
+  .gex-act-btn span { display: none; }
+  .gex-act-btn { min-width: 2rem; padding: 0.35rem; }
+}
+
+/* Gestion des Examens - Styles modals / legacy */
 
 :root {
   --primary-color: #2c3e50;

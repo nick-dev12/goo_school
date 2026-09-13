@@ -86,7 +86,7 @@
     if (!container) {
       container = document.createElement('div');
       container.className = 'messages-container';
-      var anchor = document.querySelector('.content-container .container');
+      var anchor = document.querySelector('.content-container.gcl-page');
       if (anchor) {
         anchor.insertBefore(container, anchor.children[1] || null);
       } else {
@@ -113,12 +113,12 @@
   }
 
   function bumpStat(index, delta) {
-    var nums = document.querySelectorAll('.stats-section .stat-number');
-    if (!nums[index]) {
+    var pill = document.querySelector('.gcl-stat-pill[data-stat-index="' + index + '"] .gcl-stat-num');
+    if (!pill) {
       return;
     }
-    var current = parseInt(nums[index].textContent, 10) || 0;
-    nums[index].textContent = current + delta;
+    var current = parseInt(pill.textContent, 10) || 0;
+    pill.textContent = current + delta;
   }
 
   function findGrid(item) {
@@ -127,194 +127,85 @@
     }
     if (item.est_superieur) {
       var panel = document.querySelector(
-        '.tab-panel[data-filiere-nom="' + CSS.escape(item.filiere_nom) + '"]'
+        '.gcl-filiere-panel[data-filiere-nom="' + CSS.escape(item.filiere_nom) + '"]'
       );
       if (!panel) {
         return null;
       }
       var niveauPanel = panel.querySelector(
-        '.classes-niveau-panel[data-niveau-key="' + CSS.escape(item.niveau_key) + '"]'
+        '.gcl-niveau-panel[data-niveau-key="' + CSS.escape(item.niveau_key) + '"]'
       );
-      return niveauPanel ? niveauPanel.querySelector('.classes-grid') : null;
+      return niveauPanel ? niveauPanel.querySelector('.gcl-list') : null;
     }
     if (item.categorie_slug) {
-      var panel = document.getElementById('panel-' + item.categorie_slug);
-      return panel ? panel.querySelector('.classes-grid') : null;
+      var catPanel = document.getElementById('panel-' + item.categorie_slug);
+      return catPanel ? catPanel.querySelector('.gcl-list') : null;
     }
-    var tab = document.getElementById('niveau-scolaire-' + item.niveau_scolaire);
-    return tab ? tab.querySelector('.classes-grid') : null;
+    return null;
   }
 
-  function renderExamensBlock(item) {
-    if (!item.examens || !item.examens.length) {
-      return '';
-    }
-    var tags = item.examens
-      .map(function (ex) {
-        return (
-          '<span class="classe-examen-tag" title="' +
-          escapeHtml(ex.description) +
-          '"><i class="fas fa-certificate"></i> ' +
-          escapeHtml(ex.libelle) +
-          '</span>'
-        );
-      })
-      .join('');
-    return (
-      '<div class="classe-card-examens">' +
-      '<div class="classe-card-examens-label"><i class="fas fa-flag-checkered"></i> Examens & concours</div>' +
-      '<div class="classe-card-examens-tags">' +
-      tags +
-      '</div></div>'
-    );
-  }
+  function renderClasseListRow(item) {
+    var row = document.createElement('div');
+    row.className = 'gcl-list-row gcl-list-row--new';
+    row.setAttribute('data-classe-id', String(item.id));
 
-  function renderClasseCard(item) {
-    var card = document.createElement('div');
-    card.className = 'classe-card';
-    card.setAttribute('data-classe-id', String(item.id));
-
-    var statusClass = item.actif ? 'active' : 'inactive';
-    var statusIcon = item.actif ? 'check-circle' : 'times-circle';
-    var statusLabel = item.actif ? 'Active' : 'Inactive';
     var toggleIcon = item.actif ? 'pause' : 'play';
     var toggleLabel = item.actif ? 'Désactiver' : 'Activer';
-    var toggleActive = item.actif ? ' active' : '';
+    var toggleClass = item.actif ? ' gcl-act-btn--toggle-on' : '';
+    var statusBadge = item.actif
+      ? '<span class="gcl-badge gcl-badge--ok">Active</span>'
+      : '<span class="gcl-badge gcl-badge--muted">Inactive</span>';
 
+    var niveauCell;
     if (item.est_superieur) {
-      card.innerHTML =
-        '<div class="classe-header">' +
-        '<div class="classe-icon"><i class="fas fa-book"></i></div>' +
-        '<div class="classe-info">' +
-        '<h3 class="classe-nom">' +
-        escapeHtml(item.nom) +
-        '</h3>' +
-        '<p class="classe-niveau">' +
-        escapeHtml(item.niveau_display) +
-        '</p>' +
-        '<div class="classe-badge niveau-superieur"><span>' +
-        escapeHtml(item.niveau_display) +
-        '</span></div></div>' +
-        '<div class="classe-status"><div class="status-badge status-' +
-        statusClass +
-        '"><i class="fas fa-' +
-        statusIcon +
-        '"></i><span>' +
-        statusLabel +
-        '</span></div></div></div>' +
-        '<div class="classe-details">' +
-        '<div class="detail-row">' +
-        '<div class="detail-item"><i class="fas fa-user-graduate"></i> <span class="detail-label">Élèves:</span> <span class="detail-value">' +
-        item.nombre_eleves +
-        '/' +
-        item.capacite_max +
-        '</span></div>' +
-        '<div class="detail-item"><i class="fas fa-chalkboard-teacher"></i> <span class="detail-label">Enseignants:</span> <span class="detail-value">' +
-        item.nombre_enseignants +
-        '</span></div></div>' +
-        '<div class="detail-row">' +
-        '<div class="detail-item"><i class="fas fa-chart-pie"></i> <span class="detail-label">Occupation:</span> <span class="detail-value">' +
-        item.taux_occupation +
-        '%</span></div>' +
-        '<div class="detail-item"><i class="fas fa-code"></i> <span class="detail-label">Code:</span> <span class="detail-value">' +
-        escapeHtml(item.code_classe) +
-        '</span></div></div></div>' +
-        renderExamensBlock(item) +
-        '<div class="classe-actions">' +
-        '<a href="' +
-        escapeHtml(item.detail_url) +
-        '" class="btn-action btn-detail"><i class="fas fa-eye"></i> <span>Détails</span></a>' +
-        '<a href="' +
-        escapeHtml(item.toggle_url) +
-        '" class="btn-action btn-toggle' +
-        toggleActive +
-        '"><i class="fas fa-' +
-        toggleIcon +
-        '"></i> <span>' +
-        toggleLabel +
-        '</span></a></div>';
-      return card;
+      niveauCell =
+        (item.department_nom
+          ? '<span class="gcl-badge gcl-badge--info">' + escapeHtml(item.department_nom) + '</span> '
+          : '') +
+        (item.niveau_display
+          ? '<span class="gcl-badge gcl-badge--muted">' + escapeHtml(item.niveau_display) + '</span>'
+          : '');
+    } else {
+      niveauCell = '<span class="gcl-badge gcl-badge--info">' + escapeHtml(item.niveau_display) + '</span>';
     }
 
-    card.innerHTML =
-      '<div class="classe-header">' +
-      '<div class="classe-icon"><i class="fas fa-' +
-      escapeHtml(item.icon) +
-      '"></i></div>' +
-      '<div class="classe-info">' +
-      '<h3 class="classe-nom">' +
-      escapeHtml(item.nom) +
-      '</h3>' +
-      '<p class="classe-niveau">' +
-      escapeHtml(item.niveau_display) +
-      '</p>' +
-      '<div class="classe-badge ' +
-      escapeHtml(item.niveau_badge_class) +
-      '"><span>' +
-      escapeHtml(item.niveau_display) +
-      '</span></div></div>' +
-      '<div class="classe-status"><div class="status-badge status-' +
-      statusClass +
-      '"><i class="fas fa-' +
-      statusIcon +
-      '"></i><span>' +
-      statusLabel +
-      '</span></div></div></div>' +
-      '<div class="classe-details">' +
-      '<div class="detail-row">' +
-      '<div class="detail-item"><i class="fas fa-user-graduate"></i> <span class="detail-label">Élèves:</span> <span class="detail-value">' +
-      item.nombre_eleves +
-      '/' +
-      item.capacite_max +
-      '</span></div>' +
-      '<div class="detail-item"><i class="fas fa-chalkboard-teacher"></i> <span class="detail-label">Enseignants:</span> <span class="detail-value">' +
-      item.nombre_enseignants +
-      '</span></div></div>' +
-      '<div class="detail-row">' +
-      '<div class="detail-item"><i class="fas fa-chart-pie"></i> <span class="detail-label">Occupation:</span> <span class="detail-value">' +
-      item.taux_occupation +
-      '%</span></div>' +
-      '<div class="detail-item"><i class="fas fa-calendar-plus"></i> <span class="detail-label">Créée:</span> <span class="detail-value">' +
-      escapeHtml(item.date_creation) +
-      '</span></div></div>' +
-      '<div class="detail-row"><div class="detail-item full-width"><i class="fas fa-code"></i> <span class="detail-label">Code:</span> <span class="detail-value">' +
-      escapeHtml(item.code_classe) +
-      '</span></div></div></div>' +
-      '<div class="classe-actions">' +
-      '<a href="' +
-      escapeHtml(item.detail_url) +
-      '" class="btn-action btn-detail"><i class="fas fa-eye"></i> <span>Détails</span></a>' +
-      '<a href="' +
-      escapeHtml(item.toggle_url) +
-      '" class="btn-action btn-toggle' +
-      toggleActive +
-      '"><i class="fas fa-' +
-      toggleIcon +
-      '"></i> <span>' +
-      toggleLabel +
-      '</span></a></div>';
-    return card;
+    row.innerHTML =
+      '<div class="gcl-list-cell gcl-list-cell--title">' +
+      '<p class="gcl-item-title"><i class="fas fa-chalkboard"></i> ' + escapeHtml(item.nom) + '</p>' +
+      '<p class="gcl-item-sub">' + escapeHtml(item.code_classe) + '</p></div>' +
+      '<div class="gcl-list-cell">' + niveauCell + '</div>' +
+      '<div class="gcl-list-cell gcl-list-cell--num">' + item.nombre_eleves + '/' + item.capacite_max + '</div>' +
+      '<div class="gcl-list-cell gcl-list-cell--num">' + item.nombre_enseignants + '</div>' +
+      '<div class="gcl-list-cell gcl-list-cell--num">' + item.taux_occupation + '%</div>' +
+      '<div class="gcl-list-cell">' + statusBadge + '</div>' +
+      '<div class="gcl-list-cell gcl-list-cell--actions">' +
+      '<div class="gcl-actions-group">' +
+      '<a href="' + escapeHtml(item.detail_url) + '" class="gcl-act-btn gcl-act-btn--view">' +
+      '<i class="fas fa-eye"></i><span>Détails</span></a>' +
+      '<a href="' + escapeHtml(item.toggle_url) + '" class="gcl-act-btn gcl-act-btn--toggle' + toggleClass + '">' +
+      '<i class="fas fa-' + toggleIcon + '"></i><span>' + toggleLabel + '</span></a>' +
+      '</div></div>';
+
+    return row;
   }
 
   function appendClasseCard(item) {
     if (!item || !item.id) {
       return false;
     }
-    if (document.querySelector('.empty-state')) {
+    if (document.querySelector('.gcl-empty-state')) {
       window.location.reload();
       return false;
     }
-    if (document.querySelector('.classe-card[data-classe-id="' + item.id + '"]')) {
+    if (document.querySelector('.gcl-list-row[data-classe-id="' + item.id + '"]')) {
       return true;
     }
-    var grid = findGrid(item);
-    if (!grid) {
+    var list = findGrid(item);
+    if (!list) {
       window.location.reload();
       return false;
     }
-    var card = renderClasseCard(item);
-    card.classList.add('classe-card--new');
-    grid.appendChild(card);
+    list.appendChild(renderClasseListRow(item));
     bumpStat(0, 1);
     bumpStat(1, 1);
     return true;

@@ -295,85 +295,77 @@ function closeEditModal() {
     }
 }
 
-// Onglets
-function showTab(tabId) {
-    const panels = document.querySelectorAll('.tab-panel');
-    panels.forEach(function (panel) {
+// Onglets période / groupe (UX v2 + overflow)
+window.switchPeriodeTab = function (tabId, btn) {
+    document.querySelectorAll('.gex-periode-panel').forEach(function (panel) {
         panel.classList.remove('active');
     });
-    const buttons = document.querySelectorAll('.tab-button');
-    buttons.forEach(function (button) {
+    document.querySelectorAll('.gex-periode-tab').forEach(function (button) {
         button.classList.remove('active');
+        button.setAttribute('aria-selected', 'false');
     });
-    document.getElementById(tabId).classList.add('active');
-    event.target.classList.add('active');
-    const subPanels = document.querySelectorAll('.sub-tab-panel');
-    subPanels.forEach(function (panel) {
-        panel.classList.remove('active');
-    });
-    const subButtons = document.querySelectorAll('.sub-tab-button');
-    subButtons.forEach(function (button) {
-        button.classList.remove('active');
-    });
-    const firstSubPanel = document.querySelector('#' + tabId + ' .sub-tab-panel:first-child');
-    const firstSubButton = document.querySelector('#' + tabId + ' .sub-tab-button:first-child');
-    if (firstSubPanel) firstSubPanel.classList.add('active');
-    if (firstSubButton) firstSubButton.classList.add('active');
-}
 
-function showSubTab(subTabId) {
-    const parentPanel = event.target.closest('.tab-panel');
-    const subPanels = parentPanel.querySelectorAll('.sub-tab-panel');
-    subPanels.forEach(function (panel) {
-        panel.classList.remove('active');
-    });
-    const subButtons = parentPanel.querySelectorAll('.sub-tab-button');
-    subButtons.forEach(function (button) {
-        button.classList.remove('active');
-    });
-    document.getElementById(subTabId).classList.add('active');
-    event.target.classList.add('active');
-}
+    var panel = document.getElementById(tabId);
+    if (panel) panel.classList.add('active');
 
-function validateForm() {
-    const root = document.getElementById('gestion-examens-root');
-    const estSuperieur = root && root.dataset.estSuperieur === 'true';
-    const modal = document.getElementById('sessionModal');
-    const nomExamen = document.getElementById('nom_examen').value.trim();
-    const periode = document.getElementById('periode_id').value;
-    const dateDebut = document.getElementById('date_debut').value;
-    const dateFin = document.getElementById('date_fin').value;
-    const groupesClasses = modal.querySelectorAll('input[name="groupes_classes"]:checked');
-    const classesSuperieur = modal.querySelectorAll('input[name="classes_concernees"]:checked');
-    const matieres = modal.querySelectorAll('input[name="matieres"]:checked');
+    var targetBtn = btn || document.querySelector('.gex-periode-tab[data-tab="' + tabId + '"]');
+    if (targetBtn) {
+        targetBtn.classList.add('active');
+        targetBtn.setAttribute('aria-selected', 'true');
+    }
 
-    if (!nomExamen) {
-        alert('Veuillez saisir le nom de la session d\'examen.');
-        return false;
-    }
-    if (!periode) {
-        alert('Veuillez sélectionner une période scolaire.');
-        return false;
-    }
-    if (!dateDebut || !dateFin) {
-        alert('Veuillez sélectionner les dates de début et de fin.');
-        return false;
-    }
-    if (estSuperieur) {
-        if (classesSuperieur.length === 0) {
-            alert('Veuillez sélectionner au moins une classe (cochez les promotions après avoir choisi chaque filière).');
-            return false;
+    if (panel) {
+        panel.querySelectorAll('.gex-groupe-panel').forEach(function (p) {
+            p.classList.remove('active');
+        });
+        panel.querySelectorAll('.gex-groupe-tab').forEach(function (b) {
+            b.classList.remove('active');
+            b.setAttribute('aria-selected', 'false');
+        });
+        var firstGroupePanel = panel.querySelector('.gex-groupe-panel');
+        var firstGroupeBtn = panel.querySelector('.gex-groupe-tab');
+        if (firstGroupePanel) firstGroupePanel.classList.add('active');
+        if (firstGroupeBtn) {
+            firstGroupeBtn.classList.add('active');
+            firstGroupeBtn.setAttribute('aria-selected', 'true');
         }
-    } else if (groupesClasses.length === 0) {
-        alert('Veuillez sélectionner au moins un groupe de classes.');
-        return false;
     }
-    if (matieres.length === 0) {
-        alert('Veuillez sélectionner au moins une matière.');
-        return false;
+
+    if (typeof window.layoutTabsOverflowNav === 'function') {
+        window.layoutTabsOverflowNav();
     }
-    return true;
-}
+};
+
+window.switchGroupeTab = function (event, subTabId) {
+    if (event) event.stopPropagation();
+    var parentPanel = event && event.target ? event.target.closest('.gex-periode-panel') : null;
+    if (!parentPanel) {
+        var content = document.getElementById(subTabId);
+        parentPanel = content ? content.closest('.gex-periode-panel') : null;
+    }
+    if (!parentPanel) return;
+
+    parentPanel.querySelectorAll('.gex-groupe-panel').forEach(function (panel) {
+        panel.classList.remove('active');
+    });
+    parentPanel.querySelectorAll('.gex-groupe-tab').forEach(function (button) {
+        button.classList.remove('active');
+        button.setAttribute('aria-selected', 'false');
+    });
+
+    var target = document.getElementById(subTabId);
+    if (target) target.classList.add('active');
+
+    var subBtn = parentPanel.querySelector('.gex-groupe-tab[data-subtab="' + subTabId + '"]');
+    if (subBtn) {
+        subBtn.classList.add('active');
+        subBtn.setAttribute('aria-selected', 'true');
+    }
+
+    if (typeof window.layoutTabsOverflowNav === 'function') {
+        window.layoutTabsOverflowNav();
+    }
+};
 
 function toggleCheckboxGroup(groupName, maxSelections) {
     const checkboxes = document.querySelectorAll('#sessionModal input[name="' + groupName + '"]');
@@ -419,15 +411,15 @@ function formatTime(timeString) {
 }
 
 function animateCards() {
-    const cards = document.querySelectorAll('.session-card');
+    const cards = document.querySelectorAll('.gex-list-row');
     cards.forEach(function (card, index) {
         card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
+        card.style.transform = 'translateY(12px)';
         setTimeout(function () {
-            card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
             card.style.opacity = '1';
             card.style.transform = 'translateY(0)';
-        }, index * 100);
+        }, index * 60);
     });
 }
 
@@ -455,13 +447,6 @@ document.addEventListener('DOMContentLoaded', function () {
             toggleCheckboxGroup('matieres');
         });
     });
-
-    const form = document.querySelector('#sessionModal form');
-    if (form) {
-        form.addEventListener('submit', function (e) {
-            if (!validateForm()) e.preventDefault();
-        });
-    }
 
     window.addEventListener('click', function (event) {
         const sessionModal = document.getElementById('sessionModal');

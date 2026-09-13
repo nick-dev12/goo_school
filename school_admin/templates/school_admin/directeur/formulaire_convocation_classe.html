@@ -6,229 +6,228 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Convocation de Classe - {{ etablissement.nom }}</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet"
-    />
-    <link
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-        rel="stylesheet"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/formulaire_convocation.css' %}"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/partials/messages.css' %}"
-    />
+    <title>{% trans "Convocation de classe" %} — {{ classe.nom }} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/convocation_classe_v2.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
-<body>
-    <!-- Header -->
+<body class="cvc-page-body">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content Container -->
-    <div class="container">
-        <!-- Page Header -->
-        <div class="page-header">
-            {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-users"></i>
-                    {% trans "Convocation de Classe" %}
-                </h1>
-                <p class="page-subtitle">
-                    Créer une convocation pour tous les élèves de {{ classe.nom }}
-                </p>
-            </div>
+    <div class="content-container cvc-page">
+        {% include 'school_admin/partials/messages.html' %}
+
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:convocation_liste' as back_conv_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_conv_url %}
         </div>
 
-        <!-- Message d'information sur l'année scolaire active -->
-        {% if annee_scolaire_active %}
-        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
-            <i class="fas fa-calendar-check"></i>
-          </span>
-          <div>
-            <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-              Année scolaire active : {{ annee_scolaire_active.libelle }}
-            </p>
-            <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              Seuls les élèves inscrits pour cette année scolaire seront convoqués ({{ nombre_eleves }} élève{{ nombre_eleves|pluralize }}).
-            </p>
-          </div>
-        </div>
-        {% else %}
-        <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
-          <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            {% trans "Aucune année scolaire active. Tous les élèves de la classe seront convoqués." %}
-          </span>
+        <header class="cvc-hero">
+            <div class="cvc-hero-text">
+                <h1 class="cvc-hero-title">
+                    <i class="fas fa-users"></i>
+                    {% trans "Convocation de classe" %}
+                </h1>
+                <p class="cvc-hero-sub">
+                    {% trans "Créez une convocation groupée pour tous les élèves de" %} <strong>{{ classe.nom }}</strong>.
+                    {% trans "Les mêmes informations seront appliquées à chaque élève inscrit." %}
+                </p>
+                {% if annee_scolaire_active %}
+                    <span class="cvc-hero-badge">
+                        <i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}
+                    </span>
+                {% endif %}
+            </div>
+            <div class="cvc-hero-stats">
+                <div class="cvc-stat-pill cvc-stat-pill--accent">
+                    <span class="cvc-stat-num">{{ nombre_eleves }}</span>
+                    <span class="cvc-stat-lbl">{% trans "Élèves" %}</span>
+                </div>
+            </div>
+        </header>
+
+        {% if not annee_scolaire_active %}
+        <div class="cvc-alert cvc-alert-warn">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>{% trans "Aucune année scolaire active. Tous les élèves de la classe seront convoqués." %}</span>
         </div>
         {% endif %}
 
-        <!-- Informations de la classe -->
-        <div class="eleve-info-card">
-            <div class="eleve-info-header">
-                <i class="fas fa-chalkboard"></i>
-                <h3>{% trans "Informations de la classe" %}</h3>
+        <div class="cvc-guide" role="note" aria-label="{% trans 'Comment créer une convocation de classe' %}">
+            <div class="cvc-guide-step">
+                <span class="cvc-guide-num">1</span>
+                <span>{% trans "Vérifiez les informations de la classe et le nombre d'élèves concernés." %}</span>
             </div>
-            <div class="eleve-info-body">
-                <div class="info-item">
-                    <span class="info-label">{% trans "Classe :" %}</span>
-                    <span class="info-value">{{ classe.nom }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">{% trans "Niveau :" %}</span>
-                    <span class="info-value">{{ classe.get_niveau_display }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">{% trans "Nombre d'élèves :" %}</span>
-                    <span class="info-value">{{ nombre_eleves }} élève{{ nombre_eleves|pluralize }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">{% trans "Description :" %}</span>
-                    <span class="info-value">{{ classe.description|default:"Aucune description" }}</span>
-                </div>
+            <div class="cvc-guide-step">
+                <span class="cvc-guide-num">2</span>
+                <span>{% trans "Renseignez l'objet, le motif et les détails du rendez-vous (date, heure, lieu)." %}</span>
+            </div>
+            <div class="cvc-guide-step">
+                <span class="cvc-guide-num">3</span>
+                <span>{% trans "Validez pour générer une convocation individuelle pour chaque élève de la classe." %}</span>
             </div>
         </div>
 
-
-        <!-- Formulaire de convocation -->
-        <div class="form-card">
-            <div class="form-header">
-                <i class="fas fa-edit"></i>
-                <h3>{% trans "Informations de la convocation groupée" %}</h3>
+        <section class="cvc-section" aria-labelledby="cvc-classe-info-title">
+            <div class="cvc-card">
+                <div class="cvc-card-header">
+                    <i class="fas fa-chalkboard"></i>
+                    <h2 id="cvc-classe-info-title">{% trans "Informations de la classe" %}</h2>
+                </div>
+                <div class="cvc-card-body">
+                    <div class="cvc-info-grid">
+                        <div class="cvc-info-item">
+                            <span class="cvc-info-label">{% trans "Classe" %}</span>
+                            <span class="cvc-info-value">{{ classe.nom }}</span>
+                        </div>
+                        <div class="cvc-info-item">
+                            <span class="cvc-info-label">{% trans "Niveau" %}</span>
+                            <span class="cvc-info-value">{{ classe.get_niveau_display }}</span>
+                        </div>
+                        <div class="cvc-info-item">
+                            <span class="cvc-info-label">{% trans "Nombre d'élèves" %}</span>
+                            <span class="cvc-info-value">{{ nombre_eleves }} {% trans "élève" %}{{ nombre_eleves|pluralize }}</span>
+                        </div>
+                        <div class="cvc-info-item">
+                            <span class="cvc-info-label">{% trans "Description" %}</span>
+                            <span class="cvc-info-value">{% if classe.description %}{{ classe.description }}{% else %}{% trans "Aucune description" %}{% endif %}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <form method="POST" action="{% url 'directeur:convocation_classe' classe.id %}" class="convocation-form">
-                {% csrf_token %}
-                
-                <div class="form-section">
-                    <div class="form-group">
-                        <label for="objet" class="form-label">
-                            <i class="fas fa-tag"></i>
-                            {% trans "Objet de la convocation *" %}
-                        </label>
-                        <input 
-                            type="text" 
-                            id="objet" 
-                            name="objet" 
-                            class="form-control"
-                            placeholder="{% trans "Ex: Réunion parents-professeurs" %}"
-                            value="{{ form_data.objet|default:'Convocation pour entretien' }}"
-                            required
-                        />
-                        <small class="form-hint">{% trans "Titre bref de la convocation" %}</small>
-                    </div>
+        </section>
 
-                    <div class="form-group">
-                        <label for="motif" class="form-label">
-                            <i class="fas fa-file-alt"></i>
-                            {% trans "Motif de la convocation *" %}
-                        </label>
-                        <textarea 
-                            id="motif" 
-                            name="motif" 
-                            class="form-control textarea-control"
-                            rows="6"
-                            placeholder="{% trans "Décrivez le motif de la convocation pour toute la classe..." %}"
-                            required
-                        >{{ form_data.motif|default:'' }}</textarea>
-                        <small class="form-hint">{% trans "Description détaillée du motif (identique pour tous les élèves)" %}</small>
-                    </div>
+        <section class="cvc-section" aria-labelledby="cvc-form-title">
+            <div class="cvc-card">
+                <div class="cvc-card-header">
+                    <i class="fas fa-edit"></i>
+                    <h2 id="cvc-form-title">{% trans "Informations de la convocation groupée" %}</h2>
                 </div>
+                <form method="POST" action="{% url 'directeur:convocation_classe' classe.id %}" class="cvc-form">
+                    {% csrf_token %}
 
-                <div class="form-section">
-                    <h4 class="section-title">
-                        <i class="fas fa-calendar-alt"></i>
-                        {% trans "Informations de rendez-vous" %}
-                    </h4>
+                    <div class="cvc-card-body">
+                        <div class="cvc-form-section">
+                            <h3 class="cvc-form-section-title">
+                                <i class="fas fa-file-alt"></i>
+                                {% trans "Objet et motif" %}
+                            </h3>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="date_convocation" class="form-label">
-                                <i class="fas fa-calendar"></i>
-                                {% trans "Date de la convocation *" %}
-                            </label>
-                            <input 
-                                type="date" 
-                                id="date_convocation" 
-                                name="date_convocation" 
-                                class="form-control"
-                                value="{{ form_data.date_convocation }}"
-                                required
-                            />
+                            <div class="cvc-form-group">
+                                <label for="objet" class="cvc-form-label">
+                                    <i class="fas fa-tag"></i>
+                                    {% trans "Objet de la convocation" %} *
+                                </label>
+                                <input
+                                    type="text"
+                                    id="objet"
+                                    name="objet"
+                                    class="cvc-form-control"
+                                    placeholder="{% trans 'Ex : Réunion parents-professeurs' %}"
+                                    value="{{ form_data.objet|default:'Convocation pour entretien' }}"
+                                />
+                                <small class="cvc-form-hint">{% trans "Titre bref de la convocation" %}</small>
+                            </div>
+
+                            <div class="cvc-form-group">
+                                <label for="motif" class="cvc-form-label">
+                                    <i class="fas fa-align-left"></i>
+                                    {% trans "Motif de la convocation" %} *
+                                </label>
+                                <textarea
+                                    id="motif"
+                                    name="motif"
+                                    class="cvc-form-control cvc-textarea"
+                                    rows="6"
+                                    placeholder="{% trans 'Décrivez le motif de la convocation pour toute la classe...' %}"
+                                >{{ form_data.motif|default:'' }}</textarea>
+                                <small class="cvc-form-hint">{% trans "Description détaillée du motif (identique pour tous les élèves)" %}</small>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="heure_convocation" class="form-label">
-                                <i class="fas fa-clock"></i>
-                                {% trans "Heure de la convocation *" %}
-                            </label>
-                            <input 
-                                type="time" 
-                                id="heure_convocation" 
-                                name="heure_convocation" 
-                                class="form-control"
-                                value="{{ form_data.heure_convocation }}"
-                                required
-                            />
+                        <div class="cvc-form-section">
+                            <h3 class="cvc-form-section-title">
+                                <i class="fas fa-calendar-alt"></i>
+                                {% trans "Informations de rendez-vous" %}
+                            </h3>
+
+                            <div class="cvc-form-row">
+                                <div class="cvc-form-group">
+                                    <label for="date_convocation" class="cvc-form-label">
+                                        <i class="fas fa-calendar"></i>
+                                        {% trans "Date de la convocation" %} *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        id="date_convocation"
+                                        name="date_convocation"
+                                        class="cvc-form-control"
+                                        value="{{ form_data.date_convocation }}"
+                                    />
+                                </div>
+
+                                <div class="cvc-form-group">
+                                    <label for="heure_convocation" class="cvc-form-label">
+                                        <i class="fas fa-clock"></i>
+                                        {% trans "Heure de la convocation" %} *
+                                    </label>
+                                    <input
+                                        type="time"
+                                        id="heure_convocation"
+                                        name="heure_convocation"
+                                        class="cvc-form-control"
+                                        value="{{ form_data.heure_convocation }}"
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="cvc-form-group">
+                                <label for="lieu" class="cvc-form-label">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    {% trans "Lieu de la convocation" %} *
+                                </label>
+                                <input
+                                    type="text"
+                                    id="lieu"
+                                    name="lieu"
+                                    class="cvc-form-control"
+                                    placeholder="{% trans 'Ex : Salle de réunion, Bureau du Directeur' %}"
+                                    value="{{ form_data.lieu|default:'Bureau du Directeur' }}"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="cvc-warning" role="alert">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <p class="cvc-warning-title">{% trans "Attention" %}</p>
+                                <p class="cvc-warning-text">
+                                    {% trans "Cette action va créer" %}
+                                    <strong>{{ nombre_eleves }} {% trans "convocation" %}{{ nombre_eleves|pluralize }}</strong>
+                                    {% trans "(une pour chaque élève de la classe). Toutes les convocations auront les mêmes informations" %}
+                                    ({% trans "objet, motif, date, heure, lieu" %}).
+                                </p>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="lieu" class="form-label">
-                            <i class="fas fa-map-marker-alt"></i>
-                            {% trans "Lieu de la convocation *" %}
-                        </label>
-                        <input 
-                            type="text" 
-                            id="lieu" 
-                            name="lieu" 
-                            class="form-control"
-                            placeholder="{% trans "Ex: Salle de réunion, Bureau du Directeur" %}"
-                            value="{{ form_data.lieu|default:'Bureau du Directeur' }}"
-                            required
-                        />
+                    <div class="cvc-form-actions">
+                        <a href="{% url 'directeur:convocation_liste' %}" class="cvc-btn cvc-btn--cancel">
+                            <i class="fas fa-times"></i>
+                            {% trans "Annuler" %}
+                        </a>
+                        <button type="submit" class="cvc-btn cvc-btn--submit">
+                            <i class="fas fa-check"></i>
+                            {% trans "Créer" %} {{ nombre_eleves }} {% trans "convocation" %}{{ nombre_eleves|pluralize }}
+                        </button>
                     </div>
-                </div>
-
-                <div style="background: #fffbeb; border: 2px solid #fbbf24; border-radius: 12px; padding: 16px; margin-bottom: 25px;">
-                    <div style="display: flex; gap: 12px;">
-                        <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 20px; margin-top: 2px;"></i>
-                        <div>
-                            <p style="margin: 0 0 8px 0; font-weight: 700; color: #92400e; font-size: 14px;">
-                                {% trans "Attention" %}
-                            </p>
-                            <p style="margin: 0; color: #78350f; font-size: 13px; line-height: 1.6;">
-                                {% trans "Cette action va créer" %} <strong>{{ nombre_eleves }} convocation{{ nombre_eleves|pluralize }}</strong> 
-                                {% trans "(une pour chaque élève de la classe). Toutes les convocations auront les mêmes informations" %}
-                                (objet, motif, date, heure, lieu).
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <a href="{% url 'directeur:convocation_liste' %}" class="btn-cancel">
-                        <i class="fas fa-times"></i>
-                        {% trans "Annuler" %}
-                    </a>
-                    <button type="submit" class="btn-submit">
-                        <i class="fas fa-check"></i>
-                        Créer {{ nombre_eleves }} convocation{{ nombre_eleves|pluralize }}
-                    </button>
-                </div>
-            </form>
-        </div>
+                </form>
+            </div>
+        </section>
     </div>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>
-

@@ -7,11 +7,15 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .etablissement_model import Etablissement
 
-# Licence 1 → Doctorat 3 (périodes rattachées à un niveau LMD) — libellés explicites (pas d'abréviations seules)
+# Licence 1 → Doctorat 3, BTS et DUT (périodes rattachées à un niveau) — libellés explicites
 NIVEAUX_PERIODE_SUPERIEUR = [
     ('L1', 'Licence 1'),
     ('L2', 'Licence 2'),
     ('L3', 'Licence 3'),
+    ('BTS1', 'BTS 1'),
+    ('BTS2', 'BTS 2'),
+    ('DUT1', 'DUT 1'),
+    ('DUT2', 'DUT 2'),
     ('M1', 'Master 1'),
     ('M2', 'Master 2'),
     ('D1', 'Doctorat 1'),
@@ -19,6 +23,12 @@ NIVEAUX_PERIODE_SUPERIEUR = [
     ('D3', 'Doctorat 3'),
 ]
 NIVEAUX_PERIODE_SUPERIEUR_KEYS = {k for k, _ in NIVEAUX_PERIODE_SUPERIEUR}
+
+# Correspondance classes (BTS/DUT générique) ↔ périodes par année de formation
+NIVEAUX_PERIODE_EQUIVALENTS_CLASSE = {
+    'BTS': ('BTS', 'BTS1', 'BTS2'),
+    'DUT': ('DUT', 'DUT1', 'DUT2'),
+}
 
 # Numérotation LMD : S1–S6 (Licence), S7–S10 (Master), S11–S16 (Doctorat).
 # Chaque entrée : (valeur stockée dans nom_periode, libellé affiché en français clair).
@@ -34,6 +44,22 @@ SEMESTRES_PAR_NIVEAU_LMD = {
     'L3': [
         ('Semestre 5', 'Semestre 5 — 1er semestre de Licence 3'),
         ('Semestre 6', 'Semestre 6 — 2e semestre de Licence 3'),
+    ],
+    'BTS1': [
+        ('Semestre 1', 'Semestre 1 — 1er semestre de BTS 1'),
+        ('Semestre 2', 'Semestre 2 — 2e semestre de BTS 1'),
+    ],
+    'BTS2': [
+        ('Semestre 3', 'Semestre 3 — 1er semestre de BTS 2'),
+        ('Semestre 4', 'Semestre 4 — 2e semestre de BTS 2'),
+    ],
+    'DUT1': [
+        ('Semestre 1', 'Semestre 1 — 1er semestre de DUT 1'),
+        ('Semestre 2', 'Semestre 2 — 2e semestre de DUT 1'),
+    ],
+    'DUT2': [
+        ('Semestre 3', 'Semestre 3 — 1er semestre de DUT 2'),
+        ('Semestre 4', 'Semestre 4 — 2e semestre de DUT 2'),
     ],
     'M1': [
         ('Semestre 7', 'Semestre 7 — 1er semestre de Master 1'),
@@ -56,6 +82,16 @@ SEMESTRES_PAR_NIVEAU_LMD = {
         ('Semestre 16', 'Semestre 16 — 2e semestre de Doctorat 3'),
     ],
 }
+
+
+def niveaux_periode_pour_classe(niveau_classe: str):
+    """Codes de période visibles pour une classe supérieure (BTS/DUT générique inclus)."""
+    nk = (niveau_classe or '').strip()
+    if not nk:
+        return []
+    if nk in NIVEAUX_PERIODE_EQUIVALENTS_CLASSE:
+        return list(NIVEAUX_PERIODE_EQUIVALENTS_CLASSE[nk])
+    return [nk]
 
 
 def semestres_choices_pour_niveau(niveau_code: str):
@@ -252,7 +288,11 @@ class PeriodeScolaire(models.Model):
             nk = (self.niveau_lmd or '').strip()
             if nk and self.nom_periode and not est_semestre_valide_pour_niveau(self.nom_periode, nk):
                 raise ValidationError({
-                    'nom_periode': "Ce semestre ne correspond pas au niveau choisi (ex. : Licence 1 → Semestre 1 et 2 ; Licence 2 → Semestre 3 et 4, etc.)."
+                    'nom_periode': (
+                        "Ce semestre ne correspond pas au niveau choisi "
+                        "(ex. : Licence 1 → Semestre 1–2 ; BTS 1 / DUT 1 → Semestre 1–2 ; "
+                        "BTS 2 / DUT 2 → Semestre 3–4 ; Master 1 → Semestre 7–8, etc.)."
+                    )
                 })
 
         # Chevauchement : même année scolaire et même périmètre de niveau (niveau_lmd)
@@ -377,7 +417,8 @@ class PeriodeScolaire(models.Model):
         if getattr(classe, 'niveau', None) == 'superieur':
             nk = (getattr(classe, 'niveau_lmd', None) or '').strip()
             if nk:
-                return queryset.filter(Q(niveau_lmd='') | Q(niveau_lmd=nk))
+                codes = niveaux_periode_pour_classe(nk)
+                return queryset.filter(Q(niveau_lmd='') | Q(niveau_lmd__in=codes))
             return queryset.filter(niveau_lmd='')
         return queryset.filter(niveau_lmd='')
 

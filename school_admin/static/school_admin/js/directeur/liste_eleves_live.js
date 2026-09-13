@@ -102,9 +102,19 @@
 
   window.activateMainTab = function (tabId) {
 
+    if (typeof window.switchMainTab === 'function') {
+
+      window.switchMainTab(tabId);
+
+      return;
+
+    }
+
     document.querySelectorAll('.tab-panel').forEach(function (panel) {
 
       panel.classList.remove('active');
+
+      panel.hidden = true;
 
     });
 
@@ -119,6 +129,8 @@
     if (panel) {
 
       panel.classList.add('active');
+
+      panel.hidden = false;
 
     }
 
@@ -156,6 +168,8 @@
 
       el.classList.remove('active');
 
+      el.hidden = true;
+
     });
 
     panel.querySelectorAll('.classe-subtab-btn').forEach(function (el) {
@@ -165,6 +179,8 @@
     });
 
     content.classList.add('active');
+
+    content.hidden = false;
 
     var subBtn = panel.querySelector('.classe-subtab-btn[data-subtab="classe-' + classeId + '"]');
 
@@ -182,7 +198,7 @@
 
     var row = document.createElement('div');
 
-    row.className = 'list-row eleve-row-live eleve-row-new';
+    row.className = 'list-row ele-list-row eleve-row-live eleve-row-new';
 
     row.setAttribute('data-eleve-id', String(item.id));
 
@@ -226,7 +242,7 @@
 
     row.innerHTML =
 
-      '<div class="list-cell student-cell">' +
+      '<div class="list-cell ele-list-cell ele-list-cell--student student-cell">' +
 
       '<div class="student-avatar-small"><i class="fas fa-user"></i></div>' +
 
@@ -248,31 +264,31 @@
 
       '</span></h4></div></div>' +
 
-      '<div class="list-cell" data-label="Numéro"><span class="student-number">' +
+      '<div class="list-cell ele-list-cell" data-label="Numéro"><span class="student-number">' +
 
       esc(item.matricule) +
 
       '</span></div>' +
 
-      '<div class="list-cell" data-label="Âge"><span class="student-age">' +
+      '<div class="list-cell ele-list-cell ele-list-cell--center" data-label="Âge"><span class="student-age">' +
 
       item.age +
 
       ' ans</span></div>' +
 
-      '<div class="list-cell" data-label="Absences">' +
+      '<div class="list-cell ele-list-cell ele-list-cell--center" data-label="Absences">' +
 
       absBadge +
 
       '</div>' +
 
-      '<div class="list-cell" data-label="Inscription"><span class="inscription-date">' +
+      '<div class="list-cell ele-list-cell ele-list-cell--center" data-label="Inscription"><span class="inscription-date">' +
 
       esc(item.date_inscription) +
 
       '</span></div>' +
 
-      '<div class="list-cell" data-label="Actions">' +
+      '<div class="list-cell ele-list-cell ele-list-cell--actions" data-label="Actions">' +
 
       '<div class="student-actions-compact">' +
 
@@ -322,7 +338,8 @@
 
     }
 
-    var list = section.querySelector('.students-list');
+    var scroll = section.querySelector('.ele-list-scroll');
+    var list = scroll ? scroll.querySelector('.students-list') : section.querySelector('.students-list');
 
     if (list) {
 
@@ -338,29 +355,33 @@
 
     }
 
+    scroll = document.createElement('div');
+    scroll.className = 'ele-list-scroll';
+
     list = document.createElement('div');
 
-    list.className = 'students-list';
+    list.className = 'students-list ele-list';
 
     list.innerHTML =
 
-      '<div class="list-header">' +
+      '<div class="list-header ele-list-header">' +
 
-      '<div class="list-cell header-cell">Élève</div>' +
+      '<div class="list-cell header-cell ele-list-cell--student">Élève</div>' +
 
       '<div class="list-cell header-cell">Numéro</div>' +
 
-      '<div class="list-cell header-cell">Âge</div>' +
+      '<div class="list-cell header-cell ele-list-cell--center">Âge</div>' +
 
-      '<div class="list-cell header-cell">Absences</div>' +
+      '<div class="list-cell header-cell ele-list-cell--center">Absences</div>' +
 
-      '<div class="list-cell header-cell">Inscription</div>' +
+      '<div class="list-cell header-cell ele-list-cell--center">Inscription</div>' +
 
-      '<div class="list-cell header-cell">Actions</div>' +
+      '<div class="list-cell header-cell ele-list-cell--actions">Actions</div>' +
 
       '</div>';
 
-    section.appendChild(list);
+    scroll.appendChild(list);
+    section.appendChild(scroll);
 
     return list;
 

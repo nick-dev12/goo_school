@@ -1,0 +1,20 @@
+{% load i18n %}
+<div class="gml-list-row">
+    <div class="gml-list-cell gml-list-cell--title">
+        <p class="gml-item-title"><i class="fas fa-book"></i> {{ matiere.nom }}</p>
+    </div>
+    <div class="gml-list-cell gml-list-cell--num">{{ matiere.coefficient }}</div>
+    <div class="gml-list-cell gml-list-cell--num">{% if matiere.credits %}{{ matiere.credits }}{% else %}—{% endif %}</div>
+    <div class="gml-list-cell gml-list-cell--actions">
+        <form method="post" action="{% url 'matiere:detail_module' module.id %}" class="gml-inline-form" onsubmit="return confirm('{% trans "Retirer cette matière pour ce niveau ?" %}');">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="retirer_matiere_niveau">
+            <input type="hidden" name="matiere_id" value="{{ matiere.id }}">
+            <input type="hidden" name="niveau_key" value="{{ niveau_key }}">
+            <input type="hidden" name="department_id" value="{{ department_id }}">
+            <button type="submit" class="gml-act-btn gml-act-btn--danger" title="{% trans 'Retirer pour ce niveau' %}">
+                <i class="fas fa-times"></i><span>{% trans "Retirer" %}</span>
+            </button>
+        </form>
+    </div>
+</div>

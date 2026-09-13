@@ -5,6 +5,33 @@ from django.db import models
 from django.db.models import Sum
 
 
+class ModuleDepartment(models.Model):
+    """
+    Association module ↔ spécialité (filière).
+    Permet un module mutualisé entre plusieurs filières ou un module dédié à une seule.
+    """
+    module = models.ForeignKey(
+        'school_admin.Module',
+        on_delete=models.CASCADE,
+        related_name='module_departments',
+        verbose_name="Module",
+    )
+    department = models.ForeignKey(
+        'school_admin.Department',
+        on_delete=models.CASCADE,
+        related_name='module_departments',
+        verbose_name="Spécialité",
+    )
+
+    class Meta:
+        verbose_name = "Module-Spécialité"
+        verbose_name_plural = "Modules-Spécialités"
+        unique_together = ['module', 'department']
+
+    def __str__(self):
+        return f"{self.module.nom} — {self.department.nom}"
+
+
 class ModuleClasse(models.Model):
     """
     Table de liaison Module-Classe avec crédits spécifiques par classe.
@@ -75,7 +102,16 @@ class Module(models.Model):
         null=True,
         blank=True,
         related_name='modules',
-        verbose_name="Filière"
+        verbose_name="Spécialité principale",
+        help_text="Renseignée si le module est propre à une seule spécialité ; vide si mutualisé.",
+    )
+    departments = models.ManyToManyField(
+        'school_admin.Department',
+        through='school_admin.ModuleDepartment',
+        related_name='modules_lies',
+        verbose_name="Spécialités concernées",
+        blank=True,
+        help_text="Une ou plusieurs spécialités auxquelles ce module est rattaché.",
     )
     niveau_lmd = models.CharField(
         max_length=20,
@@ -105,6 +141,46 @@ class Module(models.Model):
 
     def __str__(self):
         return f"{self.nom} ({self.code})"
+
+    @property
+    def is_shared(self):
+        """True si le module est rattaché à plusieurs spécialités."""
+        count = self.module_departments.count()
+        if count:
+            return count > 1
+        return False
+
+    def get_linked_departments(self):
+        """Spécialités liées au module (M2M ou FK legacy)."""
+        qs = self.module_departments.select_related('department').order_by(
+            'department__ordre', 'department__nom'
+        )
+        if qs.exists():
+            return [md.department for md in qs]
+        if self.department_id:
+            return [self.department]
+        return []
+
+    def get_linked_department_ids(self):
+        ids = list(self.module_departments.values_list('department_id', flat=True))
+        if ids:
+            return ids
+        if self.department_id:
+            return [self.department_id]
+        return []
+
+    def get_departments_display(self):
+        labels = [d.nom for d in self.get_linked_departments()]
+        return ', '.join(labels) if labels else ''
+
+    def sync_primary_department(self):
+        """Synchronise la FK legacy department selon les liaisons M2M."""
+        dep_ids = list(self.module_departments.values_list('department_id', flat=True))
+        if len(dep_ids) == 1:
+            self.department_id = dep_ids[0]
+        elif len(dep_ids) > 1:
+            self.department_id = None
+        self.save(update_fields=['department', 'date_modification'])
 
     def get_credits_for_classe(self, classe):
         """Retourne les crédits du module pour une classe donnée."""

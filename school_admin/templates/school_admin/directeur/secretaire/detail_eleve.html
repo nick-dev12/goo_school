@@ -29,6 +29,8 @@
     rel="stylesheet"
     href="{% static 'school_admin/css/directeur/detail_eleve_tabs.css' %}"
   />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_eleve_v2.css' %}?v=2.0.0" />
   <link
     rel="stylesheet"
     href="{% static 'school_admin/css/partials/messages.css' %}"
@@ -192,55 +194,130 @@
     }
   </style>
 </head>
-<body>
+<body class="ded-page">
   <!-- Header -->
   {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
   <!-- Main Content -->
-    <div class="content-container">
-      <!-- Page Header -->
-      <div class="page-header">
+    <div class="content-container ded-page-body">
+      <div class="page-header page-header-minimal">
         {% include 'school_admin/directeur/partials/page_header_back.html' %}
-<div class="header-content">
-          <div class="header-actions">
-            <a href="{% url 'secretaire:reçu_inscription_eleve' eleve.id %}" class="btn-primary">
-              <i class="fas fa-print"></i>
-              {% trans "Imprimer le reçu" %}
-            </a>
-          </div>
-        </div>
       </div>
 
-      <!-- Messages -->
       {% include 'school_admin/partials/messages.html' %}
 
-      <!-- Message d'information sur l'année scolaire active -->
+      <header class="ded-hero">
+        <div class="ded-hero-avatar">
+          {% if eleve.photo_profil %}
+            <img src="{{ eleve.photo_profil.url }}" alt="{{ eleve.nom_complet }}" />
+          {% else %}
+            <div class="student-avatar-placeholder"><i class="fas fa-user"></i></div>
+          {% endif %}
+        </div>
+        <div class="ded-hero-main">
+          <h1 class="ded-hero-name">{{ eleve.nom_complet }}</h1>
+          <div class="ded-hero-meta">
+            <span class="ded-hero-matricule">{{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>
+            <span class="ded-hero-class"><i class="fas fa-chalkboard"></i> {{ eleve.classe.nom }} — {{ eleve.classe.get_niveau_display }}</span>
+          </div>
+          <div class="ded-hero-badges">
+            <span class="status-badge status-{{ eleve.statut }}">{{ eleve.get_statut_display }}</span>
+            <span><i class="fas fa-birthday-cake"></i> {{ eleve.age }} {% trans "ans" %}</span>
+            <span><i class="fas fa-calendar-plus"></i> {% trans "Inscrit le" %} {{ eleve.date_inscription|date:"d/m/Y" }}</span>
+            {% if not eleve.actif %}<span class="badge-desactive"><i class="fas fa-user-slash"></i> {% trans "Compte désactivé" %}</span>{% endif %}
+          </div>
+        </div>
+        <div class="ded-hero-stats">
+          <div class="ded-stat-pill"><span class="ded-stat-num">{{ eleve.nombre_documents_fournis }}</span><span class="ded-stat-lbl">{% trans "Docs" %}</span></div>
+          <div class="ded-stat-pill ded-stat-pill--ok"><span class="ded-stat-num">{{ eleve.age }}</span><span class="ded-stat-lbl">{% trans "Ans" %}</span></div>
+          {% if can_view_sanctions and stats_sanctions %}
+          <div class="ded-stat-pill {% if stats_sanctions.total > 0 %}ded-stat-pill--warn{% endif %}"><span class="ded-stat-num">{{ stats_sanctions.total }}</span><span class="ded-stat-lbl">{% trans "Sanctions" %}</span></div>
+          {% endif %}
+        </div>
+        <div class="ded-hero-actions">
+          <a href="{% url 'secretaire:reçu_inscription_eleve' eleve.id %}" class="ded-action-btn ded-action-btn--success">
+            <i class="fas fa-file-invoice"></i> {% trans "Reçu" %}
+          </a>
+          <button type="button" class="ded-action-btn ded-action-btn--primary" onclick="toggleEditForm()">
+            <i class="fas fa-edit"></i> {% trans "Modifier" %}
+          </button>
+          <button type="button" class="ded-action-btn" onclick="openPhotoModal()">
+            <i class="fas fa-camera"></i> {% trans "Photo" %}
+          </button>
+          <button type="button" class="ded-action-btn" onclick="toggleTransferForm()">
+            <i class="fas fa-exchange-alt"></i> {% trans "Transférer" %}
+          </button>
+          <a href="{% url 'secretaire:desactiver_compte_eleve' eleve.id %}"
+             class="ded-action-btn {% if eleve.actif %}ded-action-btn--danger{% else %}ded-action-btn--success{% endif %}"
+             onclick="return confirm('{% if eleve.actif %}{% trans "Désactiver le compte de" %} {{ eleve.nom_complet }} ?{% else %}{% trans "Réactiver le compte de" %} {{ eleve.nom_complet }} ?{% endif %}');">
+            <i class="fas {% if eleve.actif %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
+            {% if eleve.actif %}{% trans "Désactiver" %}{% else %}{% trans "Réactiver" %}{% endif %}
+          </a>
+        </div>
+      </header>
+
       {% if annee_scolaire_active %}
-      <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-        <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
-          <i class="fas fa-calendar-check"></i>
-        </span>
+      <div class="ded-alert ded-alert--info">
+        <i class="fas fa-calendar-check"></i>
         <div>
-          <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-            Année scolaire active : {{ annee_scolaire_active.libelle }}
-          </p>
-          <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-            {% trans "Seules les données (notes, présences, sanctions) de cette session sont affichées." %}
-          </p>
+          <strong>{% trans "Session" %} {{ annee_scolaire_active.libelle }}</strong> —
+          {% trans "Notes, présences et sanctions affichées pour cette année scolaire." %}
         </div>
       </div>
       {% else %}
-      <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
-        <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
-        <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-          {% trans "Aucune année scolaire active. Toutes les données sont affichées." %}
-        </span>
+      <div class="ded-alert ded-alert--warn">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>{% trans "Aucune année scolaire active. Toutes les données sont affichées." %}</span>
       </div>
       {% endif %}
 
+      <section class="ded-main-panel">
+        <p class="ded-panel-hint">
+          <i class="fas fa-info-circle"></i>
+          {% trans "Parcourez les onglets pour consulter l'identité, le parcours scolaire, les présences, notes et sanctions de l'élève." %}
+        </p>
+
+        <div class="ded-tabs-zone" data-ded-main-tabs>
+          <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'onglet' %}" data-overflow-items-label="{% trans 'onglets' %}">
+            <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Sections du dossier élève' %}">
+              <button type="button" role="tab" class="matiere-tab-btn active" data-ded-tab="personal" aria-selected="true">
+                <i class="fas fa-user"></i> {% trans "Identité" %}
+              </button>
+              <button type="button" role="tab" class="matiere-tab-btn" data-ded-tab="academic" aria-selected="false">
+                <i class="fas fa-graduation-cap"></i> {% trans "Scolarité" %}
+              </button>
+              {% if can_view_presences %}
+              <button type="button" role="tab" class="matiere-tab-btn" data-ded-tab="presences" aria-selected="false">
+                <i class="fas fa-clipboard-check"></i> {% trans "Présences" %}
+              </button>
+              {% endif %}
+              {% if can_view_notes %}
+              <button type="button" role="tab" class="matiere-tab-btn" data-ded-tab="notes" aria-selected="false">
+                <i class="fas fa-chart-line"></i> {% trans "Notes" %}
+              </button>
+              {% endif %}
+              {% if can_view_sanctions %}
+              <button type="button" role="tab" class="matiere-tab-btn" data-ded-tab="sanctions" aria-selected="false">
+                <i class="fas fa-gavel"></i> {% trans "Sanctions" %}
+              </button>
+              {% endif %}
+              <button type="button" role="tab" class="matiere-tab-btn" data-ded-tab="login" aria-selected="false">
+                <i class="fas fa-key"></i> {% trans "Connexion" %}
+              </button>
+            </div>
+            <div class="matiere-tabs-more-wrap" hidden>
+              <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true">
+                <span class="matiere-tabs-more-label"></span>
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+              </button>
+              <div class="matiere-tabs-overflow-menu" hidden role="menu"></div>
+            </div>
+          </div>
+        </div>
+
       <!-- Student Information Display -->
       <div class="student-profile-container">
-        <!-- Student Header Card -->
+        <!-- Student Header Card (legacy — masqué en v2) -->
         <div class="student-header-card">
           <div class="student-avatar-large">
             {% if eleve.photo_profil %}
@@ -290,46 +367,10 @@
           </div>
         </div>
 
-        <!-- Information Tabs -->
-        <div class="info-tabs-container">
-          <div class="info-tabs">
-            <button class="tab-button active" onclick="showTab('personal')">
-              <i class="fas fa-user"></i>
-              {% trans "Personnel" %}
-            </button>
-            <button class="tab-button" onclick="showTab('academic')">
-              <i class="fas fa-graduation-cap"></i>
-              {% trans "Académique" %}
-            </button>
-            {% if can_view_presences %}
-            <button class="tab-button" onclick="showTab('presences')">
-              <i class="fas fa-clipboard-check"></i>
-              {% trans "Présences" %}
-            </button>
-            {% endif %}
-            {% if can_view_notes %}
-            <button class="tab-button" onclick="showTab('notes')">
-              <i class="fas fa-chart-line"></i>
-              {% trans "Notes" %}
-            </button>
-            {% endif %}
-            {% if can_view_sanctions %}
-            <button class="tab-button" onclick="showTab('sanctions')">
-              <i class="fas fa-gavel"></i>
-              {% trans "Sanctions" %}
-            </button>
-            {% endif %}
-            <button class="tab-button" onclick="showTab('login')">
-              <i class="fas fa-key"></i>
-              {% trans "Connexion" %}
-            </button>
-          </div>
-        </div>
-
         <!-- Tab Content -->
-        <div class="tab-content">
+        <div class="tab-content ded-tab-content">
           <!-- Personal Information Tab -->
-          <div id="personal-tab" class="tab-panel active">
+          <div id="personal-tab" class="tab-panel ded-tab-panel active">
             <!-- Informations personnelles -->
             <div class="info-section">
               <h3 class="section-title">
@@ -539,7 +580,7 @@
           </div>
 
           <!-- Academic Information Tab -->
-          <div id="academic-tab" class="tab-panel">
+          <div id="academic-tab" class="tab-panel ded-tab-panel" hidden>
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-graduation-cap"></i>
@@ -578,7 +619,7 @@
 
           <!-- Presences Tab -->
           {% if can_view_presences %}
-          <div id="presences-tab" class="tab-panel">
+          <div id="presences-tab" class="tab-panel ded-tab-panel" hidden>
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-clipboard-check"></i>
@@ -587,19 +628,29 @@
               
               {% if presences_par_mois %}
                 <!-- Sous-onglets par mois -->
-                <div class="sub-tabs-container">
-                  <div class="sub-tabs">
-                    {% for mois_key, pres_list in presences_par_mois.items %}
-                      <button class="sub-tab-button {% if forloop.first %}active{% endif %}" onclick="showSubTab('presence-{{ mois_key }}')">
+                <div class="ded-subtabs-zone" data-ded-subtabs-zone>
+                  <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'mois' %}" data-overflow-items-label="{% trans 'mois' %}">
+                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Mois' %}">
+                      {% for mois_key, pres_list in presences_par_mois.items %}
+                      <button type="button" role="tab" class="matiere-tab-btn {% if forloop.first %}active{% endif %}"
+                              data-ded-subtab="presence-{{ mois_key }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
                         {{ stats_presences_par_mois|get_item:mois_key|get_item:'mois_nom' }}
                       </button>
-                    {% endfor %}
+                      {% endfor %}
+                    </div>
+                    <div class="matiere-tabs-more-wrap" hidden>
+                      <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true">
+                        <span class="matiere-tabs-more-label"></span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                      </button>
+                      <div class="matiere-tabs-overflow-menu" hidden role="menu"></div>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Contenu des sous-onglets -->
                 {% for mois_key, pres_list in presences_par_mois.items %}
-                  <div id="presence-{{ mois_key }}" class="sub-tab-content {% if forloop.first %}active{% endif %}">
+                  <div id="presence-{{ mois_key }}" class="sub-tab-content ded-sub-panel {% if forloop.first %}active{% endif %}" {% if not forloop.first %}hidden{% endif %}>
                     <!-- Statistiques du mois -->
                     <div class="stats-grid">
                       <div class="stat-card stat-success">
@@ -640,7 +691,7 @@
                     </div>
 
                     <!-- Liste détaillée des présences -->
-                    <div class="presences-list">
+                    <div class="presences-list ded-table-scroll">
                       <table class="presences-table">
                         <thead>
                           <tr>
@@ -697,7 +748,7 @@
 
           <!-- Notes Tab -->
           {% if can_view_notes %}
-          <div id="notes-tab" class="tab-panel">
+          <div id="notes-tab" class="tab-panel ded-tab-panel" hidden>
             {% if is_secondaire %}
             <div class="info-section">
               <h3 class="section-title">
@@ -706,16 +757,25 @@
               </h3>
               
               {% if periodes_actives %}
-              <!-- Onglets des périodes -->
-              <div class="periode-tabs-wrapper" style="margin: 20px 0;">
-                <div class="periode-tabs" style="display: flex; gap: 10px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
-                  {% for periode in periodes_actives %}
-                    <button class="periode-tab-btn {% if periode.id == periode_active_notes.id %}active{% endif %}" 
-                            onclick="switchPeriode({{ periode.id }})"
-                            style="padding: 10px 20px; border: none; border-radius: 8px 8px 0 0; background: {% if periode.id == periode_active_notes.id %}#4f46e5{% else %}#f3f4f6{% endif %}; color: {% if periode.id == periode_active_notes.id %}white{% else %}#6b7280{% endif %}; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+              <div class="ded-subtabs-zone ded-periode-zone" data-ded-subtabs-zone="periodes">
+                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'période' %}" data-overflow-items-label="{% trans 'périodes' %}">
+                  <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Périodes scolaires' %}">
+                    {% for periode in periodes_actives %}
+                    <button type="button" role="tab" class="matiere-tab-btn periode-tab-btn {% if periode.id == periode_active_notes.id %}active{% endif %}"
+                            data-periode-id="{{ periode.id }}"
+                            onclick="switchPeriode({{ periode.id }}, this)"
+                            aria-selected="{% if periode.id == periode_active_notes.id %}true{% else %}false{% endif %}">
                       {{ periode.nom_periode }}
                     </button>
-                  {% endfor %}
+                    {% endfor %}
+                  </div>
+                  <div class="matiere-tabs-more-wrap" hidden>
+                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true">
+                      <span class="matiere-tabs-more-label"></span>
+                      <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="matiere-tabs-overflow-menu" hidden role="menu"></div>
+                  </div>
                 </div>
               </div>
               {% endif %}
@@ -837,31 +897,26 @@
                 let currentPeriodeId = {{ periode_active_notes.id|default:'null' }};
                 
                 // Fonction pour changer de période
-                function switchPeriode(periodeId) {
+                function switchPeriode(periodeId, btn) {
                   currentPeriodeId = periodeId;
-                  
-                  // Masquer tous les contenus de période
-                  document.querySelectorAll('.periode-content').forEach(content => {
+                  document.querySelectorAll('.periode-content').forEach(function (content) {
                     content.style.display = 'none';
                   });
-                  
-                  // Afficher le contenu de la période sélectionnée
-                  const selectedContent = document.getElementById('periode-content-' + periodeId);
+                  var selectedContent = document.getElementById('periode-content-' + periodeId);
                   if (selectedContent) {
                     selectedContent.style.display = 'block';
                   }
-                  
-                  // Mettre à jour les styles des onglets
-                  document.querySelectorAll('.periode-tab-btn').forEach(btn => {
-                    btn.style.background = '#f3f4f6';
-                    btn.style.color = '#6b7280';
-                    btn.classList.remove('active');
+                  document.querySelectorAll('.periode-tab-btn').forEach(function (tabBtn) {
+                    tabBtn.classList.remove('active');
+                    tabBtn.setAttribute('aria-selected', 'false');
                   });
-                  
-                  // Activer l'onglet sélectionné
-                  event.currentTarget.style.background = '#4f46e5';
-                  event.currentTarget.style.color = 'white';
-                  event.currentTarget.classList.add('active');
+                  if (btn) {
+                    btn.classList.add('active');
+                    btn.setAttribute('aria-selected', 'true');
+                  }
+                  if (typeof window.layoutTabsOverflowNav === 'function') {
+                    window.layoutTabsOverflowNav();
+                  }
                 }
                 
                 function showNoteDetails(matiereId, matiereName, periodeId = null) {
@@ -1043,23 +1098,26 @@
               
               {% if notes_par_trimestre %}
                 <!-- Sous-onglets par trimestre -->
-                <div class="sub-tabs-container">
-                  <div class="sub-tabs">
-                    <button class="sub-tab-button active" onclick="showSubTab('notes-trimestre1')">
-                      {% trans "Trimestre 1" %}
-                    </button>
-                    <button class="sub-tab-button" onclick="showSubTab('notes-trimestre2')">
-                      {% trans "Trimestre 2" %}
-                    </button>
-                    <button class="sub-tab-button" onclick="showSubTab('notes-trimestre3')">
-                      {% trans "Trimestre 3" %}
-                    </button>
+                <div class="ded-subtabs-zone" data-ded-subtabs-zone>
+                  <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'trimestre' %}" data-overflow-items-label="{% trans 'trimestres' %}">
+                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Trimestres' %}">
+                      <button type="button" role="tab" class="matiere-tab-btn active" data-ded-subtab="notes-trimestre1" aria-selected="true">{% trans "Trimestre 1" %}</button>
+                      <button type="button" role="tab" class="matiere-tab-btn" data-ded-subtab="notes-trimestre2" aria-selected="false">{% trans "Trimestre 2" %}</button>
+                      <button type="button" role="tab" class="matiere-tab-btn" data-ded-subtab="notes-trimestre3" aria-selected="false">{% trans "Trimestre 3" %}</button>
+                    </div>
+                    <div class="matiere-tabs-more-wrap" hidden>
+                      <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true">
+                        <span class="matiere-tabs-more-label"></span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                      </button>
+                      <div class="matiere-tabs-overflow-menu" hidden role="menu"></div>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Contenu par trimestre -->
                 {% for trimestre in 'trimestre1,trimestre2,trimestre3'|split:',' %}
-                  <div id="notes-{{ trimestre }}" class="sub-tab-content {% if trimestre == 'trimestre1' %}active{% endif %}">
+                  <div id="notes-{{ trimestre }}" class="sub-tab-content ded-sub-panel {% if trimestre == 'trimestre1' %}active{% endif %}" {% if trimestre != 'trimestre1' %}hidden{% endif %}>
                     {% if notes_par_trimestre|get_item:trimestre %}
                       <!-- Onglets des matières -->
                       <div class="matieres-tabs-container">
@@ -1143,7 +1201,7 @@
 
           <!-- Sanctions Tab -->
           {% if can_view_sanctions %}
-          <div id="sanctions-tab" class="tab-panel">
+          <div id="sanctions-tab" class="tab-panel ded-tab-panel" hidden>
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-gavel"></i>
@@ -1239,7 +1297,7 @@
         
 
           <!-- Login Information Tab -->
-          <div id="login-tab" class="tab-panel">
+          <div id="login-tab" class="tab-panel ded-tab-panel" hidden>
             <div class="info-section">
               <h3 class="section-title">
                 <i class="fas fa-key"></i>
@@ -1325,6 +1383,7 @@
           </div>
         </div>
       </div>
+      </section>
 
       <!-- Photo Upload Modal -->
       <div id="photoModal" class="photo-modal-backdrop" {% if photo_modal_open %}style="display: flex;"{% else %}style="display: none;"{% endif %}>
@@ -1899,64 +1958,6 @@
       }
     });
 
-    // Tab functionality
-    function showTab(tabName) {
-      // Hide all tab panels
-      const tabPanels = document.querySelectorAll('.tab-panel');
-      tabPanels.forEach(panel => {
-        panel.classList.remove('active');
-      });
-      
-      // Remove active class from all tab buttons
-      const tabButtons = document.querySelectorAll('.tab-button');
-      tabButtons.forEach(button => {
-        button.classList.remove('active');
-      });
-      
-      // Show selected tab panel
-      const selectedPanel = document.getElementById(tabName + '-tab');
-      if (selectedPanel) {
-        selectedPanel.classList.add('active');
-      }
-      
-      // Add active class to clicked tab button
-      const clickedButton = event.target.closest('.tab-button');
-      if (clickedButton) {
-        clickedButton.classList.add('active');
-      }
-    }
-
-    // Sub-tab functionality for Presences and Notes
-    function showSubTab(subTabName) {
-      // Get the parent tab panel
-      const parentTab = event.target.closest('.tab-panel');
-      if (!parentTab) return;
-      
-      // Hide all sub-tab contents in this tab
-      const subTabContents = parentTab.querySelectorAll('.sub-tab-content');
-      subTabContents.forEach(content => {
-        content.classList.remove('active');
-      });
-      
-      // Remove active class from all sub-tab buttons in this tab
-      const subTabButtons = parentTab.querySelectorAll('.sub-tab-button');
-      subTabButtons.forEach(button => {
-        button.classList.remove('active');
-      });
-      
-      // Show selected sub-tab content
-      const selectedSubTab = document.getElementById(subTabName);
-      if (selectedSubTab) {
-        selectedSubTab.classList.add('active');
-      }
-      
-      // Add active class to clicked sub-tab button
-      const clickedButton = event.target.closest('.sub-tab-button');
-      if (clickedButton) {
-        clickedButton.classList.add('active');
-      }
-    }
-
     // Functions for matiere modal
     function showMatiereModal(trimestre, matiere, matiereId) {
       const modal = document.getElementById('modal-notes-' + trimestre);
@@ -2062,6 +2063,7 @@
     });
   </script>
 
+    <script src="{% static 'school_admin/js/directeur/detail_eleve_tabs.js' %}?v=2.0.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

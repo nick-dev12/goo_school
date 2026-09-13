@@ -1,0 +1,44 @@
+{% load i18n %}
+<div class="gcl-list-row classe-card" data-classe-id="{{ classe.id }}">
+    <div class="gcl-list-cell gcl-list-cell--title">
+        <p class="gcl-item-title">
+            <i class="fas fa-{% if est_superieur %}book{% elif classe.niveau == 'maternelle' %}baby{% elif classe.niveau == 'primaire' %}child{% elif classe.niveau == 'college' %}graduation-cap{% elif classe.niveau == 'lycee' %}university{% else %}chalkboard{% endif %}"></i>
+            {{ classe.nom }}
+        </p>
+        {% if est_superieur and classe.department %}
+        <p class="gcl-item-sub">{{ classe.department.nom }}</p>
+        {% elif not est_superieur %}
+        <p class="gcl-item-sub">{{ classe.get_niveau_display }}</p>
+        {% endif %}
+    </div>
+    <div class="gcl-list-cell">
+        {% if est_superieur %}
+            <span class="gcl-badge gcl-badge--info">{{ classe.get_libelle_niveau_superieur_complet|default:classe.niveau_lmd }}</span>
+        {% else %}
+            <span class="gcl-badge gcl-badge--info">{{ classe.get_niveau_display }}</span>
+        {% endif %}
+    </div>
+    <div class="gcl-list-cell gcl-list-cell--num">
+        {{ classe.nombre_eleves }}/{{ classe.capacite_max }}
+    </div>
+    <div class="gcl-list-cell gcl-list-cell--num">{{ classe_data.nombre_enseignants }}</div>
+    <div class="gcl-list-cell gcl-list-cell--num">{{ classe.taux_occupation }}%</div>
+    <div class="gcl-list-cell">
+        {% if classe.actif %}
+            <span class="gcl-badge gcl-badge--ok">{% trans "Active" %}</span>
+        {% else %}
+            <span class="gcl-badge gcl-badge--muted">{% trans "Inactive" %}</span>
+        {% endif %}
+    </div>
+    <div class="gcl-list-cell gcl-list-cell--actions">
+        <div class="gcl-actions-group">
+            <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="gcl-act-btn gcl-act-btn--view">
+                <i class="fas fa-eye"></i><span>{% trans "Détails" %}</span>
+            </a>
+            <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="gcl-act-btn gcl-act-btn--toggle{% if classe.actif %} gcl-act-btn--toggle-on{% endif %}">
+                <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
+                <span>{% if classe.actif %}{% trans "Pause" %}{% else %}{% trans "Activer" %}{% endif %}</span>
+            </a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,99 @@
+{% load i18n exam_filters pagination_tags %}
+<div class="edtd-timetable-scroll table-responsive">
+  {% if grille_emploi and plages_horaires %}
+    <table class="calendar-timetable">
+      <thead>
+        <tr>
+          {% for jour in jours_semaine %}
+            <th class="day-header">{{ jour|title }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for plage in plages_horaires %}
+          <tr class="time-row">
+            {% for jour in jours_semaine %}
+              {% with jour_masquees=cellules_masquees|dict_value:jour plage_label=plage|dict_value:'label' %}
+                {% if jour_masquees and jour_masquees|dict_value:plage_label %}
+                {% else %}
+                  {% with creneaux_list=grille_emploi|dict_value:jour|dict_value:'plages'|dict_value:plage_label %}
+                    {% if creneaux_list and creneaux_list|length > 0 %}
+                      {% with max_rowspan=creneaux_list.0.rowspan %}
+                        <td class="exam-cell" rowspan="{{ max_rowspan }}">
+                          {% for creneau_data in creneaux_list %}
+                            {% with creneau=creneau_data.creneau %}
+                              {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
+                                <div class="exam-block creneau-interactif" style="border-top: 4px solid {{ creneau.matiere_couleur|default:'#3b82f6' }};">
+                                  <div class="exam-time">
+                                    {{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}
+                                  </div>
+                                  <div class="exam-subject">
+                                    <i class="fas fa-{{ creneau.matiere_icone|default:'book' }}" style="color: {{ creneau.matiere_couleur|default:'#3b82f6' }};"></i>
+                                    {{ matiere_nom }}
+                                  </div>
+                                  {% if creneau.professeur %}
+                                    <div class="exam-teacher">
+                                      <i class="fas fa-user-tie"></i>
+                                      {% with prenom_parts=creneau.professeur.prenom|split:" " nom_parts=creneau.professeur.nom|split:" " %}
+                                        {{ prenom_parts.0 }} {{ nom_parts.0 }}
+                                      {% endwith %}
+                                    </div>
+                                  {% endif %}
+                                  {% if creneau.salle %}
+                                    <div class="exam-room">
+                                      <i class="fas fa-building"></i>
+                                      {{ creneau.salle.nom }}
+                                    </div>
+                                  {% endif %}
+                                  <div class="creneau-actions" style="margin-top: 8px; display: none; gap: 5px;">
+                                    <button
+                                      type="button"
+                                      class="btn-icon btn-icon-edit js-ouvrir-modal-modifier-creneau"
+                                      title="{% trans "Modifier" %}"
+                                      style="padding: 4px 8px; font-size: 12px; border: none; cursor: pointer;"
+                                      data-action-url="{% url 'administrateur_etablissement:modifier_creneau' creneau.id %}"
+                                      data-jour="{{ creneau.jour }}"
+                                      data-heure-debut="{{ creneau.heure_debut|time:'H:i' }}"
+                                      data-heure-fin="{{ creneau.heure_fin|time:'H:i' }}"
+                                      data-matiere-id="{{ creneau.matiere.id|default:'' }}"
+                                      data-professeur-id="{{ creneau.professeur.id|default:'' }}"
+                                      data-salle-id="{{ creneau.salle.id|default:'' }}"
+                                      data-type-cours="{{ creneau.type_cours }}"
+                                    >
+                                      <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="post" action="{% url 'administrateur_etablissement:supprimer_creneau' creneau.id %}" style="display: inline;" onsubmit="return confirm('{% trans "Êtes-vous sûr de vouloir supprimer ce créneau ?" %}');">
+                                      {% csrf_token %}
+                                      <button type="submit" class="btn-icon btn-icon-delete" title="{% trans "Supprimer" %}" style="padding: 4px 8px; font-size: 12px;">
+                                        <i class="fas fa-trash"></i>
+                                      </button>
+                                    </form>
+                                  </div>
+                                </div>
+                                {% if not forloop.last %}
+                                  <hr class="exam-separator-classe" style="margin: 8px 0; border: none; border-top: 1px solid #e5e7eb;">
+                                {% endif %}
+                              {% endwith %}
+                            {% endwith %}
+                          {% endfor %}
+                        </td>
+                      {% endwith %}
+                    {% else %}
+                      <td class="empty-cell"></td>
+                    {% endif %}
+                  {% endwith %}
+                {% endif %}
+              {% endwith %}
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="edtd-empty-state">
+      <i class="fas fa-calendar-times"></i>
+      <h3>{% trans "Aucun créneau programmé" %}</h3>
+      <p>{% trans "Utilisez le bouton « Ajouter un créneau » pour commencer à planifier l'emploi du temps." %}</p>
+    </div>
+  {% endif %}
+</div>

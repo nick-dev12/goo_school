@@ -5,8 +5,9 @@
     <div class="classe-icon"><i class="fas fa-book"></i></div>
     <div class="classe-info">
       <h3 class="classe-nom">{{ classe.nom }}</h3>
-      <p class="classe-niveau">{{ classe.get_libelle_niveau_superieur_complet }}</p>
-      <div class="classe-badge niveau-superieur"><span>{{ classe.get_libelle_niveau_superieur_complet }}</span></div>
+      {% if classe.department %}
+      <p class="classe-filiere">{% trans "Filière" %} : {{ classe.department.nom }}</p>
+      {% endif %}
     </div>
     <div class="classe-status">
       <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">

@@ -1,0 +1,55 @@
+{% load i18n %}
+<div class="examens-concours-section">
+  {% if classes_examens_concours %}
+    <div class="ec-section-header">
+      <p class="ec-section-intro">
+        <i class="fas fa-info-circle"></i>
+        {% trans "Classes préparant des examens ou concours (BTS, BT, certifications…)" %}
+      </p>
+      <span class="ec-total-pill">{{ nb_classes_avec_examens_concours }} {% trans "classe" %}{{ nb_classes_avec_examens_concours|pluralize }}</span>
+    </div>
+    <div class="ec-grid">
+      {% for item in classes_examens_concours %}
+      {% with classe=item.classe %}
+      <article class="ec-card">
+        <div class="ec-card-top">
+          <h2>{{ classe.nom }}</h2>
+          <div class="ec-meta">
+            {% if classe.department %}<i class="fas fa-sitemap"></i> {{ classe.department.nom }}{% endif %}
+            {% if classe.department %} · {% endif %}
+            <i class="fas fa-graduation-cap"></i> {{ classe.get_libelle_niveau_superieur_complet }}
+          </div>
+        </div>
+        <div class="ec-card-body">
+          <div class="classe-card-examens ec-card-examens">
+            <div class="classe-card-examens-label"><i class="fas fa-flag-checkered"></i> {% trans "Examens & concours visés" %}</div>
+            <div class="classe-card-examens-tags">
+              {% for lien in classe.liens_examens_concours.all %}
+              <span class="classe-examen-tag" title="{{ lien.option.description }}"><i class="fas fa-star"></i> {{ lien.option.libelle }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="ec-card-actions">
+            <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="btn-action btn-detail ec-btn-detail">
+              <i class="fas fa-eye"></i> {% trans "Détails" %}
+            </a>
+          </div>
+        </div>
+      </article>
+      {% endwith %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state ec-empty-state">
+      <div class="empty-icon">
+        <i class="fas fa-clipboard-list"></i>
+      </div>
+      <h3>{% trans "Aucune classe avec parcours examen/concours" %}</h3>
+      <p>{% trans "Lors de la création d'une classe, cochez les examens ou concours concernés." %}</p>
+      <button type="button" class="btn-add-classe" id="addClasseBtnFromExamens">
+        <i class="fas fa-plus"></i>
+        <span>{% trans "Ajouter une classe" %}</span>
+      </button>
+    </div>
+  {% endif %}
+</div>

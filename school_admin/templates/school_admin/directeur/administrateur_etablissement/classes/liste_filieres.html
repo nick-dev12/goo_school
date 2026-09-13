@@ -62,6 +62,13 @@
         opacity: 0.9;
         flex-shrink: 0;
       }
+      .specialite-card-sigle {
+        margin: 0.35rem 0 0;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        opacity: 0.92;
+      }
       .specialite-card-body {
         padding: 1rem 1.25rem;
         flex: 1;
@@ -223,6 +230,9 @@
                       <i class="fas fa-graduation-cap"></i>
                       <span>{{ item.department.nom }}</span>
                     </h3>
+                    {% if item.department.sigle %}
+                    <p class="specialite-card-sigle">{{ item.department.sigle }}</p>
+                    {% endif %}
                   </header>
                   <div class="specialite-card-body">
                     {% if item.department.domaine %}
@@ -252,7 +262,7 @@
                         <i class="fas fa-list"></i>
                         <span>{% trans "Voir les classes" %}</span>
                       </a>
-                      <button type="button" class="btn-spec btn-spec-modifier btn-filiere-modifier" data-filiere-id="{{ item.department.id }}" data-filiere-nom="{{ item.department.nom }}" data-filiere-domaine="{{ item.department.domaine|default:'' }}" data-filiere-mention="{{ item.department.mention|default:'' }}">
+                      <button type="button" class="btn-spec btn-spec-modifier btn-filiere-modifier" data-filiere-id="{{ item.department.id }}" data-filiere-nom="{{ item.department.nom }}" data-filiere-sigle="{{ item.department.sigle|default:'' }}" data-filiere-domaine="{{ item.department.domaine|default:'' }}" data-filiere-mention="{{ item.department.mention|default:'' }}">
                         <i class="fas fa-edit"></i>
                         <span>{% trans "Modifier" %}</span>
                       </button>
@@ -304,6 +314,11 @@
             <input type="text" class="form-control" id="modifier_nom_filiere" name="nom_filiere" required placeholder="{% trans 'Ex: Logistique et Transport, Informatique' %}">
           </div>
           <div class="form-group">
+            <label class="form-label" for="modifier_sigle_filiere">{% trans "Code / Sigle de la spécialité *" %}</label>
+            <input type="text" class="form-control" id="modifier_sigle_filiere" name="sigle_filiere" required maxlength="12" placeholder="{% trans 'Ex: GL, TL, QHSE' %}" style="text-transform: uppercase;">
+            <small class="form-text">{% trans "Utilisé sur les bulletins et relevés de notes (2 à 12 caractères)." %}</small>
+          </div>
+          <div class="form-group">
             <label class="form-label" for="modifier_domaine">{% trans "Domaine" %}</label>
             <input type="text" class="form-control" id="modifier_domaine" name="domaine" placeholder="{% trans 'Ex: Sciences et Technologies, Sciences Humaines' %}">
           </div>
@@ -338,6 +353,11 @@
             <input type="text" class="form-control" id="nom_filiere" name="nom_filiere" required placeholder="{% trans 'Ex: Logistique et Transport, Informatique' %}">
           </div>
           <div class="form-group">
+            <label class="form-label" for="sigle_filiere">{% trans "Code / Sigle de la spécialité *" %}</label>
+            <input type="text" class="form-control" id="sigle_filiere" name="sigle_filiere" required maxlength="12" placeholder="{% trans 'Ex: GL, TL, QHSE' %}" style="text-transform: uppercase;">
+            <small class="form-text">{% trans "Utilisé sur les bulletins et relevés de notes (2 à 12 caractères)." %}</small>
+          </div>
+          <div class="form-group">
             <label class="form-label" for="domaine">{% trans "Domaine" %}</label>
             <input type="text" class="form-control" id="domaine" name="domaine" placeholder="{% trans 'Ex: Sciences et Technologies, Sciences Humaines' %}">
           </div>
@@ -361,6 +381,7 @@
         const modifierFiliereModal = document.getElementById('modifierFiliereModal');
         const formModifierFiliere = document.getElementById('formModifierFiliere');
         const modifierNomInput = document.getElementById('modifier_nom_filiere');
+        const modifierSigleInput = document.getElementById('modifier_sigle_filiere');
         const closeFiliereModal = document.getElementById('closeFiliereModal');
         const closeModifierFiliereModal = document.getElementById('closeModifierFiliereModal');
         const cancelFiliere = document.getElementById('cancelFiliere');
@@ -383,11 +404,12 @@
         const modifierDomaineInput = document.getElementById('modifier_domaine');
         const modifierMentionInput = document.getElementById('modifier_mention');
 
-        function openModifierFiliereModal(filiereId, filiereNom, filiereDomaine, filiereMention) {
+        function openModifierFiliereModal(filiereId, filiereNom, filiereSigle, filiereDomaine, filiereMention) {
           if (formModifierFiliere && formModifierFiliere.dataset.actionTemplate) {
             formModifierFiliere.action = formModifierFiliere.dataset.actionTemplate.replace('/0/', '/' + filiereId + '/');
           }
           if (modifierNomInput) modifierNomInput.value = filiereNom || '';
+          if (modifierSigleInput) modifierSigleInput.value = filiereSigle || '';
           if (modifierDomaineInput) modifierDomaineInput.value = filiereDomaine || '';
           if (modifierMentionInput) modifierMentionInput.value = filiereMention || '';
           if (modifierFiliereModal) {
@@ -417,9 +439,10 @@
           btn.addEventListener('click', function() {
             const id = this.dataset.filiereId;
             const nom = this.dataset.filiereNom || '';
+            const sigle = this.dataset.filiereSigle || '';
             const domaine = this.dataset.filiereDomaine || '';
             const mention = this.dataset.filiereMention || '';
-            openModifierFiliereModal(id, nom, domaine, mention);
+            openModifierFiliereModal(id, nom, sigle, domaine, mention);
           });
         });
 

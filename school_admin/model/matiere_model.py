@@ -75,6 +75,13 @@ class Matiere(models.Model):
         verbose_name="Module",
         help_text="Module auquel appartient la matière (enseignement supérieur)"
     )
+    niveau_lmd_key = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        verbose_name="Niveau LMD (module)",
+        help_text="Clé de niveau LMD (L1, L2, …) lorsque la matière est rattachée à un module supérieur",
+    )
     classes = models.ManyToManyField(
         Classe,
         blank=True,
@@ -113,11 +120,17 @@ class Matiere(models.Model):
         verbose_name_plural = "Matières"
         ordering = ['nom']
         constraints = [
-            # Supérieur avec module : unicité (nom, etablissement, department, module) - permet plusieurs "Mathématiques" dans différents modules
+            # Supérieur avec module : unicité par niveau LMD (même nom autorisé sur L1 et L2)
             models.UniqueConstraint(
-                fields=['nom', 'etablissement', 'department', 'module'],
+                fields=['nom', 'etablissement', 'department', 'module', 'niveau_lmd_key'],
                 condition=Q(department__isnull=False) & Q(module__isnull=False),
-                name='matiere_unique_par_module',
+                name='matiere_unique_par_module_niveau',
+            ),
+            # Module mutualisé (sans filière sur la matière)
+            models.UniqueConstraint(
+                fields=['nom', 'etablissement', 'module', 'niveau_lmd_key'],
+                condition=Q(department__isnull=True) & Q(module__isnull=False),
+                name='matiere_unique_module_partage_niveau',
             ),
             # Supérieur sans module (legacy) : unicité (nom, etablissement, department)
             models.UniqueConstraint(

@@ -1,0 +1,172 @@
+{% load i18n classe_tags %}
+{# Corps unifié formulaire module (ajout + modification) #}
+{% with fd=module_form_data fe=module_field_errors %}
+{% if fe %}
+<div class="mam-alert mam-alert--error" role="alert">
+  <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+  <div>
+    <strong>{% trans "Corrigez les champs signalés" %}</strong>
+    {% if fe.non_field %}<p>{{ fe.non_field }}</p>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="mam-field mam-field--nom">
+  <label class="mam-label" for="{{ module_nom_field_id }}">{% trans "Nom du module" %} <span class="mam-required">*</span></label>
+  <div class="mam-input-wrap">
+    <i class="fas fa-book-open mam-input-icon" aria-hidden="true"></i>
+    <input type="text"
+           class="mam-input {% if fe.nom %}is-invalid{% endif %}"
+           id="{{ module_nom_field_id }}"
+           name="nom"
+           required
+           maxlength="255"
+           value="{{ fd.nom }}"
+           placeholder="{% trans 'Ex. Mathématiques générales, UE Fondamentale…' %}"
+           autocomplete="off">
+  </div>
+  {% if fe.nom %}<p class="mam-error">{{ fe.nom }}</p>{% endif %}
+</div>
+
+<div class="mam-divider" aria-hidden="true"></div>
+
+<div class="mam-block mam-block--specs">
+  <div class="mam-block-head">
+    <h3 class="mam-block-title">{% trans "Spécialité(s)" %} <span class="mam-required">*</span></h3>
+    <p class="mam-block-desc">{% trans "Une spécialité = module dédié. Plusieurs = module mutualisé entre filières." %}</p>
+  </div>
+
+  <div class="mam-spec-toolbar">
+    <span class="mam-spec-count"
+          data-module-spec-count
+          data-empty="{% trans 'Aucune spécialité' %}"
+          data-one="{% trans 'spécialité' %}"
+          data-many="{% trans 'spécialités' %}">0 {% trans "spécialité" %}</span>
+  </div>
+
+  <div class="mam-spec-grid" data-module-departments>
+    {% for dep in departments %}
+    <label class="mam-spec-card">
+      <input type="checkbox"
+             class="mam-spec-input"
+             name="departments_ids"
+             value="{{ dep.id }}"
+             {% if dep.id|stringformat:"s" in fd.departments_ids %}checked{% endif %}>
+      <span class="mam-spec-card-inner">
+        <span class="mam-spec-sigle">{% if dep.sigle %}{{ dep.sigle }}{% else %}{{ dep.nom|slice:":3"|upper }}{% endif %}</span>
+        <span class="mam-spec-name">{{ dep.nom }}</span>
+        <span class="mam-spec-check" aria-hidden="true"><i class="fas fa-check"></i></span>
+      </span>
+    </label>
+    {% empty %}
+    <p class="mam-empty-inline">{% trans "Aucune spécialité configurée dans l'établissement." %}</p>
+    {% endfor %}
+  </div>
+  {% if fe.department %}<p class="mam-error">{{ fe.department }}</p>{% endif %}
+</div>
+
+<div class="mam-divider" aria-hidden="true"></div>
+
+<div class="mam-block mam-block--niveaux" data-module-niveaux>
+  <div class="mam-block-head">
+    <h3 class="mam-block-title">{% trans "Niveaux LMD et paramètres UE" %}</h3>
+    <p class="mam-block-desc">{% trans "Activez les niveaux concernés et renseignez UE, semestre et crédits." %}</p>
+  </div>
+
+  {% if modal_niveaux_par_filiere %}
+    <div class="mam-niveaux-empty mam-empty-state"
+         data-module-niveaux-empty
+         {% if fd.departments_ids %}hidden{% endif %}>
+      <span class="mam-empty-icon" aria-hidden="true"><i class="fas fa-graduation-cap"></i></span>
+      <p class="mam-empty-title">{% trans "Sélectionnez des spécialités" %}</p>
+      <p class="mam-empty-desc">{% trans "Cochez au moins une spécialité pour afficher les niveaux LMD correspondants." %}</p>
+    </div>
+
+    <div class="mam-niveaux-blocks" data-module-niveaux-blocks>
+      {% for block in modal_niveaux_par_filiere %}
+      <div class="mam-filiere-block"
+           data-department-id="{{ block.department.id }}"
+           {% if block.department.id|stringformat:"s" not in fd.departments_ids %}hidden{% endif %}>
+        <p class="mam-filiere-label" data-show-if-multi {% if fd.departments_ids|length <= 1 %}hidden{% endif %}>
+          <i class="fas fa-building" aria-hidden="true"></i>
+          {% trans "Spécialité" %} :
+          <strong>{{ block.department.nom }}</strong>
+          {% if block.department.sigle %}<span class="mam-filiere-sigle">({{ block.department.sigle }})</span>{% endif %}
+        </p>
+
+        <div class="mam-niveaux-grid">
+          {% for item in block.niveaux_items %}
+          <article class="mam-niveau-card niveau-card"
+                   data-niveau="{{ item.field_key }}"
+                   data-nb-classes="{{ item.classes|length }}"
+                   data-niveau-selected="{% if fd.niveaux and item.field_key in fd.niveaux %}1{% else %}0{% endif %}"
+                   data-initial-credits="{{ fd.credits_per_niveau|dict_get:item.field_key|credits_input_display|default:'' }}"
+                   data-initial-numero="{{ fd.numeros_per_niveau|dict_get:item.field_key }}"
+                   data-initial-periode="{{ fd.periodes_per_niveau|dict_get:item.field_key }}">
+            <button type="button" class="mam-niveau-toggle niveau-card-header" aria-expanded="false">
+              <span class="mam-niveau-toggle-left">
+                <span class="mam-niveau-badge">{{ item.niveau_key|libelle_niveau_lmd_key }}</span>
+                <span class="mam-niveau-meta">{{ item.classes|length }} classe{{ item.classes|length|pluralize }}</span>
+              </span>
+              <span class="mam-niveau-toggle-hint niveau-action-hint">
+                <i class="fas fa-sliders-h" aria-hidden="true"></i>
+                <span class="mam-niveau-toggle-hint-text">{% trans "Configurer" %}</span>
+                <i class="fas fa-chevron-down mam-niveau-chevron" aria-hidden="true"></i>
+              </span>
+            </button>
+            <div class="mam-niveau-body niveau-credits-block" hidden>
+              <input type="hidden" name="niveaux" value="{{ item.field_key }}" class="niveau-hidden-input" disabled>
+              <div class="mam-niveau-fields">
+                <div class="mam-niveau-field">
+                  <label class="mam-niveau-label" for="numero_{{ item.field_key|slugify }}">{% trans "N° UE" %}</label>
+                  <input type="text"
+                         class="mam-input mam-input--sm numero-ue-input"
+                         id="numero_{{ item.field_key|slugify }}"
+                         name="numero_{{ item.field_key }}"
+                         maxlength="80"
+                         value="{{ fd.numeros_per_niveau|dict_get:item.field_key }}"
+                         placeholder="{% trans 'Ex. UE3.1.1' %}"
+                         autocomplete="off">
+                </div>
+                <div class="mam-niveau-field">
+                  <label class="mam-niveau-label" for="periode_{{ item.field_key|slugify }}">{% trans "Semestre" %}</label>
+                  <select class="mam-input mam-input--sm periode-niveau-input" id="periode_{{ item.field_key|slugify }}" name="periode_{{ item.field_key }}">
+                    <option value="">{% trans "— Choisir —" %}</option>
+                    {% with periodes_niveau=modal_periodes_par_niveau|dict_get:item.niveau_key %}
+                      {% for p in periodes_niveau %}
+                      <option value="{{ p.id }}" {% if fd.periodes_per_niveau|dict_get:item.field_key == p.id|stringformat:"s" %}selected{% endif %}>{{ p.nom_periode }}</option>
+                      {% endfor %}
+                    {% endwith %}
+                  </select>
+                </div>
+                <div class="mam-niveau-field mam-niveau-field--credits">
+                  <label class="mam-niveau-label" for="credits_{{ item.field_key|slugify }}">{% trans "Crédits" %}</label>
+                  <input type="number"
+                         name="credits_{{ item.field_key }}"
+                         id="credits_{{ item.field_key|slugify }}"
+                         class="mam-input mam-input--sm credits-niveau-input"
+                         value="{{ fd.credits_per_niveau|dict_get:item.field_key|credits_input_display|default:'0' }}"
+                         min="0"
+                         step="0.5"
+                         placeholder="0">
+                </div>
+              </div>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if fe.credits_per_niveau %}<p class="mam-error">{{ fe.credits_per_niveau }}</p>{% endif %}
+    {% if fe.periodes_per_niveau %}<p class="mam-error">{{ fe.periodes_per_niveau }}</p>{% endif %}
+    {% if fe.niveaux %}<p class="mam-error">{{ fe.niveaux }}</p>{% endif %}
+  {% else %}
+  <div class="mam-empty-state" data-module-niveaux-empty>
+    <span class="mam-empty-icon" aria-hidden="true"><i class="fas fa-graduation-cap"></i></span>
+    <p class="mam-empty-title">{% trans "Aucun niveau disponible" %}</p>
+    <p class="mam-empty-desc">{% trans "Créez des classes avec niveau LMD pour vos spécialités." %}</p>
+  </div>
+  {% endif %}
+</div>
+{% endwith %}

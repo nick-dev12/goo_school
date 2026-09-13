@@ -34,7 +34,7 @@
             <div class="nr-hero-text">
                 <h1 class="nr-hero-title"><i class="fas fa-chart-line"></i> {% trans "Notes et résultats" %}</h1>
                 <p class="nr-hero-sub">{% trans "Consultez les moyennes par classe et par matière, imprimez les relevés ou traitez les justifications." %}</p>
-                {% if annee_scolaire_active %}
+        {% if annee_scolaire_active %}
                     <span class="nr-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
                 {% endif %}
             </div>
@@ -42,12 +42,12 @@
                 <div class="nr-stat-pill"><span class="nr-stat-num">{{ stats_generales.total_eleves }}</span><span class="nr-stat-lbl">{% trans "Élèves" %}</span></div>
                 <div class="nr-stat-pill"><span class="nr-stat-num">{{ stats_generales.total_classes }}</span><span class="nr-stat-lbl">{% trans "Classes" %}</span></div>
                 <div class="nr-stat-pill"><span class="nr-stat-num">{{ stats_generales.nombre_periodes }}</span><span class="nr-stat-lbl">{% trans "Périodes" %}</span></div>
-            </div>
+        </div>
             <div class="nr-hero-actions">
                 <a href="{% url 'directeur:justifications_notes' %}" class="nr-action-btn nr-action-btn--secondary">
                     <i class="fas fa-scale-balanced"></i> {% trans "Justifications" %}
                 </a>
-            </div>
+        </div>
         </header>
 
         {% if periodes and not est_superieur %}
@@ -56,8 +56,8 @@
                 <a class="periode-tab {% if periode_selectionnee and periode.id == periode_selectionnee.id %}active{% endif %}"
                    href="?periode={{ periode.id }}&{{ tab_nav_query }}">
                     <i class="fas fa-calendar-alt"></i>
-                    <span class="periode-nom">{{ periode.nom_periode }}</span>
-                </a>
+                        <span class="periode-nom">{{ periode.nom_periode }}</span>
+                    </a>
             {% endfor %}
         </nav>
         {% endif %}
@@ -82,15 +82,15 @@
                     <div class="nr-classe-nav">
                         <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
                             <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes' %}">
-                                {% for classe_data in data.classes %}
+                        {% for classe_data in data.classes %}
                                     <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if classe_data.classe.id == active_classe_id %}active{% endif %}"
                                             data-subtab="classe-{{ classe_data.classe.id }}"
                                             aria-selected="{% if classe_data.classe.id == active_classe_id %}true{% else %}false{% endif %}">
                                         <i class="fas fa-door-open"></i>
                                         <span>{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
                                         <span class="tab-count">{{ classe_data.nombre_eleves }}</span>
-                                    </button>
-                                {% endfor %}
+                            </button>
+                        {% endfor %}
                             </div>
                             <div class="matiere-tabs-more-wrap" hidden>
                                 <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres classes' %}">
@@ -158,7 +158,7 @@
                                                     onclick="clearNotesPrimaireSearch('{{ classe_data.classe.id }}')" aria-label="{% trans 'Effacer' %}">
                                                 <i class="fas fa-times"></i>
                                             </button>
-                                        </label>
+                                                </label>
                                         <div class="nr-filters-row filters-box">
                                             <div class="filter-group">
                                                 <label class="filter-label" for="filter-performance-primaire-{{ classe_data.classe.id }}"><i class="fas fa-chart-line"></i> {% trans "Performance" %}</label>
@@ -323,7 +323,7 @@
                                                 onclick="clearNotesSearch('{{ classe_data.classe.id }}')" aria-label="{% trans 'Effacer' %}">
                                             <i class="fas fa-times"></i>
                                         </button>
-                                    </label>
+                                            </label>
                                     <div class="nr-filters-row filters-box">
                                         <div class="filter-group">
                                             <label class="filter-label" for="filter-performance-{{ classe_data.classe.id }}"><i class="fas fa-chart-line"></i> {% trans "Performance" %}</label>

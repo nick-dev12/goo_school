@@ -4,216 +4,246 @@
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/annonces/liste_annonces.css' %}?v=1.0.1">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <title>{% trans "Gestion des Annonces - Directeur" %}</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Annonces" %} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/annonces/liste_annonces.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
-<body>
+<body class="ann-page-body" data-live-page="annonces-directeur">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <div class="container">
-        <!-- Header Section -->
-        <div class="page-header">
+    <div class="content-container ann-page">
+        {% include 'school_admin/partials/messages.html' %}
+
+        <div class="page-header page-header-minimal">
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
-<div class="header-content">
-                <h1><i class="fas fa-bullhorn"></i> {% trans "Gestion des Annonces" %}</h1>
-                <p>{% trans "Publiez des annonces importantes pour votre établissement" %}</p>
-            </div>
-            <a href="{% url 'directeur:creer_annonce' %}" class="btn-primary">
-                <i class="fas fa-plus"></i> {% trans "Nouvelle annonce" %}
-            </a>
         </div>
 
-        <!-- Message d'information sur l'année scolaire active -->
-        {% if annee_scolaire_active %}
-        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
-            <i class="fas fa-calendar-check"></i>
-          </span>
-          <div>
-            <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-              Année scolaire active : {{ annee_scolaire_active.libelle }}
-            </p>
-            <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              {% trans "Seules les annonces de cette année scolaire sont affichées." %}
-            </p>
-          </div>
-        </div>
-        {% else %}
-        <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
-          <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            {% trans "Aucune année scolaire active. Toutes les annonces sont affichées." %}
-          </span>
+        <header class="ann-hero">
+            <div class="ann-hero-text">
+                <h1 class="ann-hero-title"><i class="fas fa-bullhorn"></i> {% trans "Annonces" %}</h1>
+                {% if annee_scolaire_active %}
+                    <span class="ann-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+                {% endif %}
+            </div>
+            <div class="ann-hero-stats">
+                <div class="ann-stat-pill">
+                    <span class="ann-stat-num">{{ total_annonces }}</span>
+                    <span class="ann-stat-lbl">{% trans "Total" %}</span>
+                </div>
+                <div class="ann-stat-pill ann-stat-pill--ok">
+                    <span class="ann-stat-num">{{ annonces_publiees }}</span>
+                    <span class="ann-stat-lbl">{% trans "Publiées" %}</span>
+                </div>
+                <div class="ann-stat-pill ann-stat-pill--warn">
+                    <span class="ann-stat-num">{{ annonces_brouillon }}</span>
+                    <span class="ann-stat-lbl">{% trans "Brouillons" %}</span>
+                </div>
+                <div class="ann-stat-pill">
+                    <span class="ann-stat-num">{{ annonces_archivees }}</span>
+                    <span class="ann-stat-lbl">{% trans "Archivées" %}</span>
+                </div>
+            </div>
+            <div class="ann-hero-actions">
+                <a href="{% url 'directeur:creer_annonce' %}" class="ann-action-btn ann-action-btn--primary">
+                    <i class="fas fa-plus"></i> {% trans "Nouvelle annonce" %}
+                </a>
+            </div>
+        </header>
+
+        {% if not annee_scolaire_active %}
+        <div class="ann-alert ann-alert-warn">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>{% trans "Aucune année scolaire active. Toutes les annonces sont affichées." %}</span>
         </div>
         {% endif %}
 
-        <!-- Statistiques -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--gradient-blue);">
-                    <i class="fas fa-bullhorn"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ total_annonces }}</h3>
-                    <p>{% trans "Total des annonces" %}</p>
+        <section class="ann-main-panel" aria-label="{% trans 'Liste des annonces' %}">
+            <div class="ann-statut-nav">
+                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'statut' %}" data-overflow-items-label="{% trans 'statuts' %}">
+                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Filtrer par statut' %}">
+                        <a href="{% url 'directeur:annonces_directeur' %}"
+                           role="tab"
+                           class="matiere-tab-btn ann-statut-tab {% if not statut_filtre %}active{% endif %}"
+                           aria-selected="{% if not statut_filtre %}true{% else %}false{% endif %}">
+                            <i class="fas fa-list"></i>
+                            <span>{% trans "Toutes" %}</span>
+                            <span class="tab-count">{{ total_annonces }}</span>
+                        </a>
+                        <a href="{% url 'directeur:annonces_directeur' %}?statut=publiee"
+                           role="tab"
+                           class="matiere-tab-btn ann-statut-tab {% if statut_filtre == 'publiee' %}active{% endif %}"
+                           aria-selected="{% if statut_filtre == 'publiee' %}true{% else %}false{% endif %}">
+                            <i class="fas fa-check-circle"></i>
+                            <span>{% trans "Publiées" %}</span>
+                            <span class="tab-count">{{ annonces_publiees }}</span>
+                        </a>
+                        <a href="{% url 'directeur:annonces_directeur' %}?statut=brouillon"
+                           role="tab"
+                           class="matiere-tab-btn ann-statut-tab {% if statut_filtre == 'brouillon' %}active{% endif %}"
+                           aria-selected="{% if statut_filtre == 'brouillon' %}true{% else %}false{% endif %}">
+                            <i class="fas fa-pen"></i>
+                            <span>{% trans "Brouillons" %}</span>
+                            <span class="tab-count">{{ annonces_brouillon }}</span>
+                        </a>
+                        <a href="{% url 'directeur:annonces_directeur' %}?statut=archivee"
+                           role="tab"
+                           class="matiere-tab-btn ann-statut-tab {% if statut_filtre == 'archivee' %}active{% endif %}"
+                           aria-selected="{% if statut_filtre == 'archivee' %}true{% else %}false{% endif %}">
+                            <i class="fas fa-archive"></i>
+                            <span>{% trans "Archivées" %}</span>
+                            <span class="tab-count">{{ annonces_archivees }}</span>
+                        </a>
+                    </div>
+                    <div class="matiere-tabs-more-wrap" hidden>
+                        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres statuts' %}">
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            <span class="matiere-tabs-more-label">{% trans "Autres statuts" %}</span>
+                        </button>
+                        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--gradient-green);">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ annonces_publiees }}</h3>
-                    <p>{% trans "Annonces publiées" %}</p>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--gradient-orange);">
-                    <i class="fas fa-edit"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ annonces_brouillon }}</h3>
-                    <p>{% trans "Brouillons" %}</p>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--gradient-purple);">
-                    <i class="fas fa-archive"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ annonces_archivees }}</h3>
-                    <p>{% trans "Annonces archivées" %}</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filtres -->
-        <div class="filters-section">
-            <form method="get" action="{% url 'directeur:annonces_directeur' %}" class="filters-form">
-                <div class="filter-group">
-                    <label for="statut"><i class="fas fa-filter"></i> {% trans "Filtrer par statut :" %}</label>
-                    <select name="statut" id="statut" onchange="this.form.submit()">
-                        <option value="">{% trans "Tous les statuts" %}</option>
-                        <option value="publiee" {% if statut_filtre == 'publiee' %}selected{% endif %}>{% trans "Publiées" %}</option>
-                        <option value="brouillon" {% if statut_filtre == 'brouillon' %}selected{% endif %}>{% trans "Brouillons" %}</option>
-                        <option value="archivee" {% if statut_filtre == 'archivee' %}selected{% endif %}>{% trans "Archivées" %}</option>
-                    </select>
-                </div>
-                <a href="{% url 'directeur:annonces_directeur' %}" class="btn-reset">
-                    <i class="fas fa-redo"></i> {% trans "Réinitialiser" %}
-                </a>
-            </form>
-        </div>
-
-        <!-- Liste des annonces -->
-        <div class="annonces-section">
             {% if annonces %}
-                <div class="annonces-grid">
+            <div class="ann-toolbar">
+                <div class="ann-search-wrap">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input type="search"
+                           id="ann-search-input"
+                           class="ann-search-input"
+                           placeholder="{% trans 'Rechercher une annonce par titre ou contenu…' %}"
+                           autocomplete="off"
+                           aria-label="{% trans 'Rechercher une annonce' %}">
+                    <button type="button" class="ann-clear-search" id="ann-clear-search" hidden aria-label="{% trans 'Effacer la recherche' %}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <p class="ann-filter-results" id="ann-filter-results" hidden>
+                    <span id="ann-results-count">0</span> {% trans "résultat(s)" %}
+                </p>
+            </div>
+
+            <div class="ann-list-scroll table-responsive">
+                <div class="ann-list">
+                    <div class="ann-list-header">
+                        <div class="ann-list-cell ann-list-cell--title">{% trans "Annonce" %}</div>
+                        <div class="ann-list-cell">{% trans "Destinataires" %}</div>
+                        <div class="ann-list-cell">{% trans "Date" %}</div>
+                        <div class="ann-list-cell">{% trans "Statut" %}</div>
+                        <div class="ann-list-cell ann-list-cell--actions">{% trans "Actions" %}</div>
+                    </div>
+
                     {% for annonce in annonces %}
-                        <div class="annonce-card {% if annonce.statut == 'brouillon' %}brouillon{% elif annonce.statut == 'archivee' %}archivee{% endif %}">
-                            <div class="annonce-header">
-                                <div class="annonce-title-section">
-                                    <h3>{{ annonce.titre }}</h3>
-                                    <span class="badge badge-{{ annonce.statut }}">
-                                        {% if annonce.statut == 'publiee' %}
-                                            <i class="fas fa-check-circle"></i> Publiée
-                                        {% elif annonce.statut == 'brouillon' %}
-                                            <i class="fas fa-edit"></i> Brouillon
-                                        {% else %}
-                                            <i class="fas fa-archive"></i> Archivée
+                    <article class="ann-list-row"
+                             data-titre="{{ annonce.titre|lower }}"
+                             data-contenu="{{ annonce.contenu|lower|truncatewords:50 }}">
+                        <div class="ann-list-cell ann-list-cell--title">
+                            <div class="ann-title-block">
+                                <span class="ann-icon-wrap ann-icon-wrap--{{ annonce.statut }}" aria-hidden="true">
+                                    <i class="fas fa-bullhorn"></i>
+                                </span>
+                                <div class="ann-title-text">
+                                    <h3 class="ann-item-title">{{ annonce.titre }}</h3>
+                                    <p class="ann-item-excerpt">{{ annonce.contenu|truncatewords:18 }}</p>
+                                    <div class="ann-item-meta">
+                                        <span><i class="fas fa-user"></i> {{ annonce.get_nom_auteur }}</span>
+                                        {% if annonce.fichier_joint %}
+                                        <span class="ann-has-file"><i class="fas fa-paperclip"></i> {% trans "Pièce jointe" %}</span>
                                         {% endif %}
-                                    </span>
-                                </div>
-                                <div class="annonce-meta">
-                                    <span><i class="fas fa-user"></i> {{ annonce.get_nom_auteur }}</span>
-                                    <span>
-                                        <i class="fas fa-calendar"></i>
-                                        {% if annonce.date_publication %}
-                                            {{ annonce.date_publication|date:"d/m/Y à H:i" }}
-                                        {% else %}
-                                            {{ annonce.date_creation|date:"d/m/Y à H:i" }}
-                                        {% endif %}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="annonce-content">
-                                <p>{{ annonce.contenu|truncatewords:30 }}</p>
-                            </div>
-
-                            <div class="annonce-footer">
-                                <div class="destinataires">
-                                    <i class="fas fa-users"></i>
-                                    <span>{{ annonce.get_destinataires_display }}</span>
-                                </div>
-                                {% if annonce.fichier_joint %}
-                                    <div class="fichier-joint">
-                                        <i class="fas fa-paperclip"></i>
-                                        <span>{% trans "Fichier joint" %}</span>
                                     </div>
-                                {% endif %}
+                                </div>
                             </div>
-
-                            <div class="annonce-actions">
-                                <a href="{% url 'directeur:apercu_annonce' annonce.id %}" class="btn-action btn-view" title="{% trans "Aperçu" %}">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{% url 'directeur:modifier_annonce' annonce.id %}" class="btn-action btn-edit" title="{% trans "Modifier" %}">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                
-                                {% if annonce.statut == 'brouillon' %}
-                                    <form method="post" action="{% url 'directeur:publier_annonce' annonce.id %}" style="display: inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn-action btn-publish" title="Publier" onclick="return confirm('Voulez-vous publier cette annonce ?')">
-                                            <i class="fas fa-paper-plane"></i>
-                                        </button>
-                                    </form>
-                                {% elif annonce.statut == 'publiee' %}
-                                    <form method="post" action="{% url 'directeur:archiver_annonce' annonce.id %}" style="display: inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn-action btn-archive" title="Archiver" onclick="return confirm('Voulez-vous archiver cette annonce ?')">
-                                            <i class="fas fa-archive"></i>
-                                        </button>
-                                    </form>
+                        </div>
+                        <div class="ann-list-cell">
+                            <span class="ann-dest-badge"><i class="fas fa-users"></i> {{ annonce.get_destinataires_display }}</span>
+                        </div>
+                        <div class="ann-list-cell ann-list-cell--date">
+                            {% if annonce.date_publication %}
+                                {{ annonce.date_publication|date:"d/m/Y" }}
+                                <span class="ann-time">{{ annonce.date_publication|date:"H:i" }}</span>
+                            {% else %}
+                                {{ annonce.date_creation|date:"d/m/Y" }}
+                                <span class="ann-time">{{ annonce.date_creation|date:"H:i" }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="ann-list-cell">
+                            <span class="ann-status-badge ann-status-badge--{{ annonce.statut }}">
+                                {% if annonce.statut == 'publiee' %}
+                                    <i class="fas fa-check-circle"></i> {% trans "Publiée" %}
+                                {% elif annonce.statut == 'brouillon' %}
+                                    <i class="fas fa-pen"></i> {% trans "Brouillon" %}
+                                {% else %}
+                                    <i class="fas fa-archive"></i> {% trans "Archivée" %}
                                 {% endif %}
-                                
-                                <form method="post" action="{% url 'directeur:supprimer_annonce' annonce.id %}" style="display: inline;">
+                            </span>
+                        </div>
+                        <div class="ann-list-cell ann-list-cell--actions">
+                            <div class="ann-actions-group">
+                                <a href="{% url 'directeur:apercu_annonce' annonce.id %}" class="ann-act-btn ann-act-btn--view" title="{% trans 'Aperçu' %}">
+                                    <i class="fas fa-eye"></i>
+                                    <span>{% trans "Voir" %}</span>
+                                </a>
+                                <a href="{% url 'directeur:modifier_annonce' annonce.id %}" class="ann-act-btn ann-act-btn--edit" title="{% trans 'Modifier' %}">
+                                    <i class="fas fa-edit"></i>
+                                    <span>{% trans "Modifier" %}</span>
+                                </a>
+                                {% if annonce.statut == 'brouillon' %}
+                                <form method="post" action="{% url 'directeur:publier_annonce' annonce.id %}" class="ann-inline-form">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn-action btn-delete" title="Supprimer" onclick="return confirm('Voulez-vous vraiment supprimer cette annonce ?')">
+                                    <button type="submit" class="ann-act-btn ann-act-btn--publish" title="{% trans 'Publier' %}" onclick="return confirm('{% trans "Voulez-vous publier cette annonce ?" %}')">
+                                        <i class="fas fa-paper-plane"></i>
+                                        <span>{% trans "Publier" %}</span>
+                                    </button>
+                                </form>
+                                {% elif annonce.statut == 'publiee' %}
+                                <form method="post" action="{% url 'directeur:archiver_annonce' annonce.id %}" class="ann-inline-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="ann-act-btn ann-act-btn--archive" title="{% trans 'Archiver' %}" onclick="return confirm('{% trans "Voulez-vous archiver cette annonce ?" %}')">
+                                        <i class="fas fa-archive"></i>
+                                        <span>{% trans "Archiver" %}</span>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <form method="post" action="{% url 'directeur:supprimer_annonce' annonce.id %}" class="ann-inline-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="ann-act-btn ann-act-btn--delete" title="{% trans 'Supprimer' %}" onclick="return confirm('{% trans "Voulez-vous vraiment supprimer cette annonce ?" %}')">
                                         <i class="fas fa-trash"></i>
+                                        <span>{% trans "Supprimer" %}</span>
                                     </button>
                                 </form>
                             </div>
                         </div>
+                    </article>
                     {% endfor %}
                 </div>
+            </div>
             {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-bullhorn"></i>
-                    <h3>{% trans "Aucune annonce" %}</h3>
-                    <p>
-                        {% if statut_filtre %}
-                            Aucune annonce ne correspond à vos critères de filtrage.
-                        {% else %}
-                            Vous n'avez pas encore créé d'annonce. Commencez par créer votre première annonce !
-                        {% endif %}
-                    </p>
-                    <a href="{% url 'directeur:creer_annonce' %}" class="btn-primary">
-                        <i class="fas fa-plus"></i> {% trans "Créer une annonce" %}
-                    </a>
-                </div>
+            <div class="ann-empty-state">
+                <i class="fas fa-bullhorn"></i>
+                <h3>{% trans "Aucune annonce" %}</h3>
+                <p>
+                    {% if statut_filtre %}
+                        {% trans "Aucune annonce ne correspond à ce filtre." %}
+                    {% else %}
+                        {% trans "Commencez par créer votre première annonce pour informer votre communauté scolaire." %}
+                    {% endif %}
+                </p>
+                <a href="{% url 'directeur:creer_annonce' %}" class="ann-action-btn ann-action-btn--primary">
+                    <i class="fas fa-plus"></i> {% trans "Créer une annonce" %}
+                </a>
+            </div>
             {% endif %}
-        </div>
+        </section>
     </div>
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script src="{% static 'school_admin/js/directeur/liste_annonces.js' %}?v=2.0.0"></script>
 </body>
 </html>
-

@@ -207,6 +207,56 @@ def _model_name():
     return getattr(settings, 'DEEPSEEK_MODEL', 'deepseek-flash') or 'deepseek-flash'
 
 
+def _extract_reasoning_content(message):
+    """DeepSeek (mode thinking) exige le renvoi du reasoning_content au tour suivant."""
+    if message is None:
+        return None
+    if isinstance(message, dict):
+        return message.get('reasoning_content') or None
+    for attr in ('reasoning_content', 'reasoning'):
+        value = getattr(message, attr, None)
+        if value:
+            return value
+    model_extra = getattr(message, 'model_extra', None) or {}
+    if isinstance(model_extra, dict):
+        value = model_extra.get('reasoning_content')
+        if value:
+            return value
+    return None
+
+
+def _tool_calls_payload(tool_calls):
+    return [
+        {
+            'id': call['id'],
+            'type': 'function',
+            'function': {
+                'name': call['name'],
+                'arguments': json.dumps(call['arguments'], ensure_ascii=False),
+            },
+        }
+        for call in tool_calls
+    ]
+
+
+def _assistant_message_dict(message, content=None, tool_calls=None):
+    """Construit le message assistant à renvoyer à l’API (reasoning + tool_calls)."""
+    if content is None:
+        content = getattr(message, 'content', None)
+        if content is None and isinstance(message, dict):
+            content = message.get('content')
+    payload = {
+        'role': 'assistant',
+        'content': content or '',
+    }
+    reasoning = _extract_reasoning_content(message)
+    if reasoning:
+        payload['reasoning_content'] = reasoning
+    if tool_calls:
+        payload['tool_calls'] = _tool_calls_payload(tool_calls)
+    return payload
+
+
 def _extract_tool_calls(message):
     calls = getattr(message, 'tool_calls', None) or []
     parsed = []
@@ -297,21 +347,7 @@ async def run_assistant_turn(
             break
 
         used_tools = True
-        working.append({
-            'role': 'assistant',
-            'content': message.content or '',
-            'tool_calls': [
-                {
-                    'id': call['id'],
-                    'type': 'function',
-                    'function': {
-                        'name': call['name'],
-                        'arguments': json.dumps(call['arguments'], ensure_ascii=False),
-                    },
-                }
-                for call in tool_calls
-            ],
-        })
+        working.append(_assistant_message_dict(message, tool_calls=tool_calls))
         for call in tool_calls:
             result = await sync_to_async(execute_tool, thread_sensitive=True)(
                 ctx, call['name'], call['arguments']

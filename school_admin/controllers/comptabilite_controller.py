@@ -136,9 +136,17 @@ class ComptabiliteController:
                 classe, etablissement, annee_scolaire_active
             )
             
-            # Récupérer les paramètres de comptabilité spécifiques pour cette classe (ou généraux si pas de paramètres spécifiques)
-            parametres = ComptabiliteController._get_parametres_for_classe(etablissement, classe)
-            
+            parametres_groupe = ComptabiliteController._parametres_groupe_for_classe(
+                etablissement, classe
+            )
+            parametres = parametres_groupe
+            show_colonne_mensualite = bool(
+                parametres_groupe
+                and etablissement.type_etablissement_comptabilite == 'prive'
+                and (parametres_groupe.montant_mensualite or Decimal('0')) > 0
+                and parametres_groupe.type_facturation == 'mensuel'
+            )
+
             eleves_comptabilite = []
             for eleve in eleves:
                 # Récupérer ou créer la comptabilité
@@ -159,34 +167,35 @@ class ComptabiliteController:
                 # Cette fonctionnalité a été désactivée pour éviter la création automatique
                 # Les données affichées proviennent uniquement de la base de données
                 
-                # Vérifier et mettre à jour le statut
-                comptabilite.verifier_statut_paiement()
-                
-                # Mettre à jour les statuts des mensualités si paramètres existent
-                if parametres:
+                if not parametres_groupe:
+                    total_du = Decimal('0.00')
+                    total_paye = Decimal('0.00')
+                    reste_a_payer = Decimal('0.00')
+                    frais_inscription = Decimal('0.00')
+                    mensualites_total = Decimal('0.00')
+                    mensualites_reste = Decimal('0.00')
+                    est_non_en_regle = False
+                else:
+                    comptabilite.verifier_statut_paiement()
                     mensualites = Mensualite.objects.filter(comptabilite_eleve=comptabilite)
                     for mensualite in mensualites:
                         mensualite.mettre_a_jour_statut(parametres)
-                
-                # Vérifier si l'élève est "non en règle" selon les nouveaux critères
-                est_non_en_regle = comptabilite.est_non_en_regle(parametres)
-                
-                total_du = comptabilite.calculer_total_du()
-                total_paye = comptabilite.calculer_total_paye()
-                reste_a_payer = total_du - total_paye
-                
-                # Récupérer les frais d'inscription pour cet élève
-                frais_inscription_obj = FraisInscription.objects.filter(
-                    comptabilite_eleve=comptabilite
-                ).first()
-                frais_inscription = frais_inscription_obj.montant if frais_inscription_obj else Decimal('0.00')
+                    est_non_en_regle = comptabilite.est_non_en_regle(parametres)
+                    total_du = comptabilite.calculer_total_du()
+                    total_paye = comptabilite.calculer_total_paye()
+                    reste_a_payer = total_du - total_paye
+                    frais_inscription_obj = FraisInscription.objects.filter(
+                        comptabilite_eleve=comptabilite
+                    ).first()
+                    frais_inscription = (
+                        frais_inscription_obj.montant if frais_inscription_obj else Decimal('0.00')
+                    )
+                    mensualites_total = Decimal('0.00')
+                    mensualites_reste = Decimal('0.00')
+                    for mensualite in Mensualite.objects.filter(comptabilite_eleve=comptabilite):
+                        mensualites_total += mensualite.montant
+                        mensualites_reste += mensualite.get_reste_a_payer()
 
-                frais_annexes_total = Decimal('0.00')
-                frais_annexes_reste = Decimal('0.00')
-                for frais_annexe in FraisAnnexe.objects.filter(comptabilite_eleve=comptabilite):
-                    frais_annexes_total += frais_annexe.montant
-                    frais_annexes_reste += frais_annexe.get_reste_a_payer()
-                
                 eleves_comptabilite.append({
                     'eleve': eleve,
                     'comptabilite': comptabilite,
@@ -194,8 +203,8 @@ class ComptabiliteController:
                     'total_paye': total_paye,
                     'reste_a_payer': reste_a_payer,
                     'frais_inscription': frais_inscription,
-                    'frais_annexes_total': frais_annexes_total,
-                    'frais_annexes_reste': frais_annexes_reste,
+                    'mensualites_total': mensualites_total,
+                    'mensualites_reste': mensualites_reste,
                     'est_non_en_regle': est_non_en_regle,
                 })
             
@@ -222,6 +231,8 @@ class ComptabiliteController:
                 'montant_reste_classe': montant_total_classe - montant_total_paye_classe,
                 'eleves_en_regle_classe': eleves_en_regle_classe,
                 'eleves_non_en_regle_classe': eleves_non_en_regle_classe,
+                'parametres_configures': parametres_groupe is not None,
+                'show_colonne_mensualite': show_colonne_mensualite,
             }
             
             classes_grouped[categorie]['classes'].append(classe_data)
@@ -2236,32 +2247,34 @@ class ComptabiliteController:
         return render(request, 'school_admin/directeur/comptabilite/ajouter_modifier_parametres_groupe.html', context)
 
     @staticmethod
+    def _nom_groupe_classe(classe):
+        nom = classe.nom
+        match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', nom)
+        if match:
+            return match.group(1).strip()
+        return nom.strip()
+
+    @staticmethod
+    def _parametres_groupe_for_classe(etablissement, classe):
+        """Paramètres de scolarité du jeu de groupe (1ère, 2nde…), sans repli général."""
+        nom_groupe = ComptabiliteController._nom_groupe_classe(classe)
+        return ParametresComptabiliteGroupeClasse.get_parametres_for_classe(
+            etablissement,
+            nom_groupe,
+        )
+
+    @staticmethod
     def _get_parametres_for_classe(etablissement, classe):
         """
         Retourne les paramètres de comptabilité appropriés pour une classe donnée.
         Retourne les paramètres spécifiques si disponibles, sinon les paramètres généraux.
         Retourne None si aucun paramètre n'est configuré.
         """
-        import re
-        
-        # Extraire le nom du groupe de classes depuis le nom de la classe
-        nom = classe.nom
-        match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', nom)
-        if match:
-            nom_groupe = match.group(1).strip()
-        else:
-            nom_groupe = nom.strip()
-        
-        # Chercher les paramètres spécifiques pour ce groupe
-        parametres_specifiques = ParametresComptabiliteGroupeClasse.get_parametres_for_classe(
-            etablissement,
-            nom_groupe
+        parametres_specifiques = ComptabiliteController._parametres_groupe_for_classe(
+            etablissement, classe
         )
-        
         if parametres_specifiques:
             return parametres_specifiques
-        
-        # Sinon, retourner les paramètres généraux
         try:
             return ParametresComptabilite.objects.get(etablissement=etablissement)
         except ParametresComptabilite.DoesNotExist:

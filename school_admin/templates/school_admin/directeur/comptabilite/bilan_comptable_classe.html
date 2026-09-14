@@ -160,6 +160,11 @@
                         <div class="scb-mini-card-value">{{ total_frais_inscription_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                         <div class="scb-mini-card-sub">{% trans "Payé" %} : {{ total_frais_inscription_paye|floatformat:0 }} — {% trans "Reste" %} : {{ total_frais_inscription_reste|floatformat:0 }}</div>
                     </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Frais annexes dus" %}</div>
+                        <div class="scb-mini-card-value">{{ total_frais_annexes_du|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Payé" %} : {{ total_frais_annexes_paye|default:0|floatformat:0 }} — {% trans "Reste" %} : {{ total_frais_annexes_reste|default:0|floatformat:0 }}</div>
+                    </div>
                 </div>
             </section>
 

@@ -170,6 +170,13 @@ class ParametresComptabilite(models.Model):
         verbose_name="Paiement en avance",
         help_text="Si activé, le paiement effectué le jour de versement est pour le mois en cours. Sinon, c'est pour le mois précédent."
     )
+
+    frais_annexes = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Frais annexes",
+        help_text="Tenue, carte scolaire, dossier, assurance, examen, transport, cantine, apport, autres.",
+    )
     
     # Dates
     date_creation = models.DateTimeField(
@@ -228,6 +235,21 @@ class ParametresComptabilite(models.Model):
         Retourne True si la facturation est annuelle
         """
         return self.type_facturation == 'annuel' or self.etablissement.type_etablissement_comptabilite == 'public'
+
+    def get_frais_annexes_normalises(self):
+        from school_admin.utils.frais_annexes import normaliser_frais_annexes
+
+        return normaliser_frais_annexes(self.frais_annexes)
+
+    def get_frais_annexes_actifs(self):
+        from school_admin.utils.frais_annexes import frais_annexes_actifs
+
+        return frais_annexes_actifs(self.frais_annexes)
+
+    def total_frais_annexes(self):
+        from school_admin.utils.frais_annexes import total_frais_annexes_actifs
+
+        return total_frais_annexes_actifs(self.frais_annexes)
     
     def mettre_a_jour_systeme_comptabilite(self):
         """
@@ -449,6 +471,17 @@ class ParametresComptabilite(models.Model):
                                 # Si la période est dans la même année (ex: jan à déc)
                                 if annee_courante > annee_fin or (annee_courante == annee_fin and mois_courant > mois_fin):
                                     break
+
+                    from school_admin.utils.frais_annexes import synchroniser_frais_annexes_eleve
+
+                    synchroniser_frais_annexes_eleve(
+                        eleve,
+                        self.etablissement,
+                        annee_scolaire_active,
+                        comptabilite,
+                        self,
+                        inscription,
+                    )
                 
                 # ========== ÉTAPE 2 : METTRE À JOUR LES FRAIS D'INSCRIPTION EXISTANTS ==========
                 # Uniquement pour les élèves qui n'ont PAS de paramètres spécifiques

@@ -521,6 +521,107 @@
   color: var(--gray-700, #374151);
 }
 
+.scp-annexes-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.scp-annexes-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  align-items: baseline;
+  font-size: 0.8125rem;
+  color: var(--gray-700, #374151);
+}
+
+.scp-annexes-list strong {
+  color: #1d4ed8;
+}
+
+.scp-annexes-list em {
+  font-style: normal;
+  color: var(--gray-500, #6b7280);
+  font-size: 0.75rem;
+}
+
+.frais-annexes-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+.frais-annexes-table-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 30px;
+  height: 100%;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.08), transparent);
+  pointer-events: none;
+}
+
+.frais-annexes-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.frais-annexes-table th,
+.frais-annexes-table td {
+  min-width: 120px;
+  white-space: nowrap;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--gray-200, #e5e7eb);
+  line-height: 1.45;
+}
+
+.frais-annexes-table th {
+  font-size: 0.8125rem;
+  color: var(--gray-600, #4b5563);
+  background: var(--gray-50, #f9fafb);
+}
+
+.frais-annexes-table input[type="number"],
+.frais-annexes-table input[type="text"],
+.frais-annexes-table select {
+  width: 100%;
+  min-width: 140px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--gray-300, #d1d5db);
+  border-radius: 6px;
+}
+
+.frais-optionnel-tag {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #0d9488;
+  background: rgba(20, 184, 166, 0.12);
+  border-radius: 999px;
+}
+
+.frais-annexe-optionnel {
+  background: rgba(20, 184, 166, 0.04);
+}
+
+@media (max-width: 1024px) {
+  .frais-annexes-table th,
+  .frais-annexes-table td {
+    font-size: 0.875rem;
+  }
+}
+
 @media (max-width: 768px) {
   .content-container.scp-page {
     padding: 0.75rem 0.875rem 4.5rem;
@@ -558,5 +659,10 @@
   .scp-modal-body .form-grid,
   .scp-modal-body .groupes-checkboxes {
     grid-template-columns: 1fr;
+  }
+
+  .frais-annexes-table th,
+  .frais-annexes-table td {
+    font-size: 0.8125rem;
   }
 }

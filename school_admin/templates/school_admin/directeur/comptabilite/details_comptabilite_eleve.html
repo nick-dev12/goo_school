@@ -90,6 +90,11 @@
                     <span class="scd-tab-count">{{ mensualites_avec_paiements|length }}</span>
                 </button>
                 {% endif %}
+                <button type="button" role="tab" class="scd-tab-btn" data-scd-tab="scd-panel-annexes" aria-selected="false">
+                    <i class="fas fa-tags"></i>
+                    <span>{% trans "Frais annexes" %}</span>
+                    <span class="scd-tab-count" id="comptaAnnexesCount">{{ frais_annexes_avec_paiements|length }}</span>
+                </button>
                 <button type="button" role="tab" class="scd-tab-btn" data-scd-tab="scd-panel-historique" aria-selected="false">
                     <i class="fas fa-history"></i>
                     <span>{% trans "Historique" %}</span>
@@ -224,6 +229,69 @@
             {% else %}
             <div id="comptaMensualitesSection" hidden></div>
             {% endif %}
+
+            <div class="scd-tab-panel" id="scd-panel-annexes" role="tabpanel">
+                <header class="scd-section-head">
+                    <h2 class="scd-section-title"><i class="fas fa-tags"></i> {% trans "Frais annexes" %}</h2>
+                </header>
+                {% if frais_annexes_avec_paiements %}
+                    <div class="scd-table-wrap table-responsive">
+                        <table class="scd-table">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Frais" %}</th>
+                                    <th>{% trans "Périodicité" %}</th>
+                                    <th>{% trans "Montant dû" %}</th>
+                                    <th>{% trans "Payé" %}</th>
+                                    <th>{% trans "Reste" %}</th>
+                                    <th>{% trans "Échéance" %}</th>
+                                    <th>{% trans "Statut" %}</th>
+                                    <th>{% trans "Actions" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comptaAnnexesBody">
+                                {% for frais_data in frais_annexes_avec_paiements %}
+                                    {% with frais=frais_data.frais reste=frais_data.reste_a_payer %}
+                                    <tr data-annexe-id="{{ frais.id }}">
+                                        <td>{{ frais.libelle }}</td>
+                                        <td>{{ frais.get_periodicite_display }}</td>
+                                        <td><strong>{{ frais_data.montant_total|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</strong></td>
+                                        <td>{{ frais_data.montant_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                        <td>
+                                            <span class="{% if reste > 0 %}scd-amount-danger{% else %}scd-amount-success{% endif %}">
+                                                {{ reste|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}
+                                            </span>
+                                        </td>
+                                        <td>{{ frais.date_echeance|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <span class="badge badge-{% if frais.statut == 'paye' %}success{% elif frais.statut == 'en_retard' %}warning{% else %}info{% endif %}">
+                                                {{ frais.get_statut_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if reste > 0 %}
+                                            <button type="button" class="btn btn-success" onclick="openPaiementModal('annexe', {{ frais.id }}, {{ frais_data.montant_total|floatformat:0 }}, {{ frais_data.montant_paye|floatformat:0 }}, {{ reste|floatformat:0 }})">
+                                                <i class="fas fa-money-bill-wave"></i> {% trans "Payer" %}
+                                            </button>
+                                            {% else %}
+                                            <span class="badge badge-success">{% trans "Payé" %}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="scd-empty" id="comptaAnnexesEmpty"><i class="fas fa-info-circle"></i> {% trans "Aucun frais annexe configuré pour cet élève." %}</p>
+                    <div class="scd-table-wrap table-responsive" hidden>
+                        <table class="scd-table">
+                            <tbody id="comptaAnnexesBody"></tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
 
             <div class="scd-tab-panel" id="scd-panel-historique" role="tabpanel">
                 <header class="scd-section-head">

@@ -71,6 +71,12 @@ def serialize_comptabilite_parametres(parametres, etablissement):
         except (TypeError, ValueError):
             return '0'
 
+    from school_admin.utils.frais_annexes import (
+        frais_annexes_actifs,
+        total_frais_annexes_actifs,
+    )
+
+    actifs = frais_annexes_actifs(getattr(parametres, 'frais_annexes', None))
     return {
         'montant_frais_inscription': fmt_amount(parametres.montant_frais_inscription),
         'montant_frais_reinscription': fmt_amount(parametres.montant_frais_reinscription),
@@ -82,7 +88,38 @@ def serialize_comptabilite_parametres(parametres, etablissement):
         'autoriser_paiements_partiels': parametres.autoriser_paiements_partiels,
         'delai_tolerance_retard': str(parametres.delai_tolerance_retard or 0) + ' jours',
         'type_etablissement_comptabilite': etablissement.type_etablissement_comptabilite,
+        'frais_annexes': [
+            {
+                'code': item['code'],
+                'libelle': item['libelle'],
+                'montant': fmt_amount(item['montant_decimal']),
+                'periodicite': item['periodicite'],
+                'periodicite_display': item['periodicite_display'],
+                'actif': item['actif'],
+            }
+            for item in actifs
+        ],
+        'frais_annexes_total': fmt_amount(total_frais_annexes_actifs(getattr(parametres, 'frais_annexes', None))),
+        'frais_annexes_actifs': len(actifs),
     }
+
+
+def serialize_parametres_groupe_classe(parametre, etablissement, devise=None):
+    """Snapshot d'un jeu de paramètres par groupe, y compris les frais annexes."""
+    from django.urls import reverse
+
+    base = serialize_comptabilite_parametres(parametre, etablissement)
+    if devise is None:
+        devise = etablissement.devise_monnaie or 'FCFA'
+    base.update({
+        'id': parametre.id,
+        'nom': parametre.nom,
+        'groupes_classes': list(parametre.groupes_classes or []),
+        'devise': devise,
+        'edit_url': reverse('directeur:modifier_parametres_groupe_directeur', args=[parametre.id]),
+        'delete_url': reverse('directeur:supprimer_parametres_groupe_directeur', args=[parametre.id]),
+    })
+    return base
 
 
 def serialize_comptabilite_paiement_result(eleve_id, message, snapshot=None):
@@ -140,6 +177,7 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
     from ..model.comptabilite_eleve_model import (
         ComptabiliteEleve,
         FraisInscription,
+        FraisAnnexe,
         Mensualite,
         PaiementEleve,
     )
@@ -227,6 +265,33 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
             'can_pay': float(reste) > 0,
         })
 
+    annexes_rows = []
+    for frais in FraisAnnexe.objects.filter(comptabilite_eleve=comptabilite).order_by('libelle'):
+        montant_paye = Decimal('0.00')
+        for paiement in PaiementEleve.objects.filter(
+            frais_annexe=frais,
+            eleve=eleve,
+            annee_scolaire=annee_scolaire,
+            type_paiement='frais_annexe',
+        ):
+            montant_paye += Decimal(str(paiement.montant))
+        reste = Decimal(str(frais.montant)) - montant_paye
+        if reste < Decimal('0.00'):
+            reste = Decimal('0.00')
+        annexes_rows.append({
+            'id': frais.id,
+            'libelle': frais.libelle,
+            'periodicite_display': frais.get_periodicite_display(),
+            'montant_total': _fmt_amount(frais.montant),
+            'montant_paye': _fmt_amount(montant_paye),
+            'reste_a_payer': _fmt_amount(reste),
+            'date_echeance': frais.date_echeance.strftime('%d/%m/%Y') if frais.date_echeance else '-',
+            'statut': frais.statut,
+            'statut_display': frais.get_statut_display(),
+            'statut_badge': _frais_statut_badge(frais.statut),
+            'can_pay': float(reste) > 0,
+        })
+
     paiement_rows = []
     for paiement in PaiementEleve.objects.filter(eleve=eleve, annee_scolaire=annee_scolaire).order_by('-date_paiement'):
         paiement_rows.append({
@@ -259,6 +324,7 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
         },
         'frais': frais_rows,
         'mensualites': mensualite_rows,
+        'frais_annexes': annexes_rows,
         'paiements': paiement_rows,
     }
 

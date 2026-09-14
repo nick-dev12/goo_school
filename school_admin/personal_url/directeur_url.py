@@ -125,6 +125,7 @@ urlpatterns = [
     path('comptabilite/eleve/<int:eleve_id>/paiement/', enregistrer_paiement_directeur, name='enregistrer_paiement_directeur'),
     path('comptabilite/eleve/<int:eleve_id>/frais-inscription/<int:frais_id>/payer/', payer_frais_inscription_directeur, name='payer_frais_inscription_directeur'),
     path('comptabilite/eleve/<int:eleve_id>/mensualite/<int:mensualite_id>/payer/', payer_mensualite_directeur, name='payer_mensualite_directeur'),
+    path('comptabilite/eleve/<int:eleve_id>/frais-annexe/<int:frais_id>/payer/', payer_frais_annexe_directeur, name='payer_frais_annexe_directeur'),
     path('comptabilite/verifier-statuts/', verifier_statuts_paiement_directeur, name='verifier_statuts_paiement_directeur'),
     path('comptabilite/parametres/', parametres_comptabilite_directeur, name='parametres_comptabilite_directeur'),
     path('comptabilite/parametres-groupes/', liste_parametres_groupes_directeur, name='liste_parametres_groupes_directeur'),

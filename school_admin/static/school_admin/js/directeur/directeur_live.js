@@ -882,6 +882,27 @@
 
   }
 
+  function renderAnnexeRow(row, devise) {
+    var resteColor = row.reste_a_payer > 0 ? 'var(--accent, #ef4444)' : 'var(--success, #10b981)';
+    var action = row.can_pay
+      ? '<button type="button" class="btn btn-success" onclick="openPaiementModal(\'annexe\', ' +
+        row.id + ', ' + row.montant_total + ', ' + row.montant_paye + ', ' + row.reste_a_payer +
+        ')" style="padding: 0.5rem 1rem; font-size: 0.875rem;"><i class="fas fa-money-bill-wave"></i> Payer</button>'
+      : '<span class="badge badge-success">Payé</span>';
+    return (
+      '<tr data-annexe-id="' + row.id + '">' +
+      '<td>' + esc(row.libelle) + '</td>' +
+      '<td>' + esc(row.periodicite_display || '') + '</td>' +
+      '<td><strong>' + fmtMoney(row.montant_total, devise) + '</strong></td>' +
+      '<td>' + fmtMoney(row.montant_paye, devise) + '</td>' +
+      '<td><span style="color: ' + resteColor + '; font-weight: 600;">' +
+      fmtMoney(row.reste_a_payer, devise) + '</span></td>' +
+      '<td>' + esc(row.date_echeance) + '</td>' +
+      '<td><span class="badge badge-' + row.statut_badge + '">' + esc(row.statut_display) + '</span></td>' +
+      '<td>' + action + '</td></tr>'
+    );
+  }
+
 
 
   function renderMensualiteRow(row, devise, eleveNom) {
@@ -1124,6 +1145,21 @@
 
 
 
+    var annexesBody = document.getElementById('comptaAnnexesBody');
+    var annexesCount = document.getElementById('comptaAnnexesCount');
+    if (annexesBody) {
+      if (snapshot.frais_annexes && snapshot.frais_annexes.length) {
+        annexesBody.innerHTML = snapshot.frais_annexes.map(function (row) {
+          return renderAnnexeRow(row, devise);
+        }).join('');
+      } else {
+        annexesBody.innerHTML = '';
+      }
+    }
+    if (annexesCount) {
+      annexesCount.textContent = snapshot.frais_annexes ? snapshot.frais_annexes.length : 0;
+    }
+
     var mensualitesSection = document.getElementById('comptaMensualitesSection');
 
     if (mensualitesSection) {
@@ -1252,6 +1288,54 @@
 
     }
 
+    updateParametreGroupeCard(item);
+
+  }
+
+  function updateParametreGroupeCard(item) {
+    if (!item || !item.id) {
+      if (item && item.action === 'deleted') {
+        return;
+      }
+      return;
+    }
+    if (item.action === 'deleted') {
+      var stale = document.querySelector('.parametre-card[data-parametre-id="' + item.id + '"]');
+      if (stale) {
+        stale.remove();
+      }
+      return;
+    }
+    var card = document.querySelector('.parametre-card[data-parametre-id="' + item.id + '"]');
+    if (!card) {
+      AriaLive.reloadUnlessSkip();
+      return;
+    }
+    var title = card.querySelector('.parametre-card-title');
+    if (title && item.nom) {
+      title.textContent = item.nom;
+    }
+    var totalEl = card.querySelector('[data-param-annexes-total]');
+    var devise = item.devise || document.body.getAttribute('data-devise') || 'FCFA';
+    if (totalEl) {
+      totalEl.textContent = (item.frais_annexes_total || '0') + ' ' + devise;
+    }
+    var list = card.querySelector('[data-param-annexes-list]');
+    if (list) {
+      var annexes = item.frais_annexes || [];
+      if (!annexes.length) {
+        list.innerHTML = '';
+        list.hidden = true;
+      } else {
+        list.hidden = false;
+        list.innerHTML = annexes.map(function (frais) {
+          return '<li data-annexe-code="' + esc(frais.code) + '"><span>' +
+            esc(frais.libelle) + '</span><strong>' + esc(frais.montant) + ' ' +
+            esc(devise) + '</strong><em>' + esc(frais.periodicite_display || '') +
+            '</em></li>';
+        }).join('');
+      }
+    }
   }
 
 
@@ -1360,7 +1444,13 @@
 
     } else if (event === 'comptabilite.parametres' && item) {
 
-      updateComptaParametres(item);
+      if (item.action === 'deleted') {
+        updateParametreGroupeCard(item);
+      } else if (item.id) {
+        updateParametreGroupeCard(item);
+      } else {
+        updateComptaParametres(item);
+      }
 
     } else if (event === 'comptabilite.mise_a_jour') {
 

@@ -9,7 +9,7 @@ from decimal import Decimal
 from ..model.eleve_model import Eleve
 from ..model.inscription_eleve_model import InscriptionEleve
 from ..model.lien_familial_model import LienFamilial
-from ..model.comptabilite_eleve_model import ComptabiliteEleve, FraisInscription, Mensualite
+from ..model.comptabilite_eleve_model import ComptabiliteEleve, FraisAnnexe, FraisInscription, Mensualite
 from ..model.parametres_comptabilite_model import ParametresComptabilite
 from ..model.parametres_comptabilite_groupe_classe_model import ParametresComptabiliteGroupeClasse
 from ..model.annee_scolaire_model import AnneeScolaire
@@ -363,6 +363,17 @@ def scan_qr_eleve_authenticated(request, qr_identifier):
                     # Mensualité à venir
                     mensualites_a_venir.append(mensualite_info)
             
+            frais_annexes_info = []
+            for frais in FraisAnnexe.objects.filter(comptabilite_eleve=comptabilite).order_by('libelle'):
+                frais_annexes_info.append({
+                    'libelle': frais.libelle,
+                    'montant': frais.montant,
+                    'montant_paye': frais.montant_paye,
+                    'reste_a_payer': frais.get_reste_a_payer(),
+                    'statut': frais.get_statut_display(),
+                    'paye': frais.est_totalement_paye(),
+                })
+
             # Calculer les totaux
             total_du = comptabilite.calculer_total_du()
             total_paye = comptabilite.calculer_total_paye()
@@ -384,6 +395,7 @@ def scan_qr_eleve_authenticated(request, qr_identifier):
                 'mensualites_payees': mensualites_payees,
                 'mensualites_impayees': mensualites_impayees,
                 'mensualites_a_venir': mensualites_a_venir,
+                'frais_annexes': frais_annexes_info,
                 'total_du': total_du,
                 'total_paye': total_paye,
                 'reste_a_payer': reste_a_payer,

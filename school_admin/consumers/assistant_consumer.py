@@ -55,7 +55,7 @@ from school_admin.services.tts_service import synthesize_mp3
 logger = logging.getLogger(__name__)
 
 MAX_HISTORY_MESSAGES = 24
-MAX_QUESTION_LENGTH = 2000
+MAX_QUESTION_LENGTH = 8000
 SENTENCE_RE = re.compile(r'(.+?(?:[.!?…]|\n)+)\s*', re.DOTALL)
 CLAUSE_RE = re.compile(r'(.{40,}?[,;:])\s+')
 AFFIRM_RE = re.compile(
@@ -791,6 +791,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             if is_affirmative(question) and is_action_ready(pending.get('draft') or {}):
                 await self._run_guarded(self._confirm_pending)
                 return True
+            decision = decide_pending_reply(question, pending)
+            if decision == 'switch':
+                await self._clear_pending(silent=True)
+                return False
             await self._run_guarded(lambda: self._continue_generic_action(question))
             return True
         elif is_affirmative(question):
@@ -1350,6 +1354,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'incomplet',
             'en_attente_confirmation',
         ):
+            await self._clear_pending(silent=True)
             await self._send_action_result('error', 'Action échouée', data['erreur'])
             await self._speak_and_finish(user_text=question, spoken=data['erreur'])
             return
@@ -1391,7 +1396,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         manquants = list(draft.get('manquants') or [])
         if manquants:
             draft[manquants[0]] = text
-            draft.setdefault('query', text)
         else:
             draft['query'] = text
         other = resolve_action_intent(text)

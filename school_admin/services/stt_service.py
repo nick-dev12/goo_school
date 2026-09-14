@@ -1,5 +1,6 @@
 """
 Transcription vocale de secours (PCM 16 kHz) via l'API Web Speech de Google.
+Les dictées longues sont découpées en segments pour rester dans la limite du service.
 """
 import json
 import logging
@@ -10,8 +11,13 @@ logger = logging.getLogger(__name__)
 
 GOOGLE_STT_URL = 'https://www.google.com/speech-api/v2/recognize'
 GOOGLE_STT_KEY = 'AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw'
-STT_TIMEOUT = 20.0
-MAX_PCM_BYTES = 16000 * 2 * 20
+STT_TIMEOUT = 30.0
+SAMPLE_RATE = 16000
+BYTES_PER_SECOND = SAMPLE_RATE * 2
+CHUNK_SECONDS = 12
+MAX_SECONDS = 90
+MAX_PCM_BYTES = BYTES_PER_SECOND * MAX_SECONDS
+CHUNK_BYTES = BYTES_PER_SECOND * CHUNK_SECONDS
 
 
 def _extract_pcm(payload):
@@ -23,35 +29,19 @@ def _extract_pcm(payload):
     return raw
 
 
-async def transcribe_pcm16(audio_bytes, language='fr-FR'):
-    """
-    Transcrit du PCM 16-bit mono 16 kHz (éventuellement encapsulé WAV).
-    Retourne une chaîne vide si la reconnaissance échoue.
-    """
-    pcm = _extract_pcm(audio_bytes)
-    if not pcm or len(pcm) < 3200:
-        return ''
-    if len(pcm) > MAX_PCM_BYTES:
-        pcm = pcm[:MAX_PCM_BYTES]
-
-    try:
-        async with httpx.AsyncClient(timeout=STT_TIMEOUT) as client:
-            response = await client.post(
-                GOOGLE_STT_URL,
-                params={
-                    'client': 'chromium',
-                    'lang': language,
-                    'key': GOOGLE_STT_KEY,
-                    'output': 'json',
-                },
-                headers={'Content-Type': 'audio/l16; rate=16000'},
-                content=pcm,
-            )
-            response.raise_for_status()
-    except Exception:
-        logger.exception("Échec de la transcription vocale.")
-        return ''
-
+async def _transcribe_chunk(client, pcm, language):
+    response = await client.post(
+        GOOGLE_STT_URL,
+        params={
+            'client': 'chromium',
+            'lang': language,
+            'key': GOOGLE_STT_KEY,
+            'output': 'json',
+        },
+        headers={'Content-Type': 'audio/l16; rate=16000'},
+        content=pcm,
+    )
+    response.raise_for_status()
     transcript = ''
     for line in (response.text or '').splitlines():
         line = line.strip()
@@ -69,3 +59,31 @@ async def transcribe_pcm16(audio_bytes, language='fr-FR'):
                 if piece:
                     transcript = piece
     return transcript
+
+
+async def transcribe_pcm16(audio_bytes, language='fr-FR'):
+    """
+    Transcrit du PCM 16-bit mono 16 kHz (éventuellement encapsulé WAV).
+    Retourne une chaîne vide si la reconnaissance échoue.
+    """
+    pcm = _extract_pcm(audio_bytes)
+    if not pcm or len(pcm) < 3200:
+        return ''
+    if len(pcm) > MAX_PCM_BYTES:
+        pcm = pcm[:MAX_PCM_BYTES]
+
+    pieces = []
+    try:
+        async with httpx.AsyncClient(timeout=STT_TIMEOUT) as client:
+            for start in range(0, len(pcm), CHUNK_BYTES):
+                chunk = pcm[start:start + CHUNK_BYTES]
+                if len(chunk) < 3200:
+                    continue
+                text = await _transcribe_chunk(client, chunk, language)
+                if text:
+                    pieces.append(text)
+    except Exception:
+        logger.exception("Échec de la transcription vocale.")
+        return ' '.join(pieces).strip()
+
+    return ' '.join(pieces).strip()

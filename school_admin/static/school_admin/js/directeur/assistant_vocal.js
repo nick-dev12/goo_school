@@ -33,7 +33,7 @@
   var SPEAK_RMS = 0.045;
   var QUIET_RMS = 0.018;
   var NAV_FALLBACK = 120;
-  var MAX_VOICE_SEC = 20;
+  var MAX_VOICE_SEC = 90;
 
   var socket = null;
   var reconnectTimer = null;

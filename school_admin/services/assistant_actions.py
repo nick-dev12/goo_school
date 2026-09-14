@@ -151,14 +151,23 @@ def _err(message, **extra):
 
 
 def _parse_date(raw):
-    text = (raw or '').strip()
+    text = re.sub(r'\s+', ' ', (raw or '').strip())
     if not text:
         return None
-    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y'):
+    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%d %m %Y', '%d/%m/%y', '%d-%m-%y'):
         try:
             return datetime.strptime(text, fmt).date()
         except ValueError:
             continue
+    digits = re.fullmatch(r'(\d{1,2})\D+(\d{1,2})\D+(\d{2,4})', text)
+    if digits:
+        day, month, year = digits.groups()
+        if len(year) == 2:
+            year = '20' + year
+        try:
+            return datetime(int(year), int(month), int(day)).date()
+        except ValueError:
+            return None
     return None
 
 
@@ -2558,3 +2567,8 @@ _ACTIONS = (
 
 for _spec in _ACTIONS:
     register_action(_spec)
+
+# Élèves, professeurs, personnel, caisse, paie, filières.
+import school_admin.services.assistant_staff  # noqa: E402,F401
+# Fiches longues : dossier, réinscription, moratoire, moyennes, affectations.
+import school_admin.services.assistant_dossiers  # noqa: E402,F401

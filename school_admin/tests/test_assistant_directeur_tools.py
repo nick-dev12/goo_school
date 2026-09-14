@@ -112,6 +112,8 @@ class AssistantDirecteurToolsTests(TestCase):
             'get_annees',
             'get_salles',
             'get_matieres',
+            'get_caisse',
+            'get_volume_horaire',
         }
         attendus.update(ACTION_SPECS.keys())
         manquants = attendus - schema_names
@@ -126,7 +128,7 @@ class AssistantDirecteurToolsTests(TestCase):
         for key in (
             'dashboard', 'classes', 'annonces', 'bulletins', 'comptabilite',
             'examens', 'annees', 'preinscriptions', 'liaisons', 'ajouter_classe',
-            'inscription_eleves', 'certificats',
+            'inscription_eleves', 'certificats', 'caisse', 'volume_horaire',
         ):
             self.assertIn(key, keys)
         for page in PAGE_CATALOG:
@@ -238,6 +240,45 @@ class AssistantDirecteurToolsTests(TestCase):
             resolve_action_intent('Crée une classe 3e B')[0],
             'creer_classe',
         )
+        self.assertEqual(
+            resolve_action_intent('Réinscrire Diallo en 3e A')[0],
+            'reinscrire_eleve',
+        )
+        reinscrire_direct = resolve_action_intent('Réinscrire ATEMKENG Julie')
+        self.assertEqual(reinscrire_direct[0], 'reinscrire_eleve')
+        self.assertIn('ATEMKENG', (reinscrire_direct[1].get('query') or '').upper())
+        reinscrire_classe = resolve_action_intent('Réinscrire Diallo en 3e A')
+        self.assertEqual(reinscrire_classe[1].get('query'), 'Diallo')
+        self.assertIn('3', reinscrire_classe[1].get('classe') or '')
+        from school_admin.services.assistant_intents import decide_pending_reply
+        pending_reins = {
+            'name': 'reinscrire_eleve',
+            'draft': {'statut': 'incomplet', 'manquants': ['query']},
+        }
+        self.assertEqual(
+            decide_pending_reply("Combien d'élèves y a-t-il ?", pending_reins),
+            'switch',
+        )
+        self.assertEqual(
+            decide_pending_reply('Configure les moyennes', pending_reins),
+            'switch',
+        )
+        self.assertEqual(
+            resolve_action_intent('Modifie le dossier de Diallo')[0],
+            'modifier_eleve',
+        )
+        self.assertEqual(
+            resolve_action_intent('Configure les moyennes en classique')[0],
+            'configurer_moyennes',
+        )
+        self.assertEqual(
+            resolve_action_intent('Crée un moratoire pour Diallo')[0],
+            'creer_moratoire',
+        )
+        self.assertEqual(
+            resolve_action_intent('Fixe la moyenne de passage à 10')[0],
+            'configurer_standards',
+        )
         self.assertIsNotNone(resolve_annonce_intent('Crée une annonce pour dire que demain est férié'))
         self.assertEqual(
             resolve_emploi_intent('Crée l’emploi du temps de 2nde A')['action'],
@@ -291,5 +332,9 @@ class AssistantDirecteurToolsTests(TestCase):
     def test_write_action_registry(self):
         self.assertTrue(is_write_action('creer_classe'))
         self.assertTrue(is_write_action('creer_publier_annonce'))
+        self.assertTrue(is_write_action('inscrire_eleve'))
+        self.assertTrue(is_write_action('creer_professeur'))
+        self.assertTrue(is_write_action('ajouter_depense'))
         self.assertFalse(is_write_action('get_effectifs'))
-        self.assertGreaterEqual(len(ACTION_SPECS), 30)
+        self.assertFalse(is_write_action('get_caisse'))
+        self.assertGreaterEqual(len(ACTION_SPECS), 40)

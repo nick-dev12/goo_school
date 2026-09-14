@@ -129,6 +129,46 @@ ACTION_INTENT_RES = (
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}ann[ée]e scolaire', re.I), 'creer_annee_scolaire'),
     (re.compile(r'active[rz]?.{0,30}ann[ée]e', re.I), 'activer_annee_scolaire'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}p[ée]riode', re.I), 'creer_periode'),
+    (re.compile(r'\br[ée]inscri', re.I), 'reinscrire_eleve'),
+    (re.compile(
+        r'(?<![rR][eéEÉ])(inscrit|inscrire).{0,40}(?:[eé]l[eè]ve|[eé]tudiant)',
+        re.I,
+    ), 'inscrire_eleve'),
+    (re.compile(
+        r'(modifie[rz]?|mettre?\s+[àa]\s+jour).{0,50}(?:dossier|[eé]l[eè]ve|[eé]tudiant)',
+        re.I,
+    ), 'modifier_eleve'),
+    (re.compile(r'(r[ée]active[rz]?).{0,40}(?:[eé]l[eè]ve|[eé]tudiant)', re.I), 'activer_eleve'),
+    (re.compile(r'(cr[ée]e[rz]?|accorde[rz]?|mets?|mettre).{0,40}moratoire', re.I), 'creer_moratoire'),
+    (re.compile(r'paie[rz]?.{0,40}[ée]ch[ée]ance', re.I), 'payer_echeance_moratoire'),
+    (re.compile(r'relance[rz]?.{0,40}(impay|dette|scolarit)', re.I), 'relancer_impaye'),
+    (re.compile(
+        r'(configure[rz]?|applique[rz]?|change[rz]?).{0,40}(?:pond[ée]ration|moyennes?)',
+        re.I,
+    ), 'configurer_moyennes'),
+    (re.compile(
+        r'(configure[rz]?|fixe[rz]?).{0,40}(?:moyenne de passage|standards?)',
+        re.I,
+    ), 'configurer_standards'),
+    (re.compile(r'(affiche[rz]?|masque[rz]?).{0,40}bulletin', re.I), 'configurer_visibilite_bulletins'),
+    (re.compile(r'(modifie[rz]?).{0,30}(?:professeur|enseignant)', re.I), 'modifier_professeur'),
+    (re.compile(r'(modifie[rz]?).{0,30}personnel', re.I), 'modifier_personnel'),
+    (re.compile(r'(d[ée]sactive[rz]?).{0,30}personnel', re.I), 'desactiver_personnel'),
+    (re.compile(r'(affecte[rz]?|retire[rz]?).{0,50}(?:professeur|enseignant)', re.I), 'affecter_professeur'),
+    (re.compile(
+        r'(enregistre[rz]?|note[rz]?).{0,40}absence.{0,30}(?:professeur|enseignant)',
+        re.I,
+    ), 'enregistrer_absence_professeur'),
+    (re.compile(r'(modifie[rz]?).{0,30}classe', re.I), 'modifier_classe'),
+    (re.compile(r'(modifie[rz]?).{0,30}salle', re.I), 'modifier_salle'),
+    (re.compile(r'(modifie[rz]?).{0,40}(?:fili[eè]re|sp[ée]cialit)', re.I), 'modifier_filiere'),
+    (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}module', re.I), 'creer_module'),
+    (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}(?:professeur|enseignant)', re.I), 'creer_professeur'),
+    (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,40}personnel', re.I), 'creer_personnel'),
+    (re.compile(r'(enregistre[rz]?|ajoute[rz]?).{0,30}d[ée]pense', re.I), 'ajouter_depense'),
+    (re.compile(r'supprime[rz]?.{0,30}d[ée]pense', re.I), 'supprimer_depense'),
+    (re.compile(r'(marque[rz]?|enregistre[rz]?).{0,30}paie', re.I), 'marquer_paie'),
+    (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}(?:fili[eè]re|sp[ée]cialit[ée])', re.I), 'creer_filiere'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}classe', re.I), 'creer_classe'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}salle', re.I), 'creer_salle'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}mati[eè]re', re.I), 'creer_matiere'),
@@ -138,6 +178,97 @@ ACTION_INTENT_RES = (
     (re.compile(r'archive[rz]?.{0,40}annonce', re.I), 'archiver_annonce'),
     (re.compile(r'supprime[rz]?.{0,40}annonce', re.I), 'supprimer_annonce'),
 )
+
+
+PERSON_QUERY_ACTIONS = (
+    'justifier_absence',
+    'valider_preinscription',
+    'enregistrer_paiement',
+    'generer_document',
+    'approuver_liaison',
+    'rejeter_liaison',
+    'desactiver_eleve',
+    'desactiver_professeur',
+    'modifier_eleve',
+    'reinscrire_eleve',
+    'activer_eleve',
+    'creer_moratoire',
+    'payer_echeance_moratoire',
+    'relancer_impaye',
+    'modifier_professeur',
+    'modifier_personnel',
+    'desactiver_personnel',
+    'affecter_professeur',
+    'enregistrer_absence_professeur',
+    'marquer_paie',
+    'supprimer_depense',
+)
+_PERSON_VERB_RE = re.compile(
+    r'^(?:'
+    r'justifie[rz]?(?:\s+l[\'’]absence)?|'
+    r'r[ée]inscri(?:re|t|s)|'
+    r'(?:modifie[rz]?|mettre?\s+[àa]\s+jour)(?:\s+le\s+dossier)?|'
+    r'(?:r[ée])?active[rz]?|'
+    r'd[ée]sactive[rz]?|'
+    r'(?:cr[ée]e[rz]?|accorde[rz]?|mets?|mettre)(?:\s+un)?\s+moratoire|'
+    r'paie[rz]?(?:\s+l[\'’]?[ée]ch[ée]ance)?|'
+    r'relance[rz]?|'
+    r'(?:approuve[rz]?|rejette[rz]?|refuse[rz]?)|'
+    r'(?:valide[rz]?|accepte[rz]?)|'
+    r'affecte[rz]?|retire[rz]?|'
+    r'enregistre[rz]?|'
+    r'g[ée]n[eè]re[rz]?|'
+    r'marque[rz]?|'
+    r'supprime[rz]?'
+    r')\s+',
+    re.I,
+)
+_PERSON_SKIP_RE = re.compile(
+    r'^(?:(?:l[\'’]|le\s+|la\s+|les\s+|un\s+|une\s+|du\s+|de\s+|d[\'’]|pour\s+)?'
+    r'(?:absence|liaison|pr[ée]inscription|paiement|dossier|[ée]l[eè]ve|'
+    r'[ée]tudiant|professeur|enseignant|personnel|d[ée]pense|paie|'
+    r'impay[ée]s?|dette|scolarit[ée]|[ée]ch[ée]ance|'
+    r'certificat|attestation|convocation|fiche)'
+    r'(?:\s+(?:de|d[\'’]|du|des))?\s+)+',
+    re.I,
+)
+_EN_CLASSE_RE = re.compile(
+    r'\s+(?:en|dans)\s+(?:(?:la\s+|le\s+)?classe\s+(?:de\s+|d[\'’])?)?(.+)$',
+    re.I,
+)
+_QUERY_STOPWORDS = {
+    'passage', 'moyennes', 'moyenne', 'classe', 'confirmation',
+    'bulletins', 'standards', 'pondération', 'ponderation',
+}
+
+
+def _extract_person_query(raw):
+    """Nom après le verbe, même sans « de / pour » (« Réinscrire ATEMKENG Julie »)."""
+    text = (raw or '').strip().rstrip('.!?')
+    pour = re.search(
+        r'(?:pour|de|du|d[\'’])\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\'\- ]{1,40})$',
+        text,
+        re.I,
+    )
+    if pour:
+        candidate = pour.group(1).strip()
+        if candidate.lower() not in _QUERY_STOPWORDS:
+            return candidate
+    rest = _PERSON_VERB_RE.sub('', text, count=1)
+    if rest == text:
+        return None
+    en_classe = _EN_CLASSE_RE.search(rest)
+    if en_classe:
+        rest = rest[:en_classe.start()]
+    prev = None
+    while prev != rest:
+        prev = rest
+        rest = _PERSON_SKIP_RE.sub('', rest)
+    rest = rest.strip(' ,.-')
+    if rest and re.match(r'^[A-Za-zÀ-ÿ]', rest) and len(rest) >= 2:
+        if rest.lower() not in _QUERY_STOPWORDS:
+            return rest[:60]
+    return None
 
 
 def extract_action_args(name, text):
@@ -158,30 +289,37 @@ def extract_action_args(name, text):
             args['type'] = 'convocation'
         else:
             args['type'] = 'certificat_scolarite'
-    pour = re.search(
-        r'(?:pour|de|du|d[\'’])\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\'\- ]{1,40})$',
-        raw.strip().rstrip('.!?'),
-        re.I,
-    )
-    if pour and name in (
-        'justifier_absence',
-        'valider_preinscription',
-        'enregistrer_paiement',
-        'generer_document',
-        'approuver_liaison',
-        'rejeter_liaison',
-    ):
-        args['query'] = pour.group(1).strip()
+    if name in PERSON_QUERY_ACTIONS:
+        query = _extract_person_query(raw)
+        if query:
+            args['query'] = query
     class_match = CLASS_OPEN_RE.search(raw)
     if class_match and name in (
         'publier_bulletins',
         'calculer_moyennes_classe',
         'creer_classe',
         'valider_preinscription',
+        'reinscrire_eleve',
+        'configurer_visibilite_bulletins',
+        'affecter_professeur',
+        'modifier_classe',
     ):
         args.setdefault('classe', _clean_class_query(class_match.group(1)))
+    en_classe = _EN_CLASSE_RE.search(raw.strip().rstrip('.!?'))
+    if en_classe and name in (
+        'publier_bulletins',
+        'calculer_moyennes_classe',
+        'creer_classe',
+        'valider_preinscription',
+        'reinscrire_eleve',
+        'configurer_visibilite_bulletins',
+        'affecter_professeur',
+        'modifier_classe',
+        'inscrire_eleve',
+    ):
+        args.setdefault('classe', _clean_class_query(en_classe.group(1)))
     montant = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:f|fcfa|xof|euros?)?', raw, re.I)
-    if montant and name == 'enregistrer_paiement':
+    if montant and name in ('enregistrer_paiement', 'ajouter_depense'):
         args['montant'] = montant.group(1)
     if name in (
         'creer_parametres_comptabilite',
@@ -252,6 +390,13 @@ PAGE_ALIASES = {
     'facturation': 'facturation',
     'salles': 'salles',
     'personnel': 'personnel',
+    'caisse': 'caisse',
+    'volume horaire': 'volume_horaire',
+    'paie': 'volume_horaire',
+    'filières': 'classes',
+    'filieres': 'classes',
+    'spécialités': 'classes',
+    'specialites': 'classes',
 }
 
 

@@ -132,24 +132,35 @@ def _eleves_qs(ctx):
     return qs
 
 
+def _eleve_name_filter(query):
+    raw = (query or '').strip()
+    if not raw:
+        return Q()
+    tokens = [part for part in re.split(r'\s+', raw) if part]
+    combined = Q()
+    for token in tokens:
+        piece = (
+            Q(nom__icontains=token)
+            | Q(prenom__icontains=token)
+            | Q(matricule_eleve__icontains=token)
+        )
+        combined = piece if not combined else combined & piece
+    return combined
+
+
 def _find_eleve(ctx, query):
     from school_admin.model.eleve_model import Eleve
 
     if not query:
         return None
-    qs = _eleves_qs(ctx).select_related('classe')
-    q = query.strip()
-    found = qs.filter(
-        Q(nom__icontains=q) | Q(prenom__icontains=q) | Q(matricule_eleve__icontains=q)
-    ).first()
+    name_q = _eleve_name_filter(query)
+    found = _eleves_qs(ctx).select_related('classe').filter(name_q).first()
     if found:
         return found
     return Eleve.objects.filter(
         etablissement=ctx.etablissement,
         actif=True,
-    ).filter(
-        Q(nom__icontains=q) | Q(prenom__icontains=q) | Q(matricule_eleve__icontains=q)
-    ).select_related('classe').first()
+    ).filter(name_q).select_related('classe').first()
 
 
 def _find_classe(ctx, query):
@@ -237,11 +248,7 @@ def tool_rechercher_eleves(ctx, args):
     classe_nom = (args.get('classe') or '').strip()
     qs = _eleves_qs(ctx).select_related('classe')
     if query:
-        qs = qs.filter(
-            Q(nom__icontains=query)
-            | Q(prenom__icontains=query)
-            | Q(matricule_eleve__icontains=query)
-        )
+        qs = qs.filter(_eleve_name_filter(query))
     if classe_nom:
         qs = qs.filter(classe__nom__icontains=classe_nom)
     results = []
@@ -858,6 +865,12 @@ def tool_chercher_en_base(ctx, args):
     if any(token in lowered for token in ('absence', 'présent', 'present', 'présence', 'presence')):
         found = tool_presences(ctx, payload)
         return {'trouve': True, 'source': 'presences', **found}
+    if any(token in lowered for token in ('caisse', 'dépense', 'depense', 'solde du mois', 'sorties')):
+        found = tool_caisse(ctx, payload)
+        return {'trouve': True, 'source': 'caisse', **found}
+    if any(token in lowered for token in ('volume horaire', 'paie', 'vacataire', 'heures à payer')):
+        found = tool_volume_horaire(ctx, payload)
+        return {'trouve': True, 'source': 'volume_horaire', **found}
     if any(token in lowered for token in ('paiement', 'impay', 'frais', 'scolarité', 'scolarite', 'dette')):
         found = tool_comptabilite(ctx, payload)
         return {'trouve': True, 'source': 'comptabilite', **found}
@@ -1049,6 +1062,80 @@ def tool_matieres(ctx, args):
     return {'matieres': items}
 
 
+def tool_caisse(ctx, args):
+    from datetime import date as date_cls
+
+    from school_admin.services.caisse import (
+        bornes_mois,
+        depenses_mois,
+        parser_mois,
+        solde_mois,
+        total_depenses,
+        total_recettes,
+    )
+    from school_admin.services.recouvrement import devise_etablissement
+
+    reference = parser_mois(args.get('mois') or args.get('query'), date_cls.today())
+    bornes = bornes_mois(reference)
+    depenses = [
+        {
+            'id': depense.id,
+            'date': depense.date_depense.isoformat(),
+            'motif': depense.get_motif_display(),
+            'libelle': depense.libelle,
+            'montant': str(depense.montant),
+        }
+        for depense in depenses_mois(ctx.etablissement, bornes.debut, bornes.fin)[:SEARCH_LIMIT]
+    ]
+    return {
+        'mois': bornes.label,
+        'entrees': str(total_recettes(ctx.etablissement, bornes.debut, bornes.fin)),
+        'sorties': str(total_depenses(ctx.etablissement, bornes.debut, bornes.fin)),
+        'solde': str(solde_mois(ctx.etablissement, bornes.debut, bornes.fin)),
+        'devise': devise_etablissement(ctx.etablissement),
+        'depenses': depenses,
+    }
+
+
+def tool_volume_horaire(ctx, args):
+    from datetime import date as date_cls
+
+    from school_admin.controllers.volume_horaire_controller import VolumeHoraireController
+    from school_admin.model.professeur_model import Professeur
+    from school_admin.utils.volume_horaire import resoudre_periode
+
+    periode = resoudre_periode(
+        'mois',
+        reference=date_cls.today(),
+        annee_scolaire=ctx.annee_scolaire,
+    )
+    query = (args.get('query') or '').strip()
+    qs = Professeur.objects.filter(etablissement=ctx.etablissement, actif=True)
+    if query:
+        qs = qs.filter(Q(nom__icontains=query) | Q(prenom__icontains=query))
+    lignes = []
+    for prof in qs.order_by('nom', 'prenom')[:SEARCH_LIMIT]:
+        creneaux = list(
+            VolumeHoraireController._creneaux_publies(
+                ctx.etablissement, ctx.annee_scolaire, professeur=prof
+            )
+        )
+        resultat, _abs, _rempl = VolumeHoraireController._resultat_avec_absences(
+            creneaux, periode, prof, ctx.etablissement
+        )
+        paie = VolumeHoraireController._paie_periode(prof, periode)
+        lignes.append({
+            'professeur': prof.nom_complet,
+            'heures': str(resultat.heures),
+            'montant': str(resultat.montant) if resultat.montant is not None else None,
+            'paye': bool(paie),
+        })
+    return {
+        'periode': f'{periode.date_debut.isoformat()} - {periode.date_fin.isoformat()}',
+        'lignes': lignes,
+    }
+
+
 def tool_lister_pages(_ctx, _args):
     from school_admin.services.assistant_pages import list_pages
 
@@ -1107,6 +1194,8 @@ TOOL_HANDLERS = {
     'get_annees': tool_annees,
     'get_salles': tool_salles,
     'get_matieres': tool_matieres,
+    'get_caisse': tool_caisse,
+    'get_volume_horaire': tool_volume_horaire,
 }
 
 from school_admin.services.assistant_emploi import (  # noqa: E402
@@ -1121,6 +1210,8 @@ from school_admin.services.assistant_actions import (  # noqa: E402
     ACTION_SPECS,
     build_tool_schemas as build_action_tool_schemas,
 )
+import school_admin.services.assistant_staff  # noqa: E402,F401
+import school_admin.services.assistant_dossiers  # noqa: E402,F401
 
 for _name, _spec in ACTION_SPECS.items():
     TOOL_HANDLERS[_name] = _spec.prepare
@@ -1596,6 +1687,39 @@ TOOLS_SCHEMA = [
             'parameters': {
                 'type': 'object',
                 'properties': {'query': {'type': 'string'}},
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_caisse',
+            'description': (
+                'Caisse du mois : recettes (paiements), dépenses et solde. '
+                'À utiliser pour toute question sur la caisse, les sorties ou le solde.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'mois': {'type': 'string', 'description': 'Mois au format YYYY-MM'},
+                    'query': {'type': 'string'},
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_volume_horaire',
+            'description': (
+                'Volume horaire et paie des professeurs pour le mois en cours : '
+                'heures, montant, déjà payé ou non.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'query': {'type': 'string', 'description': 'Nom du professeur'},
+                },
             },
         },
     },

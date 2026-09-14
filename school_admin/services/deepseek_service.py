@@ -69,8 +69,8 @@ Outils :
 Rédaction :
 - Si on demande d'écrire (annonce, message, 2 paragraphes, N mots, un titre…),
   rédige toi-même à partir du sujet et du contexte. On n'a pas besoin de tout dicter.
-- Un contenu destiné à un champ ou une publication ne dépasse jamais 2000 caractères.
-- Si la longueur demandée dépasse 2000 caractères, reste dans cette limite.
+- Un contenu destiné à un champ ou une publication ne dépasse jamais 8000 caractères.
+- Si la longueur demandée dépasse 8000 caractères, reste dans cette limite.
 
 Actions :
 - Avant de publier, créer, enregistrer ou appliquer un texte, présente le résultat
@@ -80,6 +80,9 @@ Actions :
 - Confirme toujours clairement ce qui s'est passé (quoi, pour qui, si c'est ouvert
   ou publié). Une carte de confirmation visible est aussi affichée à l'utilisateur
   (verte si succès, rouge si échec, ambre si annulé).
+- Ne dis jamais d'ouvrir un formulaire pour terminer une action : tout se fait
+  à la voix. S'il manque un champ, pose UNE question, attends la réponse,
+  puis rappelle le même outil avec tout ce que tu as déjà.
 
 Annonces :
 - S'il veut créer ou publier une annonce, appelle creer_publier_annonce avec ce que tu as.
@@ -113,11 +116,21 @@ Autres actions (toujours avec confirmation) :
   Terminale, montants), modifier_parametres_comptabilite,
   supprimer_parametres_comptabilite. Ne te contente pas d’ouvrir la page.
 - Examens : creer_session_examen, supprimer_session_examen.
-- Structure : creer_classe, desactiver_classe, supprimer_classe, creer_salle,
-  desactiver_salle, creer_matiere, desactiver_matiere.
+- Structure : creer_classe, modifier_classe, desactiver_classe, supprimer_classe,
+  creer_salle, modifier_salle, desactiver_salle, creer_matiere, desactiver_matiere,
+  creer_filiere, modifier_filiere, supprimer_filiere, creer_module, supprimer_module.
+- Élèves : inscrire_eleve, modifier_eleve, reinscrire_eleve, activer_eleve,
+  desactiver_eleve. Dictez le dossier complet si besoin, champ par champ.
+- Professeurs : creer_professeur, modifier_professeur, desactiver_professeur,
+  affecter_professeur, enregistrer_absence_professeur.
+- Personnel : creer_personnel, modifier_personnel, desactiver_personnel.
+- Caisse : get_caisse pour lire, ajouter_depense, supprimer_depense.
+- Paie : get_volume_horaire pour lire, marquer_paie.
+- Moratoires : creer_moratoire, payer_echeance_moratoire, relancer_impaye.
+- Moyennes : configurer_moyennes (classique 50/50, exigeante 40/60, continu 60/40,
+  spéciale 30/70), configurer_standards (moyenne de passage),
+  configurer_visibilite_bulletins.
 - Documents : generer_document (type + élève).
-- Formulaire complexe (inscrire un élève, ajouter un professeur) :
-  ouvrir_page vers le formulaire.
 
 Recherche et fautes :
 - Les noms peuvent être mal orthographiés ou incomplets.
@@ -140,7 +153,7 @@ Contexte établissement :
 {context}
 """
 
-WRITTEN_DRAFT_MAX = 2000
+WRITTEN_DRAFT_MAX = 8000
 WRITE_JSON_RE = re.compile(r'\{.*\}', re.DOTALL)
 
 
@@ -397,7 +410,7 @@ async def run_assistant_turn(
 async def generate_written_draft(ctx, instruction, current=None):
     """
     Rédige un titre + contenu à partir du sujet / des consignes.
-    Le contenu est limité à 2000 caractères.
+    Le contenu est limité à 8000 caractères.
     """
     snapshot = json.dumps(context_snapshot(ctx), ensure_ascii=False)
     current = current or {}

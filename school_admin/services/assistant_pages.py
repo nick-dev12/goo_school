@@ -131,6 +131,12 @@ PAGE_CATALOG = (
         'mots': 'scolarité comptabilité paiements frais',
     },
     {
+        'key': 'caisse',
+        'titre': 'Caisse du mois',
+        'route': 'directeur:caisse_mois_directeur',
+        'mots': 'caisse dépenses solde recettes sorties',
+    },
+    {
         'key': 'administration',
         'titre': 'Administration',
         'route': 'directeur:gestion_administrative',

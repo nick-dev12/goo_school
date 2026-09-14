@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/parametres_comptabilite.css' %}?v=2.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
-<body class="scp-page-body" data-live-page="compta-parametres"{% if open_ajouter_modal %} data-open-ajouter-modal="1"{% endif %}>
+<body class="scp-page-body" data-live-page="compta-parametres" data-devise="{{ devise_monnaie|default:'FCFA' }}" data-type-compta="{{ etablissement.type_etablissement_comptabilite|default:'prive' }}"{% if open_ajouter_modal %} data-open-ajouter-modal="1"{% endif %}>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container scp-page">

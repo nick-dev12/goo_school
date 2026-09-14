@@ -229,6 +229,55 @@
       },
       tone: 'info',
     },
+    'annonce.mise_a_jour': {
+      title: 'Annonce',
+      body: function () {
+        return 'Une annonce a été mise à jour.';
+      },
+      tone: 'info',
+    },
+    'liaison.mise_a_jour': {
+      title: 'Liaison parent',
+      body: function () {
+        return 'Une demande de liaison a été traitée.';
+      },
+      tone: 'info',
+    },
+    'preinscription.mise_a_jour': {
+      title: 'Préinscription',
+      body: function () {
+        return 'Une préinscription a été mise à jour.';
+      },
+      tone: 'info',
+    },
+    'examen.mise_a_jour': {
+      title: 'Examens',
+      body: function () {
+        return 'Une session d’examen a été mise à jour.';
+      },
+      tone: 'info',
+    },
+    'presence.mise_a_jour': {
+      title: 'Présences',
+      body: function () {
+        return 'Une absence a été justifiée.';
+      },
+      tone: 'info',
+    },
+    'bulletin.mise_a_jour': {
+      title: 'Bulletins',
+      body: function () {
+        return 'Les bulletins ont été mis à jour.';
+      },
+      tone: 'info',
+    },
+    'annee_scolaire.modifiee': {
+      title: 'Année scolaire',
+      body: function () {
+        return 'L’année scolaire a été mise à jour.';
+      },
+      tone: 'info',
+    },
   };
 
   function getWebSocketUrl() {
@@ -295,6 +344,9 @@
       'periode.creee', 'periode.modifiee', 'periode.supprimee', 'annee_scolaire.creee',
       'comptabilite.parametres', 'comptabilite.mise_a_jour',
       'professeur.cree', 'personnel.cree', 'affectation.mise_a_jour', 'emploi.mise_a_jour',
+      'annonce.mise_a_jour', 'liaison.mise_a_jour', 'preinscription.mise_a_jour',
+      'examen.mise_a_jour', 'presence.mise_a_jour', 'bulletin.mise_a_jour',
+      'annee_scolaire.modifiee',
     ];
     if (directeurEvents.indexOf(eventType) !== -1) {
       document.dispatchEvent(

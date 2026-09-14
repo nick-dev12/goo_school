@@ -668,6 +668,22 @@ def apply_annonce_draft(ctx, draft):
         ctx.etablissement.pk,
     )
     from django.urls import reverse
+    from school_admin.services.realtime_helpers import emit_live
+
+    try:
+        emit_live(
+            ctx.etablissement.id,
+            'annonce.mise_a_jour',
+            {
+                'event': 'annonce.mise_a_jour',
+                'item': {
+                    'id': annonce.id,
+                    'action': 'publiee' if annonce.statut == 'publiee' else 'creee',
+                },
+            },
+        )
+    except Exception:
+        logger.exception('Émission temps réel annonce assistant')
 
     return {
         'statut': 'ok',
@@ -727,25 +743,12 @@ def tool_comptabilite(ctx, args):
             }
         total_du = fiche.calculer_total_du()
         total_paye = fiche.calculer_total_paye()
-        annexes = []
-        for frais in fiche.frais_annexes.all():
-            annexes.append({
-                'id': frais.id,
-                'code': frais.code,
-                'libelle': frais.libelle,
-                'montant': _safe_decimal(frais.montant),
-                'paye': _safe_decimal(frais.montant_paye),
-                'reste': _safe_decimal(frais.get_reste_a_payer()),
-                'statut': frais.get_statut_display(),
-                'periodicite': frais.get_periodicite_display(),
-            })
         return {
             'eleve': eleve.nom_complet,
             'statut': fiche.get_statut_paiement_display(),
             'total_du': _safe_decimal(total_du),
             'total_paye': _safe_decimal(total_paye),
             'reste': _safe_decimal(total_du - total_paye),
-            'frais_annexes': annexes,
         }
 
     impayes = qs.filter(statut_paiement__in=['en_retard', 'impaye']).select_related('eleve')
@@ -763,6 +766,44 @@ def tool_comptabilite(ctx, args):
         'nb_en_retard': qs.filter(statut_paiement='en_retard').count(),
         'nb_impaye': qs.filter(statut_paiement='impaye').count(),
         'impayes': items,
+    }
+
+
+def tool_parametres_comptabilite(ctx, args):
+    from school_admin.model.parametres_comptabilite_groupe_classe_model import (
+        ParametresComptabiliteGroupeClasse,
+    )
+    from school_admin.utils.frais_annexes import frais_annexes_actifs
+
+    groupes = ParametresComptabiliteGroupeClasse.get_groupes_disponibles(ctx.etablissement)
+    deja = ParametresComptabiliteGroupeClasse.get_groupes_deja_assignes(ctx.etablissement)
+    items = []
+    for parametre in ParametresComptabiliteGroupeClasse.objects.filter(
+        etablissement=ctx.etablissement
+    ).order_by('nom'):
+        items.append({
+            'id': parametre.id,
+            'nom': parametre.nom,
+            'groupes': list(parametre.groupes_classes or []),
+            'type_facturation': parametre.type_facturation,
+            'montant_frais_inscription': str(parametre.montant_frais_inscription or '0'),
+            'montant_mensualite': str(parametre.montant_mensualite or '0'),
+            'frais_annexes': [
+                {
+                    'code': item['code'],
+                    'libelle': item['libelle'],
+                    'montant': item['montant'],
+                    'periodicite': item.get('periodicite'),
+                }
+                for item in frais_annexes_actifs(getattr(parametre, 'frais_annexes', None))
+            ],
+        })
+    return {
+        'module_actif': bool(ctx.etablissement.module_comptabilite),
+        'groupes_disponibles': groupes,
+        'groupes_deja_assignes': deja,
+        'parametres': items,
+        'url': '/comptabilite/parametres/',
     }
 
 
@@ -829,6 +870,27 @@ def tool_chercher_en_base(ctx, args):
     if any(token in lowered for token in ('annonce',)):
         found = tool_annonces(ctx, payload)
         return {'trouve': True, 'source': 'annonces', **found}
+    if any(token in lowered for token in ('préinscription', 'preinscription', 'candidat')):
+        found = tool_preinscriptions(ctx, payload)
+        return {'trouve': True, 'source': 'preinscriptions', **found}
+    if any(token in lowered for token in ('liaison',)):
+        found = tool_liaisons(ctx, payload)
+        return {'trouve': True, 'source': 'liaisons', **found}
+    if any(token in lowered for token in ('examen', 'session d')):
+        found = tool_examens(ctx, payload)
+        return {'trouve': True, 'source': 'examens', **found}
+    if any(token in lowered for token in ('année scolaire', 'annee scolaire', 'session 20')):
+        found = tool_annees(ctx, payload)
+        return {'trouve': True, 'source': 'annees', **found}
+    if any(token in lowered for token in ('salle',)):
+        found = tool_salles(ctx, payload)
+        return {'trouve': True, 'source': 'salles', **found}
+    if any(token in lowered for token in ('matière', 'matiere')):
+        found = tool_matieres(ctx, payload)
+        return {'trouve': True, 'source': 'matieres', **found}
+    if any(token in lowered for token in ('notification',)):
+        found = tool_notifications(ctx, payload)
+        return {'trouve': True, 'source': 'notifications', **found}
     if any(token in lowered for token in ('département', 'departement', 'module', 'spécialité', 'specialite')):
         found = tool_structure_superieur(ctx, payload)
         return {'trouve': True, 'source': 'structure', **found}
@@ -855,6 +917,136 @@ def tool_chercher_en_base(ctx, args):
         ),
         **found,
     }
+
+
+def tool_notifications(ctx, _args):
+    from school_admin.model.notification_directeur_model import NotificationDirecteur
+
+    qs = NotificationDirecteur.objects.filter(etablissement=ctx.etablissement)
+    items = [
+        {
+            'titre': n.titre if hasattr(n, 'titre') else str(n),
+            'lu': getattr(n, 'lu', False),
+            'date': n.date_creation.isoformat() if getattr(n, 'date_creation', None) else None,
+        }
+        for n in qs.order_by('-date_creation')[:12]
+    ]
+    return {
+        'nb_non_lues': qs.filter(lu=False).count() if hasattr(NotificationDirecteur, 'lu') else 0,
+        'notifications': items,
+        'url': '/notifications/',
+    }
+
+
+def tool_preinscriptions(ctx, args):
+    from school_admin.model.preinscription_model import PreinscriptionEleve
+
+    qs = PreinscriptionEleve.objects.filter(etablissement=ctx.etablissement)
+    statut = (args.get('statut') or 'en_attente').strip()
+    if statut:
+        qs = qs.filter(statut=statut)
+    items = [
+        {
+            'id': p.id,
+            'nom': f'{p.prenom} {p.nom}',
+            'classe': p.classe_souhaitee.nom if p.classe_souhaitee_id else None,
+            'statut': p.statut,
+        }
+        for p in qs.order_by('-id')[:SEARCH_LIMIT]
+    ]
+    return {'nb': qs.count(), 'preinscriptions': items}
+
+
+def tool_liaisons(ctx, args):
+    from school_admin.model.demande_liaison_model import DemandeLiaisonParent
+
+    qs = DemandeLiaisonParent.objects.filter(
+        Q(etablissement=ctx.etablissement)
+        | Q(eleve_valide__etablissement=ctx.etablissement)
+    ).select_related('parent_demandeur', 'eleve_valide')
+    statut = (args.get('statut') or '').strip()
+    if statut:
+        qs = qs.filter(statut=statut)
+    items = [
+        {
+            'id': d.id,
+            'parent': getattr(d.parent_demandeur, 'nom_complet', ''),
+            'eleve': (
+                d.eleve_valide.nom_complet
+                if d.eleve_valide_id
+                else f'{d.prenom_eleve} {d.nom_eleve}'
+            ),
+            'statut': d.statut,
+        }
+        for d in qs.order_by('-date_demande')[:SEARCH_LIMIT]
+    ]
+    return {'nb': qs.count(), 'demandes': items}
+
+
+def tool_examens(ctx, _args):
+    from school_admin.model.session_examen_model import SessionExamen
+
+    qs = SessionExamen.objects.filter(etablissement=ctx.etablissement)
+    if ctx.annee_scolaire:
+        qs = qs.filter(Q(annee_scolaire=ctx.annee_scolaire) | Q(annee_scolaire__isnull=True))
+    items = [
+        {
+            'id': s.id,
+            'nom': s.nom_examen,
+            'periode': s.periode.nom_periode if s.periode_id else None,
+            'debut': s.date_debut.isoformat() if s.date_debut else None,
+            'fin': s.date_fin.isoformat() if s.date_fin else None,
+        }
+        for s in qs.select_related('periode').order_by('-date_creation')[:SEARCH_LIMIT]
+    ]
+    return {'sessions': items}
+
+
+def tool_annees(ctx, _args):
+    from school_admin.model.annee_scolaire_model import AnneeScolaire
+
+    items = [
+        {
+            'id': a.id,
+            'libelle': a.libelle,
+            'active': a.est_active,
+            'ouverte': a.est_ouverte,
+            'debut': a.date_debut.isoformat() if a.date_debut else None,
+            'fin': a.date_fin.isoformat() if a.date_fin else None,
+        }
+        for a in AnneeScolaire.objects.filter(
+            etablissement=ctx.etablissement
+        ).order_by('-annee_debut')[:16]
+    ]
+    return {'annees': items}
+
+
+def tool_salles(ctx, args):
+    from school_admin.model.salle_model import Salle
+
+    qs = Salle.objects.filter(etablissement=ctx.etablissement, actif=True)
+    query = (args.get('query') or '').strip()
+    if query:
+        qs = qs.filter(Q(nom__icontains=query) | Q(numero__icontains=query))
+    items = [
+        {'id': s.id, 'nom': s.nom, 'numero': s.numero, 'type': s.get_type_salle_display()}
+        for s in qs.order_by('numero')[:SEARCH_LIMIT]
+    ]
+    return {'salles': items}
+
+
+def tool_matieres(ctx, args):
+    from school_admin.model.matiere_model import Matiere
+
+    qs = Matiere.objects.filter(etablissement=ctx.etablissement, actif=True)
+    query = (args.get('query') or '').strip()
+    if query:
+        qs = qs.filter(Q(nom__icontains=query) | Q(code__icontains=query))
+    items = [
+        {'id': m.id, 'nom': m.nom, 'code': getattr(m, 'code', None)}
+        for m in qs.order_by('nom')[:SEARCH_LIMIT]
+    ]
+    return {'matieres': items}
 
 
 def tool_lister_pages(_ctx, _args):
@@ -904,9 +1096,17 @@ TOOL_HANDLERS = {
     'creer_publier_annonce': tool_creer_publier_annonce,
     'get_periodes': tool_periodes,
     'get_comptabilite': tool_comptabilite,
+    'get_parametres_comptabilite': tool_parametres_comptabilite,
     'get_structure_superieur': tool_structure_superieur,
     'lister_pages': tool_lister_pages,
     'ouvrir_page': tool_ouvrir_page,
+    'get_notifications': tool_notifications,
+    'get_preinscriptions': tool_preinscriptions,
+    'get_liaisons': tool_liaisons,
+    'get_examens': tool_examens,
+    'get_annees': tool_annees,
+    'get_salles': tool_salles,
+    'get_matieres': tool_matieres,
 }
 
 from school_admin.services.assistant_emploi import (  # noqa: E402
@@ -918,18 +1118,12 @@ TOOL_HANDLERS['creer_emploi_du_temps'] = tool_creer_emploi_du_temps
 TOOL_HANDLERS['ajouter_creneau_emploi'] = tool_ajouter_creneau_emploi
 
 from school_admin.services.assistant_actions import (  # noqa: E402
-    tool_creer_parametres_comptabilite,
-    tool_enregistrer_paiement,
-    tool_get_parametres_comptabilite,
-    tool_modifier_parametres_comptabilite,
-    tool_supprimer_parametres_comptabilite,
+    ACTION_SPECS,
+    build_tool_schemas as build_action_tool_schemas,
 )
 
-TOOL_HANDLERS['get_parametres_comptabilite'] = tool_get_parametres_comptabilite
-TOOL_HANDLERS['creer_parametres_comptabilite'] = tool_creer_parametres_comptabilite
-TOOL_HANDLERS['modifier_parametres_comptabilite'] = tool_modifier_parametres_comptabilite
-TOOL_HANDLERS['supprimer_parametres_comptabilite'] = tool_supprimer_parametres_comptabilite
-TOOL_HANDLERS['enregistrer_paiement'] = tool_enregistrer_paiement
+for _name, _spec in ACTION_SPECS.items():
+    TOOL_HANDLERS[_name] = _spec.prepare
 
 
 TOOLS_SCHEMA = [
@@ -1229,8 +1423,7 @@ TOOLS_SCHEMA = [
         'function': {
             'name': 'get_comptabilite',
             'description': (
-                'Comptabilité élèves : inscription, mensualités et frais annexes '
-                '(tenue, carte, assurance…). Avec query : fiche d’un élève. '
+                'Comptabilité élèves. Avec query : fiche d’un élève. '
                 'Sans query : résumé des impayés.'
             ),
             'parameters': {
@@ -1246,161 +1439,11 @@ TOOLS_SCHEMA = [
         'function': {
             'name': 'get_parametres_comptabilite',
             'description': (
-                'Lit les paramètres de scolarité par groupe de classes, '
-                'y compris les frais annexes (tenue, carte, dossier, assurance, '
-                'examen, transport, cantine, apport, autres).'
+                'Liste les paramètres de scolarité (groupes, montants, frais annexes : '
+                'tenue, carte, dossier, assurance, examen, transport, cantine, apport). '
+                'Pour créer, utilise creer_parametres_comptabilite.'
             ),
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'query': {
-                        'type': 'string',
-                        'description': 'Nom du jeu ou groupe de classes (ex. 6e, CE1)',
-                    },
-                },
-            },
-        },
-    },
-    {
-        'type': 'function',
-        'function': {
-            'name': 'creer_parametres_comptabilite',
-            'description': (
-                'Prépare un jeu de paramètres de scolarité (montants + frais annexes). '
-                'Ne crée rien tout de suite : une confirmation est obligatoire.'
-            ),
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'nom': {'type': 'string'},
-                    'groupes_classes': {
-                        'type': 'array',
-                        'items': {'type': 'string'},
-                        'description': 'Groupes concernés, ex. ["6e", "5e"]',
-                    },
-                    'montant_frais_inscription': {'type': 'number'},
-                    'montant_mensualite': {'type': 'number'},
-                    'montant_frais_reinscription': {'type': 'number'},
-                    'type_facturation': {
-                        'type': 'string',
-                        'enum': ['mensuel', 'annuel'],
-                    },
-                    'frais_annexes': {
-                        'type': 'array',
-                        'description': (
-                            'Liste de frais : code (tenue, carte_scolaire, dossier, '
-                            'assurance, examen, transport, cantine, apport, autre), '
-                            'montant, actif, periodicite (inscription|annuel|ponctuel), libelle.'
-                        ),
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'code': {'type': 'string'},
-                                'libelle': {'type': 'string'},
-                                'montant': {'type': 'number'},
-                                'actif': {'type': 'boolean'},
-                                'periodicite': {
-                                    'type': 'string',
-                                    'enum': ['inscription', 'annuel', 'ponctuel'],
-                                },
-                            },
-                        },
-                    },
-                },
-                'required': ['nom', 'groupes_classes'],
-            },
-        },
-    },
-    {
-        'type': 'function',
-        'function': {
-            'name': 'modifier_parametres_comptabilite',
-            'description': (
-                'Prépare une modification des paramètres (montants ou frais annexes). '
-                'Confirmation obligatoire avant écriture.'
-            ),
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'parametre_id': {'type': 'integer'},
-                    'query': {'type': 'string'},
-                    'nom': {'type': 'string'},
-                    'groupes_classes': {
-                        'type': 'array',
-                        'items': {'type': 'string'},
-                    },
-                    'montant_frais_inscription': {'type': 'number'},
-                    'montant_mensualite': {'type': 'number'},
-                    'frais_annexes': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'code': {'type': 'string'},
-                                'libelle': {'type': 'string'},
-                                'montant': {'type': 'number'},
-                                'actif': {'type': 'boolean'},
-                                'periodicite': {
-                                    'type': 'string',
-                                    'enum': ['inscription', 'annuel', 'ponctuel'],
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    },
-    {
-        'type': 'function',
-        'function': {
-            'name': 'supprimer_parametres_comptabilite',
-            'description': (
-                'Prépare la suppression d’un jeu de paramètres. Confirmation obligatoire.'
-            ),
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'parametre_id': {'type': 'integer'},
-                    'query': {'type': 'string'},
-                },
-            },
-        },
-    },
-    {
-        'type': 'function',
-        'function': {
-            'name': 'enregistrer_paiement',
-            'description': (
-                'Prépare l’enregistrement d’un paiement (inscription, mensualité '
-                'ou frais annexe : tenue, carte, assurance…). Confirmation obligatoire.'
-            ),
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'eleve': {'type': 'string', 'description': 'Nom, prénom ou matricule'},
-                    'query': {'type': 'string'},
-                    'montant': {'type': 'number'},
-                    'type_paiement': {
-                        'type': 'string',
-                        'enum': [
-                            'frais_inscription',
-                            'mensualite',
-                            'frais_annexe',
-                            'tenue',
-                            'carte',
-                            'assurance',
-                        ],
-                    },
-                    'frais_annexe_code': {
-                        'type': 'string',
-                        'description': 'Code du frais annexe (tenue, carte_scolaire, ...)',
-                    },
-                    'periode': {'type': 'string', 'description': 'Période de mensualité'},
-                    'mode_paiement': {'type': 'string'},
-                },
-                'required': ['montant'],
-            },
+            'parameters': {'type': 'object', 'properties': {}},
         },
     },
     {
@@ -1456,12 +1499,16 @@ TOOLS_SCHEMA = [
             'description': (
                 'Ouvre une page de l’application (liste des classes, annonces, etc.). '
                 'Pour une classe nommée, utilise ouvrir_classe. '
-                'Clés : dashboard, etablissement, classes, salles, matieres, '
-                'emplois_du_temps, pedagogie, professeurs, personnel, eleves, '
-                'gestion_eleves, notes, presences, periodes, bulletins, annonces, '
-                'creer_annonce, examens, emploi_examens, comptabilite, administration, '
-                'convocations, certificats, preinscriptions, liaisons, notifications, '
-                'profil, annees. '
+                'Clés : dashboard, etablissement, classes, ajouter_classe, salles, '
+                'ajouter_salle, matieres, ajouter_matiere, modules, emplois_du_temps, '
+                'pedagogie, professeurs, ajouter_professeur, personnel, ajouter_personnel, '
+                'eleves, inscription_eleves, gestion_eleves, reinscription, notes, '
+                'justifications_notes, presences, periodes, bulletins, config_moyennes, '
+                'annonces, creer_annonce, examens, emploi_examens, comptabilite, '
+                'bilan_comptable, parametres_comptabilite, administration, convocations, '
+                'certificats, attestations_reussite, fiches_inscription, preinscriptions, '
+                'liens_preinscription, liaisons, notifications, profil, annees, '
+                'creer_annee, facturation, cartes_identite, configuration_horaires. '
                 'Mettre ouvrir à true seulement si le directeur demande d’y aller.'
             ),
             'parameters': {
@@ -1480,7 +1527,81 @@ TOOLS_SCHEMA = [
             },
         },
     },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_notifications',
+            'description': 'Notifications du directeur (non lues et récentes).',
+            'parameters': {'type': 'object', 'properties': {}},
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_preinscriptions',
+            'description': 'Liste des préinscriptions (défaut : en attente).',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'statut': {'type': 'string', 'description': 'en_attente, validee, rejetee'},
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_liaisons',
+            'description': 'Demandes de liaison parent-élève.',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'statut': {'type': 'string'},
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_examens',
+            'description': 'Sessions d’examens de l’année consultée.',
+            'parameters': {'type': 'object', 'properties': {}},
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_annees',
+            'description': 'Années scolaires de l’établissement.',
+            'parameters': {'type': 'object', 'properties': {}},
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_salles',
+            'description': 'Salles de l’établissement.',
+            'parameters': {
+                'type': 'object',
+                'properties': {'query': {'type': 'string'}},
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_matieres',
+            'description': 'Matières de l’établissement.',
+            'parameters': {
+                'type': 'object',
+                'properties': {'query': {'type': 'string'}},
+            },
+        },
+    },
 ]
+
+TOOLS_SCHEMA.extend(build_action_tool_schemas())
 
 
 def execute_tool(ctx, name, arguments):

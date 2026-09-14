@@ -64,13 +64,13 @@ def serialize_annee_scolaire_item(annee):
     }
 
 
-def serialize_comptabilite_parametres(parametres, etablissement):
-    def fmt_amount(value):
-        try:
-            return str(int(float(value or 0)))
-        except (TypeError, ValueError):
-            return '0'
+def _fmt_parametre_amount(value):
+    try:
+        return str(int(float(value or 0)))
+    except (TypeError, ValueError):
+        return '0'
 
+def serialize_comptabilite_parametres(parametres, etablissement):
     from school_admin.utils.frais_annexes import (
         frais_annexes_actifs,
         total_frais_annexes_actifs,
@@ -78,10 +78,10 @@ def serialize_comptabilite_parametres(parametres, etablissement):
 
     actifs = frais_annexes_actifs(getattr(parametres, 'frais_annexes', None))
     return {
-        'montant_frais_inscription': fmt_amount(parametres.montant_frais_inscription),
-        'montant_frais_reinscription': fmt_amount(parametres.montant_frais_reinscription),
-        'montant_mensualite': fmt_amount(parametres.montant_mensualite),
-        'montant_facturation_annuelle': fmt_amount(parametres.montant_facturation_annuelle),
+        'montant_frais_inscription': _fmt_parametre_amount(parametres.montant_frais_inscription),
+        'montant_frais_reinscription': _fmt_parametre_amount(parametres.montant_frais_reinscription),
+        'montant_mensualite': _fmt_parametre_amount(parametres.montant_mensualite),
+        'montant_facturation_annuelle': _fmt_parametre_amount(parametres.montant_facturation_annuelle),
         'type_facturation': parametres.type_facturation,
         'type_facturation_display': parametres.get_type_facturation_display(),
         'autoriser_retards': parametres.autoriser_retards,
@@ -92,34 +92,61 @@ def serialize_comptabilite_parametres(parametres, etablissement):
             {
                 'code': item['code'],
                 'libelle': item['libelle'],
-                'montant': fmt_amount(item['montant_decimal']),
+                'montant': _fmt_parametre_amount(item['montant_decimal']),
                 'periodicite': item['periodicite'],
                 'periodicite_display': item['periodicite_display'],
                 'actif': item['actif'],
             }
             for item in actifs
         ],
-        'frais_annexes_total': fmt_amount(total_frais_annexes_actifs(getattr(parametres, 'frais_annexes', None))),
+        'frais_annexes_total': _fmt_parametre_amount(
+            total_frais_annexes_actifs(getattr(parametres, 'frais_annexes', None))
+        ),
         'frais_annexes_actifs': len(actifs),
     }
 
 
-def serialize_parametres_groupe_classe(parametre, etablissement, devise=None):
-    """Snapshot d'un jeu de paramètres par groupe, y compris les frais annexes."""
-    from django.urls import reverse
+def serialize_parametres_groupe_stats(etablissement):
+    from school_admin.model.parametres_comptabilite_groupe_classe_model import (
+        ParametresComptabiliteGroupeClasse,
+    )
 
-    base = serialize_comptabilite_parametres(parametre, etablissement)
-    if devise is None:
-        devise = etablissement.devise_monnaie or 'FCFA'
-    base.update({
+    qs = ParametresComptabiliteGroupeClasse.objects.filter(etablissement=etablissement)
+    assignes = ParametresComptabiliteGroupeClasse.get_groupes_deja_assignes(etablissement)
+    disponibles = ParametresComptabiliteGroupeClasse.get_groupes_disponibles(etablissement)
+    return {
+        'total_parametres': qs.count(),
+        'groupes_assignes': len(assignes),
+        'groupes_disponibles': len(disponibles),
+    }
+
+
+def serialize_parametres_groupe_classe(parametre, etablissement, action='updated'):
+    item = serialize_comptabilite_parametres(parametre, etablissement)
+    item.update({
         'id': parametre.id,
+        'action': action,
         'nom': parametre.nom,
+        'groupes': list(parametre.groupes_classes or []),
         'groupes_classes': list(parametre.groupes_classes or []),
-        'devise': devise,
+        'delai_tolerance_retard': parametre.delai_tolerance_retard or 0,
+        'autoriser_paiements_partiels': bool(parametre.autoriser_paiements_partiels),
+        'envoyer_rappels_automatiques': bool(parametre.envoyer_rappels_automatiques),
+        'devise': etablissement.devise_monnaie or 'FCFA',
         'edit_url': reverse('directeur:modifier_parametres_groupe_directeur', args=[parametre.id]),
         'delete_url': reverse('directeur:supprimer_parametres_groupe_directeur', args=[parametre.id]),
+        'stats': serialize_parametres_groupe_stats(etablissement),
     })
-    return base
+    return item
+
+
+def serialize_parametres_groupe_deleted(parametre_id, etablissement):
+    return {
+        'id': parametre_id,
+        'action': 'deleted',
+        'deleted': True,
+        'stats': serialize_parametres_groupe_stats(etablissement),
+    }
 
 
 def serialize_comptabilite_paiement_result(eleve_id, message, snapshot=None):

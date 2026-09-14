@@ -467,6 +467,18 @@ def apply_emploi_du_temps_draft(ctx, draft):
         logger.exception("Création emploi du temps Aria")
         return {'erreur': "Impossible de créer l’emploi du temps pour le moment."}
 
+    from school_admin.services.live_serializers import serialize_emploi_refresh_item
+    from school_admin.services.realtime_helpers import emit_live
+
+    emit_live(
+        ctx.etablissement.id,
+        'emploi.mise_a_jour',
+        {
+            'event': 'emploi.mise_a_jour',
+            'item': serialize_emploi_refresh_item(classe.id, emploi.id),
+        },
+    )
+
     return {
         'cree': True,
         'classe': classe.nom,
@@ -620,6 +632,18 @@ def apply_creneau_draft(ctx, draft):
     except Exception:
         logger.exception("Ajout créneau Aria")
         return {'erreur': "Impossible d’ajouter ce créneau pour le moment."}
+
+    from school_admin.services.live_serializers import serialize_emploi_refresh_item
+    from school_admin.services.realtime_helpers import emit_live
+
+    emit_live(
+        ctx.etablissement.id,
+        'emploi.mise_a_jour',
+        {
+            'event': 'emploi.mise_a_jour',
+            'item': serialize_emploi_refresh_item(classe.id, emploi.id),
+        },
+    )
 
     return {
         'cree': True,

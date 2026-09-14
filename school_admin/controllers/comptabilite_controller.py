@@ -2091,20 +2091,28 @@ class ComptabiliteController:
                 paiement_en_avance = request.POST.get('paiement_en_avance') == 'on' if etablissement.type_etablissement_comptabilite == 'prive' else False
                 frais_annexes_data = extraire_frais_annexes_depuis_post(request.POST)
                 
+                from ..services.realtime_helpers import wants_json_response, json_ok, json_fail, emit_live
+                from ..services.live_serializers import serialize_parametres_groupe_classe
+
+                def _parametres_fail(message):
+                    if wants_json_response(request):
+                        return json_fail(message=message)
+                    messages.error(request, message)
+                    return redirect('directeur:parametres_comptabilite_directeur')
+
                 # Validation
                 if not nom:
-                    messages.error(request, "Le nom du paramètre est obligatoire.")
-                    return redirect('directeur:parametres_comptabilite_directeur')
+                    return _parametres_fail("Le nom du paramètre est obligatoire.")
                 
                 if not groupes_classes_selected:
-                    messages.error(request, "Vous devez sélectionner au moins un groupe de classes.")
-                    return redirect('directeur:parametres_comptabilite_directeur')
+                    return _parametres_fail("Vous devez sélectionner au moins un groupe de classes.")
                 
                 # Vérifier que les groupes sélectionnés ne sont pas déjà assignés
                 groupes_deja_utilises = set(groupes_classes_selected) & set(groupes_deja_assignes)
                 if groupes_deja_utilises:
-                    messages.error(request, f"Les groupes suivants sont déjà assignés à un autre paramètre : {', '.join(groupes_deja_utilises)}")
-                    return redirect('directeur:parametres_comptabilite_directeur')
+                    return _parametres_fail(
+                        f"Les groupes suivants sont déjà assignés à un autre paramètre : {', '.join(groupes_deja_utilises)}"
+                    )
                 
                 # Créer ou mettre à jour
                 modifie_par_user = None
@@ -2142,14 +2150,14 @@ class ComptabiliteController:
                         parametre_data['modifie_par'] = modifie_par_user
                     
                     parametre = ParametresComptabiliteGroupeClasse.objects.create(**parametre_data)
+                    action_live = 'created'
                     
                     # Mettre à jour automatiquement le système de comptabilité
                     try:
                         parametre.mettre_a_jour_systeme_comptabilite()
-                        messages.success(request, "Paramètre spécifique créé avec succès. Le système de comptabilité a été mis à jour automatiquement.")
+                        success_msg = "Paramètre spécifique créé avec succès. Le système de comptabilité a été mis à jour automatiquement."
                     except Exception as e:
-                        messages.warning(request, f"Paramètre spécifique créé avec succès, mais erreur lors de la mise à jour automatique : {str(e)}")
-                    ComptabiliteController._emit_parametres_live(etablissement, parametre, action='created')
+                        success_msg = f"Paramètre spécifique créé avec succès, mais erreur lors de la mise à jour automatique : {str(e)}"
                 else:
                     # Mettre à jour
                     parametre.nom = nom
@@ -2182,18 +2190,32 @@ class ComptabiliteController:
                         parametre.modifie_par = modifie_par_user
                     
                     parametre.save()
+                    action_live = 'updated'
                     
                     # Mettre à jour automatiquement le système de comptabilité
                     try:
                         parametre.mettre_a_jour_systeme_comptabilite()
-                        messages.success(request, "Paramètre spécifique modifié avec succès. Le système de comptabilité a été mis à jour automatiquement.")
+                        success_msg = "Paramètre spécifique modifié avec succès. Le système de comptabilité a été mis à jour automatiquement."
                     except Exception as e:
-                        messages.warning(request, f"Paramètre spécifique modifié avec succès, mais erreur lors de la mise à jour automatique : {str(e)}")
-                    ComptabiliteController._emit_parametres_live(etablissement, parametre, action='updated')
+                        success_msg = f"Paramètre spécifique modifié avec succès, mais erreur lors de la mise à jour automatique : {str(e)}"
                 
+                live_item = serialize_parametres_groupe_classe(
+                    parametre, etablissement, action=action_live
+                )
+                emit_live(
+                    etablissement.id,
+                    'comptabilite.parametres',
+                    {'event': 'comptabilite.parametres', 'item': live_item},
+                )
+                if wants_json_response(request):
+                    return json_ok(message=success_msg, item=live_item)
+                messages.success(request, success_msg)
                 return redirect('directeur:parametres_comptabilite_directeur')
             
             except Exception as e:
+                from ..services.realtime_helpers import wants_json_response, json_fail
+                if wants_json_response(request):
+                    return json_fail(message=f"Erreur lors de l'enregistrement : {str(e)}")
                 messages.error(request, f"Erreur lors de l'enregistrement : {str(e)}")
         
         # Récupérer la devise monétaire
@@ -2264,21 +2286,29 @@ class ComptabiliteController:
                 messages.error(request, "Seul le gestionnaire ou le comptable peut supprimer les paramètres de comptabilité.")
                 return redirect('directeur:dashboard_directeur')
         
+        from ..services.realtime_helpers import wants_json_response, json_ok, json_fail, emit_live
+        from ..services.live_serializers import serialize_parametres_groupe_deleted
+
         try:
             parametre = ParametresComptabiliteGroupeClasse.objects.get(
                 id=parametre_id,
                 etablissement=etablissement
             )
-            parametre_id_deleted = parametre.id
+            deleted_id = parametre.id
             parametre.delete()
-            messages.success(request, "Paramètre spécifique supprimé avec succès.")
-            ComptabiliteController._emit_parametres_live(
-                etablissement,
-                None,
-                action='deleted',
-                parametre_id=parametre_id_deleted,
+            success_msg = "Paramètre spécifique supprimé avec succès."
+            live_item = serialize_parametres_groupe_deleted(deleted_id, etablissement)
+            emit_live(
+                etablissement.id,
+                'comptabilite.parametres',
+                {'event': 'comptabilite.parametres', 'item': live_item},
             )
+            if wants_json_response(request):
+                return json_ok(message=success_msg, item=live_item)
+            messages.success(request, success_msg)
         except ParametresComptabiliteGroupeClasse.DoesNotExist:
+            if wants_json_response(request):
+                return json_fail(message="Paramètre spécifique introuvable.")
             messages.error(request, "Paramètre spécifique introuvable.")
         
         return redirect('directeur:parametres_comptabilite_directeur')

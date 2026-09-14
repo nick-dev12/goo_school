@@ -65,6 +65,8 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
 ]
+if DEBUG:
+    ALLOWED_HOSTS += ['.trycloudflare.com']
 
 # SEO & URLs canoniques
 SITE_URL = os.getenv('SITE_URL', 'https://aria-edu.com')

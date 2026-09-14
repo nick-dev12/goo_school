@@ -1230,112 +1230,224 @@
 
 
 
-  function updateComptaParametres(item) {
-
-    if (!item) {
-
-      return;
-
-    }
-
-    var devise = document.body.getAttribute('data-devise') || 'FCFA';
-
-    Object.keys(item).forEach(function (key) {
-
-      var el = document.querySelector('[data-param="' + key + '"]');
-
-      if (el) {
-
-        if (el.classList.contains('amount')) {
-
-          el.textContent = item[key] + ' ' + devise;
-
-        } else if (el.classList.contains('boolean')) {
-
-          var on = !!item[key];
-
-          el.innerHTML = on
-
-            ? '<span class="badge-success"><i class="fas fa-check"></i> Activé</span>'
-
-            : '<span class="badge-danger"><i class="fas fa-times"></i> Désactivé</span>';
-
-        } else {
-
-          el.textContent = item[key];
-
-        }
-
-      }
-
-      var input = document.querySelector('#parametresForm [name="' + key + '"]');
-
-      if (input && input.type !== 'checkbox') {
-
-        input.value = item[key];
-
-      }
-
-    });
-
-    var modal = document.getElementById('parametresModal');
-
-    if (modal) {
-
-      modal.classList.remove('active');
-
-      modal.style.display = 'none';
-
-    }
-
-    updateParametreGroupeCard(item);
-
+  function getComptaDevise() {
+    return document.body.getAttribute('data-devise') || 'FCFA';
   }
 
-  function updateParametreGroupeCard(item) {
-    if (!item || !item.id) {
-      if (item && item.action === 'deleted') {
-        return;
+  function isComptaPrive() {
+    return (document.body.getAttribute('data-type-compta') || 'prive') === 'prive';
+  }
+
+  function updateComptaStats(stats) {
+    if (!stats) {
+      return;
+    }
+    var pills = document.querySelectorAll('.scp-hero-stats .scp-stat-num');
+    if (pills[0] && stats.total_parametres != null) {
+      pills[0].textContent = stats.total_parametres;
+    }
+    if (pills[1] && stats.groupes_assignes != null) {
+      pills[1].textContent = stats.groupes_assignes;
+    }
+    if (pills[2] && stats.groupes_disponibles != null) {
+      pills[2].textContent = stats.groupes_disponibles;
+    }
+  }
+
+  function csrfInputHtml() {
+    var existing = document.querySelector('[name=csrfmiddlewaretoken]');
+    var token = existing ? existing.value : (window.AriaLive ? AriaLive.csrf() : '');
+    return '<input type="hidden" name="csrfmiddlewaretoken" value="' + AriaLive.escapeHtml(token) + '">';
+  }
+
+  function ensureParametresGrid() {
+    var grid = document.querySelector('.scp-cards-grid.parametres-list');
+    if (grid) {
+      return grid;
+    }
+    var empty = document.querySelector('.scp-empty.empty-state');
+    var container = document.querySelector('.content-container.scp-page');
+    grid = document.createElement('div');
+    grid.className = 'scp-cards-grid parametres-list';
+    if (empty) {
+      empty.replaceWith(grid);
+    } else if (container) {
+      container.appendChild(grid);
+    }
+    return grid;
+  }
+
+  function showParametresEmpty() {
+    var grid = document.querySelector('.scp-cards-grid.parametres-list');
+    var container = document.querySelector('.content-container.scp-page');
+    if (grid) {
+      grid.remove();
+    }
+    if (document.querySelector('.scp-empty')) {
+      return;
+    }
+    var empty = document.createElement('div');
+    empty.className = 'scp-empty empty-state';
+    empty.innerHTML =
+      '<i class="fas fa-layer-group"></i>' +
+      '<h3>Aucun paramètre configuré</h3>' +
+      '<p>Créez un premier jeu de paramètres pour définir les montants et règles par groupe de classes.</p>' +
+      '<button type="button" class="scp-action-btn scp-action-btn--primary btn-open-ajouter-modal">' +
+      '<i class="fas fa-plus"></i> Ajouter un jeu de paramètres</button>';
+    if (container) {
+      container.appendChild(empty);
+    }
+  }
+
+  function renderParametreCard(item) {
+    var devise = getComptaDevise();
+    var groupes = (item.groupes || []).map(function (groupe) {
+      return '<span class="scp-groupe-badge groupe-badge">' + AriaLive.escapeHtml(String(groupe)) + '</span>';
+    }).join('');
+    var amounts;
+    if (isComptaPrive()) {
+      amounts =
+        '<div class="scp-info-item info-item"><span class="scp-info-label info-item-label">Inscription</span>' +
+        '<span class="scp-info-value scp-info-value--amount info-item-value amount">' +
+        AriaLive.escapeHtml(String(item.montant_frais_inscription || '0')) + ' ' + devise + '</span></div>' +
+        '<div class="scp-info-item info-item"><span class="scp-info-label info-item-label">Mensualité</span>' +
+        '<span class="scp-info-value scp-info-value--amount info-item-value amount">' +
+        AriaLive.escapeHtml(String(item.montant_mensualite || '0')) + ' ' + devise + '</span></div>';
+    } else {
+      amounts =
+        '<div class="scp-info-item info-item"><span class="scp-info-label info-item-label">Facturation annuelle</span>' +
+        '<span class="scp-info-value scp-info-value--amount info-item-value amount">' +
+        AriaLive.escapeHtml(String(item.montant_facturation_annuelle || '0')) + ' ' + devise + '</span></div>';
+    }
+    var article = document.createElement('article');
+    article.className = 'scp-param-card parametre-card';
+    article.setAttribute('data-parametre-id', String(item.id));
+    article.innerHTML =
+      '<div class="scp-param-card-head parametre-card-header">' +
+        '<h3 class="scp-param-card-title parametre-card-title">' + AriaLive.escapeHtml(item.nom || '') + '</h3>' +
+        '<div class="scp-groupes-list groupes-list">' + groupes + '</div>' +
+      '</div>' +
+      '<div class="scp-param-card-body parametre-info"><div class="scp-info-grid">' + amounts +
+        '<div class="scp-info-item info-item"><span class="scp-info-label info-item-label">Facturation</span>' +
+        '<span class="scp-info-value info-item-value">' + AriaLive.escapeHtml(item.type_facturation_display || item.type_facturation || '') + '</span></div>' +
+        '<div class="scp-info-item info-item"><span class="scp-info-label info-item-label">Tolérance retard</span>' +
+        '<span class="scp-info-value info-item-value">' + AriaLive.escapeHtml(String(item.delai_tolerance_retard || 0)) + ' jours</span></div>' +
+        '<div class="scp-info-item info-item"><span class="scp-info-label info-item-label">Paiements partiels</span>' +
+        '<span class="scp-info-value info-item-value">' + (item.autoriser_paiements_partiels ? 'Autorisés' : 'Non') + '</span></div>' +
+        '<div class="scp-info-item info-item"><span class="scp-info-label info-item-label">Rappels auto</span>' +
+        '<span class="scp-info-value info-item-value">' + (item.envoyer_rappels_automatiques ? 'Activés' : 'Désactivés') + '</span></div>' +
+        '<div class="scp-info-item info-item" data-param-annexes-total-wrap>' +
+        '<span class="scp-info-label info-item-label">Frais annexes</span>' +
+        '<span class="scp-info-value scp-info-value--amount" data-param-annexes-total">' +
+        AriaLive.escapeHtml(String(item.frais_annexes_total || '0')) + ' ' + devise + '</span></div>' +
+      '</div>' +
+      annexesListHtml(item, devise) +
+      '</div>' +
+      '<div class="scp-param-card-foot parametre-card-actions">' +
+        '<a href="' + AriaLive.escapeHtml(item.edit_url || '#') + '" class="scp-card-btn scp-card-btn--edit">' +
+        '<i class="fas fa-edit"></i> Modifier</a>' +
+        '<form method="post" class="scp-delete-form" action="' + AriaLive.escapeHtml(item.delete_url || '') + '">' +
+          csrfInputHtml() +
+          '<button type="submit" class="scp-card-btn scp-card-btn--delete">' +
+          '<i class="fas fa-trash"></i> Supprimer</button>' +
+        '</form>' +
+      '</div>';
+    return article;
+  }
+
+  function annexesListHtml(item, devise) {
+    var annexes = item.frais_annexes || [];
+    if (!annexes.length) {
+      return '<ul class="scp-annexes-list" data-param-annexes-list hidden></ul>';
+    }
+    var lis = annexes.map(function (frais) {
+      return '<li data-annexe-code="' + AriaLive.escapeHtml(String(frais.code || '')) + '"><span>' +
+        AriaLive.escapeHtml(frais.libelle || '') + '</span><strong>' +
+        AriaLive.escapeHtml(String(frais.montant || '0')) + ' ' + AriaLive.escapeHtml(devise) +
+        '</strong><em>' + AriaLive.escapeHtml(frais.periodicite_display || '') + '</em></li>';
+    }).join('');
+    return '<ul class="scp-annexes-list" data-param-annexes-list>' + lis + '</ul>';
+  }
+
+  function bindComptaDeleteForm(form) {
+    if (!form || !window.AriaLive) {
+      return;
+    }
+    AriaLive.bindLiveForm(form, {
+      onSuccess: function (payload) {
+        updateComptaParametres(payload.item);
+      },
+    });
+  }
+
+  function closeAjouterParametreModal() {
+    var modal = document.getElementById('ajouterParametreModal');
+    if (!modal) {
+      return;
+    }
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  function updateComptaParametres(item) {
+    if (!item) {
+      return;
+    }
+
+    var devise = getComptaDevise();
+    Object.keys(item).forEach(function (key) {
+      var el = document.querySelector('[data-param="' + key + '"]');
+      if (el) {
+        if (el.classList.contains('amount')) {
+          el.textContent = item[key] + ' ' + devise;
+        } else if (el.classList.contains('boolean')) {
+          var on = !!item[key];
+          el.innerHTML = on
+            ? '<span class="badge-success"><i class="fas fa-check"></i> Activé</span>'
+            : '<span class="badge-danger"><i class="fas fa-times"></i> Désactivé</span>';
+        } else {
+          el.textContent = item[key];
+        }
+      }
+      var input = document.querySelector('#parametresForm [name="' + key + '"]');
+      if (input && input.type !== 'checkbox') {
+        input.value = item[key];
+      }
+    });
+
+    var legacyModal = document.getElementById('parametresModal');
+    if (legacyModal) {
+      legacyModal.classList.remove('active');
+      legacyModal.style.display = 'none';
+    }
+
+    updateComptaStats(item.stats);
+
+    if (item.action === 'deleted' || item.deleted) {
+      var removed = document.querySelector('.parametre-card[data-parametre-id="' + item.id + '"]');
+      if (removed) {
+        removed.remove();
+      }
+      if (!document.querySelector('.parametre-card')) {
+        showParametresEmpty();
       }
       return;
     }
-    if (item.action === 'deleted') {
-      var stale = document.querySelector('.parametre-card[data-parametre-id="' + item.id + '"]');
-      if (stale) {
-        stale.remove();
-      }
+
+    if (!item.id) {
       return;
     }
-    var card = document.querySelector('.parametre-card[data-parametre-id="' + item.id + '"]');
-    if (!card) {
-      AriaLive.reloadUnlessSkip();
-      return;
+
+    var grid = ensureParametresGrid();
+    var existing = grid.querySelector('.parametre-card[data-parametre-id="' + item.id + '"]');
+    var next = renderParametreCard(item);
+    if (existing) {
+      existing.replaceWith(next);
+    } else {
+      grid.prepend(next);
     }
-    var title = card.querySelector('.parametre-card-title');
-    if (title && item.nom) {
-      title.textContent = item.nom;
-    }
-    var totalEl = card.querySelector('[data-param-annexes-total]');
-    var devise = item.devise || document.body.getAttribute('data-devise') || 'FCFA';
-    if (totalEl) {
-      totalEl.textContent = (item.frais_annexes_total || '0') + ' ' + devise;
-    }
-    var list = card.querySelector('[data-param-annexes-list]');
-    if (list) {
-      var annexes = item.frais_annexes || [];
-      if (!annexes.length) {
-        list.innerHTML = '';
-        list.hidden = true;
-      } else {
-        list.hidden = false;
-        list.innerHTML = annexes.map(function (frais) {
-          return '<li data-annexe-code="' + esc(frais.code) + '"><span>' +
-            esc(frais.libelle) + '</span><strong>' + esc(frais.montant) + ' ' +
-            esc(devise) + '</strong><em>' + esc(frais.periodicite_display || '') +
-            '</em></li>';
-        }).join('');
-      }
-    }
+    bindComptaDeleteForm(next.querySelector('.scp-delete-form'));
   }
 
 
@@ -1471,6 +1583,44 @@
     } else if (event === 'emploi.mise_a_jour') {
 
       handleEmploiLive(item);
+
+    } else if (
+      event === 'annonce.mise_a_jour' ||
+      event === 'liaison.mise_a_jour' ||
+      event === 'preinscription.mise_a_jour' ||
+      event === 'examen.mise_a_jour' ||
+      event === 'presence.mise_a_jour' ||
+      event === 'bulletin.mise_a_jour' ||
+      event === 'annee_scolaire.modifiee'
+    ) {
+
+      reloadDirecteurPageIf(event);
+
+    }
+
+  }
+
+
+
+  function reloadDirecteurPageIf(event) {
+
+    var page = document.body.getAttribute('data-live-page') || '';
+
+    var map = {
+      'annonce.mise_a_jour': ['annonces-directeur'],
+      'liaison.mise_a_jour': ['demandes-liaison'],
+      'preinscription.mise_a_jour': ['preinscription-liens', 'preinscriptions', 'liste-eleves'],
+      'examen.mise_a_jour': ['examens'],
+      'presence.mise_a_jour': ['suivi-presence'],
+      'bulletin.mise_a_jour': ['bulletins-liste', 'bulletins-voir', 'notes-resultats'],
+      'annee_scolaire.modifiee': ['annees', 'periodes'],
+    };
+
+    var pages = map[event] || [];
+
+    if (!pages.length || pages.indexOf(page) !== -1) {
+
+      AriaLive.reloadUnlessSkip();
 
     }
 
@@ -1750,23 +1900,33 @@
 
   function initComptaParametres() {
 
-    var form = document.getElementById('parametresForm');
+    var form = document.getElementById('parametresFormModal') || document.getElementById('parametresForm');
 
-    if (!form) {
+    if (form) {
 
-      return;
+      AriaLive.bindLiveForm(form, {
+
+        onSuccess: function (payload) {
+
+          if (payload.item && payload.item.id) {
+
+            AriaLive.markLocalItem(payload.item.id);
+
+          }
+
+          updateComptaParametres(payload.item);
+
+          closeAjouterParametreModal();
+
+          form.reset();
+
+        },
+
+      });
 
     }
 
-    AriaLive.bindLiveForm(form, {
-
-      onSuccess: function (payload) {
-
-        updateComptaParametres(payload.item);
-
-      },
-
-    });
+    document.querySelectorAll('.scp-delete-form').forEach(bindComptaDeleteForm);
 
   }
 

@@ -101,6 +101,123 @@ DEST_HINTS = (
     ('administratif', 'personnel_administratif'),
 )
 
+ACTION_INTENT_RES = (
+    (re.compile(r'justifie[rz]?.{0,50}absence', re.I), 'justifier_absence'),
+    (re.compile(r'approuve[rz]?.{0,50}liaison', re.I), 'approuver_liaison'),
+    (re.compile(r'(rejette[rz]?|refuse[rz]?).{0,50}liaison', re.I), 'rejeter_liaison'),
+    (re.compile(r'(valide[rz]?|accepte[rz]?).{0,50}pr[ée]inscription', re.I), 'valider_preinscription'),
+    (re.compile(r'(rejette[rz]?|refuse[rz]?).{0,50}pr[ée]inscription', re.I), 'rejeter_preinscription'),
+    (re.compile(r'publie[rz]?.{0,40}bulletin', re.I), 'publier_bulletins'),
+    (re.compile(r'calcule[rz]?.{0,40}moyenne', re.I), 'calculer_moyennes_classe'),
+    (re.compile(r'(enregistre[rz]?|ajoute[rz]?).{0,40}paiement', re.I), 'enregistrer_paiement'),
+    (re.compile(
+        r'(cr[ée]e[rz]?|ajoute[rz]?|configure[rz]?).{0,40}param[eè]tres?.{0,40}(?:comptab|scolarit)',
+        re.I,
+    ), 'creer_parametres_comptabilite'),
+    (re.compile(
+        r'modifie[rz]?.{0,40}param[eè]tres?.{0,40}(?:comptab|scolarit)',
+        re.I,
+    ), 'modifier_parametres_comptabilite'),
+    (re.compile(
+        r'(?:supprim|suprim)[eé]?[ez]?(?=.*param[eè]?tres?)(?=.*scolarit)',
+        re.I,
+    ), 'supprimer_parametres_comptabilite'),
+    (re.compile(
+        r'(?:supprim|suprim)[eé]?[ez]?.{0,40}param[eè]?tres?.{0,40}comptab',
+        re.I,
+    ), 'supprimer_parametres_comptabilite'),
+    (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}ann[ée]e scolaire', re.I), 'creer_annee_scolaire'),
+    (re.compile(r'active[rz]?.{0,30}ann[ée]e', re.I), 'activer_annee_scolaire'),
+    (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}p[ée]riode', re.I), 'creer_periode'),
+    (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}classe', re.I), 'creer_classe'),
+    (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}salle', re.I), 'creer_salle'),
+    (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}mati[eè]re', re.I), 'creer_matiere'),
+    (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,40}session.{0,20}examen', re.I), 'creer_session_examen'),
+    (re.compile(r'g[ée]n[eè]re[rz]?.{0,40}(certificat|attestation|convocation|fiche)', re.I), 'generer_document'),
+    (re.compile(r'publie[rz]?.{0,40}annonce', re.I), 'publier_annonce'),
+    (re.compile(r'archive[rz]?.{0,40}annonce', re.I), 'archiver_annonce'),
+    (re.compile(r'supprime[rz]?.{0,40}annonce', re.I), 'supprimer_annonce'),
+)
+
+
+def extract_action_args(name, text):
+    """Extrait les arguments évidents d’une phrase pour un outil d’action."""
+    raw = text or ''
+    args = {}
+    if name == 'generer_document':
+        lowered = raw.lower()
+        if 'réussite' in lowered or 'reussite' in lowered:
+            args['type'] = 'attestation_reussite'
+        elif 'conduite' in lowered:
+            args['type'] = 'attestation_conduite'
+        elif 'radiation' in lowered or 'transfert' in lowered:
+            args['type'] = 'certificat_radiation'
+        elif 'fiche' in lowered:
+            args['type'] = 'fiche_inscription'
+        elif 'convocation' in lowered:
+            args['type'] = 'convocation'
+        else:
+            args['type'] = 'certificat_scolarite'
+    pour = re.search(
+        r'(?:pour|de|du|d[\'’])\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\'\- ]{1,40})$',
+        raw.strip().rstrip('.!?'),
+        re.I,
+    )
+    if pour and name in (
+        'justifier_absence',
+        'valider_preinscription',
+        'enregistrer_paiement',
+        'generer_document',
+        'approuver_liaison',
+        'rejeter_liaison',
+    ):
+        args['query'] = pour.group(1).strip()
+    class_match = CLASS_OPEN_RE.search(raw)
+    if class_match and name in (
+        'publier_bulletins',
+        'calculer_moyennes_classe',
+        'creer_classe',
+        'valider_preinscription',
+    ):
+        args.setdefault('classe', _clean_class_query(class_match.group(1)))
+    montant = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:f|fcfa|xof|euros?)?', raw, re.I)
+    if montant and name == 'enregistrer_paiement':
+        args['montant'] = montant.group(1)
+    if name in (
+        'creer_parametres_comptabilite',
+        'modifier_parametres_comptabilite',
+        'supprimer_parametres_comptabilite',
+    ):
+        cible = re.search(
+            r'(?:param[eè]tres?|scolarit[eé]).{0,40}'
+            r'(?:de\s+(?:la\s+|le\s+|l[\'’])?|du\s+|d[\'’])'
+            r'([A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\'\- ]{0,40})',
+            raw,
+            re.I,
+        )
+        if cible:
+            args['query'] = cible.group(1).strip().rstrip('.!?')
+        elif re.search(r'\bpremi[eè]r[eè]?\b', raw, re.I):
+            args['query'] = 'premier'
+    return args
+
+
+def resolve_action_intent(question):
+    """
+    Détecte une action mutante explicite (hors annonce / EDT déjà gérés).
+    Retourne (nom_outil, arguments) ou None.
+    """
+    text = (question or '').strip()
+    if not text:
+        return None
+    if ANNONCE_CREATE_RE.search(text) or EDT_CREATE_RE.search(text) or CRENEAU_ADD_RE.search(text):
+        return None
+    for pattern, name in ACTION_INTENT_RES:
+        if pattern.search(text):
+            return name, extract_action_args(name, text)
+    return None
+
+
 PAGE_ALIASES = {
     'accueil': 'dashboard',
     'tableau de bord': 'dashboard',
@@ -122,6 +239,19 @@ PAGE_ALIASES = {
     'scolarite': 'comptabilite',
     'comptabilité': 'comptabilite',
     'comptabilite': 'comptabilite',
+    'bulletins': 'bulletins',
+    'périodes': 'periodes',
+    'periodes': 'periodes',
+    'préinscriptions': 'preinscriptions',
+    'preinscriptions': 'preinscriptions',
+    'notifications': 'notifications',
+    'certificats': 'certificats',
+    'convocations': 'convocations',
+    'réinscription': 'reinscription',
+    'reinscription': 'reinscription',
+    'facturation': 'facturation',
+    'salles': 'salles',
+    'personnel': 'personnel',
 }
 
 
@@ -433,6 +563,20 @@ def decide_pending_reply(question, pending):
             return 'switch'
         return 'ask'
 
+    from school_admin.services.assistant_actions import is_write_action
+
+    if is_write_action(name):
+        if resolve_action_intent(text):
+            other = resolve_action_intent(text)
+            if other and other[0] != name:
+                return 'switch'
+            return 'continue'
+        if matches_pending_choice(text, pending):
+            return 'continue'
+        if NEW_QUESTION_RE.search(text):
+            return 'switch'
+        return 'ask'
+
     if NEW_QUESTION_RE.search(text):
         return 'switch'
     return 'ask'
@@ -468,6 +612,9 @@ def infer_working_ack(question, pending=None):
         return "Je prépare ce créneau."
     if ANNONCE_CREATE_RE.search(text):
         return "Je prépare l’annonce."
+    action_intent = resolve_action_intent(text)
+    if action_intent:
+        return "Je prépare cette action."
     open_intent = resolve_open_intent(text)
     if open_intent:
         tool_name = open_intent[0]

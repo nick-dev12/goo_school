@@ -242,7 +242,7 @@ PAGE_CATALOG = (
         'key': 'parametres_comptabilite',
         'titre': 'Paramètres de comptabilité',
         'route': 'directeur:parametres_comptabilite_directeur',
-        'mots': 'paramètres comptabilité frais',
+        'mots': 'paramètres comptabilité frais scolarité barèmes',
     },
     {
         'key': 'parametres_groupes',

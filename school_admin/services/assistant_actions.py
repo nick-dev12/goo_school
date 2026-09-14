@@ -1189,6 +1189,539 @@ def apply_enregistrer_paiement(ctx, draft):
     )
 
 
+def _parametres_comptabilite_url():
+    return _reverse('directeur:parametres_comptabilite_directeur')
+
+
+def _parse_amount_arg(raw, default=None):
+    if raw is None or str(raw).strip() == '':
+        return default
+    text = str(raw).strip().replace(' ', '').replace(',', '.')
+    try:
+        value = Decimal(text)
+    except (InvalidOperation, ValueError):
+        return None
+    if value < 0:
+        return None
+    return value
+
+
+def _parse_int_arg(raw, default=None, minimum=None, maximum=None):
+    if raw is None or str(raw).strip() == '':
+        return default
+    try:
+        value = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return None
+    if minimum is not None and value < minimum:
+        return None
+    if maximum is not None and value > maximum:
+        return None
+    return value
+
+
+def _parse_bool_arg(raw, default=None):
+    if raw is None or raw == '':
+        return default
+    if isinstance(raw, bool):
+        return raw
+    text = str(raw).strip().lower()
+    if text in {'1', 'true', 'oui', 'on', 'yes', 'vrai'}:
+        return True
+    if text in {'0', 'false', 'non', 'off', 'no', 'faux'}:
+        return False
+    return default
+
+
+def _parse_groupes_arg(raw):
+    if raw is None or raw == '':
+        return []
+    parts = list(raw) if isinstance(raw, (list, tuple)) else re.split(r'[,;/|]', str(raw))
+    seen = set()
+    result = []
+    for part in parts:
+        name = str(part).strip()
+        if not name:
+            continue
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(name)
+    return result
+
+
+def _groupe_depuis_nom_classe(nom):
+    match = re.match(r'^(.+?)\s+([A-Z0-9]+)$', (nom or '').strip())
+    if match:
+        return match.group(1).strip()
+    return (nom or '').strip()
+
+
+def serialize_parametres_groupe(parametre):
+    return {
+        'id': parametre.id,
+        'nom': parametre.nom,
+        'groupes_classes': list(parametre.groupes_classes or []),
+        'type_facturation': parametre.type_facturation,
+        'montant_frais_inscription': str(parametre.montant_frais_inscription or '0.00'),
+        'montant_frais_reinscription': str(parametre.montant_frais_reinscription or '0.00'),
+        'montant_mensualite': str(parametre.montant_mensualite or '0.00'),
+        'montant_facturation_annuelle': str(parametre.montant_facturation_annuelle or '0.00'),
+        'delai_tolerance_retard': parametre.delai_tolerance_retard,
+        'jours_avant_rappel': parametre.jours_avant_rappel,
+        'mois_debut_facturation': parametre.mois_debut_facturation,
+        'mois_fin_facturation': parametre.mois_fin_facturation,
+        'appliquer_remise_famille_nombreuse': parametre.appliquer_remise_famille_nombreuse,
+        'pourcentage_remise_famille_nombreuse': str(
+            parametre.pourcentage_remise_famille_nombreuse or '0.00'
+        ),
+        'jour_versement': parametre.jour_versement,
+        'paiement_en_avance': parametre.paiement_en_avance,
+    }
+
+
+def _find_parametres_groupe(ctx, args):
+    from school_admin.model.parametres_comptabilite_groupe_classe_model import (
+        ParametresComptabiliteGroupeClasse,
+    )
+
+    qs = ParametresComptabiliteGroupeClasse.objects.filter(etablissement=ctx.etablissement)
+    pk = args.get('parametres_id') or args.get('id')
+    if pk not in (None, ''):
+        try:
+            found = qs.filter(pk=int(pk)).first()
+        except (TypeError, ValueError):
+            found = None
+        if found:
+            return found
+    raw = (args.get('nom') or args.get('query') or '').strip()
+    if raw.isdigit():
+        found = qs.filter(pk=int(raw)).first()
+        if found:
+            return found
+    if raw:
+        found = qs.filter(nom__icontains=raw).first()
+        if found:
+            return found
+        for item in qs:
+            groupes = item.groupes_classes or []
+            if any(raw.lower() == str(groupe).lower() or raw.lower() in str(groupe).lower() for groupe in groupes):
+                return item
+    return None
+
+
+def _resoudre_groupes(etablissement, requested, exclude_pk=None):
+    from school_admin.model.parametres_comptabilite_groupe_classe_model import (
+        ParametresComptabiliteGroupeClasse,
+    )
+
+    disponibles = ParametresComptabiliteGroupeClasse.get_groupes_disponibles(etablissement)
+    assignes = set(
+        ParametresComptabiliteGroupeClasse.get_groupes_deja_assignes(
+            etablissement,
+            exclude_pk=exclude_pk,
+        )
+    )
+    resolved = []
+    inconnus = []
+    for raw in requested:
+        found = None
+        for groupe in disponibles:
+            if groupe.lower() == raw.lower():
+                found = groupe
+                break
+        if not found:
+            extrait = _groupe_depuis_nom_classe(raw)
+            for groupe in disponibles:
+                if groupe.lower() == extrait.lower():
+                    found = groupe
+                    break
+        if not found:
+            matches = [
+                groupe
+                for groupe in disponibles
+                if raw.lower() in groupe.lower() or groupe.lower() in raw.lower()
+            ]
+            if len(matches) == 1:
+                found = matches[0]
+        if found:
+            if found not in resolved:
+                resolved.append(found)
+        else:
+            inconnus.append(raw)
+    conflits = [groupe for groupe in resolved if groupe in assignes]
+    return resolved, inconnus, conflits, disponibles
+
+
+def _check_module_comptabilite(ctx):
+    if not getattr(ctx.etablissement, 'module_comptabilite', False):
+        return _err(
+            'Le module scolarité n’est pas activé pour cet établissement.',
+            url=_reverse('directeur:profil_etablissement'),
+        )
+    return None
+
+
+def _collect_parametres_fields(args, existing=None):
+    def first(*keys):
+        for key in keys:
+            if key in args and args[key] not in (None, ''):
+                return args[key]
+        return None
+
+    def amount(*keys, field=None, default=Decimal('0.00')):
+        raw = first(*keys)
+        if raw is None:
+            return getattr(existing, field) if existing is not None else default
+        return _parse_amount_arg(raw, default)
+
+    def integer(*keys, field=None, default=0, minimum=None, maximum=None):
+        raw = first(*keys)
+        if raw is None:
+            return getattr(existing, field) if existing is not None else default
+        return _parse_int_arg(raw, default, minimum=minimum, maximum=maximum)
+
+    def boolean(*keys, field=None, default=False):
+        raw = first(*keys)
+        if raw is None:
+            return getattr(existing, field) if existing is not None else default
+        return _parse_bool_arg(raw, default)
+
+    type_facturation = first('type_facturation')
+    if type_facturation is None:
+        type_facturation = existing.type_facturation if existing is not None else 'mensuel'
+    type_facturation = str(type_facturation).strip().lower()
+    if type_facturation == 'trimestriel':
+        type_facturation = 'mensuel'
+    if type_facturation not in {'mensuel', 'annuel'}:
+        return None, 'Type de facturation invalide (mensuel ou annuel).'
+
+    data = {
+        'type_facturation': type_facturation,
+        'montant_frais_inscription': amount(
+            'montant_frais_inscription', field='montant_frais_inscription'
+        ),
+        'montant_frais_reinscription': amount(
+            'montant_frais_reinscription', field='montant_frais_reinscription'
+        ),
+        'montant_mensualite': amount('montant_mensualite', field='montant_mensualite'),
+        'montant_facturation_annuelle': amount(
+            'montant_facturation_annuelle', field='montant_facturation_annuelle'
+        ),
+        'autoriser_retards': boolean(
+            'autoriser_retards', field='autoriser_retards', default=True
+        ),
+        'autoriser_paiements_partiels': boolean(
+            'autoriser_paiements_partiels', field='autoriser_paiements_partiels', default=True
+        ),
+        'delai_tolerance_retard': integer(
+            'delai_tolerance_retard',
+            'delai_paiement_jours',
+            field='delai_tolerance_retard',
+            default=15,
+            minimum=0,
+        ),
+        'envoyer_rappels_automatiques': boolean(
+            'envoyer_rappels_automatiques',
+            field='envoyer_rappels_automatiques',
+            default=True,
+        ),
+        'jours_avant_rappel': integer(
+            'jours_avant_rappel', field='jours_avant_rappel', default=7, minimum=0
+        ),
+        'jours_apres_retard_rappel': integer(
+            'jours_apres_retard_rappel',
+            field='jours_apres_retard_rappel',
+            default=3,
+            minimum=0,
+        ),
+        'mois_debut_facturation': integer(
+            'mois_debut_facturation',
+            field='mois_debut_facturation',
+            default=9,
+            minimum=1,
+            maximum=12,
+        ),
+        'mois_fin_facturation': integer(
+            'mois_fin_facturation',
+            field='mois_fin_facturation',
+            default=6,
+            minimum=1,
+            maximum=12,
+        ),
+        'appliquer_remise_famille_nombreuse': boolean(
+            'appliquer_remise_famille_nombreuse',
+            'remise_famille_active',
+            field='appliquer_remise_famille_nombreuse',
+            default=False,
+        ),
+        'pourcentage_remise_famille_nombreuse': amount(
+            'pourcentage_remise_famille_nombreuse',
+            'pourcentage_remise_famille',
+            field='pourcentage_remise_famille_nombreuse',
+        ),
+        'nombre_enfants_minimum_remise': integer(
+            'nombre_enfants_minimum_remise',
+            field='nombre_enfants_minimum_remise',
+            default=3,
+            minimum=1,
+        ),
+        'nombre_max_paiements_partiels': integer(
+            'nombre_max_paiements_partiels',
+            field='nombre_max_paiements_partiels',
+            default=3,
+            minimum=1,
+        ),
+        'jour_versement': integer(
+            'jour_versement', field='jour_versement', default=5, minimum=1, maximum=31
+        ),
+        'paiement_en_avance': boolean(
+            'paiement_en_avance', field='paiement_en_avance', default=False
+        ),
+    }
+    if any(value is None for value in data.values()):
+        return None, 'Un montant, un délai ou un mois est invalide.'
+    return data, None
+
+
+def _groupes_depuis_args(args, existing=None):
+    requested = _parse_groupes_arg(args.get('groupes_classes'))
+    if not requested and args.get('classe'):
+        requested = _parse_groupes_arg(args.get('classe'))
+    if not requested and existing is not None:
+        return list(existing.groupes_classes or [])
+    return requested
+
+
+def prepare_creer_parametres_comptabilite(ctx, args):
+    blocked = _check_module_comptabilite(ctx)
+    if blocked:
+        return blocked
+    nom = (args.get('nom') or '').strip()
+    groupes = _groupes_depuis_args(args)
+    missing = []
+    if not nom:
+        missing.append('nom')
+    if not groupes:
+        missing.append('groupes_classes')
+    if missing:
+        return _incomplete(
+            'creer_parametres_comptabilite',
+            missing,
+            'Il me faut un nom et au moins un groupe de classes (ex. 2nde, 6e).',
+            nom=nom,
+            groupes_classes=groupes,
+            url=_parametres_comptabilite_url(),
+        )
+    resolved, inconnus, conflits, disponibles = _resoudre_groupes(ctx.etablissement, groupes)
+    if not disponibles:
+        return _err('Aucun groupe de classes disponible. Crée d’abord des classes.')
+    if inconnus:
+        return _err(
+            f"Groupe(s) inconnu(s) : {', '.join(inconnus)}. "
+            f"Disponibles : {', '.join(disponibles) or 'aucun'}."
+        )
+    if conflits:
+        return _err(
+            f"Les groupes suivants sont déjà assignés à un autre paramètre : {', '.join(conflits)}."
+        )
+    fields, error = _collect_parametres_fields(args)
+    if error:
+        return _err(error)
+    resume_montants = []
+    if fields['montant_frais_inscription']:
+        resume_montants.append(f"inscription {fields['montant_frais_inscription']}")
+    if fields['montant_mensualite']:
+        resume_montants.append(f"mensualité {fields['montant_mensualite']}")
+    if fields['montant_facturation_annuelle']:
+        resume_montants.append(f"annuel {fields['montant_facturation_annuelle']}")
+    extra = f" ({', '.join(resume_montants)})" if resume_montants else ''
+    return _pending(
+        'creer_parametres_comptabilite',
+        f'crée les paramètres « {nom} » pour {", ".join(resolved)}{extra}',
+        nom=nom,
+        groupes_classes=resolved,
+        url=_parametres_comptabilite_url(),
+        **{key: str(value) if isinstance(value, Decimal) else value for key, value in fields.items()},
+    )
+
+
+def apply_creer_parametres_comptabilite(ctx, draft):
+    from school_admin.model.parametres_comptabilite_groupe_classe_model import (
+        ParametresComptabiliteGroupeClasse,
+    )
+
+    blocked = _check_module_comptabilite(ctx)
+    if blocked:
+        return blocked
+    fields, error = _collect_parametres_fields(draft)
+    if error:
+        return _err(error)
+    resolved, inconnus, conflits, disponibles = _resoudre_groupes(
+        ctx.etablissement,
+        draft.get('groupes_classes') or [],
+    )
+    if inconnus or conflits or not resolved:
+        return _err('Les groupes de classes ne sont plus disponibles.')
+    payload = {
+        'etablissement': ctx.etablissement,
+        'nom': draft['nom'],
+        'groupes_classes': resolved,
+        **fields,
+    }
+    if ctx.etablissement.type_etablissement_comptabilite != 'prive':
+        payload['jour_versement'] = 5
+        payload['paiement_en_avance'] = False
+    parametre = ParametresComptabiliteGroupeClasse.objects.create(**payload)
+    try:
+        parametre.mettre_a_jour_systeme_comptabilite()
+    except Exception:
+        logger.exception('Mise à jour comptabilité après création des paramètres')
+    return _ok(
+        f'Paramètres « {parametre.nom} » créés pour {", ".join(resolved)}.',
+        id=parametre.id,
+        url=_parametres_comptabilite_url(),
+    )
+
+
+def prepare_modifier_parametres_comptabilite(ctx, args):
+    blocked = _check_module_comptabilite(ctx)
+    if blocked:
+        return blocked
+    parametre = _find_parametres_groupe(ctx, args)
+    if not parametre:
+        return _incomplete(
+            'modifier_parametres_comptabilite',
+            ['query'],
+            'Quels paramètres de scolarité dois-je modifier (nom ou groupe) ?',
+            url=_parametres_comptabilite_url(),
+        )
+    groupes = _groupes_depuis_args(args, existing=parametre)
+    resolved, inconnus, conflits, disponibles = _resoudre_groupes(
+        ctx.etablissement,
+        groupes,
+        exclude_pk=parametre.pk,
+    )
+    if inconnus:
+        return _err(
+            f"Groupe(s) inconnu(s) : {', '.join(inconnus)}. "
+            f"Disponibles : {', '.join(disponibles) or 'aucun'}."
+        )
+    if conflits:
+        return _err(
+            f"Les groupes suivants sont déjà assignés à un autre paramètre : {', '.join(conflits)}."
+        )
+    if not resolved:
+        return _err('Vous devez conserver au moins un groupe de classes.')
+    fields, error = _collect_parametres_fields(args, existing=parametre)
+    if error:
+        return _err(error)
+    nom = (args.get('nom') or '').strip() or parametre.nom
+    return _pending(
+        'modifier_parametres_comptabilite',
+        f'met à jour les paramètres « {nom} » ({", ".join(resolved)})',
+        parametres_id=parametre.id,
+        nom=nom,
+        groupes_classes=resolved,
+        url=_parametres_comptabilite_url(),
+        **{key: str(value) if isinstance(value, Decimal) else value for key, value in fields.items()},
+    )
+
+
+def apply_modifier_parametres_comptabilite(ctx, draft):
+    from school_admin.model.parametres_comptabilite_groupe_classe_model import (
+        ParametresComptabiliteGroupeClasse,
+    )
+
+    blocked = _check_module_comptabilite(ctx)
+    if blocked:
+        return blocked
+    parametre = ParametresComptabiliteGroupeClasse.objects.filter(
+        pk=draft.get('parametres_id'),
+        etablissement=ctx.etablissement,
+    ).first()
+    if not parametre:
+        return _err('Paramètre de scolarité introuvable.')
+    fields, error = _collect_parametres_fields(draft, existing=parametre)
+    if error:
+        return _err(error)
+    resolved, inconnus, conflits, _disponibles = _resoudre_groupes(
+        ctx.etablissement,
+        draft.get('groupes_classes') or parametre.groupes_classes or [],
+        exclude_pk=parametre.pk,
+    )
+    if inconnus or conflits or not resolved:
+        return _err('Les groupes de classes ne sont plus disponibles.')
+    parametre.nom = draft.get('nom') or parametre.nom
+    parametre.groupes_classes = resolved
+    for key, value in fields.items():
+        if ctx.etablissement.type_etablissement_comptabilite != 'prive' and key in {
+            'jour_versement',
+            'paiement_en_avance',
+        }:
+            continue
+        setattr(parametre, key, value)
+    try:
+        from school_admin.model.compte_user_model import CompteUser
+    except ImportError:
+        CompteUser = None
+    if CompteUser and isinstance(getattr(ctx, 'personnel', None), CompteUser):
+        parametre.modifie_par = ctx.personnel
+    parametre.save()
+    try:
+        parametre.mettre_a_jour_systeme_comptabilite()
+    except Exception:
+        logger.exception('Mise à jour comptabilité après modification des paramètres')
+    return _ok(
+        f'Paramètres « {parametre.nom} » mis à jour.',
+        id=parametre.id,
+        url=_parametres_comptabilite_url(),
+    )
+
+
+def prepare_supprimer_parametres_comptabilite(ctx, args):
+    blocked = _check_module_comptabilite(ctx)
+    if blocked:
+        return blocked
+    parametre = _find_parametres_groupe(ctx, args)
+    if not parametre:
+        return _incomplete(
+            'supprimer_parametres_comptabilite',
+            ['query'],
+            'Quels paramètres de scolarité dois-je supprimer (nom ou groupe) ?',
+            url=_parametres_comptabilite_url(),
+        )
+    groupes = ', '.join(parametre.groupes_classes or []) or 'aucun groupe'
+    return _pending(
+        'supprimer_parametres_comptabilite',
+        f'supprime les paramètres « {parametre.nom} » ({groupes})',
+        parametres_id=parametre.id,
+        nom=parametre.nom,
+        destructive=True,
+        url=_parametres_comptabilite_url(),
+    )
+
+
+def apply_supprimer_parametres_comptabilite(ctx, draft):
+    from school_admin.model.parametres_comptabilite_groupe_classe_model import (
+        ParametresComptabiliteGroupeClasse,
+    )
+
+    parametre = ParametresComptabiliteGroupeClasse.objects.filter(
+        pk=draft.get('parametres_id'),
+        etablissement=ctx.etablissement,
+    ).first()
+    if not parametre:
+        return _err('Paramètre de scolarité introuvable.')
+    nom = parametre.nom
+    parametre.delete()
+    return _ok(
+        f'Paramètres « {nom} » supprimés.',
+        url=_parametres_comptabilite_url(),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Examens
 # ---------------------------------------------------------------------------
@@ -1854,6 +2387,70 @@ _ACTIONS = (
         },
         prepare=prepare_enregistrer_paiement,
         apply=apply_enregistrer_paiement,
+    ),
+    ActionSpec(
+        'creer_parametres_comptabilite',
+        'Crée un barème de scolarité par groupe de classes (même logique que /comptabilite/parametres/).',
+        {
+            'nom': {'type': 'string', 'description': 'Nom du barème (ex. Tarifs 2nde)'},
+            'groupes_classes': {
+                'type': 'string',
+                'description': 'Groupes concernés, séparés par des virgules (ex. 2nde, 1ère)',
+            },
+            'classe': _CLASSE,
+            'type_facturation': {'type': 'string', 'enum': ['mensuel', 'annuel']},
+            'montant_frais_inscription': {'type': 'string'},
+            'montant_frais_reinscription': {'type': 'string'},
+            'montant_mensualite': {'type': 'string'},
+            'montant_facturation_annuelle': {'type': 'string'},
+            'delai_tolerance_retard': {'type': 'integer'},
+            'jours_avant_rappel': {'type': 'integer'},
+            'mois_debut_facturation': {'type': 'integer'},
+            'mois_fin_facturation': {'type': 'integer'},
+            'appliquer_remise_famille_nombreuse': {'type': 'boolean'},
+            'pourcentage_remise_famille_nombreuse': {'type': 'string'},
+            'jour_versement': {'type': 'integer'},
+            'paiement_en_avance': {'type': 'boolean'},
+        },
+        prepare=prepare_creer_parametres_comptabilite,
+        apply=apply_creer_parametres_comptabilite,
+    ),
+    ActionSpec(
+        'modifier_parametres_comptabilite',
+        'Met à jour un barème de scolarité existant (nom, groupes, montants).',
+        {
+            'query': _QUERY,
+            'nom': {'type': 'string'},
+            'parametres_id': {'type': 'integer'},
+            'groupes_classes': {'type': 'string'},
+            'type_facturation': {'type': 'string', 'enum': ['mensuel', 'annuel']},
+            'montant_frais_inscription': {'type': 'string'},
+            'montant_frais_reinscription': {'type': 'string'},
+            'montant_mensualite': {'type': 'string'},
+            'montant_facturation_annuelle': {'type': 'string'},
+            'delai_tolerance_retard': {'type': 'integer'},
+            'jours_avant_rappel': {'type': 'integer'},
+            'mois_debut_facturation': {'type': 'integer'},
+            'mois_fin_facturation': {'type': 'integer'},
+            'appliquer_remise_famille_nombreuse': {'type': 'boolean'},
+            'pourcentage_remise_famille_nombreuse': {'type': 'string'},
+            'jour_versement': {'type': 'integer'},
+            'paiement_en_avance': {'type': 'boolean'},
+        },
+        prepare=prepare_modifier_parametres_comptabilite,
+        apply=apply_modifier_parametres_comptabilite,
+    ),
+    ActionSpec(
+        'supprimer_parametres_comptabilite',
+        'Supprime un barème de scolarité par groupe de classes.',
+        {
+            'query': _QUERY,
+            'nom': {'type': 'string'},
+            'parametres_id': {'type': 'integer'},
+        },
+        destructive=True,
+        prepare=prepare_supprimer_parametres_comptabilite,
+        apply=apply_supprimer_parametres_comptabilite,
     ),
     ActionSpec(
         'creer_session_examen',

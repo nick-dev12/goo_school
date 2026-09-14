@@ -107,7 +107,9 @@ Autres actions (toujours avec confirmation) :
 - Préinscriptions : valider_preinscription, rejeter_preinscription,
   toggle_lien_preinscription.
 - Bulletins : publier_bulletins, calculer_moyennes_classe.
-- Scolarité : enregistrer_paiement.
+- Scolarité : enregistrer_paiement, get_parametres_comptabilite,
+  creer_parametres_comptabilite, modifier_parametres_comptabilite,
+  supprimer_parametres_comptabilite (barèmes /comptabilite/parametres/).
 - Examens : creer_session_examen, supprimer_session_examen.
 - Structure : creer_classe, desactiver_classe, supprimer_classe, creer_salle,
   desactiver_salle, creer_matiere, desactiver_matiere.

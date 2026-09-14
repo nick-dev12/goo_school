@@ -111,6 +111,7 @@ class AssistantDirecteurToolsTests(TestCase):
             'get_annees',
             'get_salles',
             'get_matieres',
+            'get_parametres_comptabilite',
         }
         attendus.update(ACTION_SPECS.keys())
         manquants = attendus - schema_names
@@ -252,3 +253,58 @@ class AssistantDirecteurToolsTests(TestCase):
         self.assertTrue(is_write_action('creer_publier_annonce'))
         self.assertFalse(is_write_action('get_effectifs'))
         self.assertGreaterEqual(len(ACTION_SPECS), 30)
+
+    def test_parametres_comptabilite_lecture_et_mutation(self):
+        from decimal import Decimal
+
+        from school_admin.model.parametres_comptabilite_groupe_classe_model import (
+            ParametresComptabiliteGroupeClasse,
+        )
+
+        self.etab.module_comptabilite = True
+        self.etab.save(update_fields=['module_comptabilite'])
+
+        lecture = execute_tool(self.ctx, 'get_parametres_comptabilite', {})
+        self.assertTrue(lecture.get('module_actif'))
+        self.assertIn('2nde', lecture['groupes_disponibles'])
+        self.assertEqual(lecture['nb'], 0)
+
+        draft = execute_tool(self.ctx, 'creer_parametres_comptabilite', {
+            'nom': 'Tarifs 2nde',
+            'groupes_classes': ['2nde'],
+            'montant_frais_inscription': '25000',
+            'montant_mensualite': '15000',
+        })
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.assertEqual(
+            ParametresComptabiliteGroupeClasse.objects.filter(etablissement=self.etab).count(),
+            0,
+        )
+        created_ok = ACTION_SPECS['creer_parametres_comptabilite'].apply(self.ctx, draft)
+        self.assertEqual(created_ok['statut'], 'ok')
+        created = ParametresComptabiliteGroupeClasse.objects.get(etablissement=self.etab)
+        self.assertEqual(created.nom, 'Tarifs 2nde')
+        self.assertEqual(list(created.groupes_classes), ['2nde'])
+        self.assertEqual(created.montant_mensualite, Decimal('15000'))
+
+        update_draft = execute_tool(self.ctx, 'modifier_parametres_comptabilite', {
+            'query': 'Tarifs 2nde',
+            'montant_mensualite': '18000',
+        })
+        self.assertEqual(update_draft['statut'], 'en_attente_confirmation')
+        ACTION_SPECS['modifier_parametres_comptabilite'].apply(self.ctx, update_draft)
+        created.refresh_from_db()
+        self.assertEqual(created.montant_mensualite, Decimal('18000'))
+
+        delete_draft = execute_tool(self.ctx, 'supprimer_parametres_comptabilite', {
+            'query': 'Tarifs 2nde',
+        })
+        self.assertTrue(delete_draft.get('destructive'))
+        ACTION_SPECS['supprimer_parametres_comptabilite'].apply(self.ctx, delete_draft)
+        self.assertFalse(
+            ParametresComptabiliteGroupeClasse.objects.filter(pk=created.pk).exists()
+        )
+        self.assertEqual(
+            resolve_action_intent('Crée des paramètres de scolarité pour la 2nde')[0],
+            'creer_parametres_comptabilite',
+        )

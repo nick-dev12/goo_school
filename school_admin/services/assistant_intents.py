@@ -110,6 +110,18 @@ ACTION_INTENT_RES = (
     (re.compile(r'publie[rz]?.{0,40}bulletin', re.I), 'publier_bulletins'),
     (re.compile(r'calcule[rz]?.{0,40}moyenne', re.I), 'calculer_moyennes_classe'),
     (re.compile(r'(enregistre[rz]?|ajoute[rz]?).{0,40}paiement', re.I), 'enregistrer_paiement'),
+    (re.compile(
+        r'(cr[ée]e[rz]?|ajoute[rz]?).{0,50}param[eè]tres?.{0,40}(comptab|scolar|groupe)',
+        re.I,
+    ), 'creer_parametres_comptabilite'),
+    (re.compile(
+        r'(modifie[rz]?|change[rz]?|mets? [àa] jour).{0,50}param[eè]tres?.{0,40}(comptab|scolar|groupe)',
+        re.I,
+    ), 'modifier_parametres_comptabilite'),
+    (re.compile(
+        r'supprime[rz]?.{0,50}param[eè]tres?.{0,40}(comptab|scolar|groupe)',
+        re.I,
+    ), 'supprimer_parametres_comptabilite'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}ann[ée]e scolaire', re.I), 'creer_annee_scolaire'),
     (re.compile(r'active[rz]?.{0,30}ann[ée]e', re.I), 'activer_annee_scolaire'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}p[ée]riode', re.I), 'creer_periode'),
@@ -167,6 +179,29 @@ def extract_action_args(name, text):
     montant = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:f|fcfa|xof|euros?)?', raw, re.I)
     if montant and name == 'enregistrer_paiement':
         args['montant'] = montant.group(1)
+    if name in (
+        'creer_parametres_comptabilite',
+        'modifier_parametres_comptabilite',
+        'supprimer_parametres_comptabilite',
+    ):
+        named = re.search(r'[«"](.+?)[»"]', raw)
+        if named:
+            args['nom' if name != 'supprimer_parametres_comptabilite' else 'query'] = named.group(1).strip()
+        groupes = re.search(
+            r'(?:groupe[s]?|pour(?:\s+les)?(?:\s+classes)?)\s+([A-Za-zÀ-ÿ0-9 ,;/]+)',
+            raw,
+            re.I,
+        )
+        if groupes and name != 'supprimer_parametres_comptabilite':
+            args['groupes_classes'] = groupes.group(1).strip()
+        if montant and name != 'supprimer_parametres_comptabilite':
+            lowered = raw.lower()
+            if 'inscription' in lowered:
+                args['montant_frais_inscription'] = montant.group(1)
+            elif 'mensual' in lowered:
+                args['montant_mensualite'] = montant.group(1)
+            else:
+                args.setdefault('montant_mensualite', montant.group(1))
     return args
 
 
@@ -207,6 +242,11 @@ PAGE_ALIASES = {
     'scolarite': 'comptabilite',
     'comptabilité': 'comptabilite',
     'comptabilite': 'comptabilite',
+    'paramètres de scolarité': 'parametres_comptabilite',
+    'parametres de scolarite': 'parametres_comptabilite',
+    'paramètres de comptabilité': 'parametres_comptabilite',
+    'parametres de comptabilite': 'parametres_comptabilite',
+    'paramètres comptabilité': 'parametres_comptabilite',
     'bulletins': 'bulletins',
     'périodes': 'periodes',
     'periodes': 'periodes',
@@ -599,6 +639,16 @@ def infer_working_ack(question, pending=None):
         return "Je regarde les notes."
     if any(token in lowered for token in ('absence', 'présence', 'presence', 'présent')):
         return "Je vérifie les présences."
+    if any(
+        token in lowered
+        for token in (
+            'paramètres de scolarité',
+            'parametres de scolarite',
+            'paramètres de comptabilité',
+            'paramètres comptab',
+        )
+    ):
+        return "Je consulte les paramètres de scolarité."
     if any(token in lowered for token in ('paiement', 'impay', 'frais', 'scolarité', 'scolarite')):
         return "Je consulte la scolarité."
     if any(token in lowered for token in ('emploi du temps', 'edt')):

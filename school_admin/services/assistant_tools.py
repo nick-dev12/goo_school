@@ -753,6 +753,47 @@ def tool_comptabilite(ctx, args):
     }
 
 
+def tool_parametres_comptabilite(ctx, args):
+    from school_admin.model.parametres_comptabilite_groupe_classe_model import (
+        ParametresComptabiliteGroupeClasse,
+    )
+    from school_admin.services.assistant_actions import serialize_parametres_groupe
+
+    module_actif = bool(getattr(ctx.etablissement, 'module_comptabilite', False))
+    if not module_actif:
+        return {
+            'erreur': 'Le module scolarité n’est pas activé pour cet établissement.',
+            'module_actif': False,
+            'url': '/etablissement/profil/',
+        }
+
+    qs = list(
+        ParametresComptabiliteGroupeClasse.objects.filter(
+            etablissement=ctx.etablissement
+        ).order_by('-date_modification')
+    )
+    query = (args.get('query') or args.get('nom') or '').strip().lower()
+    if query:
+        qs = [
+            item
+            for item in qs
+            if query in (item.nom or '').lower()
+            or any(query in str(groupe).lower() for groupe in (item.groupes_classes or []))
+        ]
+    disponibles = ParametresComptabiliteGroupeClasse.get_groupes_disponibles(ctx.etablissement)
+    assignes = ParametresComptabiliteGroupeClasse.get_groupes_deja_assignes(ctx.etablissement)
+    return {
+        'module_actif': True,
+        'type_etablissement': ctx.etablissement.type_etablissement_comptabilite,
+        'nb': len(qs),
+        'parametres': [serialize_parametres_groupe(item) for item in qs],
+        'groupes_disponibles': disponibles,
+        'groupes_deja_assignes': assignes,
+        'groupes_libres': [groupe for groupe in disponibles if groupe not in assignes],
+        'url': '/comptabilite/parametres/',
+    }
+
+
 def tool_structure_superieur(ctx, args):
     if not ctx.est_superieur:
         return {'erreur': 'Cet établissement n’est pas un établissement supérieur.'}
@@ -804,6 +845,25 @@ def tool_chercher_en_base(ctx, args):
     if any(token in lowered for token in ('absence', 'présent', 'present', 'présence', 'presence')):
         found = tool_presences(ctx, payload)
         return {'trouve': True, 'source': 'presences', **found}
+    if (
+        any(
+            token in lowered
+            for token in (
+                'paramètres de scolarité',
+                'parametres de scolarite',
+                'paramètres de comptabilité',
+                'parametres de comptabilite',
+                'paramètres comptab',
+                'parametres comptab',
+            )
+        )
+        or (
+            ('paramètre' in lowered or 'parametre' in lowered)
+            and any(token in lowered for token in ('comptab', 'scolar', 'mensual', 'inscription'))
+        )
+    ):
+        found = tool_parametres_comptabilite(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'parametres_comptabilite', **found}
     if any(token in lowered for token in ('paiement', 'impay', 'frais', 'scolarité', 'scolarite', 'dette')):
         found = tool_comptabilite(ctx, payload)
         return {'trouve': True, 'source': 'comptabilite', **found}
@@ -1042,6 +1102,7 @@ TOOL_HANDLERS = {
     'creer_publier_annonce': tool_creer_publier_annonce,
     'get_periodes': tool_periodes,
     'get_comptabilite': tool_comptabilite,
+    'get_parametres_comptabilite': tool_parametres_comptabilite,
     'get_structure_superieur': tool_structure_superieur,
     'lister_pages': tool_lister_pages,
     'ouvrir_page': tool_ouvrir_page,
@@ -1375,6 +1436,26 @@ TOOLS_SCHEMA = [
                 'type': 'object',
                 'properties': {
                     'query': {'type': 'string'},
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_parametres_comptabilite',
+            'description': (
+                'Lit les barèmes de scolarité par groupe de classes '
+                '(/comptabilite/parametres/). Liste les paramètres, '
+                'groupes disponibles et groupes déjà assignés.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'query': {
+                        'type': 'string',
+                        'description': 'Nom du barème ou groupe de classes',
+                    },
                 },
             },
         },

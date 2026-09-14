@@ -134,4 +134,8 @@ urlpatterns = [
     path('comptabilite/parametres-groupes/<int:parametre_id>/supprimer/', supprimer_parametres_groupe_directeur, name='supprimer_parametres_groupe_directeur'),
     path('comptabilite/bilan/', bilan_comptable_directeur, name='bilan_comptable_directeur'),
     path('comptabilite/classe/<int:classe_id>/bilan/', bilan_comptable_classe_directeur, name='bilan_comptable_classe_directeur'),
+
+    # Volume horaire enseignants → montant à payer
+    path('volume-horaire/', liste_volume_horaire_directeur, name='liste_volume_horaire'),
+    path('volume-horaire/<int:professeur_id>/', detail_volume_horaire_directeur, name='detail_volume_horaire'),
 ]

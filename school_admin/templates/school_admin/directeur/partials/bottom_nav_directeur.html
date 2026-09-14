@@ -40,7 +40,7 @@
     {% check_permission request.user "notes_liste" as can_view_notes %}
     {% check_permission request.user "presences_liste" as can_view_presences %}
     {% if can_view_notes or can_view_presences or is_directeur %}
-    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if '/gestion-pedagogique' in nav_path or '/personnel' in nav_path or '/professeurs' in nav_path or '/affectation/' in nav_path or '/emplois-du-temps' in nav_path or '/notes-et-resultats' in nav_path or '/suivi-presence' in nav_path or nav_url == 'gestion_pedagogique' or nav_url == 'gestion_periodes_scolaires' or nav_url == 'configuration_moyennes_generales' or nav_url == 'configuration_standards_reussite' or nav_url == 'notes_et_resultats' or nav_url == 'justifications_notes' or nav_url == 'justifications_notes_classe' or nav_url == 'suivi_presence' %}active{% endif %}">
+    <li class="bottom-nav-item nav-item-primary nav-item-main-7 {% if '/gestion-pedagogique' in nav_path or '/personnel' in nav_path or '/professeurs' in nav_path or '/affectation/' in nav_path or '/emplois-du-temps' in nav_path or '/notes-et-resultats' in nav_path or '/suivi-presence' in nav_path or '/volume-horaire' in nav_path or nav_url == 'gestion_pedagogique' or nav_url == 'gestion_periodes_scolaires' or nav_url == 'configuration_moyennes_generales' or nav_url == 'configuration_standards_reussite' or nav_url == 'notes_et_resultats' or nav_url == 'justifications_notes' or nav_url == 'justifications_notes_classe' or nav_url == 'suivi_presence' or nav_url == 'liste_volume_horaire' or nav_url == 'detail_volume_horaire' %}active{% endif %}">
       <a href="{% url 'directeur:gestion_pedagogique' %}">
         <span class="icon-wrapper icon-pedagogie"
           ><i class="fas fa-graduation-cap"></i

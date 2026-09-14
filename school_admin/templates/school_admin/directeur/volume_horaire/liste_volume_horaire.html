@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Volume horaire à payer" %} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/volume_horaire.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="vh-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="content-container vh-page">
+        {% include 'school_admin/partials/messages.html' %}
+
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:gestion_pedagogique' as back_pedagogie_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_pedagogie_url %}
+        </div>
+
+        <header class="vh-hero">
+            <div class="vh-hero-text">
+                <h1 class="vh-hero-title"><i class="fas fa-clock"></i> {% trans "Volume horaire à payer" %}</h1>
+                <p class="vh-hero-sub">{% trans "Heures planifiées sur l'emploi du temps publié, moins les absences enseignants, multipliées par le tarif horaire de chaque professeur." %}</p>
+                {% if annee_scolaire_active %}
+                    <span class="vh-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+                {% endif %}
+            </div>
+            <div class="vh-hero-stats">
+                <div class="vh-stat-pill">
+                    <span class="vh-stat-num">{{ nb_professeurs }}</span>
+                    <span class="vh-stat-lbl">{% trans "Professeurs" %}</span>
+                </div>
+                <div class="vh-stat-pill vh-stat-pill--info">
+                    <span class="vh-stat-num">{{ total_heures|floatformat:2 }}</span>
+                    <span class="vh-stat-lbl">{% trans "Heures" %}</span>
+                </div>
+                <div class="vh-stat-pill vh-stat-pill--success">
+                    <span class="vh-stat-num">{{ total_montant|floatformat:0 }}</span>
+                    <span class="vh-stat-lbl">{% trans "À payer" %} ({{ devise_monnaie }})</span>
+                </div>
+            </div>
+        </header>
+
+        <form class="vh-filter-form" method="get" action="{% url 'directeur:liste_volume_horaire' %}" id="vh-filter-form">
+            <div class="vh-filters-grid">
+                <div class="vh-filter-field">
+                    <label class="vh-filter-label" for="vh-periode">{% trans "Période" %}</label>
+                    <select class="vh-filter-input" name="periode" id="vh-periode">
+                        <option value="semaine" {% if periode_kind == 'semaine' %}selected{% endif %}>{% trans "Semaine" %}</option>
+                        <option value="mois" {% if periode_kind == 'mois' %}selected{% endif %}>{% trans "Mois" %}</option>
+                        <option value="annee" {% if periode_kind == 'annee' %}selected{% endif %}>{% trans "Année scolaire" %}</option>
+                    </select>
+                </div>
+                <div class="vh-filter-field" data-period-field="semaine">
+                    <label class="vh-filter-label" for="vh-date">{% trans "Semaine du" %}</label>
+                    <input class="vh-filter-input" type="date" name="date" id="vh-date" value="{{ periode_date_value }}">
+                </div>
+                <div class="vh-filter-field" data-period-field="mois">
+                    <label class="vh-filter-label" for="vh-mois">{% trans "Mois" %}</label>
+                    <input class="vh-filter-input" type="month" name="mois" id="vh-mois" value="{{ periode_mois_value }}">
+                </div>
+                <div class="vh-filter-actions">
+                    <button type="submit" class="vh-btn vh-btn-primary">
+                        <i class="fas fa-check"></i> {% trans "Afficher" %}
+                    </button>
+                </div>
+            </div>
+            <p class="vh-period-label"><i class="fas fa-calendar-alt"></i> {{ periode.label }} — {{ periode.date_debut|date:"d/m/Y" }} → {{ periode.date_fin|date:"d/m/Y" }}</p>
+        </form>
+
+        {% if not annee_scolaire_active %}
+        <div class="vh-alert vh-alert-warn">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>{% trans "Aucune année scolaire active. Les créneaux de tous les EDT publiés sont pris en compte." %}</span>
+        </div>
+        {% endif %}
+
+        {% if periode_vide %}
+        <div class="vh-alert vh-alert-warn">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>{% trans "Cette période est hors de l'année scolaire. Aucune heure n'est comptée." %}</span>
+        </div>
+        {% endif %}
+
+        {% if note_absences %}
+        <div class="vh-alert vh-alert-info">
+            <i class="fas fa-info-circle"></i>
+            <span>{{ note_absences }}</span>
+        </div>
+        {% endif %}
+
+        <div class="vh-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="search" id="vh-search" class="vh-search-input" placeholder="{% trans 'Rechercher un professeur…' %}" autocomplete="off">
+        </div>
+
+        <div class="table-responsive vh-table-wrap">
+            <table class="vh-table">
+                <thead>
+                    <tr>
+                        <th>{% trans "Professeur" %}</th>
+                        <th>{% trans "Matière" %}</th>
+                        <th class="vh-num">{% trans "Tarif / h" %}</th>
+                        <th class="vh-num">{% trans "H / semaine" %}</th>
+                        <th class="vh-num">{% trans "Heures planifiées" %}</th>
+                        <th class="vh-num">{% trans "Heures" %}</th>
+                        <th class="vh-num">{% trans "Montant à payer" %}</th>
+                        <th>{% trans "Détail" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ligne in lignes %}
+                    <tr class="vh-row" data-nom="{{ ligne.professeur.nom_complet|lower }}">
+                        <td>
+                            <span class="vh-prof-name">{{ ligne.professeur.nom|upper }} {{ ligne.professeur.prenom }}</span>
+                            {% if not ligne.professeur.actif %}
+                                <span class="vh-chip vh-chip-muted">{% trans "Inactif" %}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ ligne.professeur.matiere_display }}</td>
+                        <td class="vh-num">
+                            {% if ligne.resultat.prix_horaire is not None %}
+                                {{ ligne.resultat.prix_horaire|floatformat:0 }} {{ devise_monnaie }}
+                            {% else %}
+                                <span class="vh-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="vh-num">{{ ligne.resultat.heures_semaine|floatformat:2 }}</td>
+                        <td class="vh-num">{{ ligne.resultat.heures_planifiees|floatformat:2 }}</td>
+                        <td class="vh-num">{{ ligne.resultat.heures|floatformat:2 }}</td>
+                        <td class="vh-num vh-montant">
+                            {% if ligne.resultat.montant is not None %}
+                                {{ ligne.resultat.montant|floatformat:0 }} {{ devise_monnaie }}
+                            {% else %}
+                                <span class="vh-muted">{% trans "Tarif non renseigné" %}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a class="vh-link-btn" href="{% url 'directeur:detail_volume_horaire' ligne.professeur.id %}?periode={{ periode_kind }}{% if periode_kind == 'semaine' %}&amp;date={{ periode_date_value }}{% elif periode_kind == 'mois' %}&amp;mois={{ periode_mois_value }}{% endif %}">
+                                <i class="fas fa-eye"></i> {% trans "Voir" %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="vh-empty">{% trans "Aucun professeur dans cet établissement." %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if lignes %}
+                <tfoot>
+                    <tr>
+                        <th colspan="5">{% trans "Total" %}</th>
+                        <th class="vh-num">{{ total_heures|floatformat:2 }}</th>
+                        <th class="vh-num vh-montant">{{ total_montant|floatformat:0 }} {{ devise_monnaie }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+        {% if lignes %}
+        <p class="vh-footnote">{{ nb_avec_tarif }} {% trans "professeur(s) avec un tarif horaire. Les montants sans tarif ne sont pas inclus dans le total." %}</p>
+        {% endif %}
+    </div>
+
+    <script src="{% static 'school_admin/js/directeur/volume_horaire.js' %}?v=1.0.0"></script>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

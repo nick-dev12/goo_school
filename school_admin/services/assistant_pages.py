@@ -53,6 +53,12 @@ PAGE_CATALOG = (
         'mots': 'professeurs enseignants',
     },
     {
+        'key': 'volume_horaire',
+        'titre': 'Volume horaire à payer',
+        'route': 'directeur:liste_volume_horaire',
+        'mots': 'volume horaire paie vacataires heures tarif professeur',
+    },
+    {
         'key': 'personnel',
         'titre': 'Personnel administratif',
         'route': 'personnel:liste_personnel',

@@ -80,7 +80,7 @@
         <dl class="prof-dl">
             <div class="prof-dl-row"><dt>{% trans "Établissement" %}</dt><dd>{{ professeur.etablissement.nom }}</dd></div>
             <div class="prof-dl-row"><dt>{% trans "Embauche" %}</dt><dd>{% if professeur.date_embauche %}{{ professeur.date_embauche|date:"d/m/Y" }}{% else %}—{% endif %}</dd></div>
-            <div class="prof-dl-row"><dt>{% trans "Prix horaire" %}</dt><dd>{% if professeur.prix_volume_horaire %}{{ professeur.prix_volume_horaire }} FCFA/h{% else %}—{% endif %}</dd></div>
+            <div class="prof-dl-row"><dt>{% trans "Prix horaire" %}</dt><dd>{% if professeur.prix_volume_horaire %}{{ professeur.prix_volume_horaire }} FCFA/h{% else %}—{% endif %} <a href="{% url 'directeur:detail_volume_horaire' professeur.id %}" class="link-email">{% trans "Volume à payer" %}</a></dd></div>
             <div class="prof-dl-row"><dt>{% trans "Compte créé" %}</dt><dd>{{ professeur.date_creation|date:"d/m/Y" }}</dd></div>
         </dl>
     </article>

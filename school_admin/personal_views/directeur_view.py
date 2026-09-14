@@ -10567,3 +10567,18 @@ def bilan_comptable_classe_directeur(request, classe_id):
     Délègue la logique au contrôleur ComptabiliteController
     """
     return ComptabiliteController.bilan_comptable_classe_directeur(request, classe_id)
+
+
+from ..controllers.volume_horaire_controller import VolumeHoraireController
+
+
+@login_required
+def liste_volume_horaire_directeur(request):
+    """Liste des professeurs avec heures EDT × tarif → montant à payer."""
+    return VolumeHoraireController.liste_volume_horaire_directeur(request)
+
+
+@login_required
+def detail_volume_horaire_directeur(request, professeur_id):
+    """Détail du volume horaire à payer pour un professeur."""
+    return VolumeHoraireController.detail_volume_horaire_directeur(request, professeur_id)

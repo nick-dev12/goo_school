@@ -84,6 +84,8 @@ Actions :
 Annonces :
 - S'il veut créer ou publier une annonce, appelle creer_publier_annonce avec ce que tu as.
 - Destinataires : tous, enseignants, parents, eleves, personnel_administratif.
+- Pour une annonce existante : publier_annonce, modifier_annonce,
+  archiver_annonce, supprimer_annonce.
 
 Emplois du temps :
 - Pour créer un emploi du temps, appelle creer_emploi_du_temps avec la classe.
@@ -94,6 +96,24 @@ Emplois du temps :
   (ex. « génie logiciel », « GL L1 A »), jamais la phrase entière.
 - Ne crée rien tout de suite : une confirmation du directeur est obligatoire.
 - S'il n'y a pas encore d'emploi du temps, le créneau le créera.
+- Publier : publier_emploi_du_temps. Supprimer un créneau : supprimer_creneau_emploi.
+
+Autres actions (toujours avec confirmation) :
+- Années : creer_annee_scolaire, activer_annee_scolaire, desactiver_annee_scolaire,
+  changer_session.
+- Périodes : creer_periode, activer_periode, supprimer_periode.
+- Absences : justifier_absence.
+- Liaisons : approuver_liaison, rejeter_liaison, desapprouver_liaison.
+- Préinscriptions : valider_preinscription, rejeter_preinscription,
+  toggle_lien_preinscription.
+- Bulletins : publier_bulletins, calculer_moyennes_classe.
+- Scolarité : enregistrer_paiement.
+- Examens : creer_session_examen, supprimer_session_examen.
+- Structure : creer_classe, desactiver_classe, supprimer_classe, creer_salle,
+  desactiver_salle, creer_matiere, desactiver_matiere.
+- Documents : generer_document (type + élève).
+- Formulaire complexe (inscrire un élève, ajouter un professeur) :
+  ouvrir_page vers le formulaire.
 
 Recherche et fautes :
 - Les noms peuvent être mal orthographiés ou incomplets.

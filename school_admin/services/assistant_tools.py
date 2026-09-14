@@ -816,6 +816,27 @@ def tool_chercher_en_base(ctx, args):
     if any(token in lowered for token in ('annonce',)):
         found = tool_annonces(ctx, payload)
         return {'trouve': True, 'source': 'annonces', **found}
+    if any(token in lowered for token in ('préinscription', 'preinscription', 'candidat')):
+        found = tool_preinscriptions(ctx, payload)
+        return {'trouve': True, 'source': 'preinscriptions', **found}
+    if any(token in lowered for token in ('liaison',)):
+        found = tool_liaisons(ctx, payload)
+        return {'trouve': True, 'source': 'liaisons', **found}
+    if any(token in lowered for token in ('examen', 'session d')):
+        found = tool_examens(ctx, payload)
+        return {'trouve': True, 'source': 'examens', **found}
+    if any(token in lowered for token in ('année scolaire', 'annee scolaire', 'session 20')):
+        found = tool_annees(ctx, payload)
+        return {'trouve': True, 'source': 'annees', **found}
+    if any(token in lowered for token in ('salle',)):
+        found = tool_salles(ctx, payload)
+        return {'trouve': True, 'source': 'salles', **found}
+    if any(token in lowered for token in ('matière', 'matiere')):
+        found = tool_matieres(ctx, payload)
+        return {'trouve': True, 'source': 'matieres', **found}
+    if any(token in lowered for token in ('notification',)):
+        found = tool_notifications(ctx, payload)
+        return {'trouve': True, 'source': 'notifications', **found}
     if any(token in lowered for token in ('département', 'departement', 'module', 'spécialité', 'specialite')):
         found = tool_structure_superieur(ctx, payload)
         return {'trouve': True, 'source': 'structure', **found}
@@ -842,6 +863,136 @@ def tool_chercher_en_base(ctx, args):
         ),
         **found,
     }
+
+
+def tool_notifications(ctx, _args):
+    from school_admin.model.notification_directeur_model import NotificationDirecteur
+
+    qs = NotificationDirecteur.objects.filter(etablissement=ctx.etablissement)
+    items = [
+        {
+            'titre': n.titre if hasattr(n, 'titre') else str(n),
+            'lu': getattr(n, 'lu', False),
+            'date': n.date_creation.isoformat() if getattr(n, 'date_creation', None) else None,
+        }
+        for n in qs.order_by('-date_creation')[:12]
+    ]
+    return {
+        'nb_non_lues': qs.filter(lu=False).count() if hasattr(NotificationDirecteur, 'lu') else 0,
+        'notifications': items,
+        'url': '/notifications/',
+    }
+
+
+def tool_preinscriptions(ctx, args):
+    from school_admin.model.preinscription_model import PreinscriptionEleve
+
+    qs = PreinscriptionEleve.objects.filter(etablissement=ctx.etablissement)
+    statut = (args.get('statut') or 'en_attente').strip()
+    if statut:
+        qs = qs.filter(statut=statut)
+    items = [
+        {
+            'id': p.id,
+            'nom': f'{p.prenom} {p.nom}',
+            'classe': p.classe_souhaitee.nom if p.classe_souhaitee_id else None,
+            'statut': p.statut,
+        }
+        for p in qs.order_by('-id')[:SEARCH_LIMIT]
+    ]
+    return {'nb': qs.count(), 'preinscriptions': items}
+
+
+def tool_liaisons(ctx, args):
+    from school_admin.model.demande_liaison_model import DemandeLiaisonParent
+
+    qs = DemandeLiaisonParent.objects.filter(
+        Q(etablissement=ctx.etablissement)
+        | Q(eleve_valide__etablissement=ctx.etablissement)
+    ).select_related('parent_demandeur', 'eleve_valide')
+    statut = (args.get('statut') or '').strip()
+    if statut:
+        qs = qs.filter(statut=statut)
+    items = [
+        {
+            'id': d.id,
+            'parent': getattr(d.parent_demandeur, 'nom_complet', ''),
+            'eleve': (
+                d.eleve_valide.nom_complet
+                if d.eleve_valide_id
+                else f'{d.prenom_eleve} {d.nom_eleve}'
+            ),
+            'statut': d.statut,
+        }
+        for d in qs.order_by('-date_demande')[:SEARCH_LIMIT]
+    ]
+    return {'nb': qs.count(), 'demandes': items}
+
+
+def tool_examens(ctx, _args):
+    from school_admin.model.session_examen_model import SessionExamen
+
+    qs = SessionExamen.objects.filter(etablissement=ctx.etablissement)
+    if ctx.annee_scolaire:
+        qs = qs.filter(Q(annee_scolaire=ctx.annee_scolaire) | Q(annee_scolaire__isnull=True))
+    items = [
+        {
+            'id': s.id,
+            'nom': s.nom_examen,
+            'periode': s.periode.nom_periode if s.periode_id else None,
+            'debut': s.date_debut.isoformat() if s.date_debut else None,
+            'fin': s.date_fin.isoformat() if s.date_fin else None,
+        }
+        for s in qs.select_related('periode').order_by('-date_creation')[:SEARCH_LIMIT]
+    ]
+    return {'sessions': items}
+
+
+def tool_annees(ctx, _args):
+    from school_admin.model.annee_scolaire_model import AnneeScolaire
+
+    items = [
+        {
+            'id': a.id,
+            'libelle': a.libelle,
+            'active': a.est_active,
+            'ouverte': a.est_ouverte,
+            'debut': a.date_debut.isoformat() if a.date_debut else None,
+            'fin': a.date_fin.isoformat() if a.date_fin else None,
+        }
+        for a in AnneeScolaire.objects.filter(
+            etablissement=ctx.etablissement
+        ).order_by('-annee_debut')[:16]
+    ]
+    return {'annees': items}
+
+
+def tool_salles(ctx, args):
+    from school_admin.model.salle_model import Salle
+
+    qs = Salle.objects.filter(etablissement=ctx.etablissement, actif=True)
+    query = (args.get('query') or '').strip()
+    if query:
+        qs = qs.filter(Q(nom__icontains=query) | Q(numero__icontains=query))
+    items = [
+        {'id': s.id, 'nom': s.nom, 'numero': s.numero, 'type': s.get_type_salle_display()}
+        for s in qs.order_by('numero')[:SEARCH_LIMIT]
+    ]
+    return {'salles': items}
+
+
+def tool_matieres(ctx, args):
+    from school_admin.model.matiere_model import Matiere
+
+    qs = Matiere.objects.filter(etablissement=ctx.etablissement, actif=True)
+    query = (args.get('query') or '').strip()
+    if query:
+        qs = qs.filter(Q(nom__icontains=query) | Q(code__icontains=query))
+    items = [
+        {'id': m.id, 'nom': m.nom, 'code': getattr(m, 'code', None)}
+        for m in qs.order_by('nom')[:SEARCH_LIMIT]
+    ]
+    return {'matieres': items}
 
 
 def tool_lister_pages(_ctx, _args):
@@ -894,6 +1045,13 @@ TOOL_HANDLERS = {
     'get_structure_superieur': tool_structure_superieur,
     'lister_pages': tool_lister_pages,
     'ouvrir_page': tool_ouvrir_page,
+    'get_notifications': tool_notifications,
+    'get_preinscriptions': tool_preinscriptions,
+    'get_liaisons': tool_liaisons,
+    'get_examens': tool_examens,
+    'get_annees': tool_annees,
+    'get_salles': tool_salles,
+    'get_matieres': tool_matieres,
 }
 
 from school_admin.services.assistant_emploi import (  # noqa: E402
@@ -903,6 +1061,14 @@ from school_admin.services.assistant_emploi import (  # noqa: E402
 
 TOOL_HANDLERS['creer_emploi_du_temps'] = tool_creer_emploi_du_temps
 TOOL_HANDLERS['ajouter_creneau_emploi'] = tool_ajouter_creneau_emploi
+
+from school_admin.services.assistant_actions import (  # noqa: E402
+    ACTION_SPECS,
+    build_tool_schemas as build_action_tool_schemas,
+)
+
+for _name, _spec in ACTION_SPECS.items():
+    TOOL_HANDLERS[_name] = _spec.prepare
 
 
 TOOLS_SCHEMA = [
@@ -1266,12 +1432,16 @@ TOOLS_SCHEMA = [
             'description': (
                 'Ouvre une page de l’application (liste des classes, annonces, etc.). '
                 'Pour une classe nommée, utilise ouvrir_classe. '
-                'Clés : dashboard, etablissement, classes, salles, matieres, '
-                'emplois_du_temps, pedagogie, professeurs, personnel, eleves, '
-                'gestion_eleves, notes, presences, periodes, bulletins, annonces, '
-                'creer_annonce, examens, emploi_examens, comptabilite, administration, '
-                'convocations, certificats, preinscriptions, liaisons, notifications, '
-                'profil, annees. '
+                'Clés : dashboard, etablissement, classes, ajouter_classe, salles, '
+                'ajouter_salle, matieres, ajouter_matiere, modules, emplois_du_temps, '
+                'pedagogie, professeurs, ajouter_professeur, personnel, ajouter_personnel, '
+                'eleves, inscription_eleves, gestion_eleves, reinscription, notes, '
+                'justifications_notes, presences, periodes, bulletins, config_moyennes, '
+                'annonces, creer_annonce, examens, emploi_examens, comptabilite, '
+                'bilan_comptable, parametres_comptabilite, administration, convocations, '
+                'certificats, attestations_reussite, fiches_inscription, preinscriptions, '
+                'liens_preinscription, liaisons, notifications, profil, annees, '
+                'creer_annee, facturation, cartes_identite, configuration_horaires. '
                 'Mettre ouvrir à true seulement si le directeur demande d’y aller.'
             ),
             'parameters': {
@@ -1290,7 +1460,81 @@ TOOLS_SCHEMA = [
             },
         },
     },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_notifications',
+            'description': 'Notifications du directeur (non lues et récentes).',
+            'parameters': {'type': 'object', 'properties': {}},
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_preinscriptions',
+            'description': 'Liste des préinscriptions (défaut : en attente).',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'statut': {'type': 'string', 'description': 'en_attente, validee, rejetee'},
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_liaisons',
+            'description': 'Demandes de liaison parent-élève.',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'statut': {'type': 'string'},
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_examens',
+            'description': 'Sessions d’examens de l’année consultée.',
+            'parameters': {'type': 'object', 'properties': {}},
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_annees',
+            'description': 'Années scolaires de l’établissement.',
+            'parameters': {'type': 'object', 'properties': {}},
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_salles',
+            'description': 'Salles de l’établissement.',
+            'parameters': {
+                'type': 'object',
+                'properties': {'query': {'type': 'string'}},
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_matieres',
+            'description': 'Matières de l’établissement.',
+            'parameters': {
+                'type': 'object',
+                'properties': {'query': {'type': 'string'}},
+            },
+        },
+    },
 ]
+
+TOOLS_SCHEMA.extend(build_action_tool_schemas())
 
 
 def execute_tool(ctx, name, arguments):

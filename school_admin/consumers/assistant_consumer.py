@@ -169,6 +169,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         await self._cancel_opener()
         self.history = []
+        # Ne pas effacer aria_pending en session : une reconnexion WebSocket doit
+        # pouvoir reprendre l’action en attente de confirmation.
         self.pending_action = None
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -192,12 +194,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return
         if kind == 'confirm_action':
             await self._send_working_ack('Oui, publier.')
+            await self._ensure_pending_loaded()
             if payload.get('publier') is True and self.pending_action:
                 self.pending_action.setdefault('draft', {})['publier'] = True
             await self._run_guarded(self._confirm_pending)
             return
         if kind == 'cancel_action':
             await self._send_working_ack('Annuler.')
+            await self._ensure_pending_loaded()
             await self._run_guarded(self._cancel_pending)
             return
         if kind == 'choice':
@@ -225,6 +229,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return
 
         await self._send_working_ack(question)
+        await self._ensure_pending_loaded()
         if await self._route_pending_reply(question):
             return
         if self.pending_action:
@@ -701,7 +706,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         elif name == 'choisir_classe':
             await self._send_choices(self.pending_action.get('choices') or [])
         elif name in ACTION_SPECS:
-            await self._send_choices(choices_for_action(name, self.pending_action.get('draft') or {}))
+            draft = self.pending_action.get('draft') or {}
+            await self._send_generic_pending_ui(name, draft)
+            await self._send_choices(choices_for_action(name, draft))
 
     async def _handle_choice_payload(self, payload):
         intent = (payload.get('intent') or 'chat').strip()
@@ -711,11 +718,13 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         elif intent not in ('cancel',):
             await self._send_working_ack(value)
         if intent == 'confirm':
+            await self._ensure_pending_loaded()
             if payload.get('publier') is True and self.pending_action:
                 self.pending_action.setdefault('draft', {})['publier'] = True
             await self._run_guarded(self._confirm_pending)
             return
         if intent == 'cancel':
+            await self._ensure_pending_loaded()
             await self._run_guarded(self._cancel_pending)
             return
         if intent == 'open' and payload.get('url'):
@@ -757,7 +766,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             self._busy = False
 
     async def _route_pending_reply(self, question):
-        await self._load_pending()
+        await self._ensure_pending_loaded()
         pending = self.pending_action
         if not pending:
             return False
@@ -883,23 +892,21 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         ):
             return self._choices_for_emploi_action()
         if self.pending_action and self.pending_action.get('name') in ACTION_SPECS:
-            return choices_for_action(
-                self.pending_action['name'],
-                self.pending_action.get('draft') or {},
-            )
+            draft = self.pending_action.get('draft') or {}
+            if is_action_ready(draft):
+                return choices_for_action(self.pending_action['name'], draft)
+            return []
         if self.pending_action and self.pending_action.get('name') == 'choisir_classe':
             return self.pending_action.get('choices') or []
+        if self.pending_action:
+            return []
         text = spoken or ''
         if self.pending_action and re.search(
             r"c['’ ]est bon|je publie|confirme|valider|avant publication",
             text,
             re.I,
         ):
-            return [
-                {'label': 'Oui, c’est bon', 'value': 'Oui, c’est bon.', 'intent': 'confirm'},
-                {'label': 'Modifier', 'value': 'Je veux modifier.', 'intent': 'modify'},
-                {'label': 'Annuler', 'value': 'Annuler.', 'intent': 'cancel'},
-            ]
+            return []
         if re.search(r'\?$', text.strip()) and re.search(
             r'\b(?:souhaitez[- ]vous|voulez[- ]vous|c["’]est bon)\b',
             text,
@@ -1101,7 +1108,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return
         try:
             session['aria_pending'] = self.pending_action
-            await database_sync_to_async(session.save)()
+            if hasattr(session, 'asave'):
+                await session.asave()
+            else:
+                await database_sync_to_async(session.save)()
         except Exception:
             logger.exception("Impossible d’enregistrer l’action Aria en session.")
 
@@ -1113,6 +1123,23 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if isinstance(pending, dict) and pending.get('name'):
             self.pending_action = pending
 
+    async def _ensure_pending_loaded(self):
+        if self.pending_action:
+            return True
+        await self._load_pending()
+        return bool(self.pending_action)
+
+    async def _send_generic_pending_ui(self, name, draft):
+        draft = dict(draft or {})
+        await self._send_json({
+            'type': 'action.pending',
+            'action': name,
+            'titre': draft.get('nom') or draft.get('resume') or name.replace('_', ' '),
+            'contenu': default_prompt(draft),
+            'destructive': bool(draft.get('destructive')),
+            'choices': choices_for_action(name, draft),
+        })
+
     async def _clear_pending(self, silent=False):
         if not self.pending_action:
             return
@@ -1122,7 +1149,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_json({'type': 'action.cancelled'})
 
     async def _cancel_pending(self):
-        await self._load_pending()
+        await self._ensure_pending_loaded()
         if not self.pending_action:
             await self._send_action_result(
                 'error',
@@ -1349,6 +1376,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._speak_and_finish(user_text=question, spoken=spoken)
             return
         choices = choices_for_action(name, data)
+        if is_action_ready(data):
+            await self._send_generic_pending_ui(name, data)
         await self._speak_and_finish(user_text=question, spoken=spoken, choices=choices)
 
     async def _continue_generic_action(self, question):
@@ -1420,7 +1449,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
 
     async def _confirm_pending(self):
-        await self._load_pending()
+        await self._ensure_pending_loaded()
         pending = self.pending_action
         if pending and pending.get('name') in ACTION_SPECS:
             await self._confirm_generic_action()

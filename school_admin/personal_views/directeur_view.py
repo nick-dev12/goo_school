@@ -10506,6 +10506,12 @@ def payer_mensualite_directeur(request, eleve_id, mensualite_id):
 
 
 @login_required
+def payer_frais_annexe_directeur(request, eleve_id, frais_id):
+    """Enregistre un paiement de frais annexe (tenue, carte, etc.)."""
+    return ComptabiliteController.payer_frais_annexe_directeur(request, eleve_id, frais_id)
+
+
+@login_required
 def verifier_statuts_paiement_directeur(request):
     """
     Vérifie tous les statuts de paiement des élèves de l'établissement du directeur

@@ -58,7 +58,7 @@
         {% if parametres_groupes %}
             <div class="scp-cards-grid parametres-list">
                 {% for parametre in parametres_groupes %}
-                    <article class="scp-param-card parametre-card">
+                    <article class="scp-param-card parametre-card" data-parametre-id="{{ parametre.id }}">
                         <div class="scp-param-card-head parametre-card-header">
                             <h3 class="scp-param-card-title parametre-card-title">{{ parametre.nom }}</h3>
                             <div class="scp-groupes-list groupes-list">
@@ -100,7 +100,24 @@
                                     <span class="scp-info-label info-item-label">{% trans "Rappels auto" %}</span>
                                     <span class="scp-info-value info-item-value">{% if parametre.envoyer_rappels_automatiques %}{% trans "Activés" %}{% else %}{% trans "Désactivés" %}{% endif %}</span>
                                 </div>
+                                <div class="scp-info-item info-item">
+                                    <span class="scp-info-label info-item-label">{% trans "Frais annexes" %}</span>
+                                    <span class="scp-info-value scp-info-value--amount info-item-value amount" data-param-annexes-total>{{ parametre.total_frais_annexes|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                </div>
                             </div>
+                            {% if parametre.get_frais_annexes_actifs %}
+                            <ul class="scp-annexes-list" data-param-annexes-list>
+                                {% for frais in parametre.get_frais_annexes_actifs %}
+                                    <li data-annexe-code="{{ frais.code }}">
+                                        <span>{{ frais.libelle }}</span>
+                                        <strong>{{ frais.montant_decimal|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</strong>
+                                        <em>{{ frais.periodicite_display }}</em>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <ul class="scp-annexes-list" data-param-annexes-list hidden></ul>
+                            {% endif %}
                         </div>
                         <div class="scp-param-card-foot parametre-card-actions">
                             <a href="{% url 'directeur:modifier_parametres_groupe_directeur' parametre.id %}" class="scp-card-btn scp-card-btn--edit">

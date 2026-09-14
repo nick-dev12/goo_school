@@ -727,12 +727,25 @@ def tool_comptabilite(ctx, args):
             }
         total_du = fiche.calculer_total_du()
         total_paye = fiche.calculer_total_paye()
+        annexes = []
+        for frais in fiche.frais_annexes.all():
+            annexes.append({
+                'id': frais.id,
+                'code': frais.code,
+                'libelle': frais.libelle,
+                'montant': _safe_decimal(frais.montant),
+                'paye': _safe_decimal(frais.montant_paye),
+                'reste': _safe_decimal(frais.get_reste_a_payer()),
+                'statut': frais.get_statut_display(),
+                'periodicite': frais.get_periodicite_display(),
+            })
         return {
             'eleve': eleve.nom_complet,
             'statut': fiche.get_statut_paiement_display(),
             'total_du': _safe_decimal(total_du),
             'total_paye': _safe_decimal(total_paye),
             'reste': _safe_decimal(total_du - total_paye),
+            'frais_annexes': annexes,
         }
 
     impayes = qs.filter(statut_paiement__in=['en_retard', 'impaye']).select_related('eleve')
@@ -903,6 +916,20 @@ from school_admin.services.assistant_emploi import (  # noqa: E402
 
 TOOL_HANDLERS['creer_emploi_du_temps'] = tool_creer_emploi_du_temps
 TOOL_HANDLERS['ajouter_creneau_emploi'] = tool_ajouter_creneau_emploi
+
+from school_admin.services.assistant_actions import (  # noqa: E402
+    tool_creer_parametres_comptabilite,
+    tool_enregistrer_paiement,
+    tool_get_parametres_comptabilite,
+    tool_modifier_parametres_comptabilite,
+    tool_supprimer_parametres_comptabilite,
+)
+
+TOOL_HANDLERS['get_parametres_comptabilite'] = tool_get_parametres_comptabilite
+TOOL_HANDLERS['creer_parametres_comptabilite'] = tool_creer_parametres_comptabilite
+TOOL_HANDLERS['modifier_parametres_comptabilite'] = tool_modifier_parametres_comptabilite
+TOOL_HANDLERS['supprimer_parametres_comptabilite'] = tool_supprimer_parametres_comptabilite
+TOOL_HANDLERS['enregistrer_paiement'] = tool_enregistrer_paiement
 
 
 TOOLS_SCHEMA = [
@@ -1202,7 +1229,8 @@ TOOLS_SCHEMA = [
         'function': {
             'name': 'get_comptabilite',
             'description': (
-                'Comptabilité élèves. Avec query : fiche d’un élève. '
+                'Comptabilité élèves : inscription, mensualités et frais annexes '
+                '(tenue, carte, assurance…). Avec query : fiche d’un élève. '
                 'Sans query : résumé des impayés.'
             ),
             'parameters': {
@@ -1210,6 +1238,168 @@ TOOLS_SCHEMA = [
                 'properties': {
                     'query': {'type': 'string'},
                 },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_parametres_comptabilite',
+            'description': (
+                'Lit les paramètres de scolarité par groupe de classes, '
+                'y compris les frais annexes (tenue, carte, dossier, assurance, '
+                'examen, transport, cantine, apport, autres).'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'query': {
+                        'type': 'string',
+                        'description': 'Nom du jeu ou groupe de classes (ex. 6e, CE1)',
+                    },
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'creer_parametres_comptabilite',
+            'description': (
+                'Prépare un jeu de paramètres de scolarité (montants + frais annexes). '
+                'Ne crée rien tout de suite : une confirmation est obligatoire.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'nom': {'type': 'string'},
+                    'groupes_classes': {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                        'description': 'Groupes concernés, ex. ["6e", "5e"]',
+                    },
+                    'montant_frais_inscription': {'type': 'number'},
+                    'montant_mensualite': {'type': 'number'},
+                    'montant_frais_reinscription': {'type': 'number'},
+                    'type_facturation': {
+                        'type': 'string',
+                        'enum': ['mensuel', 'annuel'],
+                    },
+                    'frais_annexes': {
+                        'type': 'array',
+                        'description': (
+                            'Liste de frais : code (tenue, carte_scolaire, dossier, '
+                            'assurance, examen, transport, cantine, apport, autre), '
+                            'montant, actif, periodicite (inscription|annuel|ponctuel), libelle.'
+                        ),
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'code': {'type': 'string'},
+                                'libelle': {'type': 'string'},
+                                'montant': {'type': 'number'},
+                                'actif': {'type': 'boolean'},
+                                'periodicite': {
+                                    'type': 'string',
+                                    'enum': ['inscription', 'annuel', 'ponctuel'],
+                                },
+                            },
+                        },
+                    },
+                },
+                'required': ['nom', 'groupes_classes'],
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'modifier_parametres_comptabilite',
+            'description': (
+                'Prépare une modification des paramètres (montants ou frais annexes). '
+                'Confirmation obligatoire avant écriture.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'parametre_id': {'type': 'integer'},
+                    'query': {'type': 'string'},
+                    'nom': {'type': 'string'},
+                    'groupes_classes': {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                    },
+                    'montant_frais_inscription': {'type': 'number'},
+                    'montant_mensualite': {'type': 'number'},
+                    'frais_annexes': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'code': {'type': 'string'},
+                                'libelle': {'type': 'string'},
+                                'montant': {'type': 'number'},
+                                'actif': {'type': 'boolean'},
+                                'periodicite': {
+                                    'type': 'string',
+                                    'enum': ['inscription', 'annuel', 'ponctuel'],
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'supprimer_parametres_comptabilite',
+            'description': (
+                'Prépare la suppression d’un jeu de paramètres. Confirmation obligatoire.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'parametre_id': {'type': 'integer'},
+                    'query': {'type': 'string'},
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'enregistrer_paiement',
+            'description': (
+                'Prépare l’enregistrement d’un paiement (inscription, mensualité '
+                'ou frais annexe : tenue, carte, assurance…). Confirmation obligatoire.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'eleve': {'type': 'string', 'description': 'Nom, prénom ou matricule'},
+                    'query': {'type': 'string'},
+                    'montant': {'type': 'number'},
+                    'type_paiement': {
+                        'type': 'string',
+                        'enum': [
+                            'frais_inscription',
+                            'mensualite',
+                            'frais_annexe',
+                            'tenue',
+                            'carte',
+                            'assurance',
+                        ],
+                    },
+                    'frais_annexe_code': {
+                        'type': 'string',
+                        'description': 'Code du frais annexe (tenue, carte_scolaire, ...)',
+                    },
+                    'periode': {'type': 'string', 'description': 'Période de mensualité'},
+                    'mode_paiement': {'type': 'string'},
+                },
+                'required': ['montant'],
             },
         },
     },

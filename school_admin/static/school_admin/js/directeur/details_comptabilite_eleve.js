@@ -98,6 +98,8 @@
         form.action = '/comptabilite/eleve/' + eleveId + '/frais-inscription/' + id + '/payer/';
       } else if (type === 'mensualite') {
         form.action = '/comptabilite/eleve/' + eleveId + '/mensualite/' + id + '/payer/';
+      } else if (type === 'annexe') {
+        form.action = '/comptabilite/eleve/' + eleveId + '/frais-annexe/' + id + '/payer/';
       }
     }
 

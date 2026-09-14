@@ -77,6 +77,9 @@
                 <button type="button" class="scb-tab-btn" data-scb-tab="scb-panel-modes" role="tab" aria-selected="false" aria-controls="scb-panel-modes">
                     <i class="fas fa-credit-card"></i> {% trans "Modes paiement" %}
                 </button>
+                <button type="button" class="scb-tab-btn" data-scb-tab="scb-panel-annexes" role="tab" aria-selected="false" aria-controls="scb-panel-annexes">
+                    <i class="fas fa-tags"></i> {% trans "Frais annexes" %}
+                </button>
                 <button type="button" class="scb-tab-btn" data-scb-tab="scb-panel-inscription" role="tab" aria-selected="false" aria-controls="scb-panel-inscription">
                     <i class="fas fa-file-invoice-dollar"></i> {% trans "Frais inscription" %}
                 </button>
@@ -154,6 +157,11 @@
                         <div class="scb-mini-card-label">{% trans "Frais d'inscription dus" %}</div>
                         <div class="scb-mini-card-value">{{ total_frais_inscription_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                         <div class="scb-mini-card-sub">{% trans "Payé" %} : {{ total_frais_inscription_paye|floatformat:0 }} — {% trans "Reste" %} : {{ total_frais_inscription_reste|floatformat:0 }}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Frais annexes dus" %}</div>
+                        <div class="scb-mini-card-value">{{ total_frais_annexes_du|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Payé" %} : {{ total_frais_annexes_paye|default:0|floatformat:0 }} — {% trans "Reste" %} : {{ total_frais_annexes_reste|default:0|floatformat:0 }}</div>
                     </div>
                 </div>
             </section>
@@ -347,6 +355,27 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <section id="scb-panel-annexes" class="scb-tab-panel" role="tabpanel">
+                <h2 class="scb-section-title"><i class="fas fa-tags"></i> {% trans "Frais annexes" %}</h2>
+                <div class="scb-cards-grid">
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Total dû" %}</div>
+                        <div class="scb-mini-card-value">{{ total_frais_annexes_du|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Tenue, carte, dossier, assurance, examens, etc." %}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Total payé" %}</div>
+                        <div class="scb-mini-card-value scb-amount-success">{{ total_frais_annexes_paye|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Montant collecté" %}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Reste" %}</div>
+                        <div class="scb-mini-card-value scb-amount-danger">{{ total_frais_annexes_reste|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Montant restant à collecter" %}</div>
+                    </div>
                 </div>
             </section>
 

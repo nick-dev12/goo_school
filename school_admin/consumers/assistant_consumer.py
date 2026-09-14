@@ -412,7 +412,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             for sentence in assembler.feed(delta):
                 pending_tts.append((sentence, asyncio.create_task(synthesize_mp3(sentence))))
 
-        takeover = {'annonce': False, 'emploi': False, 'creneau': False}
+        takeover = {'annonce': False, 'emploi': False, 'creneau': False, 'comptabilite': False}
 
         async def on_tool_result(name, _arguments, result):
             if not isinstance(result, dict):
@@ -456,6 +456,22 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 takeover['creneau'] = True
                 await self._start_creneau_guidee(question, result)
                 return
+            if name in (
+                'creer_parametres_comptabilite',
+                'modifier_parametres_comptabilite',
+                'supprimer_parametres_comptabilite',
+                'enregistrer_paiement',
+            ):
+                if result.get('erreur'):
+                    await self._send_action_result(
+                        'error',
+                        'Action échouée',
+                        result['erreur'],
+                    )
+                    return
+                takeover['comptabilite'] = True
+                await self._start_compta_pending(name, result)
+                return
             if name in ('ouvrir_page', 'ouvrir_classe'):
                 await self._dispatch_navigation(name, result)
 
@@ -474,7 +490,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_json({'type': 'done'})
             return
 
-        if takeover['annonce'] or takeover['emploi'] or takeover['creneau']:
+        if takeover['annonce'] or takeover['emploi'] or takeover['creneau'] or takeover['comptabilite']:
             return
 
         leftover = assembler.flush()
@@ -1280,6 +1296,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         ):
             await self._confirm_emploi_action()
             return
+        if pending and pending.get('name') in (
+            'creer_parametres_comptabilite',
+            'modifier_parametres_comptabilite',
+            'supprimer_parametres_comptabilite',
+            'enregistrer_paiement',
+        ):
+            await self._confirm_compta_action()
+            return
         if not pending or pending.get('name') not in (
             'creer_publier_annonce',
             'annonce_guidee',
@@ -1340,6 +1364,69 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'titre': titre,
         })
         await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
+
+    async def _start_compta_pending(self, name, result):
+        draft = result.get('draft') or {}
+        self.pending_action = {
+            'name': name,
+            'draft': draft,
+        }
+        await self._persist_pending()
+        spoken = result.get('message') or 'Confirme pour enregistrer cette action.'
+        url = result.get('url')
+        if url:
+            await self._send_json({
+                'type': 'navigate',
+                'url': url,
+                'titre': 'Scolarité',
+            })
+        await self._send_json({
+            'type': 'action.pending',
+            'action': name,
+            'message': spoken,
+        })
+        await self._speak_and_finish(
+            user_text='Préparer',
+            spoken=spoken,
+            choices=['Confirmer', 'Annuler'],
+        )
+
+    async def _confirm_compta_action(self):
+        pending = self.pending_action or {}
+        name = pending.get('name')
+        draft = dict(pending.get('draft') or {})
+        ctx = await self._build_context()
+        result = await database_sync_to_async(self._apply_compta)(ctx, name, draft)
+        self.pending_action = None
+        await self._persist_pending()
+        if result.get('erreur'):
+            await self._send_action_result('error', 'Action échouée', result['erreur'])
+            await self._speak_and_finish(user_text='Confirmer', spoken=result['erreur'])
+            return
+        message = result.get('message') or 'Action réalisée.'
+        url = result.get('url') or ''
+        await self._send_action_result('success', 'Action réalisée', message, url=url)
+        await self._send_json({
+            'type': 'action.done',
+            'action': name,
+            'message': message,
+            'url': url,
+        })
+        if url:
+            await self._send_json({
+                'type': 'navigate',
+                'url': url,
+                'titre': 'Scolarité',
+            })
+        await self._speak_and_finish(
+            user_text='Confirmer',
+            spoken=f"C’est fait. {message}",
+        )
+
+    def _apply_compta(self, ctx, name, draft):
+        from school_admin.services.assistant_actions import apply_pending_comptabilite
+
+        return apply_pending_comptabilite(ctx, name, draft)
 
     async def _speak_and_finish(self, user_text, spoken, choices=None):
         await self._send_json({'type': 'status', 'phase': 'speaking'})

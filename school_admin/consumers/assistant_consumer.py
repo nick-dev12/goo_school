@@ -20,6 +20,12 @@ from school_admin.services.assistant_emploi import (
     next_emploi_prompt,
     _classe_choices,
 )
+from school_admin.services.assistant_actions import (
+    ACTION_SPECS,
+    choices_for_action,
+    default_prompt,
+    is_action_ready,
+)
 from school_admin.services.assistant_intents import (
     ANNONCE_CREATE_RE,
     CRENEAU_ADD_RE,
@@ -28,6 +34,7 @@ from school_admin.services.assistant_intents import (
     extract_emploi_draft,
     infer_destinataires,
     is_small_talk,
+    resolve_action_intent,
     resolve_annonce_intent,
     resolve_emploi_intent,
     resolve_open_intent,
@@ -162,6 +169,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         await self._cancel_opener()
         self.history = []
+        # Ne pas effacer aria_pending en session : une reconnexion WebSocket doit
+        # pouvoir reprendre l’action en attente de confirmation.
         self.pending_action = None
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -185,12 +194,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return
         if kind == 'confirm_action':
             await self._send_working_ack('Oui, publier.')
+            await self._ensure_pending_loaded()
             if payload.get('publier') is True and self.pending_action:
                 self.pending_action.setdefault('draft', {})['publier'] = True
             await self._run_guarded(self._confirm_pending)
             return
         if kind == 'cancel_action':
             await self._send_working_ack('Annuler.')
+            await self._ensure_pending_loaded()
             await self._run_guarded(self._cancel_pending)
             return
         if kind == 'choice':
@@ -218,6 +229,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return
 
         await self._send_working_ack(question)
+        await self._ensure_pending_loaded()
         if await self._route_pending_reply(question):
             return
         if self.pending_action:
@@ -366,6 +378,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             else:
                 await self._start_emploi_guidee(question, emploi)
             return True
+        action_intent = resolve_action_intent(question)
+        if action_intent:
+            name, args = action_intent
+            result = await self._execute_tool(ctx, name, args)
+            await self._start_generic_action(name, question, result)
+            return True
         intent = resolve_open_intent(question)
         if not intent:
             return False
@@ -412,10 +430,24 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             for sentence in assembler.feed(delta):
                 pending_tts.append((sentence, asyncio.create_task(synthesize_mp3(sentence))))
 
-        takeover = {'annonce': False, 'emploi': False, 'creneau': False}
+        takeover = {'annonce': False, 'emploi': False, 'creneau': False, 'generic': False}
 
         async def on_tool_result(name, _arguments, result):
             if not isinstance(result, dict):
+                return
+            if name in ACTION_SPECS:
+                if result.get('erreur') and result.get('statut') not in (
+                    'incomplet',
+                    'en_attente_confirmation',
+                ):
+                    await self._send_action_result(
+                        'error',
+                        'Action échouée',
+                        result['erreur'],
+                    )
+                    return
+                takeover['generic'] = True
+                await self._start_generic_action(name, question, result)
                 return
             if name == 'creer_publier_annonce':
                 if result.get('erreur'):
@@ -474,7 +506,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_json({'type': 'done'})
             return
 
-        if takeover['annonce'] or takeover['emploi'] or takeover['creneau']:
+        if takeover['annonce'] or takeover['emploi'] or takeover['creneau'] or takeover['generic']:
             return
 
         leftover = assembler.flush()
@@ -673,6 +705,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_choices(self._choices_for_emploi_action())
         elif name == 'choisir_classe':
             await self._send_choices(self.pending_action.get('choices') or [])
+        elif name in ACTION_SPECS:
+            draft = self.pending_action.get('draft') or {}
+            await self._send_generic_pending_ui(name, draft)
+            await self._send_choices(choices_for_action(name, draft))
 
     async def _handle_choice_payload(self, payload):
         intent = (payload.get('intent') or 'chat').strip()
@@ -682,11 +718,13 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         elif intent not in ('cancel',):
             await self._send_working_ack(value)
         if intent == 'confirm':
+            await self._ensure_pending_loaded()
             if payload.get('publier') is True and self.pending_action:
                 self.pending_action.setdefault('draft', {})['publier'] = True
             await self._run_guarded(self._confirm_pending)
             return
         if intent == 'cancel':
+            await self._ensure_pending_loaded()
             await self._run_guarded(self._cancel_pending)
             return
         if intent == 'open' and payload.get('url'):
@@ -728,6 +766,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             self._busy = False
 
     async def _route_pending_reply(self, question):
+        await self._ensure_pending_loaded()
         pending = self.pending_action
         if not pending:
             return False
@@ -747,6 +786,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 await self._run_guarded(self._confirm_pending)
                 return True
             await self._run_guarded(lambda: self._continue_emploi_guidee(question))
+            return True
+        elif name in ACTION_SPECS:
+            if is_affirmative(question) and is_action_ready(pending.get('draft') or {}):
+                await self._run_guarded(self._confirm_pending)
+                return True
+            await self._run_guarded(lambda: self._continue_generic_action(question))
             return True
         elif is_affirmative(question):
             await self._run_guarded(self._confirm_pending)
@@ -771,6 +816,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return True
         if name in ('creer_emploi_du_temps', 'ajouter_creneau_emploi'):
             await self._run_guarded(lambda: self._continue_emploi_guidee(question))
+            return True
+        if name in ACTION_SPECS:
+            await self._run_guarded(lambda: self._continue_generic_action(question))
             return True
         return False
 
@@ -843,19 +891,22 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'ajouter_creneau_emploi',
         ):
             return self._choices_for_emploi_action()
+        if self.pending_action and self.pending_action.get('name') in ACTION_SPECS:
+            draft = self.pending_action.get('draft') or {}
+            if is_action_ready(draft):
+                return choices_for_action(self.pending_action['name'], draft)
+            return []
         if self.pending_action and self.pending_action.get('name') == 'choisir_classe':
             return self.pending_action.get('choices') or []
+        if self.pending_action:
+            return []
         text = spoken or ''
         if re.search(
             r"c['’ ]est bon|je publie|confirme|valider|avant publication",
             text,
             re.I,
         ):
-            return [
-                {'label': 'Oui, c’est bon', 'value': 'Oui, c’est bon.', 'intent': 'confirm'},
-                {'label': 'Modifier', 'value': 'Je veux modifier.', 'intent': 'modify'},
-                {'label': 'Annuler', 'value': 'Annuler.', 'intent': 'cancel'},
-            ]
+            return []
         if re.search(r'\?$', text.strip()) and re.search(
             r'\b(?:souhaitez[- ]vous|voulez[- ]vous|c["’]est bon)\b',
             text,
@@ -1057,7 +1108,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return
         try:
             session['aria_pending'] = self.pending_action
-            await database_sync_to_async(session.save)()
+            if hasattr(session, 'asave'):
+                await session.asave()
+            else:
+                await database_sync_to_async(session.save)()
         except Exception:
             logger.exception("Impossible d’enregistrer l’action Aria en session.")
 
@@ -1069,6 +1123,23 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if isinstance(pending, dict) and pending.get('name'):
             self.pending_action = pending
 
+    async def _ensure_pending_loaded(self):
+        if self.pending_action:
+            return True
+        await self._load_pending()
+        return bool(self.pending_action)
+
+    async def _send_generic_pending_ui(self, name, draft):
+        draft = dict(draft or {})
+        await self._send_json({
+            'type': 'action.pending',
+            'action': name,
+            'titre': draft.get('nom') or draft.get('resume') or name.replace('_', ' '),
+            'contenu': default_prompt(draft),
+            'destructive': bool(draft.get('destructive')),
+            'choices': choices_for_action(name, draft),
+        })
+
     async def _clear_pending(self, silent=False):
         if not self.pending_action:
             return
@@ -1078,6 +1149,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_json({'type': 'action.cancelled'})
 
     async def _cancel_pending(self):
+        await self._ensure_pending_loaded()
         if not self.pending_action:
             await self._send_action_result(
                 'error',
@@ -1272,8 +1344,116 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         })
         await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
 
+    async def _start_generic_action(self, name, question, result):
+        data = dict(result or {})
+        if data.get('erreur') and data.get('statut') not in (
+            'incomplet',
+            'en_attente_confirmation',
+        ):
+            await self._send_action_result('error', 'Action échouée', data['erreur'])
+            await self._speak_and_finish(user_text=question, spoken=data['erreur'])
+            return
+        self.pending_action = {'name': name, 'draft': data}
+        await self._persist_pending()
+        if data.get('url') and data.get('ouvrir'):
+            await self._send_json({
+                'type': 'navigate',
+                'url': data['url'],
+                'titre': data.get('resume') or data.get('nom') or '',
+            })
+        spoken = data.get('message') or default_prompt(data)
+        if data.get('statut') == 'en_attente_confirmation':
+            spoken = default_prompt(data)
+        elif data.get('statut') == 'ok' and not data.get('erreur'):
+            await self._clear_pending(silent=True)
+            await self._send_action_result(
+                'success',
+                'Action réalisée',
+                data.get('message') or 'C’est déjà fait.',
+                url=data.get('url'),
+            )
+            spoken = data.get('message') or spoken
+            await self._speak_and_finish(user_text=question, spoken=spoken)
+            return
+        choices = choices_for_action(name, data)
+        if is_action_ready(data):
+            await self._send_generic_pending_ui(name, data)
+        await self._speak_and_finish(user_text=question, spoken=spoken, choices=choices)
+
+    async def _continue_generic_action(self, question):
+        pending = self.pending_action or {}
+        name = pending.get('name')
+        draft = dict(pending.get('draft') or {})
+        text = (question or '').strip()
+        if is_affirmative(text) and is_action_ready(draft):
+            await self._confirm_generic_action()
+            return
+        manquants = list(draft.get('manquants') or [])
+        if manquants:
+            draft[manquants[0]] = text
+            draft.setdefault('query', text)
+        else:
+            draft['query'] = text
+        other = resolve_action_intent(text)
+        if other and other[0] == name:
+            draft.update(other[1])
+        result = await self._execute_tool(await self._build_context(), name, draft)
+        await self._start_generic_action(name, question, result)
+
+    async def _confirm_generic_action(self):
+        pending = self.pending_action or {}
+        name = pending.get('name')
+        draft = dict(pending.get('draft') or {})
+        spec = ACTION_SPECS.get(name)
+        if not spec or not spec.apply:
+            await self._send_action_result(
+                'error',
+                'Action échouée',
+                'Aucune action n’était en attente de confirmation.',
+            )
+            await self._send_json({'type': 'done'})
+            return
+        if not is_action_ready(draft):
+            await self._continue_generic_action('Confirmer')
+            return
+        ctx = await self._build_context()
+        result = await database_sync_to_async(spec.apply)(ctx, draft)
+        if result.get('statut') == 'incomplet' or (
+            result.get('erreur') and result.get('manquants')
+        ):
+            await self._start_generic_action(name, 'Confirmer', result)
+            return
+        self.pending_action = None
+        await self._persist_pending()
+        if result.get('erreur'):
+            await self._send_action_result('error', 'Action échouée', result['erreur'])
+            await self._speak_and_finish(user_text='Confirmer', spoken=result['erreur'])
+            return
+        url = result.get('url') or ''
+        message = result.get('message') or 'Action réalisée.'
+        await self._send_action_result('success', 'Action réalisée', message, url=url)
+        await self._send_json({
+            'type': 'action.done',
+            'action': name,
+            'id': result.get('id'),
+            'message': message,
+            'url': url,
+        })
+        if url:
+            await self._send_json({
+                'type': 'navigate',
+                'url': url,
+                'titre': result.get('nom') or result.get('titre') or '',
+            })
+        spoken = f"C’est fait. {message}"
+        await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
+
     async def _confirm_pending(self):
+        await self._ensure_pending_loaded()
         pending = self.pending_action
+        if pending and pending.get('name') in ACTION_SPECS:
+            await self._confirm_generic_action()
+            return
         if pending and pending.get('name') in (
             'creer_emploi_du_temps',
             'ajouter_creneau_emploi',

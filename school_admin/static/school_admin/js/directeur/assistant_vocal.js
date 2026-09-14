@@ -829,19 +829,33 @@
     settleActionCard('cancelled');
     var card = document.createElement('div');
     card.className = 'assistant-vocal-action';
-    var dest = data.destinataires_libelle || 'Tous';
-    var statut = data.publier ? 'Publication' : 'Brouillon';
+    var isAnnonce = !data.action || data.action === 'creer_publier_annonce';
+    var kicker = isAnnonce
+      ? 'Annonce à confirmer'
+      : data.destructive
+        ? 'Action destructive à confirmer'
+        : 'Action à confirmer';
+    var meta = '';
+    if (isAnnonce) {
+      var dest = data.destinataires_libelle || 'Tous';
+      var statut = data.publier ? 'Publication' : 'Brouillon';
+      meta = statut + ' · ' + dest;
+    } else if (data.action) {
+      meta = data.action.replace(/_/g, ' ');
+    }
     card.innerHTML =
-      '<p class="assistant-vocal-action-kicker">Annonce à confirmer</p>' +
+      '<p class="assistant-vocal-action-kicker">' +
+      escapeHtml(kicker) +
+      '</p>' +
       '<h3 class="assistant-vocal-action-title">' +
       escapeHtml(data.titre || 'Sans titre') +
       '</h3>' +
       '<p class="assistant-vocal-action-body">' +
       escapeHtml(data.contenu || '') +
       '</p>' +
-      '<p class="assistant-vocal-action-meta">' +
-      escapeHtml(statut + ' · ' + dest) +
-      '</p>';
+      (meta
+        ? '<p class="assistant-vocal-action-meta">' + escapeHtml(meta) + '</p>'
+        : '');
     appendAssistantTurn(card);
     currentActionCard = card;
     lastSuggestionHost = card;

@@ -120,7 +120,8 @@ Autres actions (toujours avec confirmation) :
   creer_salle, modifier_salle, desactiver_salle, creer_matiere, desactiver_matiere,
   creer_filiere, modifier_filiere, supprimer_filiere, creer_module, supprimer_module.
 - Élèves : inscrire_eleve, modifier_eleve, reinscrire_eleve, activer_eleve,
-  desactiver_eleve. Dictez le dossier complet si besoin, champ par champ.
+  desactiver_eleve, donner_sanction (type + raison, comme le bouton
+  « Ajouter une sanction »). Dictez le dossier complet si besoin, champ par champ.
 - Professeurs : creer_professeur, modifier_professeur, desactiver_professeur,
   affecter_professeur, enregistrer_absence_professeur.
 - Personnel : creer_personnel, modifier_personnel, desactiver_personnel.

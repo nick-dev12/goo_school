@@ -139,6 +139,17 @@ ACTION_INTENT_RES = (
         re.I,
     ), 'modifier_eleve'),
     (re.compile(r'(r[ée]active[rz]?).{0,40}(?:[eé]l[eè]ve|[eé]tudiant)', re.I), 'activer_eleve'),
+    (re.compile(
+        r'(donne[rz]?|attribue[rz]?|ajoute[rz]?|enregistre[rz]?|mets?|mettre|pose[rz]?)'
+        r'.{0,50}sanction',
+        re.I,
+    ), 'donner_sanction'),
+    (re.compile(r'sanctionne[rz]?', re.I), 'donner_sanction'),
+    (re.compile(
+        r'(donne[rz]?|attribue[rz]?|ajoute[rz]?|mets?|mettre).{0,30}'
+        r'(avertissement|bl[aâ]me|exclusion|retenue|convocation|travaux)',
+        re.I,
+    ), 'donner_sanction'),
     (re.compile(r'(cr[ée]e[rz]?|accorde[rz]?|mets?|mettre).{0,40}moratoire', re.I), 'creer_moratoire'),
     (re.compile(r'paie[rz]?.{0,40}[ée]ch[ée]ance', re.I), 'payer_echeance_moratoire'),
     (re.compile(r'relance[rz]?.{0,40}(impay|dette|scolarit)', re.I), 'relancer_impaye'),
@@ -192,6 +203,7 @@ PERSON_QUERY_ACTIONS = (
     'modifier_eleve',
     'reinscrire_eleve',
     'activer_eleve',
+    'donner_sanction',
     'creer_moratoire',
     'payer_echeance_moratoire',
     'relancer_impaye',
@@ -210,6 +222,8 @@ _PERSON_VERB_RE = re.compile(
     r'(?:modifie[rz]?|mettre?\s+[àa]\s+jour)(?:\s+le\s+dossier)?|'
     r'(?:r[ée])?active[rz]?|'
     r'd[ée]sactive[rz]?|'
+    r'sanctionne[rz]?|'
+    r'(?:donne[rz]?|attribue[rz]?|ajoute[rz]?|pose[rz]?)(?:\s+une)?\s+sanction|'
     r'(?:cr[ée]e[rz]?|accorde[rz]?|mets?|mettre)(?:\s+un)?\s+moratoire|'
     r'paie[rz]?(?:\s+l[\'’]?[ée]ch[ée]ance)?|'
     r'relance[rz]?|'
@@ -226,7 +240,7 @@ _PERSON_VERB_RE = re.compile(
 _PERSON_SKIP_RE = re.compile(
     r'^(?:(?:l[\'’]|le\s+|la\s+|les\s+|un\s+|une\s+|du\s+|de\s+|d[\'’]|pour\s+)?'
     r'(?:absence|liaison|pr[ée]inscription|paiement|dossier|[ée]l[eè]ve|'
-    r'[ée]tudiant|professeur|enseignant|personnel|d[ée]pense|paie|'
+    r'sanction|[ée]tudiant|professeur|enseignant|personnel|d[ée]pense|paie|'
     r'impay[ée]s?|dette|scolarit[ée]|[ée]ch[ée]ance|'
     r'certificat|attestation|convocation|fiche)'
     r'(?:\s+(?:de|d[\'’]|du|des))?\s+)+',
@@ -239,20 +253,34 @@ _EN_CLASSE_RE = re.compile(
 _QUERY_STOPWORDS = {
     'passage', 'moyennes', 'moyenne', 'classe', 'confirmation',
     'bulletins', 'standards', 'pondération', 'ponderation',
+    'indiscipline', 'avertissement', 'blame', 'blâme', 'retenue',
+    'violence', 'triche', 'vol', 'désobéissance', 'desobeissance',
+    'sanction', 'sanctions',
 }
+
+
+def _looks_like_person_query(candidate):
+    text = (candidate or '').strip()
+    if len(text) < 2:
+        return False
+    lowered = text.lower()
+    if lowered in _QUERY_STOPWORDS:
+        return False
+    return bool(re.match(r'^[A-Za-zÀ-ÿ]', text))
 
 
 def _extract_person_query(raw):
     """Nom après le verbe, même sans « de / pour » (« Réinscrire ATEMKENG Julie »)."""
     text = (raw or '').strip().rstrip('.!?')
-    pour = re.search(
-        r'(?:pour|de|du|d[\'’])\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\'\- ]{1,40})$',
+    for match in re.finditer(
+        r'(?:pour|de|du|d[\'’]|à|a)\s+'
+        r'([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\'\- ]{1,40}?)'
+        r'(?=\s+pour\s+|\s*$|[.!?])',
         text,
         re.I,
-    )
-    if pour:
-        candidate = pour.group(1).strip()
-        if candidate.lower() not in _QUERY_STOPWORDS:
+    ):
+        candidate = match.group(1).strip()
+        if _looks_like_person_query(candidate):
             return candidate
     rest = _PERSON_VERB_RE.sub('', text, count=1)
     if rest == text:
@@ -265,9 +293,8 @@ def _extract_person_query(raw):
         prev = rest
         rest = _PERSON_SKIP_RE.sub('', rest)
     rest = rest.strip(' ,.-')
-    if rest and re.match(r'^[A-Za-zÀ-ÿ]', rest) and len(rest) >= 2:
-        if rest.lower() not in _QUERY_STOPWORDS:
-            return rest[:60]
+    if _looks_like_person_query(rest):
+        return rest[:60]
     return None
 
 
@@ -337,6 +364,13 @@ def extract_action_args(name, text):
             args['query'] = cible.group(1).strip().rstrip('.!?')
         elif re.search(r'\bpremi[eè]r[eè]?\b', raw, re.I):
             args['query'] = 'premier'
+    if name == 'donner_sanction':
+        from school_admin.services.assistant_dossiers import parse_sanction_speech
+
+        parsed = parse_sanction_speech(raw)
+        for key in ('type_sanction', 'raison', 'gravite', 'description'):
+            if parsed.get(key):
+                args.setdefault(key, parsed[key])
     return args
 
 

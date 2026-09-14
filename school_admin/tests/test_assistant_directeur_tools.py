@@ -263,6 +263,18 @@ class AssistantDirecteurToolsTests(TestCase):
             decide_pending_reply('Configure les moyennes', pending_reins),
             'switch',
         )
+        sanction_intent = resolve_action_intent(
+            'je veux que tu donne une sanction a CLÉ Jason'
+        )
+        self.assertEqual(sanction_intent[0], 'donner_sanction')
+        self.assertIn('Jason', (sanction_intent[1].get('query') or ''))
+        avertissement = resolve_action_intent(
+            'Donne un avertissement à Diallo pour indiscipline'
+        )
+        self.assertEqual(avertissement[0], 'donner_sanction')
+        self.assertEqual(avertissement[1].get('query'), 'Diallo')
+        self.assertEqual(avertissement[1].get('type_sanction'), 'avertissement')
+        self.assertEqual(avertissement[1].get('raison'), 'indiscipline')
         self.assertEqual(
             resolve_action_intent('Modifie le dossier de Diallo')[0],
             'modifier_eleve',

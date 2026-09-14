@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from datetime import timedelta
 
-from django.db.models import Count, Q
+from django.db.models import Count, Max, Q
 from django.utils import timezone
 
 from school_admin.services.assistant_search import CLASSE_PARAM_DESCRIPTION
@@ -840,6 +840,95 @@ def tool_structure_superieur(ctx, args):
     }
 
 
+def _sanctions_queryset(ctx, args=None):
+    from school_admin.model.sanction_model import Sanction
+
+    args = args or {}
+    qs = Sanction.objects.filter(etablissement=ctx.etablissement)
+    if ctx.annee_scolaire:
+        qs = qs.filter(annee_scolaire=ctx.annee_scolaire)
+    classe_label = (args.get('classe') or '').strip()
+    if classe_label:
+        classe = _find_classe(ctx, classe_label)
+        if classe:
+            qs = qs.filter(classe=classe)
+    return qs
+
+
+def tool_sanctions(ctx, args):
+    """Sanctions disciplinaires : effectifs, liste ou dossier d'un élève."""
+    from school_admin.model.sanction_model import Sanction
+
+    args = args if isinstance(args, dict) else {}
+    query = (args.get('query') or '').strip()
+    qs = _sanctions_queryset(ctx, args).select_related('eleve', 'classe')
+    session = ctx.annee_scolaire.libelle if ctx.annee_scolaire else None
+
+    if query:
+        eleve = _find_eleve(ctx, query)
+        if not eleve:
+            return {'erreur': f'Aucun {ctx.libelle_eleve} trouvé pour « {query} ».'}
+        sancs = qs.filter(eleve=eleve).order_by('-date_sanction', '-date_creation')[:SEARCH_LIMIT]
+        items = [
+            {
+                'type': s.get_type_sanction_display(),
+                'type_code': s.type_sanction,
+                'raison': s.get_raison_display(),
+                'gravite': s.get_gravite_display(),
+                'date': s.date_sanction.isoformat() if s.date_sanction else None,
+                'classe': s.classe.nom if s.classe_id else None,
+            }
+            for s in sancs
+        ]
+        return {
+            'session': session,
+            'eleve': eleve.nom_complet,
+            'nb_sanctions': qs.filter(eleve=eleve).count(),
+            'sanctions': items,
+        }
+
+    nb_sanctions = qs.count()
+    nb_eleves = qs.values('eleve_id').distinct().count()
+    type_labels = dict(Sanction.TYPE_SANCTION_CHOICES)
+    par_eleve = (
+        qs.values('eleve_id', 'eleve__nom', 'eleve__prenom', 'classe__nom')
+        .annotate(nb_sanctions=Count('id'), derniere_sanction=Max('date_sanction'))
+        .order_by('-nb_sanctions', 'eleve__nom')[:SEARCH_LIMIT]
+    )
+    eleves = [
+        {
+            'nom_complet': f"{row['eleve__prenom']} {row['eleve__nom']}".strip(),
+            'classe': row['classe__nom'],
+            'nb_sanctions': row['nb_sanctions'],
+            'derniere_sanction': (
+                row['derniere_sanction'].isoformat() if row['derniere_sanction'] else None
+            ),
+        }
+        for row in par_eleve
+    ]
+    dernieres = [
+        {
+            'eleve': s.eleve.nom_complet,
+            'classe': s.classe.nom if s.classe_id else None,
+            'type': s.get_type_sanction_display(),
+            'date': s.date_sanction.isoformat() if s.date_sanction else None,
+        }
+        for s in qs.order_by('-date_sanction', '-date_creation')[:8]
+    ]
+    par_type = {
+        type_labels.get(row['type_sanction'], row['type_sanction']): row['nb']
+        for row in qs.values('type_sanction').annotate(nb=Count('id'))
+    }
+    return {
+        'session': session,
+        'nb_sanctions': nb_sanctions,
+        'nb_eleves_avec_sanction': nb_eleves,
+        'repartition_par_type': par_type,
+        'eleves': eleves,
+        'dernieres_sanctions': dernieres,
+    }
+
+
 def tool_chercher_en_base(ctx, args):
     """Cherche une donnée scolaire en base quand elle n'est pas déjà connue."""
     args = args if isinstance(args, dict) else {}
@@ -865,6 +954,12 @@ def tool_chercher_en_base(ctx, args):
     if any(token in lowered for token in ('absence', 'présent', 'present', 'présence', 'presence')):
         found = tool_presences(ctx, payload)
         return {'trouve': True, 'source': 'presences', **found}
+    if any(
+        token in lowered
+        for token in ('sanction', 'sanctions', 'blâme', 'blame', 'disciplinaire')
+    ) or re.search(r'\bsanctionn', lowered):
+        found = tool_sanctions(ctx, payload)
+        return {'trouve': 'erreur' not in found, 'source': 'sanctions', **found}
     if any(token in lowered for token in ('caisse', 'dépense', 'depense', 'solde du mois', 'sorties')):
         found = tool_caisse(ctx, payload)
         return {'trouve': True, 'source': 'caisse', **found}
@@ -1179,6 +1274,7 @@ TOOL_HANDLERS = {
     'get_notes_eleve': tool_notes_eleve,
     'get_emploi_du_temps': tool_emploi_du_temps,
     'get_presences': tool_presences,
+    'get_sanctions': tool_sanctions,
     'get_annonces': tool_annonces,
     'creer_publier_annonce': tool_creer_publier_annonce,
     'get_periodes': tool_periodes,
@@ -1225,7 +1321,7 @@ TOOLS_SCHEMA = [
             'description': (
                 'Cherche une donnée scolaire en base quand elle n’est pas déjà connue. '
                 'À appeler dès qu’une question porte sur des chiffres, des listes ou '
-                'un détail (filles, garçons, élèves, notes, absences, classes, etc.). '
+                'un détail (filles, garçons, élèves, notes, absences, sanctions, classes, etc.). '
                 'Si la donnée existe, elle est renvoyée. Sinon trouve=false.'
             ),
             'parameters': {
@@ -1443,6 +1539,31 @@ TOOLS_SCHEMA = [
                 'properties': {
                     'query': {'type': 'string'},
                     'jours': {'type': 'integer', 'description': 'Nombre de jours (1-31), défaut 7'},
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_sanctions',
+            'description': (
+                'Sanctions disciplinaires de la session : nombre total, nombre d’élèves '
+                'distincts sanctionnés, liste par élève, dernières sanctions. '
+                'Avec query : historique d’un élève. À utiliser pour toute question '
+                'du type « combien d’élèves ont des sanctions ».'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'query': {
+                        'type': 'string',
+                        'description': 'Nom, prénom ou matricule d’un élève (optionnel)',
+                    },
+                    'classe': {
+                        'type': 'string',
+                        'description': CLASSE_PARAM_DESCRIPTION,
+                    },
                 },
             },
         },

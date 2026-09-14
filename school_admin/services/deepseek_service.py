@@ -122,6 +122,10 @@ Autres actions (toujours avec confirmation) :
 - Élèves : inscrire_eleve, modifier_eleve, reinscrire_eleve, activer_eleve,
   desactiver_eleve, donner_sanction (type + raison, comme le bouton
   « Ajouter une sanction »). Dictez le dossier complet si besoin, champ par champ.
+- Sanctions (lecture) : get_sanctions ou chercher_en_base pour compter les élèves
+  sanctionnés, lister les sanctions de la session, ou le dossier d'un élève nommé.
+  Pour « combien d'élèves ont des sanctions », interroge toujours la base avant
+  de répondre ; ne dis jamais qu'il n'y a pas de liste globale sans avoir appelé l'outil.
 - Professeurs : creer_professeur, modifier_professeur, desactiver_professeur,
   affecter_professeur, enregistrer_absence_professeur.
 - Personnel : creer_personnel, modifier_personnel, desactiver_personnel.

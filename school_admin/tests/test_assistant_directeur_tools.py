@@ -4,6 +4,7 @@ Les outils de lecture retournent des données ; les outils d’écriture
 préparent un brouillon et n’écrivent qu’après apply.
 """
 from datetime import date, timedelta
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.urls import NoReverseMatch, reverse
@@ -13,7 +14,9 @@ from school_admin.model.annonce_model import Annonce
 from school_admin.model.classe_model import Classe
 from school_admin.model.etablissement_model import Etablissement
 from school_admin.model.periode_model import PeriodeScolaire
+from school_admin.model.eleve_model import Eleve
 from school_admin.model.salle_model import Salle
+from school_admin.model.sanction_model import Sanction
 from school_admin.services.assistant_actions import ACTION_SPECS, is_write_action
 from school_admin.services.assistant_intents import (
     resolve_action_intent,
@@ -114,6 +117,7 @@ class AssistantDirecteurToolsTests(TestCase):
             'get_matieres',
             'get_caisse',
             'get_volume_horaire',
+            'get_sanctions',
         }
         attendus.update(ACTION_SPECS.keys())
         manquants = attendus - schema_names
@@ -136,6 +140,100 @@ class AssistantDirecteurToolsTests(TestCase):
                 reverse(page['route'])
             except NoReverseMatch:
                 self.fail(f'Route invalide : {page["route"]}')
+
+    def test_lecture_sanctions_et_chercher_en_base(self):
+        with patch.object(Eleve, '_should_regenerate_qr', return_value=False):
+            eleve_a = Eleve(
+                username=f'sanc-a-{self.etab.pk}'[:20],
+                numero_eleve=f'SA{self.etab.pk:04d}'[:20],
+                nom='Diallo',
+                prenom='Awa',
+                date_naissance=date(2010, 1, 1),
+                lieu_naissance='Dakar',
+                sexe='F',
+                nationalite='Sénégalaise',
+                etablissement=self.etab,
+                classe=self.classe,
+                date_inscription=date(2026, 9, 1),
+                statut='nouvelle',
+                parent_nom='Diallo',
+                parent_prenom='Amadou',
+                parent_telephone='770000010',
+                parent_lien='pere',
+                mot_de_passe_provisoire='123456',
+                actif=True,
+            )
+            eleve_a.set_password('Eleve@Test1!')
+            eleve_a.save()
+            eleve_b = Eleve(
+                username=f'sanc-b-{self.etab.pk}'[:20],
+                numero_eleve=f'SB{self.etab.pk:04d}'[:20],
+                nom='Sow',
+                prenom='Ibra',
+                date_naissance=date(2010, 2, 2),
+                lieu_naissance='Dakar',
+                sexe='M',
+                nationalite='Sénégalaise',
+                etablissement=self.etab,
+                classe=self.classe,
+                date_inscription=date(2026, 9, 1),
+                statut='nouvelle',
+                parent_nom='Sow',
+                parent_prenom='Fatou',
+                parent_telephone='770000011',
+                parent_lien='mere',
+                mot_de_passe_provisoire='123456',
+                actif=True,
+            )
+            eleve_b.set_password('Eleve@Test1!')
+            eleve_b.save()
+        Sanction.objects.create(
+            eleve=eleve_a,
+            classe=self.classe,
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            type_sanction='avertissement',
+            raison='indiscipline',
+            gravite='legere',
+            attribue_par_type='directeur',
+            attribue_par_nom='Directeur test',
+        )
+        Sanction.objects.create(
+            eleve=eleve_b,
+            classe=self.classe,
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            type_sanction='blame',
+            raison='perturbation_cours',
+            gravite='moyenne',
+            attribue_par_type='directeur',
+            attribue_par_nom='Directeur test',
+        )
+        Sanction.objects.create(
+            eleve=eleve_a,
+            classe=self.classe,
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            type_sanction='retenue',
+            raison='retards_repetes',
+            gravite='moyenne',
+            attribue_par_type='directeur',
+            attribue_par_nom='Directeur test',
+        )
+        stats = execute_tool(self.ctx, 'get_sanctions', {})
+        self.assertEqual(stats['nb_sanctions'], 3)
+        self.assertEqual(stats['nb_eleves_avec_sanction'], 2)
+        detail = execute_tool(self.ctx, 'get_sanctions', {'query': 'Diallo'})
+        self.assertEqual(detail['nb_sanctions'], 2)
+        self.assertEqual(len(detail['sanctions']), 2)
+        found = execute_tool(
+            self.ctx,
+            'chercher_en_base',
+            {'question': 'combien d eleves ont des sanctions'},
+        )
+        self.assertEqual(found['source'], 'sanctions')
+        self.assertTrue(found['trouve'])
+        self.assertEqual(found['nb_eleves_avec_sanction'], 2)
 
     def test_lecture_effectifs_et_annees(self):
         effectifs = execute_tool(self.ctx, 'get_effectifs', {})

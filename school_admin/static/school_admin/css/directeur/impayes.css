@@ -1,0 +1,223 @@
+:root {
+  --primary: #3b82f6;
+  --success: #10b981;
+  --accent: #ef4444;
+  --warning: #fbbf24;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-600: #4b5563;
+  --gray-800: #1f2937;
+  --white: #ffffff;
+  --gradient-header: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.imp-page-body {
+  background: var(--gray-50);
+  font-family: Poppins, sans-serif;
+}
+
+.content-container.imp-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 5rem;
+}
+
+.imp-hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.imp-hero-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin: 0 0 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.imp-hero-title i {
+  color: var(--primary);
+}
+
+.imp-hero-sub {
+  font-size: 1rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+
+.imp-stat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 5rem;
+  padding: 0.5rem 0.85rem;
+  background: var(--gray-50);
+  border-radius: 10px;
+  border: 1px solid var(--gray-200);
+}
+
+.imp-stat-num {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--gray-800);
+}
+
+.imp-stat-lbl {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+}
+
+.imp-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.imp-action-btn--primary {
+  background: var(--gradient-header);
+  color: var(--white);
+}
+
+.imp-action-btn--secondary {
+  background: var(--gray-100);
+  color: var(--gray-800);
+}
+
+.imp-action-btn--warn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: var(--white);
+}
+
+.imp-classe {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.imp-classe-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.imp-classe-head h2 {
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--gray-800);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+.table-responsive::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 30px;
+  height: 100%;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.1), transparent);
+  pointer-events: none;
+}
+
+.imp-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.imp-table th,
+.imp-table td {
+  min-width: 120px;
+  white-space: nowrap;
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  font-size: 1rem;
+  line-height: 1.45;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.imp-table th {
+  background: var(--gray-50);
+  color: var(--gray-600);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.imp-table .num {
+  text-align: center;
+}
+
+.imp-badge {
+  display: inline-flex;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.imp-badge--ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.imp-badge--warn {
+  background: rgba(251, 191, 36, 0.18);
+  color: #b45309;
+}
+
+.imp-badge--danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.imp-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--gray-600);
+}
+
+@media (max-width: 1024px) {
+  .imp-table th,
+  .imp-table td {
+    font-size: 0.9375rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .imp-hero-title {
+    font-size: 1.75rem;
+  }
+  .imp-table th,
+  .imp-table td {
+    font-size: 0.8125rem;
+    min-height: 44px;
+  }
+}

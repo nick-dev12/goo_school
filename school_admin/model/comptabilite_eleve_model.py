@@ -275,6 +275,22 @@ class FraisInscription(models.Model):
         decimal_places=2,
         verbose_name="Montant"
     )
+
+    montant_brut = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Montant avant remise",
+        help_text="Montant barème avant application de la remise fratrie",
+    )
+
+    remise_fratrie = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Remise fratrie",
+    )
     
     montant_paye = models.DecimalField(
         max_digits=10,
@@ -591,6 +607,22 @@ class Mensualite(models.Model):
         max_digits=10,
         decimal_places=2,
         verbose_name="Montant"
+    )
+
+    montant_brut = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Montant avant remise",
+        help_text="Montant barème avant application de la remise fratrie",
+    )
+
+    remise_fratrie = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Remise fratrie",
     )
     
     montant_paye = models.DecimalField(
@@ -913,6 +945,7 @@ class PaiementEleve(models.Model):
         ('frais_inscription', 'Frais d\'inscription'),
         ('mensualite', 'Mensualité'),
         ('frais_annexe', 'Frais annexes'),
+        ('moratoire', 'Moratoire'),
         ('autre', 'Autre'),
     ]
     
@@ -984,6 +1017,14 @@ class PaiementEleve(models.Model):
         decimal_places=2,
         verbose_name="Montant"
     )
+
+    numero_recu = models.CharField(
+        max_length=40,
+        blank=True,
+        default='',
+        verbose_name="Numéro de reçu",
+        help_text="Numéro séquentiel officiel du reçu (ex: REC-2025-00001)",
+    )
     
     date_paiement = models.DateTimeField(
         default=timezone.now,
@@ -1031,6 +1072,14 @@ class PaiementEleve(models.Model):
         indexes = [
             models.Index(fields=['eleve', 'annee_scolaire']),
             models.Index(fields=['etablissement', 'date_paiement']),
+            models.Index(fields=['etablissement', 'numero_recu']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['etablissement', 'numero_recu'],
+                condition=~models.Q(numero_recu=''),
+                name='uniq_recu_paiement_etablissement_numero',
+            ),
         ]
     
     def __str__(self):
@@ -1067,5 +1116,10 @@ class PaiementEleve(models.Model):
         Appeler ajouter_paiement() ici causerait un double comptage du paiement.
         """
         self.clean()
+        is_create = self.pk is None
         super().save(*args, **kwargs)
+        if is_create and not self.numero_recu:
+            from school_admin.services.recouvrement import attribuer_numero_recu
+
+            attribuer_numero_recu(self)
 

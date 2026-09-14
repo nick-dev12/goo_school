@@ -1,0 +1,168 @@
+:root {
+  --primary: #3b82f6;
+  --gray-800: #1f2937;
+  --gray-600: #4b5563;
+  --gray-200: #e5e7eb;
+  --white: #ffffff;
+}
+
+@page {
+  size: A5;
+  margin: 12mm;
+}
+
+body.recu-body {
+  margin: 0;
+  background: #f3f4f6;
+  font-family: "Poppins", Arial, sans-serif;
+  color: var(--gray-800);
+}
+
+.print-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.btn-print,
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-print {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+}
+
+.btn-back {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.recu-sheet {
+  width: 148mm;
+  min-height: 210mm;
+  margin: 0 auto 2rem;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  padding: 16mm 14mm;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.recu-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 2px solid #3b82f6;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.recu-school-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 0 0 0.25rem;
+}
+
+.recu-school-meta {
+  font-size: 0.8rem;
+  color: var(--gray-600);
+  line-height: 1.45;
+}
+
+.recu-title-block {
+  text-align: right;
+}
+
+.recu-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #1d4ed8;
+  margin: 0;
+}
+
+.recu-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 0.2rem;
+}
+
+.recu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem 1rem;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.recu-label {
+  color: var(--gray-600);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.recu-value {
+  font-weight: 600;
+}
+
+.recu-amount {
+  margin: 1.25rem 0;
+  padding: 0.85rem 1rem;
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.recu-amount strong {
+  font-size: 1.5rem;
+  color: #1d4ed8;
+}
+
+.recu-mentions {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+  margin-top: 1.5rem;
+}
+
+.recu-stamp {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+  font-size: 0.8rem;
+}
+
+.recu-stamp-box {
+  width: 42%;
+  text-align: center;
+  border-top: 1px dashed var(--gray-200);
+  padding-top: 0.5rem;
+}
+
+@media print {
+  body.recu-body {
+    background: #fff;
+  }
+  .print-actions {
+    display: none;
+  }
+  .recu-sheet {
+    box-shadow: none;
+    border: none;
+    margin: 0;
+    width: auto;
+    min-height: auto;
+  }
+}

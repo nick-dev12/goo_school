@@ -493,6 +493,28 @@ class ComptabiliteController:
         if total_du and total_du > 0:
             pct_paye = int((total_paye / total_du) * 100)
 
+        from school_admin.services.recouvrement import (
+            compter_enfants_famille,
+            moratoire_actif,
+            verifier_rupture_moratoire,
+        )
+
+        moratoire = moratoire_actif(eleve, etablissement, annee_scolaire_active)
+        if moratoire:
+            verifier_rupture_moratoire(moratoire)
+            moratoire.refresh_from_db()
+            moratoire_echeances = list(moratoire.echeances.all())
+        else:
+            moratoire_echeances = []
+
+        nombre_fratrie = compter_enfants_famille(eleve, etablissement)
+        remise_active = bool(
+            parametres and getattr(parametres, 'appliquer_remise_famille_nombreuse', False)
+        )
+        remise_pct = (
+            getattr(parametres, 'pourcentage_remise_famille_nombreuse', 0) if parametres else 0
+        )
+
         context = {
             'eleve': eleve,
             'inscription': inscription,
@@ -514,6 +536,11 @@ class ComptabiliteController:
             'personnel': personnel,
             'parametres': parametres,
             'devise_monnaie': devise_monnaie,  # Ajouter la devise au contexte
+            'moratoire': moratoire,
+            'moratoire_echeances': moratoire_echeances,
+            'nombre_fratrie': nombre_fratrie,
+            'remise_fratrie_active': remise_active,
+            'remise_fratrie_pct': remise_pct,
         }
         
         return render(request, 'school_admin/directeur/comptabilite/details_comptabilite_eleve.html', context)

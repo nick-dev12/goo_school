@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Reçu de paiement" %} {{ paiement.numero_recu }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/recu_paiement.css' %}?v=1.0.0" />
+</head>
+<body class="recu-body">
+    <div class="print-actions">
+        <button type="button" class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> {% trans "Imprimer" %}</button>
+        {% if is_parent %}
+            <a href="{% url 'school_admin:scolarite_parent' %}" class="btn-back">{% trans "Retour" %}</a>
+        {% else %}
+            <a href="{% url 'directeur:details_comptabilite_eleve_directeur' eleve.id %}" class="btn-back">{% trans "Retour" %}</a>
+        {% endif %}
+    </div>
+
+    <article class="recu-sheet">
+        <header class="recu-head">
+            <div>
+                <p class="recu-school-name">{{ etablissement.nom }}</p>
+                <p class="recu-school-meta">
+                    {{ etablissement.adresse }} — {{ etablissement.ville }}{% if etablissement.pays %}, {{ etablissement.pays }}{% endif %}<br />
+                    {% trans "Tél." %} {{ etablissement.telephone|default:"—" }} · {{ etablissement.email }}<br />
+                    {% trans "Devise" %} : <strong>{{ devise_monnaie }}</strong>
+                </p>
+            </div>
+            <div class="recu-title-block">
+                <p class="recu-title">{% trans "REÇU OFFICIEL DE PAIEMENT" %}</p>
+                <p class="recu-number">{{ paiement.numero_recu|default:"—" }}</p>
+            </div>
+        </header>
+
+        <div class="recu-grid">
+            <div>
+                <div class="recu-label">{% trans "Élève" %}</div>
+                <div class="recu-value">{{ eleve.nom }} {{ eleve.prenom }}</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Matricule" %}</div>
+                <div class="recu-value">{{ eleve.matricule_eleve|default:"—" }}</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Classe" %}</div>
+                <div class="recu-value">{% if inscription and inscription.classe %}{{ inscription.classe.nom }}{% else %}—{% endif %}</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Année scolaire" %}</div>
+                <div class="recu-value">{{ annee_scolaire.libelle }}</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Date de paiement" %}</div>
+                <div class="recu-value">{{ paiement.date_paiement|date:"d/m/Y H:i" }}</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Mode" %}</div>
+                <div class="recu-value">{{ paiement.get_mode_paiement_display }}</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Nature" %}</div>
+                <div class="recu-value">{{ paiement.get_type_paiement_display }}</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Référence" %}</div>
+                <div class="recu-value">{{ paiement.reference_paiement|default:"—" }}</div>
+            </div>
+        </div>
+
+        <div class="recu-amount">
+            <div class="recu-label">{% trans "Montant encaissé" %}</div>
+            <strong>{{ paiement.montant|floatformat:0 }} {{ devise_monnaie }}</strong>
+        </div>
+
+        {% if paiement.notes %}
+            <p class="recu-mentions">{{ paiement.notes }}</p>
+        {% endif %}
+
+        <p class="recu-mentions">
+            {% trans "Ce reçu atteste l'encaissement du montant ci-dessus par" %} {{ etablissement.nom }}.
+            {% trans "Conservez ce document. Numérotation séquentielle ininterrompue pour l'année scolaire." %}
+        </p>
+
+        <div class="recu-stamp">
+            <div class="recu-stamp-box">{% trans "Le payeur" %}</div>
+            <div class="recu-stamp-box">{% trans "Cachet et signature de l'établissement" %}</div>
+        </div>
+    </article>
+</body>
+</html>

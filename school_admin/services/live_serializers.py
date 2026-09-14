@@ -328,6 +328,8 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
             'type_display': paiement.get_type_paiement_display() or '-',
             'methode_display': paiement.get_mode_paiement_display() or '-',
             'reference': paiement.reference_paiement or '-',
+            'numero_recu': paiement.numero_recu or '',
+            'recu_url': reverse('directeur:recu_paiement_directeur', args=[paiement.id]) if paiement.id else '',
         })
 
     total_du = comptabilite.calculer_total_du()

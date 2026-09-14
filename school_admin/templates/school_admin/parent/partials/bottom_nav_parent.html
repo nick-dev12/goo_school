@@ -33,6 +33,16 @@
       </a>
     </li>
     <li
+      class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'scolarite_parent' or request.resolver_match.url_name == 'recu_paiement_parent' %}active{% endif %}"
+    >
+      <a href="{% url 'school_admin:scolarite_parent' %}">
+        <span class="icon-wrapper icon-exercices"
+          ><i class="fas fa-wallet"></i
+        ></span>
+        <span class="label">Scolarité</span>
+      </a>
+    </li>
+    <li
       class="bottom-nav-item nav-item-primary {% if request.resolver_match.url_name == 'annonces_parent' %}active{% endif %}"
     >
       <a href="{% url 'school_admin:annonces_parent' %}">

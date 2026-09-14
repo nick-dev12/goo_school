@@ -99,6 +99,19 @@
             </h2>
         </div>
 
+        {% if total_reste_scolarite > 0 %}
+        <a href="{% url 'school_admin:scolarite_parent' %}" class="welcome-banner" style="display:block;text-decoration:none;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;margin-top:0.75rem;">
+            <h2 style="color:#fff;">Vous devez {{ total_reste_scolarite|floatformat:0 }} {{ devise_scolarite }}</h2>
+            <p style="color:#fff;margin:0;">
+                {% if prochaine_echeance_scolarite %}
+                    Échéance : {{ prochaine_echeance_scolarite|date:"d/m/Y" }}
+                {% else %}
+                    Consultez le détail de la scolarité
+                {% endif %}
+            </p>
+        </a>
+        {% endif %}
+
         <!-- Section Title -->
         {% if enfants %}
             <div class="section-title">

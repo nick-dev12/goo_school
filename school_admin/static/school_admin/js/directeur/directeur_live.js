@@ -999,6 +999,11 @@
 
   function renderPaiementRow(row, devise) {
 
+    var recuLabel = row.numero_recu || 'Reçu';
+    var recuCell = row.recu_url
+      ? '<a href="' + esc(row.recu_url) + '">' + esc(recuLabel) + '</a>'
+      : esc(recuLabel);
+
     return (
 
       '<tr data-paiement-id="' +
@@ -1028,6 +1033,12 @@
       '<td>' +
 
       esc(row.methode_display) +
+
+      '</td>' +
+
+      '<td>' +
+
+      recuCell +
 
       '</td>' +
 

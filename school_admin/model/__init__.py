@@ -42,6 +42,12 @@ from .inscription_parent_model import InscriptionParent
 from .preinscription_model import LienPreinscription, PreinscriptionEleve
 from .carte_identite_personnalisation_model import CarteIdentitePersonnalisation
 from .comptabilite_eleve_model import ComptabiliteEleve, FraisInscription, FraisAnnexe, Mensualite, PaiementEleve
+from .recouvrement_model import (
+    CompteurRecuPaiement,
+    RelanceImpaye,
+    Moratoire,
+    EcheanceMoratoire,
+)
 from .parametres_comptabilite_model import ParametresComptabilite
 from .parametres_comptabilite_groupe_classe_model import ParametresComptabiliteGroupeClasse
 from .personnel_administratif_model import PersonnelAdministratif

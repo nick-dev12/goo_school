@@ -41,6 +41,9 @@
                 <div class="sco-stat-pill"><span class="sco-stat-num">{{ stats_generales.montant_paye|floatformat:0 }}</span><span class="sco-stat-lbl">{% trans "Encaissé" %} ({{ devise_monnaie|default:"FCFA" }})</span></div>
             </div>
             <div class="sco-hero-actions">
+                <a href="{% url 'directeur:liste_impayes_directeur' %}" class="sco-action-btn sco-action-btn--primary">
+                    <i class="fas fa-exclamation-circle"></i> {% trans "Impayés & relances" %}
+                </a>
                 <a href="{% url 'directeur:bilan_comptable_directeur' %}" class="sco-action-btn sco-action-btn--primary">
                     <i class="fas fa-chart-line"></i> {% trans "Bilan scolarité général" %}
                 </a>

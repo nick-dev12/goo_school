@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Moratoire" %} — {{ eleve.nom }} {{ eleve.prenom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/details_comptabilite_eleve.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/impayes.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="scd-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container scd-page">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+        </div>
+
+        <header class="scd-hero">
+            <div>
+                <h1 class="scd-hero-title"><i class="fas fa-handshake"></i> {% trans "Nouveau moratoire" %}</h1>
+                <p>{{ eleve.nom }} {{ eleve.prenom }} — {% trans "Reste dû" %} : <strong>{{ resume.reste|floatformat:0 }} {{ devise_monnaie }}</strong></p>
+                <p class="scd-hero-meta">{% trans "Saisissez au moins deux échéances dont la somme égale le reste dû. Une échéance impayée rompt automatiquement le moratoire." %}</p>
+            </div>
+        </header>
+
+        <form method="post" action="{% url 'directeur:creer_moratoire_directeur' eleve.id %}" class="scd-modal-body" style="max-width:720px;background:#fff;padding:1.25rem;border-radius:12px;border:1px solid #e5e7eb;">
+            {% csrf_token %}
+            <label class="scd-form-label" for="motif">{% trans "Motif" %}</label>
+            <textarea id="motif" name="motif" class="scd-form-input" rows="3" required placeholder="{% trans 'Ex. accord parental, difficulté temporaire…' %}"></textarea>
+
+            <h2 class="scd-section-title" style="margin-top:1.25rem;">{% trans "Nouvelle grille d'échéances" %}</h2>
+            <div id="echeances-list">
+                <div class="echeance-row" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap;">
+                    <input type="date" name="echeance_date" class="scd-form-input" required />
+                    <input type="number" name="echeance_montant" class="scd-form-input" step="0.01" min="0" placeholder="{% trans 'Montant' %}" required />
+                </div>
+                <div class="echeance-row" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap;">
+                    <input type="date" name="echeance_date" class="scd-form-input" required />
+                    <input type="number" name="echeance_montant" class="scd-form-input" step="0.01" min="0" placeholder="{% trans 'Montant' %}" required />
+                </div>
+            </div>
+            <button type="button" class="imp-action-btn imp-action-btn--secondary" id="add-echeance">
+                <i class="fas fa-plus"></i> {% trans "Ajouter une échéance" %}
+            </button>
+
+            <div class="scd-modal-actions" style="margin-top:1.25rem;">
+                <a href="{% url 'directeur:details_comptabilite_eleve_directeur' eleve.id %}" class="scd-btn-secondary">{% trans "Annuler" %}</a>
+                <button type="submit" class="scd-btn-primary"><i class="fas fa-save"></i> {% trans "Enregistrer le moratoire" %}</button>
+            </div>
+        </form>
+    </div>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script>
+      document.getElementById('add-echeance').addEventListener('click', function () {
+        var list = document.getElementById('echeances-list');
+        var row = document.createElement('div');
+        row.className = 'echeance-row';
+        row.style.cssText = 'display:flex;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap;';
+        row.innerHTML = '<input type="date" name="echeance_date" class="scd-form-input" required />' +
+          '<input type="number" name="echeance_montant" class="scd-form-input" step="0.01" min="0" required />';
+        list.appendChild(row);
+      });
+    </script>
+</body>
+</html>

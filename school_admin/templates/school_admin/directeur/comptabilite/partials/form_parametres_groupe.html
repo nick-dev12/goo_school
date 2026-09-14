@@ -154,6 +154,82 @@
 
     <div class="parametres-section">
         <h2 class="section-title">
+            <i class="fas fa-tags"></i>
+            {% trans "Frais annexes" %}
+        </h2>
+        <div class="info-box">
+            <p>
+                <i class="fas fa-info-circle"></i>
+                {% trans "Activez uniquement les frais pratiqués dans l'établissement. Transport et cantine restent optionnels. Les échéances sont générées à l'enregistrement (inscription, annuel ou ponctuel)." %}
+            </p>
+        </div>
+        <div class="table-responsive frais-annexes-table-wrap">
+            <table class="frais-annexes-table">
+                <thead>
+                    <tr>
+                        <th>{% trans "Actif" %}</th>
+                        <th>{% trans "Frais" %}</th>
+                        <th>{% trans "Montant" %} ({{ devise_monnaie|default:"FCFA" }})</th>
+                        <th>{% trans "Périodicité" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for frais in frais_annexes_form %}
+                    <tr class="{% if frais.optionnel %}frais-annexe-optionnel{% endif %}">
+                        <td>
+                            <input
+                                type="checkbox"
+                                id="{{ id_prefix }}frais_annexe_{{ frais.code }}_actif"
+                                name="frais_annexe_{{ frais.code }}_actif"
+                                {% if frais.actif %}checked{% endif %}
+                            />
+                        </td>
+                        <td>
+                            <label for="{{ id_prefix }}frais_annexe_{{ frais.code }}_actif">
+                                <i class="fas {{ frais.icon }}"></i>
+                                {% if frais.libelle_editable %}
+                                    <input
+                                        type="text"
+                                        id="{{ id_prefix }}frais_annexe_{{ frais.code }}_libelle"
+                                        name="frais_annexe_{{ frais.code }}_libelle"
+                                        value="{{ frais.libelle }}"
+                                        placeholder="{% trans "Nom du frais" %}"
+                                    />
+                                {% else %}
+                                    {{ frais.libelle }}
+                                    {% if frais.optionnel %}<span class="frais-optionnel-tag">{% trans "optionnel" %}</span>{% endif %}
+                                {% endif %}
+                            </label>
+                        </td>
+                        <td>
+                            <input
+                                type="number"
+                                id="{{ id_prefix }}frais_annexe_{{ frais.code }}_montant"
+                                name="frais_annexe_{{ frais.code }}_montant"
+                                value="{{ frais.montant }}"
+                                step="0.01"
+                                min="0"
+                            />
+                        </td>
+                        <td>
+                            <select
+                                id="{{ id_prefix }}frais_annexe_{{ frais.code }}_periodicite"
+                                name="frais_annexe_{{ frais.code }}_periodicite"
+                            >
+                                <option value="inscription" {% if frais.periodicite == 'inscription' %}selected{% endif %}>{% trans "À l'inscription" %}</option>
+                                <option value="annuel" {% if frais.periodicite == 'annuel' %}selected{% endif %}>{% trans "Annuel" %}</option>
+                                <option value="ponctuel" {% if frais.periodicite == 'ponctuel' %}selected{% endif %}>{% trans "Ponctuel" %}</option>
+                            </select>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="parametres-section">
+        <h2 class="section-title">
             <i class="fas fa-shield-alt"></i>
             {% trans "Règles et Autorisations" %}
         </h2>

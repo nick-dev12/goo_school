@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import Count
 
 from school_admin.model.comptabilite_eleve_model import (
-    ComptabiliteEleve, FraisInscription, Mensualite, PaiementEleve
+    ComptabiliteEleve, FraisInscription, FraisAnnexe, Mensualite, PaiementEleve
 )
 from school_admin.model.parametres_comptabilite_model import ParametresComptabilite
 from school_admin.model.parametres_comptabilite_groupe_classe_model import ParametresComptabiliteGroupeClasse
@@ -33,11 +33,12 @@ class Command(BaseCommand):
         nb_paiements = PaiementEleve.objects.count()
         nb_mensualites = Mensualite.objects.count()
         nb_frais_inscription = FraisInscription.objects.count()
+        nb_frais_annexes = FraisAnnexe.objects.count()
         nb_comptabilites = ComptabiliteEleve.objects.count()
         nb_parametres = ParametresComptabilite.objects.count()
         nb_parametres_groupes = ParametresComptabiliteGroupeClasse.objects.count()
         
-        total = nb_paiements + nb_mensualites + nb_frais_inscription + nb_comptabilites
+        total = nb_paiements + nb_mensualites + nb_frais_inscription + nb_frais_annexes + nb_comptabilites
         if not options['garder_parametres']:
             total += nb_parametres + nb_parametres_groupes
         
@@ -53,6 +54,7 @@ class Command(BaseCommand):
         self.stdout.write(f'Nombre de paiements à supprimer: {nb_paiements}')
         self.stdout.write(f'Nombre de mensualités à supprimer: {nb_mensualites}')
         self.stdout.write(f'Nombre de frais d\'inscription à supprimer: {nb_frais_inscription}')
+        self.stdout.write(f'Nombre de frais annexes à supprimer: {nb_frais_annexes}')
         self.stdout.write(f'Nombre de comptabilités élèves à supprimer: {nb_comptabilites}')
         
         if options['garder_parametres']:
@@ -116,6 +118,15 @@ class Command(BaseCommand):
                         )
                     )
                 
+                if nb_frais_annexes > 0:
+                    self.stdout.write(f'\nSuppression de {nb_frais_annexes} frais annexes...')
+                    deleted = FraisAnnexe.objects.all().delete()
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f'[OK] {deleted[0]} frais annexes supprime(s)'
+                        )
+                    )
+
                 # 4. Supprimer les comptabilités élèves
                 if nb_comptabilites > 0:
                     self.stdout.write(f'\nSuppression de {nb_comptabilites} comptabilite(s) eleve(s)...')

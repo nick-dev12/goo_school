@@ -73,7 +73,7 @@ class ComptabiliteEleve(models.Model):
     
     def calculer_total_du(self):
         """
-        Calcule le total dû par l'élève (frais d'inscription + mensualités)
+        Calcule le total dû par l'élève (inscription + mensualités + frais annexes)
         """
         total = Decimal('0.00')
         
@@ -84,6 +84,9 @@ class ComptabiliteEleve(models.Model):
         # Mensualités
         for mensualite in self.mensualites.all():
             total += mensualite.montant
+
+        for frais in self.frais_annexes.all():
+            total += frais.montant
         
         return total
     
@@ -100,6 +103,9 @@ class ComptabiliteEleve(models.Model):
         # Total payé pour les mensualités
         for mensualite in self.mensualites.all():
             total += mensualite.montant_paye
+
+        for frais in self.frais_annexes.all():
+            total += frais.montant_paye
         
         return total
     
@@ -120,13 +126,18 @@ class ComptabiliteEleve(models.Model):
             statut__in=['en_attente', 'en_retard', 'impaye'],
             date_echeance__lt=maintenant
         ).exists()
+
+        annexes_en_retard = self.frais_annexes.filter(
+            statut__in=['en_attente', 'en_retard'],
+            date_echeance__lt=maintenant
+        ).exists()
         
         # Vérifier s'il y a des impayés
         mensualites_impayees = self.mensualites.filter(statut='impaye').exists()
         
         if mensualites_impayees:
             nouveau_statut = 'impaye'
-        elif frais_en_retard or mensualites_en_retard:
+        elif frais_en_retard or mensualites_en_retard or annexes_en_retard:
             nouveau_statut = 'en_retard'
         else:
             nouveau_statut = 'a_jour'
@@ -187,6 +198,16 @@ class ComptabiliteEleve(models.Model):
                 if maintenant > date_limite:
                     return True
         
+        for frais in self.frais_annexes.all():
+            if hasattr(frais, 'reste_a_payer'):
+                reste_a_payer = frais.reste_a_payer
+            else:
+                reste_a_payer = frais.montant - frais.montant_paye
+            if reste_a_payer > Decimal('0.00'):
+                date_limite = frais.date_echeance + timedelta(days=delai_tolerance)
+                if maintenant > date_limite:
+                    return True
+
         # 3. Vérifier les mensualités avec reste à payer qui ont dépassé 15 jours depuis le dernier paiement partiel
         for mensualite in mensualites_passees:
             reste_a_payer = mensualite.get_reste_a_payer()
@@ -370,6 +391,149 @@ class FraisInscription(models.Model):
         else:
             self.statut = 'en_attente'
         
+        self.save(update_fields=['montant_paye', 'reste_a_payer', 'statut', 'date_paiement'])
+
+
+class FraisAnnexe(models.Model):
+    """
+    Frais annexes générés pour un élève (tenue, carte, assurance, etc.).
+    Même cycle de paiement que l'inscription : partiel, reste à payer, statuts.
+    """
+
+    STATUT_CHOICES = [
+        ('en_attente', 'En attente'),
+        ('paye', 'Payé'),
+        ('en_retard', 'En retard'),
+    ]
+
+    PERIODICITE_CHOICES = [
+        ('inscription', "À l'inscription"),
+        ('annuel', 'Annuel'),
+        ('ponctuel', 'Ponctuel'),
+    ]
+
+    eleve = models.ForeignKey(
+        Eleve,
+        on_delete=models.CASCADE,
+        related_name='frais_annexes',
+        verbose_name="Élève",
+    )
+    etablissement = models.ForeignKey(
+        Etablissement,
+        on_delete=models.CASCADE,
+        related_name='frais_annexes',
+        verbose_name="Établissement",
+    )
+    annee_scolaire = models.ForeignKey(
+        AnneeScolaire,
+        on_delete=models.CASCADE,
+        related_name='frais_annexes',
+        verbose_name="Année scolaire",
+    )
+    comptabilite_eleve = models.ForeignKey(
+        ComptabiliteEleve,
+        on_delete=models.CASCADE,
+        related_name='frais_annexes',
+        verbose_name="Comptabilité élève",
+    )
+    code = models.CharField(
+        max_length=40,
+        verbose_name="Code du frais",
+        help_text="Identifiant stable (tenue, carte_scolaire, autre, ...)",
+    )
+    libelle = models.CharField(
+        max_length=120,
+        verbose_name="Libellé",
+    )
+    periodicite = models.CharField(
+        max_length=20,
+        choices=PERIODICITE_CHOICES,
+        default='annuel',
+        verbose_name="Périodicité",
+    )
+    obligatoire = models.BooleanField(
+        default=True,
+        verbose_name="Obligatoire",
+    )
+    montant = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Montant",
+    )
+    montant_paye = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Montant payé",
+    )
+    reste_a_payer = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Reste à payer",
+    )
+    date_echeance = models.DateField(verbose_name="Date d'échéance")
+    statut = models.CharField(
+        max_length=20,
+        choices=STATUT_CHOICES,
+        default='en_attente',
+        verbose_name="Statut",
+    )
+    date_paiement = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Date de paiement",
+    )
+    date_creation = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Date de création",
+    )
+
+    class Meta:
+        verbose_name = "Frais annexe"
+        verbose_name_plural = "Frais annexes"
+        unique_together = ['eleve', 'annee_scolaire', 'code']
+        ordering = ['libelle']
+        indexes = [
+            models.Index(fields=['eleve', 'annee_scolaire']),
+            models.Index(fields=['etablissement', 'statut']),
+            models.Index(fields=['code']),
+        ]
+
+    def __str__(self):
+        return f"{self.libelle} - {self.eleve.nom_complet} - {self.montant}"
+
+    def get_reste_a_payer(self):
+        reste = self.montant - self.montant_paye
+        reste_calcule = reste if reste > Decimal('0.00') else Decimal('0.00')
+        self.reste_a_payer = reste_calcule
+        return reste_calcule
+
+    def est_totalement_paye(self):
+        return self.montant_paye >= self.montant
+
+    def marquer_comme_paye(self):
+        self.montant_paye = self.montant
+        self.reste_a_payer = Decimal('0.00')
+        self.statut = 'paye'
+        self.date_paiement = timezone.now()
+        self.save(update_fields=['montant_paye', 'reste_a_payer', 'statut', 'date_paiement'])
+
+    def ajouter_paiement(self, montant):
+        montant_paye_actuel = Decimal(str(self.montant_paye)) if self.montant_paye else Decimal('0.00')
+        montant_a_ajouter = Decimal(str(montant))
+        nouveau_montant_paye = montant_paye_actuel + montant_a_ajouter
+        if nouveau_montant_paye > self.montant:
+            nouveau_montant_paye = self.montant
+        self.montant_paye = nouveau_montant_paye
+        reste = self.montant - nouveau_montant_paye
+        self.reste_a_payer = reste if reste > Decimal('0.00') else Decimal('0.00')
+        if self.est_totalement_paye():
+            self.statut = 'paye'
+            if not self.date_paiement:
+                self.date_paiement = timezone.now()
+        else:
+            self.statut = 'en_attente'
         self.save(update_fields=['montant_paye', 'reste_a_payer', 'statut', 'date_paiement'])
 
 
@@ -748,6 +912,7 @@ class PaiementEleve(models.Model):
     TYPE_PAIEMENT_CHOICES = [
         ('frais_inscription', 'Frais d\'inscription'),
         ('mensualite', 'Mensualité'),
+        ('frais_annexe', 'Frais annexes'),
         ('autre', 'Autre'),
     ]
     
@@ -803,6 +968,15 @@ class PaiementEleve(models.Model):
         blank=True,
         related_name='paiements',
         verbose_name="Mensualité"
+    )
+
+    frais_annexe = models.ForeignKey(
+        'FraisAnnexe',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='paiements',
+        verbose_name="Frais annexe",
     )
     
     montant = models.DecimalField(
@@ -878,6 +1052,11 @@ class PaiementEleve(models.Model):
         if self.type_paiement == 'mensualite' and not self.mensualite:
             raise ValidationError({
                 'mensualite': "La mensualité doit être renseignée pour ce type de paiement."
+            })
+
+        if self.type_paiement == 'frais_annexe' and not self.frais_annexe:
+            raise ValidationError({
+                'frais_annexe': "Le frais annexe doit être renseigné pour ce type de paiement."
             })
     
     def save(self, *args, **kwargs):

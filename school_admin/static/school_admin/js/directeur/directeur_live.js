@@ -1556,13 +1556,7 @@
 
     } else if (event === 'comptabilite.parametres' && item) {
 
-      if (item.action === 'deleted') {
-        updateParametreGroupeCard(item);
-      } else if (item.id) {
-        updateParametreGroupeCard(item);
-      } else {
-        updateComptaParametres(item);
-      }
+      updateComptaParametres(item);
 
     } else if (event === 'comptabilite.mise_a_jour') {
 

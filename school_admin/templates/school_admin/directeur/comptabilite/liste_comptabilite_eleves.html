@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_eleves.css' %}?v=2.0.2" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_eleves.css' %}?v=2.0.3" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
@@ -179,12 +179,15 @@
 
                                     {% if classe_data.eleves %}
                                         <div class="sco-list-scroll table-responsive">
-                                            <div class="students-list{% if classe_data.show_colonne_mensualite %} has-mensualite-col{% else %} no-mensualite-col{% endif %}">
+                                            <div class="students-list{% if classe_data.show_colonne_mensualite %} has-mensualite-col{% endif %}{% if classe_data.show_colonne_annexes %} has-annexes-col{% endif %}">
                                                 <div class="list-header">
                                                     <div class="list-cell header-cell">{% trans "Élève" %}</div>
                                                     <div class="list-cell header-cell">{% trans "Inscription" %}</div>
                                                     {% if classe_data.show_colonne_mensualite %}
                                                     <div class="list-cell header-cell">{% trans "Mensualités" %}</div>
+                                                    {% endif %}
+                                                    {% if classe_data.show_colonne_annexes %}
+                                                    <div class="list-cell header-cell">{% trans "Annexes" %}</div>
                                                     {% endif %}
                                                     <div class="list-cell header-cell">{% trans "Total dû" %}</div>
                                                     <div class="list-cell header-cell">{% trans "Payé" %}</div>
@@ -218,6 +221,13 @@
                                                             {% if eleve_data.mensualites_reste > 0 %}
                                                             <span class="sco-mensualite-reste">{% trans "Reste" %} {{ eleve_data.mensualites_reste|floatformat:0 }}</span>
                                                             {% endif %}
+                                                        </div>
+                                                        {% endif %}
+                                                        {% if classe_data.show_colonne_annexes %}
+                                                        <div class="list-cell sco-annexes-cell">
+                                                            <span class="amount-annexes">{{ eleve_data.frais_annexes_total|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                                            <span class="sco-annexes-paye">{% trans "Payé" %} {{ eleve_data.frais_annexes_paye|default:0|floatformat:0 }}</span>
+                                                            <span class="sco-annexes-reste {% if eleve_data.frais_annexes_reste > 0 %}text-danger{% else %}text-success{% endif %}">{% trans "Reste" %} {{ eleve_data.frais_annexes_reste|default:0|floatformat:0 }}</span>
                                                         </div>
                                                         {% endif %}
                                                         <div class="list-cell"><span class="amount-due">{{ eleve_data.total_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span></div>

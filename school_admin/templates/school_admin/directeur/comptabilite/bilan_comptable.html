@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bilan_comptabilite.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bilan_comptabilite.css' %}?v=2.0.2" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -376,6 +376,38 @@
                         <div class="scb-mini-card-value scb-amount-danger">{{ total_frais_annexes_reste|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
                         <div class="scb-mini-card-sub">{% trans "Montant restant à collecter" %}</div>
                     </div>
+                </div>
+                <div class="scb-table-wrap table-responsive">
+                    <table class="scb-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Frais" %}</th>
+                                <th class="scb-text-right">{% trans "Dû" %}</th>
+                                <th class="scb-text-right">{% trans "Payé" %}</th>
+                                <th class="scb-text-right">{% trans "Reste" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for frais in frais_annexes_par_type %}
+                            <tr>
+                                <td><strong>{{ frais.libelle }}</strong></td>
+                                <td class="scb-text-right">{{ frais.montant_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                <td class="scb-text-right">{{ frais.montant_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                <td class="scb-text-right">
+                                    {% if frais.reste > 0 %}
+                                        <span class="scb-amount-danger">{{ frais.reste|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                    {% else %}
+                                        <span class="scb-amount-success">0 {{ devise_monnaie|default:"FCFA" }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="scb-empty">{% trans "Aucun frais annexe configuré." %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </section>
 

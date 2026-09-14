@@ -15,6 +15,7 @@ from ..model.comptabilite_eleve_model import (
 )
 from ..utils.frais_annexes import (
     extraire_frais_annexes_depuis_post,
+    frais_annexes_actifs,
     get_frais_annexes_from_parametres,
 )
 from ..model.parametres_comptabilite_model import ParametresComptabilite
@@ -146,6 +147,10 @@ class ComptabiliteController:
                 and (parametres_groupe.montant_mensualite or Decimal('0')) > 0
                 and parametres_groupe.type_facturation == 'mensuel'
             )
+            show_colonne_annexes = bool(
+                parametres_groupe
+                and frais_annexes_actifs(getattr(parametres_groupe, 'frais_annexes', None))
+            )
 
             eleves_comptabilite = []
             for eleve in eleves:
@@ -174,6 +179,9 @@ class ComptabiliteController:
                     frais_inscription = Decimal('0.00')
                     mensualites_total = Decimal('0.00')
                     mensualites_reste = Decimal('0.00')
+                    frais_annexes_total = Decimal('0.00')
+                    frais_annexes_paye = Decimal('0.00')
+                    frais_annexes_reste = Decimal('0.00')
                     est_non_en_regle = False
                 else:
                     comptabilite.verifier_statut_paiement()
@@ -195,6 +203,14 @@ class ComptabiliteController:
                     for mensualite in Mensualite.objects.filter(comptabilite_eleve=comptabilite):
                         mensualites_total += mensualite.montant
                         mensualites_reste += mensualite.get_reste_a_payer()
+                    frais_annexes_total = Decimal('0.00')
+                    frais_annexes_paye = Decimal('0.00')
+                    for frais in FraisAnnexe.objects.filter(comptabilite_eleve=comptabilite):
+                        frais_annexes_total += frais.montant
+                        frais_annexes_paye += frais.montant_paye
+                    frais_annexes_reste = frais_annexes_total - frais_annexes_paye
+                    if frais_annexes_total > 0:
+                        show_colonne_annexes = True
 
                 eleves_comptabilite.append({
                     'eleve': eleve,
@@ -205,6 +221,9 @@ class ComptabiliteController:
                     'frais_inscription': frais_inscription,
                     'mensualites_total': mensualites_total,
                     'mensualites_reste': mensualites_reste,
+                    'frais_annexes_total': frais_annexes_total,
+                    'frais_annexes_paye': frais_annexes_paye,
+                    'frais_annexes_reste': frais_annexes_reste,
                     'est_non_en_regle': est_non_en_regle,
                 })
             
@@ -233,6 +252,7 @@ class ComptabiliteController:
                 'eleves_non_en_regle_classe': eleves_non_en_regle_classe,
                 'parametres_configures': parametres_groupe is not None,
                 'show_colonne_mensualite': show_colonne_mensualite,
+                'show_colonne_annexes': show_colonne_annexes,
             }
             
             classes_grouped[categorie]['classes'].append(classe_data)
@@ -1691,6 +1711,7 @@ class ComptabiliteController:
             'total_frais_annexes_du': total_frais_annexes_du,
             'total_frais_annexes_paye': total_frais_annexes_paye,
             'total_frais_annexes_reste': total_frais_annexes_reste,
+            'frais_annexes_par_type': ComptabiliteController._aggreger_frais_annexes(frais_annexes_qs),
             'total_du_annuel': total_du_annuel,
             'total_paye_annuel': total_paye_annuel,
             'total_reste_annuel': total_reste_annuel,
@@ -1753,7 +1774,7 @@ class ComptabiliteController:
             etablissement=etablissement,
             annee_scolaire=annee_scolaire_active,
             eleve_id__in=eleves_ids
-        ).select_related('eleve')
+        ).select_related('eleve').prefetch_related('frais_annexes')
         
         # Récupérer tous les paiements des élèves de la classe
         paiements = PaiementEleve.objects.filter(
@@ -1921,19 +1942,28 @@ class ComptabiliteController:
         
         # Statistiques par élève
         eleves_stats = []
+        compta_par_eleve = {comptabilite.eleve_id: comptabilite for comptabilite in comptabilites}
         for eleve in eleves_classe:
-            comptabilite = comptabilites.filter(eleve_id=eleve.id).first()
+            comptabilite = compta_par_eleve.get(eleve.id)
             if comptabilite:
                 montant_du_eleve = comptabilite.calculer_total_du()
                 montant_paye_eleve = comptabilite.calculer_total_paye()
                 reste_a_payer_eleve = montant_du_eleve - montant_paye_eleve
-                
+                annexes_du = Decimal('0.00')
+                annexes_paye = Decimal('0.00')
+                for frais in comptabilite.frais_annexes.all():
+                    annexes_du += frais.montant
+                    annexes_paye += frais.montant_paye
+
                 eleves_stats.append({
                     'eleve': eleve,
                     'comptabilite': comptabilite,
                     'montant_du': montant_du_eleve,
                     'montant_paye': montant_paye_eleve,
                     'reste_a_payer': reste_a_payer_eleve,
+                    'frais_annexes_du': annexes_du,
+                    'frais_annexes_paye': annexes_paye,
+                    'frais_annexes_reste': annexes_du - annexes_paye,
                     'statut': comptabilite.statut_paiement,
                     'est_non_en_regle': comptabilite.est_non_en_regle(parametres)
                 })
@@ -1998,6 +2028,7 @@ class ComptabiliteController:
             'total_frais_annexes_du': total_frais_annexes_du,
             'total_frais_annexes_paye': total_frais_annexes_paye,
             'total_frais_annexes_reste': total_frais_annexes_reste,
+            'frais_annexes_par_type': ComptabiliteController._aggreger_frais_annexes(frais_annexes_classe),
             'total_du_annuel': total_du_annuel,
             'total_paye_annuel': total_paye_annuel,
             'total_reste_annuel': total_reste_annuel,
@@ -2245,6 +2276,30 @@ class ComptabiliteController:
         }
         
         return render(request, 'school_admin/directeur/comptabilite/ajouter_modifier_parametres_groupe.html', context)
+
+    @staticmethod
+    def _aggreger_frais_annexes(frais_annexes_qs):
+        """Regroupe les échéances annexes par code (dû, payé, reste)."""
+        par_code = {}
+        for frais in frais_annexes_qs:
+            row = par_code.get(frais.code)
+            if row is None:
+                row = {
+                    'code': frais.code,
+                    'libelle': frais.libelle,
+                    'montant_du': Decimal('0.00'),
+                    'montant_paye': Decimal('0.00'),
+                }
+                par_code[frais.code] = row
+            row['montant_du'] += frais.montant or Decimal('0.00')
+            row['montant_paye'] += frais.montant_paye or Decimal('0.00')
+            row['libelle'] = frais.libelle
+        result = []
+        for row in par_code.values():
+            row['reste'] = row['montant_du'] - row['montant_paye']
+            result.append(row)
+        result.sort(key=lambda item: item['libelle'])
+        return result
 
     @staticmethod
     def _nom_groupe_classe(classe):

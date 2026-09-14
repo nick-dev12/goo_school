@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bilan_comptabilite.css' %}?v=2.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bilan_comptabilite.css' %}?v=2.0.2" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -81,6 +81,9 @@
                 </button>
                 <button type="button" class="scb-tab-btn" data-scb-tab="scb-panel-modes" role="tab" aria-selected="false" aria-controls="scb-panel-modes">
                     <i class="fas fa-credit-card"></i> {% trans "Modes paiement" %}
+                </button>
+                <button type="button" class="scb-tab-btn" data-scb-tab="scb-panel-annexes" role="tab" aria-selected="false" aria-controls="scb-panel-annexes">
+                    <i class="fas fa-tags"></i> {% trans "Frais annexes" %}
                 </button>
                 <button type="button" class="scb-tab-btn" data-scb-tab="scb-panel-inscription" role="tab" aria-selected="false" aria-controls="scb-panel-inscription">
                     <i class="fas fa-file-invoice-dollar"></i> {% trans "Frais inscription" %}
@@ -268,6 +271,9 @@
                             <tr>
                                 <th>{% trans "Élève" %}</th>
                                 <th class="scb-text-center">{% trans "Statut" %}</th>
+                                <th class="scb-text-right">{% trans "Annexes dû" %}</th>
+                                <th class="scb-text-right">{% trans "Annexes payé" %}</th>
+                                <th class="scb-text-right">{% trans "Annexes reste" %}</th>
                                 <th class="scb-text-right">{% trans "Dû" %}</th>
                                 <th class="scb-text-right">{% trans "Payé" %}</th>
                                 <th class="scb-text-right">{% trans "Reste" %}</th>
@@ -293,6 +299,15 @@
                                         <span class="scb-badge scb-badge--danger" title="{% trans 'Non en règle' %}">!</span>
                                     {% endif %}
                                 </td>
+                                <td class="scb-text-right">{{ eleve_stat.frais_annexes_du|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                <td class="scb-text-right">{{ eleve_stat.frais_annexes_paye|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                <td class="scb-text-right">
+                                    {% if eleve_stat.frais_annexes_reste > 0 %}
+                                        <span class="scb-amount-danger">{{ eleve_stat.frais_annexes_reste|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                    {% else %}
+                                        <span class="scb-amount-success">0 {{ devise_monnaie|default:"FCFA" }}</span>
+                                    {% endif %}
+                                </td>
                                 <td class="scb-text-right">{{ eleve_stat.montant_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
                                 <td class="scb-text-right">{{ eleve_stat.montant_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
                                 <td class="scb-text-right">
@@ -310,7 +325,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="6" class="scb-empty">{% trans "Aucun élève trouvé dans cette classe." %}</td>
+                                <td colspan="9" class="scb-empty">{% trans "Aucun élève trouvé dans cette classe." %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -342,6 +357,59 @@
                             {% empty %}
                             <tr>
                                 <td colspan="4" class="scb-empty">{% trans "Aucun paiement enregistré." %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="scb-panel-annexes" class="scb-tab-panel" role="tabpanel">
+                <h2 class="scb-section-title"><i class="fas fa-tags"></i> {% trans "Frais annexes" %}</h2>
+                <div class="scb-cards-grid">
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Total dû" %}</div>
+                        <div class="scb-mini-card-value">{{ total_frais_annexes_du|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Tenue, carte, dossier, assurance, examens, etc." %}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Total payé" %}</div>
+                        <div class="scb-mini-card-value scb-amount-success">{{ total_frais_annexes_paye|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Montant collecté" %}</div>
+                    </div>
+                    <div class="scb-mini-card">
+                        <div class="scb-mini-card-label">{% trans "Reste" %}</div>
+                        <div class="scb-mini-card-value scb-amount-danger">{{ total_frais_annexes_reste|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</div>
+                        <div class="scb-mini-card-sub">{% trans "Montant restant à collecter" %}</div>
+                    </div>
+                </div>
+                <div class="scb-table-wrap table-responsive">
+                    <table class="scb-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Frais" %}</th>
+                                <th class="scb-text-right">{% trans "Dû" %}</th>
+                                <th class="scb-text-right">{% trans "Payé" %}</th>
+                                <th class="scb-text-right">{% trans "Reste" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for frais in frais_annexes_par_type %}
+                            <tr>
+                                <td><strong>{{ frais.libelle }}</strong></td>
+                                <td class="scb-text-right">{{ frais.montant_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                <td class="scb-text-right">{{ frais.montant_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                <td class="scb-text-right">
+                                    {% if frais.reste > 0 %}
+                                        <span class="scb-amount-danger">{{ frais.reste|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
+                                    {% else %}
+                                        <span class="scb-amount-success">0 {{ devise_monnaie|default:"FCFA" }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="scb-empty">{% trans "Aucun frais annexe configuré pour cette classe." %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

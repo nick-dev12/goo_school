@@ -312,13 +312,13 @@ class ParametresComptabiliteGroupeClasse(models.Model):
         Retourne les paramètres spécifiques pour un groupe de classes donné
         Retourne None si aucun paramètre spécifique n'existe
         """
-        try:
-            return cls.objects.get(
-                etablissement=etablissement,
-                groupes_classes__contains=[nom_groupe_classe]
-            )
-        except (cls.DoesNotExist, cls.MultipleObjectsReturned):
+        if not nom_groupe_classe:
             return None
+        for parametre in cls.objects.filter(etablissement=etablissement):
+            groupes = parametre.groupes_classes or []
+            if nom_groupe_classe in groupes:
+                return parametre
+        return None
     
     @classmethod
     def get_groupes_disponibles(cls, etablissement):

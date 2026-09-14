@@ -47,3 +47,19 @@ def emit_realtime_event_task(
     from school_admin.services.realtime_service import emit_etablissement_event
 
     emit_etablissement_event(etablissement_id, event_type, payload or {})
+
+
+@shared_task
+def envoyer_relances_impayes_task() -> dict:
+    """Relances SMS / WhatsApp quotidiennes si le flag établissement / groupe est actif."""
+    from school_admin.services.recouvrement import envoyer_relances_automatiques
+
+    return envoyer_relances_automatiques()
+
+
+@shared_task
+def verifier_moratoires_task() -> int:
+    """Rupture automatique des moratoires dont une échéance est impayée."""
+    from school_admin.services.recouvrement import verifier_rupture_moratoires
+
+    return verifier_rupture_moratoires()

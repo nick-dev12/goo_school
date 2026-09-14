@@ -20,6 +20,7 @@ class NotificationParent(models.Model):
         ("sanction", "Sanction appliquée"),
         ("evaluation", "Évaluation programmée"),
         ("information", "Information générale"),
+        ("scolarite", "Scolarité / impayé"),
     ]
 
     STATUT_CHOICES = [

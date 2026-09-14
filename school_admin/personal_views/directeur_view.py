@@ -10567,3 +10567,31 @@ def bilan_comptable_classe_directeur(request, classe_id):
     Délègue la logique au contrôleur ComptabiliteController
     """
     return ComptabiliteController.bilan_comptable_classe_directeur(request, classe_id)
+
+
+from ..controllers.recouvrement_controller import RecouvrementController
+
+
+@login_required
+def liste_impayes_directeur(request):
+    return RecouvrementController.liste_impayes_directeur(request)
+
+
+@login_required
+def relancer_impaye_directeur(request, eleve_id=None):
+    return RecouvrementController.relancer_impaye_directeur(request, eleve_id)
+
+
+@login_required
+def recu_paiement_directeur(request, paiement_id):
+    return RecouvrementController.recu_paiement_directeur(request, paiement_id)
+
+
+@login_required
+def creer_moratoire_directeur(request, eleve_id):
+    return RecouvrementController.creer_moratoire_directeur(request, eleve_id)
+
+
+@login_required
+def payer_echeance_moratoire_directeur(request, eleve_id, echeance_id):
+    return RecouvrementController.payer_echeance_moratoire_directeur(request, eleve_id, echeance_id)

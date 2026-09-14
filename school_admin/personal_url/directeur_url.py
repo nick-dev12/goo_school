@@ -134,4 +134,14 @@ urlpatterns = [
     path('comptabilite/parametres-groupes/<int:parametre_id>/supprimer/', supprimer_parametres_groupe_directeur, name='supprimer_parametres_groupe_directeur'),
     path('comptabilite/bilan/', bilan_comptable_directeur, name='bilan_comptable_directeur'),
     path('comptabilite/classe/<int:classe_id>/bilan/', bilan_comptable_classe_directeur, name='bilan_comptable_classe_directeur'),
+    path('comptabilite/impayes/', liste_impayes_directeur, name='liste_impayes_directeur'),
+    path('comptabilite/impayes/relancer/', relancer_impaye_directeur, name='relancer_impayes_classe_directeur'),
+    path('comptabilite/impayes/relancer/<int:eleve_id>/', relancer_impaye_directeur, name='relancer_impaye_directeur'),
+    path('comptabilite/paiement/<int:paiement_id>/recu/', recu_paiement_directeur, name='recu_paiement_directeur'),
+    path('comptabilite/eleve/<int:eleve_id>/moratoire/', creer_moratoire_directeur, name='creer_moratoire_directeur'),
+    path(
+        'comptabilite/eleve/<int:eleve_id>/moratoire/echeance/<int:echeance_id>/payer/',
+        payer_echeance_moratoire_directeur,
+        name='payer_echeance_moratoire_directeur',
+    ),
 ]

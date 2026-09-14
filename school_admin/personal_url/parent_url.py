@@ -37,5 +37,7 @@ urlpatterns = [
     
     # Convocations
     path('parent/convocations/', parent_view.convocations_parent, name='convocations_parent'),
+    path('parent/scolarite/', parent_view.scolarite_parent, name='scolarite_parent'),
+    path('parent/scolarite/recu/<int:paiement_id>/', parent_view.recu_paiement_parent, name='recu_paiement_parent'),
 ]
 

@@ -61,6 +61,8 @@ class ParentNotificationService:
                 if eleve:
                     return reverse("school_admin:dashboard_enfant", kwargs={"eleve_id": eleve.id})
                 return reverse("school_admin:dashboard_parent")
+            elif type_notification == "scolarite":
+                return reverse("school_admin:scolarite_parent")
             else:
                 # Par défaut, rediriger vers le dashboard parent
                 return reverse("school_admin:dashboard_parent")

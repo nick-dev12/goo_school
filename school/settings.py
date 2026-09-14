@@ -280,6 +280,21 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_IMPORTS = ('school_admin.tasks.celery_tasks',)
+try:
+    from celery.schedules import crontab
+
+    CELERY_BEAT_SCHEDULE = {
+        'relances-impayes-quotidiennes': {
+            'task': 'school_admin.tasks.celery_tasks.envoyer_relances_impayes_task',
+            'schedule': crontab(hour=8, minute=0),
+        },
+        'verifier-moratoires-quotidiens': {
+            'task': 'school_admin.tasks.celery_tasks.verifier_moratoires_task',
+            'schedule': crontab(hour=7, minute=30),
+        },
+    }
+except ImportError:
+    CELERY_BEAT_SCHEDULE = {}
 
 # Configuration du modèle d'utilisateur personnalisé
 AUTH_USER_MODEL = 'school_admin.CompteUser'

@@ -34,6 +34,9 @@
                     {% if eleve.matricule_eleve %}
                         <span class="scd-meta-pill"><i class="fas fa-id-card"></i> {{ eleve.matricule_eleve }}</span>
                     {% endif %}
+                    {% if remise_fratrie_active %}
+                        <span class="scd-meta-pill"><i class="fas fa-users"></i> {% trans "Fratrie" %} {{ nombre_fratrie }} · {{ remise_fratrie_pct }}%</span>
+                    {% endif %}
                 </div>
                 {% if total_du %}
                 <div class="scd-progress-wrap">
@@ -70,11 +73,87 @@
                 <a href="{% url 'directeur:enregistrer_paiement_directeur' eleve.id %}" class="scd-action-btn scd-action-btn--primary">
                     <i class="fas fa-money-bill-wave"></i> {% trans "Enregistrer un paiement" %}
                 </a>
+                {% if reste_a_payer > 0 %}
+                <form method="post" action="{% url 'directeur:relancer_impaye_directeur' eleve.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'directeur:details_comptabilite_eleve_directeur' eleve.id %}" />
+                    <button type="submit" class="scd-action-btn scd-action-btn--secondary">
+                        <i class="fas fa-sms"></i> {% trans "Relancer la famille" %}
+                    </button>
+                </form>
+                {% if not moratoire or moratoire.statut != 'actif' %}
+                <a href="{% url 'directeur:creer_moratoire_directeur' eleve.id %}" class="scd-action-btn scd-action-btn--secondary">
+                    <i class="fas fa-handshake"></i> {% trans "Moratoire" %}
+                </a>
+                {% endif %}
+                {% endif %}
+                <a href="{% url 'directeur:liste_impayes_directeur' %}" class="scd-action-btn scd-action-btn--secondary">
+                    <i class="fas fa-exclamation-circle"></i> {% trans "Impayés" %}
+                </a>
                 <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="scd-action-btn scd-action-btn--secondary">
                     <i class="fas fa-list"></i> {% trans "Liste des élèves" %}
                 </a>
             </div>
         </header>
+
+        {% if moratoire %}
+        <section class="scd-tabs-wrap" style="margin-bottom:1rem;">
+            <header class="scd-section-head">
+                <h2 class="scd-section-title">
+                    <i class="fas fa-handshake"></i> {% trans "Moratoire" %}
+                    {% if moratoire.statut == 'actif' %}
+                        <span class="badge badge-warning">{% trans "Actif" %}</span>
+                    {% elif moratoire.statut == 'rompu' %}
+                        <span class="badge badge-danger">{% trans "Rompu" %}</span>
+                    {% elif moratoire.statut == 'solde' %}
+                        <span class="badge badge-success">{% trans "Soldé" %}</span>
+                    {% endif %}
+                </h2>
+            </header>
+            <p>{{ moratoire.motif }}</p>
+            {% if moratoire.statut == 'rompu' and moratoire.motif_rupture %}
+                <p class="scd-empty"><i class="fas fa-exclamation-triangle"></i> {{ moratoire.motif_rupture }}</p>
+            {% endif %}
+            <div class="scd-table-wrap table-responsive">
+                <table class="scd-table">
+                    <thead>
+                        <tr>
+                            <th>{% trans "N°" %}</th>
+                            <th>{% trans "Échéance" %}</th>
+                            <th>{% trans "Montant" %}</th>
+                            <th>{% trans "Payé" %}</th>
+                            <th>{% trans "Reste" %}</th>
+                            <th>{% trans "Statut" %}</th>
+                            <th>{% trans "Payer" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for echeance in moratoire_echeances %}
+                        <tr>
+                            <td>{{ echeance.numero }}</td>
+                            <td>{{ echeance.date_echeance|date:"d/m/Y" }}</td>
+                            <td>{{ echeance.montant|floatformat:0 }} {{ devise_monnaie }}</td>
+                            <td>{{ echeance.montant_paye|floatformat:0 }}</td>
+                            <td>{{ echeance.get_reste_a_payer|floatformat:0 }}</td>
+                            <td>{{ echeance.get_statut_display }}</td>
+                            <td>
+                                {% if moratoire.statut == 'actif' and not echeance.est_totalement_paye %}
+                                <form method="post" action="{% url 'directeur:payer_echeance_moratoire_directeur' eleve.id echeance.id %}">
+                                    {% csrf_token %}
+                                    <input type="number" name="montant" class="scd-form-input" step="0.01" min="0.01" max="{{ echeance.get_reste_a_payer }}" value="{{ echeance.get_reste_a_payer }}" required style="max-width:8rem;display:inline-block;" />
+                                    <button type="submit" class="scd-action-btn scd-action-btn--primary">{% trans "Encaisser" %}</button>
+                                </form>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
 
         <div class="scd-tabs-wrap">
             <nav class="scd-tabs-nav" role="tablist" aria-label="{% trans 'Sections comptabilité' %}">
@@ -306,6 +385,7 @@
                                     <th>{% trans "Montant" %}</th>
                                     <th>{% trans "Type" %}</th>
                                     <th>{% trans "Méthode" %}</th>
+                                    <th>{% trans "N° reçu" %}</th>
                                     <th>{% trans "Référence" %}</th>
                                 </tr>
                             </thead>
@@ -315,8 +395,15 @@
                                         <td>{{ paiement.date_paiement|date:"d/m/Y H:i" }}</td>
                                         <td><strong>{{ paiement.montant|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</strong></td>
                                         <td>{{ paiement.get_type_paiement_display|default:"-" }}</td>
-                                        <td>{{ paiement.get_methode_paiement_display|default:"-" }}</td>
-                                        <td>{{ paiement.reference|default:"-" }}</td>
+                                        <td>{{ paiement.get_mode_paiement_display|default:"-" }}</td>
+                                        <td>
+                                            {% if paiement.numero_recu %}
+                                                <a href="{% url 'directeur:recu_paiement_directeur' paiement.id %}">{{ paiement.numero_recu }}</a>
+                                            {% else %}
+                                                <a href="{% url 'directeur:recu_paiement_directeur' paiement.id %}">{% trans "Reçu" %}</a>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ paiement.reference_paiement|default:"-" }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>

@@ -183,6 +183,36 @@ def dashboard_parent(request):
     # Attacher les notifications par enfant
     for enfant_entry in enfants:
         enfant_entry['notifications'] = notifications_map.get(enfant_entry['eleve'].id, [])
+
+    from decimal import Decimal as _Decimal
+    from school_admin.services.recouvrement import (
+        devise_etablissement as _devise_etablissement,
+        resume_dette_eleve as _resume_dette_eleve,
+    )
+
+    total_reste_scolarite = _Decimal('0.00')
+    prochaine_echeance_scolarite = None
+    for enfant_entry in enfants:
+        eleve_item = enfant_entry['eleve']
+        annee_item = None
+        if eleve_item.etablissement:
+            annee_item = get_session_active(request, eleve_item.etablissement)
+        resume_item = None
+        if annee_item and eleve_item.etablissement:
+            try:
+                resume_item = _resume_dette_eleve(eleve_item, eleve_item.etablissement, annee_item)
+            except Exception:
+                resume_item = None
+        enfant_entry['dette'] = resume_item
+        enfant_entry['devise'] = _devise_etablissement(eleve_item.etablissement)
+        if resume_item and resume_item.reste > 0:
+            total_reste_scolarite += resume_item.reste
+            if resume_item.prochaine_echeance:
+                if (
+                    prochaine_echeance_scolarite is None
+                    or resume_item.prochaine_echeance < prochaine_echeance_scolarite
+                ):
+                    prochaine_echeance_scolarite = resume_item.prochaine_echeance
     
     # Toujours afficher le dashboard parent pour qu'il puisse choisir
     print(f"[DASHBOARD PARENT] Nombre d'enfants à afficher: {len(enfants)}")
@@ -217,6 +247,9 @@ def dashboard_parent(request):
         'form_data': form_data,  # Données du formulaire à réafficher
         'notifications_recents': notifications_list,
         'notifications_non_lues': notifications_parent_non_lues,
+        'total_reste_scolarite': total_reste_scolarite,
+        'prochaine_echeance_scolarite': prochaine_echeance_scolarite,
+        'devise_scolarite': _devise_etablissement(parent.etablissement),
         'notifications_parent_non_lues': notifications_parent_non_lues,
         'current_url': request.get_full_path(),
         'annee_scolaire_active': annee_scolaire_active,
@@ -1079,4 +1112,108 @@ def convocations_parent(request):
     }
 
     return render(request, 'school_admin/parent/convocations_parent.html', context)
+
+
+def scolarite_parent(request):
+    """Espace parent : reste dû et prochaine échéance par enfant."""
+    if not isinstance(request.user, Parent):
+        messages.error(request, "Accès non autorisé. Cette page est réservée aux parents.")
+        return redirect('school_admin:connexion_compte_user')
+
+    parent = request.user
+    from decimal import Decimal
+    from school_admin.model.comptabilite_eleve_model import PaiementEleve
+    from school_admin.services.recouvrement import devise_etablissement, resume_dette_eleve
+
+    liens = LienFamilial.objects.filter(
+        parent=parent, actif=True, statut='valide'
+    ).select_related('eleve__etablissement', 'eleve__classe')
+
+    enfants_scolarite = []
+    total_reste = Decimal('0.00')
+    prochaine = None
+    devise = devise_etablissement(parent.etablissement)
+
+    for lien in liens:
+        eleve = lien.eleve
+        if not eleve or not eleve.actif:
+            continue
+        annee = get_session_active(request, eleve.etablissement) if eleve.etablissement else None
+        if not annee:
+            continue
+        resume = resume_dette_eleve(eleve, eleve.etablissement, annee)
+        recus = PaiementEleve.objects.filter(
+            eleve=eleve, annee_scolaire=annee
+        ).exclude(numero_recu='').order_by('-date_paiement')[:12]
+        enfants_scolarite.append({
+            'eleve': eleve,
+            'lien': lien.get_type_lien_display(),
+            'classe': get_classe_eleve_active(eleve, annee, eleve.etablissement),
+            'resume': resume,
+            'devise': devise_etablissement(eleve.etablissement),
+            'recus': recus,
+            'annee': annee,
+        })
+        total_reste += resume.reste
+        if resume.prochaine_echeance:
+            if prochaine is None or resume.prochaine_echeance < prochaine:
+                prochaine = resume.prochaine_echeance
+
+    return render(request, 'school_admin/parent/scolarite_parent.html', {
+        'parent': parent,
+        'etablissement': parent.etablissement,
+        'enfants_scolarite': enfants_scolarite,
+        'total_reste': total_reste,
+        'prochaine_echeance': prochaine,
+        'devise_monnaie': devise,
+    })
+
+
+def recu_paiement_parent(request, paiement_id):
+    """Reçu officiel consultable par le parent payeur."""
+    if not isinstance(request.user, Parent):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    from school_admin.model.comptabilite_eleve_model import PaiementEleve
+    from school_admin.model.inscription_eleve_model import InscriptionEleve
+    from school_admin.services.recouvrement import attribuer_numero_recu, devise_etablissement
+
+    paiement = get_object_or_404(
+        PaiementEleve.objects.select_related(
+            'eleve', 'etablissement', 'annee_scolaire',
+            'mensualite', 'frais_inscription', 'frais_annexe',
+        ),
+        id=paiement_id,
+    )
+    lien = LienFamilial.objects.filter(
+        parent=request.user,
+        eleve=paiement.eleve,
+        actif=True,
+        statut='valide',
+    ).first()
+    if not lien:
+        messages.error(request, "Vous n'avez pas accès à ce reçu.")
+        return redirect('school_admin:scolarite_parent')
+
+    if not paiement.numero_recu:
+        attribuer_numero_recu(paiement)
+        paiement.refresh_from_db()
+
+    inscription = InscriptionEleve.objects.filter(
+        eleve=paiement.eleve,
+        etablissement=paiement.etablissement,
+        annee_scolaire=paiement.annee_scolaire,
+    ).select_related('classe').first()
+
+    return render(request, 'school_admin/directeur/comptabilite/recu_paiement.html', {
+        'paiement': paiement,
+        'eleve': paiement.eleve,
+        'etablissement': paiement.etablissement,
+        'annee_scolaire': paiement.annee_scolaire,
+        'inscription': inscription,
+        'devise_monnaie': devise_etablissement(paiement.etablissement),
+        'is_parent': True,
+        'retour_url': 'school_admin:scolarite_parent',
+    })
 

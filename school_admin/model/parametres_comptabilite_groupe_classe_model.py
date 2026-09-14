@@ -661,6 +661,14 @@ class ParametresComptabiliteGroupeClasse(models.Model):
                         
                         # 4. Mettre à jour le statut de la comptabilité
                         comptabilite.verifier_statut_paiement()
+
+                from school_admin.services.recouvrement import (
+                    synchroniser_remises_fratrie_etablissement,
+                )
+
+                synchroniser_remises_fratrie_etablissement(
+                    self.etablissement, annee_scolaire_active
+                )
                 
                 return True
         except Exception as e:

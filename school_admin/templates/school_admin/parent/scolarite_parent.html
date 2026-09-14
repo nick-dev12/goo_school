@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include 'school_admin/partials/seo_head.html' %}
+    <title>Scolarité — {{ parent.nom_complet }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/parent/nav_parent.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/parent/scolarite_parent.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/gtranslate_header_bar.css' %}?v=1.0.1">
+</head>
+<body class="sco-parent-body">
+    {% include 'school_admin/parent/partials/navigation_panel.html' %}
+    <div class="sco-parent-wrap">
+        <header class="sco-parent-hero">
+            <h1>Scolarité</h1>
+            <p>{{ parent.nom_complet }} · {{ etablissement.nom }}</p>
+        </header>
+
+        {% if total_reste > 0 %}
+            <section class="sco-dette-banner">
+                <h2>Vous devez {{ total_reste|floatformat:0 }} {{ devise_monnaie }}</h2>
+                <p>
+                    {% if prochaine_echeance %}
+                        Échéance : {{ prochaine_echeance|date:"d/m/Y" }}
+                    {% else %}
+                        Merci de régulariser auprès de l'administration.
+                    {% endif %}
+                </p>
+            </section>
+        {% else %}
+            <section class="sco-dette-banner ok">
+                <h2>Vous êtes à jour</h2>
+                <p>Aucun reste à payer pour vos enfants cette année.</p>
+            </section>
+        {% endif %}
+
+        {% for item in enfants_scolarite %}
+            <article class="sco-child-card">
+                <h2>{{ item.eleve.nom }} {{ item.eleve.prenom }}</h2>
+                <p>
+                    {% if item.classe %}{{ item.classe.nom }} · {% endif %}
+                    Reste : <strong>{{ item.resume.reste|floatformat:0 }} {{ item.devise }}</strong>
+                    {% if item.resume.prochaine_echeance %}
+                        · Échéance {{ item.resume.prochaine_echeance|date:"d/m/Y" }}
+                        {% if item.resume.prochaine_libelle %}({{ item.resume.prochaine_libelle }}){% endif %}
+                    {% endif %}
+                </p>
+                {% if item.resume.charges %}
+                <div class="table-responsive">
+                    <table class="sco-table">
+                        <thead>
+                            <tr>
+                                <th>Libellé</th>
+                                <th class="num">Dû</th>
+                                <th class="num">Payé</th>
+                                <th class="num">Reste</th>
+                                <th>Échéance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for charge in item.resume.charges %}
+                            <tr>
+                                <td>{{ charge.libelle }}</td>
+                                <td class="num">{{ charge.montant|floatformat:0 }}</td>
+                                <td class="num">{{ charge.montant_paye|floatformat:0 }}</td>
+                                <td class="num">{{ charge.reste|floatformat:0 }}</td>
+                                <td>{% if charge.date_echeance %}{{ charge.date_echeance|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                {% if item.recus %}
+                    <p style="margin-top:0.75rem;font-weight:600;">Reçus</p>
+                    <ul>
+                        {% for recu in item.recus %}
+                            <li>
+                                <a class="sco-link" href="{% url 'school_admin:recu_paiement_parent' recu.id %}">
+                                    {{ recu.numero_recu }} — {{ recu.montant|floatformat:0 }} {{ item.devise }} ({{ recu.date_paiement|date:"d/m/Y" }})
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </article>
+        {% empty %}
+            <p>Aucun enfant lié pour afficher la scolarité.</p>
+        {% endfor %}
+    </div>
+    {% include 'school_admin/parent/partials/bottom_nav_parent.html' %}
+</body>
+</html>

@@ -49,6 +49,7 @@
   var pendingTranscript = '';
   var silenceTimer = null;
   var busy = false;
+  var ignoreIncoming = false;
   var pendingDone = false;
   var liveStream = null;
   var captureCtx = null;
@@ -167,11 +168,54 @@
       .replace(/"/g, '&quot;');
   }
 
+  function stripAssistantMarkup(text) {
+    if (!text) {
+      return '';
+    }
+    var spoken = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    var lines = spoken.split('\n');
+    var kept = [];
+    lines.forEach(function (line) {
+      var stripped = line.trim();
+      if (!stripped) {
+        return;
+      }
+      if (/^\|?[\s:\-]+(\|[\s:\-]+)+\|?$/.test(stripped)) {
+        return;
+      }
+      if ((stripped.match(/\|/g) || []).length >= 2) {
+        var cells = stripped.replace(/^\||\|$/g, '').split('|').map(function (cell) {
+          return cell.trim();
+        }).filter(function (cell) {
+          return cell && !/^[-: ]+$/.test(cell);
+        });
+        if (cells.length) {
+          kept.push(cells.join(', ') + '.');
+        }
+        return;
+      }
+      kept.push(stripped);
+    });
+    spoken = kept.join(' ');
+    spoken = spoken.replace(/^#{1,6}\s+/gm, '');
+    spoken = spoken.replace(/^\s*[-*•]\s+/gm, '');
+    spoken = spoken.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    spoken = spoken.replace(/\*\*([^*]+)\*\*/g, '$1');
+    spoken = spoken.replace(/__([^_]+)__/g, '$1');
+    spoken = spoken.replace(/`([^`]+)`/g, '$1');
+    spoken = spoken.replace(/(^|[^\w])\*([^*]+)\*(?!\w)/g, '$1$2');
+    spoken = spoken.replace(/\|/g, ' ');
+    spoken = spoken.replace(/-{3,}/g, ' ');
+    spoken = spoken.replace(/[*_`#\[\]]+/g, '');
+    spoken = spoken.replace(/\s+/g, ' ').replace(/\s+([,.;:!?])/g, '$1').trim();
+    return spoken;
+  }
+
   function highlightData(text) {
     if (!text) {
       return '';
     }
-    var source = String(text);
+    var source = stripAssistantMarkup(text);
     var patterns = [
       { cls: 'session', re: /\b20\d{2}\s*[-–\/]\s*20\d{2}\b/g },
       { cls: 'money', re: /\b\d+(?:[.,]\d{3})*(?:[.,]\d+)?\s*(?:FCFA|XOF|EUR|USD|F\b|€)\b/gi },
@@ -409,7 +453,7 @@
     if (!box) {
       return;
     }
-    box.querySelectorAll('button').forEach(function (btn) {
+    box.querySelectorAll('button, select').forEach(function (btn) {
       btn.disabled = true;
     });
     box.classList.add('is-used');
@@ -418,6 +462,10 @@
   function handleChoice(item) {
     var intent = (item && item.intent) || 'chat';
     var value = (item && (item.value || item.label)) || '';
+    if (busy) {
+      interruptAssistant();
+    }
+    ignoreIncoming = false;
     unlockAudio();
     connect();
     if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -428,12 +476,13 @@
       sendQuestion(value);
       return;
     }
-    appendBubble('user', value);
+    appendBubble('user', (item && item.label) || value);
     currentAssistantBubble = null;
     spokenPlain = '';
     pendingDone = false;
     pendingDelta = '';
     pendingActionResult = null;
+    ignoreIncoming = false;
     setBusy(true);
     showThinking();
     socket.send(
@@ -448,13 +497,51 @@
     );
   }
 
-  function renderChoices(items) {
+  function renderChoices(items, widget, placeholder) {
     if (!items || !items.length) {
       return;
     }
     var host = choiceHost();
     var box = document.createElement('div');
-    box.className = 'assistant-vocal-choices';
+    var useSelect = widget === 'select' || (items[0] && items[0].widget === 'select');
+    box.className = useSelect
+      ? 'assistant-vocal-choices is-select'
+      : 'assistant-vocal-choices';
+    if (useSelect) {
+      var select = document.createElement('select');
+      select.className = 'assistant-vocal-select';
+      var empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = placeholder || items[0].placeholder || 'Choisir';
+      empty.disabled = true;
+      empty.selected = true;
+      select.appendChild(empty);
+      items.forEach(function (item) {
+        if (!item || !item.label) {
+          return;
+        }
+        var option = document.createElement('option');
+        option.value = item.value || item.label;
+        option.textContent = item.label;
+        option.setAttribute('data-intent', item.intent || 'fill');
+        select.appendChild(option);
+      });
+      select.addEventListener('change', function () {
+        var selected = items.filter(function (item) {
+          return item && (item.value || item.label) === select.value;
+        })[0];
+        if (!selected) {
+          return;
+        }
+        select.disabled = true;
+        disableChoices(box);
+        handleChoice(selected);
+      });
+      box.appendChild(select);
+      host.appendChild(box);
+      scrollToEnd();
+      return;
+    }
     items.slice(0, 5).forEach(function (item) {
       if (!item || !item.label) {
         return;
@@ -659,7 +746,7 @@
       silent.volume = 0.01;
       var playPromise = silent.play();
       if (playPromise && playPromise.catch) {
-        playPromise.catch(function () {});
+        playPromise.catch(function () { });
       }
       audioUnlocked = true;
     } catch (err) {
@@ -707,6 +794,9 @@
     } catch (err) {
       return;
     }
+    if (ignoreIncoming && data.type !== 'done' && data.type !== 'pong' && data.type !== 'error') {
+      return;
+    }
     if (data.type === 'ack') {
       showThinking();
       return;
@@ -727,7 +817,11 @@
       return;
     }
     if (data.type === 'audio_sentence') {
-      enqueueSentence(data.text || '', data.audio_base64 || '');
+      enqueueSentence(
+        data.text || '',
+        data.audio_base64 || '',
+        data.audio_mime || 'audio/wav'
+      );
       return;
     }
     if (data.type === 'error') {
@@ -737,6 +831,10 @@
       return;
     }
     if (data.type === 'done') {
+      if (data.cancelled || ignoreIncoming) {
+        abortLocalTurn();
+        return;
+      }
       pendingDone = true;
       finishIfIdle();
       return;
@@ -816,7 +914,7 @@
       return;
     }
     if (data.type === 'choices') {
-      renderChoices(data.choices || []);
+      renderChoices(data.choices || [], data.widget || '', data.placeholder || '');
       return;
     }
     if (data.type === 'form.fill') {
@@ -957,6 +1055,10 @@
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       return;
     }
+    if (busy) {
+      interruptAssistant();
+    }
+    ignoreIncoming = false;
     stopAudio();
     unlockAudio();
     appendBubble('user', label);
@@ -975,11 +1077,12 @@
     socket.send(JSON.stringify(payload));
   }
 
-  function enqueueSentence(text, audioBase64) {
+  function enqueueSentence(text, audioBase64, audioMime) {
     ensureAssistantBubble();
+    var mime = audioMime || 'audio/wav';
     audioQueue.push({
       text: text,
-      src: !voiceMuted && audioBase64 ? 'data:audio/mpeg;base64,' + audioBase64 : '',
+      src: !voiceMuted && audioBase64 ? 'data:' + mime + ';base64,' + audioBase64 : '',
     });
     playNext();
   }
@@ -1233,9 +1336,64 @@
 
   function setBusy(value) {
     busy = value;
-    if (sendBtn) {
-      sendBtn.disabled = value;
+    syncSendButton();
+  }
+
+  function syncSendButton() {
+    if (!sendBtn) {
+      return;
     }
+    sendBtn.disabled = false;
+    if (busy) {
+      sendBtn.classList.add('is-stop');
+      sendBtn.setAttribute('aria-label', 'Arrêter');
+      sendBtn.setAttribute('title', 'Arrêter');
+      sendBtn.type = 'button';
+      sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
+      if (input) {
+        input.removeAttribute('required');
+      }
+      return;
+    }
+    sendBtn.classList.remove('is-stop');
+    sendBtn.setAttribute('aria-label', 'Envoyer');
+    sendBtn.setAttribute('title', 'Envoyer');
+    sendBtn.type = 'submit';
+    sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+    if (input) {
+      input.setAttribute('required', 'required');
+    }
+  }
+
+  function abortLocalTurn() {
+    ignoreIncoming = false;
+    stopAudio();
+    pendingDone = false;
+    pendingDelta = '';
+    hideThinking();
+    if (currentAssistantBubble && spokenPlain) {
+      paintAssistant(spokenPlain, false);
+      if (chatLog.length && chatLog[chatLog.length - 1].role === 'assistant') {
+        chatLog[chatLog.length - 1].text = spokenPlain;
+        persistCache();
+      }
+    }
+    currentAssistantBubble = null;
+    spokenPlain = '';
+    setBusy(false);
+    refreshStatus();
+  }
+
+  function interruptAssistant() {
+    ignoreIncoming = true;
+    stopAudio();
+    hideThinking();
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'stop' }));
+    }
+    abortLocalTurn();
+    ignoreIncoming = true;
+    setStatus('Arrêtée');
   }
 
   function refreshStatus() {
@@ -1257,8 +1415,11 @@
   function sendQuestion(text, options) {
     var question = (text || '').trim();
     var opts = options || {};
-    if (!question || busy) {
+    if (!question) {
       return;
+    }
+    if (busy) {
+      interruptAssistant();
     }
     unlockAudio();
     connect();
@@ -1293,6 +1454,7 @@
     spokenPlain = '';
     pendingDone = false;
     pendingActionResult = null;
+    ignoreIncoming = false;
     setBusy(true);
     showThinking();
     socket.send(JSON.stringify({ type: 'chat', text: question }));
@@ -1824,8 +1986,27 @@
 
   form.addEventListener('submit', function (event) {
     event.preventDefault();
+    if (busy && !(input && input.value.trim())) {
+      interruptAssistant();
+      return;
+    }
     sendQuestion(input.value);
   });
+
+  if (sendBtn) {
+    sendBtn.addEventListener('click', function (event) {
+      if (!busy) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (input && input.value.trim()) {
+        sendQuestion(input.value);
+        return;
+      }
+      interruptAssistant();
+    });
+  }
 
   micBtn.addEventListener('click', function () {
     if (micBtn.disabled) {
@@ -1943,6 +2124,7 @@
   window.addEventListener('load', function () {
     attachAssistantToBody();
     bindPanelWatchers();
+    syncSendButton();
     if (root.classList.contains('is-open')) {
       placePanel();
     }

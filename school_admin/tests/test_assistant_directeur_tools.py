@@ -19,6 +19,7 @@ from school_admin.model.salle_model import Salle
 from school_admin.model.sanction_model import Sanction
 from school_admin.services.assistant_actions import ACTION_SPECS, is_write_action
 from school_admin.services.assistant_intents import (
+    is_small_talk,
     resolve_action_intent,
     resolve_annonce_intent,
     resolve_emploi_intent,
@@ -361,6 +362,8 @@ class AssistantDirecteurToolsTests(TestCase):
             decide_pending_reply('Configure les moyennes', pending_reins),
             'switch',
         )
+        self.assertTrue(is_small_talk('bonjours'))
+        self.assertTrue(is_small_talk('bonjour'))
         sanction_intent = resolve_action_intent(
             'je veux que tu donne une sanction a CLÉ Jason'
         )
@@ -448,3 +451,127 @@ class AssistantDirecteurToolsTests(TestCase):
         self.assertFalse(is_write_action('get_effectifs'))
         self.assertFalse(is_write_action('get_caisse'))
         self.assertGreaterEqual(len(ACTION_SPECS), 40)
+
+    def test_donner_sanction_listes_et_groupe(self):
+        from school_admin.services.assistant_dossiers import choices_for_donner_sanction
+
+        with patch.object(Eleve, '_should_regenerate_qr', return_value=False):
+            premier = Eleve(
+                username=f'sanc-g1-{self.etab.pk}'[:20],
+                numero_eleve=f'SG{self.etab.pk:04d}'[:20],
+                nom='Abega',
+                prenom='Franck',
+                date_naissance=date(2010, 3, 2),
+                lieu_naissance='Yaoundé',
+                sexe='M',
+                nationalite='Camerounaise',
+                etablissement=self.etab,
+                classe=self.classe,
+                date_inscription=date(2026, 9, 1),
+                statut='nouvelle',
+                parent_nom='Abega',
+                parent_prenom='Paul',
+                parent_telephone='770000020',
+                parent_lien='pere',
+                mot_de_passe_provisoire='123456',
+                actif=True,
+            )
+            premier.set_password('Eleve@Test1!')
+            premier.save()
+            second = Eleve(
+                username=f'sanc-g2-{self.etab.pk}'[:20],
+                numero_eleve=f'SH{self.etab.pk:04d}'[:20],
+                nom='Ngo',
+                prenom='Marie',
+                date_naissance=date(2010, 4, 2),
+                lieu_naissance='Yaoundé',
+                sexe='F',
+                nationalite='Camerounaise',
+                etablissement=self.etab,
+                classe=self.classe,
+                date_inscription=date(2026, 9, 1),
+                statut='nouvelle',
+                parent_nom='Ngo',
+                parent_prenom='Claire',
+                parent_telephone='770000021',
+                parent_lien='mere',
+                mot_de_passe_provisoire='123456',
+                actif=True,
+            )
+            second.set_password('Eleve@Test1!')
+            second.save()
+        draft = execute_tool(
+            self.ctx,
+            'donner_sanction',
+            {'query': 'Abega Franck et Ngo Marie'},
+        )
+        self.assertEqual(draft['statut'], 'incomplet')
+        self.assertEqual(draft['manquants'], ['type_sanction'])
+        self.assertNotIn('Avertissement', draft['message'])
+        self.assertNotIn('Blâme', draft['message'])
+        type_choices = choices_for_donner_sanction(draft)
+        self.assertGreaterEqual(len(type_choices), 8)
+        self.assertEqual(type_choices[0]['widget'], 'select')
+        draft = execute_tool(
+            self.ctx,
+            'donner_sanction',
+            {**draft, 'type_sanction': 'blame'},
+        )
+        self.assertEqual(draft['manquants'], ['raison'])
+        raison_choices = choices_for_donner_sanction(draft)
+        self.assertGreaterEqual(len(raison_choices), 10)
+        draft = execute_tool(
+            self.ctx,
+            'donner_sanction',
+            {**draft, 'raison': 'indiscipline'},
+        )
+        self.assertEqual(draft['manquants'], ['gravite'])
+        draft = execute_tool(
+            self.ctx,
+            'donner_sanction',
+            {**draft, 'gravite': 'grave'},
+        )
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.assertTrue(draft.get('auto_appliquer'))
+        self.assertIn('Abega', draft['description'])
+        self.assertIn('Ngo', draft['description'])
+        self.assertEqual(set(draft['eleves_ids']), {premier.id, second.id})
+        with patch('school_admin.services.realtime_helpers.emit_live'):
+            result = ACTION_SPECS['donner_sanction'].apply(self.ctx, draft)
+        self.assertEqual(result['statut'], 'ok')
+        self.assertEqual(
+            Sanction.objects.filter(etablissement=self.etab, eleve__in=[premier, second]).count(),
+            2,
+        )
+        duo = resolve_action_intent('Donne une sanction à Abega et Ngo')
+        self.assertEqual(duo[0], 'donner_sanction')
+        self.assertIn('Abega', duo[1].get('query') or '')
+
+        from school_admin.services.assistant_intents import (
+            annonce_field_request,
+            is_vague_annonce_modify,
+        )
+        self.assertTrue(is_vague_annonce_modify('Je veux modifier.'))
+        self.assertTrue(is_vague_annonce_modify('Modifier'))
+        self.assertFalse(is_vague_annonce_modify('Modifie le texte.'))
+        self.assertFalse(is_vague_annonce_modify('Modifie le titre.'))
+        self.assertEqual(annonce_field_request('Modifie le texte.'), 'contenu')
+        self.assertEqual(annonce_field_request('Le texte'), 'contenu')
+        self.assertEqual(annonce_field_request('Modifie le titre.'), 'titre')
+        self.assertEqual(annonce_field_request('Change les destinataires.'), 'destinataires')
+        pending_annonce = {
+            'name': 'annonce_guidee',
+            'draft': {'titre': 'Info', 'contenu': 'Texte', 'destinataires': ['tous']},
+        }
+        self.assertEqual(
+            decide_pending_reply('Modifie le texte.', pending_annonce),
+            'continue',
+        )
+        self.assertEqual(
+            decide_pending_reply("Combien d'élèves y a-t-il ?", pending_annonce),
+            'switch',
+        )
+        self.assertEqual(
+            decide_pending_reply('Donne une sanction à Diallo', pending_annonce),
+            'switch',
+        )

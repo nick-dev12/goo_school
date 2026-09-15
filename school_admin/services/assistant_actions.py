@@ -52,6 +52,7 @@ class ActionSpec:
     destructive: bool = False
     prepare: Callable = None
     apply: Callable = None
+    choices: Callable = None
 
 
 ACTION_SPECS: dict[str, ActionSpec] = {}

@@ -643,7 +643,7 @@ def resolve_open_intent(question):
 
 SMALL_TALK_RE = re.compile(
     r'^\s*(?:'
-    r'(?:bonjour|bonsoir|salut|hello|hey|coucou)\b.*|'
+    r'(?:bonjour|bonjours|bonsoir|bonsoirs|salut|saluts|hello|hey|coucou|bjr)\b.*|'
     r'(?:merci(?:\s+beaucoup)?|thanks)\s*[.!?]*|'
     r'(?:au\s+revoir|à\s+bientôt|bonne\s+(?:journée|soirée))\s*[.!?]*|'
     r'(?:comment\s+(?:ça|ca)\s+va|ça\s+va|ca\s+va|comment\s+allez[- ]vous)'
@@ -670,6 +670,50 @@ NEW_QUESTION_RE = re.compile(
     r"j['’]ai\s+(?:une\s+)?(?:autre\s+)?(?:question|demande))\b",
     re.IGNORECASE,
 )
+VAGUE_MODIFY_RE = re.compile(
+    r'^\s*(?:je\s+veux\s+|on\s+peut\s+|peux[- ]tu\s+)?'
+    r'(?:modifi(?:er|e)[rz]?|change[rz]?)'
+    r'(?:\s+(?:quelque\s+chose|ça|cela|le\s+brouillon))?'
+    r'\s*[.!?]*$',
+    re.IGNORECASE,
+)
+ANNONCE_FIELD_TITRE_RE = re.compile(
+    r'(?:modifi(?:er|e)[rz]?|change[rz]?|corrige[rz]?)\s+(?:le\s+)?titre\b|'
+    r'^\s*(?:le\s+)?titre\s*[.!?]*$',
+    re.IGNORECASE,
+)
+ANNONCE_FIELD_TEXTE_RE = re.compile(
+    r'(?:modifi(?:er|e)[rz]?|change[rz]?|corrige[rz]?)\s+'
+    r'(?:le\s+)?(?:texte|contenu|corps|message)\b|'
+    r'^\s*(?:le\s+)?(?:texte|contenu)\s*[.!?]*$',
+    re.IGNORECASE,
+)
+ANNONCE_FIELD_DEST_RE = re.compile(
+    r'(?:modifi(?:er|e)[rz]?|change[rz]?)\s+(?:les\s+)?destinataires?\b|'
+    r'^\s*(?:les\s+)?destinataires?\s*[.!?]*$',
+    re.IGNORECASE,
+)
+
+
+def annonce_field_request(text):
+    """Champ d'annonce visé par une demande de modification, ou None."""
+    raw = (text or '').strip()
+    if not raw:
+        return None
+    if ANNONCE_FIELD_TITRE_RE.search(raw):
+        return 'titre'
+    if ANNONCE_FIELD_TEXTE_RE.search(raw):
+        return 'contenu'
+    if ANNONCE_FIELD_DEST_RE.search(raw):
+        return 'destinataires'
+    return None
+
+
+def is_vague_annonce_modify(text):
+    raw = (text or '').strip()
+    if not raw or annonce_field_request(raw):
+        return False
+    return bool(VAGUE_MODIFY_RE.match(raw))
 
 
 def _normalize_choice(text):
@@ -723,12 +767,17 @@ def decide_pending_reply(question, pending):
         return 'ask'
 
     if name in ('annonce_guidee', 'creer_publier_annonce'):
+        other = resolve_action_intent(text)
+        if other and other[0] not in ('creer_publier_annonce',):
+            return 'switch'
+        if is_vague_annonce_modify(text) or annonce_field_request(text):
+            return 'continue'
+        if NEW_QUESTION_RE.search(text) or text.endswith('?'):
+            return 'switch'
         if infer_destinataires(text):
             return 'continue'
         if ANNONCE_CREATE_RE.search(text):
             return 'continue'
-        if NEW_QUESTION_RE.search(text):
-            return 'switch'
         return 'ask'
 
     if name in ('creer_emploi_du_temps', 'ajouter_creneau_emploi'):

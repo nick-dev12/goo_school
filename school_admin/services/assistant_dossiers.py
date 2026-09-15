@@ -257,11 +257,102 @@ def _normalize_sanction_raison(raw):
     return _match_alias(text, _SANCTION_RAISONS)
 
 
-def _normalize_sanction_gravite(raw):
+def _normalize_sanction_gravite(raw, default=None):
     text = (raw or '').strip()
     if text in _GRAVITE_CODES:
         return text
-    return _match_alias(text, _SANCTION_GRAVITES) or 'moyenne'
+    return _match_alias(text, _SANCTION_GRAVITES) or default
+
+
+def _split_eleve_queries(raw):
+    text = re.sub(r'\s+', ' ', (raw or '').strip())
+    if not text:
+        return []
+    parts = re.split(r'\s*(?:,|;|\bet\b|\band\b)\s*', text, flags=re.I)
+    return [part.strip(' .') for part in parts if part.strip(' .')]
+
+
+def _eleves_from_args(ctx, args):
+    found = []
+    missing = []
+    seen = set()
+    queries = args.get('queries') or args.get('eleves')
+    if isinstance(queries, str):
+        queries = _split_eleve_queries(queries)
+    if not isinstance(queries, (list, tuple)):
+        queries = []
+    queries = [str(item).strip() for item in queries if str(item).strip()]
+    if not queries:
+        queries = _split_eleve_queries(args.get('query') or args.get('nom') or '')
+    stored = args.get('eleves_ids') or args.get('ids')
+    if stored and not queries:
+        from school_admin.model.eleve_model import Eleve
+
+        ids = stored if isinstance(stored, (list, tuple)) else [stored]
+        for pk in ids:
+            eleve = Eleve.objects.filter(pk=pk, etablissement=ctx.etablissement).first()
+            if eleve and eleve.id not in seen:
+                seen.add(eleve.id)
+                found.append(eleve)
+        return found, missing
+    if args.get('id') and not queries:
+        eleve = _eleve_from_args(ctx, args)
+        return ([eleve] if eleve else []), missing
+    for query in queries:
+        eleve = _find_eleve(ctx, query)
+        if not eleve:
+            missing.append(query)
+            continue
+        if eleve.id in seen:
+            continue
+        seen.add(eleve.id)
+        found.append(eleve)
+    return found, missing
+
+
+def _noms_eleves(eleves):
+    noms = [getattr(eleve, 'nom_complet', '') for eleve in eleves]
+    noms = [nom for nom in noms if nom]
+    if not noms:
+        return 'ces élèves'
+    if len(noms) == 1:
+        return noms[0]
+    return f'{", ".join(noms[:-1])} et {noms[-1]}'
+
+
+def _rediger_note_sanction(type_label, raison_label, gravite_label, eleves):
+    cible = _noms_eleves(eleves)
+    return (
+        f'{type_label} pour {cible}, motif : {raison_label.lower()}, '
+        f'gravité {gravite_label.lower()}.'
+    )
+
+
+def choices_for_donner_sanction(draft):
+    from school_admin.model.sanction_model import Sanction
+
+    data = draft or {}
+    manquants = list(data.get('manquants') or [])
+    if 'type_sanction' in manquants:
+        return _sanction_select_choices(Sanction.TYPE_SANCTION_CHOICES, 'Choisir le type')
+    if 'raison' in manquants:
+        return _sanction_select_choices(Sanction.RAISON_SANCTION_CHOICES, 'Choisir la raison')
+    if 'gravite' in manquants:
+        return _sanction_select_choices(Sanction.GRAVITE_CHOICES, 'Choisir la gravité')
+    return []
+
+
+def _sanction_select_choices(pairs, placeholder):
+    return [
+        {
+            'label': label,
+            'value': code,
+            'intent': 'fill',
+            'widget': 'select',
+            'placeholder': placeholder,
+        }
+        for code, label in pairs
+    ]
 
 
 def _normalize_methode(raw):
@@ -668,22 +759,15 @@ def apply_activer_eleve(ctx, draft):
 # Sanction disciplinaire (même enregistrement que le modal directeur)
 # ---------------------------------------------------------------------------
 
-_TYPE_SANCTION_PROMPT = (
-    'Quel type de sanction ? Avertissement, blâme, exclusion de cours, '
-    'exclusion temporaire, travaux d’intérêt général, retenue, '
-    'convocation des parents ou avertissement de conduite.'
-)
-_RAISON_SANCTION_PROMPT = (
-    'Quelle raison ? Indiscipline, absence, retards, manque de respect, '
-    'violence, triche, désobéissance, perturbation, dégradation, vol, '
-    'comportement inapproprié, règlement, ou autre.'
-)
+_TYPE_SANCTION_PROMPT = 'Quel type de sanction ? Choisissez dans la liste.'
+_RAISON_SANCTION_PROMPT = 'Quelle raison ? Choisissez dans la liste.'
+_GRAVITE_SANCTION_PROMPT = 'Quelle gravité ? Choisissez dans la liste.'
 
 
 def prepare_donner_sanction(ctx, args):
     spoken = ' '.join(
         str(args.get(key) or '')
-        for key in ('query', 'type_sanction', 'raison', 'gravite', 'champs', 'description')
+        for key in ('query', 'queries', 'type_sanction', 'raison', 'gravite', 'champs', 'description')
     )
     parsed = parse_sanction_speech(spoken)
     type_sanction = _normalize_sanction_type(args.get('type_sanction')) or parsed.get('type_sanction')
@@ -691,41 +775,68 @@ def prepare_donner_sanction(ctx, args):
     gravite = _normalize_sanction_gravite(args.get('gravite') or parsed.get('gravite'))
     description = (args.get('description') or '').strip()
     date_sanction = _parse_date(args.get('date_sanction')) or date.today()
-    eleve = _eleve_from_args(ctx, args)
+    eleves, missing = _eleves_from_args(ctx, args)
     extras = {
-        'id': getattr(eleve, 'id', None),
-        'query': getattr(eleve, 'nom_complet', None) or args.get('query') or '',
         'type_sanction': type_sanction or '',
         'raison': raison or '',
-        'gravite': gravite,
+        'gravite': gravite or '',
         'description': description,
         'date_sanction': date_sanction.isoformat(),
     }
-    if not eleve:
-        extras.pop('id', None)
+    if missing and not eleves:
+        extras['query'] = args.get('query') or ''
         return _incomplete(
             'donner_sanction',
             ['query'],
-            'Quel élève dois-je sanctionner ? Donnez le nom ou le matricule.',
+            f'Je n’ai pas trouvé {", ".join(missing)}. Donnez le nom ou le matricule.',
             **{k: v for k, v in extras.items() if v},
         )
-    classe = eleve.classe
-    if not classe:
-        return _err(f'{eleve.nom_complet} n’est rattaché à aucune classe.')
-    extras['classe_id'] = classe.id
-    extras['classe_nom'] = classe.nom
+    if not eleves:
+        extras['query'] = args.get('query') or ''
+        return _incomplete(
+            'donner_sanction',
+            ['query'],
+            'Quel élève dois-je sanctionner ? Donnez un ou plusieurs noms.',
+            **{k: v for k, v in extras.items() if v},
+        )
+    if missing:
+        extras['query'] = ' et '.join(eleve.nom_complet for eleve in eleves)
+        extras['eleves_ids'] = [eleve.id for eleve in eleves]
+        return _incomplete(
+            'donner_sanction',
+            ['query'],
+            f'Je n’ai pas trouvé {", ".join(missing)}. Précisez ces noms.',
+            **{k: v for k, v in extras.items() if v},
+        )
+    sans_classe = [eleve.nom_complet for eleve in eleves if not eleve.classe]
+    if sans_classe:
+        return _err(f'{", ".join(sans_classe)} n’est rattaché à aucune classe.')
+    extras['id'] = eleves[0].id
+    extras['nom'] = _noms_eleves(eleves)
+    extras['query'] = ' et '.join(eleve.nom_complet for eleve in eleves)
+    extras['eleves_ids'] = [eleve.id for eleve in eleves]
+    extras['classe_id'] = eleves[0].classe.id
+    extras['classe_nom'] = eleves[0].classe.nom
+    extras['url'] = _reverse('secretaire:detail_eleve', args=[eleves[0].id])
     if not type_sanction:
         return _incomplete(
             'donner_sanction',
             ['type_sanction'],
-            _TYPE_SANCTION_PROMPT,
+            f'{_TYPE_SANCTION_PROMPT} Pour {_noms_eleves(eleves)}.',
             **{k: v for k, v in extras.items() if v},
         )
     if not raison:
         return _incomplete(
             'donner_sanction',
             ['raison'],
-            _RAISON_SANCTION_PROMPT,
+            f'{_RAISON_SANCTION_PROMPT} Pour {_noms_eleves(eleves)}.',
+            **{k: v for k, v in extras.items() if v},
+        )
+    if not gravite:
+        return _incomplete(
+            'donner_sanction',
+            ['gravite'],
+            f'{_GRAVITE_SANCTION_PROMPT} Pour {_noms_eleves(eleves)}.',
             **{k: v for k, v in extras.items() if v},
         )
     from school_admin.model.sanction_model import Sanction
@@ -733,20 +844,23 @@ def prepare_donner_sanction(ctx, args):
     type_label = dict(Sanction.TYPE_SANCTION_CHOICES).get(type_sanction, type_sanction)
     raison_label = dict(Sanction.RAISON_SANCTION_CHOICES).get(raison, raison)
     gravite_label = dict(Sanction.GRAVITE_CHOICES).get(gravite, gravite)
+    if not description:
+        description = _rediger_note_sanction(type_label, raison_label, gravite_label, eleves)
     return _pending(
         'donner_sanction',
-        f'note un {type_label.lower()} pour {eleve.nom_complet} '
-        f'({raison_label.lower()}, gravité {gravite_label.lower()})',
-        id=eleve.id,
-        nom=eleve.nom_complet,
-        classe_id=classe.id,
-        classe_nom=classe.nom,
+        f'enregistre {type_label.lower()} pour {_noms_eleves(eleves)}',
+        id=eleves[0].id,
+        nom=_noms_eleves(eleves),
+        classe_id=eleves[0].classe.id,
+        classe_nom=eleves[0].classe.nom,
+        eleves_ids=[eleve.id for eleve in eleves],
         type_sanction=type_sanction,
         raison=raison,
         gravite=gravite,
         description=description,
         date_sanction=date_sanction.isoformat(),
-        url=_reverse('secretaire:detail_eleve', args=[eleve.id]),
+        url=_reverse('secretaire:detail_eleve', args=[eleves[0].id]),
+        auto_appliquer=True,
     )
 
 
@@ -757,21 +871,11 @@ def apply_donner_sanction(ctx, draft):
 
     if not ctx.annee_scolaire:
         return _err('Aucune année scolaire active.')
-    eleve = Eleve.objects.filter(pk=draft.get('id'), etablissement=ctx.etablissement).first()
-    if not eleve:
-        return _err('Élève introuvable.')
-    classe = Classe.objects.filter(
-        pk=draft.get('classe_id') or getattr(eleve.classe, 'id', None),
-        etablissement=ctx.etablissement,
-        actif=True,
-    ).first() or eleve.classe
-    if not classe:
-        return _err('Classe introuvable.')
     type_sanction = _normalize_sanction_type(draft.get('type_sanction'))
     raison = _normalize_sanction_raison(draft.get('raison'))
     if not type_sanction or not raison:
         return _err('Type de sanction et raison sont obligatoires.')
-    gravite = _normalize_sanction_gravite(draft.get('gravite'))
+    gravite = _normalize_sanction_gravite(draft.get('gravite'), default='moyenne')
     date_sanction = _parse_date(draft.get('date_sanction')) or date.today()
     etablissement = ctx.etablissement
     attribue_par_nom = ' '.join(
@@ -780,38 +884,63 @@ def apply_donner_sanction(ctx, draft):
             getattr(etablissement, 'directeur_nom', '') or '',
         ) if part
     ).strip() or 'Directeur'
-    sanction = Sanction.objects.create(
-        eleve=eleve,
-        classe=classe,
-        professeur=None,
-        etablissement=etablissement,
-        type_sanction=type_sanction,
-        raison=raison,
-        gravite=gravite,
-        description=(draft.get('description') or '').strip() or None,
-        date_sanction=date_sanction,
-        attribue_par_type='directeur',
-        attribue_par_nom=attribue_par_nom,
-        annee_scolaire=ctx.annee_scolaire,
+    ids = draft.get('eleves_ids') or [draft.get('id')]
+    eleves = list(
+        Eleve.objects.filter(pk__in=[pk for pk in ids if pk], etablissement=etablissement)
     )
-    _emit(
-        ctx,
-        'sanction.ajoutee',
-        {
-            'id': sanction.id,
-            'eleve_id': eleve.id,
-            'eleve_nom': eleve.nom_complet,
-            'classe_id': classe.id,
-            'classe_nom': classe.nom,
-            'type_sanction': sanction.get_type_sanction_display(),
-        },
-        eleve_id=eleve.id,
-        classe_id=classe.id,
+    if not eleves:
+        return _err('Élève introuvable.')
+    created = []
+    type_label = dict(Sanction.TYPE_SANCTION_CHOICES).get(type_sanction, type_sanction)
+    raison_label = dict(Sanction.RAISON_SANCTION_CHOICES).get(raison, raison)
+    gravite_label = dict(Sanction.GRAVITE_CHOICES).get(gravite, gravite)
+    description = (draft.get('description') or '').strip() or _rediger_note_sanction(
+        type_label, raison_label, gravite_label, eleves
     )
+    for eleve in eleves:
+        classe = Classe.objects.filter(
+            pk=getattr(eleve.classe, 'id', None),
+            etablissement=etablissement,
+            actif=True,
+        ).first() or eleve.classe
+        if not classe:
+            return _err(f'{eleve.nom_complet} n’est rattaché à aucune classe.')
+        sanction = Sanction.objects.create(
+            eleve=eleve,
+            classe=classe,
+            professeur=None,
+            etablissement=etablissement,
+            type_sanction=type_sanction,
+            raison=raison,
+            gravite=gravite,
+            description=description,
+            date_sanction=date_sanction,
+            attribue_par_type='directeur',
+            attribue_par_nom=attribue_par_nom,
+            annee_scolaire=ctx.annee_scolaire,
+        )
+        created.append(sanction)
+        _emit(
+            ctx,
+            'sanction.ajoutee',
+            {
+                'id': sanction.id,
+                'eleve_id': eleve.id,
+                'eleve_nom': eleve.nom_complet,
+                'classe_id': classe.id,
+                'classe_nom': classe.nom,
+                'type_sanction': sanction.get_type_sanction_display(),
+            },
+            eleve_id=eleve.id,
+            classe_id=classe.id,
+        )
+    first = created[0]
     return _ok(
-        f'{sanction.get_type_sanction_display()} enregistré pour {eleve.nom_complet}.',
-        id=sanction.id,
-        url=_reverse('secretaire:detail_eleve', args=[eleve.id]),
+        f'{first.get_type_sanction_display()} enregistré pour {_noms_eleves(eleves)}.',
+        id=first.id,
+        ids=[item.id for item in created],
+        url=_reverse('secretaire:detail_eleve', args=[eleves[0].id]),
+        description=description,
     )
 
 
@@ -1680,13 +1809,19 @@ _DOSSIER_ACTIONS = (
     ),
     ActionSpec(
         'donner_sanction',
-        'Enregistre une sanction disciplinaire (élève, type, raison, gravité). Même fiche que le bouton « Ajouter une sanction ».',
+        (
+            'Enregistre une sanction disciplinaire pour un ou plusieurs élèves. '
+            'Ne liste jamais les types ni les raisons à l’oral : demande le type, '
+            'puis la raison, puis la gravité. La note est rédigée automatiquement. '
+            'Pour plusieurs élèves, envoie leurs noms dans query (séparés par « et »).'
+        ),
         {
-            'query': _STR, 'type_sanction': _STR, 'raison': _STR,
+            'query': _STR, 'queries': _STR, 'type_sanction': _STR, 'raison': _STR,
             'gravite': _STR, 'description': _STR, 'date_sanction': _STR,
         },
         prepare=prepare_donner_sanction,
         apply=apply_donner_sanction,
+        choices=choices_for_donner_sanction,
     ),
     ActionSpec(
         'creer_moratoire',

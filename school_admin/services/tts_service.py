@@ -1,10 +1,12 @@
 """
-Synthèse vocale Microsoft Neural via edge-tts (voix femme Charline).
-Le texte est mis en forme orale ; la voix reste à ses réglages natifs.
+Synthèse vocale pour Aria : Gemini TTS (défaut) ou Edge Charline (rollback).
 """
 import asyncio
+import base64
 import logging
 import re
+import struct
+from xml.sax.saxutils import escape as xml_escape
 
 from django.conf import settings
 
@@ -12,6 +14,16 @@ logger = logging.getLogger(__name__)
 
 TTS_TIMEOUT_SECONDS = 14
 DEFAULT_VOICE = 'fr-BE-CharlineNeural'
+DEFAULT_GEMINI_VOICE = 'Zephyr'
+DEFAULT_GEMINI_LANGUAGE = 'fr-FR'
+# Consigne identique à chaque phrase pour limiter les variations de timbre.
+GEMINI_TTS_FIXED_INSTRUCTION = (
+    'Lis le texte suivant à voix haute en français. '
+    'Garde exactement le même timbre féminin, le même rythme et la même chaleur '
+    'qu’à l’habitude. Ne commente pas, n’ajoute rien, ne reformule pas.'
+)
+
+_gemini_tts_client = None
 
 _SESSION_RE = re.compile(r'\b(20\d{2})\s*[-–/]\s*(20\d{2})\b')
 _MATRICULE_RE = re.compile(r'\b([A-Z]{2,5})[-–]([A-Z0-9]{4,})\b')
@@ -19,7 +31,7 @@ _CLASS_LMD_RE = re.compile(
     r'\b([A-Za-z]{2,10})\s+L([1-3])\s+([A-Za-z0-9]{1,4})\b',
 )
 _CLASS_SEC_RE = re.compile(
-    r'\b(\d)\s*(?:e|è|eme|ème)\s*([A-Za-z])\b',
+    r'\b(\d)\s*(?:e|è|eme|ème)\s+([A-Za-z])\b',
     re.IGNORECASE,
 )
 _CLASS_TERM_RE = re.compile(
@@ -27,17 +39,28 @@ _CLASS_TERM_RE = re.compile(
     re.IGNORECASE,
 )
 _CLASS_PREM_RE = re.compile(
-    r'\b(?:1(?:e|ère|ere)|premi[eè]re)\s*([A-Za-z0-9]{1,3})\b',
+    r'\b(?:1(?:ère|ere)|premi[eè]re)\s+([A-Za-z0-9]{1,3})\b',
     re.IGNORECASE,
 )
+_PREMIER_ER_RE = re.compile(r'\b1er\b', re.IGNORECASE)
 _CLASS_PRIM_RE = re.compile(r'\b(CP|CE1|CE2|CM1|CM2)\b')
+_LMD_WITH_GROUP_RE = re.compile(r'\b([LM])([1-3])\s+([A-Za-z0-9]{1,4})\b')
 _LMD_LEVEL_RE = re.compile(r'\b([LM])([1-3])\b')
 _ORDINAL_RE = re.compile(r'\b(\d)\s*(?:e|è|eme|ème)\b', re.IGNORECASE)
-_ACRONYM_RE = re.compile(r'\b([A-ZÁÀÂÄÉÈÊËÎÏÔÙÛÜ]{2,6})\b')
-_COLON_RE = re.compile(r'\s*[:：]\s*')
-_SEMI_RE = re.compile(r'\s*;\s*')
+_ALL_CAPS_WORD_RE = re.compile(
+    r"\b([A-ZÁÀÂÄÉÈÊËÎÏÔÙÛÜÇ]{2,}(?:['’-][A-ZÁÀÂÄÉÈÊËÎÏÔÙÛÜÇ]+)*)\b"
+)
 _MULTI_BANG_RE = re.compile(r'!{2,}')
 _ELLIPSIS_RE = re.compile(r'\.{3,}|…')
+_NAME_TOKEN_RE = re.compile(
+    r"(?:[A-ZÁÀÂÄÉÈÊËÎÏÔÙÛÜÇ]['’][A-ZÁÀÂÄÉÈÊËÎÏÔÙÛÜÇ][a-zàâäéèêëïîôùûüçœ']+"
+    r"|[A-ZÁÀÂÄÉÈÊËÎÏÔÙÛÜÇ][a-zàâäéèêëïîôùûüçœ]+"
+    r"(?:-[A-ZÁÀÂÄÉÈÊËÎÏÔÙÛÜÇ][a-zàâäéèêëïîôùûüçœ]+)*)"
+)
+_NAME_PARTICLE_RE = re.compile(
+    r"\s+(?:d'|d’|de|du|des|di|van|von|ben|el|al|n'|n’|m'|m’)\s+",
+    re.IGNORECASE,
+)
 
 _ORDINALS = {
     '1': 'première',
@@ -119,13 +142,32 @@ _ONES = [
     'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf',
 ]
 _MARKDOWN_RE = re.compile(r'[*_`#]+|\[|\]|\(|\)')
+_TABLE_SEP_RE = re.compile(r'^\s*\|?[\s:\-]+(?:\|[\s:\-]+)+\|?\s*$')
+_HEADING_RE = re.compile(r'^#{1,6}\s+', re.MULTILINE)
+_BULLET_RE = re.compile(r'^\s*[-*•]\s+', re.MULTILINE)
 _TIME_RE = re.compile(r'\b(\d{1,2})\s*[:hH]\s*(\d{2})\b')
 _PERCENT_RE = re.compile(r'\b(\d{1,3})\s*%')
 _NUMBER_RE = re.compile(r'\b(\d{1,6})\b')
-_BREATH_RE = re.compile(
-    r'\b(et|puis|pour|avec|dans|mais|donc|ensuite)\b',
-    re.IGNORECASE,
-)
+_NOT_A_NAME = frozenset({
+    'aria', 'je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles',
+    'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'ce', 'cet', 'cette',
+    'ces', 'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'son', 'sa', 'ses',
+    'notre', 'nos', 'votre', 'vos', 'leur', 'leurs', 'et', 'ou', 'mais',
+    'donc', 'or', 'ni', 'car', 'si', 'que', 'qui', 'quand', 'comme', 'pour',
+    'avec', 'dans', 'sur', 'sous', 'chez', 'vers', 'par', 'plus', 'moins',
+    'très', 'tres', 'bien', 'oui', 'non', 'alors', 'ensuite', 'puis',
+    'aussi', 'encore', 'déjà', 'deja', 'ici', 'bonjour', 'merci', 'voilà',
+    'voila', 'voici', 'aucun', 'aucune', 'plusieurs', 'combien', 'demain',
+    'hier', 'monsieur', 'madame', 'mademoiselle', 'élève', 'eleve',
+    'élèves', 'eleves', 'étudiant', 'etudiant', 'étudiants', 'etudiants',
+    'classe', 'sanction', 'sanctions', 'blâme', 'blame', 'avertissement',
+    'action', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi',
+    'dimanche', 'janvier', 'février', 'fevrier', 'mars', 'avril', 'mai',
+    'juin', 'juillet', 'août', 'aout', 'septembre', 'octobre', 'novembre',
+    'décembre', 'decembre', 'trimestre', 'semestre', 'licence', 'master',
+    'groupe', 'première', 'premiere', 'deuxième', 'deuxieme', 'troisième',
+    'troisieme', 'terminale', 'aujourd',
+})
 
 
 def _spell(raw):
@@ -147,6 +189,20 @@ def _spell(raw):
     return ', '.join(parts)
 
 
+def _natural_caps(token):
+    """Casse naturelle d'un nom ou d'un lieu : CLÉ → Clé, N'DIAYE → N'Diaye."""
+    pieces = re.split(r"(['’\-])", token or '')
+    rebuilt = []
+    for piece in pieces:
+        if not piece:
+            continue
+        if piece in "'’-":
+            rebuilt.append(piece)
+            continue
+        rebuilt.append(piece[0].upper() + piece[1:].lower())
+    return ''.join(rebuilt)
+
+
 def _speak_token(token):
     key = (token or '').strip().upper()
     if not key:
@@ -159,9 +215,7 @@ def _speak_token(token):
         return _PRIMARY[key]
     if key.isdigit() and key in _ORDINALS:
         return _ORDINALS[key]
-    if 2 <= len(key) <= 5 and key.isalpha():
-        return _spell(key)
-    return token
+    return _natural_caps(token)
 
 
 _GROUP_ALNUM_RE = re.compile(r'^([A-Za-z]+)(\d+)$')
@@ -206,6 +260,11 @@ def _speak_term_class(match):
 
 def _speak_prem_class(match):
     return f'première, {_speak_group(match.group(1))}'
+
+
+def _speak_lmd_level_group(match):
+    cycle = 'licence' if match.group(1).upper() == 'L' else 'master'
+    return f'{cycle} {match.group(2)}, {_speak_group(match.group(3))}'
 
 
 def _under_hundred(number):
@@ -267,51 +326,97 @@ def _speak_number(match):
     return int_to_fr(int(match.group(1)))
 
 
-def _breathe_long_clauses(spoken):
-    chunks = re.split(r'([.!?])', spoken)
-    rebuilt = []
-    for chunk in chunks:
-        if chunk in '.!?' or not chunk.strip():
-            rebuilt.append(chunk)
+def _mark_cited_names(spoken):
+    """Met les noms et lieux cités dans une autre couleur, sans changer Charline."""
+    if not spoken:
+        return spoken
+
+    matches = list(_NAME_TOKEN_RE.finditer(spoken))
+    if not matches:
+        return xml_escape(spoken)
+
+    spans = []
+    start = end = None
+    for match in matches:
+        if match.group(0).casefold() in _NOT_A_NAME:
+            if start is not None:
+                spans.append((start, end))
+                start = end = None
             continue
-        words = chunk.split()
-        if len(words) <= 12 or ',' in chunk:
-            rebuilt.append(chunk)
+        if start is None:
+            start, end = match.start(), match.end()
             continue
-        rewritten = []
-        count = 0
-        for word in words:
-            rewritten.append(word)
-            count += 1
-            if count >= 7 and _BREATH_RE.fullmatch(word.strip(' ,;:')):
-                rewritten[-1] = f'{word},'
-                count = 0
-        rebuilt.append(' '.join(rewritten))
-    return ''.join(rebuilt)
+        between = spoken[end:match.start()]
+        if between == ' ' or _NAME_PARTICLE_RE.fullmatch(between):
+            end = match.end()
+        else:
+            spans.append((start, end))
+            start, end = match.start(), match.end()
+    if start is not None:
+        spans.append((start, end))
+
+    parts = []
+    cursor = 0
+    for start, end in spans:
+        parts.append(xml_escape(spoken[cursor:start]))
+        parts.append(
+            f'<emphasis level="moderate">{xml_escape(spoken[start:end])}</emphasis>'
+        )
+        cursor = end
+    parts.append(xml_escape(spoken[cursor:]))
+    return ''.join(parts)
 
 
 def _soften_prosody(spoken):
-    """Ajoute des pauses que la voix neurale interprète naturellement."""
-    spoken = _COLON_RE.sub(', ', spoken)
-    spoken = _SEMI_RE.sub(', ', spoken)
+    """Nettoie seulement ce qui gêne la lecture, sans imposer de rythme."""
     spoken = _MULTI_BANG_RE.sub('.', spoken)
-    spoken = _ELLIPSIS_RE.sub(', ', spoken)
-    spoken = _breathe_long_clauses(spoken)
-    spoken = re.sub(r'\s*,\s*', ', ', spoken)
-    spoken = re.sub(r',\s*,+', ', ', spoken)
-    spoken = re.sub(r'\s+\.', '.', spoken)
-    spoken = re.sub(r'([.!?])\s*', r'\1 ', spoken)
+    spoken = _ELLIPSIS_RE.sub('.', spoken)
     spoken = re.sub(r'\s+', ' ', spoken).strip()
     return spoken
 
 
+def strip_assistant_markup(text):
+    """Retire markdown, tableaux et barres pour un texte oral lisible."""
+    spoken = (text or '').replace('\r\n', '\n').replace('\r', '\n')
+    if not spoken.strip():
+        return ''
+
+    lines = []
+    for line in spoken.split('\n'):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if _TABLE_SEP_RE.match(stripped):
+            continue
+        if stripped.count('|') >= 2:
+            cells = [cell.strip() for cell in stripped.strip('|').split('|')]
+            cells = [cell for cell in cells if cell and not re.fullmatch(r'[-: ]+', cell)]
+            if cells:
+                lines.append(', '.join(cells) + '.')
+            continue
+        lines.append(stripped)
+    spoken = ' '.join(lines)
+    spoken = _HEADING_RE.sub('', spoken)
+    spoken = _BULLET_RE.sub('', spoken)
+    spoken = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', spoken)
+    spoken = re.sub(r'\*\*([^*]+)\*\*', r'\1', spoken)
+    spoken = re.sub(r'__([^_]+)__', r'\1', spoken)
+    spoken = re.sub(r'`([^`]+)`', r'\1', spoken)
+    spoken = re.sub(r'(?<!\w)\*([^*]+)\*(?!\w)', r'\1', spoken)
+    spoken = spoken.replace('|', ' ')
+    spoken = re.sub(r'-{3,}', ' ', spoken)
+    spoken = _MARKDOWN_RE.sub('', spoken)
+    spoken = re.sub(r'\s+', ' ', spoken).strip(' -:|')
+    spoken = re.sub(r'\s+([,.;:!?])', r'\1', spoken)
+    spoken = re.sub(r'\.{2,}', '.', spoken)
+    return spoken.strip()
+
+
 def prepare_spoken_text(text):
     """Adapte le texte à une lecture orale naturelle pour Charline."""
-    spoken = (text or '').strip()
+    spoken = strip_assistant_markup(text)
     if not spoken:
         return spoken
-
-    spoken = _MARKDOWN_RE.sub(' ', spoken)
     spoken = _SESSION_RE.sub(r'\1 à \2', spoken)
     spoken = _TIME_RE.sub(_speak_time, spoken)
     held_ids = []
@@ -326,6 +431,8 @@ def prepare_spoken_text(text):
     spoken = _CLASS_TERM_RE.sub(_speak_term_class, spoken)
     spoken = _CLASS_PREM_RE.sub(_speak_prem_class, spoken)
     spoken = _CLASS_PRIM_RE.sub(lambda match: _PRIMARY[match.group(1)], spoken)
+    spoken = _PREMIER_ER_RE.sub('première,', spoken)
+    spoken = _LMD_WITH_GROUP_RE.sub(_speak_lmd_level_group, spoken)
     spoken = _LMD_LEVEL_RE.sub(
         lambda match: (
             f"{'licence' if match.group(1) == 'L' else 'master'} {match.group(2)}"
@@ -337,10 +444,10 @@ def prepare_spoken_text(text):
         spoken,
     )
 
-    def _acronym(match):
+    def _caps_word(match):
         return _speak_token(match.group(1))
 
-    spoken = _ACRONYM_RE.sub(_acronym, spoken)
+    spoken = _ALL_CAPS_WORD_RE.sub(_caps_word, spoken)
     spoken = _PERCENT_RE.sub(
         lambda match: f'{int_to_fr(int(match.group(1)))} pour cent',
         spoken,
@@ -352,24 +459,149 @@ def prepare_spoken_text(text):
     return spoken
 
 
-async def synthesize_mp3(text, voice=None, rate=None, pitch=None):
-    """
-    Convertit un texte en MP3 (bytes).
+def _tts_backend():
+    return getattr(settings, 'ASSISTANT_TTS_BACKEND', 'gemini') or 'gemini'
 
-    Retourne None si le texte est vide ou si la synthèse échoue.
-    Rate, pitch et volume restent aux valeurs natives de la voix.
-    """
-    clean = prepare_spoken_text(text)
-    if not clean:
-        return None
 
+def parse_pcm_sample_rate(mime_type):
+    """Extrait le sample rate d'un MIME Gemini (ex. audio/L16;codec=pcm;rate=24000)."""
+    raw = (mime_type or '').lower()
+    match = re.search(r'rate=(\d+)', raw)
+    if match:
+        return int(match.group(1))
+    return 24000
+
+
+def pcm16_to_wav(pcm_data, sample_rate=24000, num_channels=1):
+    """Encapsule du PCM 16-bit little-endian en WAV."""
+    if not pcm_data:
+        return b''
+    bits_per_sample = 16
+    block_align = num_channels * bits_per_sample // 8
+    byte_rate = sample_rate * block_align
+    data_size = len(pcm_data)
+    header = struct.pack(
+        '<4sI4s4sIHHIIHH4sI',
+        b'RIFF',
+        36 + data_size,
+        b'WAVE',
+        b'fmt ',
+        16,
+        1,
+        num_channels,
+        sample_rate,
+        byte_rate,
+        block_align,
+        bits_per_sample,
+        b'data',
+        data_size,
+    )
+    return header + pcm_data
+
+
+def _gemini_tts_prompt(spoken_text):
+    return f'{GEMINI_TTS_FIXED_INSTRUCTION}\n\n{spoken_text}'
+
+
+def _resolve_gemini_voice():
+    raw = getattr(settings, 'GEMINI_TTS_VOICE', DEFAULT_GEMINI_VOICE) or DEFAULT_GEMINI_VOICE
+    return raw.strip().title()
+
+
+def _resolve_gemini_language():
+    return (
+        getattr(settings, 'GEMINI_TTS_LANGUAGE', DEFAULT_GEMINI_LANGUAGE)
+        or DEFAULT_GEMINI_LANGUAGE
+    ).strip()
+
+
+def _get_gemini_tts_client():
+    global _gemini_tts_client
+    if _gemini_tts_client is not None:
+        return _gemini_tts_client
+    from google import genai
+
+    api_key = getattr(settings, 'GEMINI_API_KEY', '') or ''
+    _gemini_tts_client = genai.Client(api_key=api_key)
+    return _gemini_tts_client
+
+
+async def _synthesize_gemini(clean):
+    api_key = getattr(settings, 'GEMINI_API_KEY', '') or ''
+    if not api_key:
+        logger.warning('GEMINI_API_KEY manquante pour la synthèse vocale.')
+        return None, None
+
+    model = getattr(
+        settings,
+        'GEMINI_TTS_MODEL',
+        'gemini-2.5-flash-preview-tts',
+    )
+    voice_name = _resolve_gemini_voice()
+    language_code = _resolve_gemini_language()
+
+    try:
+        from google.genai import types
+    except ImportError:
+        logger.exception("Le package google-genai n'est pas installé.")
+        return None, None
+
+    client = _get_gemini_tts_client()
+    prompt = _gemini_tts_prompt(clean)
+
+    async def _call():
+        return await client.aio.models.generate_content(
+            model=model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_modalities=['AUDIO'],
+                speech_config=types.SpeechConfig(
+                    language_code=language_code,
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name=voice_name,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+    try:
+        response = await asyncio.wait_for(_call(), timeout=TTS_TIMEOUT_SECONDS)
+    except Exception:
+        logger.exception('Échec de la synthèse vocale Gemini TTS.')
+        return None, None
+
+    candidates = getattr(response, 'candidates', None) or []
+    for candidate in candidates:
+        content = getattr(candidate, 'content', None)
+        parts = getattr(content, 'parts', None) or []
+        for part in parts:
+            inline = getattr(part, 'inline_data', None)
+            if not inline:
+                continue
+            raw = getattr(inline, 'data', None)
+            mime = getattr(inline, 'mime_type', None) or 'audio/L16;codec=pcm;rate=24000'
+            if isinstance(raw, str):
+                pcm = base64.b64decode(raw)
+            elif isinstance(raw, (bytes, bytearray)):
+                pcm = bytes(raw)
+            else:
+                continue
+            rate = parse_pcm_sample_rate(mime)
+            wav = pcm16_to_wav(pcm, sample_rate=rate)
+            return wav, 'audio/wav'
+    logger.warning('Gemini TTS : aucun segment audio dans la réponse.')
+    return None, None
+
+
+async def _synthesize_edge_mp3(clean, voice=None):
     voice = voice or getattr(settings, 'EDGE_TTS_VOICE', DEFAULT_VOICE) or DEFAULT_VOICE
-
     try:
         import edge_tts
     except ImportError:
         logger.exception("Le package edge-tts n'est pas installé.")
-        return None
+        return None, None
 
     try:
         communicate = edge_tts.Communicate(clean, voice)
@@ -382,7 +614,40 @@ async def synthesize_mp3(text, voice=None, rate=None, pitch=None):
 
         await asyncio.wait_for(_collect(), timeout=TTS_TIMEOUT_SECONDS)
         audio = b''.join(chunks)
-        return audio or None
+        if audio:
+            return audio, 'audio/mpeg'
+        return None, None
     except Exception:
-        logger.exception("Échec de la synthèse vocale edge-tts.")
-        return None
+        logger.exception('Échec de la synthèse vocale edge-tts.')
+        return None, None
+
+
+async def synthesize_audio(text, voice=None, rate=None, pitch=None):
+    """
+    Convertit un texte en bytes audio + MIME (WAV Gemini ou MP3 Edge).
+
+    rate/pitch ignorés (rythme natif du moteur).
+    """
+    del rate, pitch
+    clean = prepare_spoken_text(text)
+    if not clean:
+        return None, None
+
+    backend = _tts_backend()
+    if backend == 'edge':
+        return await _synthesize_edge_mp3(clean, voice=voice)
+
+    audio, mime = await _synthesize_gemini(clean)
+    if audio:
+        return audio, mime
+    if getattr(settings, 'ASSISTANT_TTS_FALLBACK_EDGE', False):
+        logger.warning('Gemini TTS indisponible, repli Edge (voix différente).')
+        return await _synthesize_edge_mp3(clean, voice=voice)
+    logger.warning('Gemini TTS indisponible, pas de repli Edge (voix fixe).')
+    return None, None
+
+
+async def synthesize_mp3(text, voice=None, rate=None, pitch=None):
+    """Compatibilité : retourne uniquement les bytes (MP3 Edge ou WAV Gemini)."""
+    audio, _mime = await synthesize_audio(text, voice=voice, rate=rate, pitch=pitch)
+    return audio

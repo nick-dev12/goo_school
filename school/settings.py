@@ -368,8 +368,38 @@ WASENDER_API_TOKEN = os.getenv(
 WASENDER_DEFAULT_SESSION_ID = os.getenv("WASENDER_DEFAULT_SESSION_ID", "31658")
 
 # ============================================
-# Assistant vocal directeur (DeepSeek + edge-tts)
+# Assistant vocal directeur (Gemini LLM + TTS, rollback DeepSeek / Edge)
 # ============================================
+ASSISTANT_LLM_PROVIDER = env('ASSISTANT_LLM_PROVIDER', default='gemini').strip().lower()
+ASSISTANT_TTS_BACKEND = env('ASSISTANT_TTS_BACKEND', default='gemini').strip().lower()
+
+GEMINI_API_KEY = env('GEMINI_API_KEY', default='').strip()
+GEMINI_MODEL = env('GEMINI_MODEL', default='gemini-3.6-flash').strip()
+GEMINI_API_BASE_URL = env(
+    'GEMINI_API_BASE_URL',
+    default='https://generativelanguage.googleapis.com/v1beta/openai/',
+).strip()
+GEMINI_TTS_MODEL = env(
+    'GEMINI_TTS_MODEL',
+    default='gemini-2.5-flash-preview-tts',
+).strip()
+GEMINI_TTS_VOICE = env('GEMINI_TTS_VOICE', default='Zephyr').strip()
+GEMINI_TTS_LANGUAGE = env('GEMINI_TTS_LANGUAGE', default='fr-FR').strip()
+GEMINI_CONTEXT_CACHE = env('GEMINI_CONTEXT_CACHE', default='true').strip().lower() in (
+    '1',
+    'true',
+    'yes',
+    'on',
+)
+GEMINI_CACHE_TTL_SECONDS = int(env('GEMINI_CACHE_TTL_SECONDS', default='7200') or 7200)
+# Repli Edge (Charline) si Gemini TTS échoue — désactivé par défaut pour garder une seule voix.
+ASSISTANT_TTS_FALLBACK_EDGE = env('ASSISTANT_TTS_FALLBACK_EDGE', default='false').strip().lower() in (
+    '1',
+    'true',
+    'yes',
+    'on',
+)
+
 DEEPSEEK_API_KEY = env('DEEPSEEK_API_KEY', default='').strip()
 DEEPSEEK_API_BASE_URL = env(
     'DEEPSEEK_API_BASE_URL',

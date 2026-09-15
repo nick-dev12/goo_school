@@ -1,5 +1,5 @@
 """
-WebSocket de l'assistant vocal directeur : DeepSeek + edge-tts phrase par phrase.
+WebSocket de l'assistant vocal directeur : Gemini LLM + TTS Gemini phrase par phrase.
 """
 import asyncio
 import base64
@@ -29,11 +29,13 @@ from school_admin.services.assistant_actions import (
 from school_admin.services.assistant_intents import (
     ANNONCE_CREATE_RE,
     CRENEAU_ADD_RE,
+    annonce_field_request,
     decide_pending_reply,
     extract_creneau_draft,
     extract_emploi_draft,
     infer_destinataires,
     is_small_talk,
+    is_vague_annonce_modify,
     resolve_action_intent,
     resolve_annonce_intent,
     resolve_emploi_intent,
@@ -43,14 +45,15 @@ from school_admin.services.assistant_search import (
     choices_from_class_lookup,
     is_lookup_clarification,
 )
-from school_admin.services.deepseek_service import (
+from school_admin.services.gemini_assistant_service import (
     WRITTEN_DRAFT_MAX,
     build_system_message,
     classify_pending_intent,
     generate_written_draft,
     run_assistant_turn,
+    sanitize_dialog_messages,
 )
-from school_admin.services.tts_service import synthesize_mp3
+from school_admin.services.tts_service import strip_assistant_markup, synthesize_audio
 
 logger = logging.getLogger(__name__)
 
@@ -82,12 +85,7 @@ WRITE_SPEC_RE = re.compile(
     r'plus (?:court|long))',
     re.IGNORECASE,
 )
-VAGUE_MODIFY_RE = re.compile(
-    r'^\s*(?:je\s+veux\s+|on\s+peut\s+|peux[- ]tu\s+)?'
-    r'(?:modifi(?:er|e)[rz]?|change[rz]?)(?:\s+(?:quelque\s+chose|le\s+texte|ça|cela))?'
-    r'\s*[.!?]*$',
-    re.IGNORECASE,
-)
+_ALLOWED_WHEN_CANCELLED = frozenset({'done', 'error', 'pong'})
 
 
 def is_affirmative(text):
@@ -148,6 +146,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self.history = []
         self.pending_action = None
         self._busy = False
+        self._turn_task = None
+        self._tts_tasks = []
+        self._cancel_requested = False
+        self._cancel_notified = False
         self._opener_task = None
         self._opener_emit_task = None
         self._opener_emitted = False
@@ -167,6 +169,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._restore_pending_ui()
 
     async def disconnect(self, close_code):
+        await self._stop_current(notify=False)
         await self._cancel_opener()
         self.history = []
         # Ne pas effacer aria_pending en session : une reconnexion WebSocket doit
@@ -192,20 +195,17 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if kind == 'restore_history':
             self._restore_history(payload.get('messages') or [])
             return
+        if kind in ('stop', 'cancel_turn'):
+            await self._stop_current(notify=True)
+            return
         if kind == 'confirm_action':
-            await self._send_working_ack('Oui, publier.')
-            await self._ensure_pending_loaded()
-            if payload.get('publier') is True and self.pending_action:
-                self.pending_action.setdefault('draft', {})['publier'] = True
-            await self._run_guarded(self._confirm_pending)
+            await self._launch_turn(lambda: self._confirm_from_ui(payload))
             return
         if kind == 'cancel_action':
-            await self._send_working_ack('Annuler.')
-            await self._ensure_pending_loaded()
-            await self._run_guarded(self._cancel_pending)
+            await self._launch_turn(self._cancel_from_ui)
             return
         if kind == 'choice':
-            await self._handle_choice_payload(payload)
+            await self._launch_turn(lambda: self._handle_choice_payload(payload))
             return
         if kind != 'chat':
             await self._send_json({'type': 'error', 'message': 'Type de message inconnu.'})
@@ -221,32 +221,102 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 'message': f'Question trop longue (maximum {MAX_QUESTION_LENGTH} caractères).',
             })
             return
-        if self._busy:
-            await self._send_json({
-                'type': 'error',
-                'message': 'Je termine encore la réponse précédente.',
-            })
-            return
 
+        await self._launch_turn(lambda: self._execute_user_message(question))
+
+    async def _confirm_from_ui(self, payload):
+        await self._send_working_ack('Oui, publier.')
+        await self._ensure_pending_loaded()
+        if payload.get('publier') is True and self.pending_action:
+            self.pending_action.setdefault('draft', {})['publier'] = True
+        await self._confirm_pending()
+
+    async def _cancel_from_ui(self):
+        await self._send_working_ack('Annuler.')
+        await self._ensure_pending_loaded()
+        await self._cancel_pending()
+
+    async def _execute_user_message(self, question):
         await self._send_working_ack(question)
         await self._ensure_pending_loaded()
         if await self._route_pending_reply(question):
             return
         if self.pending_action:
             await self._clear_pending(silent=True)
+        await self._handle_chat(question)
 
-        self._busy = True
-        try:
-            await self._handle_chat(question)
-        except Exception:
-            logger.exception("Erreur assistant vocal")
-            await self._send_json({
-                'type': 'error',
-                'message': "Je n’ai pas pu répondre pour le moment. Réessayez dans un instant.",
-            })
-            await self._send_json({'type': 'done'})
-        finally:
-            self._busy = False
+    async def _cancel_tts_tasks(self):
+        tasks = [task for task in self._tts_tasks if task and not task.done()]
+        self._tts_tasks = []
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    def _track_tts(self, task):
+        self._tts_tasks.append(task)
+        return task
+
+    async def _stop_current(self, notify=True):
+        self._cancel_requested = True
+        await self._cancel_opener()
+        await self._cancel_tts_tasks()
+        task = self._turn_task
+        current = asyncio.current_task()
+        if task is not None and task is not current and not task.done():
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
+        self._turn_task = None
+        self._busy = False
+        if notify and not self._cancel_notified:
+            self._cancel_notified = True
+            try:
+                await self._send_json({'type': 'done', 'cancelled': True})
+            except Exception:
+                pass
+
+    async def _launch_turn(self, handler):
+        if self._turn_task and not self._turn_task.done():
+            await self._stop_current(notify=True)
+
+        async def runner():
+            self._cancel_requested = False
+            self._cancel_notified = False
+            self._busy = True
+            try:
+                await handler()
+            except asyncio.CancelledError:
+                await self._cancel_tts_tasks()
+                if not self._cancel_notified:
+                    self._cancel_notified = True
+                    try:
+                        await self._send_json({'type': 'done', 'cancelled': True})
+                    except Exception:
+                        pass
+                raise
+            except RuntimeError as exc:
+                logger.warning("Assistant vocal : %s", exc)
+                await self._send_json({
+                    'type': 'error',
+                    'message': str(exc),
+                })
+                await self._send_json({'type': 'done'})
+            except Exception:
+                logger.exception("Erreur assistant vocal")
+                await self._send_json({
+                    'type': 'error',
+                    'message': "Je n’ai pas pu répondre pour le moment. Réessayez dans un instant.",
+                })
+                await self._send_json({'type': 'done'})
+            finally:
+                self._busy = False
+                if self._turn_task is asyncio.current_task():
+                    self._turn_task = None
+
+        self._turn_task = asyncio.create_task(runner())
 
     async def _send_working_ack(self, question):
         await self._cancel_opener()
@@ -280,13 +350,16 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             logger.exception("Amorce Aria")
             text = ''
         if not text:
-            return '', b''
+            return '', b'', 'audio/wav'
         audio = b''
+        mime = 'audio/wav'
         try:
-            audio = await synthesize_mp3(text)
+            audio, mime = await synthesize_audio(text)
         except Exception:
             logger.exception("TTS amorce Aria")
-        return text, audio
+        if not mime:
+            mime = 'audio/wav'
+        return text, audio or b'', mime
 
     async def _emit_opening(self):
         if self._opener_emitted:
@@ -298,7 +371,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             if self._opener_emitted:
                 return
             try:
-                text, audio = await task
+                text, audio, mime = await task
             except asyncio.CancelledError:
                 return
             except Exception:
@@ -307,7 +380,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             if self._opener_emitted or not text:
                 return
             self._opener_emitted = True
-            await self._emit_sentence(text, 0, audio=audio)
+            await self._emit_sentence(text, 0, audio=audio, audio_mime=mime)
             self._tts_index = 1
 
     async def _send_action_result(self, status, title, message, **extra):
@@ -415,9 +488,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if await self._handle_local_intent(question, ctx):
             return
 
-        messages = [build_system_message(ctx)]
-        messages.extend(self.history)
-        messages.append({'role': 'user', 'content': question})
+        dialog = sanitize_dialog_messages(self.history)
+        dialog.append({'role': 'user', 'content': question})
+        dialog = sanitize_dialog_messages(dialog)
+        messages = [build_system_message(ctx), *dialog]
 
         assembler = SentenceAssembler()
         pending_tts = []
@@ -426,9 +500,16 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_json({'type': 'status', 'phase': phase})
 
         async def on_text_delta(delta):
-            await self._send_json({'type': 'text_delta', 'text': delta})
-            for sentence in assembler.feed(delta):
-                pending_tts.append((sentence, asyncio.create_task(synthesize_mp3(sentence))))
+            if self._cancel_requested:
+                return
+            clean = strip_assistant_markup(delta)
+            if not clean:
+                return
+            await self._send_json({'type': 'text_delta', 'text': clean})
+            for sentence in assembler.feed(clean):
+                pending_tts.append(
+                    (sentence, self._track_tts(asyncio.create_task(synthesize_audio(sentence))))
+                )
 
         takeover = {'annonce': False, 'emploi': False, 'creneau': False, 'generic': False}
 
@@ -506,14 +587,22 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_json({'type': 'done'})
             return
 
+        if self._cancel_requested:
+            await self._cancel_tts_tasks()
+            return
+
         if takeover['annonce'] or takeover['emploi'] or takeover['creneau'] or takeover['generic']:
             return
 
         leftover = assembler.flush()
         if leftover:
-            pending_tts.append((leftover, asyncio.create_task(synthesize_mp3(leftover))))
+            pending_tts.append(
+                (leftover, self._track_tts(asyncio.create_task(synthesize_audio(leftover))))
+            )
 
         await self._flush_tts_queue(pending_tts)
+        if self._cancel_requested:
+            return
 
         if spoken:
             self.history.append({'role': 'user', 'content': question})
@@ -531,7 +620,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 'message': "Je n’ai reçu aucune réponse de l’assistant.",
             })
 
-        await self._send_json({'type': 'done'})
+            await self._send_json({'type': 'done'})
 
     async def _handle_stt(self, payload):
         from school_admin.services.stt_service import transcribe_pcm16
@@ -553,30 +642,51 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'text': text,
         })
 
-    async def _emit_sentence(self, sentence, index, audio=None):
+    async def _emit_sentence(self, sentence, index, audio=None, audio_mime='audio/wav'):
         if audio is None:
-            audio = await synthesize_mp3(sentence)
+            audio, audio_mime = await synthesize_audio(sentence)
+        if not audio_mime:
+            audio_mime = 'audio/wav'
         payload = {
             'type': 'audio_sentence',
             'index': index,
             'text': sentence,
+            'audio_mime': audio_mime,
             'audio_base64': base64.b64encode(audio).decode('ascii') if audio else '',
         }
         await self._send_json(payload)
 
     async def _flush_tts_queue(self, pending_tts):
+        if self._cancel_requested:
+            await self._cancel_tts_tasks()
+            return
         await self._emit_opening()
         start = self._tts_index
         for offset, (sentence, task) in enumerate(pending_tts):
+            if self._cancel_requested:
+                await self._cancel_tts_tasks()
+                return
+            audio = b''
+            mime = 'audio/wav'
             try:
-                audio = await task
+                audio, mime = await task
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.exception("Échec TTS phrase.")
-                audio = b''
-            await self._emit_sentence(sentence, start + offset, audio=audio)
+            if self._cancel_requested:
+                return
+            await self._emit_sentence(
+                sentence,
+                start + offset,
+                audio=audio or b'',
+                audio_mime=mime or 'audio/wav',
+            )
         self._tts_index = start + len(pending_tts)
 
     async def _send_json(self, payload):
+        if self._cancel_requested and payload.get('type') not in _ALLOWED_WHEN_CANCELLED:
+            return
         await self.send(text_data=json.dumps(payload, ensure_ascii=False))
 
     @database_sync_to_async
@@ -619,29 +729,25 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return execute_tool(ctx, name, arguments)
 
     async def _run_guarded(self, handler):
-        if self._busy:
-            await self._send_json({
-                'type': 'error',
-                'message': 'Je termine encore la réponse précédente.',
-            })
+        if self._busy and self._turn_task is asyncio.current_task():
+            try:
+                await handler()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Erreur action assistant")
+                await self._send_action_result(
+                    'error',
+                    'Action échouée',
+                    "Je n’ai pas pu exécuter cette action. Réessayez.",
+                )
+                await self._send_json({
+                    'type': 'error',
+                    'message': "Je n’ai pas pu exécuter cette action. Réessayez.",
+                })
+                await self._send_json({'type': 'done'})
             return
-        self._busy = True
-        try:
-            await handler()
-        except Exception:
-            logger.exception("Erreur action assistant")
-            await self._send_action_result(
-                'error',
-                'Action échouée',
-                "Je n’ai pas pu exécuter cette action. Réessayez.",
-            )
-            await self._send_json({
-                'type': 'error',
-                'message': "Je n’ai pas pu exécuter cette action. Réessayez.",
-            })
-            await self._send_json({'type': 'done'})
-        finally:
-            self._busy = False
+        await self._launch_turn(handler)
 
     def _restore_history(self, messages):
         cleaned = []
@@ -652,6 +758,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             content = (item.get('content') or '').strip()
             if role in ('user', 'assistant') and content:
                 cleaned.append({'role': role, 'content': content[:2000]})
+        cleaned = sanitize_dialog_messages(cleaned)
         overflow = len(cleaned) - MAX_HISTORY_MESSAGES
         self.history = cleaned[overflow:] if overflow > 0 else cleaned
 
@@ -671,20 +778,35 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
     async def _send_choices(self, choices):
         cleaned = []
+        widget = 'buttons'
+        placeholder = ''
         for item in choices or []:
             if not isinstance(item, dict):
                 continue
             label = (item.get('label') or item.get('titre') or '').strip()
             if not label:
                 continue
+            if (item.get('widget') or '') == 'select':
+                widget = 'select'
+            if item.get('placeholder') and not placeholder:
+                placeholder = item.get('placeholder')
             cleaned.append({
                 'label': label[:80],
                 'value': (item.get('value') or label)[:200],
                 'intent': item.get('intent') or 'chat',
                 'url': item.get('url') or '',
+                'widget': item.get('widget') or '',
+                'placeholder': item.get('placeholder') or '',
             })
-        if cleaned:
-            await self._send_json({'type': 'choices', 'choices': cleaned[:5]})
+        if not cleaned:
+            return
+        payload = {
+            'type': 'choices',
+            'widget': widget,
+            'placeholder': placeholder,
+            'choices': cleaned if widget == 'select' else cleaned[:5],
+        }
+        await self._send_json(payload)
 
     async def _restore_pending_ui(self):
         if not self.pending_action:
@@ -759,11 +881,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return
         if await self._route_pending_reply(value):
             return
-        self._busy = True
-        try:
-            await self._handle_chat(value)
-        finally:
-            self._busy = False
+        await self._handle_chat(value)
 
     async def _route_pending_reply(self, question):
         await self._ensure_pending_loaded()
@@ -775,10 +893,19 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._run_guarded(self._cancel_pending)
             return True
         if name in ('annonce_guidee', 'creer_publier_annonce'):
-            if is_affirmative(question) and self._annonce_ready():
+            field = annonce_field_request(question)
+            vague = is_vague_annonce_modify(question)
+            edit_open = bool((pending.get('draft') or {}).get('edit_field'))
+            if (
+                is_affirmative(question)
+                and self._annonce_ready()
+                and not field
+                and not vague
+                and not edit_open
+            ):
                 await self._run_guarded(self._confirm_pending)
                 return True
-            if wants_modify(question):
+            if field or vague:
                 await self._run_guarded(lambda: self._continue_annonce_guidee(question))
                 return True
         elif name in ('creer_emploi_du_temps', 'ajouter_creneau_emploi'):
@@ -870,11 +997,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
     def _choices_for_annonce(self):
         draft = (self.pending_action or {}).get('draft') or {}
+        focus = draft.get('edit_field')
+        if focus in ('titre', 'contenu'):
+            return []
         if not draft.get('titre') and not draft.get('contenu'):
             return []
         if not draft.get('contenu'):
             return []
-        if not draft.get('destinataires'):
+        if focus == 'destinataires' or not draft.get('destinataires'):
             return [
                 {'label': 'Tout le monde', 'value': 'tout le monde', 'intent': 'chat'},
                 {'label': 'Enseignants', 'value': 'les enseignants', 'intent': 'chat'},
@@ -884,6 +1014,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return [
             {'label': 'Oui, publier', 'value': 'Oui, c’est bon.', 'intent': 'confirm'},
             {'label': 'Modifier', 'value': 'Je veux modifier.', 'intent': 'modify'},
+            {'label': 'Annuler', 'value': 'Annuler.', 'intent': 'cancel'},
+        ]
+
+    def _choices_for_annonce_fields(self):
+        return [
+            {'label': 'Le titre', 'value': 'Modifie le titre.', 'intent': 'chat'},
+            {'label': 'Le texte', 'value': 'Modifie le texte.', 'intent': 'chat'},
+            {'label': 'Les destinataires', 'value': 'Change les destinataires.', 'intent': 'chat'},
             {'label': 'Annuler', 'value': 'Annuler.', 'intent': 'cancel'},
         ]
 
@@ -945,9 +1083,11 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     def _needs_written_draft(self, text, draft):
         if is_affirmative(text) or is_cancel(text):
             return False
-        if VAGUE_MODIFY_RE.match(text or ''):
+        if is_vague_annonce_modify(text) or annonce_field_request(text):
             return False
-        if WRITE_SPEC_RE.search(text or '') or wants_modify(text):
+        if WRITE_SPEC_RE.search(text or ''):
+            return True
+        if wants_modify(text) and (draft.get('contenu') or draft.get('titre')):
             return True
         if not draft.get('contenu') and len((text or '').strip()) < 90:
             return True
@@ -1011,45 +1151,79 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         )
 
     async def _continue_annonce_guidee(self, question):
-        draft = (self.pending_action or {}).get('draft') or {}
+        draft = dict((self.pending_action or {}).get('draft') or {})
         text = (question or '').strip()
-        if VAGUE_MODIFY_RE.match(text):
-            spoken = (
-                "Que souhaitez-vous modifier : le titre, le texte ou les destinataires ?"
-            )
-            choices = [
-                {'label': 'Le titre', 'value': 'Modifie le titre.', 'intent': 'chat'},
-                {'label': 'Le texte', 'value': 'Modifie le texte.', 'intent': 'chat'},
-                {'label': 'Les destinataires', 'value': 'Change les destinataires.', 'intent': 'chat'},
-                {'label': 'Oui, publier', 'value': 'Oui, c’est bon.', 'intent': 'confirm'},
-            ]
-            await self._speak_and_finish(user_text=question, spoken=spoken, choices=choices)
-            return
-        if re.match(r'^\s*modifi(?:er|e)[rz]?\s+le\s+titre\s*[.!?]*$', text, re.I):
+        field = annonce_field_request(text)
+        if is_vague_annonce_modify(text) and not field:
             await self._speak_and_finish(
                 user_text=question,
-                spoken="Quel nouveau titre souhaitez-vous ?",
+                spoken="Que souhaitez-vous modifier : le titre, le texte ou les destinataires ?",
+                choices=self._choices_for_annonce_fields(),
             )
             return
-        if re.match(r'^\s*modifi(?:er|e)[rz]?\s+le\s+texte\s*[.!?]*$', text, re.I):
-            await self._speak_and_finish(
-                user_text=question,
-                spoken="Quel nouveau texte souhaitez-vous ? Indiquez aussi le format si besoin, par exemple deux paragraphes.",
-            )
-            return
-        if re.match(r'^\s*change[rz]?\s+les\s+destinataires\s*[.!?]*$', text, re.I):
-            draft['destinataires'] = None
+        if field:
+            draft['edit_field'] = field
+            if field == 'destinataires':
+                draft['destinataires'] = None
+                draft['destinataires_libelle'] = ''
             self.pending_action['draft'] = draft
             await self._persist_pending()
+            if field == 'titre':
+                spoken = "Quel nouveau titre souhaitez-vous ?"
+                choices = []
+            elif field == 'contenu':
+                spoken = (
+                    "Quel nouveau texte souhaitez-vous ? Indiquez aussi le format "
+                    "si besoin, par exemple deux paragraphes."
+                )
+                choices = []
+            else:
+                spoken = "Qui doit recevoir cette annonce ?"
+                choices = self._choices_for_annonce()
             await self._speak_and_finish(
                 user_text=question,
-                spoken="Qui doit recevoir cette annonce ?",
+                spoken=spoken,
+                choices=choices,
+            )
+            return
+
+        focus = draft.get('edit_field')
+        dests = infer_destinataires(text)
+        if focus == 'titre':
+            if self._needs_written_draft(text, draft):
+                try:
+                    generated = await self._fill_annonce_from_instruction(text, draft)
+                    draft['titre'] = (generated.get('titre') or text)[:255]
+                except Exception:
+                    logger.exception("Impossible d’ajuster le titre d’annonce.")
+                    draft['titre'] = text[:255]
+            else:
+                draft['titre'] = text[:255]
+            draft.pop('edit_field', None)
+        elif focus == 'contenu':
+            if self._needs_written_draft(text, draft):
+                try:
+                    draft = await self._fill_annonce_from_instruction(text, draft)
+                except Exception:
+                    logger.exception("Impossible d’ajuster le texte d’annonce.")
+                    draft['contenu'] = text[:WRITTEN_DRAFT_MAX]
+            else:
+                draft['contenu'] = text[:WRITTEN_DRAFT_MAX]
+            draft.pop('edit_field', None)
+        elif dests and (
+            focus == 'destinataires'
+            or not draft.get('destinataires')
+            or 'destinataire' in text.lower()
+        ):
+            draft['destinataires'] = dests
+            draft.pop('edit_field', None)
+        elif focus == 'destinataires':
+            await self._speak_and_finish(
+                user_text=question,
+                spoken="Qui doit recevoir cette annonce : tout le monde, les enseignants, les parents ou les élèves ?",
                 choices=self._choices_for_annonce(),
             )
             return
-        dests = infer_destinataires(text)
-        if dests and (not draft.get('destinataires') or 'destinataire' in text.lower()):
-            draft['destinataires'] = dests
         elif self._needs_written_draft(text, draft):
             try:
                 draft = await self._fill_annonce_from_instruction(text, draft)
@@ -1367,6 +1541,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 'titre': data.get('resume') or data.get('nom') or '',
             })
         spoken = data.get('message') or default_prompt(data)
+        if data.get('auto_appliquer') and data.get('statut') == 'en_attente_confirmation':
+            await self._confirm_generic_action()
+            return
         if data.get('statut') == 'en_attente_confirmation':
             spoken = default_prompt(data)
         elif data.get('statut') == 'ok' and not data.get('erreur'):
@@ -1526,6 +1703,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
 
     async def _speak_and_finish(self, user_text, spoken, choices=None):
+        if self._cancel_requested:
+            return
+        spoken = strip_assistant_markup(spoken or '')
         await self._send_json({'type': 'status', 'phase': 'speaking'})
         if spoken:
             await self._send_json({'type': 'text_delta', 'text': spoken})
@@ -1535,10 +1715,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if leftover:
             sentences.append(leftover)
         pending_tts = [
-            (sentence, asyncio.create_task(synthesize_mp3(sentence)))
+            (sentence, self._track_tts(asyncio.create_task(synthesize_audio(sentence))))
             for sentence in sentences
         ]
         await self._flush_tts_queue(pending_tts)
+        if self._cancel_requested:
+            return
         if spoken:
             self.history.append({'role': 'user', 'content': user_text})
             self.history.append({'role': 'assistant', 'content': spoken})

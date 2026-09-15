@@ -53,6 +53,12 @@ PAGE_CATALOG = (
         'mots': 'professeurs enseignants',
     },
     {
+        'key': 'affectations',
+        'titre': 'Affectation des professeurs',
+        'route': 'affectation:affectation_professeurs',
+        'mots': 'affectations professeurs classes matières enseigne',
+    },
+    {
         'key': 'volume_horaire',
         'titre': 'Volume horaire à payer',
         'route': 'directeur:liste_volume_horaire',

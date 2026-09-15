@@ -34,6 +34,7 @@ from school_admin.services.assistant_intents import (
     extract_creneau_draft,
     extract_emploi_draft,
     infer_destinataires,
+    is_affectation_read_request,
     is_small_talk,
     is_vague_annonce_modify,
     resolve_action_intent,
@@ -53,6 +54,7 @@ from school_admin.services.gemini_assistant_service import (
     run_assistant_turn,
     sanitize_dialog_messages,
 )
+from school_admin.services.assistant_tools import spoken_from_affectations, spoken_from_tool_result
 from school_admin.services.tts_service import strip_assistant_markup, synthesize_audio
 
 logger = logging.getLogger(__name__)
@@ -451,6 +453,11 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             else:
                 await self._start_emploi_guidee(question, emploi)
             return True
+        if is_affectation_read_request(question):
+            result = await self._execute_tool(ctx, 'get_affectations', {'query': question})
+            spoken = spoken_from_affectations(result)
+            await self._speak_and_finish(user_text=question, spoken=spoken)
+            return True
         action_intent = resolve_action_intent(question)
         if action_intent:
             name, args = action_intent
@@ -512,8 +519,11 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 )
 
         takeover = {'annonce': False, 'emploi': False, 'creneau': False, 'generic': False}
+        last_tool_results = []
 
         async def on_tool_result(name, _arguments, result):
+            if isinstance(result, dict):
+                last_tool_results.append((name, result))
             if not isinstance(result, dict):
                 return
             if name in ACTION_SPECS:
@@ -599,6 +609,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             pending_tts.append(
                 (leftover, self._track_tts(asyncio.create_task(synthesize_audio(leftover))))
             )
+
+        if not spoken and not leftover and last_tool_results:
+            spoken = spoken_from_tool_result(*last_tool_results[-1])
+            if spoken:
+                await self._send_json({'type': 'text_delta', 'text': spoken})
+                pending_tts.append(
+                    (spoken, self._track_tts(asyncio.create_task(synthesize_audio(spoken))))
+                )
 
         await self._flush_tts_queue(pending_tts)
         if self._cancel_requested:

@@ -19,6 +19,7 @@ from school_admin.model.salle_model import Salle
 from school_admin.model.sanction_model import Sanction
 from school_admin.services.assistant_actions import ACTION_SPECS, is_write_action
 from school_admin.services.assistant_intents import (
+    is_affectation_read_request,
     is_small_talk,
     resolve_action_intent,
     resolve_annonce_intent,
@@ -119,6 +120,7 @@ class AssistantDirecteurToolsTests(TestCase):
             'get_caisse',
             'get_volume_horaire',
             'get_sanctions',
+            'get_affectations',
         }
         attendus.update(ACTION_SPECS.keys())
         manquants = attendus - schema_names
@@ -134,6 +136,7 @@ class AssistantDirecteurToolsTests(TestCase):
             'dashboard', 'classes', 'annonces', 'bulletins', 'comptabilite',
             'examens', 'annees', 'preinscriptions', 'liaisons', 'ajouter_classe',
             'inscription_eleves', 'certificats', 'caisse', 'volume_horaire',
+            'affectations',
         ):
             self.assertIn(key, keys)
         for page in PAGE_CATALOG:
@@ -575,3 +578,15 @@ class AssistantDirecteurToolsTests(TestCase):
             decide_pending_reply('Donne une sanction à Diallo', pending_annonce),
             'switch',
         )
+        self.assertIsNone(
+            resolve_action_intent(
+                'je veux que tu me donne la listes des affectations de professeur'
+            )
+        )
+        self.assertTrue(
+            is_affectation_read_request(
+                'je veux que tu me donne la listes des affectations de professeur'
+            )
+        )
+        affecte = resolve_action_intent('Affecte Diallo en 6e A')
+        self.assertEqual(affecte[0], 'affecter_professeur')

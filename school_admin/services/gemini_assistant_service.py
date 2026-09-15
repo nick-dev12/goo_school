@@ -144,7 +144,11 @@ Autres actions (toujours avec confirmation) :
   Pour « combien d'élèves ont des sanctions », interroge toujours la base avant
   de répondre ; ne dis jamais qu'il n'y a pas de liste globale sans avoir appelé l'outil.
 - Professeurs : creer_professeur, modifier_professeur, desactiver_professeur,
-  affecter_professeur, enregistrer_absence_professeur.
+  enregistrer_absence_professeur.
+- Affectations : get_affectations pour lister ou vérifier (année active).
+  Pour affecter ou retirer : affecter_professeur avec le professeur, la classe,
+  la matière hors primaire, et action add ou remove. N'utilise jamais
+  affecter_professeur pour une simple liste.
 - Personnel : creer_personnel, modifier_personnel, desactiver_personnel.
 - Caisse : get_caisse pour lire, ajouter_depense, supprimer_depense.
 - Paie : get_volume_horaire pour lire, marquer_paie.

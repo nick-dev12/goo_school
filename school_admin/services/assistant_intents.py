@@ -165,7 +165,15 @@ ACTION_INTENT_RES = (
     (re.compile(r'(modifie[rz]?).{0,30}(?:professeur|enseignant)', re.I), 'modifier_professeur'),
     (re.compile(r'(modifie[rz]?).{0,30}personnel', re.I), 'modifier_personnel'),
     (re.compile(r'(d[ée]sactive[rz]?).{0,30}personnel', re.I), 'desactiver_personnel'),
-    (re.compile(r'(affecte[rz]?|retire[rz]?).{0,50}(?:professeur|enseignant)', re.I), 'affecter_professeur'),
+    (re.compile(
+        r'\b(?:'
+        r'affecte[rz]?(?!tion)|'
+        r'(?:retire[rz]?|enl[eè]ve[rz]?|supprime[rz]?)\s+'
+        r'(?:l[\'’]|une\s+|cette\s+|les\s+)?affectation|'
+        r'(?:retire[rz]?|enl[eè]ve[rz]?).{0,40}(?:professeur|enseignant)'
+        r')',
+        re.I,
+    ), 'affecter_professeur'),
     (re.compile(
         r'(enregistre[rz]?|note[rz]?).{0,40}absence.{0,30}(?:professeur|enseignant)',
         re.I,
@@ -374,6 +382,21 @@ def extract_action_args(name, text):
     return args
 
 
+AFFECTATION_READ_RE = re.compile(r'\baffectations?\b', re.I)
+AFFECTATION_WRITE_VERB_RE = re.compile(
+    r'\b(?:affecte[rz]?(?!tion)|retire[rz]?|enl[eè]ve[rz]?|supprime[rz]?)\b',
+    re.I,
+)
+
+
+def is_affectation_read_request(question):
+    """Liste / vérification des affectations, pas une création ni un retrait."""
+    text = (question or '').strip()
+    if not text or not AFFECTATION_READ_RE.search(text):
+        return False
+    return not AFFECTATION_WRITE_VERB_RE.search(text)
+
+
 def resolve_action_intent(question):
     """
     Détecte une action mutante explicite (hors annonce / EDT déjà gérés).
@@ -381,6 +404,8 @@ def resolve_action_intent(question):
     """
     text = (question or '').strip()
     if not text:
+        return None
+    if is_affectation_read_request(text):
         return None
     if ANNONCE_CREATE_RE.search(text) or EDT_CREATE_RE.search(text) or CRENEAU_ADD_RE.search(text):
         return None

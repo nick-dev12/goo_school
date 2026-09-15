@@ -1386,24 +1386,113 @@ def apply_desactiver_personnel(ctx, draft):
     return _ok(f'{personnel.nom_complet} a été désactivé.')
 
 
+def _affectation_action(args):
+    explicit = str(args.get('action') or '').strip().lower()
+    if explicit in ('add', 'ajouter', 'affecter'):
+        return 'add'
+    if explicit in ('remove', 'retirer', 'enlever', 'supprimer'):
+        return 'remove'
+    raw = ' '.join(
+        str(args.get(key) or '')
+        for key in ('action', 'query', 'professeur', 'classe')
+    ).lower()
+    if re.search(r'\b(retir|enlev|supprim|remove)\w*', raw):
+        return 'remove'
+    return 'add'
+
+
+def _choix_affectations(rows):
+    choices = []
+    for item in rows[:8]:
+        matiere = item.get('matiere')
+        label = (
+            f"{item.get('classe') or 'Classe'} — {matiere}"
+            if matiere
+            else (item.get('classe') or 'Classe')
+        )
+        value = (
+            f"{item.get('matiere')} en {item.get('classe')}"
+            if matiere
+            else (item.get('classe') or '')
+        )
+        choices.append({'label': label, 'value': value, 'intent': 'chat'})
+    return choices
+
+
+def choices_for_affecter_professeur(draft):
+    from school_admin.services.assistant_actions import default_choices
+
+    items = (draft or {}).get('choix_affectations') or []
+    if items:
+        return items
+    return default_choices(draft)
+
+
 def prepare_affecter_professeur(ctx, args):
+    from school_admin.services.assistant_tools import (
+        _queryset_affectations,
+        _serialize_affectation_row,
+    )
+
+    args = args if isinstance(args, dict) else {}
+    action = _affectation_action(args)
     prof = _find_professeur(ctx, args.get('professeur') or args.get('query'))
     classe = _find_classe(ctx, args.get('classe'))
-    manquants = []
     if not prof:
-        manquants.append('professeur')
-    if not classe:
-        manquants.append('classe')
-    if manquants:
         return _incomplete(
             'affecter_professeur',
-            manquants,
-            'Pour affecter : le professeur et la classe, et la matière si ce n’est pas le primaire.',
+            ['professeur'],
+            'Quel professeur faut-il affecter ou retirer ?',
+            action=action,
+        )
+    if not classe:
+        qs, primaire = _queryset_affectations(ctx, prof=prof)
+        rows = [_serialize_affectation_row(item, primaire=primaire) for item in qs[:12]]
+        if action == 'remove' and rows:
+            return _incomplete(
+                'affecter_professeur',
+                ['classe'],
+                f"{prof.nom_complet} a {len(rows)} affectation{'s' if len(rows) > 1 else ''}. "
+                "Laquelle retirer ?",
+                professeur_id=prof.id,
+                action='remove',
+                choix_affectations=_choix_affectations(rows),
+            )
+        verbe = 'retirer' if action == 'remove' else 'affecter'
+        return _incomplete(
+            'affecter_professeur',
+            ['classe'],
+            f'Dans quelle classe {verbe} {prof.nom_complet} ?',
+            professeur_id=prof.id,
+            action=action,
         )
     matiere = _find_matiere(ctx, args.get('matiere')) or getattr(prof, 'matiere_principale', None)
     if ctx.etablissement.type_etablissement != 'primary' and not matiere:
-        return _incomplete('affecter_professeur', ['matiere'], 'Quelle matière enseigner ?')
-    action = 'remove' if str(args.get('action') or '').lower() in ('retirer', 'remove', 'enlever') else 'add'
+        if action == 'remove':
+            qs, primaire = _queryset_affectations(ctx, prof=prof, classe=classe)
+            rows = [_serialize_affectation_row(item, primaire=primaire) for item in qs[:12]]
+            if len(rows) == 1:
+                unique = qs.first()
+                matiere = getattr(unique, 'matiere', None)
+            elif rows:
+                return _incomplete(
+                    'affecter_professeur',
+                    ['matiere'],
+                    f"Quelle matière retirer pour {prof.nom_complet} en {classe.nom} ?",
+                    professeur_id=prof.id,
+                    classe_id=classe.id,
+                    action='remove',
+                    choix_affectations=_choix_affectations(rows),
+                )
+        if not matiere:
+            return _incomplete(
+                'affecter_professeur',
+                ['matiere'],
+                'Quelle matière enseigner ?',
+                professeur_id=prof.id,
+                classe_id=classe.id,
+                action=action,
+            )
     verbe = 'retire' if action == 'remove' else 'affecte'
     return _pending(
         'affecter_professeur',
@@ -1459,17 +1548,21 @@ def apply_affecter_professeur(ctx, draft):
             aff.matieres.set(matieres)
         _emit(ctx, 'affectation.mise_a_jour', {'action': 'add'})
         return _ok(f'{prof.nom_complet} est affecté à {classe.nom}.')
-    if not matiere:
-        return _err('Indiquez la matière.')
     if draft.get('action') == 'remove':
-        aff = AffectationProfesseur.objects.filter(
-            professeur=prof, classe=classe, matiere=matiere, annee_scolaire=ctx.annee_scolaire
-        ).first()
-        if aff:
-            aff.actif = False
-            aff.save(update_fields=['actif'])
+        qs = AffectationProfesseur.objects.filter(
+            professeur=prof, classe=classe, annee_scolaire=ctx.annee_scolaire, actif=True
+        )
+        if matiere:
+            qs = qs.filter(matiere=matiere)
+        aff = qs.first()
+        if not aff:
+            return _err(f'Aucune affectation active pour {prof.nom_complet} en {classe.nom}.')
+        aff.actif = False
+        aff.save(update_fields=['actif'])
         _emit(ctx, 'affectation.mise_a_jour', {'action': 'remove'})
         return _ok(f'Affectation retirée pour {prof.nom_complet} / {classe.nom}.')
+    if not matiere:
+        return _err('Indiquez la matière.')
     aff, created = AffectationProfesseur.objects.get_or_create(
         professeur=prof,
         classe=classe,
@@ -1893,6 +1986,7 @@ _DOSSIER_ACTIONS = (
         {'professeur': _STR, 'query': _STR, 'classe': _STR, 'matiere': _STR, 'action': _STR, 'statut': _STR},
         prepare=prepare_affecter_professeur,
         apply=apply_affecter_professeur,
+        choices=choices_for_affecter_professeur,
     ),
     ActionSpec(
         'enregistrer_absence_professeur',

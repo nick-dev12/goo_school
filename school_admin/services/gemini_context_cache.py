@@ -14,7 +14,7 @@ from school_admin.services.assistant_tools import TOOLS_SCHEMA
 
 logger = logging.getLogger(__name__)
 
-CACHE_DISPLAY_NAME = 'aria-directeur-tools-v2'
+CACHE_DISPLAY_NAME = 'aria-directeur-tools-v3'
 DEFAULT_TTL_SECONDS = 7200
 
 _lock = threading.Lock()

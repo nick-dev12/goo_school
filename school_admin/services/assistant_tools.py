@@ -391,6 +391,174 @@ def tool_rechercher_professeurs(ctx, args):
     return {'professeurs': items}
 
 
+def _classe_nom(classe):
+    if not classe:
+        return ''
+    return getattr(classe, 'nom', '') or str(classe)
+
+
+def _professeur_nom(prof):
+    if not prof:
+        return ''
+    return getattr(prof, 'nom_complet', None) or f'{prof.prenom} {prof.nom}'.strip()
+
+
+def _serialize_affectation_row(affectation, primaire=False):
+    prof = getattr(affectation, 'professeur', None)
+    classe = getattr(affectation, 'classe', None)
+    row = {
+        'professeur': _professeur_nom(prof),
+        'classe': _classe_nom(classe),
+        'statut': affectation.get_statut_display() if hasattr(affectation, 'get_statut_display') else '',
+        'actif': bool(getattr(affectation, 'actif', True)),
+    }
+    if primaire:
+        matieres = list(affectation.matieres.all()) if hasattr(affectation, 'matieres') else []
+        row['matiere'] = ', '.join(m.nom for m in matieres if getattr(m, 'nom', None)) or None
+    else:
+        matiere = getattr(affectation, 'matiere', None)
+        row['matiere'] = matiere.nom if matiere else None
+    return row
+
+
+def _queryset_affectations(ctx, prof=None, classe=None):
+    annee = ctx.annee_scolaire
+    est_primaire = getattr(ctx.etablissement, 'type_etablissement', '') == 'primary'
+    if est_primaire:
+        from school_admin.model.affectation_professeur_primaire_model import (
+            AffectationProfesseurPrimaire,
+        )
+
+        qs = AffectationProfesseurPrimaire.objects.filter(
+            professeur__etablissement=ctx.etablissement,
+            actif=True,
+        ).select_related('professeur', 'classe').prefetch_related('matieres')
+    else:
+        from school_admin.model.affectation_model import AffectationProfesseur
+
+        qs = AffectationProfesseur.objects.filter(
+            professeur__etablissement=ctx.etablissement,
+            actif=True,
+        ).select_related('professeur', 'classe', 'matiere')
+    if annee:
+        qs = qs.filter(annee_scolaire=annee)
+    else:
+        qs = qs.none()
+    if prof:
+        qs = qs.filter(professeur=prof)
+    if classe:
+        qs = qs.filter(classe=classe)
+    return qs, est_primaire
+
+
+def tool_affectations(ctx, args):
+    """Liste les affectations actives de l'année scolaire en cours."""
+    from school_admin.model.professeur_model import Professeur
+    from school_admin.services.assistant_staff import _find_professeur
+
+    args = args if isinstance(args, dict) else {}
+    query = (args.get('query') or args.get('professeur') or args.get('question') or '').strip()
+    classe_query = (args.get('classe') or '').strip()
+    if not ctx.annee_scolaire:
+        return {
+            'trouve': False,
+            'erreur': (
+                "Aucune année scolaire active. Activez une année pour voir "
+                "les affectations."
+            ),
+            'affectations': [],
+            'nb_affectations': 0,
+        }
+
+    look_name = query
+    lowered = query.lower()
+    if 'affectation' in lowered or 'liste' in lowered:
+        from school_admin.services.assistant_intents import _extract_person_query
+
+        candidate = (_extract_person_query(query) or '').strip()
+        if candidate.lower() in (
+            'professeur', 'professeurs', 'enseignant', 'enseignants',
+            'classe', 'classes',
+        ):
+            candidate = ''
+        look_name = candidate
+    prof = _find_professeur(ctx, look_name) if look_name else None
+    classe = _find_classe(ctx, classe_query) if classe_query else None
+    qs, primaire = _queryset_affectations(ctx, prof=prof, classe=classe)
+    rows = [_serialize_affectation_row(item, primaire=primaire) for item in qs[:80]]
+    affectes_ids = set(qs.values_list('professeur_id', flat=True).distinct())
+    total_profs = Professeur.objects.filter(
+        etablissement=ctx.etablissement, actif=True
+    ).count()
+    sans = []
+    if not prof and not classe:
+        sans_qs = Professeur.objects.filter(
+            etablissement=ctx.etablissement, actif=True
+        ).exclude(pk__in=affectes_ids).order_by('nom', 'prenom')
+        sans = [_professeur_nom(item) for item in sans_qs[:20]]
+    try:
+        from django.urls import reverse
+
+        url = reverse('affectation:affectation_professeurs')
+    except Exception:
+        url = '/affectation/professeurs/'
+    return {
+        'trouve': True,
+        'annee': str(ctx.annee_scolaire),
+        'nb_affectations': qs.count(),
+        'nb_professeurs_affectes': len(affectes_ids),
+        'nb_professeurs_sans_affectation': max(0, total_profs - len(affectes_ids)),
+        'filtre_professeur': _professeur_nom(prof) if prof else None,
+        'filtre_classe': _classe_nom(classe) if classe else None,
+        'affectations': rows,
+        'sans_affectation': sans,
+        'url': url,
+    }
+
+
+def spoken_from_affectations(result):
+    """Résumé oral des affectations, sans markdown."""
+    data = result or {}
+    if data.get('erreur'):
+        return data['erreur']
+    items = data.get('affectations') or []
+    nb = data.get('nb_affectations') or len(items)
+    if not items:
+        cible = data.get('filtre_professeur') or data.get('filtre_classe')
+        if cible:
+            return f"Je ne trouve aucune affectation active pour {cible} cette année."
+        return (
+            "Je ne trouve aucune affectation active pour cette année scolaire. "
+            "Vous pouvez en créer depuis la page d’affectation des professeurs."
+        )
+    parts = [f"Il y a {nb} affectation{'s' if nb > 1 else ''} active{'s' if nb > 1 else ''}."]
+    for item in items[:12]:
+        nom = item.get('professeur') or 'Un professeur'
+        classe = item.get('classe') or 'une classe'
+        matiere = item.get('matiere')
+        if matiere:
+            parts.append(f"{nom} enseigne {matiere} en {classe}.")
+        else:
+            parts.append(f"{nom} est affecté à {classe}.")
+    rest = nb - min(12, len(items))
+    if rest > 0:
+        parts.append(f"Et {rest} autres.")
+    sans = data.get('nb_professeurs_sans_affectation') or 0
+    if sans and not data.get('filtre_professeur') and not data.get('filtre_classe'):
+        parts.append(f"{sans} professeur{'s' if sans > 1 else ''} n’a encore aucune classe.")
+    return ' '.join(parts)
+
+
+def spoken_from_tool_result(name, result):
+    if name == 'get_affectations' or (
+        isinstance(result, dict) and result.get('source') == 'affectations'
+    ):
+        return spoken_from_affectations(result)
+    if not isinstance(result, dict):
+        return ''
+    return (result.get('message') or result.get('erreur') or '').strip()
+
+
 def tool_rechercher_personnel(ctx, args):
     from school_admin.model.personnel_administratif_model import PersonnelAdministratif
 
@@ -1002,6 +1170,14 @@ def tool_chercher_en_base(ctx, args):
     if any(token in lowered for token in ('département', 'departement', 'module', 'spécialité', 'specialite')):
         found = tool_structure_superieur(ctx, payload)
         return {'trouve': True, 'source': 'structure', **found}
+    if any(
+        token in lowered
+        for token in (
+            'affectation', 'affectations', 'professeur affecté', 'enseignants affectés',
+        )
+    ):
+        found = tool_affectations(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'affectations', **found}
     if any(token in lowered for token in ('professeur', 'enseignant', 'prof ')):
         found = tool_rechercher_professeurs(ctx, payload)
         return {'trouve': bool(found.get('professeurs')), 'source': 'professeurs', **found}
@@ -1270,6 +1446,7 @@ TOOL_HANDLERS = {
     'rechercher_classes': tool_rechercher_classes,
     'ouvrir_classe': tool_ouvrir_classe,
     'rechercher_professeurs': tool_rechercher_professeurs,
+    'get_affectations': tool_affectations,
     'rechercher_personnel': tool_rechercher_personnel,
     'get_notes_eleve': tool_notes_eleve,
     'get_emploi_du_temps': tool_emploi_du_temps,
@@ -1321,7 +1498,8 @@ TOOLS_SCHEMA = [
             'description': (
                 'Cherche une donnée scolaire en base quand elle n’est pas déjà connue. '
                 'À appeler dès qu’une question porte sur des chiffres, des listes ou '
-                'un détail (filles, garçons, élèves, notes, absences, sanctions, classes, etc.). '
+                'un détail (filles, garçons, élèves, notes, absences, sanctions, '
+                'affectations, classes, etc.). '
                 'Si la donnée existe, elle est renvoyée. Sinon trouve=false.'
             ),
             'parameters': {
@@ -1840,6 +2018,32 @@ TOOLS_SCHEMA = [
                 'type': 'object',
                 'properties': {
                     'query': {'type': 'string', 'description': 'Nom du professeur'},
+                },
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_affectations',
+            'description': (
+                'Liste ou vérifie les affectations professeurs-classes-matières '
+                'de l’année scolaire active. À utiliser pour « la liste des '
+                'affectations », « qui enseigne en 6e A », « quelles classes '
+                'a Diallo ». Ne crée ni ne supprime rien.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'query': {
+                        'type': 'string',
+                        'description': 'Nom du professeur, ou laisse vide pour tout lister',
+                    },
+                    'classe': {
+                        'type': 'string',
+                        'description': 'Nom ou code de classe pour filtrer',
+                    },
+                    'professeur': {'type': 'string'},
                 },
             },
         },

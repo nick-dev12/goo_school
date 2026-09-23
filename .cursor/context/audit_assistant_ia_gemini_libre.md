@@ -1,9 +1,10 @@
 # Audit — Aria Gemini libre (intelligence d’abord)
 
 **Date** : 2026-09-23  
-**Statut** : audit **validé** le 2026-09-23. **Vague G1 livrée** (takeovers coupés, Gemini termine le tour). G2–G7 non commencées.  
+**Statut** : audit **validé** le 2026-09-23. **G1 validée**. **Vague G2 livrée** (pending = oui / modifier / annuler). G3–G7 non commencées.  
 **Branche G0** : `cursor/audit-gemini-libre-a40c`  
 **Branche G1** : `cursor/assistant-g1-takeover-a40c`  
+**Branche G2** : `cursor/assistant-g2-pending-a40c`  
 **Persona** : directeur (personnel admin via `check_permission`). Enseignant primaire : même esprit, hors implémentation ici.  
 **Préalable validé** : Vagues métier 1–6 + qualité A+B+C+D + correctif « succès outil ≠ erreur rouge ».  
 **Audits liés** : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md) · [audit_assistant_ia_qualite.md](audit_assistant_ia_qualite.md)
@@ -325,7 +326,7 @@ Ce n’est **pas** un garde-fou : intercepter « créer une classe » par regex 
 
 ## 8. Plan d’actions futures (ordre d’implémentation)
 
-Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **Stop après G1** : ne pas démarrer G2 sans feu vert.
+Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **G1 validée.** **Stop après G2** : ne pas démarrer G3 sans feu vert.
 
 Cache prompt : chaque vague qui touche le texte système **bump** `CACHE_DISPLAY_NAME` (`aria-directeur-tools-v11`, puis v12…).
 
@@ -351,19 +352,21 @@ Tests : un prepare `creer_classe` / `donner_sanction` n’arrête pas le mock Ge
 
 **Livré G1** : `on_tool_result` persiste le brouillon + carte si `en_attente_confirmation`, **return False**. Plus de `_start_*_guidee` / `_start_generic_action` depuis le tour Gemini. `auto_appliquer` retiré de `donner_sanction`. `spoken_from_tool_result` = repli seulement. Tests : `school_admin.tests.test_assistant_qualite.GeminiG1TakeoverTests` + sanction sans auto-apply.
 
-### Vague G2 — Pending = oui/non, plus wizard
+### Vague G2 — Pending = oui/non, plus wizard — **FAITE** (2026-09-23)
 
-**But** : le tour suivant n’est plus un FSM.
+**But** : le tour suivant n’est plus un FSM. Validé utilisateur : seuls **oui / modifier / annuler** consomment `aria_pending`. Toute autre phrase = nouveau sujet Gemini, pending droppé.
 
 Actions :
 
-1. `_route_pending_reply` : uniquement `is_affirmative` → apply, `is_cancel` → cancel, choix UI cliqué (label de puce / select).
-2. Tout le reste → **clear silencieux seulement si Gemini classifie switch** ; sinon renvoyer le message **à Gemini avec le brouillon dans le overlay** (« action en attente : … ; dernier JSON : … »). Gemini rappelle le tool pour ajuster.
-3. Supprimer `_continue_annonce_guidee`, `_continue_emploi_guidee`, `_continue_generic_action` du chemin live (garder `apply_*` / `confirm_*`).
-4. `GUIDED_ACTIONS` : vider ou restreindre à un flag interne « cette action a une carte », plus une FSM.
-5. Extraire jour/heure : **laisser Gemini** les mettre dans les arguments d’outil. Retirer `extract_creneau_draft` du consumer.
+1. `_route_pending_reply` : `is_affirmative` → apply (si brouillon prêt), `is_cancel` → cancel, `is_pending_modify` → garde la carte et laisse Gemini (overlay brouillon).
+2. Toute autre phrase → **clear silencieux**, puis `_handle_chat` (Gemini). Plus de `classify_pending_intent` / wizard continue sur le chemin live.
+3. `_continue_annonce_guidee` / `_continue_emploi_guidee` / `_continue_generic_action` hors du chemin live (fonctions encore dans le fichier, G3 les nettoiera). `apply` / `confirm` / `cancel` conservés.
+4. Carte Oui / Modifier / Annuler inchangée. Boutons UI `confirm` / `cancel` / `modify` inchangés.
+5. Extracteurs jour/heure plus appelés depuis le routeur pending.
 
-Tests : pending EDT + « quels sont les effectifs ? » → effectifs (déjà Vague B) ; pending EDT + « lundi 8h 10h maths » → Gemini tool `ajouter_creneau_emploi`, pas extracteur Python.
+Tests : `school_admin.tests.test_assistant_qualite.GeminiG2PendingTests`.
+
+**Hors G2** : pas de G3 (regex hors conversation).
 
 ### Vague G3 — Regex hors du chemin conversation
 
@@ -492,7 +495,7 @@ Critère subjectif (le vrai livrable) : **on a l’impression de parler à quelq
 
 1. Gemini est le seul cerveau d’intention ; les tools Django sont les seules « commandes serveur ».
 2. On **supprime** les wizards guidés (annonce, EDT, générique) au profit de Gemini + carte oui/non — G1 coupe le takeover ; G2 retirera les FSM du tour suivant.
-3. Ordre : G1 (**faite**) → G2 → G3, puis G4+G5+G6, puis G7.
+3. Ordre : G1 (**faite, validée**) → G2 (**faite**) → G3, puis G4+G5+G6, puis G7.
 4. Pas de tools CG, pas de shell, pas d’`apply` sans confirmation.
 
-**Stop** : ne pas démarrer G2 tant que le directeur n’a pas validé G1 en vocal (sanction + liste).
+**Stop** : G2 livrée. Ne pas démarrer G3 tant que le directeur n’a pas validé G2 en vocal.

@@ -36,17 +36,13 @@ from school_admin.services.assistant_intents import (
     ANNONCE_CREATE_RE,
     CRENEAU_ADD_RE,
     annonce_field_request,
-    decide_pending_reply,
     extract_creneau_draft,
     extract_emploi_draft,
     infer_destinataires,
     is_explicit_navigation,
-    is_obvious_pending_continue,
     is_small_talk,
     is_vague_annonce_modify,
     resolve_action_intent,
-    resolve_annonce_intent,
-    resolve_emploi_intent,
     resolve_open_intent,
 )
 from school_admin.services.assistant_search import (
@@ -56,7 +52,6 @@ from school_admin.services.assistant_search import (
 from school_admin.services.gemini_assistant_service import (
     WRITTEN_DRAFT_MAX,
     build_system_message,
-    classify_pending_intent,
     compact_tool_memory,
     generate_written_draft,
     run_assistant_turn,
@@ -91,6 +86,12 @@ MODIFY_RE = re.compile(
     r'pas\s+(?:ça|cela|bon)|plus (?:court|long))\b',
     re.IGNORECASE,
 )
+PENDING_MODIFY_RE = re.compile(
+    r'(?:je\s+veux\s+|on\s+peut\s+|peux[- ]tu\s+)?'
+    r'(?:modifi(?:er|e)[rz]?|corrige[rz]?|ajuste[rz]?)\b'
+    r'|(?:change[rz]?)\s+(?:le|la|les|un|une|ce|cet|cette)\b',
+    re.IGNORECASE,
+)
 WRITE_SPEC_RE = re.compile(
     r'(\d+\s*(?:mots?|paragraphes?)|en\s+\d+\s+paragraphes?|'
     r'r[ée]dige[rz]?|ecris|écris|un titre|deux paragraphes|'
@@ -120,6 +121,14 @@ def is_cancel(text):
 
 def wants_modify(text):
     return bool(MODIFY_RE.search(text or ''))
+
+
+def is_pending_modify(text):
+    """G2 : « modifier / change le… » garde la carte. Pas « ajoute » ni un nouveau sujet."""
+    raw = (text or '').strip()
+    if not raw or is_affirmative(raw) or is_cancel(raw):
+        return False
+    return bool(PENDING_MODIFY_RE.search(raw))
 
 
 class SentenceAssembler:
@@ -289,16 +298,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._ensure_pending_loaded()
         if self._socket_fresh:
             self._socket_fresh = False
-            if (
-                self.pending_action
-                and not is_affirmative(question)
-                and not is_cancel(question)
+            if self.pending_action and not (
+                is_affirmative(question)
+                or is_cancel(question)
+                or is_pending_modify(question)
             ):
                 await self._clear_pending(silent=True)
         if await self._route_pending_reply(question):
             return
-        if self.pending_action:
-            await self._clear_pending(silent=True)
         await self._handle_chat(question)
 
     async def _cancel_tts_tasks(self):
@@ -627,7 +634,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         dialog.append({'role': 'user', 'content': question})
         dialog = sanitize_dialog_messages(dialog)
         messages = [
-            build_system_message(ctx, tool_memory=self._last_tool_memory),
+            build_system_message(ctx, tool_memory=self._tool_memory_for_turn()),
             *dialog,
         ]
 
@@ -1019,102 +1026,47 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return
         await self._handle_chat(value)
 
-    async def _pending_decision(self, question, pending):
-        decision = decide_pending_reply(question, pending)
-        if decision == 'switch':
-            logger.info(
-                "Assistant pending decision name=%s decision=switch source=regex",
-                (pending or {}).get('name'),
+    def _pending_is_ready(self):
+        pending = self.pending_action or {}
+        name = pending.get('name')
+        draft = pending.get('draft') or {}
+        if name in ('annonce_guidee', 'creer_publier_annonce'):
+            return self._annonce_ready()
+        if name in ('creer_emploi_du_temps', 'ajouter_creneau_emploi'):
+            return self._emploi_action_ready()
+        return is_action_ready(draft)
+
+    def _tool_memory_for_turn(self):
+        parts = []
+        if self._last_tool_memory:
+            parts.append(self._last_tool_memory)
+        pending = self.pending_action
+        if pending and pending.get('name'):
+            compact = compact_tool_memory(pending['name'], pending.get('draft') or {})
+            parts.append(
+                "Action en attente de confirmation (rien n’est écrit) : "
+                f"{compact or pending['name']}. "
+                "S’il demande de modifier, rappelle le même outil avec le brouillon ajusté."
             )
-            return 'switch'
-        if is_obvious_pending_continue(question, pending):
-            logger.info(
-                "Assistant pending decision name=%s decision=continue source=obvious",
-                (pending or {}).get('name'),
-            )
-            return 'continue'
-        try:
-            decision = await classify_pending_intent(pending, question)
-        except Exception:
-            logger.exception("Classification de sujet Aria")
-            decision = 'switch'
-        logger.info(
-            "Assistant pending decision name=%s decision=%s source=gemini",
-            (pending or {}).get('name'),
-            decision,
-        )
-        return decision
+        return ' | '.join(parts)
 
     async def _route_pending_reply(self, question):
+        """G2 : seuls oui / modifier / annuler consomment le pending."""
         await self._ensure_pending_loaded()
         pending = self.pending_action
         if not pending:
             return False
-        name = pending.get('name')
         if is_cancel(question):
             await self._run_guarded(self._cancel_pending)
             return True
-        if name in ('annonce_guidee', 'creer_publier_annonce'):
-            field = annonce_field_request(question)
-            vague = is_vague_annonce_modify(question)
-            edit_open = bool((pending.get('draft') or {}).get('edit_field'))
-            if (
-                is_affirmative(question)
-                and self._annonce_ready()
-                and not field
-                and not vague
-                and not edit_open
-            ):
+        if is_affirmative(question):
+            if self._pending_is_ready():
                 await self._run_guarded(self._confirm_pending)
                 return True
-            if field or vague:
-                decision = await self._pending_decision(question, pending)
-                if decision == 'switch':
-                    await self._clear_pending(silent=True)
-                    return False
-                await self._run_guarded(lambda: self._continue_annonce_guidee(question))
-                return True
-        elif name in ('creer_emploi_du_temps', 'ajouter_creneau_emploi'):
-            if is_affirmative(question) and self._emploi_action_ready():
-                await self._run_guarded(self._confirm_pending)
-                return True
-            decision = await self._pending_decision(question, pending)
-            if decision == 'switch':
-                await self._clear_pending(silent=True)
-                return False
-            await self._run_guarded(lambda: self._continue_emploi_guidee(question))
-            return True
-        elif name in self._pending_action_names():
-            if is_affirmative(question) and is_action_ready(pending.get('draft') or {}):
-                await self._run_guarded(self._confirm_pending)
-                return True
-            decision = await self._pending_decision(question, pending)
-            if decision == 'switch':
-                await self._clear_pending(silent=True)
-                return False
-            await self._run_guarded(lambda: self._continue_generic_action(question))
-            return True
-        elif is_affirmative(question):
-            await self._run_guarded(self._confirm_pending)
-            return True
-
-        decision = await self._pending_decision(question, pending)
-        if decision == 'switch':
-            await self._clear_pending(silent=True)
             return False
-
-        if name == 'choisir_classe':
-            await self._run_guarded(lambda: self._open_classe_from_reply(question))
-            return True
-        if name in ('annonce_guidee', 'creer_publier_annonce'):
-            await self._run_guarded(lambda: self._continue_annonce_guidee(question))
-            return True
-        if name in ('creer_emploi_du_temps', 'ajouter_creneau_emploi'):
-            await self._run_guarded(lambda: self._continue_emploi_guidee(question))
-            return True
-        if name in self._pending_action_names():
-            await self._run_guarded(lambda: self._continue_generic_action(question))
-            return True
+        if is_pending_modify(question):
+            return False
+        await self._clear_pending(silent=True)
         return False
 
     async def _offer_classe_choices(self, question):
@@ -1661,10 +1613,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 or result.get('cree')
             )
         ):
-            if name == 'ajouter_creneau_emploi':
-                await self._start_creneau_guidee('Confirmer', result)
-            else:
-                await self._start_emploi_guidee('Confirmer', result)
+            self.pending_action = {'name': name, 'draft': result}
+            await self._persist_pending()
+            spoken = result.get('message') or default_prompt(result)
+            await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
             return
         self.pending_action = None
         await self._persist_pending()
@@ -1769,14 +1721,18 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_json({'type': 'done'})
             return
         if not is_action_ready(draft):
-            await self._continue_generic_action('Confirmer')
+            spoken = default_prompt(draft) or "Il me manque encore des informations."
+            await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
             return
         ctx = await self._build_context()
         result = await database_sync_to_async(spec.apply)(ctx, draft)
         if result.get('statut') == 'incomplet' or (
             result.get('erreur') and result.get('manquants')
         ):
-            await self._start_generic_action(name, 'Confirmer', result)
+            self.pending_action = {'name': name, 'draft': result}
+            await self._persist_pending()
+            spoken = result.get('message') or default_prompt(result)
+            await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
             return
         self.pending_action = None
         await self._persist_pending()

@@ -12,6 +12,7 @@ from school_admin.consumers.assistant_consumer import (
     SentenceAssembler,
     is_affirmative,
     is_cancel,
+    is_pending_modify,
 )
 from school_admin.services.assistant_intents import (
     METIER_SWITCH_RE,
@@ -505,5 +506,135 @@ class GeminiG1TakeoverTests(SimpleTestCase):
                 ('creer_classe', {'erreur': 'refus', 'statut': 'erreur'}),
             ):
                 self.assertFalse(await consumer._on_live_tool_result(name, result))
+
+        asyncio.run(_run())
+
+
+class GeminiG2PendingTests(SimpleTestCase):
+    """G2 : oui / modifier / annuler seulement ; le reste droppe le pending."""
+
+    def _pending_classe(self):
+        return {
+            'name': 'creer_classe',
+            'draft': {
+                'statut': 'en_attente_confirmation',
+                'resume': 'créer la classe 3e A',
+                'nom': '3e A',
+            },
+        }
+
+    def _pending_edt(self):
+        return {
+            'name': 'creer_emploi_du_temps',
+            'draft': {
+                'statut': 'incomplet',
+                'classe': '3e A',
+                'classe_id': 4,
+                'manquants': ['jour'],
+            },
+        }
+
+    def _consumer(self, pending):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        consumer = AssistantConsumer()
+        consumer.scope = {}
+        consumer.persona = 'directeur'
+        consumer.pending_action = pending
+        consumer._last_tool_memory = ''
+        consumer._followup_choices = []
+        consumer._socket_fresh = False
+        sent = []
+
+        async def fake_send(payload):
+            sent.append(payload)
+
+        async def fake_guarded(handler):
+            result = handler()
+            if asyncio.iscoroutine(result):
+                await result
+
+        consumer._send_json = fake_send
+        consumer._persist_pending = AsyncMock()
+        consumer._confirm_pending = AsyncMock()
+        consumer._cancel_pending = AsyncMock()
+        consumer._run_guarded = fake_guarded
+        return consumer, sent
+
+    def test_detecte_modifier_sans_avaler_un_nouveau_sujet(self):
+        self.assertTrue(is_pending_modify('Je veux modifier.'))
+        self.assertTrue(is_pending_modify('Modifie le titre'))
+        self.assertTrue(is_pending_modify('Change les destinataires'))
+        self.assertFalse(is_pending_modify('oui'))
+        self.assertFalse(is_pending_modify('annule'))
+        self.assertFalse(is_pending_modify('quels sont les effectifs ?'))
+        self.assertFalse(is_pending_modify('lundi 8h 10h maths'))
+        self.assertFalse(is_pending_modify('ajoute un créneau'))
+
+    def test_oui_confirme_et_garde_le_pending_jusqua_apply(self):
+        async def _run():
+            consumer, _sent = self._consumer(self._pending_classe())
+            consumed = await consumer._route_pending_reply('Oui, c’est bon.')
+            self.assertTrue(consumed)
+            consumer._confirm_pending.assert_awaited_once()
+            consumer._cancel_pending.assert_not_called()
+            self.assertIsNotNone(consumer.pending_action)
+
+        asyncio.run(_run())
+
+    def test_annuler_annule(self):
+        async def _run():
+            consumer, _sent = self._consumer(self._pending_classe())
+            consumed = await consumer._route_pending_reply('Annuler.')
+            self.assertTrue(consumed)
+            consumer._cancel_pending.assert_awaited_once()
+            consumer._confirm_pending.assert_not_called()
+
+        asyncio.run(_run())
+
+    def test_modifier_garde_le_pending_pour_gemini(self):
+        async def _run():
+            consumer, _sent = self._consumer(self._pending_classe())
+            consumed = await consumer._route_pending_reply('Je veux modifier.')
+            self.assertFalse(consumed)
+            self.assertEqual(consumer.pending_action['name'], 'creer_classe')
+            consumer._confirm_pending.assert_not_called()
+            consumer._cancel_pending.assert_not_called()
+            memory = consumer._tool_memory_for_turn()
+            self.assertIn('en attente', memory)
+            self.assertIn('creer_classe', memory)
+
+        asyncio.run(_run())
+
+    def test_nouvelle_phrase_droppe_le_pending(self):
+        async def _run():
+            consumer, _sent = self._consumer(self._pending_edt())
+            consumed = await consumer._route_pending_reply('quels sont les effectifs ?')
+            self.assertFalse(consumed)
+            self.assertIsNone(consumer.pending_action)
+            consumer._confirm_pending.assert_not_called()
+
+        asyncio.run(_run())
+
+    def test_lundi_n_est_plus_un_wizard_edt(self):
+        async def _run():
+            consumer, _sent = self._consumer(self._pending_edt())
+            consumed = await consumer._route_pending_reply('lundi 8h 10h maths')
+            self.assertFalse(consumed)
+            self.assertIsNone(consumer.pending_action)
+            consumer._confirm_pending.assert_not_called()
+
+        asyncio.run(_run())
+
+    def test_execute_envoie_le_nouveau_sujet_a_gemini(self):
+        async def _run():
+            consumer, _sent = self._consumer(self._pending_edt())
+            consumer._send_working_ack = AsyncMock()
+            consumer._ensure_pending_loaded = AsyncMock()
+            consumer._handle_chat = AsyncMock()
+            await consumer._execute_user_message('quels sont les effectifs ?')
+            self.assertIsNone(consumer.pending_action)
+            consumer._handle_chat.assert_awaited_once_with('quels sont les effectifs ?')
+            consumer._confirm_pending.assert_not_called()
 
         asyncio.run(_run())

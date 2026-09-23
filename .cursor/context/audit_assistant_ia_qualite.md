@@ -4,7 +4,8 @@
 **Périmètre** : diagnostic + **Vagues A, B, C et D implémentées** (2026-09-23).  
 **Persona** : directeur (enseignant primaire hors scope sauf mention).  
 **Fichiers lus / touchés** : `gemini_assistant_service.py`, `assistant_consumer.py`, `tts_service.py`, `assistant_intents.py`, `gemini_context_cache.py`, `assistant_vocal.js`, `school/settings.py`.  
-**Branche A+B** : `cursor/assistant-qualite-ab-a40c`. Tests : `school_admin/tests/test_assistant_qualite.py`.
+**Branche A+B** : `cursor/assistant-qualite-ab-a40c`. Tests : `school_admin/tests/test_assistant_qualite.py`.  
+**Suite (Gemini libre, spec seule)** : [audit_assistant_ia_gemini_libre.md](audit_assistant_ia_gemini_libre.md) — retirer les wizards, laisser Gemini exécuter les tools et proposer.
 
 ---
 

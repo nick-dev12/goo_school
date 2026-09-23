@@ -253,9 +253,9 @@ Tout le hub CG : plan, journaux, exercices, clients 411, fournisseurs 401, trés
 
 ### 4.6 RH / paie
 
-- Dossier employé complémentaire (`type_contrat`, `salaire_base`, n° CNSS, RIB)
-- Fiche de paie (URL existe : `fiche_paie_directeur`) — pas d’ouverture vocale
-- Supprimer une absence professeur
+- Dossier employé complémentaire — **Vague 5** (`get_dossier_employe` / `modifier_dossier_employe`)
+- Fiche de paie vacataire — **Vague 5** (`ouvrir_fiche_paie`)
+- Absences professeur — **Vague 5**
 - Paie **permanents** (n’existe pas encore côté métier — plan CG étape 4)
 - Charges CSS / IPRES (idem)
 
@@ -414,12 +414,12 @@ Hors supérieur : ces tools **n’apparaissent pas** dans le schéma (`SUPERIEUR
 | Tool | Statut | Rôle |
 |------|--------|------|
 | CRUD prof / personnel / affectations / absence / `marquer_paie` | existant | Vacataires |
-| `get_volume_horaire` | existant / **à étendre** | Période choisie (semaine / mois), pas seulement le mois en cours |
-| `get_dossier_employe` | **à créer** | Contrat, salaire de base, CNSS, RIB, tarif horaire |
-| `modifier_dossier_employe` | **à créer** | Confirmation ; pas les charges sociales en dur |
-| `get_absences_professeur` | **à créer** | Historique + impact heures |
-| `supprimer_absence_professeur` | **à créer** | URL déjà existante |
-| `ouvrir_fiche_paie` | **à créer** | Ouvre `fiche_paie_directeur` |
+| `get_volume_horaire` | **fait (Vague 5)** | Semaine / mois / année, pas seulement le mois en cours |
+| `get_dossier_employe` | **fait (Vague 5)** | Contrat, salaire de base, CNSS, RIB, tarif horaire |
+| `modifier_dossier_employe` | **fait (Vague 5)** | Confirmation ; pas les charges sociales en dur |
+| `get_absences_professeur` | **fait (Vague 5)** | Historique + minutes / heures |
+| `supprimer_absence_professeur` | **fait (Vague 5)** | Confirmation ; même modèle que la vue |
+| `ouvrir_fiche_paie` | **fait (Vague 5)** | Ouvre `fiche_paie_directeur` si déjà marquée payée |
 | `get_paie_permanents` | **après métier** | Bulletins mensuels (plan CG étape 4) |
 | `creer_bulletin_paie` / `valider_bulletin_paie` | **après métier** | CSS/IPRES paramétrables, jamais figés |
 
@@ -445,13 +445,13 @@ Hors supérieur : ces tools **n’apparaissent pas** dans le schéma (`SUPERIEUR
 
 ## 6. Priorisation (validée)
 
-Ordre figé. **Vagues 1–3 livrées.** Ne pas enchaîner 4–7 sans feu vert.
+Ordre figé. **Vagues 1–5 livrées.** Ne pas enchaîner 6–7 sans feu vert.
 
 1. **Socle (fait)** — schéma + prompt filtrés par type ; flags `collège_lycée` / mixte ; `creer_classe` / `creer_professeur` exigent `cycle` ; `_niveau_enseignement` ne retombe plus sur `primaire` ; personnel bridé par `check_permission`.
 2. **Pilotage / scolarité (fait)** — `get_statistiques_pilotage`, `get_taux_reussite`, `get_taux_presence`, `get_comparatif_periodes`, `get_repartition_cycles`, `get_bilan_scolarite`, `get_impayes`, fiche scolarité enrichie, `ouvrir_recu`, `get_moratoires`, `verifier_statuts_paiement`, `synchroniser_remises_fratrie`.
 3. **Pédagogie quotidienne (fait)** — `get_notes_classe`, `get_moyennes_classe`, `get_bulletin_eleve`, `imprimer_bulletins_classe`, `calculer_moyenne_annuelle`, `get_eleves_difficulte`, `get_justifications_notes`, `traiter_justification`, `get_coefficients`, `configurer_coefficient`, `get_evaluations`. Présences classe / EDT prof / `debloquer_releve` : plus tard.
 4. **Supérieur (fait)** — ECTS / UE / périodes par niveau (`assistant_superieur.py`).
-5. **RH** — dossier employé, fiche de paie, absences prof, volume horaire paramétrable.
+5. **RH (fait)** — dossier employé, fiche de paie vacataire, absences prof, volume horaire semaine/mois (`assistant_rh.py`). Pas de bulletins permanents.
 6. **Examens** — créneaux + notes d’examen (collège/lycée).
 7. **CG + paie permanents** — seulement après réactivation du module et étapes métier du plan comptable.
 
@@ -495,7 +495,7 @@ Ordre figé. **Vagues 1–3 livrées.** Ne pas enchaîner 4–7 sans feu vert.
 1. **Filtrer dynamiquement** `TOOLS_SCHEMA` et le prompt par `type_etablissement` dès la Vague 1. Fait (`assistant_schema.py`, `directeur_tools_schema`, `system_prompt_static_for`).
 2. **Collège+lycée / mixte** : un seul espace vocal ; **exiger le cycle** (`college` / `lycee`) dans les paramètres des tools concernés (`creer_classe`, `creer_professeur`). Pas deux assistants.
 3. **Personnel administratif** : même persona `directeur`, exécution bridée par `check_permission` (permissions Django déjà utilisées par les vues).
-4. **Ordre §6 validé.** Vagues 1–4 livrées. Pas de Vague 5–6 ni de tools CG.
+4. **Ordre §6 validé.** Vagues 1–5 livrées. Pas de Vague 6 ni de tools CG. Pas de bulletins de paie permanents.
 5. **CG vocale hors schéma** tant que `AFFICHER_MODULE_COMPTABILITE_GENERALE` est False (`CG_TOOLS` + addendum de prompt).
 6. **Hors scope §8 validé** (enseignant primaire, compta Aria, liasse, TVA, paie convention complète, etc.).
 
@@ -562,3 +562,20 @@ Phrases vocales (directeur **supérieur** connecté) :
 - « Crée le module Compilation en Génie Logiciel, 3 crédits, L1. » → confirmation puis `creer_module`
 - « Quels sont les semestres de L1 ? » → `get_periodes`
 - « Crée le semestre 7 pour le M1, du 1er septembre au 31 janvier. » → confirmation puis `creer_periode`
+
+---
+
+## 13. Vague 5 livrée (2026-09-23)
+
+Module `school_admin/services/assistant_rh.py`. Tests : `AssistantDirecteurVague5Tests`. Cache Gemini : `aria-directeur-tools-v8-{profile}`.
+
+Commun à tous les types (bridé par `check_permission`). Pas de tools CG. Pas de `get_paie_permanents` / `creer_bulletin_paie`.
+
+Phrases vocales (directeur connecté) :
+
+- « Quel est le dossier de [nom] ? » / « Quel est le CNSS de [nom] ? » → `get_dossier_employe`
+- « Passe le salaire de [nom] à 160 000 et le contrat en CDD. » → confirmation puis `modifier_dossier_employe`
+- « Quelles sont les absences de [professeur] ? » → `get_absences_professeur`
+- « Supprime l’absence de [professeur] du 5 octobre. » → confirmation puis `supprimer_absence_professeur`
+- « Ouvre la fiche de paie de [professeur] pour octobre. » → `ouvrir_fiche_paie` (si déjà marquée payée)
+- « Quel est le volume horaire de [professeur] ce mois-ci ? » / « … cette semaine ? » → `get_volume_horaire`

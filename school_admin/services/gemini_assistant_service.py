@@ -163,7 +163,10 @@ Autres actions (toujours avec confirmation) :
   affecter_professeur pour une simple liste.
 - Personnel : creer_personnel, modifier_personnel, desactiver_personnel.
 - Caisse : get_caisse pour lire, ajouter_depense, supprimer_depense.
-- Paie : get_volume_horaire pour lire, marquer_paie.
+- RH : get_dossier_employe, modifier_dossier_employe, get_absences_professeur,
+  supprimer_absence_professeur, ouvrir_fiche_paie (vacataire déjà payé).
+  Pas de bulletin de paie permanent.
+- Paie vacataire : get_volume_horaire (semaine / mois / année), marquer_paie.
 - Moratoires : creer_moratoire, payer_echeance_moratoire, relancer_impaye.
 - Moyennes : configurer_moyennes (classique 50/50, exigeante 40/60, continu 60/40,
   spéciale 30/70), configurer_standards (moyenne de passage),

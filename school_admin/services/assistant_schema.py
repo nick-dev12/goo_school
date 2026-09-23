@@ -166,6 +166,11 @@ TOOL_PERMISSIONS = {
     'enregistrer_absence_professeur': 'professeurs_modifier',
     'get_volume_horaire': 'professeurs_liste',
     'marquer_paie': 'professeurs_modifier',
+    'get_dossier_employe': ('professeurs_liste', 'personnel_liste'),
+    'modifier_dossier_employe': ('professeurs_modifier', 'personnel_modifier'),
+    'get_absences_professeur': 'professeurs_liste',
+    'supprimer_absence_professeur': 'professeurs_modifier',
+    'ouvrir_fiche_paie': 'professeurs_liste',
     'rechercher_personnel': 'personnel_liste',
     'creer_personnel': 'personnel_modifier',
     'modifier_personnel': 'personnel_modifier',
@@ -232,6 +237,9 @@ CHERCHER_EN_BASE_SOURCES = {
     'sanctions': 'get_sanctions',
     'caisse': 'get_caisse',
     'volume_horaire': 'get_volume_horaire',
+    'dossier_employe': 'get_dossier_employe',
+    'absences_professeur': 'get_absences_professeur',
+    'fiche_paie': 'ouvrir_fiche_paie',
     'comptabilite': 'get_comptabilite',
     'pilotage': 'get_statistiques_pilotage',
     'reussite': 'get_taux_reussite',
@@ -541,6 +549,15 @@ def prompt_addendum_for(ctx):
         "traiter_justification (accepter / refuser, confirmation).\n"
         "- Coefficients : get_coefficients ; configurer_coefficient (confirmation).\n"
         "- Évaluations : get_evaluations. Moyenne annuelle : calculer_moyenne_annuelle.\n"
+        "\nRH (vacataires, pas de bulletins permanents) :\n"
+        "- Dossier : get_dossier_employe (contrat, salaire, CNSS, RIB, tarif horaire).\n"
+        "- Modifier le dossier : modifier_dossier_employe (confirmation). "
+        "N’invente jamais de charges CSS/IPRES.\n"
+        "- Volume horaire : get_volume_horaire (semaine, mois ou année).\n"
+        "- Absences prof : get_absences_professeur ; "
+        "supprimer_absence_professeur (confirmation).\n"
+        "- Fiche de paie vacataire déjà marquée : ouvrir_fiche_paie "
+        "(ouvre l’URL existante). Pas de bulletin CDI.\n"
     )
     if getattr(ctx, 'est_superieur', False):
         parts.append(

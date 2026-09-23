@@ -1297,6 +1297,46 @@ def tool_chercher_en_base(ctx, args):
 
         found = tool_taux_presence(ctx, payload)
         return {'trouve': not bool(found.get('erreur')), 'source': 'presence_taux', **found}
+    if any(
+        token in lowered
+        for token in ('fiche de paie', 'fiche paie', 'bulletin de paie')
+    ):
+        from school_admin.services.assistant_rh import tool_ouvrir_fiche_paie
+
+        found = tool_ouvrir_fiche_paie(ctx, {**payload, 'query': question})
+        return {'trouve': not bool(found.get('erreur')), 'source': 'fiche_paie', **found}
+    if any(
+        token in lowered
+        for token in (
+            'dossier employ', 'cnss', 'n° cnss', 'numero cnss',
+            'salaire de base', 'type de contrat', ' rib', 'rib ',
+        )
+    ) or re.search(r'\brib\b', lowered):
+        from school_admin.services.assistant_rh import tool_dossier_employe
+
+        found = tool_dossier_employe(ctx, {**payload, 'query': question})
+        return {
+            'trouve': not bool(found.get('erreur')),
+            'source': 'dossier_employe',
+            **found,
+        }
+    if any(
+        token in lowered
+        for token in (
+            'absence du professeur', 'absences du professeur',
+            'absence professeur', 'absences professeur',
+            'absence enseignant', 'absences enseignant',
+            'absence de l’enseignant', "absence de l'enseignant",
+        )
+    ):
+        from school_admin.services.assistant_rh import tool_absences_professeur
+
+        found = tool_absences_professeur(ctx, {**payload, 'query': question})
+        return {
+            'trouve': not bool(found.get('erreur')),
+            'source': 'absences_professeur',
+            **found,
+        }
     if any(token in lowered for token in ('absence', 'présent', 'present', 'présence', 'presence')):
         found = tool_presences(ctx, payload)
         return {'trouve': True, 'source': 'presences', **found}
@@ -1606,42 +1646,9 @@ def tool_caisse(ctx, args):
 
 
 def tool_volume_horaire(ctx, args):
-    from datetime import date as date_cls
+    from school_admin.services.assistant_rh import tool_volume_horaire as handler
 
-    from school_admin.controllers.volume_horaire_controller import VolumeHoraireController
-    from school_admin.model.professeur_model import Professeur
-    from school_admin.utils.volume_horaire import resoudre_periode
-
-    periode = resoudre_periode(
-        'mois',
-        reference=date_cls.today(),
-        annee_scolaire=ctx.annee_scolaire,
-    )
-    query = (args.get('query') or '').strip()
-    qs = Professeur.objects.filter(etablissement=ctx.etablissement, actif=True)
-    if query:
-        qs = qs.filter(Q(nom__icontains=query) | Q(prenom__icontains=query))
-    lignes = []
-    for prof in qs.order_by('nom', 'prenom')[:SEARCH_LIMIT]:
-        creneaux = list(
-            VolumeHoraireController._creneaux_publies(
-                ctx.etablissement, ctx.annee_scolaire, professeur=prof
-            )
-        )
-        resultat, _abs, _rempl = VolumeHoraireController._resultat_avec_absences(
-            creneaux, periode, prof, ctx.etablissement
-        )
-        paie = VolumeHoraireController._paie_periode(prof, periode)
-        lignes.append({
-            'professeur': prof.nom_complet,
-            'heures': str(resultat.heures),
-            'montant': str(resultat.montant) if resultat.montant is not None else None,
-            'paye': bool(paie),
-        })
-    return {
-        'periode': f'{periode.date_debut.isoformat()} - {periode.date_fin.isoformat()}',
-        'lignes': lignes,
-    }
+    return handler(ctx, args)
 
 
 def tool_lister_pages(ctx, _args):
@@ -1737,10 +1744,15 @@ from school_admin.services.assistant_superieur import (  # noqa: E402
     VAGUE4_READ_HANDLERS,
     VAGUE4_READ_SCHEMA,
 )
+from school_admin.services.assistant_rh import (  # noqa: E402
+    VAGUE5_READ_HANDLERS,
+    VAGUE5_READ_SCHEMA,
+)
 
 TOOL_HANDLERS.update(VAGUE2_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE3_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE4_READ_HANDLERS)
+TOOL_HANDLERS.update(VAGUE5_READ_HANDLERS)
 
 for _name, _spec in ACTION_SPECS.items():
     TOOL_HANDLERS[_name] = _spec.prepare
@@ -2285,13 +2297,21 @@ TOOLS_SCHEMA = [
         'function': {
             'name': 'get_volume_horaire',
             'description': (
-                'Volume horaire et paie des professeurs pour le mois en cours : '
-                'heures, montant, déjà payé ou non.'
+                'Volume horaire et paie vacataire d’un professeur : heures, montant, '
+                'déjà payé ou non. Période : semaine, mois (défaut) ou année scolaire.'
             ),
             'parameters': {
                 'type': 'object',
                 'properties': {
                     'query': {'type': 'string', 'description': 'Nom du professeur'},
+                    'professeur': {'type': 'string'},
+                    'periode': {
+                        'type': 'string',
+                        'enum': ['semaine', 'mois', 'annee'],
+                        'description': 'Défaut : mois',
+                    },
+                    'mois': {'type': 'string', 'description': 'YYYY-MM'},
+                    'date': {'type': 'string', 'description': 'Jour de référence (semaine)'},
                 },
             },
         },
@@ -2327,6 +2347,7 @@ TOOLS_SCHEMA = [
 TOOLS_SCHEMA.extend(VAGUE2_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE3_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE4_READ_SCHEMA)
+TOOLS_SCHEMA.extend(VAGUE5_READ_SCHEMA)
 TOOLS_SCHEMA.extend(build_action_tool_schemas())
 
 

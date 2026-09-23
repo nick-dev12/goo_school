@@ -1697,3 +1697,233 @@ class AssistantDirecteurVague4Tests(TestCase):
         ctx = build_assistant_context(primaire)
         result = execute_tool(ctx, 'get_ects_etudiant', {'query': 'Ndoye'})
         self.assertIn('type d’établissement', result.get('erreur', '').lower())
+
+
+class AssistantDirecteurVague5Tests(TestCase):
+    """RH : dossier employé, fiche de paie vacataire, absences prof."""
+
+    VAGUE5_TOOLS = (
+        'get_dossier_employe',
+        'modifier_dossier_employe',
+        'get_absences_professeur',
+        'supprimer_absence_professeur',
+        'ouvrir_fiche_paie',
+        'get_volume_horaire',
+    )
+
+    @classmethod
+    def setUpTestData(cls):
+        from decimal import Decimal
+
+        from school_admin.model.caisse_etablissement_model import (
+            AbsenceEnseignant,
+            PaieProfesseurPeriode,
+        )
+        from school_admin.model.employe_dossier_model import DossierEmployeComplementaire
+        from school_admin.model.matiere_model import Matiere
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+        from school_admin.model.professeur_model import Professeur
+
+        cls.etab = _make_etablissement()
+        cls.annee = _make_annee(cls.etab)
+        suffix = str(cls.etab.pk)
+        cls.matiere = Matiere.objects.create(
+            nom=f'Physique {suffix}',
+            code=f'PH{suffix}'[:10],
+            coefficient=2,
+            etablissement=cls.etab,
+        )
+        cls.prof = Professeur.objects.create_user(
+            username=f'prof.v5.{suffix}',
+            email=f'prof.v5.{suffix}@aria-test.local',
+            password='Prof@Test1!',
+            nom='Diop',
+            prenom='Mamadou',
+            telephone='770000080',
+            numero_employe=f'EMPV5{suffix}',
+            matiere_principale=cls.matiere,
+            etablissement=cls.etab,
+            niveau_enseignement='lycee',
+            prix_volume_horaire=Decimal('5000.00'),
+            date_embauche=date(2024, 9, 1),
+            actif=True,
+        )
+        DossierEmployeComplementaire.objects.create(
+            professeur=cls.prof,
+            type_contrat='vacataire',
+            numero_cnss='CNSS-12345',
+            salaire_base=Decimal('150000.00'),
+            banque='SGBS',
+            numero_compte_bancaire='SN08 SN012 0100123456789012',
+        )
+        cls.personnel = PersonnelAdministratif(
+            username=f'sec.v5.{suffix}',
+            email=f'sec.v5.{suffix}@aria-test.local',
+            nom='Ba',
+            prenom='Awa',
+            telephone='770000081',
+            fonction='secretaire',
+            etablissement=cls.etab,
+            numero_employe=f'SECV5{suffix}',
+            actif=True,
+            permissions={},
+        )
+        cls.personnel.set_password('Secret@Test1!')
+        cls.personnel.save()
+        DossierEmployeComplementaire.objects.create(
+            personnel_administratif=cls.personnel,
+            type_contrat='cdi',
+            numero_cnss='CNSS-67890',
+            salaire_base=Decimal('200000.00'),
+        )
+        cls.absence = AbsenceEnseignant.objects.create(
+            etablissement=cls.etab,
+            professeur=cls.prof,
+            date=date(2026, 10, 5),
+            minutes=120,
+        )
+        cls.paie = PaieProfesseurPeriode.objects.create(
+            etablissement=cls.etab,
+            professeur=cls.prof,
+            annee_scolaire=cls.annee,
+            date_debut=date(2026, 10, 1),
+            date_fin=date(2026, 10, 31),
+            heures=Decimal('12.00'),
+            montant_brut=Decimal('60000.00'),
+            montant_net=Decimal('60000.00'),
+        )
+        cls.ctx = build_assistant_context(cls.etab)
+
+    def test_schema_expose_rh_sans_cg_ni_paie_permanente(self):
+        from school_admin.services.assistant_schema import CG_TOOLS
+
+        names = {
+            item['function']['name']
+            for item in directeur_tools_schema(self.ctx)
+            if item.get('function')
+        }
+        for name in self.VAGUE5_TOOLS:
+            self.assertIn(name, names)
+        for name in CG_TOOLS:
+            self.assertNotIn(name, names)
+        self.assertNotIn('get_paie_permanents', names)
+        self.assertNotIn('creer_bulletin_paie', names)
+        self.assertNotIn('valider_bulletin_paie', names)
+        primaire = _make_etablissement_type('primary', 'p5')
+        names_p = {
+            item['function']['name']
+            for item in directeur_tools_schema(build_assistant_context(primaire))
+            if item.get('function')
+        }
+        self.assertIn('get_dossier_employe', names_p)
+        self.assertNotIn('get_ects_etudiant', names_p)
+
+    def test_dossier_et_modification_confirmee(self):
+        from decimal import Decimal
+
+        dossier = execute_tool(self.ctx, 'get_dossier_employe', {'query': 'Diop'})
+        self.assertEqual(dossier['role'], 'professeur')
+        self.assertEqual(dossier['type_contrat'], 'vacataire')
+        self.assertEqual(dossier['numero_cnss'], 'CNSS-12345')
+        self.assertEqual(dossier['salaire_base'], 150000.0)
+        self.assertEqual(dossier['rib'], 'SN08 SN012 0100123456789012')
+        self.assertEqual(dossier['tarif_horaire'], 5000.0)
+        self.assertIsNone(dossier['charges_sociales'])
+        admin = execute_tool(
+            self.ctx,
+            'get_dossier_employe',
+            {'query': 'Ba', 'role': 'personnel'},
+        )
+        self.assertEqual(admin['role'], 'personnel')
+        self.assertEqual(admin['type_contrat'], 'cdi')
+        draft = execute_tool(
+            self.ctx,
+            'modifier_dossier_employe',
+            {'query': 'Diop', 'salaire_base': '160000', 'type_contrat': 'cdd'},
+        )
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.prof.dossier_complementaire.refresh_from_db()
+        self.assertEqual(self.prof.dossier_complementaire.salaire_base, Decimal('150000.00'))
+        result = ACTION_SPECS['modifier_dossier_employe'].apply(self.ctx, draft)
+        self.assertEqual(result['statut'], 'ok')
+        self.prof.dossier_complementaire.refresh_from_db()
+        self.assertEqual(self.prof.dossier_complementaire.salaire_base, Decimal('160000.00'))
+        self.assertEqual(self.prof.dossier_complementaire.type_contrat, 'cdd')
+        found = execute_tool(
+            self.ctx,
+            'chercher_en_base',
+            {'question': 'CNSS de Diop'},
+        )
+        self.assertEqual(found['source'], 'dossier_employe')
+
+    def test_absences_et_suppression_confirmee(self):
+        from school_admin.model.caisse_etablissement_model import AbsenceEnseignant
+
+        liste = execute_tool(self.ctx, 'get_absences_professeur', {'query': 'Diop'})
+        self.assertEqual(liste['nb'], 1)
+        self.assertEqual(liste['heures_totales'], 2.0)
+        self.assertEqual(liste['absences'][0]['date'], '2026-10-05')
+        draft = execute_tool(
+            self.ctx,
+            'supprimer_absence_professeur',
+            {'query': 'Diop', 'date': '2026-10-05'},
+        )
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.assertTrue(
+            AbsenceEnseignant.objects.filter(pk=self.absence.pk).exists()
+        )
+        result = ACTION_SPECS['supprimer_absence_professeur'].apply(self.ctx, draft)
+        self.assertEqual(result['statut'], 'ok')
+        self.assertFalse(
+            AbsenceEnseignant.objects.filter(pk=self.absence.pk).exists()
+        )
+
+    def test_fiche_paie_et_volume_horaire_periode(self):
+        fiche = execute_tool(
+            self.ctx,
+            'ouvrir_fiche_paie',
+            {'query': 'Diop', 'mois': '2026-10'},
+        )
+        self.assertTrue(fiche['ouvrir'])
+        self.assertIn(str(self.prof.id), fiche['url'] or '')
+        self.assertEqual(fiche['montant_net'], 60000.0)
+        vide = execute_tool(
+            self.ctx,
+            'ouvrir_fiche_paie',
+            {'query': 'Diop', 'mois': '2026-09'},
+        )
+        self.assertIn('aucune paie', vide.get('erreur', '').lower())
+        volume = execute_tool(
+            self.ctx,
+            'get_volume_horaire',
+            {'query': 'Diop', 'periode': 'mois', 'mois': '2026-10'},
+        )
+        self.assertEqual(volume['periode_kind'], 'mois')
+        self.assertTrue(volume['lignes'])
+        self.assertEqual(volume['lignes'][0]['professeur'], self.prof.nom_complet)
+
+    def test_personnel_sans_droit_rh(self):
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+
+        caissier = PersonnelAdministratif(
+            username=f'caissier.v5.{self.etab.pk}',
+            email=f'caissier.v5.{self.etab.pk}@aria-test.local',
+            nom='Kane',
+            prenom='Ibra',
+            telephone='770000082',
+            fonction='caissier',
+            etablissement=self.etab,
+            actif=True,
+            permissions={},
+        )
+        caissier.set_password('Caissier@Test1!')
+        caissier.save()
+        ctx = build_assistant_context(self.etab, personnel=caissier)
+        refused = execute_tool(ctx, 'get_dossier_employe', {'query': 'Diop'})
+        self.assertIn('autorisation', refused.get('erreur', '').lower())
+        refused_w = execute_tool(
+            ctx,
+            'modifier_dossier_employe',
+            {'query': 'Diop', 'salaire_base': '1'},
+        )
+        self.assertIn('autorisation', refused_w.get('erreur', '').lower())

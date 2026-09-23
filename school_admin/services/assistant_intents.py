@@ -178,6 +178,8 @@ ACTION_INTENT_RES = (
         r'(enregistre[rz]?|note[rz]?).{0,40}absence.{0,30}(?:professeur|enseignant)',
         re.I,
     ), 'enregistrer_absence_professeur'),
+    (re.compile(r'supprime[rz]?.{0,40}absence.{0,30}(?:professeur|enseignant)', re.I), 'supprimer_absence_professeur'),
+    (re.compile(r'(modifie[rz]?|mets? [àa] jour).{0,40}dossier.{0,20}(?:employ|prof|personnel)', re.I), 'modifier_dossier_employe'),
     (re.compile(r'(modifie[rz]?).{0,30}classe', re.I), 'modifier_classe'),
     (re.compile(r'(modifie[rz]?).{0,30}salle', re.I), 'modifier_salle'),
     (re.compile(r'(modifie[rz]?).{0,40}(?:fili[eè]re|sp[ée]cialit)', re.I), 'modifier_filiere'),
@@ -222,6 +224,8 @@ PERSON_QUERY_ACTIONS = (
     'desactiver_personnel',
     'affecter_professeur',
     'enregistrer_absence_professeur',
+    'supprimer_absence_professeur',
+    'modifier_dossier_employe',
     'marquer_paie',
     'supprimer_depense',
 )
@@ -896,6 +900,8 @@ def infer_working_ack(question, pending=None):
         return "Je cherche cet élève."
     if any(token in lowered for token in ('classe', 'promotion')):
         return "Je consulte les classes."
+    if any(token in lowered for token in ('dossier employ', 'cnss', 'fiche de paie', 'volume horaire')):
+        return "Je consulte le dossier RH."
     if any(token in lowered for token in ('ects', 'crédit', 'credit', 'relevé', 'releve')):
         return "Je consulte les crédits ECTS."
     if any(token in lowered for token in ('période', 'periode', 'semestre', 'trimestre')):

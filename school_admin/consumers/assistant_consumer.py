@@ -47,6 +47,7 @@ from school_admin.services.gemini_assistant_service import (
 )
 from school_admin.services.assistant_tools import (
     normalize_suggestions,
+    spoken_from_tool_result,
     spoken_from_tool_results,
     suggestions_after_read,
 )
@@ -626,10 +627,25 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         elif result.get('erreur'):
             spoken = result['erreur']
         elif name == 'ouvrir_classe':
-            spoken = f"J’ouvre la classe {result.get('nom') or args.get('query')}."
+            spoken = spoken_from_tool_result(name, result, ctx=ctx) or (
+                f"J’ouvre la classe {result.get('nom') or args.get('query')}."
+            )
+            if isinstance(result, dict):
+                if getattr(self, '_working_refs', None) is None:
+                    self._working_refs = {}
+                self._working_refs.update(extract_working_refs(name, result))
         else:
             spoken = result.get('message') or f"J’ouvre {result.get('titre') or 'cette page'}."
-        await self._speak_and_finish(user_text=question, spoken=spoken)
+        sugg = (
+            suggestions_after_read([(name, result)], getattr(self, '_working_refs', None))
+            if name == 'ouvrir_classe' and isinstance(result, dict)
+            else None
+        )
+        await self._speak_and_finish(
+            user_text=question,
+            spoken=spoken,
+            suggestions=sugg,
+        )
         return True
 
     async def _handle_chat(self, question):
@@ -1558,7 +1574,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         })
         await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
 
-    async def _speak_and_finish(self, user_text, spoken, choices=None):
+    async def _speak_and_finish(self, user_text, spoken, choices=None, suggestions=None):
         if self._cancel_requested:
             return
         spoken = strip_assistant_markup(spoken or '')
@@ -1582,7 +1598,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             overflow = len(self.history) - MAX_HISTORY_MESSAGES
             if overflow > 0:
                 self.history = self.history[overflow:]
-        await self._send_choices(choices if choices is not None else self._infer_choices(spoken))
+        if suggestions:
+            await self._send_suggestions(suggestions)
+        else:
+            await self._send_choices(choices if choices is not None else self._infer_choices(spoken))
         await self._send_json({'type': 'done'})
 
     @database_sync_to_async

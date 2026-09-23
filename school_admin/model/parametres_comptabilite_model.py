@@ -17,6 +17,16 @@ class ParametresComptabilite(models.Model):
         ('mensuel', 'Facturation mensuelle'),
         ('annuel', 'Facturation annuelle'),
     ]
+
+    REGIME_COMPTABLE_CHOICES = [
+        ('engagement', "Comptabilité d'engagement (411)"),
+        ('tresorerie', 'Système de trésorerie (encaissements)'),
+    ]
+
+    EXERCICE_ALIGNE_CHOICES = [
+        ('annee_civile', 'Année civile (1er janvier – 31 décembre)'),
+        ('annee_scolaire', 'Année scolaire (pédagogie uniquement)'),
+    ]
     
     etablissement = models.OneToOneField(
         Etablissement,
@@ -176,6 +186,23 @@ class ParametresComptabilite(models.Model):
         blank=True,
         verbose_name="Frais annexes",
         help_text="Tenue, carte scolaire, dossier, assurance, examen, transport, cantine, apport, autres.",
+    )
+
+    regime_comptable = models.CharField(
+        max_length=16,
+        choices=REGIME_COMPTABLE_CHOICES,
+        default='engagement',
+        verbose_name="Régime comptable",
+        help_text="Engagement : créances en 411. Trésorerie : encaissements directs en 70x. "
+                  "Ne pas changer en cours d'exercice.",
+    )
+
+    exercice_aligne_sur = models.CharField(
+        max_length=16,
+        choices=EXERCICE_ALIGNE_CHOICES,
+        default='annee_civile',
+        verbose_name="Alignement de l'exercice",
+        help_text="L'exercice SYSCOHADA / DGI est l'année civile. L'année scolaire reste pédagogique.",
     )
     
     # Dates

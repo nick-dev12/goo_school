@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "États financiers" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="cg-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container cg-page">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:cg_hub_directeur' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='etats' %}
+        <header class="cg-hero">
+            <div>
+                <h1 class="cg-hero-title"><i class="fas fa-chart-pie"></i> {% trans "États financiers" %}</h1>
+                <p class="cg-hero-sub">{% trans "Balance, bilan, compte de résultat à partir des écritures. Export CSV pour l'expert-comptable." %}</p>
+            </div>
+            <div class="cg-stat cg-stat--ok"><span class="cg-stat-num">{{ kpis.taux_recouvrement }}%</span><span class="cg-stat-lbl">{% trans "Recouvrement" %}</span></div>
+            <div class="cg-stat"><span class="cg-stat-num">{{ synthese.resultat|floatformat:0 }}</span><span class="cg-stat-lbl">{% trans "Résultat" %}</span></div>
+            <a class="cg-btn cg-btn--ghost" href="?export=csv">{% trans "Export CSV" %}</a>
+        </header>
+        <section class="cg-section">
+            <h2>{% trans "Synthèse" %}</h2>
+            <div class="cg-grid">
+                <div class="cg-card"><h3>{% trans "Actif" %}</h3><p>{{ synthese.actif|floatformat:0 }} {{ devise_monnaie }}</p></div>
+                <div class="cg-card"><h3>{% trans "Passif" %}</h3><p>{{ synthese.passif|floatformat:0 }} {{ devise_monnaie }}</p></div>
+                <div class="cg-card"><h3>{% trans "Charges" %}</h3><p>{{ synthese.charges|floatformat:0 }} {{ devise_monnaie }}</p></div>
+                <div class="cg-card"><h3>{% trans "Produits" %}</h3><p>{{ synthese.produits|floatformat:0 }} {{ devise_monnaie }}</p></div>
+            </div>
+        </section>
+        <section class="cg-section">
+            <h2>{% trans "Balance" %}</h2>
+            <div class="table-responsive">
+                <table class="cg-table">
+                    <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Compte" %}</th><th>{% trans "Débit" %}</th><th>{% trans "Crédit" %}</th><th>{% trans "Solde" %}</th></tr></thead>
+                    <tbody>
+                        {% for row in synthese.rows %}
+                        {% if row.debit or row.credit %}
+                        <tr>
+                            <td>{{ row.compte.numero }}</td>
+                            <td>{{ row.compte.libelle }}</td>
+                            <td>{{ row.debit }}</td>
+                            <td>{{ row.credit }}</td>
+                            <td>{{ row.solde }}</td>
+                        </tr>
+                        {% endif %}
+                        {% empty %}
+                        <tr><td colspan="5">{% trans "Aucune écriture." %}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

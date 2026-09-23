@@ -25,7 +25,7 @@ from ..model.etablissement_model import Etablissement
 from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.eleve_model import Eleve
 from ..model.classe_model import Classe
-from ..model.classe_model import Classe
+from school_admin.services.comptabilite_generale import pont_paiement_eleve
 
 
 class ComptabiliteController:
@@ -59,6 +59,48 @@ class ComptabiliteController:
         if etablissement and etablissement.devise_monnaie:
             return etablissement.devise_monnaie.strip()
         return 'FCFA'  # Valeur par défaut
+
+    @staticmethod
+    def _compta_redirect_apres_paiement(
+        request,
+        paiement,
+        eleve_id,
+        success_msg,
+        etablissement,
+        annee_scolaire_active,
+        devise_monnaie,
+    ):
+        """Après encaissement : live update + affichage du reçu imprimable."""
+        from django.urls import reverse
+        from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
+        from ..services.live_serializers import (
+            serialize_comptabilite_paiement_result,
+            serialize_comptabilite_eleve_snapshot,
+        )
+
+        paiement.refresh_from_db()
+        recu_url = reverse('directeur:recu_paiement_directeur', args=[paiement.id])
+
+        snapshot = serialize_comptabilite_eleve_snapshot(
+            eleve_id, etablissement, annee_scolaire_active, devise_monnaie
+        )
+        live_item = serialize_comptabilite_paiement_result(
+            eleve_id, success_msg, snapshot=snapshot, paiement_id=paiement.id, recu_url=recu_url
+        )
+        emit_live(
+            etablissement.id,
+            'comptabilite.mise_a_jour',
+            {'event': 'comptabilite.mise_a_jour', 'item': live_item},
+        )
+        if wants_json_response(request):
+            return json_ok(
+                message=success_msg,
+                item=live_item,
+                paiement_id=paiement.id,
+                recu_url=recu_url,
+            )
+
+        return redirect(f'{recu_url}?auto_print=1')
 
     @staticmethod
     def _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire):
@@ -414,23 +456,25 @@ class ComptabiliteController:
             # Utiliser Decimal pour éviter les problèmes de précision
             montant_paye_depuis_paiements = Decimal('0.00')
             
-            # Récupérer tous les paiements liés à ce frais d'inscription
-            paiements_frais = PaiementEleve.objects.filter(
-                frais_inscription=frais,
-                eleve=eleve,
-                annee_scolaire=annee_scolaire_active,
-                type_paiement='frais_inscription'
+            paiements_frais = list(
+                PaiementEleve.objects.filter(
+                    frais_inscription=frais,
+                    eleve=eleve,
+                    annee_scolaire=annee_scolaire_active,
+                    type_paiement='frais_inscription',
+                ).order_by('-date_paiement')
             )
-            
+
             for paiement in paiements_frais:
                 montant_paye_depuis_paiements += Decimal(str(paiement.montant))
-            
+
             reste_a_payer_frais = Decimal(str(frais.montant)) - montant_paye_depuis_paiements
             frais_inscription_avec_paiements.append({
                 'frais': frais,
                 'montant_total': frais.montant,
                 'montant_paye': montant_paye_depuis_paiements,
-                'reste_a_payer': reste_a_payer_frais if reste_a_payer_frais > Decimal('0.00') else Decimal('0.00')
+                'reste_a_payer': reste_a_payer_frais if reste_a_payer_frais > Decimal('0.00') else Decimal('0.00'),
+                'paiements': paiements_frais,
             })
         
         # Calculer le montant déjà payé depuis la table PaiementEleve pour chaque mensualité
@@ -440,23 +484,25 @@ class ComptabiliteController:
             # Utiliser Decimal pour éviter les problèmes de précision
             montant_paye_depuis_paiements = Decimal('0.00')
             
-            # Récupérer tous les paiements liés à cette mensualité
-            paiements_mensualite = PaiementEleve.objects.filter(
-                mensualite=mensualite,
-                eleve=eleve,
-                annee_scolaire=annee_scolaire_active,
-                type_paiement='mensualite'
+            paiements_mensualite = list(
+                PaiementEleve.objects.filter(
+                    mensualite=mensualite,
+                    eleve=eleve,
+                    annee_scolaire=annee_scolaire_active,
+                    type_paiement='mensualite',
+                ).order_by('-date_paiement')
             )
-            
+
             for paiement in paiements_mensualite:
                 montant_paye_depuis_paiements += Decimal(str(paiement.montant))
-            
+
             reste_a_payer_mensualite = Decimal(str(mensualite.montant)) - montant_paye_depuis_paiements
             mensualites_avec_paiements.append({
                 'mensualite': mensualite,
                 'montant_total': mensualite.montant,
                 'montant_paye': montant_paye_depuis_paiements,
-                'reste_a_payer': reste_a_payer_mensualite if reste_a_payer_mensualite > Decimal('0.00') else Decimal('0.00')
+                'reste_a_payer': reste_a_payer_mensualite if reste_a_payer_mensualite > Decimal('0.00') else Decimal('0.00'),
+                'paiements': paiements_mensualite,
             })
 
         frais_annexes = FraisAnnexe.objects.filter(
@@ -465,11 +511,13 @@ class ComptabiliteController:
         frais_annexes_avec_paiements = []
         for frais in frais_annexes:
             montant_paye_depuis_paiements = Decimal('0.00')
-            paiements_annexe = PaiementEleve.objects.filter(
-                frais_annexe=frais,
-                eleve=eleve,
-                annee_scolaire=annee_scolaire_active,
-                type_paiement='frais_annexe',
+            paiements_annexe = list(
+                PaiementEleve.objects.filter(
+                    frais_annexe=frais,
+                    eleve=eleve,
+                    annee_scolaire=annee_scolaire_active,
+                    type_paiement='frais_annexe',
+                ).order_by('-date_paiement')
             )
             for paiement in paiements_annexe:
                 montant_paye_depuis_paiements += Decimal(str(paiement.montant))
@@ -479,6 +527,7 @@ class ComptabiliteController:
                 'montant_total': frais.montant,
                 'montant_paye': montant_paye_depuis_paiements,
                 'reste_a_payer': reste_a_payer_annexe if reste_a_payer_annexe > Decimal('0.00') else Decimal('0.00'),
+                'paiements': paiements_annexe,
             })
         
         # Calculer les totaux
@@ -746,7 +795,7 @@ class ComptabiliteController:
                     if isinstance(request.user, CompteUser):
                         enregistre_par_user = request.user
                     
-                    PaiementEleve.objects.create(
+                    paiement = PaiementEleve.objects.create(
                         eleve=eleve,
                         etablissement=etablissement,
                         annee_scolaire=annee_scolaire_active,
@@ -760,6 +809,10 @@ class ComptabiliteController:
                         notes=notes,
                         enregistre_par=enregistre_par_user
                     )
+                    try:
+                        pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
+                    except Exception:
+                        pass
                     
                     # Mettre à jour le statut de la comptabilité
                     if comptabilite:
@@ -961,19 +1014,30 @@ class ComptabiliteController:
                     enregistre_par_user = None
                     if isinstance(request.user, CompteUser):
                         enregistre_par_user = request.user
+
+                    mode_paiement = (request.POST.get('mode_paiement') or 'especes').strip()
+                    if mode_paiement not in {
+                        'especes', 'mobile_money', 'virement', 'cheque', 'carte', 'autre'
+                    }:
+                        mode_paiement = 'especes'
+                    reference_paiement = (request.POST.get('reference_paiement') or '').strip()[:100]
                     
-                    PaiementEleve.objects.create(
+                    paiement = PaiementEleve.objects.create(
                         eleve=eleve,
                         etablissement=etablissement,
                         annee_scolaire=annee_scolaire_active,
                         type_paiement='frais_inscription',
                         frais_inscription=frais_inscription,
                         montant=montant_decimal,
-                        mode_paiement='especes',  # Par défaut
-                        reference_paiement='',
+                        mode_paiement=mode_paiement,
+                        reference_paiement=reference_paiement,
                         notes='',
                         enregistre_par=enregistre_par_user
                     )
+                    try:
+                        pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
+                    except Exception:
+                        pass
                     
                     # Mettre à jour le statut de la comptabilité
                     if frais_inscription.comptabilite_eleve:
@@ -987,25 +1051,15 @@ class ComptabiliteController:
                         success_msg = f"Paiement de {montant_decimal} {devise_monnaie} enregistré. Reste à payer : {nouveau_reste} {devise_monnaie}."
                     messages.success(request, success_msg)
 
-                    from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
-                    from ..services.live_serializers import (
-                        serialize_comptabilite_paiement_result,
-                        serialize_comptabilite_eleve_snapshot,
+                    return ComptabiliteController._compta_redirect_apres_paiement(
+                        request,
+                        paiement,
+                        eleve_id_int,
+                        success_msg,
+                        etablissement,
+                        annee_scolaire_active,
+                        devise_monnaie,
                     )
-
-                    snapshot = serialize_comptabilite_eleve_snapshot(
-                        eleve_id_int, etablissement, annee_scolaire_active, devise_monnaie
-                    )
-                    live_item = serialize_comptabilite_paiement_result(eleve_id_int, success_msg, snapshot=snapshot)
-                    emit_live(
-                        etablissement.id,
-                        'comptabilite.mise_a_jour',
-                        {'event': 'comptabilite.mise_a_jour', 'item': live_item},
-                    )
-                    if wants_json_response(request):
-                        return json_ok(message=success_msg, item=live_item)
-
-                    return redirect('directeur:details_comptabilite_eleve_directeur', eleve_id=eleve_id_int)
             except Exception as e:
                 messages.error(request, f"Erreur lors de l'enregistrement : {str(e)}")
                 return redirect('directeur:details_comptabilite_eleve_directeur', eleve_id=eleve_id_int)
@@ -1124,19 +1178,30 @@ class ComptabiliteController:
                     enregistre_par_user = None
                     if isinstance(request.user, CompteUser):
                         enregistre_par_user = request.user
+
+                    mode_paiement = (request.POST.get('mode_paiement') or 'especes').strip()
+                    if mode_paiement not in {
+                        'especes', 'mobile_money', 'virement', 'cheque', 'carte', 'autre'
+                    }:
+                        mode_paiement = 'especes'
+                    reference_paiement = (request.POST.get('reference_paiement') or '').strip()[:100]
                     
-                    PaiementEleve.objects.create(
+                    paiement = PaiementEleve.objects.create(
                         eleve=eleve,
                         etablissement=etablissement,
                         annee_scolaire=annee_scolaire_active,
                         type_paiement='mensualite',
                         mensualite=mensualite,
                         montant=montant_decimal,
-                        mode_paiement='especes',  # Par défaut
-                        reference_paiement='',
+                        mode_paiement=mode_paiement,
+                        reference_paiement=reference_paiement,
                         notes='',
                         enregistre_par=enregistre_par_user
                     )
+                    try:
+                        pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
+                    except Exception:
+                        pass
                     
                     # Mettre à jour le statut de la comptabilité
                     if mensualite.comptabilite_eleve:
@@ -1150,25 +1215,15 @@ class ComptabiliteController:
                         success_msg = f"Paiement de {montant_decimal} {devise_monnaie} enregistré. Reste à payer : {nouveau_reste} {devise_monnaie}."
                     messages.success(request, success_msg)
 
-                    from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
-                    from ..services.live_serializers import (
-                        serialize_comptabilite_paiement_result,
-                        serialize_comptabilite_eleve_snapshot,
+                    return ComptabiliteController._compta_redirect_apres_paiement(
+                        request,
+                        paiement,
+                        eleve_id_int,
+                        success_msg,
+                        etablissement,
+                        annee_scolaire_active,
+                        devise_monnaie,
                     )
-
-                    snapshot = serialize_comptabilite_eleve_snapshot(
-                        eleve_id_int, etablissement, annee_scolaire_active, devise_monnaie
-                    )
-                    live_item = serialize_comptabilite_paiement_result(eleve_id_int, success_msg, snapshot=snapshot)
-                    emit_live(
-                        etablissement.id,
-                        'comptabilite.mise_a_jour',
-                        {'event': 'comptabilite.mise_a_jour', 'item': live_item},
-                    )
-                    if wants_json_response(request):
-                        return json_ok(message=success_msg, item=live_item)
-
-                    return redirect('directeur:details_comptabilite_eleve_directeur', eleve_id=eleve_id_int)
             except Exception as e:
                 messages.error(request, f"Erreur lors de l'enregistrement : {str(e)}")
                 return redirect('directeur:details_comptabilite_eleve_directeur', eleve_id=eleve_id_int)
@@ -1264,18 +1319,28 @@ class ComptabiliteController:
                 frais_annexe.refresh_from_db()
 
                 enregistre_par_user = request.user if isinstance(request.user, CompteUser) else None
-                PaiementEleve.objects.create(
+                mode_paiement = (request.POST.get('mode_paiement') or 'especes').strip()
+                if mode_paiement not in {
+                    'especes', 'mobile_money', 'virement', 'cheque', 'carte', 'autre'
+                }:
+                    mode_paiement = 'especes'
+                reference_paiement = (request.POST.get('reference_paiement') or '').strip()[:100]
+                paiement = PaiementEleve.objects.create(
                     eleve=eleve,
                     etablissement=etablissement,
                     annee_scolaire=annee_scolaire_active,
                     type_paiement='frais_annexe',
                     frais_annexe=frais_annexe,
                     montant=montant_decimal,
-                    mode_paiement='especes',
-                    reference_paiement='',
+                    mode_paiement=mode_paiement,
+                    reference_paiement=reference_paiement,
                     notes='',
                     enregistre_par=enregistre_par_user,
                 )
+                try:
+                    pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
+                except Exception:
+                    pass
 
                 if frais_annexe.comptabilite_eleve:
                     frais_annexe.comptabilite_eleve.verifier_statut_paiement()
@@ -1293,27 +1358,15 @@ class ComptabiliteController:
                     )
                 messages.success(request, success_msg)
 
-                from ..services.realtime_helpers import wants_json_response, json_ok, emit_live
-                from ..services.live_serializers import (
-                    serialize_comptabilite_paiement_result,
-                    serialize_comptabilite_eleve_snapshot,
+                return ComptabiliteController._compta_redirect_apres_paiement(
+                    request,
+                    paiement,
+                    eleve_id_int,
+                    success_msg,
+                    etablissement,
+                    annee_scolaire_active,
+                    devise_monnaie,
                 )
-
-                snapshot = serialize_comptabilite_eleve_snapshot(
-                    eleve_id_int, etablissement, annee_scolaire_active, devise_monnaie
-                )
-                live_item = serialize_comptabilite_paiement_result(
-                    eleve_id_int, success_msg, snapshot=snapshot
-                )
-                emit_live(
-                    etablissement.id,
-                    'comptabilite.mise_a_jour',
-                    {'event': 'comptabilite.mise_a_jour', 'item': live_item},
-                )
-                if wants_json_response(request):
-                    return json_ok(message=success_msg, item=live_item)
-
-                return redirect('directeur:details_comptabilite_eleve_directeur', eleve_id=eleve_id_int)
         except Exception as exc:
             messages.error(request, f"Erreur lors de l'enregistrement : {str(exc)}")
             return redirect('directeur:details_comptabilite_eleve_directeur', eleve_id=eleve_id_int)
@@ -1387,6 +1440,24 @@ class ComptabiliteController:
             messages.warning(request, "Le module scolarité n'est pas activé pour cet établissement.")
             return redirect('directeur:profil_etablissement')
 
+        if request.method == 'POST' and request.POST.get('action') == 'enregistrer_regime':
+            from school_admin.services.comptabilite_generale import enregistrer_regime_comptable
+
+            annee = ComptabiliteController._get_session_directeur(request, etablissement)
+            try:
+                _, changed = enregistrer_regime_comptable(
+                    etablissement,
+                    (request.POST.get('regime_comptable') or '').strip(),
+                    annee_scolaire=annee,
+                )
+                if changed:
+                    messages.success(request, "Régime comptable enregistré.")
+                else:
+                    messages.info(request, "Le régime comptable est déjà à jour.")
+            except ValueError as exc:
+                messages.error(request, str(exc))
+            return redirect('directeur:parametres_comptabilite_directeur')
+
         parametres_groupes = ParametresComptabiliteGroupeClasse.objects.filter(
             etablissement=etablissement
         ).order_by('-date_modification')
@@ -1402,6 +1473,9 @@ class ComptabiliteController:
             'groupes_disponibles': len(groupes_disponibles),
         }
 
+        from school_admin.services.comptabilite_generale import regime_est_verrouille
+
+        params_generaux = ParametresComptabilite.objects.filter(etablissement=etablissement).first()
         context = {
             'etablissement': etablissement,
             'parametres_groupes': parametres_groupes,
@@ -1413,6 +1487,9 @@ class ComptabiliteController:
             'is_directeur': is_directeur,
             'personnel': personnel,
             'devise_monnaie': devise_monnaie,
+            'parametres_comptabilite': params_generaux,
+            'regime_comptable': params_generaux.regime_comptable if params_generaux else 'engagement',
+            'regime_verrouille': regime_est_verrouille(etablissement),
         }
 
         return render(request, 'school_admin/directeur/comptabilite/parametres_comptabilite.html', context)

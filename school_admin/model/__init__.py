@@ -48,6 +48,23 @@ from .recouvrement_model import (
     Moratoire,
     EcheanceMoratoire,
 )
+from .caisse_etablissement_model import (
+    AbsenceEnseignant,
+    DepenseEtablissement,
+    PaieProfesseurPeriode,
+)
+from .comptabilite_generale_model import (
+    CompteComptable,
+    EcritureComptable,
+    ExerciceComptable,
+    FactureFournisseur,
+    FournisseurEtablissement,
+    Immobilisation,
+    JournalComptable,
+    LigneEcriture,
+    MouvementTresorerie,
+    PeriodeComptable,
+)
 from .parametres_comptabilite_model import ParametresComptabilite
 from .parametres_comptabilite_groupe_classe_model import ParametresComptabiliteGroupeClasse
 from .personnel_administratif_model import PersonnelAdministratif

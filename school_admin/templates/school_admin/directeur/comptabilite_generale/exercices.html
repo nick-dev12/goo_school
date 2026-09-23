@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Exercices" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="cg-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container cg-page">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:cg_hub_directeur' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='exercices' %}
+        <header class="cg-hero">
+            <div>
+                <h1 class="cg-hero-title"><i class="fas fa-lock"></i> {% trans "Exercice" %} {{ exercice.libelle }}</h1>
+                <p class="cg-hero-sub">{{ exercice.date_debut|date:"d/m/Y" }} → {{ exercice.date_fin|date:"d/m/Y" }} — {{ exercice.get_statut_display }}</p>
+                <p class="cg-hero-sub">{% trans "Exercice civil (1er janvier – 31 décembre). L'année scolaire reste le calendrier pédagogique." %}</p>
+            </div>
+            <form method="post" action="{% url 'directeur:cg_exercices' %}">
+                {% csrf_token %}
+                {% if exercice.statut == 'ouvert' %}
+                <input type="hidden" name="action" value="cloturer" />
+                <button class="cg-btn cg-btn--danger" type="submit">{% trans "Clôturer l'exercice" %}</button>
+                {% else %}
+                <input type="hidden" name="action" value="rouvrir" />
+                <button class="cg-btn cg-btn--primary" type="submit">{% trans "Rouvrir" %}</button>
+                {% endif %}
+            </form>
+        </header>
+        <section class="cg-section" id="regime-comptable">
+            <h2>{% trans "Régime comptable" %}</h2>
+            <p class="cg-hero-sub">{% trans "Engagement : les créances ouvertes passent en 411. Trésorerie : les encaissements créditent directement 705x / 706x. Un seul régime par exercice." %}</p>
+            <form method="post" action="{% url 'directeur:cg_exercices' %}" class="cg-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="enregistrer_regime" />
+                <label>{% trans "Régime" %}
+                    <select name="regime_comptable" {% if regime_verrouille %}disabled{% endif %}>
+                        <option value="engagement" {% if regime_comptable == 'engagement' %}selected{% endif %}>{% trans "Engagement (411) — recommandé" %}</option>
+                        <option value="tresorerie" {% if regime_comptable == 'tresorerie' %}selected{% endif %}>{% trans "Trésorerie (encaissements)" %}</option>
+                    </select>
+                </label>
+                {% if regime_verrouille %}
+                <p class="cg-hero-sub">{% trans "Des écritures existent déjà sur l'exercice civil ouvert : le régime ne peut plus être changé." %}</p>
+                {% else %}
+                <button class="cg-btn cg-btn--primary" type="submit"><i class="fas fa-save"></i> {% trans "Enregistrer le régime" %}</button>
+                {% endif %}
+            </form>
+        </section>
+        <section class="cg-section">
+            <h2>{% trans "Mois" %}</h2>
+            <div class="table-responsive">
+                <table class="cg-table">
+                    <thead><tr><th>{% trans "Période" %}</th><th>{% trans "Du" %}</th><th>{% trans "Au" %}</th><th>{% trans "Statut" %}</th><th></th></tr></thead>
+                    <tbody>
+                        {% for p in periodes_mois %}
+                        <tr>
+                            <td>{{ p.libelle }}</td>
+                            <td>{{ p.date_debut|date:"d/m/Y" }}</td>
+                            <td>{{ p.date_fin|date:"d/m/Y" }}</td>
+                            <td>{% if p.verrouillee %}<span class="cg-pill cg-pill--warn">{% trans "Verrouillé" %}</span>{% else %}<span class="cg-pill cg-pill--ok">{% trans "Ouvert" %}</span>{% endif %}</td>
+                            <td>
+                                <form method="post" action="{% url 'directeur:cg_exercices' %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="periode_id" value="{{ p.id }}" />
+                                    {% if p.verrouillee %}
+                                    <input type="hidden" name="action" value="deverrouiller" />
+                                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Déverrouiller" %}</button>
+                                    {% else %}
+                                    <input type="hidden" name="action" value="verrouiller" />
+                                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Verrouiller" %}</button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% if periodes_autres %}
+        <section class="cg-section">
+            <h2>{% trans "Trimestres / semestres" %}</h2>
+            <div class="table-responsive">
+                <table class="cg-table">
+                    <thead><tr><th>{% trans "Type" %}</th><th>{% trans "Libellé" %}</th><th>{% trans "Du" %}</th><th>{% trans "Au" %}</th></tr></thead>
+                    <tbody>
+                        {% for p in periodes_autres %}
+                        <tr><td>{{ p.get_type_periode_display }}</td><td>{{ p.libelle }}</td><td>{{ p.date_debut|date:"d/m/Y" }}</td><td>{{ p.date_fin|date:"d/m/Y" }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
+    </div>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

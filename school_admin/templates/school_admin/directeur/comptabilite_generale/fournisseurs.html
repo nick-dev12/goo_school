@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Fournisseurs" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="cg-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container cg-page">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:cg_hub_directeur' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='fournisseurs' %}
+        <header class="cg-hero">
+            <div>
+                <h1 class="cg-hero-title"><i class="fas fa-file-invoice"></i> {% trans "Fournisseurs et patrimoine" %}</h1>
+                <p class="cg-hero-sub">{% trans "Échéancier des factures, suivi des immobilisations (bâtiments, bus, informatique, mobilier) et écritures d'amortissement." %}</p>
+            </div>
+        </header>
+        <section class="cg-section">
+            <h2>{% trans "Nouveau fournisseur" %}</h2>
+            <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" class="cg-form">
+                {% csrf_token %}<input type="hidden" name="action" value="ajouter_fournisseur" />
+                <label>{% trans "Nom" %}<input name="nom" required /></label>
+                <label>{% trans "Téléphone" %}<input name="telephone" /></label>
+                <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+            </form>
+        </section>
+        <section class="cg-section">
+            <h2>{% trans "Facture fournisseur" %}</h2>
+            <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" class="cg-form">
+                {% csrf_token %}<input type="hidden" name="action" value="ajouter_facture" />
+                <label>{% trans "Fournisseur" %}
+                    <select name="fournisseur_id" required>
+                        <option value="">{% trans "Choisir" %}</option>
+                        {% for f in fournisseurs %}<option value="{{ f.id }}">{{ f.nom }}</option>{% endfor %}
+                    </select>
+                </label>
+                <label>{% trans "N°" %}<input name="numero" required /></label>
+                <label>{% trans "Libellé" %}<input name="libelle" required /></label>
+                <label>{% trans "Montant" %}<input name="montant" type="number" step="0.01" min="0" required /></label>
+                <label>{% trans "Date facture" %}<input name="date_facture" type="date" required /></label>
+                <label>{% trans "Échéance" %}<input name="date_echeance" type="date" required /></label>
+                <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+            </form>
+            <div class="table-responsive" style="margin-top:1rem;">
+                <table class="cg-table">
+                    <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Fournisseur" %}</th><th>{% trans "Échéance" %}</th><th>{% trans "Reste" %}</th></tr></thead>
+                    <tbody>
+                        {% for fac in factures %}
+                        <tr><td>{{ fac.numero }}</td><td>{{ fac.fournisseur.nom }}</td><td>{{ fac.date_echeance|date:"d/m/Y" }}</td><td>{{ fac.reste_a_payer|floatformat:0 }} {{ devise_monnaie }}</td></tr>
+                        {% empty %}<tr><td colspan="4">{% trans "Aucune facture." %}</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <section class="cg-section">
+            <h2>{% trans "Immobilisation" %}</h2>
+            <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" class="cg-form">
+                {% csrf_token %}<input type="hidden" name="action" value="ajouter_immo" />
+                <label>{% trans "Libellé" %}<input name="libelle" required placeholder="{% trans 'Bus n°1' %}" /></label>
+                <label>{% trans "Catégorie" %}
+                    <select name="categorie">
+                        <option value="batiment">{% trans "Bâtiment" %}</option>
+                        <option value="bus">{% trans "Bus" %}</option>
+                        <option value="informatique">{% trans "Informatique" %}</option>
+                        <option value="mobilier">{% trans "Mobilier" %}</option>
+                        <option value="autre">{% trans "Autre" %}</option>
+                    </select>
+                </label>
+                <label>{% trans "Acquisition" %}<input name="date_acquisition" type="date" required /></label>
+                <label>{% trans "Valeur" %}<input name="valeur_origine" type="number" step="0.01" min="0" required /></label>
+                <label>{% trans "Durée (ans)" %}<input name="duree_annees" type="number" min="1" value="5" /></label>
+                <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+            </form>
+            <div class="table-responsive" style="margin-top:1rem;">
+                <table class="cg-table">
+                    <thead><tr><th>{% trans "Bien" %}</th><th>{% trans "Dotation annuelle" %}</th><th></th></tr></thead>
+                    <tbody>
+                        {% for im in immobilisations %}
+                        <tr>
+                            <td>{{ im.libelle }}</td>
+                            <td>{{ im.dotation_annuelle }} {{ devise_monnaie }}</td>
+                            <td>
+                                <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="amortir" />
+                                    <input type="hidden" name="immo_id" value="{{ im.id }}" />
+                                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Générer l'écriture" %}</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}<tr><td colspan="3">{% trans "Aucun bien." %}</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

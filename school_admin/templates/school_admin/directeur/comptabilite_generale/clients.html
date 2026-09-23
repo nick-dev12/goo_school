@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Clients scolarité" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="cg-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container cg-page">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:cg_hub_directeur' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='clients' %}
+        <header class="cg-hero">
+            <div>
+                <h1 class="cg-hero-title"><i class="fas fa-user-graduate"></i> {% trans "Comptabilité client" %}</h1>
+                <p class="cg-hero-sub">{% trans "Balance âgée des familles, impayés par classe. Facturation et encaissements se font dans Scolarité — les écritures suivent automatiquement." %}</p>
+            </div>
+            <a class="cg-btn cg-btn--primary" href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}">{% trans "Saisir un encaissement" %}</a>
+            <a class="cg-btn cg-btn--ghost" href="{% url 'directeur:liste_impayes_directeur' %}">{% trans "Relances" %}</a>
+        </header>
+        <div class="cg-grid">
+            <div class="cg-card"><h3>0–30 j</h3><p class="cg-stat-num">{{ buckets.j0_30|floatformat:0 }} {{ devise_monnaie }}</p></div>
+            <div class="cg-card"><h3>31–60 j</h3><p class="cg-stat-num">{{ buckets.j31_60|floatformat:0 }} {{ devise_monnaie }}</p></div>
+            <div class="cg-card"><h3>61–90 j</h3><p class="cg-stat-num">{{ buckets.j61_90|floatformat:0 }} {{ devise_monnaie }}</p></div>
+            <div class="cg-card"><h3>90+ j</h3><p class="cg-stat-num">{{ buckets.j90|floatformat:0 }} {{ devise_monnaie }}</p></div>
+        </div>
+        {% for g in groupes %}
+        <section class="cg-section">
+            <h2>{{ g.classe_nom }} — {{ g.total_reste|floatformat:0 }} {{ devise_monnaie }}</h2>
+            <div class="table-responsive">
+                <table class="cg-table">
+                    <thead><tr><th>{% trans "Élève" %}</th><th>{% trans "Reste dû" %}</th><th>{% trans "Échéance" %}</th></tr></thead>
+                    <tbody>
+                        {% for item in g.eleves %}
+                        <tr>
+                            <td>{{ item.eleve.nom_complet }}</td>
+                            <td>{{ item.resume.reste|floatformat:0 }}</td>
+                            <td>{% if item.resume.prochaine_echeance %}{{ item.resume.prochaine_echeance|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% empty %}
+        <section class="cg-section"><p>{% trans "Aucune créance ouverte." %}</p></section>
+        {% endfor %}
+    </div>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

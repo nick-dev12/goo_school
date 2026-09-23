@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Paie" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="cg-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container cg-page">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:cg_hub_directeur' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='paie' %}
+        <header class="cg-hero">
+            <div>
+                <h1 class="cg-hero-title"><i class="fas fa-user-clock"></i> {% trans "Paie et honoraires" %}</h1>
+                <p class="cg-hero-sub">{% trans "Les vacations validées sur le volume horaire génèrent une écriture 637 / 571. Les charges sociales (4311, 447) se règlent en OD. La paie des permanents n’est pas encore ouverte." %}</p>
+            </div>
+            <div class="cg-stat"><span class="cg-stat-num">{{ charges|floatformat:0 }}</span><span class="cg-stat-lbl">{% trans "Charges paie" %}</span></div>
+            <a class="cg-btn cg-btn--primary" href="{% url 'directeur:liste_volume_horaire' %}">{% trans "Volume horaire" %}</a>
+        </header>
+        <section class="cg-section">
+            <h2>{% trans "Écritures de paie" %}</h2>
+            <div class="table-responsive">
+                <table class="cg-table">
+                    <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Date" %}</th><th>{% trans "Libellé" %}</th></tr></thead>
+                    <tbody>
+                        {% for e in ecritures %}
+                        <tr><td>{{ e.numero }}</td><td>{{ e.date_ecriture|date:"d/m/Y" }}</td><td>{{ e.libelle }}</td></tr>
+                        {% empty %}<tr><td colspan="3">{% trans "Marquez une paie vacataire pour créer la première écriture." %}</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

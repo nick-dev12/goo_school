@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Plan comptable" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="cg-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container cg-page">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:cg_hub_directeur' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='plan' %}
+        <header class="cg-hero">
+            <div>
+                <h1 class="cg-hero-title"><i class="fas fa-sitemap"></i> {% trans "Plan comptable SYSCOHADA" %}</h1>
+                <p class="cg-hero-sub">{% trans "PCE SYSCOHADA révisé : 571 caisse, 521 banque, 585 mobile money, 7051/7052 scolarité, 7061 annexes, 411 clients." %}</p>
+            </div>
+        </header>
+        <section class="cg-section">
+            <h2>{% trans "Ajouter un compte" %}</h2>
+            <form method="post" action="{% url 'directeur:cg_plan_comptable' %}" class="cg-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="ajouter_compte" />
+                <label>{% trans "Numéro" %}<input name="numero" required maxlength="12" placeholder="7061" /></label>
+                <label>{% trans "Libellé" %}<input name="libelle" required maxlength="160" placeholder="{% trans 'Cantine' %}" /></label>
+                <label>{% trans "Classe" %}
+                    <select name="classe">
+                        <option value="2">2</option><option value="4">4</option><option value="5">5</option>
+                        <option value="6" selected>6</option><option value="7">7</option>
+                    </select>
+                </label>
+                <label>{% trans "Nature" %}
+                    <select name="nature">
+                        <option value="charge">{% trans "Charge" %}</option>
+                        <option value="produit">{% trans "Produit" %}</option>
+                        <option value="actif">{% trans "Actif" %}</option>
+                        <option value="passif">{% trans "Passif" %}</option>
+                    </select>
+                </label>
+                <button type="submit" class="cg-btn cg-btn--primary">{% trans "Enregistrer" %}</button>
+            </form>
+        </section>
+        <section class="cg-section">
+            <h2>{% trans "Comptes" %} ({{ comptes|length }})</h2>
+            <div class="table-responsive">
+                <table class="cg-table">
+                    <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Libellé" %}</th><th>{% trans "Classe" %}</th><th>{% trans "Nature" %}</th></tr></thead>
+                    <tbody>
+                        {% for c in comptes %}
+                        <tr><td>{{ c.numero }}</td><td>{{ c.libelle }}</td><td>{{ c.classe }}</td><td>{{ c.get_nature_display }}</td></tr>
+                        {% empty %}
+                        <tr><td colspan="4">{% trans "Aucun compte." %}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

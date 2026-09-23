@@ -55,6 +55,33 @@
             </div>
         </header>
 
+        <section class="scp-regime-card" id="regime-comptable">
+            <div class="scp-regime-text">
+                <h2 class="scp-regime-title"><i class="fas fa-balance-scale"></i> {% trans "Régime comptable" %}</h2>
+                <p class="scp-regime-sub">{% trans "Engagement (défaut) : créances ouvertes en 411, encaissements en 571 / 521 / 585. Trésorerie : encaissements directs en 705x / 706x. L'exercice reste l'année civile." %}</p>
+            </div>
+            <form method="post" action="{% url 'directeur:parametres_comptabilite_directeur' %}" class="scp-regime-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="enregistrer_regime" />
+                <label class="scp-regime-label">{% trans "Régime" %}
+                    <select name="regime_comptable" {% if regime_verrouille %}disabled{% endif %}>
+                        <option value="engagement" {% if regime_comptable == 'engagement' %}selected{% endif %}>{% trans "Engagement (411) — recommandé" %}</option>
+                        <option value="tresorerie" {% if regime_comptable == 'tresorerie' %}selected{% endif %}>{% trans "Trésorerie (encaissements)" %}</option>
+                    </select>
+                </label>
+                {% if regime_verrouille %}
+                <p class="scp-regime-lock">{% trans "Des écritures existent déjà sur l'exercice civil ouvert : le régime ne peut plus être changé." %}</p>
+                {% else %}
+                <button type="submit" class="scp-action-btn scp-action-btn--primary">
+                    <i class="fas fa-save"></i> {% trans "Enregistrer le régime" %}
+                </button>
+                {% endif %}
+            </form>
+            <a href="{% url 'directeur:cg_exercices' %}" class="scp-action-btn scp-action-btn--secondary">
+                <i class="fas fa-calendar-alt"></i> {% trans "Exercice et plan de comptes" %}
+            </a>
+        </section>
+
         {% if parametres_groupes %}
             <div class="scp-cards-grid parametres-list">
                 {% for parametre in parametres_groupes %}

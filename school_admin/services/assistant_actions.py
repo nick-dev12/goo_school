@@ -1768,26 +1768,27 @@ def apply_supprimer_session_examen(ctx, draft):
 # ---------------------------------------------------------------------------
 
 def prepare_creer_classe(ctx, args):
+    from school_admin.services.assistant_schema import resolve_niveau_classe
+
     nom = (args.get('nom') or args.get('query') or '').strip()
-    niveau = (args.get('niveau') or '').strip()
-    if ctx.etablissement.type_etablissement == 'primary':
-        niveau = niveau or 'primaire'
-    elif ctx.etablissement.type_etablissement == 'collège':
-        niveau = niveau or 'college'
-    elif ctx.etablissement.type_etablissement == 'lycée':
-        niveau = niveau or 'lycee'
-    elif ctx.etablissement.type_etablissement == 'superieur':
-        niveau = niveau or 'superieur'
-    else:
-        niveau = niveau or 'lycee'
+    niveau = resolve_niveau_classe(ctx, args)
     if not nom:
         return _incomplete('creer_classe', ['nom'], 'Quel nom pour la nouvelle classe ?')
+    if not niveau:
+        return _incomplete(
+            'creer_classe',
+            ['cycle'],
+            'Cette classe est-elle de collège ou de lycée ?',
+            nom=nom,
+            capacite=args.get('capacite') or args.get('capacite_max') or 30,
+        )
     capacite = int(args.get('capacite') or args.get('capacite_max') or 30)
     return _pending(
         'creer_classe',
         f'crée la classe {nom}',
         nom=nom,
         niveau=niveau,
+        cycle=niveau,
         capacite_max=capacite,
         url=_reverse('administrateur_etablissement:liste_classes'),
     )
@@ -1797,8 +1798,12 @@ def apply_creer_classe(ctx, draft):
     from school_admin.controllers.classe_controller import ClasseController
     from school_admin.model.classe_model import Classe
 
+    from school_admin.services.assistant_schema import normalize_cycle
+
     nom = (draft.get('nom') or '').strip()
-    niveau = draft.get('niveau') or 'lycee'
+    niveau = normalize_cycle(draft.get('niveau') or draft.get('cycle'))
+    if not niveau:
+        return _err('Indiquez le cycle de la classe (collège ou lycée).')
     if Classe.objects.filter(nom=nom, etablissement=ctx.etablissement, niveau=niveau).exists():
         return _err(f'Une classe « {nom} » existe déjà.')
     code = ClasseController.generate_code_classe(nom, niveau, ctx.etablissement)
@@ -2471,6 +2476,13 @@ _ACTIONS = (
         {
             'nom': {'type': 'string'},
             'niveau': {'type': 'string'},
+            'cycle': {
+                'type': 'string',
+                'description': (
+                    'Cycle : college ou lycee. Obligatoire pour un établissement '
+                    'collège+lycée ou mixte.'
+                ),
+            },
             'capacite': {'type': 'integer'},
         },
         required=('nom',),

@@ -31,6 +31,7 @@ from school_admin.services.assistant_tools import (
     TOOL_HANDLERS,
     TOOLS_SCHEMA,
     build_assistant_context,
+    context_snapshot,
     execute_tool,
 )
 
@@ -590,3 +591,151 @@ class AssistantDirecteurToolsTests(TestCase):
         )
         affecte = resolve_action_intent('Affecte Diallo en 6e A')
         self.assertEqual(affecte[0], 'affecter_professeur')
+
+
+def _make_etablissement_type(type_etab, prefix):
+    suffix = date.today().strftime('%Y%m%d%H%M%S%f')
+    email = f'{prefix}.{suffix}@aria-test.local'
+    etab = Etablissement(
+        username=email,
+        email=email,
+        nom=f'{prefix} Aria {suffix[-6:]}',
+        code_etablissement=f'{prefix[:3].upper()}-{suffix[-6:]}',
+        adresse='1 rue des Tests',
+        pays='Sénégal',
+        ville='Dakar',
+        type_etablissement=type_etab,
+        directeur_prenom='Awa',
+        directeur_nom='Ndiaye',
+        directeur_email=f'dir.{prefix}.{suffix}@aria-test.local',
+        module_comptabilite=True,
+        actif=True,
+    )
+    etab.set_password('Vague1@Test1!')
+    etab.save()
+    return etab
+
+
+class AssistantDirecteurVague1Tests(TestCase):
+    """Filtrage schéma/prompt, cycle collège+lycée, permissions personnel."""
+
+    def _schema_names(self, etab):
+        from school_admin.services.assistant_tools import directeur_tools_schema
+
+        ctx = build_assistant_context(etab)
+        return {
+            item['function']['name']
+            for item in directeur_tools_schema(ctx)
+            if item.get('function')
+        }
+
+    def test_contexte_flags_par_type(self):
+        primaire = _make_etablissement_type('primary', 'prim')
+        dual = _make_etablissement_type('collège_lycée', 'dual')
+        mixte = _make_etablissement_type('mixte', 'mix')
+        ctx_p = build_assistant_context(primaire)
+        ctx_d = build_assistant_context(dual)
+        ctx_m = build_assistant_context(mixte)
+        self.assertTrue(ctx_p.est_primaire)
+        self.assertFalse(ctx_p.cycle_requis)
+        self.assertTrue(ctx_d.est_college_lycee)
+        self.assertTrue(ctx_d.cycle_requis)
+        self.assertTrue(ctx_m.est_college_lycee)
+        snap = context_snapshot(ctx_d)
+        self.assertTrue(snap['est_college_lycee'])
+        self.assertTrue(snap['cycle_requis'])
+
+    def test_schema_filtre_lmd_et_cg(self):
+        from school_admin.services.assistant_schema import CG_TOOLS, SUPERIEUR_ONLY_TOOLS
+
+        lycee = _make_etablissement_type('lycée', 'lyc')
+        primaire = _make_etablissement_type('primary', 'prm')
+        superieur = _make_etablissement_type('superieur', 'sup')
+        names_lycee = self._schema_names(lycee)
+        names_prim = self._schema_names(primaire)
+        names_sup = self._schema_names(superieur)
+        for name in SUPERIEUR_ONLY_TOOLS:
+            self.assertNotIn(name, names_lycee)
+            self.assertNotIn(name, names_prim)
+            self.assertIn(name, names_sup)
+        for name in CG_TOOLS:
+            self.assertNotIn(name, names_lycee)
+            self.assertNotIn(name, names_sup)
+        self.assertIn('creer_classe', names_lycee)
+        self.assertIn('get_effectifs', names_prim)
+
+    def test_prompt_varie_selon_le_type(self):
+        from school_admin.services.gemini_assistant_service import system_prompt_static_for
+
+        primaire = build_assistant_context(_make_etablissement_type('primary', 'prp'))
+        dual = build_assistant_context(_make_etablissement_type('mixte', 'mxp'))
+        superieur = build_assistant_context(_make_etablissement_type('superieur', 'spp'))
+        p_prompt = system_prompt_static_for(primaire)
+        d_prompt = system_prompt_static_for(dual)
+        s_prompt = system_prompt_static_for(superieur)
+        self.assertIn('primaire', p_prompt.lower())
+        self.assertIn('ects', p_prompt.lower())
+        self.assertIn('cycle', d_prompt.lower())
+        self.assertIn('étudiants', s_prompt.lower())
+        self.assertIn('comptabilité générale : indisponible', d_prompt.lower())
+
+    def test_creer_classe_dual_exige_le_cycle(self):
+        etab = _make_etablissement_type('collège_lycée', 'cyc')
+        ctx = build_assistant_context(etab)
+        draft = execute_tool(ctx, 'creer_classe', {'nom': '6e A'})
+        self.assertEqual(draft['statut'], 'incomplet')
+        self.assertIn('cycle', draft['manquants'])
+        self.assertFalse(Classe.objects.filter(etablissement=etab, nom='6e A').exists())
+        draft_ok = execute_tool(ctx, 'creer_classe', {'nom': '6e A', 'cycle': 'college'})
+        self.assertEqual(draft_ok['statut'], 'en_attente_confirmation')
+        self.assertEqual(draft_ok['niveau'], 'college')
+        result = ACTION_SPECS['creer_classe'].apply(ctx, draft_ok)
+        self.assertEqual(result['statut'], 'ok')
+        classe = Classe.objects.get(etablissement=etab, nom='6e A')
+        self.assertEqual(classe.niveau, 'college')
+
+    def test_creer_classe_lycee_sans_cycle(self):
+        etab = _make_etablissement_type('lycée', 'ly2')
+        ctx = build_assistant_context(etab)
+        draft = execute_tool(ctx, 'creer_classe', {'nom': '1ère S'})
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.assertEqual(draft['niveau'], 'lycee')
+
+    def test_niveau_enseignement_mixte_sans_defaut_primaire(self):
+        from school_admin.services.assistant_schema import resolve_niveau_enseignement
+
+        etab = _make_etablissement_type('mixte', 'nvx')
+        self.assertIsNone(resolve_niveau_enseignement(etab))
+        self.assertEqual(resolve_niveau_enseignement(etab, 'lycée'), 'lycee')
+        self.assertEqual(resolve_niveau_enseignement(etab, 'collège'), 'college')
+
+    def test_personnel_sans_droit_ne_cree_pas_de_classe(self):
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+
+        etab = _make_etablissement_type('lycée', 'per')
+        suffix = str(etab.pk)
+        personnel = PersonnelAdministratif(
+            username=f'caissier.{suffix}',
+            email=f'caissier.{suffix}@aria-test.local',
+            nom='Fall',
+            prenom='Ibra',
+            telephone='770000099',
+            fonction='caissier',
+            etablissement=etab,
+            actif=True,
+            permissions={},
+        )
+        personnel.set_password('Caissier@Test1!')
+        personnel.save()
+        ctx = build_assistant_context(etab, personnel=personnel)
+        refused = execute_tool(ctx, 'creer_classe', {'nom': '2nde B'})
+        self.assertIn('autorisation', refused.get('erreur', '').lower())
+        self.assertFalse(Classe.objects.filter(etablissement=etab, nom='2nde B').exists())
+        allowed = execute_tool(ctx, 'get_caisse', {})
+        self.assertNotIn('erreur', allowed)
+        search_notes = execute_tool(
+            ctx,
+            'chercher_en_base',
+            {'question': 'notes de Diallo'},
+        )
+        self.assertIn('autorisation', search_notes.get('erreur', '').lower())

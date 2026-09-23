@@ -81,16 +81,10 @@ def _ask_next_field(action, extras, prompts):
     return _incomplete(action, [first], prompts[first], **kept)
 
 
-def _niveau_enseignement(etablissement):
-    mapping = {
-        'primary': 'primaire',
-        'collège': 'college',
-        'college': 'college',
-        'lycée': 'lycee',
-        'lycee': 'lycee',
-        'superieur': 'superieur',
-    }
-    return mapping.get((etablissement.type_etablissement or '').lower(), 'primaire')
+def _niveau_enseignement(etablissement, cycle=None):
+    from school_admin.services.assistant_schema import resolve_niveau_enseignement
+
+    return resolve_niveau_enseignement(etablissement, cycle)
 
 
 def prepare_inscrire_eleve(ctx, args):
@@ -296,6 +290,10 @@ def prepare_creer_professeur(ctx, args):
     if sexe not in ('M', 'F'):
         sexe = 'M'
     matiere = _find_matiere(ctx, args.get('matiere'))
+    cycle = _niveau_enseignement(
+        ctx.etablissement,
+        args.get('cycle') or args.get('niveau'),
+    )
     extras = {
         'nom': nom,
         'prenom': prenom,
@@ -303,6 +301,7 @@ def prepare_creer_professeur(ctx, args):
         'sexe': sexe,
         'email': (args.get('email') or '').strip(),
         'matiere': matiere.nom if matiere else (args.get('matiere') or ''),
+        'cycle': cycle or '',
     }
     if matiere:
         extras['matiere_id'] = matiere.id
@@ -313,6 +312,8 @@ def prepare_creer_professeur(ctx, args):
     }
     if ctx.etablissement.type_etablissement != 'primary':
         prompts['matiere'] = 'Quelle est sa matière principale ?'
+    if getattr(ctx, 'est_college_lycee', False):
+        prompts['cycle'] = 'Enseigne-t-il au collège ou au lycée ?'
     asked = _ask_next_field('creer_professeur', extras, prompts)
     if asked:
         return asked
@@ -326,6 +327,7 @@ def prepare_creer_professeur(ctx, args):
         email=(args.get('email') or '').strip() or None,
         matiere_id=matiere.id if matiere else None,
         matiere_nom=matiere.nom if matiere else None,
+        cycle=cycle,
         url=_reverse('professeur:liste_professeurs'),
     )
 
@@ -344,6 +346,12 @@ def apply_creer_professeur(ctx, draft):
             matiere = Matiere.objects.filter(
                 pk=draft['matiere_id'], etablissement=ctx.etablissement
             ).first()
+        niveau = _niveau_enseignement(
+            ctx.etablissement,
+            draft.get('cycle') or draft.get('niveau'),
+        )
+        if not niveau:
+            return _err('Indiquez le cycle du professeur (collège ou lycée).')
         professeur = Professeur(
             nom=draft.get('nom'),
             prenom=draft.get('prenom'),
@@ -351,7 +359,7 @@ def apply_creer_professeur(ctx, draft):
             email=draft.get('email') or None,
             telephone=draft.get('telephone'),
             matiere_principale=matiere,
-            niveau_enseignement=_niveau_enseignement(ctx.etablissement),
+            niveau_enseignement=niveau,
             numero_employe=matricule,
             username=matricule,
             etablissement=ctx.etablissement,
@@ -733,6 +741,13 @@ _STAFF_ACTIONS = (
             'sexe': {'type': 'string', 'enum': ['M', 'F']},
             'email': {'type': 'string'},
             'matiere': {'type': 'string'},
+            'cycle': {
+                'type': 'string',
+                'description': (
+                    'Cycle : college ou lycee. Obligatoire pour un établissement '
+                    'collège+lycée ou mixte.'
+                ),
+            },
         },
         prepare=prepare_creer_professeur,
         apply=apply_creer_professeur,

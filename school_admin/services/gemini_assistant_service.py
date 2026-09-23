@@ -11,8 +11,8 @@ from asgiref.sync import sync_to_async
 from django.conf import settings
 
 from school_admin.services.assistant_tools import (
-    TOOLS_SCHEMA,
     context_snapshot,
+    directeur_tools_schema,
     dumps_tool_result,
     execute_tool,
 )
@@ -181,6 +181,35 @@ Sujet :
   seulement si une information indispensable manque vraiment.
 """
 
+SYSTEM_PROMPT_ENSEIGNANT_PRIMAIRE = """Tu es Aria, l'assistante vocale des enseignants du primaire.
+Tu aides pour les classes affectées, les notes, les présences, les exercices,
+les élèves en difficulté et la navigation dans l'espace enseignant.
+
+Réponds directement, chaleureusement, en français oral naturel.
+Pas de markdown, pas d'URL, pas de listes à puces lues à voix haute.
+
+Outils :
+- Tu n'accèdes qu'aux classes et élèves du professeur connecté.
+- Appelle un outil pour toute donnée ou action (notes, présences, pages).
+- Les actions d'écriture exigent confirmation explicite après présentation du résumé.
+- Navigation : ouvrir_page ou ouvrir_classe avec ouvrir true.
+
+Notes et évaluations :
+- enregistrer_note, creer_evaluation, calculer_moyennes_matiere, soumettre_releve_matiere.
+- Ne modifie pas un relevé déjà soumis.
+
+Présences et discipline :
+- enregistrer_presences, valider_presence_classe, soumettre_sanction.
+
+Exercices : creer_exercice_maison.
+
+Interdit : comptabilité, caisse, personnel administratif, affectations globales,
+annonces directeur, préinscriptions, volume horaire.
+
+Sujet : le dernier message utilisateur a toujours priorité. Une seule question
+si une information indispensable manque.
+"""
+
 SYSTEM_PROMPT_STATIC = SYSTEM_PROMPT
 SYSTEM_PROMPT = SYSTEM_PROMPT_STATIC + """
 
@@ -259,11 +288,32 @@ def strip_tool_markup(text):
     return strip_assistant_markup(cleaned)
 
 
+def system_prompt_static_for(ctx):
+    persona = getattr(ctx, 'persona', 'directeur')
+    if persona == 'enseignant_primaire':
+        return SYSTEM_PROMPT_ENSEIGNANT_PRIMAIRE
+    from school_admin.services.assistant_schema import prompt_addendum_for
+
+    return SYSTEM_PROMPT_STATIC + prompt_addendum_for(ctx)
+
+
+def tools_schema_for(ctx):
+    persona = getattr(ctx, 'persona', 'directeur')
+    if persona == 'enseignant_primaire':
+        from school_admin.services.assistant_enseignant_primaire_tools import (
+            get_enseignant_primaire_tools_schema,
+        )
+
+        return get_enseignant_primaire_tools_schema()
+    return directeur_tools_schema(ctx)
+
+
 def build_system_message(ctx):
     snapshot = json.dumps(context_snapshot(ctx), ensure_ascii=False)
+    base = system_prompt_static_for(ctx)
     return {
         'role': 'system',
-        'content': SYSTEM_PROMPT.format(context=snapshot),
+        'content': base + f"\n\nContexte établissement :\n{snapshot}",
     }
 
 
@@ -629,7 +679,17 @@ async def _run_assistant_turn_cached(
     from google.genai import types
 
     model = _model_name()
-    cached = ensure_tools_cache(SYSTEM_PROMPT_STATIC, model)
+    persona = getattr(ctx, 'persona', 'directeur')
+    prompt_static = system_prompt_static_for(ctx)
+    from school_admin.services.assistant_schema import schema_profile
+
+    cached = ensure_tools_cache(
+        prompt_static,
+        model,
+        tools_schema=tools_schema_for(ctx),
+        persona=persona,
+        profile=schema_profile(ctx) if persona == 'directeur' else None,
+    )
     if not cached:
         return None
     cache_name, cache_model, _token_count = cached
@@ -729,8 +789,9 @@ async def run_assistant_turn(
     working = _messages_for_api(messages)
     used_tools = False
     extra = {}
+    schema = tools_schema_for(ctx) if use_tools else None
     if use_tools:
-        extra = {'tools': TOOLS_SCHEMA, 'tool_choice': 'auto'}
+        extra = {'tools': schema, 'tool_choice': 'auto'}
 
     for _round in range(MAX_TOOL_ROUNDS):
         if on_status:

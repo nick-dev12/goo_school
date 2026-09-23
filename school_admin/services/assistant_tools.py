@@ -61,9 +61,22 @@ class AssistantContext:
     est_primaire: bool
     libelle_eleve: str
     personnel: object = None
+    professeur: object = None
+    persona: str = 'directeur'
+    affectations_resume: list = None
+    est_college: bool = False
+    est_lycee: bool = False
+    est_college_lycee: bool = False
+    cycle_requis: bool = False
 
 
-def build_assistant_context(etablissement, session_store=None, personnel=None):
+def build_assistant_context(
+    etablissement,
+    session_store=None,
+    personnel=None,
+    professeur=None,
+    persona='directeur',
+):
     """Construit le contexte établissement + session consultée."""
     from school_admin.model.annee_scolaire_model import AnneeScolaire
 
@@ -79,23 +92,35 @@ def build_assistant_context(etablissement, session_store=None, personnel=None):
     if annee is None:
         annee = AnneeScolaire.get_session_active(etablissement)
 
-    type_etab = (etablissement.type_etablissement or '').lower()
-    est_superieur = type_etab == 'superieur'
-    est_primaire = type_etab == 'primary'
-    return AssistantContext(
+    from school_admin.services.assistant_schema import classify_etablissement
+
+    flags = classify_etablissement(etablissement)
+    ctx = AssistantContext(
         etablissement=etablissement,
         annee_scolaire=annee,
-        est_superieur=est_superieur,
-        est_primaire=est_primaire,
-        libelle_eleve='étudiant' if est_superieur else 'élève',
+        est_superieur=flags['est_superieur'],
+        est_primaire=flags['est_primaire'],
+        libelle_eleve='étudiant' if flags['est_superieur'] else 'élève',
         personnel=personnel,
+        professeur=professeur,
+        persona=persona or 'directeur',
+        affectations_resume=None,
+        est_college=flags['est_college'],
+        est_lycee=flags['est_lycee'],
+        est_college_lycee=flags['est_college_lycee'],
+        cycle_requis=flags['cycle_requis'],
     )
+    if ctx.persona == 'enseignant_primaire' and ctx.professeur:
+        from school_admin.services.assistant_enseignant_scope import affectations_summary
+
+        ctx.affectations_resume = affectations_summary(ctx)
+    return ctx
 
 
 def context_snapshot(ctx):
     """Résumé court injecté dans le system prompt."""
     etab = ctx.etablissement
-    return {
+    payload = {
         'nom': etab.nom,
         'code': etab.code_etablissement,
         'type': etab.type_etablissement,
@@ -105,7 +130,17 @@ def context_snapshot(ctx):
         'libelle_apprenant': ctx.libelle_eleve,
         'est_superieur': ctx.est_superieur,
         'est_primaire': ctx.est_primaire,
+        'est_college': getattr(ctx, 'est_college', False),
+        'est_lycee': getattr(ctx, 'est_lycee', False),
+        'est_college_lycee': getattr(ctx, 'est_college_lycee', False),
+        'cycle_requis': getattr(ctx, 'cycle_requis', False),
+        'persona': getattr(ctx, 'persona', 'directeur'),
     }
+    if getattr(ctx, 'persona', 'directeur') == 'enseignant_primaire' and ctx.professeur:
+        prof = ctx.professeur
+        payload['professeur'] = getattr(prof, 'nom_complet', None) or f'{prof.prenom} {prof.nom}'
+        payload['affectations'] = getattr(ctx, 'affectations_resume', None) or []
+    return payload
 
 
 def _inscrits_ids(ctx):
@@ -549,11 +584,19 @@ def spoken_from_affectations(result):
     return ' '.join(parts)
 
 
-def spoken_from_tool_result(name, result):
+def spoken_from_tool_result(name, result, ctx=None):
     if name == 'get_affectations' or (
         isinstance(result, dict) and result.get('source') == 'affectations'
     ):
         return spoken_from_affectations(result)
+    if ctx and getattr(ctx, 'persona', 'directeur') == 'enseignant_primaire':
+        from school_admin.services.assistant_enseignant_primaire_tools import (
+            spoken_from_enseignant_tool,
+        )
+
+        spoken = spoken_from_enseignant_tool(name, result)
+        if spoken:
+            return spoken
     if not isinstance(result, dict):
         return ''
     return (result.get('message') or result.get('erreur') or '').strip()
@@ -1407,22 +1450,25 @@ def tool_volume_horaire(ctx, args):
     }
 
 
-def tool_lister_pages(_ctx, _args):
+def tool_lister_pages(ctx, _args):
     from school_admin.services.assistant_pages import list_pages
+    from school_admin.services.assistant_schema import pages_visibles
 
     return {
         'pages': [
             {'key': page['key'], 'titre': page['titre']}
-            for page in list_pages()
+            for page in pages_visibles(ctx, list_pages())
         ],
     }
 
 
-def tool_ouvrir_page(_ctx, args):
+def tool_ouvrir_page(ctx, args):
     from school_admin.services.assistant_pages import find_page, related_pages
+    from school_admin.services.assistant_schema import pages_visibles
 
     page = find_page(args.get('page_key') or args.get('query'))
-    if not page:
+    visibles = {item['key'] for item in pages_visibles(ctx, [page] if page else [])}
+    if not page or page['key'] not in visibles:
         return {
             'erreur': 'Page inconnue. Utilise lister_pages pour voir les clés valides.',
         }
@@ -2053,14 +2099,40 @@ TOOLS_SCHEMA = [
 TOOLS_SCHEMA.extend(build_action_tool_schemas())
 
 
+def directeur_tools_schema(ctx):
+    """Schéma exposé au LLM pour le persona directeur, filtré par type."""
+    from school_admin.services.assistant_schema import tools_schema_for_context
+
+    return tools_schema_for_context(ctx, TOOLS_SCHEMA)
+
+
 def execute_tool(ctx, name, arguments):
     """Exécute un outil et renvoie un dict JSON-serializable."""
+    if getattr(ctx, 'persona', 'directeur') == 'enseignant_primaire':
+        from school_admin.services.assistant_enseignant_primaire_tools import (
+            execute_enseignant_primaire_tool,
+        )
+
+        return execute_enseignant_primaire_tool(ctx, name, arguments)
+    from school_admin.services.assistant_schema import (
+        tool_permission_error,
+        tool_permission_error_for_search,
+    )
+
+    denied = tool_permission_error(ctx, name)
+    if denied:
+        return denied
     handler = TOOL_HANDLERS.get(name)
     if not handler:
         return {'erreur': f'Outil inconnu : {name}'}
     try:
         args = arguments if isinstance(arguments, dict) else {}
-        return handler(ctx, args)
+        result = handler(ctx, args)
+        if name == 'chercher_en_base' and isinstance(result, dict):
+            search_denied = tool_permission_error_for_search(ctx, result.get('source'))
+            if search_denied:
+                return search_denied
+        return result
     except Exception:
         logger.exception("Erreur outil assistant %s", name)
         return {'erreur': f'Impossible d’exécuter {name} pour le moment.'}

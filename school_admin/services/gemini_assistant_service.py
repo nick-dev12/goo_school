@@ -25,7 +25,7 @@ from school_admin.services.gemini_context_cache import (
 
 logger = logging.getLogger(__name__)
 
-MAX_TOOL_ROUNDS = 3
+MAX_TOOL_ROUNDS = 8
 LLM_TIMEOUT = 60.0
 _resolved_gemini_model = None
 GEMINI_MODEL_FALLBACKS = (
@@ -80,6 +80,11 @@ Outils :
 - Interdit : dire « je n'ai pas cette information » sans avoir cherché.
 - Utilise seulement l'API d'outils. N'écris jamais les appels d'outils en texte.
 - Les suggestions cliquables sont affichées à part : ne les énumère pas à l'oral.
+- Tu peux enchaîner plusieurs outils dans le même tour. Une demande riche
+  (ouvrir + notes, effectifs + impayés, préparer une classe) = plusieurs
+  tools puis UNE synthèse orale. N'arrête pas après le premier outil.
+- Réutilise les ids déjà vus (classe_id, eleve_id) plutôt que de redemander
+  le nom (« relance-le », « ouvre sa fiche »).
 - Après une lecture utile (impayés, effectifs, notes, une liste), appelle
   proposer_actions avec 1 à 3 suites concrètes (relancer les familles,
   ouvrir la fiche de X, créer un moratoire). Une phrase de relance à l'oral
@@ -360,20 +365,80 @@ _MEMORY_KEYS = (
     'nb_garcons',
     'nb_impayes',
     'nb_impaye',
+    'nb',
     'session',
     'classe',
+    'classe_id',
+    'eleve_id',
+    'id',
     'nom',
+    'eleve',
     'source',
     'statut',
     'taux',
     'moyenne',
     'cnss',
     'periode',
+    'perimetre',
 )
+_LIST_NAME_KEYS = ('eleves', 'impayes', 'classes', 'professeurs')
+_WORKING_REF_ORDER = ('classe_id', 'classe', 'eleve_id', 'eleve')
 
 
-def compact_tool_memory(name, result, max_len=280):
-    """Résumé chiffré du dernier outil, pour le tour suivant seulement."""
+def extract_working_refs(name, result):
+    """Ids et noms cités (classe / élève) pour le tour suivant (« relance-le »)."""
+    refs = {}
+    if not name or not isinstance(result, dict):
+        return refs
+    if result.get('classe_id') not in (None, '', [], {}):
+        refs['classe_id'] = result['classe_id']
+    if result.get('eleve_id') not in (None, '', [], {}):
+        refs['eleve_id'] = result['eleve_id']
+    classe = result.get('classe')
+    if isinstance(classe, str) and classe.strip():
+        refs['classe'] = classe.strip()
+    eleve = result.get('eleve')
+    if isinstance(eleve, str) and eleve.strip():
+        refs['eleve'] = eleve.strip()
+    if name in ('ouvrir_classe', 'rechercher_classes') or result.get('url'):
+        if result.get('id') not in (None, '') and 'classe_id' not in refs:
+            refs['classe_id'] = result['id']
+        nom = result.get('nom')
+        if isinstance(nom, str) and nom.strip() and 'classe' not in refs:
+            refs['classe'] = nom.strip()
+    rows = result.get('eleves') or result.get('impayes') or []
+    if isinstance(rows, list):
+        for row in rows[:1]:
+            if not isinstance(row, dict):
+                continue
+            if row.get('eleve_id') and 'eleve_id' not in refs:
+                refs['eleve_id'] = row['eleve_id']
+            if row.get('id') and result.get('eleves') and 'eleve_id' not in refs:
+                refs['eleve_id'] = row['id']
+            if row.get('classe_id') and 'classe_id' not in refs:
+                refs['classe_id'] = row['classe_id']
+            nom = row.get('nom') or row.get('eleve')
+            if nom and 'eleve' not in refs:
+                refs['eleve'] = str(nom)
+            classe_nom = row.get('classe')
+            if isinstance(classe_nom, str) and classe_nom.strip() and 'classe' not in refs:
+                refs['classe'] = classe_nom.strip()
+    return refs
+
+
+def format_cited_refs(refs):
+    if not refs:
+        return ''
+    parts = []
+    for key in _WORKING_REF_ORDER:
+        value = refs.get(key)
+        if value not in (None, '', [], {}):
+            parts.append(f'{key}={value}')
+    return ', '.join(parts)
+
+
+def compact_tool_memory(name, result, max_len=400):
+    """Résumé du dernier outil + ids/noms cités, pour le tour suivant."""
     if not name or not isinstance(result, dict):
         return ''
     parts = [str(name)]
@@ -387,12 +452,28 @@ def compact_tool_memory(name, result, max_len=280):
     nested = result.get('effectifs')
     if isinstance(nested, dict):
         bag = {**nested, **bag}
+    if name == 'ouvrir_classe' and bag.get('id') not in (None, '') and 'classe_id' not in bag:
+        bag['classe_id'] = bag['id']
     for key in _MEMORY_KEYS:
         value = bag.get(key)
         if value in (None, '', [], {}):
             continue
+        if key == 'id' and 'classe_id' in bag and bag.get('classe_id') == value:
+            continue
         if isinstance(value, (int, float, str, bool)):
             parts.append(f'{key}={value}')
+    for list_key in _LIST_NAME_KEYS:
+        rows = bag.get(list_key)
+        if not isinstance(rows, list) or not rows:
+            continue
+        names = []
+        for row in rows[:2]:
+            if isinstance(row, dict):
+                label = row.get('nom') or row.get('eleve') or row.get('libelle')
+                if label:
+                    names.append(str(label))
+        if names:
+            parts.append(f'{list_key}={"+".join(names)}')
     return ', '.join(parts)[:max_len]
 
 
@@ -853,8 +934,10 @@ async def _run_assistant_turn_cached(
     response = None
     temperature = 0.5
     last_tool = None
+    rounds_used = 0
 
     for _round in range(MAX_TOOL_ROUNDS):
+        rounds_used = _round + 1
         if on_status:
             await on_status('searching' if used_tools or _round == 0 else 'speaking')
         try:
@@ -885,8 +968,22 @@ async def _run_assistant_turn_cached(
             logger.info('Gemini cache hit : %s tokens lus depuis le cache.', cached_tokens)
 
         if not function_calls:
+            logger.info(
+                'Gemini tool rounds: %s/%s',
+                rounds_used,
+                MAX_TOOL_ROUNDS,
+            )
             return messages, spoken
 
+        call_names = ', '.join(
+            (getattr(call, 'name', '') or '') for call in function_calls
+        )
+        logger.info(
+            'Gemini tool round %s/%s : %s',
+            rounds_used,
+            MAX_TOOL_ROUNDS,
+            call_names,
+        )
         used_tools = True
         model_parts = []
         response_parts = []
@@ -922,9 +1019,19 @@ async def _run_assistant_turn_cached(
             fallback = spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx)
             return messages, fallback
         if stop_after_tools:
+            logger.info(
+                'Gemini tool rounds: %s/%s (stop demandé)',
+                rounds_used,
+                MAX_TOOL_ROUNDS,
+            )
             fallback = spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx)
             return messages, fallback or spoken
 
+    logger.info(
+        'Gemini tool rounds: %s/%s (plafond)',
+        MAX_TOOL_ROUNDS,
+        MAX_TOOL_ROUNDS,
+    )
     if on_status:
         await on_status('speaking')
     return messages, spoken
@@ -965,7 +1072,9 @@ async def run_assistant_turn(
         extra['tools'] = schema
         extra['tool_choice'] = 'auto'
 
+    rounds_used = 0
     for _round in range(MAX_TOOL_ROUNDS):
+        rounds_used = _round + 1
         if on_status:
             await on_status('searching' if used_tools or _round == 0 else 'speaking')
         try:
@@ -986,6 +1095,11 @@ async def run_assistant_turn(
         message = response.choices[0].message
         tool_calls = _extract_tool_calls(message)
         if not tool_calls:
+            logger.info(
+                'Gemini tool rounds: %s/%s',
+                rounds_used,
+                MAX_TOOL_ROUNDS,
+            )
             spoken = strip_tool_markup(message.content or '')
             if used_tools:
                 if spoken:
@@ -1001,6 +1115,13 @@ async def run_assistant_turn(
                 return working, spoken
             break
 
+        call_names = ', '.join(call.get('name') or '' for call in tool_calls)
+        logger.info(
+            'Gemini tool round %s/%s : %s',
+            rounds_used,
+            MAX_TOOL_ROUNDS,
+            call_names,
+        )
         used_tools = True
         working.append(_assistant_message_for_api(message, tool_calls=tool_calls))
         last_compat = None
@@ -1012,6 +1133,11 @@ async def run_assistant_turn(
             if on_tool_result:
                 should_stop = await on_tool_result(call['name'], call['arguments'], result)
                 if should_stop:
+                    logger.info(
+                        'Gemini tool rounds: %s/%s (stop demandé)',
+                        rounds_used,
+                        MAX_TOOL_ROUNDS,
+                    )
                     fallback = spoken_from_tool_result(*last_compat, ctx=ctx)
                     return working, fallback
             working.append({
@@ -1020,6 +1146,11 @@ async def run_assistant_turn(
                 'content': dumps_tool_result(result),
             })
 
+    logger.info(
+        'Gemini tool rounds: %s/%s (plafond)',
+        MAX_TOOL_ROUNDS,
+        MAX_TOOL_ROUNDS,
+    )
     if on_status:
         await on_status('speaking')
     spoken = strip_tool_markup(

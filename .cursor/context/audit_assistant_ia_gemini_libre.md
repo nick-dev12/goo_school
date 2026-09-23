@@ -1,12 +1,13 @@
 # Audit — Aria Gemini libre (intelligence d’abord)
 
 **Date** : 2026-09-23  
-**Statut** : audit **validé** le 2026-09-23. **G1–G3 validées**. **Vague G4 livrée** (suggestions). G5–G7 non commencées.  
+**Statut** : audit **validé** le 2026-09-23. **G1–G5 validées**. G6–G7 **non commencées**.  
 **Branche G0** : `cursor/audit-gemini-libre-a40c`  
 **Branche G1** : `cursor/assistant-g1-takeover-a40c`  
 **Branche G2** : `cursor/assistant-g2-pending-a40c`  
 **Branche G3** : `cursor/assistant-g3-regex-a40c`  
 **Branche G4** : `cursor/assistant-g4-suggestions-a40c`  
+**Branche G5** : `cursor/assistant-g5-multitools-a40c`  
 **Persona** : directeur (personnel admin via `check_permission`). Enseignant primaire : même esprit, hors implémentation ici.  
 **Préalable validé** : Vagues métier 1–6 + qualité A+B+C+D + correctif « succès outil ≠ erreur rouge ».  
 **Audits liés** : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md) · [audit_assistant_ia_qualite.md](audit_assistant_ia_qualite.md)
@@ -81,7 +82,7 @@ Consumer assistant_consumer.py
   3. sinon _handle_local_intent : seulement « ouvre / va sur » + ouvrir_page|ouvrir_classe
   4. sinon run_assistant_turn (Gemini cache native, tools, stream)
         • is_small_talk(question) → use_tools=False
-        • MAX_TOOL_ROUNDS = 3
+        • MAX_TOOL_ROUNDS = 8 (G5)
         • on_tool_result :
             ACTION_SPECS | annonce | EDT | créneau → TAKEOVER
             Gemini s’arrête (stop_after_tools)
@@ -109,7 +110,7 @@ Ne pas casser ça.
 | Reconnect drop pending | Plus de zombie EDT après refresh |
 | `_pending_decision` + doute → switch | Un « quels sont les effectifs ? » pendant un EDT peut déjà sortir |
 | `compact_tool_memory` | Chiffres du dernier outil au tour suivant, sans JSON énorme |
-| Cache `aria-directeur-tools-v10` + stream | Prompt + tools stables, parole au fil de l’eau |
+| Cache `aria-directeur-tools-v12` + stream | Prompt + tools stables, parole au fil de l’eau |
 | `spoken_from_tool_result` | Repli oral si Gemini lâche après un outil réussi |
 | Carte `action.pending` + boutons Oui / Annuler | Confirmation tactile + vocale |
 | Canal unique d’affichage `audio_sentence` | Texte et voix restent alignés |
@@ -169,18 +170,9 @@ Chaque motif **manqué** = Gemini n’est pas consulté, ou le wizard mal-rempli
 « Merci, et les effectifs ? » ou « Bonjour, publie l’annonce de demain » : si le regex accroche trop large, Gemini **parle sans base**.  
 À l’inverse, un vrai « merci » n’a pas besoin d’outil — Gemini sait déjà (prompt : *sans appeler d’outil*). Le garde-fou Python est redondant et dangereux.
 
-### 5.5 `MAX_TOOL_ROUNDS = 3`
+### 5.5 `MAX_TOOL_ROUNDS` — **levé en G5**
 
-Une demande complexe naturelle :
-
-1. chercher la classe « génie logiciel L1 » ;
-2. lister les impayés ;
-3. ouvrir la fiche du plus gros débiteur ;
-4. proposer un moratoire.
-
-Ça fait 3–4 appels. Au 3e round le service **coupe** et renvoie ce qu’il a. Gemini est conçu pour enchaîner ; on l’arrête.
-
-3 rounds suffisent pour « effectifs ». Pas pour « prépare-moi la rentrée de la 3e A : effectifs, impayés, EDT, et une annonce aux parents ».
+`MAX_TOOL_ROUNDS` est passé de 3 à **8** (plafond de sécurité). Chaque round et le total sont logués (`Gemini tool round N/8`, `Gemini tool rounds: N/8`). Une demande riche (effectifs + impayés + ouvrir + proposer) tient dans un seul tour. G6 ne retouche pas ce plafond.
 
 ### 5.6 Prompt-catalogue vs autonomie
 
@@ -213,11 +205,9 @@ Résultat : après « Vous avez 12 impayés en 6e A », Aria se tait. Une assist
 
 Toute écriture, y compris une sanction, doit **passer par la carte**. Gemini présente, le directeur dit oui. C’est plus sûr **et** plus « assistante » (elle propose le texte de la note, on valide).
 
-### 5.9 Historique sans outils
+### 5.9 Historique sans outils — **enrichi en G5**
 
-`self.history` = user + phrase orale. Les JSON d’outils du tour N ne sont **pas** dans le dialogue N+1 (seulement `compact_tool_memory` du dernier outil, ≤ 280 car.). Gemini peut mal se souvenir d’une liste de 10 noms, ou reproposer la même action.
-
-Pas besoin de réinjecter tout le JSON. Besoin d’une **mémoire de travail** un peu plus riche (dernier outil + 1–2 ids / noms cités) pour que « relance-les » le tour d’après tienne.
+`self.history` = toujours user + phrase orale (pas tout le JSON). G5 : `compact_tool_memory` (≤ 400 car.) + `_working_refs` (`classe_id`, `eleve_id`, noms) pour « relance-le ». Les tools lecture (`get_impayes`, `rechercher_eleves`, `get_effectifs`, fiche scolarité) exposent maintenant ces ids.
 
 ### 5.10 Navigation locale encore prioritaire
 
@@ -328,7 +318,7 @@ Ce n’est **pas** un garde-fou : intercepter « créer une classe » par regex 
 
 ## 8. Plan d’actions futures (ordre d’implémentation)
 
-Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **G1–G3 validées.** **Stop après G4** : ne pas démarrer G5 sans feu vert.
+Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **G1–G5 validées.** **Stop après G5** : ne pas démarrer G6 sans feu vert.
 
 Cache prompt : chaque vague qui touche le texte système **bump** `CACHE_DISPLAY_NAME` (`aria-directeur-tools-v11`, puis v12…).
 
@@ -400,7 +390,7 @@ Tests : `school_admin.tests.test_assistant_qualite.GeminiG4SuggestionTests`. JS 
 
 **Hors G4** : pas de G5 (MAX_TOOL_ROUNDS).
 
-### Vague G5 — Tâches complexes (plusieurs tools)
+### Vague G5 — Tâches complexes (plusieurs tools) — **FAITE** (2026-09-23)
 
 **But** : laisser Gemini enchaîner.
 
@@ -411,7 +401,11 @@ Actions :
 3. Mémoire de travail : dernier outil + ids/noms cités (classe_id, eleve_id) pour « relance-le ».
 4. Nav + métier dans la même phrase : un seul tour Gemini.
 
+**Livré G5** : plafond 8 + logs `Gemini tool round N/8`. Prompt + cache **`aria-directeur-tools-v12`**. `extract_working_refs` / `_working_refs` (classe_id, eleve_id, noms). Ids ajoutés aux JSON `get_impayes`, `rechercher_eleves`, `get_effectifs` (si classe), fiche scolarité. Nav + métier toujours un seul tour Gemini (G3). Écritures toujours carte Oui / Modifier / Annuler. Tests : `school_admin.tests.test_assistant_qualite.GeminiG5MultiToolTests`.
+
 Recette : « Prépare la 3e A : effectifs, impayés, et une annonce aux parents s’il y a des dettes. » → 2–3 tools + brouillon d’annonce + carte, **sans** wizard.
+
+**Hors G5** : pas de G6 (réécriture du prompt-catalogue) ni G7.
 
 ### Vague G6 — Prompt d’autonomie (cache v11+)
 
@@ -503,7 +497,7 @@ Critère subjectif (le vrai livrable) : **on a l’impression de parler à quelq
 
 1. Gemini est le seul cerveau d’intention ; les tools Django sont les seules « commandes serveur ».
 2. On **supprime** les wizards guidés (annonce, EDT, générique) au profit de Gemini + carte oui/non — G1 coupe le takeover ; G2 retirera les FSM du tour suivant.
-3. Ordre : G1–G3 (**faites, validées**) → G4 (**faite**) → G5+G6, puis G7.
+3. Ordre : G1–G5 (**faites**) → G6 (prompt d’autonomie) puis G7. **Stop après G5.**
 4. Pas de tools CG, pas de shell, pas d’`apply` sans confirmation.
 
-**Stop** : G3 livrée. Ne pas démarrer G4 tant que le directeur n’a pas validé G3 en vocal.
+**Stop** : G5 livrée. Ne pas démarrer G6 tant que le directeur n’a pas validé G5 en vocal.

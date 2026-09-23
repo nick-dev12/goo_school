@@ -38,6 +38,8 @@ from school_admin.services.assistant_search import (
 from school_admin.services.gemini_assistant_service import (
     build_system_message,
     compact_tool_memory,
+    extract_working_refs,
+    format_cited_refs,
     run_assistant_turn,
     sanitize_dialog_messages,
 )
@@ -194,6 +196,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self._followup_suggestions = []
         self._socket_fresh = True
         self._last_tool_memory = ''
+        self._working_refs = {}
         self._turn_has_output = False
         allowed = await self._resolve_etablissement()
         if not allowed:
@@ -514,6 +517,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     async def _on_live_tool_result(self, name, result):
         """Carte / nav si besoin, mais ne jamais arrêter Gemini (G1)."""
         if isinstance(result, dict):
+            refs = getattr(self, '_working_refs', None)
+            if refs is None:
+                self._working_refs = {}
+            self._working_refs.update(extract_working_refs(name, result))
             self._last_tool_memory = compact_tool_memory(name, result)
         if not isinstance(result, dict):
             return False
@@ -687,6 +694,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             pending_sentences.append(leftover)
 
         if last_tool_results:
+            refs = getattr(self, '_working_refs', None)
+            if refs is None:
+                self._working_refs = {}
+            for tool_name, tool_result in last_tool_results:
+                if isinstance(tool_result, dict):
+                    self._working_refs.update(extract_working_refs(tool_name, tool_result))
             self._last_tool_memory = compact_tool_memory(*last_tool_results[-1])
         if not spoken and not leftover and last_tool_results:
             spoken = spoken_from_tool_result(*last_tool_results[-1], ctx=ctx)
@@ -1032,6 +1045,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         parts = []
         if self._last_tool_memory:
             parts.append(self._last_tool_memory)
+        cited = format_cited_refs(getattr(self, '_working_refs', {}) or {})
+        if cited:
+            parts.append(f'Réfs citées (réutilise pour relancer/ouvrir) : {cited}')
         pending = self.pending_action
         if pending and pending.get('name'):
             compact = compact_tool_memory(pending['name'], pending.get('draft') or {})

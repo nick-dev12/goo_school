@@ -24,8 +24,13 @@ from school_admin.services.assistant_intents import (
     looks_like_new_topic,
 )
 from school_admin.services.gemini_assistant_service import (
+    MAX_TOOL_ROUNDS,
+    SYSTEM_PROMPT_STATIC,
     compact_tool_memory,
+    extract_working_refs,
+    format_cited_refs,
     _dialog_to_gemini_contents,
+    _run_assistant_turn_cached,
     _stream_cached_round,
 )
 from school_admin.services.gemini_context_cache import CACHE_DISPLAY_NAME
@@ -183,7 +188,7 @@ class TtsFallbackQualiteTests(SimpleTestCase):
 
 class QualiteCGeminiTests(SimpleTestCase):
     def test_cache_prompt_v10(self):
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v11')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v12')
 
     def test_navigation_explicite_seulement(self):
         self.assertTrue(is_explicit_navigation('Ouvre le tableau de bord'))
@@ -220,7 +225,7 @@ class QualiteCGeminiTests(SimpleTestCase):
         self.assertIn('nb_eleves_actifs=120', memory)
         self.assertIn('nb_classes=8', memory)
         self.assertNotIn('liste_complete', memory)
-        self.assertLessEqual(len(memory), 280)
+        self.assertLessEqual(len(memory), 400)
 
     def test_overlay_sans_faux_tour_contexte_recu(self):
         class FakeCtx:
@@ -810,3 +815,250 @@ class GeminiG4SuggestionTests(SimpleTestCase):
         }
         self.assertIn('proposer_actions', names)
         self.assertIn('proposer_actions', TOOL_HANDLERS)
+
+
+class GeminiG5MultiToolTests(SimpleTestCase):
+    """G5 : plusieurs tools dans le même tour, mémoire ids, pas de wizard."""
+
+    def test_plafond_huit_rounds_et_prompt_enchainement(self):
+        self.assertEqual(MAX_TOOL_ROUNDS, 8)
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v12')
+        folded = ' '.join(SYSTEM_PROMPT_STATIC.split())
+        self.assertIn('tools puis UNE', folded)
+        self.assertIn('classe_id', folded)
+        self.assertIn('eleve_id', folded)
+        self.assertIn('relance-le', folded)
+
+    def test_memoire_extrait_ids_et_noms(self):
+        memory = compact_tool_memory(
+            'get_impayes',
+            {
+                'nb': 2,
+                'perimetre': '3e A',
+                'impayes': [
+                    {
+                        'eleve': 'Diallo Awa',
+                        'eleve_id': 11,
+                        'classe': '3e A',
+                        'classe_id': 4,
+                    },
+                    {
+                        'eleve': 'Ndiaye Moussa',
+                        'eleve_id': 12,
+                        'classe': '3e A',
+                        'classe_id': 4,
+                    },
+                ],
+            },
+        )
+        self.assertIn('get_impayes', memory)
+        self.assertIn('nb=2', memory)
+        self.assertIn('Diallo Awa', memory)
+        self.assertIn('Ndiaye Moussa', memory)
+        self.assertLessEqual(len(memory), 400)
+
+        refs = extract_working_refs(
+            'get_impayes',
+            {
+                'impayes': [
+                    {
+                        'eleve': 'Diallo Awa',
+                        'eleve_id': 11,
+                        'classe': '3e A',
+                        'classe_id': 4,
+                    },
+                ],
+            },
+        )
+        self.assertEqual(refs['eleve_id'], 11)
+        self.assertEqual(refs['classe_id'], 4)
+        self.assertEqual(refs['eleve'], 'Diallo Awa')
+        self.assertEqual(refs['classe'], '3e A')
+        self.assertIn('eleve_id=11', format_cited_refs(refs))
+
+        ouvrir = compact_tool_memory(
+            'ouvrir_classe',
+            {'id': 4, 'nom': '3e A', 'url': '/classe/4', 'ouvrir': True},
+        )
+        self.assertIn('classe_id=4', ouvrir)
+        self.assertIn('nom=3e A', ouvrir)
+        self.assertEqual(
+            extract_working_refs(
+                'ouvrir_classe',
+                {'id': 4, 'nom': '3e A', 'url': '/classe/4'},
+            )['classe_id'],
+            4,
+        )
+
+    def test_consumer_accumule_les_refs_sur_plusieurs_tools(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        async def _run():
+            consumer = AssistantConsumer()
+            consumer.scope = {}
+            consumer.pending_action = None
+            consumer._last_tool_memory = ''
+            consumer._working_refs = {}
+            consumer._followup_choices = []
+            consumer._persist_pending = AsyncMock()
+            sent = []
+
+            async def fake_send(payload):
+                sent.append(payload)
+
+            consumer._send_json = fake_send
+            await consumer._on_live_tool_result(
+                'ouvrir_classe',
+                {'id': 4, 'nom': '3e A', 'url': '/classe/4', 'ouvrir': True},
+            )
+            await consumer._on_live_tool_result(
+                'get_impayes',
+                {
+                    'nb': 1,
+                    'impayes': [
+                        {
+                            'eleve': 'Diallo Awa',
+                            'eleve_id': 11,
+                            'classe': '3e A',
+                            'classe_id': 4,
+                        },
+                    ],
+                },
+            )
+            memory = consumer._tool_memory_for_turn()
+            self.assertEqual(consumer._working_refs['classe_id'], 4)
+            self.assertEqual(consumer._working_refs['eleve_id'], 11)
+            self.assertIn('classe_id=4', memory)
+            self.assertIn('eleve_id=11', memory)
+            self.assertIn('Diallo', memory)
+            self.assertFalse(any(item.get('type') == 'action.pending' for item in sent))
+
+        asyncio.run(_run())
+
+    def test_ecriture_reste_une_carte_sans_stopper(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        async def _run():
+            consumer = AssistantConsumer()
+            consumer.scope = {}
+            consumer.pending_action = None
+            consumer._last_tool_memory = ''
+            consumer._working_refs = {}
+            consumer._followup_choices = []
+            consumer._persist_pending = AsyncMock()
+            sent = []
+
+            async def fake_send(payload):
+                sent.append(payload)
+
+            consumer._send_json = fake_send
+            should_stop = await consumer._on_live_tool_result(
+                'creer_publier_annonce',
+                {
+                    'statut': 'en_attente_confirmation',
+                    'titre': 'Rentrée 3e A',
+                    'contenu': 'Des impayés restent ouverts.',
+                    'destinataires': ['parents'],
+                    'destinataires_libelle': 'Parents',
+                    'publier': True,
+                },
+            )
+            self.assertFalse(should_stop)
+            self.assertEqual(consumer.pending_action['name'], 'creer_publier_annonce')
+            self.assertIn('action.pending', [item.get('type') for item in sent])
+
+        asyncio.run(_run())
+
+    def test_nav_plus_metier_reste_un_seul_tour_gemini(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        async def _run():
+            consumer = AssistantConsumer()
+            consumer.scope = {}
+            consumer._execute_tool = AsyncMock()
+            consumer._speak_and_finish = AsyncMock()
+            handled = await consumer._handle_local_intent(
+                'Ouvre la 6e A et dis-moi les notes',
+                object(),
+            )
+            self.assertFalse(handled)
+            consumer._execute_tool.assert_not_called()
+
+        asyncio.run(_run())
+
+    def test_quatre_tools_passent_l_ancien_plafond_de_trois(self):
+        class FakeCtx:
+            persona = 'directeur'
+
+        sequence = [
+            ('get_effectifs', {'nb_eleves_actifs': 28, 'classe_id': 4, 'classe': '3e A'}),
+            ('get_impayes', {
+                'nb': 2,
+                'impayes': [{'eleve': 'Diallo Awa', 'eleve_id': 11, 'classe_id': 4}],
+            }),
+            ('ouvrir_classe', {'id': 4, 'nom': '3e A', 'url': '/classe/4'}),
+            ('proposer_actions', {
+                'suggestions': [{'label': 'Relancer', 'value': 'Relance Diallo'}],
+            }),
+            None,
+        ]
+        cursor = {'i': 0}
+        executed = []
+
+        async def fake_stream(*_args, **_kwargs):
+            item = sequence[cursor['i']]
+            cursor['i'] += 1
+            if item is None:
+                return None, [], 'La 3e A a 28 élèves et 2 impayés.'
+            name, _result = item
+            call = type('Call', (), {'name': name, 'args': {}})()
+            return None, [call], ''
+
+        def fake_execute(_ctx, name, _args):
+            executed.append(name)
+            for item in sequence:
+                if item is None:
+                    continue
+                tool_name, result = item
+                if tool_name == name:
+                    return result
+            return {}
+
+        async def _run():
+            called = []
+
+            async def on_tool(name, _args, _result):
+                called.append(name)
+                return False
+
+            with patch(
+                'school_admin.services.gemini_assistant_service.ensure_tools_cache',
+                return_value=('cache-name', 'gemini-model', 12),
+            ), patch(
+                'school_admin.services.gemini_assistant_service._stream_cached_round',
+                new=fake_stream,
+            ), patch(
+                'school_admin.services.gemini_assistant_service.execute_tool',
+                side_effect=fake_execute,
+            ), patch(
+                'school_admin.services.gemini_assistant_service._context_overlay',
+                return_value='SNAPSHOT-JSON',
+            ), patch(
+                'google.genai.Client',
+                return_value=object(),
+            ):
+                _messages, spoken = await _run_assistant_turn_cached(
+                    FakeCtx(),
+                    [{'role': 'user', 'content': 'Prépare la 3e A : effectifs et impayés'}],
+                    on_tool_result=on_tool,
+                )
+            self.assertEqual(
+                executed,
+                ['get_effectifs', 'get_impayes', 'ouvrir_classe', 'proposer_actions'],
+            )
+            self.assertEqual(called, executed)
+            self.assertIn('28 élèves', spoken)
+            self.assertGreaterEqual(cursor['i'], 5)
+            self.assertGreater(len(executed), 3)
+
+        asyncio.run(_run())

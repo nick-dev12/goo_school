@@ -580,8 +580,10 @@ def tool_fiche_scolarite(ctx, args):
 
     return {
         'eleve': eleve.nom_complet,
+        'eleve_id': eleve.id,
         'matricule': eleve.matricule_eleve,
         'classe': eleve.classe.nom if eleve.classe_id else None,
+        'classe_id': eleve.classe_id,
         'statut': statut or (resume.statut if resume else None),
         'total_du': _money(total_du),
         'total_paye': _money(total_paye),
@@ -670,7 +672,9 @@ def tool_impayes(ctx, args):
                 continue
             items.append({
                 'eleve': eleve.nom_complet,
+                'eleve_id': eleve.id,
                 'classe': groupe.get('classe_nom'),
+                'classe_id': groupe.get('classe_id'),
                 'statut': resume.statut,
                 'reste': _money(resume.reste),
                 'prochaine_echeance': (

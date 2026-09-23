@@ -270,7 +270,7 @@ def tool_effectifs(ctx, args):
                 'places_libres': max(0, cap - (row['effectif'] or 0)),
             })
 
-    return {
+    payload = {
         'session': ctx.annee_scolaire.libelle if ctx.annee_scolaire else None,
         'perimetre': classe.nom if classe else 'etablissement',
         'nb_eleves_actifs': sexes['total'],
@@ -288,6 +288,10 @@ def tool_effectifs(ctx, args):
         'places_libres': places_libres,
         'classes': par_classe,
     }
+    if classe:
+        payload['classe'] = classe.nom
+        payload['classe_id'] = classe.id
+    return payload
 
 
 def tool_rechercher_eleves(ctx, args):
@@ -301,9 +305,11 @@ def tool_rechercher_eleves(ctx, args):
     results = []
     for eleve in qs.order_by('nom', 'prenom')[:SEARCH_LIMIT]:
         results.append({
+            'id': eleve.id,
             'nom': eleve.nom_complet,
             'matricule': eleve.matricule_eleve,
             'classe': eleve.classe.nom if eleve.classe_id else None,
+            'classe_id': eleve.classe_id,
         })
     return {'nb_trouves': qs.count(), 'eleves': results}
 
@@ -1035,6 +1041,7 @@ def tool_comptabilite(ctx, args):
         total_paye = fiche.calculer_total_paye()
         items.append({
             'eleve': fiche.eleve.nom_complet,
+            'eleve_id': fiche.eleve_id,
             'statut': fiche.get_statut_paiement_display(),
             'reste': _safe_decimal(total_du - total_paye),
         })

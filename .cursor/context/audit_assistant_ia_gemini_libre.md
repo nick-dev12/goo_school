@@ -440,10 +440,12 @@ Sans nouvelle UI globale. Pas de Vague 8.
 | Notes d’examen 6ème A | PASS | aucune note, n’invente pas |
 | Switch effectifs collège | PASS | 6ème A 10 élèves |
 
+**Correctif listes** (2026-09-23, `cursor/assistant-repli-listes-a40c`) : `rechercher_classes` renvoyait les noms mais le repli ne les lisait pas → « J’ai les informations… ». `_spoken_name_list` dit maintenant les **classes** (comme élèves / profs). `get_effectifs` garde les totaux (50 / 5 / 7), pas la liste.
+
 **Fragile (pas bloquant G7, pas une Vague 8)** :
 
 - Après le 1er round d’outils, Gemini répond **400 `thought_signature`**. Les tools **s’exécutent** ; l’oral est le **repli** Django, pas la synthèse Gemini. D’où l’absence de chips `proposer_actions` en live.
-- Le repli dit les chiffres (c’est le critère « pas de bulle rouge ») mais parle moins « assistante » que Gemini.
+- Le repli dit les chiffres et les **noms de listes** ; il parle moins « assistante » que Gemini.
 - 2 ERROR Decimal × float dans `test_assistant_directeur_tools` : hors G7.
 
 **Hors G7** : pas de Vague 8, pas de replay `thought_signature`, pas de tools CG, pas de nouvelle feature métier.

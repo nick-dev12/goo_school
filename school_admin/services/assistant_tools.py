@@ -632,6 +632,11 @@ def spoken_from_tool_result(name, result, ctx=None):
             return spoken
     if not isinstance(result, dict):
         return ''
+    # get_effectifs.classes est un détail : on dit d’abord les totaux (50 / 5 / 7).
+    if name == 'get_effectifs':
+        summary = _spoken_read_summary(name, result)
+        if summary:
+            return summary
     listed = _spoken_name_list(result)
     if listed:
         return listed
@@ -642,7 +647,7 @@ def spoken_from_tool_result(name, result, ctx=None):
 
 
 def _spoken_name_list(result, limit=12):
-    for key in ('eleves', 'professeurs', 'personnel'):
+    for key in ('eleves', 'professeurs', 'personnel', 'classes'):
         items = result.get(key)
         if not isinstance(items, list) or not items:
             continue
@@ -666,6 +671,9 @@ def _spoken_name_list(result, limit=12):
             return f'Voici {total} élèves : {text}.'
         if key == 'professeurs':
             return f'Voici {len(names)} professeurs : {text}.'
+        if key == 'classes':
+            word = 'classe' if len(names) == 1 else 'classes'
+            return f'Voici {len(names)} {word} : {text}.'
         return f'Voici {len(names)} membres du personnel : {text}.'
     return ''
 
@@ -750,6 +758,12 @@ def _spoken_read_summary(name, result):
         if nom:
             return f'J’ouvre {nom}.'
         return ''
+    if name == 'rechercher_classes':
+        return 'Je ne trouve aucune classe.'
+    if name == 'rechercher_eleves':
+        return 'Je ne trouve aucun élève.'
+    if name == 'rechercher_professeurs':
+        return 'Je ne trouve aucun professeur.'
     if result.get('statut') == 'en_attente_confirmation':
         titre = (result.get('titre') or result.get('resume') or '').strip()
         if titre:

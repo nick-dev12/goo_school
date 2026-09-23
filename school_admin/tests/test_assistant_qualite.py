@@ -1254,6 +1254,61 @@ class GeminiG7TelemetryTests(SimpleTestCase):
         self.assertIn('CP A', walked)
         self.assertIn('12', walked)
 
+    def test_repli_oral_liste_des_classes(self):
+        from school_admin.services.assistant_tools import (
+            spoken_from_tool_result,
+            spoken_from_tool_results,
+        )
+
+        classes = spoken_from_tool_result(
+            'rechercher_classes',
+            {
+                'classes': [
+                    {'nom': 'CP A'},
+                    {'nom': 'CE1 A'},
+                    {'nom': 'CM1 A'},
+                ],
+            },
+        )
+        self.assertIn('CP A', classes)
+        self.assertIn('CE1 A', classes)
+        self.assertIn('CM1 A', classes)
+        self.assertNotIn('J’ai les informations', classes)
+        self.assertIn('3 classes', classes)
+        effectifs = spoken_from_tool_result(
+            'get_effectifs',
+            {
+                'nb_eleves_actifs': 50,
+                'nb_classes': 5,
+                'nb_professeurs': 7,
+                'classes': [
+                    {'nom': 'CP A', 'effectif': 10},
+                    {'nom': 'CE1 A', 'effectif': 10},
+                ],
+            },
+        )
+        self.assertIn('50', effectifs)
+        self.assertIn('5 classes', effectifs)
+        self.assertNotIn('CP A', effectifs)
+        vide = spoken_from_tool_result('rechercher_classes', {'classes': []})
+        self.assertIn('aucune classe', vide.lower())
+        eleves = spoken_from_tool_result(
+            'rechercher_eleves',
+            {'nb_trouves': 2, 'eleves': [{'nom': 'Diallo Awa'}, {'nom': 'Ndiaye Moussa'}]},
+        )
+        self.assertIn('Diallo Awa', eleves)
+        profs = spoken_from_tool_result(
+            'rechercher_professeurs',
+            {'professeurs': [{'nom': 'Julie Atemkeng'}]},
+        )
+        self.assertIn('Julie Atemkeng', profs)
+        walked = spoken_from_tool_results([
+            ('rechercher_classes', {'classes': [{'nom': 'CP A'}, {'nom': 'CE1 A'}]}),
+            ('proposer_actions', {'suggestions': []}),
+        ])
+        self.assertIn('CE1 A', walked)
+        self.assertNotIn('J’ai les informations', walked)
+
     def test_repli_oral_est_streamé_au_client(self):
         deltas = []
 

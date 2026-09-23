@@ -282,3 +282,63 @@ class QualiteCGeminiTests(SimpleTestCase):
             self.assertEqual(deltas, ['Un ', 'deux.'])
 
         asyncio.run(_run())
+
+
+class PostToolErrorTests(SimpleTestCase):
+    def test_json_safe_tool_result_serialise_date_et_decimal(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from school_admin.services.assistant_tools import json_safe_tool_result
+
+        safe = json_safe_tool_result({
+            'quand': date(2026, 9, 23),
+            'montant': Decimal('10.50'),
+        })
+        self.assertEqual(safe['quand'], '2026-09-23')
+        self.assertEqual(safe['montant'], '10.50')
+
+    def test_spoken_from_tool_liste_les_noms(self):
+        from school_admin.services.assistant_tools import spoken_from_tool_result
+
+        eleves = spoken_from_tool_result(
+            'chercher_en_base',
+            {
+                'source': 'eleves',
+                'nb_trouves': 2,
+                'eleves': [{'nom': 'Diallo Awa'}, {'nom': 'Ndiaye Moussa'}],
+            },
+        )
+        self.assertIn('Diallo Awa', eleves)
+        self.assertIn('Ndiaye Moussa', eleves)
+        profs = spoken_from_tool_result(
+            'chercher_en_base',
+            {
+                'source': 'professeurs',
+                'professeurs': [{'nom': 'Sow Fatou'}],
+            },
+        )
+        self.assertIn('Sow Fatou', profs)
+
+    def test_chercher_eleves_avant_classe(self):
+        from school_admin.services.assistant_tools import tool_chercher_en_base
+
+        class FakeCtx:
+            est_superieur = False
+            est_college_lycee = False
+            est_primaire = False
+
+        with patch(
+            'school_admin.services.assistant_tools.tool_rechercher_eleves',
+            return_value={'eleves': [{'nom': 'A'}], 'nb_trouves': 1},
+        ) as eleves, patch(
+            'school_admin.services.assistant_tools.tool_rechercher_classes',
+        ) as classes:
+            result = tool_chercher_en_base(
+                FakeCtx(),
+                {'question': 'cite-moi les 10 élèves des deux premières classes'},
+            )
+        eleves.assert_called_once()
+        classes.assert_not_called()
+        self.assertEqual(result.get('source'), 'eleves')
+        self.assertIn('A', result['eleves'][0]['nom'])

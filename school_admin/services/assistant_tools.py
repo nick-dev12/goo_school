@@ -611,7 +611,49 @@ def spoken_from_tool_result(name, result, ctx=None):
             return spoken
     if not isinstance(result, dict):
         return ''
+    listed = _spoken_name_list(result)
+    if listed:
+        return listed
     return (result.get('message') or result.get('erreur') or '').strip()
+
+
+def _spoken_name_list(result, limit=12):
+    for key in ('eleves', 'professeurs', 'personnel'):
+        items = result.get(key)
+        if not isinstance(items, list) or not items:
+            continue
+        names = []
+        for item in items:
+            if isinstance(item, dict):
+                label = (item.get('nom') or item.get('nom_complet') or '').strip()
+            else:
+                label = str(item).strip()
+            if label:
+                names.append(label)
+        if not names:
+            continue
+        shown = names[:limit]
+        text = ', '.join(shown)
+        extra = len(names) - len(shown)
+        if extra > 0:
+            text += f', et {extra} autres'
+        total = result.get('nb_trouves') or len(names)
+        if key == 'eleves':
+            return f'Voici {total} élèves : {text}.'
+        if key == 'professeurs':
+            return f'Voici {len(names)} professeurs : {text}.'
+        return f'Voici {len(names)} membres du personnel : {text}.'
+    return ''
+
+
+def json_safe_tool_result(payload):
+    """Dict JSON-safe pour Gemini function_response (évite Decimal / date / ValidationError)."""
+    if not isinstance(payload, dict):
+        return {'result': str(payload)}
+    try:
+        return json.loads(dumps_tool_result(payload))
+    except Exception:
+        return {'ok': True}
 
 
 def tool_rechercher_personnel(ctx, args):
@@ -1486,12 +1528,12 @@ def tool_chercher_en_base(ctx, args):
     if any(token in lowered for token in ('personnel', 'secrétaire', 'secretaire')):
         found = tool_rechercher_personnel(ctx, payload)
         return {'trouve': bool(found.get('personnel')), 'source': 'personnel', **found}
-    if any(token in lowered for token in ('classe', 'promotion', 'filière', 'filiere')):
-        found = tool_rechercher_classes(ctx, payload)
-        return {'trouve': bool(found.get('classes')), 'source': 'classes', **found}
     if any(token in lowered for token in ('élève', 'eleve', 'étudiant', 'etudiant', 'matricule')):
         found = tool_rechercher_eleves(ctx, payload)
         return {'trouve': bool(found.get('eleves')), 'source': 'eleves', **found}
+    if any(token in lowered for token in ('classe', 'promotion', 'filière', 'filiere')):
+        found = tool_rechercher_classes(ctx, payload)
+        return {'trouve': bool(found.get('classes')), 'source': 'classes', **found}
 
     found = tool_effectifs(ctx, payload)
     return {

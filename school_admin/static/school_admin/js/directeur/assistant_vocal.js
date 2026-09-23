@@ -829,6 +829,12 @@
       return;
     }
     if (data.type === 'error') {
+      var genericFail = /n[’']ai pas pu (répondre|exécuter)/i.test(data.message || '');
+      if (genericFail && (spokenPlain || receivedVoiceSentence || lastResultStamp)) {
+        pendingDone = true;
+        finishIfIdle();
+        return;
+      }
       appendBubble('error', data.message || 'Une erreur est survenue.');
       pendingDone = true;
       finishIfIdle();

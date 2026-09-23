@@ -202,6 +202,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self._followup_choices = []
         self._socket_fresh = True
         self._last_tool_memory = ''
+        self._turn_has_output = False
         allowed = await self._resolve_etablissement()
         if not allowed:
             await self.close(code=4401)
@@ -340,6 +341,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             self._cancel_requested = False
             self._cancel_notified = False
             self._busy = True
+            self._turn_has_output = False
             try:
                 await handler()
             except asyncio.CancelledError:
@@ -353,18 +355,24 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 raise
             except RuntimeError as exc:
                 logger.warning("Assistant vocal : %s", exc)
-                await self._send_json({
-                    'type': 'error',
-                    'message': str(exc),
-                })
-                await self._send_json({'type': 'done'})
+                if self._turn_has_output:
+                    await self._send_json({'type': 'done'})
+                else:
+                    await self._send_json({
+                        'type': 'error',
+                        'message': str(exc),
+                    })
+                    await self._send_json({'type': 'done'})
             except Exception:
                 logger.exception("Erreur assistant vocal")
-                await self._send_json({
-                    'type': 'error',
-                    'message': "Je n’ai pas pu répondre pour le moment. Réessayez dans un instant.",
-                })
-                await self._send_json({'type': 'done'})
+                if self._turn_has_output:
+                    await self._send_json({'type': 'done'})
+                else:
+                    await self._send_json({
+                        'type': 'error',
+                        'message': "Je n’ai pas pu répondre pour le moment. Réessayez dans un instant.",
+                    })
+                    await self._send_json({'type': 'done'})
             finally:
                 self._busy = False
                 if self._turn_task is asyncio.current_task():
@@ -575,7 +583,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 last_tool_results.append((name, result))
                 self._last_tool_memory = compact_tool_memory(name, result)
             if not isinstance(result, dict):
-                return
+                return False
             pending_specs = self._pending_action_names()
             if name in pending_specs:
                 if result.get('erreur') and result.get('statut') not in (
@@ -587,10 +595,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                         'Action échouée',
                         result['erreur'],
                     )
-                    return
+                    return True
                 takeover['generic'] = True
                 await self._start_generic_action(name, question, result)
-                return
+                return True
             if name == 'creer_publier_annonce':
                 if result.get('erreur'):
                     await self._send_action_result(
@@ -598,40 +606,41 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                         'Action échouée',
                         result['erreur'],
                     )
-                    return
+                    return True
                 takeover['annonce'] = True
                 await self._start_annonce_guidee(question, result)
-                return
+                return True
             if name == 'creer_emploi_du_temps':
                 if is_lookup_clarification(result):
                     self._followup_choices = choices_from_class_lookup(result)
-                    return
+                    return False
                 if result.get('erreur'):
                     await self._send_action_result(
                         'error',
                         'Action échouée',
                         result['erreur'],
                     )
-                    return
+                    return True
                 takeover['emploi'] = True
                 await self._start_emploi_guidee(question, result)
-                return
+                return True
             if name == 'ajouter_creneau_emploi':
                 if is_lookup_clarification(result):
                     self._followup_choices = choices_from_class_lookup(result)
-                    return
+                    return False
                 if result.get('erreur'):
                     await self._send_action_result(
                         'error',
                         'Action échouée',
                         result['erreur'],
                     )
-                    return
+                    return True
                 takeover['creneau'] = True
                 await self._start_creneau_guidee(question, result)
-                return
+                return True
             if name in ('ouvrir_page', 'ouvrir_classe'):
                 await self._dispatch_navigation(name, result)
+            return False
 
         try:
             _working, spoken = await run_assistant_turn(
@@ -643,9 +652,24 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 use_tools=not is_small_talk(question),
                 tool_memory=self._last_tool_memory,
             )
-        except RuntimeError as exc:
+        except Exception:
+            logger.exception("Tour Gemini après outil")
+            if takeover['annonce'] or takeover['emploi'] or takeover['creneau'] or takeover['generic']:
+                return
+            if last_tool_results:
+                spoken = spoken_from_tool_result(*last_tool_results[-1], ctx=ctx)
+                if spoken:
+                    await self._send_json({'type': 'text_delta', 'text': spoken})
+                    pending_sentences.append(spoken)
+                    await self._flush_tts_queue(pending_sentences)
+                    await self._send_json({'type': 'done'})
+                    return
             await self._cancel_opener()
-            await self._send_json({'type': 'error', 'message': str(exc)})
+            if not self._turn_has_output:
+                await self._send_json({
+                    'type': 'error',
+                    'message': "Je n’ai pas pu répondre pour le moment. Réessayez dans un instant.",
+                })
             await self._send_json({'type': 'done'})
             return
 
@@ -764,6 +788,15 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     async def _send_json(self, payload):
         if self._cancel_requested and payload.get('type') not in _ALLOWED_WHEN_CANCELLED:
             return
+        kind = payload.get('type')
+        if kind in (
+            'audio_sentence',
+            'text_delta',
+            'action.result',
+            'action.done',
+            'suggestions',
+        ):
+            self._turn_has_output = True
         await self.send(text_data=json.dumps(payload, ensure_ascii=False))
 
     @database_sync_to_async
@@ -832,15 +865,16 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 raise
             except Exception:
                 logger.exception("Erreur action assistant")
-                await self._send_action_result(
-                    'error',
-                    'Action échouée',
-                    "Je n’ai pas pu exécuter cette action. Réessayez.",
-                )
-                await self._send_json({
-                    'type': 'error',
-                    'message': "Je n’ai pas pu exécuter cette action. Réessayez.",
-                })
+                if not self._turn_has_output:
+                    await self._send_action_result(
+                        'error',
+                        'Action échouée',
+                        "Je n’ai pas pu exécuter cette action. Réessayez.",
+                    )
+                    await self._send_json({
+                        'type': 'error',
+                        'message': "Je n’ai pas pu exécuter cette action. Réessayez.",
+                    })
                 await self._send_json({'type': 'done'})
             return
         await self._launch_turn(handler)
@@ -1851,7 +1885,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         leftover = assembler.flush()
         if leftover:
             sentences.append(leftover)
-        await self._flush_tts_queue(sentences)
+        try:
+            await self._flush_tts_queue(sentences)
+        except Exception:
+            logger.exception("TTS après action — le texte a déjà été envoyé")
         if self._cancel_requested:
             return
         if spoken:

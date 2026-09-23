@@ -15,6 +15,8 @@ from school_admin.services.assistant_tools import (
     directeur_tools_schema,
     dumps_tool_result,
     execute_tool,
+    json_safe_tool_result,
+    spoken_from_tool_result,
 )
 from school_admin.services.gemini_context_cache import (
     cache_enabled,
@@ -844,6 +846,7 @@ async def _run_assistant_turn_cached(
     spoken = ''
     response = None
     temperature = 0.5
+    last_tool = None
 
     for _round in range(MAX_TOOL_ROUNDS):
         if on_status:
@@ -863,6 +866,11 @@ async def _run_assistant_turn_cached(
                 raise RuntimeError(
                     'Le service de réponse met trop longtemps. Réessayez dans un instant.'
                 ) from exc
+            if last_tool:
+                logger.warning(
+                    'Tour Gemini après outil échoué, repli oral : %s', exc
+                )
+                return messages, spoken_from_tool_result(*last_tool, ctx=ctx)
             logger.warning('Tour Gemini avec cache échoué, repli sans cache : %s', exc)
             return None
 
@@ -876,23 +884,40 @@ async def _run_assistant_turn_cached(
         used_tools = True
         model_parts = []
         response_parts = []
-        for call in function_calls:
-            name = getattr(call, 'name', '') or ''
-            raw_args = getattr(call, 'args', None) or {}
-            arguments = raw_args if isinstance(raw_args, dict) else {}
-            model_parts.append(
-                types.Part.from_function_call(name=name, args=arguments)
-            )
-            result = await sync_to_async(execute_tool, thread_sensitive=True)(
-                ctx, name, arguments
-            )
-            if on_tool_result:
-                await on_tool_result(name, arguments, result)
-            response_parts.append(
-                types.Part.from_function_response(name=name, response=result)
-            )
-        contents.append(types.Content(role='model', parts=model_parts))
-        contents.append(types.Content(role='user', parts=response_parts))
+        stop_after_tools = False
+        try:
+            for call in function_calls:
+                name = getattr(call, 'name', '') or ''
+                raw_args = getattr(call, 'args', None) or {}
+                arguments = raw_args if isinstance(raw_args, dict) else {}
+                if not isinstance(arguments, dict):
+                    arguments = dict(arguments) if arguments else {}
+                model_parts.append(
+                    types.Part.from_function_call(name=name, args=arguments)
+                )
+                result = await sync_to_async(execute_tool, thread_sensitive=True)(
+                    ctx, name, arguments
+                )
+                last_tool = (name, result)
+                if on_tool_result:
+                    should_stop = await on_tool_result(name, arguments, result)
+                    if should_stop:
+                        stop_after_tools = True
+                response_parts.append(
+                    types.Part.from_function_response(
+                        name=name,
+                        response=json_safe_tool_result(result),
+                    )
+                )
+            contents.append(types.Content(role='model', parts=model_parts))
+            contents.append(types.Content(role='user', parts=response_parts))
+        except Exception:
+            logger.exception("Suite Gemini après outil — repli sur le résultat d’outil")
+            fallback = spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx)
+            return messages, fallback
+        if stop_after_tools:
+            fallback = spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx)
+            return messages, fallback or spoken
 
     if on_status:
         await on_status('speaking')
@@ -972,12 +997,17 @@ async def run_assistant_turn(
 
         used_tools = True
         working.append(_assistant_message_for_api(message, tool_calls=tool_calls))
+        last_compat = None
         for call in tool_calls:
             result = await sync_to_async(execute_tool, thread_sensitive=True)(
                 ctx, call['name'], call['arguments']
             )
+            last_compat = (call['name'], result)
             if on_tool_result:
-                await on_tool_result(call['name'], call['arguments'], result)
+                should_stop = await on_tool_result(call['name'], call['arguments'], result)
+                if should_stop:
+                    fallback = spoken_from_tool_result(*last_compat, ctx=ctx)
+                    return working, fallback
             working.append({
                 'role': 'tool',
                 'tool_call_id': call['id'],

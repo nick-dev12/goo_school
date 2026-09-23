@@ -1,13 +1,14 @@
 # Audit — Aria Gemini libre (intelligence d’abord)
 
 **Date** : 2026-09-23  
-**Statut** : audit **validé** le 2026-09-23. **G1–G5 validées**. G6–G7 **non commencées**.  
+**Statut** : audit **validé** le 2026-09-23. **G1–G6 validées**. G7 **non commencée**.  
 **Branche G0** : `cursor/audit-gemini-libre-a40c`  
 **Branche G1** : `cursor/assistant-g1-takeover-a40c`  
 **Branche G2** : `cursor/assistant-g2-pending-a40c`  
 **Branche G3** : `cursor/assistant-g3-regex-a40c`  
 **Branche G4** : `cursor/assistant-g4-suggestions-a40c`  
 **Branche G5** : `cursor/assistant-g5-multitools-a40c`  
+**Branche G6** : `cursor/assistant-g6-prompt-a40c`  
 **Persona** : directeur (personnel admin via `check_permission`). Enseignant primaire : même esprit, hors implémentation ici.  
 **Préalable validé** : Vagues métier 1–6 + qualité A+B+C+D + correctif « succès outil ≠ erreur rouge ».  
 **Audits liés** : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md) · [audit_assistant_ia_qualite.md](audit_assistant_ia_qualite.md)
@@ -110,7 +111,7 @@ Ne pas casser ça.
 | Reconnect drop pending | Plus de zombie EDT après refresh |
 | `_pending_decision` + doute → switch | Un « quels sont les effectifs ? » pendant un EDT peut déjà sortir |
 | `compact_tool_memory` | Chiffres du dernier outil au tour suivant, sans JSON énorme |
-| Cache `aria-directeur-tools-v12` + stream | Prompt + tools stables, parole au fil de l’eau |
+| Cache `aria-directeur-tools-v13` + stream | Prompt d’autonomie + tools stables, parole au fil de l’eau |
 | `spoken_from_tool_result` | Repli oral si Gemini lâche après un outil réussi |
 | Carte `action.pending` + boutons Oui / Annuler | Confirmation tactile + vocale |
 | Canal unique d’affichage `audio_sentence` | Texte et voix restent alignés |
@@ -174,19 +175,9 @@ Chaque motif **manqué** = Gemini n’est pas consulté, ou le wizard mal-rempli
 
 `MAX_TOOL_ROUNDS` est passé de 3 à **8** (plafond de sécurité). Chaque round et le total sont logués (`Gemini tool round N/8`, `Gemini tool rounds: N/8`). Une demande riche (effectifs + impayés + ouvrir + proposer) tient dans un seul tour. G6 ne retouche pas ce plafond.
 
-### 5.6 Prompt-catalogue vs autonomie
+### 5.6 Prompt-catalogue vs autonomie — **levé en G6**
 
-`SYSTEM_PROMPT` (~150 lignes) est un **inventaire de noms d’outils** (« Années : creer_annee… Périodes : … Absences : … »). Utile pour le cache tools, **nuisible** s’il devient la seule façon de penser : le modèle se sent tenu de coller au menu.
-
-Ce qui manque, et que le directeur doit **sentir** :
-
-- « Tu es autonome. Si la demande est claire, agis (prepare). Si un détail manque, déduis ou pose UNE question. »
-- « Après une lecture, propose 1 à 3 suites utiles (pas un catalogue). »
-- « Si l’outil dit incomplet / suggestions_possibles, reformule en assistante, ne récite pas le JSON. »
-- « Tu peux enchaîner plusieurs outils dans le même tour. »
-- « Ne redeviens pas un formulaire : pas de “champ 1, champ 2, champ 3”. »
-
-Le prompt dit déjà *« Tu es autonome : déduis, rédige, propose »* — mais le runtime **empêche** cette phrase de s’appliquer dès qu’un write tool a tourné.
+Le prompt directeur n’est plus un inventaire d’outils. Blocs **Assistante** (comprendre, agir, proposer, une question, jamais un formulaire) et **Après une action** (confirmer + une suite). Le schéma tools **est** le catalogue. Pièges conservés : destinataires d’annonce, ECTS, LMD / primaire, carte oui / modifier / annuler. Addendum type d’établissement raccourci (plus d’inventaire Pilotage / Scolarité / RH). Cache **`aria-directeur-tools-v13`**. Températures inchangées (0.5 tools / 0.7 conversation).
 
 ### 5.7 Suggestions sous-utilisées
 
@@ -318,7 +309,7 @@ Ce n’est **pas** un garde-fou : intercepter « créer une classe » par regex 
 
 ## 8. Plan d’actions futures (ordre d’implémentation)
 
-Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **G1–G5 validées.** **Stop après G5** : ne pas démarrer G6 sans feu vert.
+Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **G1–G6 validées.** **Stop après G6** : ne pas démarrer G7 sans feu vert.
 
 Cache prompt : chaque vague qui touche le texte système **bump** `CACHE_DISPLAY_NAME` (`aria-directeur-tools-v11`, puis v12…).
 
@@ -407,7 +398,7 @@ Recette : « Prépare la 3e A : effectifs, impayés, et une annonce aux parents 
 
 **Hors G5** : pas de G6 (réécriture du prompt-catalogue) ni G7.
 
-### Vague G6 — Prompt d’autonomie (cache v11+)
+### Vague G6 — Prompt d’autonomie (cache v13) — **FAITE** (2026-09-23)
 
 **But** : le texte système **autorise** ce que G1–G5 rendent possible.
 
@@ -417,6 +408,10 @@ Actions :
 2. Bloc « Assistante » en tête : comprendre, agir, proposer, une seule question si vraiment bloquée, jamais un formulaire.
 3. Bloc « Après une action » : confirmer clairement + une suite possible.
 4. Bump cache. Températures : garder 0.5 tools / 0.7 conversation (déjà Vague C).
+
+**Livré G6** : `SYSTEM_PROMPT` réécrit (Assistante / Voix / Outils / Après une action / Pièges / Sujet). Plus d’inventaire « Années : creer_annee… ». Addendum type : pièges LMD / primaire / ECTS / CG, plus de catalogue Pilotage–RH. Cache **`aria-directeur-tools-v13`**. `TOOL_TEMPERATURE = 0.5`, `CONVERSATION_TEMPERATURE = 0.7`. Tests : `school_admin.tests.test_assistant_qualite.GeminiG6PromptTests`.
+
+**Hors G6** : pas de G7 (recette vocale + télémétrie structurée).
 
 ### Vague G7 — Recette vocale + télémétrie
 
@@ -497,7 +492,7 @@ Critère subjectif (le vrai livrable) : **on a l’impression de parler à quelq
 
 1. Gemini est le seul cerveau d’intention ; les tools Django sont les seules « commandes serveur ».
 2. On **supprime** les wizards guidés (annonce, EDT, générique) au profit de Gemini + carte oui/non — G1 coupe le takeover ; G2 retirera les FSM du tour suivant.
-3. Ordre : G1–G5 (**faites**) → G6 (prompt d’autonomie) puis G7. **Stop après G5.**
+3. Ordre : G1–G6 (**faites**) → G7 (recette + télémétrie). **Stop après G6.**
 4. Pas de tools CG, pas de shell, pas d’`apply` sans confirmation.
 
-**Stop** : G5 livrée. Ne pas démarrer G6 tant que le directeur n’a pas validé G5 en vocal.
+**Stop** : G6 livrée. Ne pas démarrer G7 tant que le directeur n’a pas validé G6 en vocal.

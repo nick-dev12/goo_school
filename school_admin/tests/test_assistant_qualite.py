@@ -24,8 +24,10 @@ from school_admin.services.assistant_intents import (
     looks_like_new_topic,
 )
 from school_admin.services.gemini_assistant_service import (
+    CONVERSATION_TEMPERATURE,
     MAX_TOOL_ROUNDS,
     SYSTEM_PROMPT_STATIC,
+    TOOL_TEMPERATURE,
     compact_tool_memory,
     extract_working_refs,
     format_cited_refs,
@@ -188,7 +190,7 @@ class TtsFallbackQualiteTests(SimpleTestCase):
 
 class QualiteCGeminiTests(SimpleTestCase):
     def test_cache_prompt_v10(self):
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v12')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v13')
 
     def test_navigation_explicite_seulement(self):
         self.assertTrue(is_explicit_navigation('Ouvre le tableau de bord'))
@@ -822,7 +824,7 @@ class GeminiG5MultiToolTests(SimpleTestCase):
 
     def test_plafond_huit_rounds_et_prompt_enchainement(self):
         self.assertEqual(MAX_TOOL_ROUNDS, 8)
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v12')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v13')
         folded = ' '.join(SYSTEM_PROMPT_STATIC.split())
         self.assertIn('tools puis UNE', folded)
         self.assertIn('classe_id', folded)
@@ -1062,3 +1064,60 @@ class GeminiG5MultiToolTests(SimpleTestCase):
             self.assertGreater(len(executed), 3)
 
         asyncio.run(_run())
+
+
+class GeminiG6PromptTests(SimpleTestCase):
+    """G6 : prompt d’autonomie, catalogue raccourci, pièges conservés."""
+
+    def test_cache_et_temperatures(self):
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v13')
+        self.assertEqual(TOOL_TEMPERATURE, 0.5)
+        self.assertEqual(CONVERSATION_TEMPERATURE, 0.7)
+
+    def test_blocs_assistante_et_apres_action(self):
+        folded = ' '.join(SYSTEM_PROMPT_STATIC.split())
+        self.assertTrue(SYSTEM_PROMPT_STATIC.strip().startswith('Tu es Aria'))
+        self.assertIn('Assistante :', SYSTEM_PROMPT_STATIC)
+        self.assertIn('Après une action :', SYSTEM_PROMPT_STATIC)
+        self.assertIn('Tu n\'es pas un formulaire', folded)
+        self.assertIn('Jamais un questionnaire vocal', folded)
+        self.assertIn('Confirme clairement', folded)
+        self.assertIn('Tu n\'appliques jamais toi-meme', folded.replace('ê', 'e'))
+        self.assertIn('carte oui / modifier / annuler', folded)
+
+    def test_catalogue_raccourci_pieges_gardes(self):
+        folded = ' '.join(SYSTEM_PROMPT_STATIC.split())
+        self.assertNotIn('Autres actions', SYSTEM_PROMPT_STATIC)
+        self.assertNotIn('creer_annee_scolaire', SYSTEM_PROMPT_STATIC)
+        self.assertNotIn('configurer_moyennes', SYSTEM_PROMPT_STATIC)
+        self.assertNotIn('enregistrer_absence_professeur', SYSTEM_PROMPT_STATIC)
+        self.assertIn('personnel_administratif', folded)
+        self.assertIn('N\'invente pas', folded)
+        self.assertIn('ECTS', folded)
+        self.assertIn('ouvrir_classe', folded)
+        self.assertIn('tools puis UNE', folded)
+        self.assertLess(len(SYSTEM_PROMPT_STATIC), 4500)
+
+    def test_addendum_type_sans_inventaire(self):
+        from school_admin.services.assistant_schema import prompt_addendum_for
+
+        class Primaire:
+            est_primaire = True
+            est_superieur = False
+            est_college_lycee = False
+
+        class Superieur:
+            est_primaire = False
+            est_superieur = True
+            est_college_lycee = False
+
+        primaire = prompt_addendum_for(Primaire())
+        superieur = prompt_addendum_for(Superieur())
+        self.assertIn('primaire', primaire.lower())
+        self.assertIn('ECTS', primaire)
+        self.assertIn('LMD', primaire)
+        self.assertNotIn('get_statistiques_pilotage', primaire)
+        self.assertNotIn('get_dossier_employe', primaire)
+        self.assertIn('N’invente aucun crédit', superieur)
+        self.assertIn('niveau LMD', superieur)
+        self.assertIn('Comptabilité générale : indisponible', superieur)

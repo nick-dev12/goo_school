@@ -544,66 +544,18 @@ def prompt_addendum_for(ctx):
         )
     if getattr(ctx, 'est_college_lycee', False):
         parts.append(
-            "- Pour les effectifs collège vs lycée, utilise get_repartition_cycles.\n"
-        )
-    parts.append(
-        "\nPilotage (lecture) :\n"
-        "- Tableau de bord : get_statistiques_pilotage "
-        "(effectifs, présence, recouvrement, sanctions).\n"
-        "- Réussite : get_taux_reussite (seuil de passage, période active par défaut).\n"
-        "- Présence : get_taux_presence (établissement, classe ou élève).\n"
-        "- Comparer deux périodes : get_comparatif_periodes.\n"
-        "- N’invente aucun chiffre : appelle l’outil avant de parler.\n"
-        "\nScolarité (nav visible, pas la comptabilité générale) :\n"
-        "- Fiche élève : get_fiche_scolarite (charges, reçu, moratoire, parent).\n"
-        "- Totaux : get_bilan_scolarite. Liste : get_impayes "
-        "(classe, statut, ancienneté 0-30 / 31-60 / 61+).\n"
-        "- Reçu : ouvrir_recu (numéro REC-… ou dernier paiement).\n"
-        "- Moratoires : get_moratoires (création déjà via creer_moratoire).\n"
-        "- Recalcul statuts : verifier_statuts_paiement (confirmation).\n"
-        "- Remises fratrie : synchroniser_remises_fratrie (confirmation).\n"
-        "\nPédagogie :\n"
-        "- Notes d’une classe : get_notes_classe. Moyennes : get_moyennes_classe.\n"
-        "- Bulletin d’un élève : get_bulletin_eleve (ouvre l’URL, ne génère pas de PDF).\n"
-        "- Impression classe : imprimer_bulletins_classe.\n"
-        "- Élèves sous le seuil : get_eleves_difficulte.\n"
-        "- Justifications en attente : get_justifications_notes ; "
-        "traiter_justification (accepter / refuser, confirmation).\n"
-        "- Coefficients : get_coefficients ; configurer_coefficient (confirmation).\n"
-        "- Évaluations : get_evaluations. Moyenne annuelle : calculer_moyenne_annuelle.\n"
-        "\nRH (vacataires, pas de bulletins permanents) :\n"
-        "- Dossier : get_dossier_employe (contrat, salaire, CNSS, RIB, tarif horaire).\n"
-        "- Modifier le dossier : modifier_dossier_employe (confirmation). "
-        "N’invente jamais de charges CSS/IPRES.\n"
-        "- Volume horaire : get_volume_horaire (semaine, mois ou année).\n"
-        "- Absences prof : get_absences_professeur ; "
-        "supprimer_absence_professeur (confirmation).\n"
-        "- Fiche de paie vacataire déjà marquée : ouvrir_fiche_paie "
-        "(ouvre l’URL existante). Pas de bulletin CDI.\n"
-    )
-    if not getattr(ctx, 'est_primaire', False):
-        parts.append(
-            "\nExamens (collège / lycée / supérieur) :\n"
-            "- Sessions : get_examens (nombre de créneaux et classes).\n"
-            "- Emploi des examens : get_emploi_examens.\n"
-            "- Notes d’examen : get_notes_examen. N’invente aucun chiffre.\n"
-            "- Modifier une session : modifier_session_examen (confirmation).\n"
-            "- Créneau : ajouter_creneau_examen / supprimer_creneau_examen "
-            "(salle, surveillant, conflits). Confirmation obligatoire.\n"
+            "- Effectifs collège vs lycée : get_repartition_cycles.\n"
         )
     if getattr(ctx, 'est_superieur', False):
         parts.append(
-            "- get_taux_reussite peut ajouter des crédits validés "
-            "seulement s’ils sont déjà calculés. N’invente pas d’ECTS.\n"
-            "- Pour les crédits d’un étudiant ou d’une promo, "
-            "préfère get_ects_etudiant / get_ects_classe.\n"
+            "- Crédits : seulement s’ils sont déjà calculés. N’invente pas d’ECTS.\n"
         )
     if not cg_visible():
         parts.append(
             "\nComptabilité générale : indisponible.\n"
-            "- Tu n’as aucun outil de plan comptable, journal, grand livre, "
+            "- Aucun outil de plan comptable, journal, grand livre, "
             "bilan SYSCOHADA, fournisseur ou clôture.\n"
-            "- La scolarité (paiements élèves, impayés, caisse du mois) reste autorisée "
+            "- La scolarité (paiements élèves, impayés, caisse) reste autorisée "
             "si tes outils la proposent.\n"
             "- N’ouvre pas et ne promets pas le hub de comptabilité générale.\n"
         )

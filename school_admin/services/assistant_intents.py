@@ -11,6 +11,10 @@ OPEN_VERB_RE = re.compile(
     r"va(?:s)?\s+(?:sur|à|a|dans)|aller?\s+(?:sur|à|a|dans))",
     re.IGNORECASE,
 )
+EXPLICIT_NAV_RE = re.compile(
+    r"(?:ouvre[rz]?|va(?:s)?\s+(?:sur|à|a|dans)|aller?\s+(?:sur|à|a|dans))",
+    re.IGNORECASE,
+)
 CLASS_OPEN_RE = re.compile(
     r"(?:classe|promotion)\s+(?:de\s+|d['’]|des\s+|la\s+|le\s+)?"
     r"(.+)$",
@@ -794,6 +798,31 @@ def looks_like_new_topic(question):
         or METIER_SWITCH_RE.search(text)
         or is_small_talk(text)
     )
+
+
+def is_explicit_navigation(question):
+    """Ouverture de page 100 % sûre (ouvre / va sur), pas « affiche les effectifs »."""
+    return bool(EXPLICIT_NAV_RE.search(question or ''))
+
+
+def is_obvious_pending_continue(question, pending):
+    """Réponse évidente à l’action en cours : jour, horaire, champ, choix. Pas Gemini."""
+    text = (question or '').strip()
+    if not text or not pending:
+        return False
+    if looks_like_new_topic(text):
+        return False
+    name = pending.get('name')
+    if annonce_field_request(text) or is_vague_annonce_modify(text):
+        return True
+    if name in ('creer_emploi_du_temps', 'ajouter_creneau_emploi'):
+        if JOUR_EXTRACT_RE.search(text) or TIME_SPAN_RE.search(text):
+            return True
+        if resolve_emploi_intent(text):
+            return True
+    if matches_pending_choice(text, pending) or _looks_like_class_name(text):
+        return True
+    return False
 
 
 def decide_pending_reply(question, pending):

@@ -1,5 +1,5 @@
 """
-Qualité assistant — Vagues A (voix) et B (changement de sujet).
+Qualité assistant — Vagues A+B (voix, sujet) et C+D (Gemini, polish).
 """
 import asyncio
 from unittest.mock import AsyncMock, patch
@@ -17,8 +17,16 @@ from school_admin.services.assistant_intents import (
     METIER_SWITCH_RE,
     NEW_QUESTION_RE,
     decide_pending_reply,
+    is_explicit_navigation,
+    is_obvious_pending_continue,
     looks_like_new_topic,
 )
+from school_admin.services.gemini_assistant_service import (
+    compact_tool_memory,
+    _dialog_to_gemini_contents,
+    _stream_cached_round,
+)
+from school_admin.services.gemini_context_cache import CACHE_DISPLAY_NAME
 from school_admin.services.tts_service import synthesize_audio
 
 
@@ -167,5 +175,110 @@ class TtsFallbackQualiteTests(SimpleTestCase):
             self.assertEqual(len(sent), 3)
             self.assertTrue(all(item.get('audio_base64') for item in sent))
             self.assertTrue(all(item.get('voice_failed') is False for item in sent))
+
+        asyncio.run(_run())
+
+
+class QualiteCGeminiTests(SimpleTestCase):
+    def test_cache_prompt_v10(self):
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v10')
+
+    def test_navigation_explicite_seulement(self):
+        self.assertTrue(is_explicit_navigation('Ouvre le tableau de bord'))
+        self.assertTrue(is_explicit_navigation('Va sur les classes'))
+        self.assertFalse(is_explicit_navigation('affiche les effectifs'))
+        self.assertFalse(is_explicit_navigation('Crée un emploi du temps pour la 1ère S'))
+        self.assertFalse(is_explicit_navigation('quels sont les effectifs ?'))
+
+    def test_continue_evident_sans_gemini(self):
+        pending = _pending_edt()
+        self.assertTrue(is_obvious_pending_continue('lundi', pending))
+        self.assertTrue(is_obvious_pending_continue('8h-10h', pending))
+        self.assertFalse(is_obvious_pending_continue('quels sont les effectifs ?', pending))
+        self.assertFalse(
+            is_obvious_pending_continue('donne-moi les notes de la 1ère S', pending)
+        )
+
+    def test_memoire_outil_compacte(self):
+        memory = compact_tool_memory(
+            'get_effectifs',
+            {
+                'nb_eleves_actifs': 120,
+                'nb_classes': 8,
+                'session': '2026-2027',
+                'liste_complete': ['x'] * 40,
+            },
+        )
+        self.assertIn('get_effectifs', memory)
+        self.assertIn('nb_eleves_actifs=120', memory)
+        self.assertIn('nb_classes=8', memory)
+        self.assertNotIn('liste_complete', memory)
+        self.assertLessEqual(len(memory), 280)
+
+    def test_overlay_sans_faux_tour_contexte_recu(self):
+        class FakeCtx:
+            persona = 'directeur'
+
+        with patch(
+            'school_admin.services.gemini_assistant_service._context_overlay',
+            return_value='SNAPSHOT-JSON',
+        ):
+            contents = _dialog_to_gemini_contents(
+                FakeCtx(),
+                [
+                    {'role': 'user', 'content': 'bonjour'},
+                    {'role': 'assistant', 'content': 'salut'},
+                    {'role': 'user', 'content': 'les effectifs'},
+                ],
+                tool_memory='get_effectifs, nb_eleves=12',
+            )
+        texts = []
+        for item in contents:
+            for part in item.parts:
+                texts.append(getattr(part, 'text', '') or '')
+        joined = '\n'.join(texts)
+        self.assertNotIn('Contexte reçu', joined)
+        self.assertIn('SNAPSHOT-JSON', texts[-1])
+        self.assertIn('get_effectifs', texts[-1])
+        self.assertIn('les effectifs', texts[-1])
+        self.assertEqual(texts[0], 'bonjour')
+
+    def test_stream_cache_emet_les_deltas(self):
+        class Chunk:
+            def __init__(self, text):
+                self.text = text
+                self.function_calls = []
+                self.candidates = []
+                self.usage_metadata = None
+
+        class DummyModels:
+            async def generate_content_stream(self, **_kwargs):
+                async def gen():
+                    yield Chunk('Un ')
+                    yield Chunk('deux.')
+
+                return gen()
+
+        class DummyClient:
+            def __init__(self):
+                self.aio = type('Aio', (), {'models': DummyModels()})()
+
+        async def _run():
+            deltas = []
+
+            async def on_delta(piece):
+                deltas.append(piece)
+
+            _response, calls, spoken = await _stream_cached_round(
+                DummyClient(),
+                'model',
+                'cache',
+                [],
+                0.5,
+                on_delta,
+            )
+            self.assertEqual(calls, [])
+            self.assertEqual(spoken, 'Un deux.')
+            self.assertEqual(deltas, ['Un ', 'deux.'])
 
         asyncio.run(_run())

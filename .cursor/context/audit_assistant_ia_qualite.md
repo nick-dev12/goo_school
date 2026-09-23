@@ -1,7 +1,7 @@
 # Audit qualité assistant IA (contexte + voix)
 
 **Date** : 2026-09-23  
-**Périmètre** : diagnostic + **Vagues A et B implémentées** (2026-09-23). Vagues C et D non faites.  
+**Périmètre** : diagnostic + **Vagues A, B, C et D implémentées** (2026-09-23).  
 **Persona** : directeur (enseignant primaire hors scope sauf mention).  
 **Fichiers lus / touchés** : `gemini_assistant_service.py`, `assistant_consumer.py`, `tts_service.py`, `assistant_intents.py`, `gemini_context_cache.py`, `assistant_vocal.js`, `school/settings.py`.  
 **Branche A+B** : `cursor/assistant-qualite-ab-a40c`. Tests : `school_admin/tests/test_assistant_qualite.py`.
@@ -12,7 +12,7 @@
 
 Gemini **est bien branché** (LLM + tools + TTS). L’assistante **n’est pas « bête »** : le prompt demande déjà de suivre le dernier message. En revanche le **runtime intercepte trop** (actions en attente, regex locales) et le **TTS phrase-par-phrase casse** : la première phrase parle, les suivantes arrivent souvent **sans audio** alors que le texte continue.
 
-**État 2026-09-23** : les causes **C1, C2, C3, C4, C5, C6** (quick wins A+B) sont corrigées dans le code. **C7–C12** (Vague C/D) restent ouvertes.
+**État 2026-09-23** : **A+B+C+D faites**. Causes C1–C12 traitées (C12 = amorce neutralisée, pas réactivée).
 
 ---
 
@@ -234,20 +234,22 @@ Le modèle **peut** être intuitif (prompt + tools v1–v6). Le **goulot** est l
 - « Crée un emploi du temps pour la 1ère S. » → elle demande des précisions.  
 - « Quels sont les effectifs ? » → **effectifs**, plus l’EDT.
 
-### Vague C — Gemini vraiment au centre (fond)
+### Vague C — Gemini vraiment au centre (fond) — **FAITE** (2026-09-23)
 
-1. Classifier le sujet **avant** les wizards regex.
-2. Stream cache + overlay contexte sans faux tour.
-3. Mini-mémoire du dernier tool, pas de catalogue d’outils relu à l’oral.
-4. Bump cache prompt v10.
+1. Bypass local réduit à la nav 100 % sûre (`ouvre` / `va sur`). Annonce, EDT, CRUD → tools Gemini. Pending : regex `switch` / continue évident (jour, horaire, champ) ; le reste → `classify_pending_intent`.
+2. Cache : `generate_content_stream` (repli `generate_content`). Overlay snapshot + mémoire outil collés au **dernier** message user — plus de faux tour « Contexte reçu ».
+3. `compact_tool_memory` (chiffres du dernier outil, ≤ 280 car.) pour le tour suivant seulement.
+4. Cache prompt **`aria-directeur-tools-v10`**. Température 0.5 (outils) / 0.7 (small-talk).
 
-**Test** : enchaîner 3 sujets sans lien (effectifs → notes 1ère S → CNSS d’un prof) **sans** mot magique « autre chose ». Chaque réponse = **ce** sujet, tools réellement appelés.
+**Test** : `QualiteCGeminiTests`. Recette : effectifs → notes 1ère S → CNSS d’un prof, sans « autre chose ».
 
-### Vague D — polish voix (fond)
+### Vague D — polish voix (fond) — **FAITE** (2026-09-23)
 
-1. Unlock systématique ; retry play plus franc.  
-2. Supprimer ou refondre l’amorce (`generate_opening_line`) : une voix d’attente **courte** *ou* rien, jamais deux files.  
-3. Aligner `text_delta` et `audio_sentence` (un seul canal d’affichage).
+1. `unlockAudio(true)` à chaque envoi / micro / choix ; `playAudioSafely` 3 tentatives.
+2. Amorce vocale neutralisée (`_start_opening` no-op, plus d’`_emit_opening` dans la file TTS).
+3. Affichage = `audio_sentence` uniquement. `text_delta` n’est tapé que s’il n’y a eu **aucune** phrase vocale (`receivedVoiceSentence`).
+
+JS : `assistant_vocal.js?v=1.9.11`. Aucune vue globale nouvelle.
 
 ---
 

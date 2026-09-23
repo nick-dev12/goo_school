@@ -74,6 +74,7 @@
   var voiceStartedMs = 0;
   var voiceTimer = null;
   var pendingDelta = '';
+  var receivedVoiceSentence = false;
   var voiceSendAfterStop = false;
   var currentActionCard = null;
   var reloadAfterAction = false;
@@ -466,7 +467,8 @@
       interruptAssistant();
     }
     ignoreIncoming = false;
-    unlockAudio();
+    unlockAudio(true);
+    receivedVoiceSentence = false;
     connect();
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       if (intent === 'open' && item.url) {
@@ -730,23 +732,24 @@
     return currentAssistantBubble;
   }
 
-  function unlockAudio() {
-    if (audioUnlocked) {
-      return;
-    }
+  function unlockAudio(force) {
     try {
       var Ctx = window.AudioContext || window.webkitAudioContext;
       if (Ctx) {
         audioContext = audioContext || new Ctx();
-        audioContext.resume();
+        if (audioContext.state === 'suspended' || force || !audioUnlocked) {
+          audioContext.resume();
+        }
       }
-      var silent = new Audio(
-        'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA'
-      );
-      silent.volume = 0.01;
-      var playPromise = silent.play();
-      if (playPromise && playPromise.catch) {
-        playPromise.catch(function () { });
+      if (!audioUnlocked || force) {
+        var silent = new Audio(
+          'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA'
+        );
+        silent.volume = 0.01;
+        var playPromise = silent.play();
+        if (playPromise && playPromise.catch) {
+          playPromise.catch(function () { });
+        }
       }
       audioUnlocked = true;
     } catch (err) {
@@ -817,6 +820,7 @@
       return;
     }
     if (data.type === 'audio_sentence') {
+      receivedVoiceSentence = true;
       enqueueSentence(
         data.text || '',
         data.audio_base64 || '',
@@ -1060,11 +1064,12 @@
     }
     ignoreIncoming = false;
     stopAudio();
-    unlockAudio();
+    unlockAudio(true);
     appendBubble('user', label);
     currentAssistantBubble = null;
     spokenPlain = '';
     pendingDone = false;
+    receivedVoiceSentence = false;
     pendingActionResult = null;
     setBusy(true);
     showThinking();
@@ -1181,7 +1186,7 @@
   }
 
   function playAudioSafely(audio, onFail) {
-    unlockAudio();
+    unlockAudio(true);
     if (audioContext && audioContext.state === 'suspended') {
       audioContext.resume();
     }
@@ -1195,14 +1200,14 @@
         onFail();
       }
     };
-    var attempt = function (retry) {
+    var attempt = function (left) {
       var playPromise = audio.play();
       if (playPromise && playPromise.catch) {
         playPromise.catch(function () {
-          if (retry) {
-            unlockAudio();
+          if (left > 0) {
+            unlockAudio(true);
             window.setTimeout(function () {
-              attempt(false);
+              attempt(left - 1);
             }, 80);
             return;
           }
@@ -1210,7 +1215,7 @@
         });
       }
     };
-    attempt(true);
+    attempt(2);
   }
 
   function playNext() {
@@ -1287,7 +1292,7 @@
     if (!pendingDone || isPlaying || audioQueue.length) {
       return;
     }
-    if (!spokenPlain && pendingDelta) {
+    if (!spokenPlain && pendingDelta && !receivedVoiceSentence) {
       isPlaying = true;
       ensureAssistantBubble();
       var leftoverText = stripToolMarkup(pendingDelta);
@@ -1300,6 +1305,7 @@
     }
     pendingDone = false;
     pendingDelta = '';
+    receivedVoiceSentence = false;
     hideThinking();
     if (currentAssistantBubble && spokenPlain) {
       paintAssistant(spokenPlain, false);
@@ -1421,7 +1427,8 @@
     if (busy) {
       interruptAssistant();
     }
-    unlockAudio();
+    unlockAudio(true);
+    receivedVoiceSentence = false;
     connect();
     if (!socket || socket.readyState === WebSocket.CONNECTING) {
       setStatus('Connexion…');
@@ -1509,7 +1516,7 @@
     placePanel();
     showWelcomeIfNeeded();
     persistCache();
-    unlockAudio();
+    unlockAudio(true);
     connect();
     scrollToEnd();
     window.setTimeout(scrollToEnd, 80);
@@ -2012,7 +2019,7 @@
     if (micBtn.disabled) {
       return;
     }
-    unlockAudio();
+    unlockAudio(true);
     connect();
     if (liveMode) {
       finishVoiceNote(true);

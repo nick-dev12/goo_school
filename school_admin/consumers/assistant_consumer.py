@@ -36,11 +36,11 @@ from school_admin.services.assistant_intents import (
     CRENEAU_ADD_RE,
     annonce_field_request,
     decide_pending_reply,
-    looks_like_new_topic,
     extract_creneau_draft,
     extract_emploi_draft,
     infer_destinataires,
-    is_affectation_read_request,
+    is_explicit_navigation,
+    is_obvious_pending_continue,
     is_small_talk,
     is_vague_annonce_modify,
     resolve_action_intent,
@@ -56,11 +56,12 @@ from school_admin.services.gemini_assistant_service import (
     WRITTEN_DRAFT_MAX,
     build_system_message,
     classify_pending_intent,
+    compact_tool_memory,
     generate_written_draft,
     run_assistant_turn,
     sanitize_dialog_messages,
 )
-from school_admin.services.assistant_tools import spoken_from_affectations, spoken_from_tool_result
+from school_admin.services.assistant_tools import spoken_from_tool_result
 from school_admin.services.tts_service import strip_assistant_markup, synthesize_audio
 
 logger = logging.getLogger(__name__)
@@ -200,6 +201,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self._tts_index = 0
         self._followup_choices = []
         self._socket_fresh = True
+        self._last_tool_memory = ''
         allowed = await self._resolve_etablissement()
         if not allowed:
             await self.close(code=4401)
@@ -390,10 +392,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                     pass
 
     async def _start_opening(self, question):
+        # Vague D : une seule file (réponse). Pas d’amorce vocale en parallèle.
+        del question
         await self._cancel_opener()
-        pending = dict(self.pending_action) if isinstance(self.pending_action, dict) else None
-        self._opener_task = asyncio.create_task(self._prepare_opening(question, pending))
-        self._opener_emit_task = asyncio.create_task(self._emit_opening())
 
     async def _prepare_opening(self, question, pending):
         try:
@@ -510,56 +511,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return choices_for_action(name, draft)
 
     async def _handle_local_intent(self, question, ctx):
-        if self._is_enseignant_primaire():
-            intent = resolve_open_intent(question)
-            if intent:
-                name, args = intent
-                if name == 'choisir_classe':
-                    await self._offer_classe_choices(question)
-                    return True
-                result = await self._execute_tool(ctx, name, args)
-                await self._dispatch_navigation(name, result)
-                spoken = result.get('erreur') or result.get('message') or f"J’ouvre {result.get('titre') or 'la page'}."
-                await self._speak_and_finish(user_text=question, spoken=spoken)
-                return True
+        if not is_explicit_navigation(question):
             return False
-        if looks_like_new_topic(question):
-            intent = resolve_open_intent(question)
-            if intent:
-                name, args = intent
-                if name == 'choisir_classe':
-                    await self._offer_classe_choices(question)
-                    return True
-                result = await self._execute_tool(ctx, name, args)
-                await self._dispatch_navigation(name, result)
-                spoken = result.get('erreur') or result.get('message') or (
-                    f"J’ouvre {result.get('titre') or 'la page'}."
-                )
-                await self._speak_and_finish(user_text=question, spoken=spoken)
-                return True
-            return False
-        draft = resolve_annonce_intent(question)
-        if draft is not None:
-            await self._start_annonce_guidee(question, draft)
-            return True
-        emploi = resolve_emploi_intent(question)
-        if emploi is not None:
-            if emploi.get('action') == 'ajouter_creneau_emploi':
-                await self._start_creneau_guidee(question, emploi)
-            else:
-                await self._start_emploi_guidee(question, emploi)
-            return True
-        if is_affectation_read_request(question):
-            result = await self._execute_tool(ctx, 'get_affectations', {'query': question})
-            spoken = spoken_from_affectations(result)
-            await self._speak_and_finish(user_text=question, spoken=spoken)
-            return True
-        action_intent = resolve_action_intent(question)
-        if action_intent:
-            name, args = action_intent
-            result = await self._execute_tool(ctx, name, args)
-            await self._start_generic_action(name, question, result)
-            return True
         intent = resolve_open_intent(question)
         if not intent:
             return False
@@ -582,7 +535,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         elif name == 'ouvrir_classe':
             spoken = f"J’ouvre la classe {result.get('nom') or args.get('query')}."
         else:
-            spoken = f"J’ouvre {result.get('titre') or 'cette page'}."
+            spoken = result.get('message') or f"J’ouvre {result.get('titre') or 'cette page'}."
         await self._speak_and_finish(user_text=question, spoken=spoken)
         return True
 
@@ -594,7 +547,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         dialog = sanitize_dialog_messages(self.history)
         dialog.append({'role': 'user', 'content': question})
         dialog = sanitize_dialog_messages(dialog)
-        messages = [build_system_message(ctx), *dialog]
+        messages = [
+            build_system_message(ctx, tool_memory=self._last_tool_memory),
+            *dialog,
+        ]
 
         assembler = SentenceAssembler()
         pending_sentences = []
@@ -617,6 +573,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         async def on_tool_result(name, _arguments, result):
             if isinstance(result, dict):
                 last_tool_results.append((name, result))
+                self._last_tool_memory = compact_tool_memory(name, result)
             if not isinstance(result, dict):
                 return
             pending_specs = self._pending_action_names()
@@ -684,6 +641,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 on_text_delta=on_text_delta,
                 on_tool_result=on_tool_result,
                 use_tools=not is_small_talk(question),
+                tool_memory=self._last_tool_memory,
             )
         except RuntimeError as exc:
             await self._cancel_opener()
@@ -702,6 +660,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if leftover:
             pending_sentences.append(leftover)
 
+        if last_tool_results:
+            self._last_tool_memory = compact_tool_memory(*last_tool_results[-1])
         if not spoken and not leftover and last_tool_results:
             spoken = spoken_from_tool_result(*last_tool_results[-1], ctx=ctx)
             if spoken:
@@ -770,7 +730,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if self._cancel_requested:
             await self._cancel_tts_tasks()
             return
-        await self._emit_opening()
         start = self._tts_index
         for offset, sentence in enumerate(sentences):
             if self._cancel_requested:
@@ -1022,14 +981,25 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
     async def _pending_decision(self, question, pending):
         decision = decide_pending_reply(question, pending)
-        if decision == 'ask':
-            try:
-                decision = await classify_pending_intent(pending, question)
-            except Exception:
-                logger.exception("Classification de sujet Aria")
-                decision = 'switch'
+        if decision == 'switch':
+            logger.info(
+                "Assistant pending decision name=%s decision=switch source=regex",
+                (pending or {}).get('name'),
+            )
+            return 'switch'
+        if is_obvious_pending_continue(question, pending):
+            logger.info(
+                "Assistant pending decision name=%s decision=continue source=obvious",
+                (pending or {}).get('name'),
+            )
+            return 'continue'
+        try:
+            decision = await classify_pending_intent(pending, question)
+        except Exception:
+            logger.exception("Classification de sujet Aria")
+            decision = 'switch'
         logger.info(
-            "Assistant pending decision name=%s decision=%s",
+            "Assistant pending decision name=%s decision=%s source=gemini",
             (pending or {}).get('name'),
             decision,
         )

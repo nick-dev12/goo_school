@@ -189,6 +189,8 @@ Navigation :
 Sujet :
 - Le dernier message de l'utilisateur a toujours priorité, même s'il coupe
   une réponse ou change de sujet.
+- Si le dernier message n'est pas une réponse à la question que TU viens
+  de poser, ignore l'historique métier et réponds à CE message.
 - S'il change de sujet, pose une question sans rapport, ou envoie une nouvelle
   consigne, abandonne l'ancienne action et réponds uniquement à ce message.
 - Ne ramène pas la conversation sur le sujet d'avant.
@@ -223,8 +225,10 @@ Exercices : creer_exercice_maison.
 Interdit : comptabilité, caisse, personnel administratif, affectations globales,
 annonces directeur, préinscriptions, volume horaire.
 
-Sujet : le dernier message utilisateur a toujours priorité. Une seule question
-si une information indispensable manque.
+Sujet : le dernier message utilisateur a toujours priorité. Si ce message
+n'est pas une réponse à ta dernière question, ignore l'historique métier
+et réponds à CE message. Une seule question si une information
+indispensable manque.
 """
 
 SYSTEM_PROMPT_STATIC = SYSTEM_PROMPT
@@ -325,13 +329,63 @@ def tools_schema_for(ctx):
     return directeur_tools_schema(ctx)
 
 
-def build_system_message(ctx):
+def build_system_message(ctx, tool_memory=''):
     snapshot = json.dumps(context_snapshot(ctx), ensure_ascii=False)
     base = system_prompt_static_for(ctx)
+    extra = f"\n\nContexte établissement :\n{snapshot}"
+    memory = (tool_memory or '').strip()
+    if memory:
+        extra += f"\n\nDernier outil (ne pas relire à l'oral) : {memory}"
     return {
         'role': 'system',
-        'content': base + f"\n\nContexte établissement :\n{snapshot}",
+        'content': base + extra,
     }
+
+
+_MEMORY_KEYS = (
+    'nb_eleves',
+    'nb_eleves_actifs',
+    'nb_classes',
+    'nb_professeurs',
+    'nb_personnel',
+    'nb_filles',
+    'nb_garcons',
+    'nb_impayes',
+    'nb_impaye',
+    'session',
+    'classe',
+    'nom',
+    'source',
+    'statut',
+    'taux',
+    'moyenne',
+    'cnss',
+    'periode',
+)
+
+
+def compact_tool_memory(name, result, max_len=280):
+    """Résumé chiffré du dernier outil, pour le tour suivant seulement."""
+    if not name or not isinstance(result, dict):
+        return ''
+    parts = [str(name)]
+    if result.get('erreur') and result.get('statut') not in (
+        'incomplet',
+        'en_attente_confirmation',
+    ):
+        parts.append('erreur')
+        return ', '.join(parts)[:max_len]
+    bag = dict(result)
+    nested = result.get('effectifs')
+    if isinstance(nested, dict):
+        bag = {**nested, **bag}
+    for key in _MEMORY_KEYS:
+        value = bag.get(key)
+        if value in (None, '', [], {}):
+            continue
+        if isinstance(value, (int, float, str, bool)):
+            parts.append(f'{key}={value}')
+    return ', '.join(parts)[:max_len]
 
 
 def _messages_for_api(messages):
@@ -352,29 +406,38 @@ def _context_overlay(ctx):
     return f"Contexte établissement (JSON) : {snapshot}"
 
 
-def _dialog_to_gemini_contents(ctx, messages):
+def _dialog_to_gemini_contents(ctx, messages, tool_memory=''):
     from google.genai import types
 
     dialog = sanitize_dialog_messages([
         item for item in (messages or [])
         if isinstance(item, dict) and item.get('role') != 'system'
     ])
-    contents = [
-        types.Content(
-            role='user',
-            parts=[types.Part.from_text(text=_context_overlay(ctx))],
-        ),
-        types.Content(
-            role='model',
-            parts=[types.Part.from_text(text='Contexte reçu.')],
-        ),
-    ]
-    for item in dialog:
+    overlay = _context_overlay(ctx)
+    memory = (tool_memory or '').strip()
+    if memory:
+        overlay = f"{overlay}\nDernier outil (ne pas relire à l'oral) : {memory}"
+    last_user = -1
+    for index, item in enumerate(dialog):
+        if item.get('role') == 'user':
+            last_user = index
+    contents = []
+    for index, item in enumerate(dialog):
+        text = item.get('content') or ''
+        if index == last_user and overlay:
+            text = f"{overlay}\n\n{text}"
         role = 'user' if item.get('role') == 'user' else 'model'
         contents.append(
             types.Content(
                 role=role,
-                parts=[types.Part.from_text(text=item.get('content') or '')],
+                parts=[types.Part.from_text(text=text)],
+            )
+        )
+    if not contents and overlay:
+        contents.append(
+            types.Content(
+                role='user',
+                parts=[types.Part.from_text(text=overlay)],
             )
         )
     return contents
@@ -685,12 +748,76 @@ async def _stream_spoken_answer(client, messages, on_text_delta):
     return ''.join(full_text)
 
 
+def _cached_generate_config(cache_name, temperature):
+    from google.genai import types
+
+    return types.GenerateContentConfig(
+        cached_content=cache_name,
+        temperature=temperature,
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(
+            disable=True,
+        ),
+    )
+
+
+async def _stream_cached_round(
+    client,
+    cache_model,
+    cache_name,
+    contents,
+    temperature,
+    on_text_delta,
+):
+    """Un tour cache : stream le texte, ou collecte les function_calls."""
+    from google.genai import types
+
+    config = _cached_generate_config(cache_name, temperature)
+    function_calls = []
+    spoken_parts = []
+    last_chunk = None
+    try:
+        stream = await client.aio.models.generate_content_stream(
+            model=cache_model,
+            contents=contents,
+            config=config,
+        )
+        async for chunk in stream:
+            last_chunk = chunk
+            calls = _gemini_function_calls(chunk)
+            if calls:
+                function_calls.extend(calls)
+                continue
+            if function_calls:
+                continue
+            piece = _gemini_text(chunk)
+            if piece:
+                spoken_parts.append(piece)
+                if on_text_delta:
+                    await on_text_delta(piece)
+    except Exception as exc:
+        logger.warning('Stream cache Gemini échoué, repli generate_content : %s', exc)
+        response = await client.aio.models.generate_content(
+            model=cache_model,
+            contents=contents,
+            config=config,
+        )
+        function_calls = _gemini_function_calls(response)
+        spoken = strip_tool_markup(_gemini_text(response) or '')
+        if not function_calls and spoken and on_text_delta:
+            await on_text_delta(spoken)
+        return response, function_calls, spoken
+
+    spoken = '' if function_calls else strip_tool_markup(''.join(spoken_parts))
+    return last_chunk, function_calls, spoken
+
+
 async def _run_assistant_turn_cached(
     ctx,
     messages,
     on_status=None,
     on_text_delta=None,
     on_tool_result=None,
+    tool_memory='',
 ):
     from google import genai
     from google.genai import types
@@ -712,23 +839,23 @@ async def _run_assistant_turn_cached(
     cache_name, cache_model, _token_count = cached
     api_key = getattr(settings, 'GEMINI_API_KEY', '') or ''
     client = genai.Client(api_key=api_key)
-    contents = _dialog_to_gemini_contents(ctx, messages)
+    contents = _dialog_to_gemini_contents(ctx, messages, tool_memory=tool_memory)
     used_tools = False
     spoken = ''
+    response = None
+    temperature = 0.5
 
     for _round in range(MAX_TOOL_ROUNDS):
         if on_status:
             await on_status('searching' if used_tools or _round == 0 else 'speaking')
         try:
-            response = await client.aio.models.generate_content(
-                model=cache_model,
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    cached_content=cache_name,
-                    automatic_function_calling=types.AutomaticFunctionCallingConfig(
-                        disable=True,
-                    ),
-                ),
+            response, function_calls, spoken = await _stream_cached_round(
+                client,
+                cache_model,
+                cache_name,
+                contents,
+                temperature,
+                on_text_delta,
             )
         except Exception as exc:
             name = type(exc).__name__
@@ -743,23 +870,19 @@ async def _run_assistant_turn_cached(
         if cached_tokens:
             logger.info('Gemini cache hit : %s tokens lus depuis le cache.', cached_tokens)
 
-        function_calls = _gemini_function_calls(response)
         if not function_calls:
-            spoken = strip_tool_markup(_gemini_text(response) or '')
-            if spoken and on_text_delta:
-                await on_text_delta(spoken)
             return messages, spoken
 
         used_tools = True
-        candidate = (getattr(response, 'candidates', None) or [None])[0]
-        model_content = getattr(candidate, 'content', None) if candidate else None
-        if model_content:
-            contents.append(model_content)
+        model_parts = []
         response_parts = []
         for call in function_calls:
             name = getattr(call, 'name', '') or ''
             raw_args = getattr(call, 'args', None) or {}
             arguments = raw_args if isinstance(raw_args, dict) else {}
+            model_parts.append(
+                types.Part.from_function_call(name=name, args=arguments)
+            )
             result = await sync_to_async(execute_tool, thread_sensitive=True)(
                 ctx, name, arguments
             )
@@ -768,13 +891,11 @@ async def _run_assistant_turn_cached(
             response_parts.append(
                 types.Part.from_function_response(name=name, response=result)
             )
+        contents.append(types.Content(role='model', parts=model_parts))
         contents.append(types.Content(role='user', parts=response_parts))
 
     if on_status:
         await on_status('speaking')
-    spoken = strip_tool_markup(_gemini_text(response) or '')
-    if spoken and on_text_delta:
-        await on_text_delta(spoken)
     return messages, spoken
 
 
@@ -785,6 +906,7 @@ async def run_assistant_turn(
     on_text_delta=None,
     on_tool_result=None,
     use_tools=True,
+    tool_memory='',
 ):
     """
     Exécute un tour : outils en auto si besoin, puis stream du texte oral.
@@ -798,6 +920,7 @@ async def run_assistant_turn(
             on_status=on_status,
             on_text_delta=on_text_delta,
             on_tool_result=on_tool_result,
+            tool_memory=tool_memory,
         )
         if cached_result is not None:
             return cached_result
@@ -805,10 +928,11 @@ async def run_assistant_turn(
     client = _get_client()
     working = _messages_for_api(messages)
     used_tools = False
-    extra = {}
+    extra = {'temperature': 0.5 if use_tools else 0.7}
     schema = tools_schema_for(ctx) if use_tools else None
     if use_tools:
-        extra = {'tools': schema, 'tool_choice': 'auto'}
+        extra['tools'] = schema
+        extra['tool_choice'] = 'auto'
 
     for _round in range(MAX_TOOL_ROUNDS):
         if on_status:

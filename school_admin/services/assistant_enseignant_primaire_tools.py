@@ -351,15 +351,22 @@ def tool_get_annonces(ctx, _args):
 
 
 def tool_get_notifications(ctx, _args):
+    from django.db.models import Q
+
     from school_admin.model.notification_enseignant_model import NotificationEnseignant
 
-    base_qs = NotificationEnseignant.objects.filter(professeur=ctx.professeur)
-    nb_non_lues = base_qs.filter(est_lu=False).count()
+    base_qs = NotificationEnseignant.objects.filter(enseignant=ctx.professeur)
+    if ctx.annee_scolaire:
+        base_qs = base_qs.filter(
+            Q(annee_scolaire=ctx.annee_scolaire) | Q(annee_scolaire__isnull=True)
+        )
+    nb_non_lues = base_qs.filter(lu=False).count()
     items = [
         {
+            'id': n.id,
             'titre': n.titre,
             'message': (n.message or '')[:200],
-            'lu': n.est_lu,
+            'lu': n.lu,
         }
         for n in base_qs.order_by('-date_creation')[:10]
     ]
@@ -500,6 +507,13 @@ def tool_chercher_en_base(ctx, args):
     if 'notification' in question:
         found = tool_get_notifications(ctx, args)
         return {'trouve': True, 'source': 'notifications', **found}
+    if 'justification' in question and 'note' in question:
+        from school_admin.services.assistant_enseignant_complements_tools import (
+            tool_get_justifications_notes,
+        )
+
+        found = tool_get_justifications_notes(ctx, payload)
+        return {'trouve': True, 'source': 'justifications_notes', **found}
     return {'trouve': False, 'message': 'Je n’ai pas reconnu le type de donnée. Précisez notes, présences, classes, etc.'}
 
 
@@ -524,6 +538,12 @@ ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS = {
     'ouvrir_page': tool_ouvrir_page,
     'ouvrir_classe': tool_ouvrir_classe,
 }
+
+from school_admin.services.assistant_enseignant_complements_tools import (
+    register_complements_tool_handlers,
+)
+
+register_complements_tool_handlers(ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS)
 
 ENSEIGNANT_PRIMAIRE_TOOLS_SCHEMA = [
     {
@@ -778,8 +798,15 @@ ENSEIGNANT_PRIMAIRE_TOOLS_SCHEMA = [
 ENSEIGNANT_PRIMAIRE_TOOLS_SCHEMA.extend(build_enseignant_action_tool_schemas())
 
 
-def get_enseignant_primaire_tools_schema():
-    return ENSEIGNANT_PRIMAIRE_TOOLS_SCHEMA
+def get_enseignant_primaire_tools_schema(ctx=None):
+    from school_admin.services.assistant_enseignant_complements_tools import (
+        extend_enseignant_schema_for_complements,
+    )
+
+    return extend_enseignant_schema_for_complements(
+        list(ENSEIGNANT_PRIMAIRE_TOOLS_SCHEMA),
+        ctx,
+    )
 
 
 def execute_enseignant_primaire_tool(ctx, name, arguments):

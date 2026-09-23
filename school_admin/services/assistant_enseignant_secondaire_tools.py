@@ -358,15 +358,22 @@ def tool_get_annonces(ctx, _args):
 
 
 def tool_get_notifications(ctx, _args):
+    from django.db.models import Q
+
     from school_admin.model.notification_enseignant_model import NotificationEnseignant
 
-    base_qs = NotificationEnseignant.objects.filter(professeur=ctx.professeur)
-    nb_non_lues = base_qs.filter(est_lu=False).count()
+    base_qs = NotificationEnseignant.objects.filter(enseignant=ctx.professeur)
+    if ctx.annee_scolaire:
+        base_qs = base_qs.filter(
+            Q(annee_scolaire=ctx.annee_scolaire) | Q(annee_scolaire__isnull=True)
+        )
+    nb_non_lues = base_qs.filter(lu=False).count()
     items = [
         {
+            'id': n.id,
             'titre': n.titre,
             'message': (n.message or '')[:200],
-            'lu': n.est_lu,
+            'lu': n.lu,
         }
         for n in base_qs.order_by('-date_creation')[:10]
     ]
@@ -507,6 +514,13 @@ def tool_chercher_en_base(ctx, args):
     if 'notification' in question:
         found = tool_get_notifications(ctx, args)
         return {'trouve': True, 'source': 'notifications', **found}
+    if 'justification' in question and 'note' in question:
+        from school_admin.services.assistant_enseignant_complements_tools import (
+            tool_get_justifications_notes,
+        )
+
+        found = tool_get_justifications_notes(ctx, payload)
+        return {'trouve': True, 'source': 'justifications_notes', **found}
     if not getattr(ctx, 'est_superieur', False) and not getattr(ctx, 'est_primaire', False):
         if 'examen' in question or 'composition' in question:
             from school_admin.services.assistant_enseignant_examens_tools import (
@@ -584,6 +598,12 @@ ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS = {
     'ouvrir_classe': tool_ouvrir_classe,
 }
 ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS.update(_merge_examens_handlers())
+
+from school_admin.services.assistant_enseignant_complements_tools import (
+    register_complements_tool_handlers,
+)
+
+register_complements_tool_handlers(ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS)
 
 ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA = [
     {
@@ -839,6 +859,9 @@ ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA.extend(build_enseignant_secondaire_action_too
 
 
 def get_enseignant_secondaire_tools_schema(ctx=None):
+    from school_admin.services.assistant_enseignant_complements_tools import (
+        extend_enseignant_schema_for_complements,
+    )
     from school_admin.services.assistant_enseignant_examens_tools import (
         extend_enseignant_schema_for_examens,
     )
@@ -848,7 +871,8 @@ def get_enseignant_secondaire_tools_schema(ctx=None):
 
     schema = list(ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA)
     schema = extend_enseignant_schema_for_superieur(schema, ctx)
-    return extend_enseignant_schema_for_examens(schema, ctx)
+    schema = extend_enseignant_schema_for_examens(schema, ctx)
+    return extend_enseignant_schema_for_complements(schema, ctx)
 
 
 def execute_enseignant_secondaire_tool(ctx, name, arguments):

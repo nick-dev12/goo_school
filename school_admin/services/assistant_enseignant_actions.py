@@ -740,3 +740,5 @@ register_enseignant_action(ActionSpec(
     prepare=prepare_calculer_moyennes_matiere,
     apply=apply_calculer_moyennes_matiere,
 ))
+
+from school_admin.services import assistant_enseignant_complements_actions  # noqa: F401

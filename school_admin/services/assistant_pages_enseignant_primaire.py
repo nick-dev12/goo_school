@@ -103,6 +103,41 @@ PAGE_CATALOG = (
         'route_kwargs': ('classe_id',),
         'mots': 'appel présence classe',
     },
+    {
+        'key': 'voir_releve',
+        'titre': 'Voir le relevé de notes',
+        'route': 'enseignant_primaire:voir_releve',
+        'route_kwargs': ('classe_id',),
+        'mots': 'relevé notes classe',
+    },
+    {
+        'key': 'imprimer_releve',
+        'titre': 'Imprimer le relevé',
+        'route': 'enseignant_primaire:imprimer_releve',
+        'route_kwargs': ('classe_id',),
+        'mots': 'impression relevé pdf',
+    },
+    {
+        'key': 'imprimer_tableau_presence',
+        'titre': 'Imprimer tableau de présence',
+        'route': 'enseignant_primaire:imprimer_tableau_presence',
+        'route_kwargs': ('classe_id',),
+        'mots': 'impression présence appel',
+    },
+    {
+        'key': 'historique_annee_detail',
+        'titre': 'Détail historique année',
+        'route': 'enseignant_primaire:historique_annee_detail',
+        'route_kwargs': ('annee_id',),
+        'mots': 'archive année détail',
+    },
+    {
+        'key': 'historique_presence',
+        'titre': 'Historique présence élève',
+        'route': 'enseignant_primaire:historique_presence',
+        'route_kwargs': ('eleve_id',),
+        'mots': 'absences élève historique',
+    },
 )
 
 

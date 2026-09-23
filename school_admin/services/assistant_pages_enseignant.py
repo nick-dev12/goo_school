@@ -116,6 +116,48 @@ PAGE_CATALOG = (
         'route_kwargs': ('classe_id',),
         'mots': 'examen composition session noter',
     },
+    {
+        'key': 'voir_releve',
+        'titre': 'Voir le relevé de notes',
+        'route': 'enseignant:voir_releve',
+        'route_kwargs': ('classe_id',),
+        'mots': 'relevé notes classe',
+    },
+    {
+        'key': 'imprimer_releve',
+        'titre': 'Imprimer le relevé',
+        'route': 'enseignant:imprimer_releve',
+        'route_kwargs': ('classe_id',),
+        'mots': 'impression relevé pdf',
+    },
+    {
+        'key': 'imprimer_releve_enseignant',
+        'titre': 'Imprimer relevé enseignant',
+        'route': 'enseignant:imprimer_releve_enseignant',
+        'route_kwargs': ('classe_id',),
+        'mots': 'impression relevé professeur',
+    },
+    {
+        'key': 'imprimer_tableau_presence',
+        'titre': 'Imprimer tableau de présence',
+        'route': 'enseignant:imprimer_tableau_presence',
+        'route_kwargs': ('classe_id',),
+        'mots': 'impression présence appel',
+    },
+    {
+        'key': 'historique_annee_detail',
+        'titre': 'Détail historique année',
+        'route': 'enseignant:historique_annee_detail',
+        'route_kwargs': ('annee_id',),
+        'mots': 'archive année détail',
+    },
+    {
+        'key': 'historique_presence',
+        'titre': 'Historique présence élève',
+        'route': 'enseignant:historique_presence',
+        'route_kwargs': ('eleve_id',),
+        'mots': 'absences élève historique',
+    },
 )
 
 

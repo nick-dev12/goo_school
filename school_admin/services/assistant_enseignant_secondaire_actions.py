@@ -756,3 +756,4 @@ register_enseignant_secondaire_action(ActionSpec(
 ))
 
 from school_admin.services import assistant_enseignant_examens_actions  # noqa: F401
+from school_admin.services import assistant_enseignant_complements_actions  # noqa: F401

@@ -1,8 +1,8 @@
 # Audit + feuille de route — Assistant IA Professeur
 
 **Date** : 2026-09-23  
-**Statut** : feuille de route **validée**. **P0–P6 livrées**. **Stop avant P7** (compléments transverses).  
-**Branche** : `cursor/assistant-prof-p0-p1-a40c`  
+**Statut** : feuille de route **validée**. **P0–P7 livrées**. **Stop avant P8** (recette multi-types).  
+**Branche** : `cursor/assistant-prof-p7-complements-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Approche Directeur (tools, schéma filtré, confirmation) : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md)
@@ -362,7 +362,7 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | UI | Partial vocal dans **nav/header commun**, pas seulement bottom nav |
 | Priorité métier | Lecture classes/notes/présences → écriture confirmée → supérieur → examens |
 
-**Prochaine étape** : **P7** (justifications, pages historique via `ouvrir_page`, etc.).
+**Prochaine étape** : **P8** (recette vocale multi-types établissement).
 
 ---
 
@@ -501,3 +501,32 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 
 - Justifier absence, modifier/supprimer évaluation, notifications lues — **P7**.
 - Recette finale multi-types — **P8**.
+
+---
+
+## 17. Livraison P7 — Compléments transverses (2026-09-23)
+
+### P7 — Actions + UI + navigation
+
+| Élément | Livré |
+|---------|--------|
+| Justifier absence | `justifier_absence` — carte confirmation, aligné vue prof (`absent_justifie`, `type_justificatif`), périmètre affectations |
+| Évaluations | `modifier_evaluation`, `supprimer_evaluation` (primaire `EvaluationPrimaire` + secondaire/supérieur `Evaluation`) |
+| Notifications | `marquer_notification_lue` ; correctif lecture `get_notifications` (`enseignant`, `lu`) |
+| Lecture | `get_justifications_notes` (demandes du prof, classes affectées) |
+| Pages catalogue | `voir_releve`, `imprimer_releve`, `imprimer_releve_enseignant`, `imprimer_tableau_presence`, `historique_annee_detail`, `historique_presence` (primaire + secondaire) |
+| UI sans header | Widget Aria sur `imprimer_releve_notes.html`, `imprimer_tableau_presence.html` (gate secondaire) |
+| Intégration | `assistant_enseignant_complements_actions.py`, `assistant_enseignant_complements_tools.py` ; cache **v4** |
+| Tests | `test_assistant_enseignant_complements_tools` (5) + régression — **36 tests** enseignant OK |
+
+### Recette vocale P7 (manuelle)
+
+1. Prof secondaire : **« Justifie l’absence de … »** → type de justificatif → **oui / modifier / annuler** avant enregistrement.
+2. **« Modifie l’évaluation … »** / **« Supprime l’évaluation … »** → confirmation (suppression = action destructive).
+3. **« Marque mes notifications comme lues »** → confirmation puis compteur header à jour.
+4. **« Ouvre l’impression du relevé en … »** → `ouvrir_page` (`imprimer_releve`).
+5. Pages impression présence / relevé (secondaire) : bulle Aria visible (Ctrl+F5).
+
+### Hors P7 (P8)
+
+- Recette finale primaire + collège/lycée + supérieur sur parcours complets — **P8**.

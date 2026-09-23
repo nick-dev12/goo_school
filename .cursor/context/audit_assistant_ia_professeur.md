@@ -539,7 +539,7 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 
 | Élément | Résultat |
 |---------|----------|
-| Suite automatisée | `test_assistant_enseignant_recette_p8` (13) + régression P0–P7 — **49 tests** enseignant **OK** (`--keepdb`) |
+| Suite automatisée | Recette P8 (13) + WS prof (6) + cohérence persona (4) + régression P0–P7 — **59 tests** enseignant **OK** (`--keepdb`) |
 | UI (§11.1) | Headers incluent le partial Aria ; gates sur impressions / notifications |
 | Périmètre (§11.2) | Couvert par tests scope existants + recette P8 |
 | Schéma par type (§11.5) | Primaire : pas LMD / pas examens ; collège : examens sans LMD ; supérieur : LMD sans examens |
@@ -558,19 +558,31 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 
 Après déploiement ou changement de cache : redémarrer **Daphne** (`aria-daphne` sur VPS, ou `daphne` / service ASGI en local) pour recharger le schéma Gemini.
 
-### Fragile / hors automatisé
+### Fragile / hors automatisé (post-correctifs P8)
 
-- **Voix STT/TTS + Gemini live** : non couvert par les tests Django (pas de suite WS recette prof dédiée).
-- **G1–G7 persona enseignant** : parité runtime partagée avec le directeur, mais **pas** de `test_assistant_qualite` persona `enseignant*` (recette vocale manuelle recommandée).
-- **Données réelles** : script ad hoc `school_admin/_tmp_test_assistant_live.py` cible le **directeur** Artisant, pas le prof.
-- **Primaire vs `niveau_enseignement`** : persona WS = `type_etablissement == 'primary'` ; incohérence base possible (cf. §3.1) — surveiller en prod.
+- **Voix STT/TTS + Gemini live** : toujours **manuel** (micro, TTS, reformulation Gemini).
+- **G1–G7 persona enseignant** : pas de `test_assistant_qualite` dédié enseignant ; runtime partagé avec le directeur.
+- **Données réelles** : script ad hoc `school_admin/_tmp_test_assistant_live.py` = directeur Artisant uniquement.
+
+### Correctifs P8 — fragiles traités (2026-09-23)
+
+| Sujet | Livré |
+|-------|--------|
+| **WS prof automatisé** | `test_assistant_enseignant_ws` : consumer `AssistantConsumer` (persona primaire / collège / supérieur), lecture `get_mes_classes`, filtrage examens vs LMD, handshake ASGI anonyme refusé |
+| **Persona / schéma** | Source de vérité : `Etablissement.type_etablissement` (`assistant_prof_persona.py`) ; vues primaire via `is_professeur_etablissement_primaire` |
+| **niveau_enseignement** | Dérivé du type établissement : `Professeur.save()` + migration `0224_sync_professeur_niveau_etablissement` |
+| **Tests cohérence** | `test_assistant_prof_persona_coherence` : persona inchangé si niveau incohérent ; `save()` resynchronise ; échec explicite via `professeur_niveau_coherent_avec_etablissement` |
+
+Réf. §3.1 : le WS **ne** s’appuie **plus** sur `Professeur.niveau_enseignement` pour le persona (historique corrigé).
 
 ### Vérification rapide
 
 ```powershell
 cd C:\wamp64\www\goo_school
 .\env\Scripts\Activate.ps1
-python manage.py test school_admin.tests.test_assistant_enseignant_recette_p8 `
+python manage.py test school_admin.tests.test_assistant_enseignant_ws `
+  school_admin.tests.test_assistant_prof_persona_coherence `
+  school_admin.tests.test_assistant_enseignant_recette_p8 `
   school_admin.tests.test_assistant_enseignant_complements_tools `
   school_admin.tests.test_assistant_enseignant_examens_tools `
   school_admin.tests.test_assistant_enseignant_secondaire_tools `

@@ -158,4 +158,20 @@ class Professeur(AbstractUser):
         # Ne plus générer automatiquement le username à partir de l'email
         # Le username doit être généré explicitement lors de la création
         # via ProfesseurController.generate_matricule_professeur()
+        if self.etablissement_id:
+            from school_admin.services.assistant_prof_persona import (
+                niveau_enseignement_for_type_etablissement,
+            )
+
+            etab = self.etablissement
+            if etab is None:
+                from school_admin.model.etablissement_model import Etablissement
+
+                etab = Etablissement.objects.filter(pk=self.etablissement_id).first()
+            if etab is not None:
+                expected = niveau_enseignement_for_type_etablissement(
+                    etab.type_etablissement
+                )
+                if self.niveau_enseignement != expected:
+                    self.niveau_enseignement = expected
         super().save(*args, **kwargs)

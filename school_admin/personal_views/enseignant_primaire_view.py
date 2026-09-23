@@ -42,6 +42,7 @@ from ..services.parent_notification_service import ParentNotificationService
 from ..services.directeur_notification_service import DirecteurNotificationService
 from ..services.eleve_notification_service import EleveNotificationService
 from ..model.notification_enseignant_model import NotificationEnseignant
+from ..services.assistant_prof_persona import is_professeur_etablissement_primaire
 from ..utils.calcul_moyennes_primaire import (
     calculer_moyenne_matiere,
     calculer_moyenne_generale,
@@ -160,7 +161,7 @@ def dashboard_enseignant_primaire(request):
     professeur = request.user
     
     # Vérifier que le professeur est bien de niveau primaire
-    if professeur.niveau_enseignement != 'primaire':
+    if not is_professeur_etablissement_primaire(professeur):
         messages.warning(request, "Vous n'êtes pas un enseignant du primaire. Redirection vers le tableau de bord standard.")
         return redirect('enseignant:dashboard_enseignant')
     
@@ -956,7 +957,7 @@ def justifications_notes_primaire(request):
 
     professeur = request.user
 
-    if professeur.niveau_enseignement != 'primaire':
+    if not is_professeur_etablissement_primaire(professeur):
         messages.warning(request, "Cette section est réservée aux enseignants du primaire.")
         from django.urls import reverse
         return redirect(reverse('enseignant:justifications_notes'))
@@ -1500,7 +1501,7 @@ def exercices_maison_primaire(request):
 
     professeur = request.user
 
-    if professeur.niveau_enseignement != 'primaire':
+    if not is_professeur_etablissement_primaire(professeur):
         messages.warning(
             request,
             "Cette section est réservée aux enseignants du primaire.",
@@ -5405,8 +5406,8 @@ def annonces_enseignant_primaire(request):
     if not annee_scolaire_active:
         messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
     
-    # Vérifier que le professeur est bien de niveau primaire
-    if professeur.niveau_enseignement != 'primaire':
+    # Vérifier que le professeur est rattaché à un établissement primaire
+    if not is_professeur_etablissement_primaire(professeur):
         messages.warning(request, "Vous n'êtes pas un enseignant du primaire.")
         return redirect('enseignant:dashboard_enseignant')
     

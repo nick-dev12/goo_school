@@ -342,3 +342,141 @@ class PostToolErrorTests(SimpleTestCase):
         classes.assert_not_called()
         self.assertEqual(result.get('source'), 'eleves')
         self.assertIn('A', result['eleves'][0]['nom'])
+
+
+class GeminiG1TakeoverTests(SimpleTestCase):
+    """G1 : un tool d’écriture n’arrête plus Gemini ; carte oui/non sans apply."""
+
+    def _consumer(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        consumer = AssistantConsumer()
+        consumer.scope = {}
+        consumer.persona = 'directeur'
+        consumer.pending_action = None
+        consumer._last_tool_memory = ''
+        consumer._followup_choices = []
+        sent = []
+
+        async def fake_send(payload):
+            sent.append(payload)
+
+        consumer._send_json = fake_send
+        consumer._persist_pending = AsyncMock()
+        return consumer, sent
+
+    def test_prepare_classe_ne_stoppe_pas_et_affiche_la_carte(self):
+        async def _run():
+            consumer, sent = self._consumer()
+            should_stop = await consumer._on_live_tool_result(
+                'creer_classe',
+                {
+                    'statut': 'en_attente_confirmation',
+                    'resume': 'créer la classe 3e A',
+                    'nom': '3e A',
+                    'message': 'Je m’apprête à créer la classe 3e A.',
+                },
+            )
+            self.assertFalse(should_stop)
+            self.assertEqual(consumer.pending_action['name'], 'creer_classe')
+            self.assertEqual(
+                consumer.pending_action['draft']['statut'],
+                'en_attente_confirmation',
+            )
+            types = [item.get('type') for item in sent]
+            self.assertIn('action.pending', types)
+            self.assertNotIn('text_delta', types)
+            self.assertNotIn('done', types)
+            self.assertFalse(any(item.get('type') == 'action.result' for item in sent))
+
+        asyncio.run(_run())
+
+    def test_incomplet_pas_de_carte_confirmation(self):
+        async def _run():
+            consumer, sent = self._consumer()
+            should_stop = await consumer._on_live_tool_result(
+                'donner_sanction',
+                {
+                    'statut': 'incomplet',
+                    'manquants': ['type_sanction'],
+                    'message': 'Quel type de sanction ?',
+                    'nom': 'Diallo',
+                },
+            )
+            self.assertFalse(should_stop)
+            self.assertEqual(consumer.pending_action['name'], 'donner_sanction')
+            self.assertNotIn(
+                'action.pending',
+                [item.get('type') for item in sent],
+            )
+
+        asyncio.run(_run())
+
+    def test_erreur_dure_laisse_gemini_parler(self):
+        async def _run():
+            consumer, sent = self._consumer()
+            should_stop = await consumer._on_live_tool_result(
+                'creer_classe',
+                {'erreur': 'Cette classe existe déjà.', 'statut': 'erreur'},
+            )
+            self.assertFalse(should_stop)
+            self.assertIsNone(consumer.pending_action)
+            result = next(item for item in sent if item.get('type') == 'action.result')
+            self.assertEqual(result['status'], 'error')
+
+        asyncio.run(_run())
+
+    def test_lecture_ne_cree_pas_de_pending(self):
+        async def _run():
+            consumer, sent = self._consumer()
+            should_stop = await consumer._on_live_tool_result(
+                'get_effectifs',
+                {'nb_eleves_actifs': 12, 'source': 'effectifs'},
+            )
+            self.assertFalse(should_stop)
+            self.assertIsNone(consumer.pending_action)
+            self.assertEqual(sent, [])
+
+        asyncio.run(_run())
+
+    def test_annonce_carte_sans_wizard(self):
+        async def _run():
+            consumer, sent = self._consumer()
+            should_stop = await consumer._on_live_tool_result(
+                'creer_publier_annonce',
+                {
+                    'statut': 'en_attente_confirmation',
+                    'titre': 'Réunion',
+                    'contenu': 'Réunion des parents vendredi.',
+                    'destinataires': ['parents'],
+                    'destinataires_libelle': 'Parents',
+                    'publier': True,
+                },
+            )
+            self.assertFalse(should_stop)
+            self.assertEqual(consumer.pending_action['name'], 'creer_publier_annonce')
+            types = [item.get('type') for item in sent]
+            self.assertIn('action.pending', types)
+            self.assertNotIn('navigate', types)
+            self.assertNotIn('form.fill', types)
+
+        asyncio.run(_run())
+
+    def test_callback_outil_ne_demande_jamais_larret(self):
+        async def _run():
+            consumer, _sent = self._consumer()
+            for name, result in (
+                (
+                    'creer_classe',
+                    {'statut': 'en_attente_confirmation', 'resume': 'créer 3e A'},
+                ),
+                (
+                    'donner_sanction',
+                    {'statut': 'incomplet', 'manquants': ['type_sanction']},
+                ),
+                ('get_effectifs', {'nb_eleves_actifs': 3}),
+                ('creer_classe', {'erreur': 'refus', 'statut': 'erreur'}),
+            ):
+                self.assertFalse(await consumer._on_live_tool_result(name, result))
+
+        asyncio.run(_run())

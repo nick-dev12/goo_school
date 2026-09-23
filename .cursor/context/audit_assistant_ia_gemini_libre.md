@@ -1,8 +1,9 @@
 # Audit — Aria Gemini libre (intelligence d’abord)
 
 **Date** : 2026-09-23  
-**Statut** : spec seule. **Aucune modification de code dans cette vague.**  
-**Branche** : `cursor/audit-gemini-libre-a40c`  
+**Statut** : audit **validé** le 2026-09-23. **Vague G1 livrée** (takeovers coupés, Gemini termine le tour). G2–G7 non commencées.  
+**Branche G0** : `cursor/audit-gemini-libre-a40c`  
+**Branche G1** : `cursor/assistant-g1-takeover-a40c`  
 **Persona** : directeur (personnel admin via `check_permission`). Enseignant primaire : même esprit, hors implémentation ici.  
 **Préalable validé** : Vagues métier 1–6 + qualité A+B+C+D + correctif « succès outil ≠ erreur rouge ».  
 **Audits liés** : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md) · [audit_assistant_ia_qualite.md](audit_assistant_ia_qualite.md)
@@ -36,7 +37,7 @@ Quand le directeur dit « publie une annonce aux parents », « ajoute un créne
 - tournent **dans le process Django** (WebSocket → `execute_tool` → `TOOL_HANDLERS` / `ACTION_SPECS.prepare` puis `.apply`) ;
 - réutilisent les **mêmes contrôleurs / modèles** que les vues de l’espace directeur ;
 - sont **filtrés** par type d’établissement (`assistant_schema.py`) et par `check_permission` ;
-- pour toute écriture : **brouillon → confirmation explicite → apply**. Rien n’est persisté avant le oui (sauf l’exception actuelle `donner_sanction` / `auto_appliquer`, à retravailler).
+- pour toute écriture : **brouillon → confirmation explicite → apply**. Rien n’est persisté avant le oui (G1 : plus d’`auto_appliquer` sur les sanctions).
 
 C’est déjà « commander le serveur » : créer une classe, enregistrer un paiement, justifier une absence, publier des bulletins. Pas besoin d’un interpréteur de commandes système.
 
@@ -324,7 +325,7 @@ Ce n’est **pas** un garde-fou : intercepter « créer une classe » par regex 
 
 ## 8. Plan d’actions futures (ordre d’implémentation)
 
-**Ne rien coder tant que cet audit n’est pas validé.** Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande.
+Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **Stop après G1** : ne pas démarrer G2 sans feu vert.
 
 Cache prompt : chaque vague qui touche le texte système **bump** `CACHE_DISPLAY_NAME` (`aria-directeur-tools-v11`, puis v12…).
 
@@ -332,7 +333,7 @@ Cache prompt : chaque vague qui touche le texte système **bump** `CACHE_DISPLAY
 
 Livrable : ce fichier. Zéro code.
 
-### Vague G1 — Couper les takeovers (fondation)
+### Vague G1 — Couper les takeovers (fondation) — **FAITE** (2026-09-23)
 
 **But** : Gemini **termine** le tour après un tool d’écriture. La carte pending s’affiche, le modèle parle.
 
@@ -346,7 +347,9 @@ Actions :
 
 Tests : un prepare `creer_classe` / `donner_sanction` n’arrête pas le mock Gemini ; pas d’`auto_appliquer` ; pas d’erreur générique après succès.
 
-**Hors G1** : encore laisser `_route_pending_reply` pour le tour **suivant** (oui/non). On ne réécrit pas tout le pending d’un coup.
+**Hors G1** : `_route_pending_reply` reste pour le tour **suivant** (oui/non / wizard). Pas touché.
+
+**Livré G1** : `on_tool_result` persiste le brouillon + carte si `en_attente_confirmation`, **return False**. Plus de `_start_*_guidee` / `_start_generic_action` depuis le tour Gemini. `auto_appliquer` retiré de `donner_sanction`. `spoken_from_tool_result` = repli seulement. Tests : `school_admin.tests.test_assistant_qualite.GeminiG1TakeoverTests` + sanction sans auto-apply.
 
 ### Vague G2 — Pending = oui/non, plus wizard
 
@@ -483,15 +486,13 @@ Critère subjectif (le vrai livrable) : **on a l’impression de parler à quelq
 
 ---
 
-## 13. Décision demandée
+## 13. Décision
 
-Cet audit est le **contrat** avant code.
-
-À valider :
+**Validé** le 2026-09-23.
 
 1. Gemini est le seul cerveau d’intention ; les tools Django sont les seules « commandes serveur ».
-2. On **supprime** les wizards guidés (annonce, EDT, générique) au profit de Gemini + carte oui/non.
-3. On implémente dans l’ordre G1 → G2 → G3, puis G4+G5+G6, puis G7.
-4. On ne rouvre pas de tools CG, pas de shell, pas d’`apply` sans confirmation.
+2. On **supprime** les wizards guidés (annonce, EDT, générique) au profit de Gemini + carte oui/non — G1 coupe le takeover ; G2 retirera les FSM du tour suivant.
+3. Ordre : G1 (**faite**) → G2 → G3, puis G4+G5+G6, puis G7.
+4. Pas de tools CG, pas de shell, pas d’`apply` sans confirmation.
 
-Dès validation : commencer **G1 seulement**.
+**Stop** : ne pas démarrer G2 tant que le directeur n’a pas validé G1 en vocal (sanction + liste).

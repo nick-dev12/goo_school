@@ -537,7 +537,7 @@ class AssistantDirecteurToolsTests(TestCase):
             {**draft, 'gravite': 'grave'},
         )
         self.assertEqual(draft['statut'], 'en_attente_confirmation')
-        self.assertTrue(draft.get('auto_appliquer'))
+        self.assertFalse(draft.get('auto_appliquer'))
         self.assertIn('Abega', draft['description'])
         self.assertIn('Ngo', draft['description'])
         self.assertEqual(set(draft['eleves_ids']), {premier.id, second.id})

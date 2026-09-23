@@ -22,6 +22,7 @@ from school_admin.services.assistant_emploi import (
 )
 from school_admin.services.assistant_actions import (
     ACTION_SPECS,
+    GUIDED_ACTIONS,
     choices_for_action,
     default_prompt,
     is_action_ready,
@@ -518,6 +519,76 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return choices_for_enseignant_action(name, draft)
         return choices_for_action(name, draft)
 
+    def _is_write_tool_name(self, name):
+        return name in self._pending_action_names() or name in GUIDED_ACTIONS
+
+    async def _on_live_tool_result(self, name, result):
+        """Carte / nav si besoin, mais ne jamais arrêter Gemini (G1)."""
+        if isinstance(result, dict):
+            self._last_tool_memory = compact_tool_memory(name, result)
+        if not isinstance(result, dict):
+            return False
+        if name in ('ouvrir_page', 'ouvrir_classe'):
+            await self._dispatch_navigation(name, result)
+            return False
+        if self._is_write_tool_name(name):
+            await self._remember_write_pending(name, result)
+        return False
+
+    async def _remember_write_pending(self, name, result):
+        """Persiste le brouillon + carte de confirmation. Ne parle pas, n'applique pas."""
+        data = dict(result or {})
+        statut = data.get('statut')
+        hard_error = bool(data.get('erreur')) and statut not in (
+            'incomplet',
+            'en_attente_confirmation',
+            'plusieurs',
+            'introuvable',
+        )
+        if hard_error:
+            await self._send_action_result('error', 'Action échouée', data['erreur'])
+            return False
+        if statut == 'ok' and not data.get('erreur'):
+            await self._clear_pending(silent=True)
+            await self._send_action_result(
+                'success',
+                'Action réalisée',
+                data.get('message') or 'C’est déjà fait.',
+                url=data.get('url'),
+            )
+            return False
+
+        self.pending_action = {'name': name, 'draft': data}
+        await self._persist_pending()
+
+        if data.get('url') and (
+            data.get('ouvrir')
+            or name in ('creer_emploi_du_temps', 'ajouter_creneau_emploi')
+        ):
+            await self._send_json({
+                'type': 'navigate',
+                'url': data['url'],
+                'titre': data.get('resume') or data.get('nom') or data.get('classe') or '',
+            })
+
+        if statut == 'en_attente_confirmation' and is_action_ready(data):
+            if name in ('creer_publier_annonce', 'annonce_guidee'):
+                await self._set_pending(data)
+            else:
+                await self._send_generic_pending_ui(name, data)
+            return False
+
+        choices = self._choices_for_pending_action(name, data)
+        if not choices and (
+            is_lookup_clarification(data)
+            or data.get('suggestions_possibles')
+            or data.get('plusieurs_classes')
+        ):
+            choices = choices_from_class_lookup(data)
+        if choices:
+            self._followup_choices = choices
+        return False
+
     async def _handle_local_intent(self, question, ctx):
         if not is_explicit_navigation(question):
             return False
@@ -575,72 +646,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_json({'type': 'text_delta', 'text': clean})
             pending_sentences.extend(assembler.feed(clean))
 
-        takeover = {'annonce': False, 'emploi': False, 'creneau': False, 'generic': False}
         last_tool_results = []
 
         async def on_tool_result(name, _arguments, result):
             if isinstance(result, dict):
                 last_tool_results.append((name, result))
-                self._last_tool_memory = compact_tool_memory(name, result)
-            if not isinstance(result, dict):
-                return False
-            pending_specs = self._pending_action_names()
-            if name in pending_specs:
-                if result.get('erreur') and result.get('statut') not in (
-                    'incomplet',
-                    'en_attente_confirmation',
-                ):
-                    await self._send_action_result(
-                        'error',
-                        'Action échouée',
-                        result['erreur'],
-                    )
-                    return True
-                takeover['generic'] = True
-                await self._start_generic_action(name, question, result)
-                return True
-            if name == 'creer_publier_annonce':
-                if result.get('erreur'):
-                    await self._send_action_result(
-                        'error',
-                        'Action échouée',
-                        result['erreur'],
-                    )
-                    return True
-                takeover['annonce'] = True
-                await self._start_annonce_guidee(question, result)
-                return True
-            if name == 'creer_emploi_du_temps':
-                if is_lookup_clarification(result):
-                    self._followup_choices = choices_from_class_lookup(result)
-                    return False
-                if result.get('erreur'):
-                    await self._send_action_result(
-                        'error',
-                        'Action échouée',
-                        result['erreur'],
-                    )
-                    return True
-                takeover['emploi'] = True
-                await self._start_emploi_guidee(question, result)
-                return True
-            if name == 'ajouter_creneau_emploi':
-                if is_lookup_clarification(result):
-                    self._followup_choices = choices_from_class_lookup(result)
-                    return False
-                if result.get('erreur'):
-                    await self._send_action_result(
-                        'error',
-                        'Action échouée',
-                        result['erreur'],
-                    )
-                    return True
-                takeover['creneau'] = True
-                await self._start_creneau_guidee(question, result)
-                return True
-            if name in ('ouvrir_page', 'ouvrir_classe'):
-                await self._dispatch_navigation(name, result)
-            return False
+            return await self._on_live_tool_result(name, result)
 
         try:
             _working, spoken = await run_assistant_turn(
@@ -654,8 +665,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             )
         except Exception:
             logger.exception("Tour Gemini après outil")
-            if takeover['annonce'] or takeover['emploi'] or takeover['creneau'] or takeover['generic']:
-                return
             if last_tool_results:
                 spoken = spoken_from_tool_result(*last_tool_results[-1], ctx=ctx)
                 if spoken:
@@ -675,9 +684,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
         if self._cancel_requested:
             await self._cancel_tts_tasks()
-            return
-
-        if takeover['annonce'] or takeover['emploi'] or takeover['creneau'] or takeover['generic']:
             return
 
         leftover = assembler.flush()
@@ -1712,9 +1718,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 'titre': data.get('resume') or data.get('nom') or '',
             })
         spoken = data.get('message') or default_prompt(data)
-        if data.get('auto_appliquer') and data.get('statut') == 'en_attente_confirmation':
-            await self._confirm_generic_action()
-            return
         if data.get('statut') == 'en_attente_confirmation':
             spoken = default_prompt(data)
         elif data.get('statut') == 'ok' and not data.get('erreur'):

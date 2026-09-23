@@ -860,7 +860,6 @@ def prepare_donner_sanction(ctx, args):
         description=description,
         date_sanction=date_sanction.isoformat(),
         url=_reverse('secretaire:detail_eleve', args=[eleves[0].id]),
-        auto_appliquer=True,
     )
 
 

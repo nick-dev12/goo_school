@@ -705,7 +705,19 @@ TOPIC_SWITCH_RE = re.compile(
 NEW_QUESTION_RE = re.compile(
     r"^(?:combien|qui|quand|o[uù]|pourquoi|comment|quel(?:le|s)?|"
     r"est[- ]ce\s+que|peux[- ]tu|pouvez[- ]vous|dis[- ]moi|"
+    r"donne[- ]moi|donne\s+(?:moi\s+)?(?:les?|le|la)\b|"
+    r"liste|lister?|afficher?|montre[- ]moi|montre[rz]?|"
     r"j['’]ai\s+(?:une\s+)?(?:autre\s+)?(?:question|demande))\b",
+    re.IGNORECASE,
+)
+METIER_SWITCH_RE = re.compile(
+    r"\b(?:effectifs?|impay[ée]s|scolarit[ée]|caisse|"
+    r"taux\s+de\s+(?:r[ée]ussite|pr[ée]sence)|"
+    r"fiche\s+de\s+(?:scolarit[ée]|paie)|"
+    r"notes?\s+de\s+(?:la|l['’]|cette)|"
+    r"moyennes?\s+de|volume\s+horaire|"
+    r"emploi\s+des\s+examens|sessions?\s+d['’]examen|"
+    r"dossier\s+(?:de|du|d['’])|n[°o]\s*cnss|cnss)\b",
     re.IGNORECASE,
 )
 VAGUE_MODIFY_RE = re.compile(
@@ -771,6 +783,19 @@ def matches_pending_choice(question, pending):
     return False
 
 
+def looks_like_new_topic(question):
+    """Question métier / nouvelle demande : ne pas la coller à l’action en cours."""
+    text = (question or '').strip()
+    if not text:
+        return False
+    return bool(
+        TOPIC_SWITCH_RE.search(text)
+        or NEW_QUESTION_RE.search(text)
+        or METIER_SWITCH_RE.search(text)
+        or is_small_talk(text)
+    )
+
+
 def decide_pending_reply(question, pending):
     """
     continue = le message répond à l'action en cours.
@@ -782,9 +807,7 @@ def decide_pending_reply(question, pending):
         return 'switch'
 
     name = pending.get('name')
-    if TOPIC_SWITCH_RE.search(text):
-        return 'switch'
-    if is_small_talk(text):
+    if looks_like_new_topic(text):
         return 'switch'
     if resolve_annonce_intent(text) and name == 'choisir_classe':
         return 'switch'

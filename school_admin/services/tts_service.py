@@ -12,7 +12,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-TTS_TIMEOUT_SECONDS = 14
+TTS_TIMEOUT_SECONDS = 25
 DEFAULT_VOICE = 'fr-BE-CharlineNeural'
 DEFAULT_GEMINI_VOICE = 'Zephyr'
 DEFAULT_GEMINI_LANGUAGE = 'fr-FR'
@@ -640,10 +640,11 @@ async def synthesize_audio(text, voice=None, rate=None, pitch=None):
     audio, mime = await _synthesize_gemini(clean)
     if audio:
         return audio, mime
-    if getattr(settings, 'ASSISTANT_TTS_FALLBACK_EDGE', False):
-        logger.warning('Gemini TTS indisponible, repli Edge (voix différente).')
-        return await _synthesize_edge_mp3(clean, voice=voice)
-    logger.warning('Gemini TTS indisponible, pas de repli Edge (voix fixe).')
+    logger.warning('Gemini TTS indisponible, repli Edge pour cette phrase.')
+    audio, mime = await _synthesize_edge_mp3(clean, voice=voice)
+    if audio:
+        return audio, mime
+    logger.warning('TTS vide après Gemini et Edge : phrase muette évitée côté file.')
     return None, None
 
 

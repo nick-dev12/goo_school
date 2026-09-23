@@ -26,11 +26,17 @@ from school_admin.services.assistant_actions import (
     default_prompt,
     is_action_ready,
 )
+from school_admin.services.assistant_enseignant_actions import (
+    ENSEIGNANT_ACTION_SPECS,
+    choices_for_enseignant_action,
+    get_enseignant_action,
+)
 from school_admin.services.assistant_intents import (
     ANNONCE_CREATE_RE,
     CRENEAU_ADD_RE,
     annonce_field_request,
     decide_pending_reply,
+    looks_like_new_topic,
     extract_creneau_draft,
     extract_emploi_draft,
     infer_destinataires,
@@ -61,8 +67,10 @@ logger = logging.getLogger(__name__)
 
 MAX_HISTORY_MESSAGES = 24
 MAX_QUESTION_LENGTH = 8000
+MAX_TTS_SEGMENT_CHARS = 150
+MIN_TTS_CLAUSE_CHARS = 120
 SENTENCE_RE = re.compile(r'(.+?(?:[.!?…]|\n)+)\s*', re.DOTALL)
-CLAUSE_RE = re.compile(r'(.{40,}?[,;:])\s+')
+CLAUSE_RE = re.compile(r'(.{120,}?[,;:])\s+')
 AFFIRM_RE = re.compile(
     r'^\s*(oui|ouais|ok|okay|yes|d[\'’ ]?accord|je confirme|confirme[rz]?|'
     r'vas[- ]y|publie[rz]?|c[\'’ ]est bon|cest bon|parfait|go|valide[rz]?|'
@@ -113,25 +121,56 @@ def wants_modify(text):
 
 
 class SentenceAssembler:
-    """Découpe un flux de tokens en phrases prêtes pour le TTS."""
+    """Découpe un flux de tokens en segments TTS d’environ 120–150 caractères."""
 
-    def __init__(self):
+    def __init__(self, max_chars=MAX_TTS_SEGMENT_CHARS, min_clause=MIN_TTS_CLAUSE_CHARS):
         self.buffer = ''
+        self.max_chars = max_chars
+        self.min_clause = min_clause
 
     def feed(self, delta):
         self.buffer += delta or ''
         sentences = []
         while True:
             match = SENTENCE_RE.match(self.buffer)
-            if not match and len(self.buffer) >= 70:
+            if not match and len(self.buffer) >= self.min_clause:
                 match = CLAUSE_RE.match(self.buffer)
-            if not match:
+            if match:
+                sentence = match.group(1).strip()
+                self.buffer = self.buffer[match.end():]
+                if sentence:
+                    sentences.extend(self._split_long(sentence))
+                continue
+            forced = self._force_cut()
+            if not forced:
                 break
-            sentence = match.group(1).strip()
-            self.buffer = self.buffer[match.end():]
-            if sentence:
-                sentences.append(sentence)
+            sentences.append(forced)
         return sentences
+
+    def _force_cut(self):
+        if len(self.buffer) < self.max_chars:
+            return ''
+        cut = self.buffer.rfind(' ', 0, self.max_chars)
+        if cut < 40:
+            cut = self.max_chars
+        sentence = self.buffer[:cut].strip()
+        self.buffer = self.buffer[cut:].lstrip()
+        return sentence
+
+    def _split_long(self, sentence):
+        if len(sentence) <= self.max_chars:
+            return [sentence]
+        parts = []
+        rest = sentence
+        while len(rest) > self.max_chars:
+            cut = rest.rfind(' ', 0, self.max_chars)
+            if cut < 40:
+                cut = self.max_chars
+            parts.append(rest[:cut].strip())
+            rest = rest[cut:].lstrip()
+        if rest:
+            parts.append(rest)
+        return [part for part in parts if part]
 
     def flush(self):
         leftover = self.buffer.strip()
@@ -140,11 +179,13 @@ class SentenceAssembler:
 
 
 class AssistantConsumer(AsyncWebsocketConsumer):
-    """Canal privé directeur / personnel administratif."""
+    """Canal privé directeur / personnel administratif / enseignant primaire."""
 
     async def connect(self):
         self.etablissement = None
         self.personnel = None
+        self.professeur = None
+        self.persona = 'directeur'
         self.history = []
         self.pending_action = None
         self._busy = False
@@ -158,6 +199,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self._opener_lock = asyncio.Lock()
         self._tts_index = 0
         self._followup_choices = []
+        self._socket_fresh = True
         allowed = await self._resolve_etablissement()
         if not allowed:
             await self.close(code=4401)
@@ -241,6 +283,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     async def _execute_user_message(self, question):
         await self._send_working_ack(question)
         await self._ensure_pending_loaded()
+        if self._socket_fresh:
+            self._socket_fresh = False
+            if (
+                self.pending_action
+                and not is_affirmative(question)
+                and not is_cancel(question)
+            ):
+                await self._clear_pending(silent=True)
         if await self._route_pending_reply(question):
             return
         if self.pending_action:
@@ -441,7 +491,53 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             if choices:
                 await self._send_choices(choices)
 
+    def _is_enseignant_primaire(self):
+        return getattr(self, 'persona', 'directeur') == 'enseignant_primaire'
+
+    def _pending_action_names(self):
+        if self._is_enseignant_primaire():
+            return ENSEIGNANT_ACTION_SPECS
+        return ACTION_SPECS
+
+    def _action_spec(self, name):
+        if self._is_enseignant_primaire():
+            return get_enseignant_action(name) or ACTION_SPECS.get(name)
+        return ACTION_SPECS.get(name)
+
+    def _choices_for_pending_action(self, name, draft):
+        if self._is_enseignant_primaire() and name in ENSEIGNANT_ACTION_SPECS:
+            return choices_for_enseignant_action(name, draft)
+        return choices_for_action(name, draft)
+
     async def _handle_local_intent(self, question, ctx):
+        if self._is_enseignant_primaire():
+            intent = resolve_open_intent(question)
+            if intent:
+                name, args = intent
+                if name == 'choisir_classe':
+                    await self._offer_classe_choices(question)
+                    return True
+                result = await self._execute_tool(ctx, name, args)
+                await self._dispatch_navigation(name, result)
+                spoken = result.get('erreur') or result.get('message') or f"J’ouvre {result.get('titre') or 'la page'}."
+                await self._speak_and_finish(user_text=question, spoken=spoken)
+                return True
+            return False
+        if looks_like_new_topic(question):
+            intent = resolve_open_intent(question)
+            if intent:
+                name, args = intent
+                if name == 'choisir_classe':
+                    await self._offer_classe_choices(question)
+                    return True
+                result = await self._execute_tool(ctx, name, args)
+                await self._dispatch_navigation(name, result)
+                spoken = result.get('erreur') or result.get('message') or (
+                    f"J’ouvre {result.get('titre') or 'la page'}."
+                )
+                await self._speak_and_finish(user_text=question, spoken=spoken)
+                return True
+            return False
         draft = resolve_annonce_intent(question)
         if draft is not None:
             await self._start_annonce_guidee(question, draft)
@@ -501,7 +597,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         messages = [build_system_message(ctx), *dialog]
 
         assembler = SentenceAssembler()
-        pending_tts = []
+        pending_sentences = []
 
         async def on_status(phase):
             await self._send_json({'type': 'status', 'phase': phase})
@@ -513,10 +609,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             if not clean:
                 return
             await self._send_json({'type': 'text_delta', 'text': clean})
-            for sentence in assembler.feed(clean):
-                pending_tts.append(
-                    (sentence, self._track_tts(asyncio.create_task(synthesize_audio(sentence))))
-                )
+            pending_sentences.extend(assembler.feed(clean))
 
         takeover = {'annonce': False, 'emploi': False, 'creneau': False, 'generic': False}
         last_tool_results = []
@@ -526,7 +619,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 last_tool_results.append((name, result))
             if not isinstance(result, dict):
                 return
-            if name in ACTION_SPECS:
+            pending_specs = self._pending_action_names()
+            if name in pending_specs:
                 if result.get('erreur') and result.get('statut') not in (
                     'incomplet',
                     'en_attente_confirmation',
@@ -606,19 +700,15 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
         leftover = assembler.flush()
         if leftover:
-            pending_tts.append(
-                (leftover, self._track_tts(asyncio.create_task(synthesize_audio(leftover))))
-            )
+            pending_sentences.append(leftover)
 
         if not spoken and not leftover and last_tool_results:
-            spoken = spoken_from_tool_result(*last_tool_results[-1])
+            spoken = spoken_from_tool_result(*last_tool_results[-1], ctx=ctx)
             if spoken:
                 await self._send_json({'type': 'text_delta', 'text': spoken})
-                pending_tts.append(
-                    (spoken, self._track_tts(asyncio.create_task(synthesize_audio(spoken))))
-                )
+                pending_sentences.append(spoken)
 
-        await self._flush_tts_queue(pending_tts)
+        await self._flush_tts_queue(pending_sentences)
         if self._cancel_requested:
             return
 
@@ -632,13 +722,13 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 self._followup_choices or self._infer_choices(spoken)
             )
             self._followup_choices = []
-        elif not leftover and not pending_tts:
+        elif not leftover and not pending_sentences:
             await self._send_json({
                 'type': 'error',
                 'message': "Je n’ai reçu aucune réponse de l’assistant.",
             })
 
-            await self._send_json({'type': 'done'})
+        await self._send_json({'type': 'done'})
 
     async def _handle_stt(self, payload):
         from school_admin.services.stt_service import transcribe_pcm16
@@ -665,27 +755,30 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             audio, audio_mime = await synthesize_audio(sentence)
         if not audio_mime:
             audio_mime = 'audio/wav'
+        voice_failed = not audio
         payload = {
             'type': 'audio_sentence',
             'index': index,
             'text': sentence,
             'audio_mime': audio_mime,
             'audio_base64': base64.b64encode(audio).decode('ascii') if audio else '',
+            'voice_failed': voice_failed,
         }
         await self._send_json(payload)
 
-    async def _flush_tts_queue(self, pending_tts):
+    async def _flush_tts_queue(self, sentences):
         if self._cancel_requested:
             await self._cancel_tts_tasks()
             return
         await self._emit_opening()
         start = self._tts_index
-        for offset, (sentence, task) in enumerate(pending_tts):
+        for offset, sentence in enumerate(sentences):
             if self._cancel_requested:
                 await self._cancel_tts_tasks()
                 return
             audio = b''
             mime = 'audio/wav'
+            task = self._track_tts(asyncio.create_task(synthesize_audio(sentence)))
             try:
                 audio, mime = await task
             except asyncio.CancelledError:
@@ -694,13 +787,20 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 logger.exception("Échec TTS phrase.")
             if self._cancel_requested:
                 return
+            if not audio:
+                logger.warning(
+                    "TTS vide après repli, phrase %s : %s",
+                    start + offset,
+                    (sentence or '')[:80],
+                )
+            # audio=None relancerait une 2e synthèse : on transmet le résultat tel quel.
             await self._emit_sentence(
                 sentence,
                 start + offset,
-                audio=audio or b'',
+                audio=audio if audio else b'',
                 audio_mime=mime or 'audio/wav',
             )
-        self._tts_index = start + len(pending_tts)
+        self._tts_index = start + len(sentences)
 
     async def _send_json(self, payload):
         if self._cancel_requested and payload.get('type') not in _ALLOWED_WHEN_CANCELLED:
@@ -719,6 +819,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if isinstance(user, Etablissement):
             self.etablissement = Etablissement.objects.get(pk=user.pk)
             self.personnel = None
+            self.professeur = None
+            self.persona = 'directeur'
             return True
         if isinstance(user, PersonnelAdministratif):
             personnel = PersonnelAdministratif.objects.select_related('etablissement').get(
@@ -726,7 +828,22 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             )
             self.etablissement = personnel.etablissement
             self.personnel = personnel
+            self.persona = 'directeur'
             return bool(self.etablissement)
+
+        from school_admin.model.professeur_model import Professeur
+
+        if isinstance(user, Professeur):
+            prof = Professeur.objects.select_related('etablissement').get(pk=user.pk)
+            if not prof.actif or prof.niveau_enseignement != 'primaire':
+                return False
+            if not prof.etablissement_id:
+                return False
+            self.etablissement = prof.etablissement
+            self.professeur = prof
+            self.personnel = None
+            self.persona = 'enseignant_primaire'
+            return True
         return False
 
     @database_sync_to_async
@@ -738,6 +855,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             self.etablissement,
             session_store,
             personnel=self.personnel,
+            professeur=self.professeur,
+            persona=self.persona,
         )
 
     @database_sync_to_async
@@ -845,10 +964,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_choices(self._choices_for_emploi_action())
         elif name == 'choisir_classe':
             await self._send_choices(self.pending_action.get('choices') or [])
-        elif name in ACTION_SPECS:
+        elif name in self._pending_action_names():
             draft = self.pending_action.get('draft') or {}
             await self._send_generic_pending_ui(name, draft)
-            await self._send_choices(choices_for_action(name, draft))
+            await self._send_choices(self._choices_for_pending_action(name, draft))
 
     async def _handle_choice_payload(self, payload):
         intent = (payload.get('intent') or 'chat').strip()
@@ -901,6 +1020,21 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return
         await self._handle_chat(value)
 
+    async def _pending_decision(self, question, pending):
+        decision = decide_pending_reply(question, pending)
+        if decision == 'ask':
+            try:
+                decision = await classify_pending_intent(pending, question)
+            except Exception:
+                logger.exception("Classification de sujet Aria")
+                decision = 'switch'
+        logger.info(
+            "Assistant pending decision name=%s decision=%s",
+            (pending or {}).get('name'),
+            decision,
+        )
+        return decision
+
     async def _route_pending_reply(self, question):
         await self._ensure_pending_loaded()
         pending = self.pending_action
@@ -924,19 +1058,27 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 await self._run_guarded(self._confirm_pending)
                 return True
             if field or vague:
+                decision = await self._pending_decision(question, pending)
+                if decision == 'switch':
+                    await self._clear_pending(silent=True)
+                    return False
                 await self._run_guarded(lambda: self._continue_annonce_guidee(question))
                 return True
         elif name in ('creer_emploi_du_temps', 'ajouter_creneau_emploi'):
             if is_affirmative(question) and self._emploi_action_ready():
                 await self._run_guarded(self._confirm_pending)
                 return True
+            decision = await self._pending_decision(question, pending)
+            if decision == 'switch':
+                await self._clear_pending(silent=True)
+                return False
             await self._run_guarded(lambda: self._continue_emploi_guidee(question))
             return True
-        elif name in ACTION_SPECS:
+        elif name in self._pending_action_names():
             if is_affirmative(question) and is_action_ready(pending.get('draft') or {}):
                 await self._run_guarded(self._confirm_pending)
                 return True
-            decision = decide_pending_reply(question, pending)
+            decision = await self._pending_decision(question, pending)
             if decision == 'switch':
                 await self._clear_pending(silent=True)
                 return False
@@ -946,13 +1088,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._run_guarded(self._confirm_pending)
             return True
 
-        decision = decide_pending_reply(question, pending)
-        if decision == 'ask':
-            try:
-                decision = await classify_pending_intent(pending, question)
-            except Exception:
-                logger.exception("Classification de sujet Aria")
-                decision = 'switch'
+        decision = await self._pending_decision(question, pending)
         if decision == 'switch':
             await self._clear_pending(silent=True)
             return False
@@ -966,7 +1102,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if name in ('creer_emploi_du_temps', 'ajouter_creneau_emploi'):
             await self._run_guarded(lambda: self._continue_emploi_guidee(question))
             return True
-        if name in ACTION_SPECS:
+        if name in self._pending_action_names():
             await self._run_guarded(lambda: self._continue_generic_action(question))
             return True
         return False
@@ -991,6 +1127,19 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._speak_and_finish(user_text=question, spoken=spoken, choices=choices)
 
     def _classe_choice_items(self, ctx):
+        if self._is_enseignant_primaire():
+            from django.urls import reverse
+            from school_admin.services.assistant_enseignant_scope import affectations_qs
+
+            return [
+                {
+                    'label': aff.classe.nom,
+                    'value': f'Ouvre la classe {aff.classe.nom}',
+                    'url': reverse('enseignant_primaire:detail_classe', args=[aff.classe_id]),
+                    'intent': 'open',
+                }
+                for aff in affectations_qs(ctx)[:8]
+            ]
         from school_admin.services.assistant_tools import list_classe_choices
 
         return list_classe_choices(ctx)
@@ -1051,10 +1200,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'ajouter_creneau_emploi',
         ):
             return self._choices_for_emploi_action()
-        if self.pending_action and self.pending_action.get('name') in ACTION_SPECS:
+        if self.pending_action and self.pending_action.get('name') in self._pending_action_names():
             draft = self.pending_action.get('draft') or {}
             if is_action_ready(draft):
-                return choices_for_action(self.pending_action['name'], draft)
+                return self._choices_for_pending_action(self.pending_action['name'], draft)
             return []
         if self.pending_action and self.pending_action.get('name') == 'choisir_classe':
             return self.pending_action.get('choices') or []
@@ -1333,7 +1482,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'titre': draft.get('nom') or draft.get('resume') or name.replace('_', ' '),
             'contenu': default_prompt(draft),
             'destructive': bool(draft.get('destructive')),
-            'choices': choices_for_action(name, draft),
+            'choices': self._choices_for_pending_action(name, draft),
         })
 
     async def _clear_pending(self, silent=False):
@@ -1575,7 +1724,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             spoken = data.get('message') or spoken
             await self._speak_and_finish(user_text=question, spoken=spoken)
             return
-        choices = choices_for_action(name, data)
+        choices = self._choices_for_pending_action(name, data)
         if is_action_ready(data):
             await self._send_generic_pending_ui(name, data)
         await self._speak_and_finish(user_text=question, spoken=spoken, choices=choices)
@@ -1603,7 +1752,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         pending = self.pending_action or {}
         name = pending.get('name')
         draft = dict(pending.get('draft') or {})
-        spec = ACTION_SPECS.get(name)
+        spec = self._action_spec(name)
         if not spec or not spec.apply:
             await self._send_action_result(
                 'error',
@@ -1650,7 +1799,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     async def _confirm_pending(self):
         await self._ensure_pending_loaded()
         pending = self.pending_action
-        if pending and pending.get('name') in ACTION_SPECS:
+        if pending and pending.get('name') in self._pending_action_names():
             await self._confirm_generic_action()
             return
         if pending and pending.get('name') in (
@@ -1732,11 +1881,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         leftover = assembler.flush()
         if leftover:
             sentences.append(leftover)
-        pending_tts = [
-            (sentence, self._track_tts(asyncio.create_task(synthesize_audio(sentence))))
-            for sentence in sentences
-        ]
-        await self._flush_tts_queue(pending_tts)
+        await self._flush_tts_queue(sentences)
         if self._cancel_requested:
             return
         if spoken:

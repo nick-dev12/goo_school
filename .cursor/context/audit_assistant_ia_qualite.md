@@ -1,15 +1,18 @@
 # Audit qualité assistant IA (contexte + voix)
 
 **Date** : 2026-09-23  
-**Périmètre** : diagnostic uniquement, **aucun correctif**.  
+**Périmètre** : diagnostic + **Vagues A et B implémentées** (2026-09-23). Vagues C et D non faites.  
 **Persona** : directeur (enseignant primaire hors scope sauf mention).  
-**Fichiers lus** : `gemini_assistant_service.py`, `assistant_consumer.py`, `tts_service.py`, `assistant_intents.py`, `gemini_context_cache.py`, `assistant_vocal.js`, `school/settings.py`.
+**Fichiers lus / touchés** : `gemini_assistant_service.py`, `assistant_consumer.py`, `tts_service.py`, `assistant_intents.py`, `gemini_context_cache.py`, `assistant_vocal.js`, `school/settings.py`.  
+**Branche A+B** : `cursor/assistant-qualite-ab-a40c`. Tests : `school_admin/tests/test_assistant_qualite.py`.
 
 ---
 
 ## 1. Verdict en une phrase
 
 Gemini **est bien branché** (LLM + tools + TTS). L’assistante **n’est pas « bête »** : le prompt demande déjà de suivre le dernier message. En revanche le **runtime intercepte trop** (actions en attente, regex locales) et le **TTS phrase-par-phrase casse** : la première phrase parle, les suivantes arrivent souvent **sans audio** alors que le texte continue.
+
+**État 2026-09-23** : les causes **C1, C2, C3, C4, C5, C6** (quick wins A+B) sont corrigées dans le code. **C7–C12** (Vague C/D) restent ouvertes.
 
 ---
 
@@ -41,8 +44,8 @@ Réglages (`school/settings.py`) :
 | `GEMINI_MODEL` | `gemini-3.6-flash` | + fallbacks 3 / 3.6 |
 | `GEMINI_CONTEXT_CACHE` | true | tour **non streamé** |
 | `ASSISTANT_TTS_BACKEND` | `gemini` | `gemini-2.5-flash-preview-tts` |
-| `ASSISTANT_TTS_FALLBACK_EDGE` | **false** | silence si TTS échoue |
-| `TTS_TIMEOUT_SECONDS` | **14** | phrase trop longue = `None` |
+| `ASSISTANT_TTS_FALLBACK_EDGE` | **false** (setting inchangé) | **A+B** : le repli Edge n’est plus gated par ce flag ; Gemini vide → Edge par phrase |
+| `TTS_TIMEOUT_SECONDS` | **25** (était 14) | dans `tts_service.py` |
 
 ---
 
@@ -211,25 +214,25 @@ Le modèle **peut** être intuitif (prompt + tools v1–v6). Le **goulot** est l
 
 À n’implémenter **que** sur feu vert. Une vague à la fois.
 
-### Vague A — voix (quick)
+### Vague A — voix (quick) — **FAITE** (2026-09-23)
 
-1. `done` systématique en fin de `_handle_chat`.
-2. Queue TTS **série** (plus de N `synthesize_audio` d’un coup).
-3. Timeout + phrases plus courtes ; log si `audio` is None.
-4. Décider : repli Edge **par phrase** ou message « voix indisponible » — pas le silence.
+1. `done` systématique en fin de `_handle_chat` (succès, erreur LLM, `_speak_and_finish`).
+2. Queue TTS **série** : `_flush_tts_queue` synthétise une phrase, l’émet, puis la suivante. Plus de N `synthesize_audio` d’un coup.
+3. Timeout TTS **25 s** ; `SentenceAssembler` coupe vers **120–150 car.** ; log warning si audio vide.
+4. Repli **Edge par phrase** dès que Gemini TTS est vide (plus gated par `ASSISTANT_TTS_FALLBACK_EDGE`). Si les deux échouent : `voice_failed: true` sur `audio_sentence` (le JS tape encore le texte ; plus de silence invisible).
 
-**Test** : question qui produit 4+ phrases (« tableau de bord »). La voix doit **tenir jusqu’à la dernière**. Le statut doit repasser à « Prête ».
+**Test** : `school_admin.tests.test_assistant_qualite` (assembleur, flush séquentiel, fallback Edge). Recette vocale : « tableau de bord » — la voix doit tenir jusqu’à la dernière phrase ; statut « Prête ».
 
-### Vague B — changement de sujet (quick)
+### Vague B — changement de sujet (quick) — **FAITE** (2026-09-23)
 
-1. EDT/créneau : même routeur `decide` + Gemini `ask` que les autres actions.
-2. Élargir `NEW_QUESTION_RE` / intents métier = switch.
-3. Nouveau chat après reconnect ≠ oui/non → clear pending (ou question explicite).
+1. EDT/créneau : `_pending_decision` (`decide_pending_reply` + `classify_pending_intent` si `ask`). Switch → clear pending, le tour va à Gemini.
+2. `NEW_QUESTION_RE` élargi (`donne-moi`, `liste`, `affiche`, `montre`) + `METIER_SWITCH_RE` (effectifs, impayés, scolarité, caisse, notes de la, CNSS…). `looks_like_new_topic` court-circuite aussi les wizards regex locaux (`_handle_local_intent`).
+3. Premier chat après reconnect WS ≠ oui/non → drop `aria_pending` (`_socket_fresh`).
 
+**Test unitaire** : EDT pending + « quels sont les effectifs ? » / « donne-moi les effectifs » → `switch`.  
 **Test vocal** :  
 - « Crée un emploi du temps pour la 1ère S. » → elle demande des précisions.  
-- « Combien d’élèves avons-nous ? » → **effectifs**, plus l’EDT.  
-- Idem avec une confirmation de paiement / session d’examen en cours.
+- « Quels sont les effectifs ? » → **effectifs**, plus l’EDT.
 
 ### Vague C — Gemini vraiment au centre (fond)
 
@@ -258,7 +261,7 @@ Le modèle **peut** être intuitif (prompt + tools v1–v6). Le **goulot** est l
 
 ---
 
-## 10. Recette vocale (après implémentation future)
+## 10. Recette vocale (Vagues A+B)
 
 **Contexte**
 

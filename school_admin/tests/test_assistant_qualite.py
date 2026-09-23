@@ -462,6 +462,33 @@ class GeminiG1TakeoverTests(SimpleTestCase):
 
         asyncio.run(_run())
 
+    def test_prepare_donner_sanction_sans_auto_appliquer(self):
+        from types import SimpleNamespace
+
+        from school_admin.services.assistant_dossiers import prepare_donner_sanction
+
+        eleve = SimpleNamespace(
+            id=11,
+            nom_complet='Diallo Awa',
+            classe=SimpleNamespace(id=22, nom='6e A'),
+        )
+        with patch(
+            'school_admin.services.assistant_dossiers._eleves_from_args',
+            return_value=([eleve], []),
+        ):
+            draft = prepare_donner_sanction(
+                SimpleNamespace(),
+                {
+                    'query': 'Diallo',
+                    'type_sanction': 'blame',
+                    'raison': 'retard',
+                    'gravite': 'moyenne',
+                },
+            )
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.assertFalse(draft.get('auto_appliquer'))
+        self.assertIn('Diallo', draft.get('description') or '')
+
     def test_callback_outil_ne_demande_jamais_larret(self):
         async def _run():
             consumer, _sent = self._consumer()

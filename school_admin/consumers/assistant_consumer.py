@@ -637,7 +637,11 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         else:
             spoken = result.get('message') or f"J’ouvre {result.get('titre') or 'cette page'}."
         sugg = (
-            suggestions_after_read([(name, result)], getattr(self, '_working_refs', None))
+            suggestions_after_read(
+                [(name, result)],
+                getattr(self, '_working_refs', None),
+                ctx=ctx,
+            )
             if name == 'ouvrir_classe' and isinstance(result, dict)
             else None
         )
@@ -712,6 +716,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 fallback_sugg = suggestions_after_read(
                     last_tool_results,
                     getattr(self, '_working_refs', None),
+                    ctx=ctx,
                 )
                 if fallback_sugg and not (
                     self.pending_action and self._pending_is_ready()
@@ -802,6 +807,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 fallback_sugg = suggestions_after_read(
                     last_tool_results,
                     getattr(self, '_working_refs', None),
+                    ctx=ctx,
                 )
                 if fallback_sugg:
                     await self._send_suggestions(fallback_sugg)
@@ -934,15 +940,18 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         from school_admin.model.professeur_model import Professeur
 
         if isinstance(user, Professeur):
+            from school_admin.services.assistant_prof_persona import (
+                resolve_professeur_assistant_persona,
+            )
+
             prof = Professeur.objects.select_related('etablissement').get(pk=user.pk)
-            if not prof.actif or prof.niveau_enseignement != 'primaire':
-                return False
-            if not prof.etablissement_id:
+            persona = resolve_professeur_assistant_persona(prof)
+            if not persona:
                 return False
             self.etablissement = prof.etablissement
             self.professeur = prof
             self.personnel = None
-            self.persona = 'enseignant_primaire'
+            self.persona = persona
             return True
         return False
 

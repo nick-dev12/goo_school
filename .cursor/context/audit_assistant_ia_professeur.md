@@ -1,7 +1,8 @@
 # Audit + feuille de route — Assistant IA Professeur
 
 **Date** : 2026-09-23  
-**Statut** : audit **validé pour implémentation** — **aucun code** dans ce livrable ; **attente du signal utilisateur** avant toute vague.  
+**Statut** : feuille de route **validée**. **P0 + P1 faites** (2026-09-23). **Stop avant P2** (secondaire / supérieur).  
+**Branche** : `cursor/assistant-prof-p0-p1-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Approche Directeur (tools, schéma filtré, confirmation) : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md)
@@ -361,4 +362,43 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | UI | Partial vocal dans **nav/header commun**, pas seulement bottom nav |
 | Priorité métier | Lecture classes/notes/présences → écriture confirmée → supérieur → examens |
 
-**Prochaine étape** : attendre **signal utilisateur** pour lancer **P0** (ou autre vague priorisée).
+**Prochaine étape** : signal utilisateur pour **P2** (shell + WS secondaire / supérieur).
+
+---
+
+## 13. Livraison P0 + P1 (2026-09-23)
+
+### P0 — Cadrage
+
+| Élément | Livré |
+|---------|--------|
+| Persona WS | `assistant_prof_persona.resolve_professeur_assistant_persona` — primaire si `type_etablissement == 'primary'` (plus de blocage sur `niveau_enseignement` seul) |
+| Cloisonnement | Inchangé : `assistant_enseignant_scope` (affectations actives, année) |
+| UI 100 % primaire | Widget Aria dans `header_primaire.html` ; retiré du `bottom_nav_primaire` (évite double instance) |
+| Pages sans header | Assistant sur `imprimer_releve_primaire`, `imprimer_tableau_presence` ; gate `assistant_vocal_primaire_if_primary` sur `historique_presence_eleve` / `historique_sanctions_eleve` (vues déléguées secondaire) |
+
+### P1 — Parité Gemini libre (primaire)
+
+| Élément | Livré |
+|---------|--------|
+| G1 / thought_signature | Runtime partagé `gemini_assistant_service` (inchangé, actif pour persona enseignant) |
+| `proposer_actions` | Schéma + handler enseignant |
+| `working_refs` | `CLASSE_ARG_TOOLS` étendu (tools prof) ; prompt « cette classe » ; `extract_working_refs` sur `get_mes_classes` |
+| Repli oral | `spoken_from_enseignant_tool` enrichi ; `enrich_class_snapshot` / `suggestions_after_read` avec branche `enseignant_primaire` (sans impayés / caisse) |
+| Cache | `aria-enseignant-primaire-tools-v3` |
+| Tests | `test_assistant_enseignant_primaire_tools` : 11 OK (`--keepdb`) |
+
+### Recette vocale prof primaire (manuelle)
+
+1. Connexion prof **établissement primaire** (ex. Artisant), **Ctrl+F5** sur le dashboard.
+2. Bulle Aria visible en bas (header) sur dashboard, notes, présence, historique, impressions.
+3. **« Quelles sont mes classes ? »** → noms des classes (pas seulement « 1 classe(s) »).
+4. **« Ouvre CE1 A »** → navigation + effectif si disponible ; chips (élèves / notes / appel).
+5. **« Donne-moi les infos de cette classe »** → effectifs + élèves (repli enrichi si Gemini coupe).
+6. **« Note … »** (brouillon) → carte **oui / modifier / annuler**, rien en base avant oui.
+7. Pas de bulle rouge « aucune réponse » après une lecture réussie.
+
+### Fragile / hors P0–P1
+
+- Secondaire / supérieur : **pas de WS** (persona `None` → connexion refusée) — **P2**.
+- Pages secondaire réutilisées (historique) : nav du bas encore « enseignant » générique ; assistant primaire présent via gate.

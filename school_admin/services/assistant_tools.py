@@ -618,8 +618,14 @@ def spoken_from_tool_results(tool_results, ctx=None):
     return ' '.join(parts)
 
 
-CLASS_SNAPSHOT_TOOLS = ('get_effectifs', 'rechercher_eleves', 'get_affectations')
-THIN_CLASS_TOOLS = frozenset({'ouvrir_classe', 'get_affectations'})
+CLASS_SNAPSHOT_TOOLS_DIRECTEUR = (
+    'get_effectifs',
+    'rechercher_eleves',
+    'get_affectations',
+)
+CLASS_SNAPSHOT_TOOLS_ENSEIGNANT = ('get_effectifs', 'rechercher_eleves')
+THIN_CLASS_TOOLS_DIRECTEUR = frozenset({'ouvrir_classe', 'get_affectations'})
+THIN_CLASS_TOOLS_ENSEIGNANT = frozenset({'ouvrir_classe', 'get_mes_classes'})
 
 
 def looks_like_class_info(question):
@@ -648,12 +654,19 @@ def enrich_class_snapshot(ctx, tool_results, refs=None, question=''):
     classe = ((refs or {}).get('classe') or '').strip()
     if not ctx or not classe:
         return extra
-    thin = bool(names) and names <= THIN_CLASS_TOOLS
+    persona = getattr(ctx, 'persona', 'directeur')
+    if persona == 'enseignant_primaire':
+        snapshot_tools = CLASS_SNAPSHOT_TOOLS_ENSEIGNANT
+        thin_tools = THIN_CLASS_TOOLS_ENSEIGNANT
+    else:
+        snapshot_tools = CLASS_SNAPSHOT_TOOLS_DIRECTEUR
+        thin_tools = THIN_CLASS_TOOLS_DIRECTEUR
+    thin = bool(names) and names <= thin_tools
     if not thin and not looks_like_class_info(question):
         return extra
-    if not thin and set(CLASS_SNAPSHOT_TOOLS).issubset(names):
+    if not thin and set(snapshot_tools).issubset(names):
         return extra
-    for name in CLASS_SNAPSHOT_TOOLS:
+    for name in snapshot_tools:
         if name in names:
             continue
         try:
@@ -663,8 +676,76 @@ def enrich_class_snapshot(ctx, tool_results, refs=None, question=''):
     return extra
 
 
-def suggestions_after_read(tool_results, refs=None):
+def _suggestions_after_read_enseignant(tool_results, refs=None):
+    names = {
+        item[0]
+        for item in (tool_results or [])
+        if isinstance(item, (tuple, list)) and item
+    }
+    classe = ((refs or {}).get('classe') or '').strip()
+    items = []
+    if 'get_eleves_difficulte' in names or any(
+        isinstance(item, (tuple, list))
+        and isinstance(item[1], dict)
+        and item[1].get('source') == 'difficulte'
+        for item in (tool_results or [])
+        if item
+    ):
+        items = [
+            {
+                'label': 'Toute la classe',
+                'value': f'Cite-moi les élèves de {classe}.' if classe else 'Liste les élèves.',
+            },
+            {
+                'label': 'Les notes',
+                'value': f'Les notes de {classe}.' if classe else 'Montre les notes.',
+            },
+            {
+                'label': 'Présences',
+                'value': f'Les absences en {classe}.' if classe else 'Les présences cette semaine.',
+            },
+        ]
+    elif 'get_mes_classes' in names and not (
+        names & {'ouvrir_classe', 'get_effectifs', 'rechercher_eleves'}
+    ):
+        items = [
+            {
+                'label': f'Ouvre {classe}' if classe else 'Ouvre une classe',
+                'value': f'Ouvre {classe}.' if classe else 'Ouvre ma première classe.',
+            },
+            {'label': 'Effectifs', 'value': 'Quels sont les effectifs ?'},
+            {'label': 'Évaluations', 'value': 'Mes prochaines évaluations.'},
+        ]
+    elif names & {
+        'ouvrir_classe', 'get_effectifs', 'rechercher_eleves', 'get_mes_classes',
+    }:
+        items = [
+            {
+                'label': 'Élèves',
+                'value': f'Cite-moi les élèves de {classe}.' if classe else 'Liste les élèves.',
+            },
+            {
+                'label': 'Notes',
+                'value': f'Les notes de {classe}.' if classe else 'Les notes.',
+            },
+            {
+                'label': 'Appel',
+                'value': f'Présence du jour en {classe}.' if classe else 'Faire l’appel.',
+            },
+        ]
+    elif names & {'get_evaluations_classe', 'get_notes_classe'}:
+        items = [
+            {'label': 'Noter', 'value': f'Je veux noter {classe}.' if classe else 'Noter une classe.'},
+            {'label': 'Difficulté', 'value': 'Élèves en difficulté.'},
+            {'label': 'Moyennes', 'value': f'Calcule les moyennes de {classe}.' if classe else 'Calcule les moyennes.'},
+        ]
+    return normalize_suggestions(items, limit=3)
+
+
+def suggestions_after_read(tool_results, refs=None, ctx=None):
     """2–3 puces de suite, même si Gemini n’a pas appelé proposer_actions."""
+    if ctx and getattr(ctx, 'persona', 'directeur') == 'enseignant_primaire':
+        return _suggestions_after_read_enseignant(tool_results, refs)
     names = {
         item[0]
         for item in (tool_results or [])

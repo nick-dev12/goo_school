@@ -97,14 +97,25 @@ CLASSE_ARG_TOOLS = frozenset({
     'rechercher_classes',
     'ouvrir_classe',
     'get_affectations',
+    'get_mes_classes',
     'get_emploi_du_temps',
     'get_notes_classe',
     'get_notes_examen',
     'get_eleves_difficulte',
     'get_impayes',
     'get_moyennes_classe',
+    'get_evaluations_classe',
+    'get_exercices_maison',
+    'get_presences',
     'chercher_en_base',
     'creer_publier_annonce',
+    'enregistrer_note',
+    'creer_evaluation',
+    'creer_exercice_maison',
+    'enregistrer_presences',
+    'valider_presence_classe',
+    'calculer_moyennes_matiere',
+    'soumettre_releve_matiere',
 })
 
 
@@ -284,12 +295,17 @@ les élèves en difficulté et la navigation dans l'espace enseignant.
 
 Réponds directement, chaleureusement, en français oral naturel.
 Pas de markdown, pas d'URL, pas de listes à puces lues à voix haute.
+Après une lecture utile, propose 2 ou 3 suites via proposer_actions (chips).
 
 Outils :
-- Tu n'accèdes qu'aux classes et élèves du professeur connecté.
+- Tu n'accèdes qu'aux classes et élèves du professeur connecté (affectations).
 - Appelle un outil pour toute donnée ou action (notes, présences, pages).
 - Les actions d'écriture exigent confirmation explicite après présentation du résumé.
 - Navigation : ouvrir_page ou ouvrir_classe avec ouvrir true.
+- « Cette classe » = dernière classe ouverte ou citée (contexte working_refs).
+
+Infos classe : combine si besoin effectifs, liste d'élèves (rechercher_eleves),
+évaluations ou notes — ne te contente pas d'une phrase vide.
 
 Notes et évaluations :
 - enregistrer_note, creer_evaluation, calculer_moyennes_matiere, soumettre_releve_matiere.
@@ -488,6 +504,16 @@ def extract_working_refs(name, result):
             classe_nom = row.get('classe')
             if isinstance(classe_nom, str) and classe_nom.strip() and 'classe' not in refs:
                 refs['classe'] = classe_nom.strip()
+    if name == 'get_mes_classes':
+        rows = result.get('classes') or []
+        if rows and 'classe' not in refs:
+            first = rows[0]
+            if isinstance(first, dict):
+                nom = (first.get('classe') or first.get('nom') or '').strip()
+                if nom:
+                    refs['classe'] = nom
+                if first.get('classe_id') and 'classe_id' not in refs:
+                    refs['classe_id'] = first['classe_id']
     return refs
 
 

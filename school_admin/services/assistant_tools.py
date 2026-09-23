@@ -1284,17 +1284,8 @@ def tool_chercher_en_base(ctx, args):
 
         found = tool_bulletin_eleve(ctx, payload)
         return {'trouve': not bool(found.get('erreur')), 'source': 'bulletin', **found}
-    if any(
-        token in lowered
-        for token in (
-            "note d'examen",
-            'notes d’examen',
-            "notes d'examen",
-            'notes examen',
-            'note examen',
-            'notes de l’examen',
-            "notes de l'examen",
-        )
+    if 'examen' in lowered and any(
+        token in lowered for token in ('note', 'notes', 'résultat', 'resultat')
     ):
         from school_admin.services.assistant_examens import tool_notes_examen
 

@@ -49,6 +49,8 @@ _ELEVE_NOISE = re.compile(
 
 def _clean_query(query, noise):
     cleaned = noise.sub(' ', query or '')
+    cleaned = re.sub(r"[dljsnmctDLJSNMCT]['’]", ' ', cleaned)
+    cleaned = re.sub(r"['’]", ' ', cleaned)
     return re.sub(r'\s+', ' ', cleaned).strip()
 
 
@@ -245,7 +247,7 @@ def tool_notes_examen(ctx, args):
     if not session and raw_query:
         session = _find_session(ctx, raw_query)
     if session_query and not session:
-        return {'erreur': f'Aucune session d’examen « {session_query} ».'}
+        return {'erreur': f'Aucune session d’examen « {session_query} ».', 'nb': 0, 'notes': []}
 
     eleve = None
     if eleve_query:
@@ -255,7 +257,15 @@ def tool_notes_examen(ctx, args):
             ctx, _clean_query(raw_query, _ELEVE_NOISE)
         )
     if raw_query and not session and not eleve and not classe_query and not session_query:
-        return {'erreur': f'Aucun élève ni session « {raw_query} ». N’invente aucune note.'}
+        last = raw_query.split()[-1].strip('.,;:!?')
+        if last:
+            eleve = _find_eleve(ctx, last)
+    if raw_query and not session and not eleve and not classe_query and not session_query:
+        return {
+            'erreur': f'Aucun élève ni session « {raw_query} ». N’invente aucune note.',
+            'nb': 0,
+            'notes': [],
+        }
 
     classe = _find_classe(ctx, classe_query) if classe_query else None
     matiere = _find_matiere(ctx, matiere_query) if matiere_query else None

@@ -93,7 +93,7 @@ def find_classe_prof(ctx, query):
     q = (query or '').strip()
     return (
         Classe.objects.filter(id__in=ids, actif=True)
-        .filter(Q(nom__icontains=q) | Q(code__icontains=q))
+        .filter(Q(nom__icontains=q) | Q(code_classe__icontains=q))
         .first()
     )
 

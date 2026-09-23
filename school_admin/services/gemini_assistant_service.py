@@ -436,7 +436,10 @@ def system_prompt_static_for(ctx):
         if getattr(ctx, 'est_superieur', False):
             base += (
                 '\nÉtablissement supérieur : parle d’« étudiants », périodes LMD / semestres. '
-                'Pas de tools direction (scolarité globale, caisse).'
+                'Utilise get_modules_classe et get_credits_etudiant pour la maquette ECTS '
+                '(ne jamais inventer de crédits). '
+                'creer_evaluation : préciser le semestre LMD (ex. Semestre 1) et le niveau si besoin. '
+                'Pas de tools direction (scolarité globale, caisse, structure établissement).'
             )
         return base
     from school_admin.services.assistant_schema import prompt_addendum_for
@@ -457,7 +460,7 @@ def tools_schema_for(ctx):
             get_enseignant_secondaire_tools_schema,
         )
 
-        return get_enseignant_secondaire_tools_schema()
+        return get_enseignant_secondaire_tools_schema(ctx)
     return directeur_tools_schema(ctx)
 
 

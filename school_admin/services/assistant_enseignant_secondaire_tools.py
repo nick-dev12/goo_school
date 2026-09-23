@@ -507,11 +507,39 @@ def tool_chercher_en_base(ctx, args):
     if 'notification' in question:
         found = tool_get_notifications(ctx, args)
         return {'trouve': True, 'source': 'notifications', **found}
+    if getattr(ctx, 'est_superieur', False):
+        if any(t in question for t in ('module', 'maquette', 'ue ', ' ue', 'ects', 'credit')):
+            if any(t in question for t in ('etudiant', 'eleve', 'etudiante')):
+                found = tool_get_credits_etudiant(ctx, payload)
+            else:
+                found = tool_get_modules_classe(ctx, payload)
+            return {'trouve': 'erreur' not in found, 'source': 'lmd', **found}
+        if 'semestre' in question and 'note' not in question:
+            found = tool_periodes(ctx, args)
+            return {'trouve': True, 'source': 'periodes', **found}
     return {'trouve': False, 'message': 'Je n’ai pas reconnu le type de donnée. Précisez notes, présences, classes, etc.'}
+
+
+def tool_get_modules_classe(ctx, args):
+    from school_admin.services.assistant_enseignant_superieur_tools import (
+        tool_get_modules_classe as _impl,
+    )
+
+    return _impl(ctx, args)
+
+
+def tool_get_credits_etudiant(ctx, args):
+    from school_admin.services.assistant_enseignant_superieur_tools import (
+        tool_get_credits_etudiant as _impl,
+    )
+
+    return _impl(ctx, args)
 
 
 ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS = {
     'chercher_en_base': tool_chercher_en_base,
+    'get_modules_classe': tool_get_modules_classe,
+    'get_credits_etudiant': tool_get_credits_etudiant,
     'proposer_actions': tool_proposer_actions,
     'get_mes_classes': tool_get_mes_classes,
     'get_effectifs': tool_get_effectifs,
@@ -785,8 +813,15 @@ ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA = [
 ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA.extend(build_enseignant_secondaire_action_tool_schemas())
 
 
-def get_enseignant_secondaire_tools_schema():
-    return ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA
+def get_enseignant_secondaire_tools_schema(ctx=None):
+    from school_admin.services.assistant_enseignant_superieur_tools import (
+        extend_enseignant_schema_for_superieur,
+    )
+
+    return extend_enseignant_schema_for_superieur(
+        list(ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA),
+        ctx,
+    )
 
 
 def execute_enseignant_secondaire_tool(ctx, name, arguments):
@@ -862,4 +897,13 @@ def spoken_from_enseignant_tool(name, result):
         nb = len(result['evaluations'])
         classe = result.get('classe') or 'cette classe'
         return f"{nb} évaluation{'s' if nb > 1 else ''} pour {classe}."
+    if name == 'get_modules_classe' and result.get('modules') is not None:
+        nb = result.get('nb', len(result.get('modules') or []))
+        classe = result.get('classe') or 'cette promotion'
+        credits = result.get('credits_total')
+        if credits is not None:
+            return f"{nb} module(s) pour {classe}, {credits} credits ECTS au total."
+        return f"{nb} module(s) pour {classe}."
+    if name == 'get_credits_etudiant' and result.get('message'):
+        return result['message'].strip()
     return ''

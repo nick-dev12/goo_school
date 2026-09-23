@@ -1,7 +1,7 @@
 # Audit + feuille de route — Assistant IA Professeur
 
 **Date** : 2026-09-23  
-**Statut** : feuille de route **validée**. **P0 + P1 + P2–P4 (secondaire / collège–lycée, shell + tools)** livrées (2026-09-23). **Stop avant P5** (LMD / modules).  
+**Statut** : feuille de route **validée**. **P0–P5 livrées** (primaire, secondaire, supérieur LMD). **Stop avant P6** (examens).  
 **Branche** : `cursor/assistant-prof-p0-p1-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
@@ -362,7 +362,7 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | UI | Partial vocal dans **nav/header commun**, pas seulement bottom nav |
 | Priorité métier | Lecture classes/notes/présences → écriture confirmée → supérieur → examens |
 
-**Prochaine étape** : **P5** (LMD, modules, crédits) puis **P6** (examens `noter_examen`).
+**Prochaine étape** : **P6** (examens `noter_examen` secondaire).
 
 ---
 
@@ -441,8 +441,36 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 4. **« Ouvre … »** → fiche classe ; chips élèves / notes.
 5. Brouillon **enregistrer note** → carte confirmation avant écriture.
 
-### Hors P2–P4 (P5+)
+### Hors P2–P4 (P6+)
 
-- **Supérieur LMD** : modules, crédits, parcours dédiés — **P5**.
 - **`noter_examen`**, impressions secondaire restantes — **P6–P7**.
 - Recette multi-types établissement — **P8**.
+
+---
+
+## 15. Livraison P5 — Supérieur LMD (2026-09-23)
+
+### P5 — Tools prof supérieur
+
+| Élément | Livré |
+|---------|--------|
+| Schéma filtré | `get_enseignant_secondaire_tools_schema(ctx)` n’ajoute **get_modules_classe** / **get_credits_etudiant** que si `ctx.est_superieur` |
+| Lecture LMD | `assistant_enseignant_superieur_tools.py` — maquette modules (UE, crédits, semestre) et crédits étudiant (inscrits / validés / restants), **périmètre affectations prof** |
+| Périodes LMD | `_resolve_periode` enseignant : semestre + `niveau_lmd` via helpers `assistant_superieur` ; **creer_evaluation** avec params `semestre` / `niveau_lmd` |
+| Gemini | Prompt addendum supérieur (ECTS, pas d’invention) ; cache enseignant **v2** (`aria-enseignant-tools-v2-{superieur\|secondaire}`) |
+| Repli | `chercher_en_base` (modules / crédits) ; chips LMD dans `suggestions_after_read` |
+| Scope | Correctif `find_classe_prof` : recherche `code_classe` |
+| Tests | `test_assistant_enseignant_superieur_tools` (5) + régression primaire / collège — **25 tests** OK |
+
+### Recette vocale prof supérieur (manuelle)
+
+1. Connexion **prof** sur établissement `type_etablissement == superieur` (ou créer un prof affecté à une promotion L1), **Ctrl+F5** dashboard enseignant.
+2. **« Quels modules en L1 A ? »** → liste modules, crédits, UE (uniquement **vos** promotions).
+3. **« Combien de crédits pour [étudiant] ? »** → inscrits / validés / restants (données ORM, pas inventées).
+4. **« Crée une évaluation … semestre 1 »** → carte **oui / modifier / annuler** avant création en base.
+5. Vérifier qu’un prof **collège** n’a **pas** les tools `get_modules_classe` / `get_credits_etudiant` dans le schéma (cache profil `secondaire`).
+
+### Hors P5 (P6+)
+
+- Examens secondaire (`noter_examen`, sessions) — **P6**.
+- Compléments transverses — **P7** ; recette multi-types — **P8**.

@@ -178,9 +178,12 @@ class AssistantEnseignantSecondaireToolsTests(TestCase):
             get_enseignant_secondaire_tools_schema,
         )
 
+        ctx = self._ctx()
         names = {
             item['function']['name']
-            for item in get_enseignant_secondaire_tools_schema()
+            for item in get_enseignant_secondaire_tools_schema(ctx)
             if item.get('function')
         }
         self.assertIn('proposer_actions', names)
+        self.assertNotIn('get_modules_classe', names)
+        self.assertNotIn('get_credits_etudiant', names)

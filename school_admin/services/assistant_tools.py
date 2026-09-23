@@ -676,7 +676,7 @@ def enrich_class_snapshot(ctx, tool_results, refs=None, question=''):
     return extra
 
 
-def _suggestions_after_read_enseignant(tool_results, refs=None):
+def _suggestions_after_read_enseignant(tool_results, refs=None, ctx=None):
     names = {
         item[0]
         for item in (tool_results or [])
@@ -739,13 +739,24 @@ def _suggestions_after_read_enseignant(tool_results, refs=None):
             {'label': 'Difficulté', 'value': 'Élèves en difficulté.'},
             {'label': 'Moyennes', 'value': f'Calcule les moyennes de {classe}.' if classe else 'Calcule les moyennes.'},
         ]
+    elif ctx and getattr(ctx, 'est_superieur', False) and names & {
+        'get_modules_classe', 'get_credits_etudiant',
+    }:
+        items = [
+            {
+                'label': 'Modules',
+                'value': f'Quels modules en {classe} ?' if classe else 'Modules de ma promotion.',
+            },
+            {'label': 'Crédits', 'value': 'Crédits d’un étudiant.'},
+            {'label': 'Évaluation', 'value': f'Créer une évaluation en {classe}.' if classe else 'Créer une évaluation.'},
+        ]
     return normalize_suggestions(items, limit=3)
 
 
 def suggestions_after_read(tool_results, refs=None, ctx=None):
     """2–3 puces de suite, même si Gemini n’a pas appelé proposer_actions."""
     if ctx and getattr(ctx, 'persona', 'directeur') in ('enseignant_primaire', 'enseignant'):
-        return _suggestions_after_read_enseignant(tool_results, refs)
+        return _suggestions_after_read_enseignant(tool_results, refs, ctx=ctx)
     names = {
         item[0]
         for item in (tool_results or [])

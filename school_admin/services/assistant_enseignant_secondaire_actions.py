@@ -92,8 +92,26 @@ def _parse_note(raw):
         return None
 
 
-def _resolve_periode(ctx, args):
+def _resolve_periode(ctx, args, classe=None):
+    from django.db.models import Q
+
     from school_admin.model.periode_model import PeriodeScolaire
+
+    if getattr(ctx, 'est_superieur', False):
+        from school_admin.services.assistant_superieur import (
+            _find_periode,
+            normalize_niveau_lmd,
+        )
+
+        niveau = normalize_niveau_lmd(args.get('niveau_lmd')) or (
+            getattr(classe, 'niveau_lmd', None) if classe else None
+        )
+        nom = (args.get('periode') or args.get('semestre') or '').strip()
+        if not nom and not niveau:
+            active = PeriodeScolaire.get_periode_active(ctx.etablissement)
+            if active and (not ctx.annee_scolaire or active.annee_scolaire_fk_id == ctx.annee_scolaire.id):
+                return active
+        return _find_periode(ctx, nom or None, niveau_lmd=niveau)
 
     periode_id = args.get('periode_id')
     if periode_id:
@@ -255,9 +273,12 @@ def prepare_creer_evaluation(ctx, args):
     matiere, m_missing = _resolve_matiere(ctx, classe, args)
     if m_missing:
         manquants.extend(m_missing)
-    periode = _resolve_periode(ctx, args)
+    periode = _resolve_periode(ctx, args, classe=classe)
     if not periode:
-        manquants.append('periode')
+        if getattr(ctx, 'est_superieur', False):
+            manquants.extend(['periode', 'niveau_lmd'])
+        else:
+            manquants.append('periode')
     date_eval = parse_date((args.get('date_evaluation') or '')[:10])
     if not date_eval:
         manquants.append('date_evaluation')
@@ -628,14 +649,19 @@ register_enseignant_secondaire_action(ActionSpec(
 
 register_enseignant_secondaire_action(ActionSpec(
     name='creer_evaluation',
-    description='Crée une nouvelle évaluation pour une classe et une matière enseignées.',
+    description=(
+        'Crée une nouvelle évaluation pour une classe et une matière enseignées. '
+        'En supérieur LMD : indiquer le semestre (ex. Semestre 1) et le niveau LMD si besoin.'
+    ),
     properties={
         'classe': {'type': 'string'},
         'titre': {'type': 'string'},
         'matiere': {'type': 'string'},
         'date_evaluation': {'type': 'string'},
         'bareme': {'type': 'number'},
-        'periode': {'type': 'string'},
+        'periode': {'type': 'string', 'description': 'Semestre ou période (ex. Semestre 1).'},
+        'semestre': {'type': 'string'},
+        'niveau_lmd': {'type': 'string', 'description': 'L1, L2, M1… en supérieur.'},
         'description': {'type': 'string'},
     },
     required=('classe', 'titre', 'matiere', 'date_evaluation'),

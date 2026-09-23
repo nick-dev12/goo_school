@@ -119,6 +119,7 @@ Autres actions (toujours avec confirmation) :
 - Années : creer_annee_scolaire, activer_annee_scolaire, desactiver_annee_scolaire,
   changer_session.
 - Périodes : creer_periode, activer_periode, supprimer_periode.
+  En supérieur, creer_periode exige niveau_lmd (L1, M1…) et un semestre officiel.
 - Absences : justifier_absence.
 - Liaisons : approuver_liaison, rejeter_liaison, desapprouver_liaison.
 - Préinscriptions : valider_preinscription, rejeter_preinscription,
@@ -141,6 +142,9 @@ Autres actions (toujours avec confirmation) :
 - Structure : creer_classe, modifier_classe, desactiver_classe, supprimer_classe,
   creer_salle, modifier_salle, desactiver_salle, creer_matiere, desactiver_matiere,
   creer_filiere, modifier_filiere, supprimer_filiere, creer_module, supprimer_module.
+  En supérieur : get_ects_etudiant, get_ects_classe, get_modules_classe,
+  affecter_module_classe, fixer_credits_module, get_releve_ects,
+  get_structure_superieur (crédits, UE, semestre). N’invente pas d’ECTS.
 - Élèves : inscrire_eleve, modifier_eleve, reinscrire_eleve, activer_eleve,
   desactiver_eleve, donner_sanction. Pour une sanction, appelle donner_sanction
   avec le ou les noms (sépare-les par « et »). Ne cite jamais la liste des types

@@ -60,7 +60,7 @@ Règle d’écriture déjà en place (à conserver) : **rien n’est écrit sans
 | `get_presences` | Totaux N jours ou détail élève | Pas de taux, pas de classe, pas de liste à imprimer |
 | `get_sanctions` | Totaux, par élève, dernières | Pas de radiation / certificat lié |
 | `get_annonces` | 8 dernières publiées | — |
-| `get_periodes` | Trimestres / semestres + active | **Pas de `niveau_lmd`** (trou supérieur) |
+| `get_periodes` | Trimestres / semestres + active | **Vague 4** : `niveau_lmd` en supérieur |
 | `get_comptabilite` | Fiche élève **ou** résumé impayés | Pas de détail mensualités / annexes / reçu / bilan classe |
 | `get_parametres_comptabilite` | Barèmes par groupe + annexes | Lecture seule des groupes |
 | `get_caisse` | Recettes / sorties / solde du mois + 12 dépenses | Pas d’historique multi-mois, pas de CG |
@@ -198,9 +198,9 @@ Reste hors Vague 1 : coefficients et examens par cycle.
 | Domaine | Réalité métier | Assistant aujourd’hui |
 |---------|----------------|------------------------|
 | Apprenant | Étudiant | Libellé OK |
-| Structure | `Department`, `Module`, `ModuleClasse` (crédits, `numero_ue`, semestre) | Liste noms seulement ; **zéro ECTS** |
-| Périodes | Semestres LMD **par niveau** (S1–S16, L1…D3, BTS, DUT) | `get_periodes` ignore `niveau_lmd` ; `creer_periode` **n’écrit pas** `niveau_lmd` |
-| Notes | Même modèle `Note`, mais le bulletin = **crédits validés / UE** | `get_notes_eleve` renvoie note/20 + moyenne, **pas les crédits** |
+| Structure | `Department`, `Module`, `ModuleClasse` (crédits, `numero_ue`, semestre) | **Vague 4** : crédits, UE, classes, semestre |
+| Périodes | Semestres LMD **par niveau** (S1–S16, L1…D3, BTS, DUT) | **Vague 4** : `get_periodes` + `creer_periode` avec `niveau_lmd` |
+| Notes | Même modèle `Note`, mais le bulletin = **crédits validés / UE** | **Vague 4** : `get_ects_*` / `get_releve_ects` |
 | Classes | `niveau_lmd`, département, promotion | `rechercher_classes` enrichit le libellé |
 | EDT | TD / TP / cours (enum déjà dans `ajouter_creneau_emploi`) | OK partiel |
 | Filières / modules | Création nom + spécialité | Pas d’affectation module→classe, pas de crédits |
@@ -335,7 +335,7 @@ Ne pas exposer tant que `AFFICHER_MODULE_COMPTABILITE_GENERALE` est False. Spec 
 
 | Tool | Statut | Variant |
 |------|--------|---------|
-| `get_notes_eleve` | existant | Primaire : `NotePrimaire`. Secondaire : `Note` + barème. Crédits module/UE : Vague 4 |
+| `get_notes_eleve` | existant | Primaire : `NotePrimaire`. Secondaire : `Note` + barème. ECTS : `get_ects_etudiant` (Vague 4) |
 | `get_notes_classe` | **fait (Vague 3)** | Même branchement. Synthèse élève × évaluation |
 | `get_moyennes_classe` | **fait (Vague 3)** | `MoyennePeriode` ; supérieur : crédits s’ils sont déjà calculés |
 | `get_bulletin_eleve` | **fait (Vague 3)** | Résumé + ouvre `voir_bulletin_eleve` (pas de PDF magique) |
@@ -354,17 +354,17 @@ Ne pas exposer tant que `AFFICHER_MODULE_COMPTABILITE_GENERALE` est False. Spec 
 
 | Tool | Statut | Rôle |
 |------|--------|------|
-| `get_structure_superieur` | existant / **à étendre** | Ajouter crédits totaux, UE, classes liées, semestre |
-| `get_ects_etudiant` | **à créer** | Crédits acquis / inscrits / restants, par semestre |
-| `get_ects_classe` | **à créer** | Maquette + validation |
-| `get_modules_classe` | **à créer** | Module, crédits, `numero_ue`, période |
-| `affecter_module_classe` | **à créer** | Crédits + UE + semestre |
-| `fixer_credits_module` | **à créer** | MAJ `ModuleClasse.credits` |
-| `creer_module` | existant / **à étendre** | Accepter crédits, UE, niveau LMD |
-| `creer_periode` / `get_periodes` | **à étendre** | Champ `niveau_lmd` obligatoire en supérieur |
-| `get_releve_ects` | **à créer** | Ouvre / résume le relevé (équivalent bulletin) |
+| `get_structure_superieur` | **fait (Vague 4)** | Crédits totaux, UE, classes liées, semestre |
+| `get_ects_etudiant` | **fait (Vague 4)** | Inscrits (`ModuleClasse`) / validés (`MoyennePeriode.credits`) / restants, par semestre |
+| `get_ects_classe` | **fait (Vague 4)** | Maquette + validation par étudiant |
+| `get_modules_classe` | **fait (Vague 4)** | Module, crédits, `numero_ue`, période |
+| `affecter_module_classe` | **fait (Vague 4)** | Crédits + UE + semestre (confirmation) |
+| `fixer_credits_module` | **fait (Vague 4)** | MAJ `ModuleClasse.credits` (confirmation) |
+| `creer_module` | **fait (Vague 4)** | Crédits, UE, niveau LMD, classe optionnelle |
+| `creer_periode` / `get_periodes` | **fait (Vague 4)** | `niveau_lmd` obligatoire en supérieur ; `SEMESTRES_PAR_NIVEAU_LMD` |
+| `get_releve_ects` | **fait (Vague 4)** | Ouvre / résume le relevé (bulletin existant) |
 
-Hors supérieur : ces tools **ne doivent pas** apparaître dans le schéma (filtrer `TOOLS_SCHEMA` par type — aujourd’hui non fait).
+Hors supérieur : ces tools **n’apparaissent pas** dans le schéma (`SUPERIEUR_ONLY_TOOLS`).
 
 ### 5.7 Examens — collège / lycée / collège+lycée / (option) supérieur
 
@@ -450,7 +450,7 @@ Ordre figé. **Vagues 1–3 livrées.** Ne pas enchaîner 4–7 sans feu vert.
 1. **Socle (fait)** — schéma + prompt filtrés par type ; flags `collège_lycée` / mixte ; `creer_classe` / `creer_professeur` exigent `cycle` ; `_niveau_enseignement` ne retombe plus sur `primaire` ; personnel bridé par `check_permission`.
 2. **Pilotage / scolarité (fait)** — `get_statistiques_pilotage`, `get_taux_reussite`, `get_taux_presence`, `get_comparatif_periodes`, `get_repartition_cycles`, `get_bilan_scolarite`, `get_impayes`, fiche scolarité enrichie, `ouvrir_recu`, `get_moratoires`, `verifier_statuts_paiement`, `synchroniser_remises_fratrie`.
 3. **Pédagogie quotidienne (fait)** — `get_notes_classe`, `get_moyennes_classe`, `get_bulletin_eleve`, `imprimer_bulletins_classe`, `calculer_moyenne_annuelle`, `get_eleves_difficulte`, `get_justifications_notes`, `traiter_justification`, `get_coefficients`, `configurer_coefficient`, `get_evaluations`. Présences classe / EDT prof / `debloquer_releve` : plus tard.
-4. **Supérieur** — ECTS / UE / périodes par niveau (bloquant pour un directeur LMD).
+4. **Supérieur (fait)** — ECTS / UE / périodes par niveau (`assistant_superieur.py`).
 5. **RH** — dossier employé, fiche de paie, absences prof, volume horaire paramétrable.
 6. **Examens** — créneaux + notes d’examen (collège/lycée).
 7. **CG + paie permanents** — seulement après réactivation du module et étapes métier du plan comptable.
@@ -495,7 +495,7 @@ Ordre figé. **Vagues 1–3 livrées.** Ne pas enchaîner 4–7 sans feu vert.
 1. **Filtrer dynamiquement** `TOOLS_SCHEMA` et le prompt par `type_etablissement` dès la Vague 1. Fait (`assistant_schema.py`, `directeur_tools_schema`, `system_prompt_static_for`).
 2. **Collège+lycée / mixte** : un seul espace vocal ; **exiger le cycle** (`college` / `lycee`) dans les paramètres des tools concernés (`creer_classe`, `creer_professeur`). Pas deux assistants.
 3. **Personnel administratif** : même persona `directeur`, exécution bridée par `check_permission` (permissions Django déjà utilisées par les vues).
-4. **Ordre §6 validé.** Vagues 1–3 livrées. Pas de Vague 4–6 ni de tools CG.
+4. **Ordre §6 validé.** Vagues 1–4 livrées. Pas de Vague 5–6 ni de tools CG.
 5. **CG vocale hors schéma** tant que `AFFICHER_MODULE_COMPTABILITE_GENERALE` est False (`CG_TOOLS` + addendum de prompt).
 6. **Hors scope §8 validé** (enseignant primaire, compta Aria, liasse, TVA, paie convention complète, etc.).
 
@@ -538,3 +538,27 @@ Phrases vocales :
 - « Quels sont les coefficients ? » / « Passe le coefficient de maths à 5. » → `get_coefficients` / `configurer_coefficient`
 - « Liste les évaluations de la 1ère S. » → `get_evaluations`
 - « Calcule la moyenne annuelle de la 1ère S. » → confirmation puis ouverture de la route
+
+---
+
+## 12. Vague 4 livrée (2026-09-23)
+
+Module `school_admin/services/assistant_superieur.py`. Tests : `AssistantDirecteurVague4Tests`. Cache Gemini : `aria-directeur-tools-v7-{profile}`.
+
+Tools LMD **filtrés** (`SUPERIEUR_ONLY_TOOLS`) : invisibles en primaire / collège / lycée.
+
+- Inscrits = somme `ModuleClasse.credits` (maquette). Validés = `MoyennePeriode.credits` déjà calculés si moyenne ≥ seuil. Aucun ECTS inventé.
+- `creer_periode` exige `niveau_lmd` + semestre officiel (`SEMESTRES_PAR_NIVEAU_LMD`).
+- Écritures : confirmation (`affecter_module_classe`, `fixer_credits_module`, `creer_module`).
+
+Phrases vocales (directeur **supérieur** connecté) :
+
+- « Combien de crédits a [nom] ? » → `get_ects_etudiant`
+- « Maquette ECTS de la L1 A. » / « Quels crédits pour la L1 A ? » → `get_ects_classe`
+- « Quels modules a la L1 A ? » → `get_modules_classe`
+- « Ouvre le relevé ECTS de [nom]. » → `get_releve_ects`
+- « Affecte le module Algorithmique à la L1 A, 6 crédits, UE1.1, semestre 1. » → confirmation puis `affecter_module_classe`
+- « Passe les crédits de Bases de données à 5 en L1 A. » → confirmation puis `fixer_credits_module`
+- « Crée le module Compilation en Génie Logiciel, 3 crédits, L1. » → confirmation puis `creer_module`
+- « Quels sont les semestres de L1 ? » → `get_periodes`
+- « Crée le semestre 7 pour le M1, du 1er septembre au 31 janvier. » → confirmation puis `creer_periode`

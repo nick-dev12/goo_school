@@ -631,9 +631,40 @@ def prepare_creer_periode(ctx, args):
     if not ctx.annee_scolaire:
         return _err('Aucune année scolaire active. Créez et activez une année d’abord.')
     nom = (args.get('nom') or args.get('nom_periode') or '').strip()
-    type_periode = (args.get('type_periode') or 'trimestre').strip()
+    type_periode = (args.get('type_periode') or '').strip()
     date_debut = _parse_date(args.get('date_debut'))
     date_fin = _parse_date(args.get('date_fin'))
+    niveau_lmd = ''
+    if getattr(ctx, 'est_superieur', False):
+        from school_admin.model.periode_model import (
+            SEMESTRES_PAR_NIVEAU_LMD,
+            est_semestre_valide_pour_niveau,
+        )
+        from school_admin.services.assistant_superieur import (
+            normalize_niveau_lmd,
+            resolve_nom_periode,
+        )
+
+        niveau_lmd = normalize_niveau_lmd(args.get('niveau_lmd') or args.get('niveau')) or ''
+        if not niveau_lmd:
+            return _incomplete(
+                'creer_periode',
+                ['niveau_lmd'],
+                'Quel niveau LMD pour ce semestre ? (L1, L2, M1…)',
+                nom=nom,
+                type_periode=type_periode or 'semestre',
+            )
+        if nom:
+            nom = resolve_nom_periode(nom, niveau_lmd) or nom
+        if nom and not est_semestre_valide_pour_niveau(nom, niveau_lmd):
+            autorises = ', '.join(n for n, _lib in SEMESTRES_PAR_NIVEAU_LMD.get(niveau_lmd, []))
+            return _err(
+                f'« {nom} » n’est pas un semestre officiel pour {niveau_lmd}. '
+                f'Utilise : {autorises}.'
+            )
+        type_periode = type_periode or 'semestre'
+    else:
+        type_periode = type_periode or 'trimestre'
     missing = []
     if not nom:
         missing.append('nom')
@@ -648,27 +679,47 @@ def prepare_creer_periode(ctx, args):
             'Il me faut le nom de la période et les dates de début et de fin.',
             nom=nom,
             type_periode=type_periode,
+            niveau_lmd=niveau_lmd,
         )
+    resume = f'crée la période {nom}'
+    if niveau_lmd:
+        resume += f' ({niveau_lmd})'
     return _pending(
         'creer_periode',
-        f'crée la période {nom}',
+        resume,
         nom=nom,
         type_periode=type_periode,
         date_debut=date_debut.isoformat(),
         date_fin=date_fin.isoformat(),
         est_active=bool(args.get('est_active', True)),
+        niveau_lmd=niveau_lmd,
         url=_reverse('directeur:gestion_periodes_scolaires'),
     )
 
 
 def apply_creer_periode(ctx, draft):
-    from school_admin.model.periode_model import PeriodeScolaire
+    from school_admin.model.periode_model import (
+        PeriodeScolaire,
+        SEMESTRES_PAR_NIVEAU_LMD,
+        est_semestre_valide_pour_niveau,
+    )
 
     if not ctx.annee_scolaire:
         return _err('Aucune année scolaire active.')
     type_periode = draft.get('type_periode') or 'trimestre'
     if type_periode not in dict(PeriodeScolaire.TYPE_PERIODE_CHOICES):
         type_periode = 'trimestre'
+    niveau_lmd = (draft.get('niveau_lmd') or '').strip()
+    if getattr(ctx, 'est_superieur', False):
+        if not niveau_lmd:
+            return _err('Le niveau LMD est obligatoire pour créer une période en supérieur.')
+        if not est_semestre_valide_pour_niveau(draft['nom'], niveau_lmd):
+            autorises = ', '.join(n for n, _lib in SEMESTRES_PAR_NIVEAU_LMD.get(niveau_lmd, []))
+            return _err(
+                f'« {draft["nom"]} » n’est pas un semestre officiel pour {niveau_lmd}. '
+                f'Utilise : {autorises}.'
+            )
+        type_periode = 'semestre'
     from school_admin.services.live_serializers import serialize_periode_item
 
     periode = PeriodeScolaire.objects.create(
@@ -680,11 +731,14 @@ def apply_creer_periode(ctx, draft):
         annee_scolaire=ctx.annee_scolaire.libelle,
         annee_scolaire_fk=ctx.annee_scolaire,
         est_active=bool(draft.get('est_active', True)),
+        niveau_lmd=niveau_lmd,
     )
     _emit(ctx, 'periode.creee', serialize_periode_item(periode))
+    suffix = f' ({periode.niveau_lmd})' if periode.niveau_lmd else ''
     return _ok(
-        f'Période « {periode.nom_periode} » créée pour {ctx.annee_scolaire.libelle}.',
+        f'Période « {periode.nom_periode} »{suffix} créée pour {ctx.annee_scolaire.libelle}.',
         id=periode.id,
+        niveau_lmd=periode.niveau_lmd or None,
         url=_reverse('directeur:gestion_periodes_scolaires'),
     )
 
@@ -2284,13 +2338,16 @@ _ACTIONS = (
     ),
     ActionSpec(
         'creer_periode',
-        'Crée une période scolaire (trimestre / semestre) sur l’année active.',
+        'Crée une période scolaire (trimestre / semestre) sur l’année active. '
+        'En supérieur : niveau LMD obligatoire et semestre officiel (S1–S16).',
         {
             'nom': {'type': 'string'},
             'type_periode': {'type': 'string', 'enum': ['trimestre', 'semestre', 'annee']},
             'date_debut': {'type': 'string'},
             'date_fin': {'type': 'string'},
             'est_active': {'type': 'boolean'},
+            'niveau_lmd': {'type': 'string', 'description': 'Niveau LMD (L1, M1…) — obligatoire en supérieur.'},
+            'niveau': {'type': 'string'},
         },
         required=('nom', 'date_debut', 'date_fin'),
         prepare=prepare_creer_periode,

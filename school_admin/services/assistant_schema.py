@@ -41,7 +41,21 @@ SUPERIEUR_ONLY_TOOLS = frozenset({
     'supprimer_filiere',
     'creer_module',
     'supprimer_module',
+    'get_ects_etudiant',
+    'get_ects_classe',
+    'get_modules_classe',
+    'affecter_module_classe',
+    'fixer_credits_module',
+    'get_releve_ects',
 })
+
+NIVEAU_LMD_ENUM = [
+    'L1', 'L2', 'L3',
+    'BTS1', 'BTS2',
+    'DUT1', 'DUT2',
+    'M1', 'M2',
+    'D1', 'D2', 'D3',
+]
 
 DUAL_ONLY_TOOLS = frozenset({
     'get_repartition_cycles',
@@ -196,6 +210,12 @@ TOOL_PERMISSIONS = {
     'supprimer_filiere': 'classes_modifier',
     'creer_module': 'classes_modifier',
     'supprimer_module': 'classes_modifier',
+    'get_ects_etudiant': 'notes_detail',
+    'get_ects_classe': 'notes_liste',
+    'get_modules_classe': 'classes_detail',
+    'affecter_module_classe': 'classes_modifier',
+    'fixer_credits_module': 'classes_modifier',
+    'get_releve_ects': 'notes_detail',
 }
 
 CHERCHER_EN_BASE_SOURCES = {
@@ -234,6 +254,10 @@ CHERCHER_EN_BASE_SOURCES = {
     'matieres': 'get_matieres',
     'notifications': 'get_notifications',
     'structure': 'get_structure_superieur',
+    'ects': 'get_ects_etudiant',
+    'ects_classe': 'get_ects_classe',
+    'modules_classe': 'get_modules_classe',
+    'releve_ects': 'get_releve_ects',
     'affectations': 'get_affectations',
     'professeurs': 'rechercher_professeurs',
     'personnel': 'rechercher_personnel',
@@ -373,6 +397,37 @@ def _require_cycle_param(item):
         )
 
 
+def _add_niveau_lmd_param(item, required=False):
+    function = item.get('function') or {}
+    params = function.setdefault('parameters', {'type': 'object', 'properties': {}})
+    props = params.setdefault('properties', {})
+    props['niveau_lmd'] = {
+        'type': 'string',
+        'enum': NIVEAU_LMD_ENUM,
+        'description': (
+            'Niveau LMD : L1, L2, L3, M1, M2, D1–D3, BTS1/BTS2, DUT1/DUT2. '
+            + (
+                'Obligatoire pour créer une période en supérieur.'
+                if required
+                else 'Filtre optionnel (semestres du niveau).'
+            )
+        ),
+    }
+    if required:
+        required_list = list(params.get('required') or [])
+        if 'niveau_lmd' not in required_list:
+            required_list.append('niveau_lmd')
+        params['required'] = required_list
+    description = function.get('description') or ''
+    if 'niveau_lmd' not in description.lower() and 'niveau lmd' not in description.lower():
+        extra = (
+            ' Le niveau LMD (L1, M1…) est obligatoire.'
+            if required
+            else ' Tu peux filtrer par niveau LMD.'
+        )
+        function['description'] = description.rstrip('.') + extra
+
+
 def tools_schema_for_context(ctx, master_schema):
     """Sous-ensemble de TOOLS_SCHEMA adapté au type d’établissement."""
     hidden = hidden_tools_for(ctx)
@@ -387,6 +442,11 @@ def tools_schema_for_context(ctx, master_schema):
             'creer_professeur',
         ):
             _require_cycle_param(cloned)
+        if getattr(ctx, 'est_superieur', False):
+            if name == 'creer_periode':
+                _add_niveau_lmd_param(cloned, required=True)
+            elif name == 'get_periodes':
+                _add_niveau_lmd_param(cloned, required=False)
         schema.append(cloned)
     return schema
 
@@ -415,8 +475,16 @@ def prompt_addendum_for(ctx):
         parts.append(
             "\nType d’établissement : enseignement supérieur.\n"
             "- Parle d’étudiants, de promotions, de semestres LMD, de filières et de modules.\n"
-            "- Les périodes sont des semestres, souvent rattachés à un niveau (L1, M1…).\n"
-            "- N’invente pas de crédits ECTS : tu n’as pas encore d’outil pour les lire.\n"
+            "- Les périodes sont des semestres rattachés à un niveau (L1, M1…).\n"
+            "- ECTS : get_ects_etudiant, get_ects_classe. N’invente aucun crédit : "
+            "inscrits = maquette, validés seulement s’ils sont déjà calculés.\n"
+            "- Maquette : get_modules_classe, get_structure_superieur "
+            "(crédits, UE, semestre, classes liées).\n"
+            "- Affecter un module : affecter_module_classe. "
+            "Fixer les crédits : fixer_credits_module. Confirmation obligatoire.\n"
+            "- Relevé : get_releve_ects (ouvre le bulletin / relevé existant).\n"
+            "- creer_periode exige le niveau LMD et un semestre officiel "
+            "(Semestre 1–2 pour L1, 3–4 pour L2, etc.).\n"
         )
     elif getattr(ctx, 'est_college_lycee', False):
         parts.append(
@@ -478,6 +546,8 @@ def prompt_addendum_for(ctx):
         parts.append(
             "- get_taux_reussite peut ajouter des crédits validés "
             "seulement s’ils sont déjà calculés. N’invente pas d’ECTS.\n"
+            "- Pour les crédits d’un étudiant ou d’une promo, "
+            "préfère get_ects_etudiant / get_ects_classe.\n"
         )
     if not cg_visible():
         parts.append(

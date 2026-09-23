@@ -1818,11 +1818,28 @@ def prepare_creer_module(ctx, args):
     dept = _find_filiere(ctx, args.get('filiere') or args.get('specialite') or args.get('department'))
     if not dept:
         return _incomplete('creer_module', ['filiere'], f'À quelle spécialité rattacher « {nom} » ?')
+    from school_admin.services.assistant_superieur import _parse_credits, normalize_niveau_lmd
+
+    credits = _parse_credits(args.get('credits'))
+    numero_ue = (args.get('numero_ue') or args.get('ue') or '').strip()[:80]
+    niveau_lmd = normalize_niveau_lmd(args.get('niveau_lmd') or args.get('niveau')) or ''
+    classe = _find_classe(ctx, args.get('classe')) if args.get('classe') else None
+    resume = f'crée le module {nom} ({dept.nom})'
+    if credits is not None:
+        resume += f', {credits} crédits'
+    if numero_ue:
+        resume += f', {numero_ue}'
+    if niveau_lmd:
+        resume += f', {niveau_lmd}'
     return _pending(
         'creer_module',
-        f'crée le module {nom} ({dept.nom})',
+        resume,
         nom=nom,
         department_id=dept.id,
+        credits=str(credits) if credits is not None else None,
+        numero_ue=numero_ue,
+        niveau_lmd=niveau_lmd,
+        classe_id=classe.id if classe else None,
         url=_reverse('matiere:liste_matieres'),
     )
 
@@ -1830,7 +1847,9 @@ def prepare_creer_module(ctx, args):
 def apply_creer_module(ctx, draft):
     from school_admin.controllers.module_controller import _sync_module_departments
     from school_admin.model.academic_structure_model import Department
-    from school_admin.model.module_model import Module
+    from school_admin.model.classe_model import Classe
+    from school_admin.model.module_model import Module, ModuleClasse
+    from school_admin.services.assistant_superieur import _parse_credits
 
     nom = (draft.get('nom') or '').strip()
     dept = Department.objects.filter(
@@ -1848,10 +1867,29 @@ def apply_creer_module(ctx, draft):
         code=code,
         etablissement=ctx.etablissement,
         department=dept,
+        niveau_lmd=draft.get('niveau_lmd') or None,
     )
     _sync_module_departments(module, [str(dept.id)])
+    credits = _parse_credits(draft.get('credits'))
+    classe = None
+    if draft.get('classe_id'):
+        classe = Classe.objects.filter(
+            pk=draft['classe_id'], etablissement=ctx.etablissement
+        ).first()
+    if classe is not None and credits is not None:
+        ModuleClasse.objects.update_or_create(
+            module=module,
+            classe=classe,
+            defaults={
+                'credits': credits,
+                'numero_ue': (draft.get('numero_ue') or '')[:80],
+            },
+        )
     _emit(ctx, 'matiere.creee', {'id': module.id, 'nom': module.nom, 'action': 'module'})
-    return _ok(f'Module {module.nom} créé ({code}).')
+    extra = f' ({code})'
+    if credits is not None and classe is not None:
+        extra = f' ({code}, {credits} crédits en {classe.nom})'
+    return _ok(f'Module {module.nom} créé{extra}.')
 
 
 def prepare_supprimer_module(ctx, args):
@@ -2026,8 +2064,20 @@ _DOSSIER_ACTIONS = (
     ),
     ActionSpec(
         'creer_module',
-        'Crée un module LMD (nom + spécialité).',
-        {'nom': _STR, 'query': _STR, 'filiere': _STR, 'specialite': _STR, 'department': _STR},
+        'Crée un module LMD (nom + spécialité, crédits / UE / niveau optionnels).',
+        {
+            'nom': _STR,
+            'query': _STR,
+            'filiere': _STR,
+            'specialite': _STR,
+            'department': _STR,
+            'credits': {'type': 'string', 'description': 'Crédits ECTS (si une classe est indiquée)'},
+            'numero_ue': {'type': 'string', 'description': 'Numéro d’UE (ex. UE3.1.1)'},
+            'ue': _STR,
+            'niveau_lmd': {'type': 'string'},
+            'niveau': _STR,
+            'classe': _STR,
+        },
         prepare=prepare_creer_module,
         apply=apply_creer_module,
     ),

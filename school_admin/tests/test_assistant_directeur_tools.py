@@ -32,6 +32,7 @@ from school_admin.services.assistant_tools import (
     TOOLS_SCHEMA,
     build_assistant_context,
     context_snapshot,
+    directeur_tools_schema,
     execute_tool,
 )
 
@@ -1355,3 +1356,344 @@ class AssistantDirecteurVague3Tests(TestCase):
         self.assertIn('autorisation', refused.get('erreur', '').lower())
         refused_j = execute_tool(ctx, 'traiter_justification', {'query': 'Sy', 'decision': 'valider'})
         self.assertIn('autorisation', refused_j.get('erreur', '').lower())
+
+
+class AssistantDirecteurVague4Tests(TestCase):
+    """Supérieur LMD : ECTS, modules/UE, périodes par niveau. Filtrage type."""
+
+    VAGUE4_TOOLS = (
+        'get_ects_etudiant',
+        'get_ects_classe',
+        'get_modules_classe',
+        'affecter_module_classe',
+        'fixer_credits_module',
+        'get_releve_ects',
+        'get_structure_superieur',
+        'creer_module',
+    )
+
+    @classmethod
+    def setUpTestData(cls):
+        from decimal import Decimal
+
+        from school_admin.model.academic_structure_model import Department
+        from school_admin.model.matiere_model import Matiere
+        from school_admin.model.module_model import Module, ModuleClasse
+        from school_admin.model.moyenne_periode_model import MoyennePeriode
+
+        cls.etab = _make_etablissement_type('superieur', 'sup4')
+        cls.annee = _make_annee(cls.etab)
+        cls.dept = Department.objects.create(
+            nom='Génie Logiciel',
+            sigle='GL',
+            etablissement=cls.etab,
+        )
+        cls.classe = Classe.objects.create(
+            nom='L1 A',
+            niveau='superieur',
+            niveau_lmd='L1',
+            code_classe=f'SUP-{cls.etab.pk}-L1A',
+            capacite_max=40,
+            etablissement=cls.etab,
+            department=cls.dept,
+        )
+        cls.periode = PeriodeScolaire.objects.create(
+            etablissement=cls.etab,
+            nom_periode='Semestre 1',
+            type_periode='semestre',
+            niveau_lmd='L1',
+            date_debut=date(2026, 9, 1),
+            date_fin=date(2027, 1, 31),
+            annee_scolaire=cls.annee.libelle,
+            annee_scolaire_fk=cls.annee,
+            est_active=True,
+        )
+        cls.periode_s2 = PeriodeScolaire.objects.create(
+            etablissement=cls.etab,
+            nom_periode='Semestre 2',
+            type_periode='semestre',
+            niveau_lmd='L1',
+            date_debut=date(2027, 2, 1),
+            date_fin=date(2027, 6, 30),
+            annee_scolaire=cls.annee.libelle,
+            annee_scolaire_fk=cls.annee,
+            est_active=False,
+        )
+        cls.etudiant = _make_eleve_simple(cls.etab, cls.classe, 'Ndoye', 'Awa', 'F', 's4')
+        _make_inscription(cls.etudiant, cls.classe, cls.annee, cls.etab)
+        cls.module_algo = Module.objects.create(
+            nom='Algorithmique',
+            code=f'ALG{cls.etab.pk}'[:20],
+            etablissement=cls.etab,
+            department=cls.dept,
+            niveau_lmd='L1',
+        )
+        cls.module_bdd = Module.objects.create(
+            nom='Bases de données',
+            code=f'BDD{cls.etab.pk}'[:20],
+            etablissement=cls.etab,
+            department=cls.dept,
+            niveau_lmd='L1',
+        )
+        ModuleClasse.objects.create(
+            module=cls.module_algo,
+            classe=cls.classe,
+            credits=Decimal('6.00'),
+            numero_ue='UE1.1',
+            periode=cls.periode,
+        )
+        ModuleClasse.objects.create(
+            module=cls.module_bdd,
+            classe=cls.classe,
+            credits=Decimal('4.00'),
+            numero_ue='UE1.2',
+            periode=cls.periode,
+        )
+        suffix = str(cls.etab.pk)
+        cls.matiere = Matiere.objects.create(
+            nom=f'Algo {suffix}',
+            code=f'AL{suffix}'[:10],
+            coefficient=1,
+            etablissement=cls.etab,
+            credits=Decimal('6.00'),
+        )
+        cls.matiere_bdd = Matiere.objects.create(
+            nom=f'BDD {suffix}',
+            code=f'BD{suffix}'[:10],
+            coefficient=1,
+            etablissement=cls.etab,
+            credits=Decimal('4.00'),
+        )
+        MoyennePeriode.objects.create(
+            eleve=cls.etudiant,
+            etablissement=cls.etab,
+            periode=cls.periode,
+            annee_scolaire=cls.annee,
+            matiere=cls.matiere,
+            est_moyenne_generale=False,
+            moyenne_matiere=Decimal('12.00'),
+            credits=Decimal('6.00'),
+        )
+        MoyennePeriode.objects.create(
+            eleve=cls.etudiant,
+            etablissement=cls.etab,
+            periode=cls.periode,
+            annee_scolaire=cls.annee,
+            matiere=cls.matiere_bdd,
+            est_moyenne_generale=False,
+            moyenne_matiere=Decimal('08.00'),
+            credits=Decimal('4.00'),
+        )
+        cls.ctx = build_assistant_context(cls.etab)
+
+    def _schema_names(self, etab):
+        return {
+            item['function']['name']
+            for item in directeur_tools_schema(build_assistant_context(etab))
+            if item.get('function')
+        }
+
+    def test_schema_superieur_seulement(self):
+        from school_admin.services.assistant_schema import CG_TOOLS
+        from school_admin.services.assistant_tools import directeur_tools_schema
+
+        names_sup = self._schema_names(self.etab)
+        names_prim = self._schema_names(_make_etablissement_type('primary', 'p4'))
+        names_lyc = self._schema_names(_make_etablissement_type('lycée', 'l4'))
+        for name in self.VAGUE4_TOOLS:
+            self.assertIn(name, names_sup)
+            self.assertNotIn(name, names_prim)
+            self.assertNotIn(name, names_lyc)
+        for name in CG_TOOLS:
+            self.assertNotIn(name, names_sup)
+        creer = next(
+            item for item in directeur_tools_schema(self.ctx)
+            if item.get('function', {}).get('name') == 'creer_periode'
+        )
+        self.assertIn('niveau_lmd', creer['function']['parameters']['required'])
+
+    def test_ects_etudiant_et_classe(self):
+        ects = execute_tool(self.ctx, 'get_ects_etudiant', {'query': 'Ndoye'})
+        self.assertEqual(ects['credits_inscrits'], 10.0)
+        self.assertEqual(ects['credits_valides'], 6.0)
+        self.assertEqual(ects['credits_restants'], 4.0)
+        self.assertFalse(ects['invente'])
+        self.assertEqual(ects['niveau_lmd'], 'L1')
+        self.assertGreaterEqual(len(ects['par_semestre']), 1)
+        classe = execute_tool(self.ctx, 'get_ects_classe', {'classe': 'L1 A'})
+        self.assertEqual(classe['credits_maquette'], 10.0)
+        self.assertEqual(classe['nb_modules'], 2)
+        self.assertEqual(classe['etudiants'][0]['credits_valides'], 6.0)
+        modules = execute_tool(self.ctx, 'get_modules_classe', {'classe': 'L1 A'})
+        self.assertEqual(modules['nb'], 2)
+        codes_ue = {item['numero_ue'] for item in modules['modules']}
+        self.assertEqual(codes_ue, {'UE1.1', 'UE1.2'})
+        found = execute_tool(
+            self.ctx,
+            'chercher_en_base',
+            {'question': 'crédits ECTS de Ndoye'},
+        )
+        self.assertEqual(found['source'], 'ects')
+        self.assertEqual(found['credits_inscrits'], 10.0)
+
+    def test_periodes_niveau_lmd_et_creation(self):
+        periodes = execute_tool(self.ctx, 'get_periodes', {'niveau_lmd': 'L1'})
+        noms = {item['nom'] for item in periodes['periodes']}
+        self.assertIn('Semestre 1', noms)
+        self.assertTrue(all(
+            item.get('niveau_lmd') in (None, '', 'L1')
+            for item in periodes['periodes']
+        ))
+        incomplet = execute_tool(
+            self.ctx,
+            'creer_periode',
+            {
+                'nom': 'Semestre 1',
+                'date_debut': '2026-09-01',
+                'date_fin': '2027-01-31',
+            },
+        )
+        self.assertEqual(incomplet['statut'], 'incomplet')
+        self.assertIn('niveau_lmd', incomplet['manquants'])
+        refuse = execute_tool(
+            self.ctx,
+            'creer_periode',
+            {
+                'nom': 'Semestre 7',
+                'niveau_lmd': 'L1',
+                'date_debut': '2026-09-01',
+                'date_fin': '2027-01-31',
+            },
+        )
+        self.assertIn('semestre officiel', refuse.get('erreur', '').lower())
+        draft = execute_tool(
+            self.ctx,
+            'creer_periode',
+            {
+                'nom': 'S7',
+                'niveau_lmd': 'M1',
+                'date_debut': '2026-09-01',
+                'date_fin': '2027-01-31',
+            },
+        )
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.assertEqual(draft['nom'], 'Semestre 7')
+        self.assertEqual(draft['niveau_lmd'], 'M1')
+        self.assertFalse(
+            PeriodeScolaire.objects.filter(
+                etablissement=self.etab, nom_periode='Semestre 7', niveau_lmd='M1'
+            ).exists()
+        )
+        result = ACTION_SPECS['creer_periode'].apply(self.ctx, draft)
+        self.assertEqual(result['statut'], 'ok')
+        created = PeriodeScolaire.objects.get(
+            etablissement=self.etab, nom_periode='Semestre 7', niveau_lmd='M1'
+        )
+        self.assertEqual(created.type_periode, 'semestre')
+
+    def test_affecter_et_fixer_credits(self):
+        from decimal import Decimal
+
+        from school_admin.model.module_model import Module, ModuleClasse
+
+        module = Module.objects.create(
+            nom='Réseaux',
+            code=f'RES{self.etab.pk}'[:20],
+            etablissement=self.etab,
+            department=self.dept,
+            niveau_lmd='L1',
+        )
+        draft = execute_tool(
+            self.ctx,
+            'affecter_module_classe',
+            {
+                'module': 'Réseaux',
+                'classe': 'L1 A',
+                'credits': '5',
+                'numero_ue': 'UE1.3',
+                'periode': 'Semestre 1',
+            },
+        )
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.assertFalse(ModuleClasse.objects.filter(module=module, classe=self.classe).exists())
+        applied = ACTION_SPECS['affecter_module_classe'].apply(self.ctx, draft)
+        self.assertEqual(applied['statut'], 'ok')
+        mc = ModuleClasse.objects.get(module=module, classe=self.classe)
+        self.assertEqual(mc.credits, Decimal('5.00'))
+        self.assertEqual(mc.numero_ue, 'UE1.3')
+        self.assertEqual(mc.periode_id, self.periode.id)
+        fix = execute_tool(
+            self.ctx,
+            'fixer_credits_module',
+            {'module': 'Réseaux', 'classe': 'L1 A', 'credits': '6'},
+        )
+        self.assertEqual(fix['statut'], 'en_attente_confirmation')
+        mc.refresh_from_db()
+        self.assertEqual(mc.credits, Decimal('5.00'))
+        ACTION_SPECS['fixer_credits_module'].apply(self.ctx, fix)
+        mc.refresh_from_db()
+        self.assertEqual(mc.credits, Decimal('6.00'))
+
+    def test_creer_module_credits_et_releve(self):
+        from school_admin.model.module_model import Module, ModuleClasse
+
+        draft = execute_tool(
+            self.ctx,
+            'creer_module',
+            {
+                'nom': 'Compilation',
+                'filiere': 'Génie Logiciel',
+                'credits': '3',
+                'numero_ue': 'UE2.1',
+                'niveau_lmd': 'L1',
+                'classe': 'L1 A',
+            },
+        )
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.assertFalse(Module.objects.filter(etablissement=self.etab, nom='Compilation').exists())
+        result = ACTION_SPECS['creer_module'].apply(self.ctx, draft)
+        self.assertEqual(result['statut'], 'ok')
+        module = Module.objects.get(etablissement=self.etab, nom='Compilation')
+        self.assertEqual(module.niveau_lmd, 'L1')
+        mc = ModuleClasse.objects.get(module=module, classe=self.classe)
+        self.assertEqual(float(mc.credits), 3.0)
+        self.assertEqual(mc.numero_ue, 'UE2.1')
+        structure = execute_tool(self.ctx, 'get_structure_superieur', {'query': 'Algo'})
+        self.assertTrue(structure['modules'])
+        self.assertIn('credits_totaux', structure['modules'][0])
+        releve = execute_tool(self.ctx, 'get_releve_ects', {'query': 'Ndoye'})
+        self.assertTrue(releve['ouvrir'])
+        self.assertIn(str(self.etudiant.id), releve['url'] or '')
+        self.assertEqual(releve['credits_valides'], 6.0)
+
+    def test_personnel_sans_droit_ects(self):
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+
+        personnel = PersonnelAdministratif(
+            username=f'caissier.v4.{self.etab.pk}',
+            email=f'caissier.v4.{self.etab.pk}@aria-test.local',
+            nom='Fall',
+            prenom='Awa',
+            telephone='770000070',
+            fonction='caissier',
+            etablissement=self.etab,
+            actif=True,
+            permissions={},
+        )
+        personnel.set_password('Caissier@Test1!')
+        personnel.save()
+        ctx = build_assistant_context(self.etab, personnel=personnel)
+        refused = execute_tool(ctx, 'get_ects_etudiant', {'query': 'Ndoye'})
+        self.assertIn('autorisation', refused.get('erreur', '').lower())
+        refused_w = execute_tool(
+            ctx,
+            'affecter_module_classe',
+            {'module': 'Algorithmique', 'classe': 'L1 A', 'credits': '6'},
+        )
+        self.assertIn('autorisation', refused_w.get('erreur', '').lower())
+
+    def test_primaire_ne_voit_pas_ects(self):
+        primaire = _make_etablissement_type('primary', 'p4b')
+        ctx = build_assistant_context(primaire)
+        result = execute_tool(ctx, 'get_ects_etudiant', {'query': 'Ndoye'})
+        self.assertIn('type d’établissement', result.get('erreur', '').lower())

@@ -181,6 +181,8 @@ ACTION_INTENT_RES = (
     (re.compile(r'(modifie[rz]?).{0,30}classe', re.I), 'modifier_classe'),
     (re.compile(r'(modifie[rz]?).{0,30}salle', re.I), 'modifier_salle'),
     (re.compile(r'(modifie[rz]?).{0,40}(?:fili[eè]re|sp[ée]cialit)', re.I), 'modifier_filiere'),
+    (re.compile(r'(affecte[rz]?|rattache[rz]?).{0,40}module', re.I), 'affecter_module_classe'),
+    (re.compile(r'(fixe[rz]?|passe[rz]?|modifie[rz]?).{0,30}cr[eé]dits', re.I), 'fixer_credits_module'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}module', re.I), 'creer_module'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}(?:professeur|enseignant)', re.I), 'creer_professeur'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,40}personnel', re.I), 'creer_personnel'),
@@ -894,6 +896,8 @@ def infer_working_ack(question, pending=None):
         return "Je cherche cet élève."
     if any(token in lowered for token in ('classe', 'promotion')):
         return "Je consulte les classes."
+    if any(token in lowered for token in ('ects', 'crédit', 'credit', 'relevé', 'releve')):
+        return "Je consulte les crédits ECTS."
     if any(token in lowered for token in ('période', 'periode', 'semestre', 'trimestre')):
         return "Je regarde les périodes."
     if 'annonce' in lowered:

@@ -926,9 +926,10 @@ def apply_annonce_draft(ctx, draft):
     }
 
 
-def tool_periodes(ctx, _args):
-    from school_admin.model.periode_model import PeriodeScolaire
+def tool_periodes(ctx, args):
+    from school_admin.model.periode_model import PeriodeScolaire, SEMESTRES_PAR_NIVEAU_LMD
 
+    args = args if isinstance(args, dict) else {}
     periode_active = PeriodeScolaire.get_periode_active(ctx.etablissement)
     qs = PeriodeScolaire.objects.filter(etablissement=ctx.etablissement)
     if ctx.annee_scolaire:
@@ -936,21 +937,40 @@ def tool_periodes(ctx, _args):
             Q(annee_scolaire_fk=ctx.annee_scolaire)
             | Q(annee_scolaire=ctx.annee_scolaire.libelle)
         )
-    items = [
-        {
+    niveau = None
+    if getattr(ctx, 'est_superieur', False):
+        from school_admin.services.assistant_superieur import normalize_niveau_lmd
+
+        niveau = normalize_niveau_lmd(args.get('niveau_lmd') or args.get('niveau'))
+        if niveau:
+            qs = qs.filter(Q(niveau_lmd=niveau) | Q(niveau_lmd=''))
+    items = []
+    for p in qs.order_by('niveau_lmd', 'date_debut')[:24]:
+        item = {
             'nom': p.nom_periode,
             'type': p.get_type_periode_display(),
             'debut': p.date_debut.isoformat() if p.date_debut else None,
             'fin': p.date_fin.isoformat() if p.date_fin else None,
             'active': bool(periode_active and p.pk == periode_active.pk),
+            'niveau_lmd': (p.niveau_lmd or None) or None,
         }
-        for p in qs.order_by('date_debut')[:16]
-    ]
-    return {
+        if getattr(ctx, 'est_superieur', False) and p.niveau_lmd:
+            from school_admin.model.periode_model import libelle_long_semestre
+
+            item['libelle'] = libelle_long_semestre(p.nom_periode, p.niveau_lmd)
+        items.append(item)
+    payload = {
         'session': ctx.annee_scolaire.libelle if ctx.annee_scolaire else None,
         'periode_active': periode_active.nom_periode if periode_active else None,
         'periodes': items,
     }
+    if getattr(ctx, 'est_superieur', False):
+        payload['filtre_niveau_lmd'] = niveau
+        payload['semestres_par_niveau'] = {
+            code: [nom for nom, _lib in pairs]
+            for code, pairs in SEMESTRES_PAR_NIVEAU_LMD.items()
+        }
+    return payload
 
 
 def tool_comptabilite(ctx, args):
@@ -1211,6 +1231,54 @@ def tool_chercher_en_base(ctx, args):
 
         found = tool_moyennes_classe(ctx, payload)
         return {'trouve': not bool(found.get('erreur')), 'source': 'moyennes_classe', **found}
+    if getattr(ctx, 'est_superieur', False) and any(
+        token in lowered
+        for token in (
+            'ects', 'crédit', 'credit', 'crédits', 'credits',
+            'unité d’enseignement', "unité d'enseignement", ' ue ',
+        )
+    ):
+        from school_admin.services.assistant_superieur import (
+            tool_ects_classe,
+            tool_ects_etudiant,
+            tool_modules_classe,
+            tool_releve_ects,
+        )
+
+        if any(token in lowered for token in ('relevé', 'releve')):
+            found = tool_releve_ects(ctx, {**payload, 'query': question})
+            return {'trouve': not bool(found.get('erreur')), 'source': 'releve_ects', **found}
+        if any(token in lowered for token in ('module', 'maquette', 'ue')) and (
+            payload.get('classe') or 'classe' in lowered or 'promo' in lowered
+        ):
+            found = tool_modules_classe(ctx, payload)
+            return {
+                'trouve': not bool(found.get('erreur')),
+                'source': 'modules_classe',
+                **found,
+            }
+        if payload.get('classe') or any(
+            token in lowered for token in ('classe', 'promo', 'promotion')
+        ):
+            found = tool_ects_classe(ctx, payload)
+            return {
+                'trouve': not bool(found.get('erreur')),
+                'source': 'ects_classe',
+                **found,
+            }
+        found = tool_ects_etudiant(ctx, {**payload, 'query': question})
+        return {'trouve': not bool(found.get('erreur')), 'source': 'ects', **found}
+    if getattr(ctx, 'est_superieur', False) and any(
+        token in lowered for token in ('module de', 'modules de', 'maquette')
+    ):
+        from school_admin.services.assistant_superieur import tool_modules_classe
+
+        found = tool_modules_classe(ctx, payload)
+        return {
+            'trouve': not bool(found.get('erreur')),
+            'source': 'modules_classe',
+            **found,
+        }
     if any(token in lowered for token in ('bulletin', 'bulletins')):
         from school_admin.services.assistant_pedagogie import tool_bulletin_eleve
 
@@ -1665,9 +1733,14 @@ from school_admin.services.assistant_pedagogie import (  # noqa: E402
     VAGUE3_READ_HANDLERS,
     VAGUE3_READ_SCHEMA,
 )
+from school_admin.services.assistant_superieur import (  # noqa: E402
+    VAGUE4_READ_HANDLERS,
+    VAGUE4_READ_SCHEMA,
+)
 
 TOOL_HANDLERS.update(VAGUE2_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE3_READ_HANDLERS)
+TOOL_HANDLERS.update(VAGUE4_READ_HANDLERS)
 
 for _name, _spec in ACTION_SPECS.items():
     TOOL_HANDLERS[_name] = _spec.prepare
@@ -1988,8 +2061,19 @@ TOOLS_SCHEMA = [
         'type': 'function',
         'function': {
             'name': 'get_periodes',
-            'description': 'Périodes scolaires (trimestres / semestres) et période active.',
-            'parameters': {'type': 'object', 'properties': {}},
+            'description': (
+                'Périodes scolaires (trimestres / semestres) et période active. '
+                'En supérieur : inclut le niveau LMD de chaque semestre.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'niveau_lmd': {
+                        'type': 'string',
+                        'description': 'Filtre optionnel (L1, M1…) — supérieur uniquement.',
+                    },
+                },
+            },
         },
     },
     {
@@ -2027,7 +2111,10 @@ TOOLS_SCHEMA = [
         'type': 'function',
         'function': {
             'name': 'get_structure_superieur',
-            'description': 'Départements (spécialités) et modules LMD. Uniquement en supérieur.',
+            'description': (
+                'Spécialités et modules LMD : crédits totaux, UE, semestres, '
+                'classes liées. Uniquement en supérieur.'
+            ),
             'parameters': {
                 'type': 'object',
                 'properties': {
@@ -2239,6 +2326,7 @@ TOOLS_SCHEMA = [
 
 TOOLS_SCHEMA.extend(VAGUE2_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE3_READ_SCHEMA)
+TOOLS_SCHEMA.extend(VAGUE4_READ_SCHEMA)
 TOOLS_SCHEMA.extend(build_action_tool_schemas())
 
 

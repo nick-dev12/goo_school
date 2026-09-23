@@ -1284,6 +1284,26 @@ def tool_chercher_en_base(ctx, args):
 
         found = tool_bulletin_eleve(ctx, payload)
         return {'trouve': not bool(found.get('erreur')), 'source': 'bulletin', **found}
+    if any(
+        token in lowered
+        for token in (
+            "note d'examen",
+            'notes d’examen',
+            "notes d'examen",
+            'notes examen',
+            'note examen',
+            'notes de l’examen',
+            "notes de l'examen",
+        )
+    ):
+        from school_admin.services.assistant_examens import tool_notes_examen
+
+        found = tool_notes_examen(ctx, {**payload, 'query': question})
+        return {
+            'trouve': not bool(found.get('erreur')),
+            'source': 'notes_examen',
+            **found,
+        }
     if any(token in lowered for token in ('note', 'moyenne', 'résultat', 'resultat')):
         found = tool_notes_eleve(ctx, payload)
         return {'trouve': not bool(found.get('erreur')), 'source': 'notes', **found}
@@ -1429,8 +1449,22 @@ def tool_chercher_en_base(ctx, args):
     if any(token in lowered for token in ('liaison',)):
         found = tool_liaisons(ctx, payload)
         return {'trouve': True, 'source': 'liaisons', **found}
+    if (
+        'examen' in lowered
+        and any(token in lowered for token in ('créneau', 'creneau', 'emploi'))
+    ):
+        from school_admin.services.assistant_examens import tool_emploi_examens
+
+        found = tool_emploi_examens(ctx, {**payload, 'query': question})
+        return {
+            'trouve': not bool(found.get('erreur')),
+            'source': 'emploi_examens',
+            **found,
+        }
     if any(token in lowered for token in ('examen', 'session d')):
-        found = tool_examens(ctx, payload)
+        from school_admin.services.assistant_examens import tool_examens as examens_handler
+
+        found = examens_handler(ctx, payload)
         return {'trouve': True, 'source': 'examens', **found}
     if any(token in lowered for token in ('année scolaire', 'annee scolaire', 'session 20')):
         found = tool_annees(ctx, payload)
@@ -1748,11 +1782,16 @@ from school_admin.services.assistant_rh import (  # noqa: E402
     VAGUE5_READ_HANDLERS,
     VAGUE5_READ_SCHEMA,
 )
+from school_admin.services.assistant_examens import (  # noqa: E402
+    VAGUE6_READ_HANDLERS,
+    VAGUE6_READ_SCHEMA,
+)
 
 TOOL_HANDLERS.update(VAGUE2_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE3_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE4_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE5_READ_HANDLERS)
+TOOL_HANDLERS.update(VAGUE6_READ_HANDLERS)
 
 for _name, _spec in ACTION_SPECS.items():
     TOOL_HANDLERS[_name] = _spec.prepare
@@ -2241,8 +2280,17 @@ TOOLS_SCHEMA = [
         'type': 'function',
         'function': {
             'name': 'get_examens',
-            'description': 'Sessions d’examens de l’année consultée.',
-            'parameters': {'type': 'object', 'properties': {}},
+            'description': (
+                'Sessions d’examens de l’année consultée, avec le nombre de '
+                'créneaux et les classes concernées.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'query': {'type': 'string', 'description': 'Nom de session (optionnel)'},
+                    'nom': {'type': 'string'},
+                },
+            },
         },
     },
     {
@@ -2348,6 +2396,7 @@ TOOLS_SCHEMA.extend(VAGUE2_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE3_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE4_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE5_READ_SCHEMA)
+TOOLS_SCHEMA.extend(VAGUE6_READ_SCHEMA)
 TOOLS_SCHEMA.extend(build_action_tool_schemas())
 
 

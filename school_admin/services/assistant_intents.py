@@ -195,6 +195,9 @@ ACTION_INTENT_RES = (
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}classe', re.I), 'creer_classe'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}salle', re.I), 'creer_salle'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}mati[eè]re', re.I), 'creer_matiere'),
+    (re.compile(r'(modifie[rz]?).{0,40}session.{0,20}examen', re.I), 'modifier_session_examen'),
+    (re.compile(r'(ajoute[rz]?|cr[ée]e[rz]?|programme[rz]?).{0,40}cr[ée]neau.{0,20}examen', re.I), 'ajouter_creneau_examen'),
+    (re.compile(r'supprime[rz]?.{0,40}cr[ée]neau.{0,20}examen', re.I), 'supprimer_creneau_examen'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,40}session.{0,20}examen', re.I), 'creer_session_examen'),
     (re.compile(r'g[ée]n[eè]re[rz]?.{0,40}(certificat|attestation|convocation|fiche)', re.I), 'generer_document'),
     (re.compile(r'publie[rz]?.{0,40}annonce', re.I), 'publier_annonce'),
@@ -413,7 +416,9 @@ def resolve_action_intent(question):
         return None
     if is_affectation_read_request(text):
         return None
-    if ANNONCE_CREATE_RE.search(text) or EDT_CREATE_RE.search(text) or CRENEAU_ADD_RE.search(text):
+    if ANNONCE_CREATE_RE.search(text) or EDT_CREATE_RE.search(text):
+        return None
+    if CRENEAU_ADD_RE.search(text) and not re.search(r'examen', text, re.I):
         return None
     for pattern, name in ACTION_INTENT_RES:
         if pattern.search(text):
@@ -605,6 +610,8 @@ def resolve_emploi_intent(question):
     """
     text = (question or '').strip()
     if not text:
+        return None
+    if re.search(r'examen', text, re.I):
         return None
     if OPEN_VERB_RE.search(text) and not EDT_CREATE_RE.search(text) and not CRENEAU_ADD_RE.search(text):
         return None
@@ -867,7 +874,7 @@ def infer_working_ack(question, pending=None):
         return "Je prépare l’emploi du temps."
     if EDT_CREATE_RE.search(text):
         return "Je prépare l’emploi du temps."
-    if CRENEAU_ADD_RE.search(text):
+    if CRENEAU_ADD_RE.search(text) and not re.search(r'examen', text, re.I):
         return "Je prépare ce créneau."
     if ANNONCE_CREATE_RE.search(text):
         return "Je prépare l’annonce."

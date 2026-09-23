@@ -3,7 +3,7 @@ Tests des outils de l’assistante vocale — espace directeur.
 Les outils de lecture retournent des données ; les outils d’écriture
 préparent un brouillon et n’écrivent qu’après apply.
 """
-from datetime import date, timedelta
+from datetime import date, time as datetime_time, timedelta
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -1927,3 +1927,321 @@ class AssistantDirecteurVague5Tests(TestCase):
             {'query': 'Diop', 'salaire_base': '1'},
         )
         self.assertIn('autorisation', refused_w.get('erreur', '').lower())
+
+
+class AssistantDirecteurVague6Tests(TestCase):
+    """Examens : créneaux, notes, modifier session. Masqués en primaire."""
+
+    VAGUE6_NEW_TOOLS = (
+        'modifier_session_examen',
+        'get_emploi_examens',
+        'ajouter_creneau_examen',
+        'supprimer_creneau_examen',
+        'get_notes_examen',
+    )
+
+    @classmethod
+    def setUpTestData(cls):
+        from decimal import Decimal
+
+        from school_admin.model.creneau_examen_model import CreneauExamen
+        from school_admin.model.matiere_model import Matiere
+        from school_admin.model.note_examen_model import NoteExamen
+        from school_admin.model.professeur_model import Professeur
+        from school_admin.model.session_examen_model import SessionExamen
+
+        cls.etab = _make_etablissement()
+        cls.annee = _make_annee(cls.etab)
+        cls.classe = Classe.objects.create(
+            nom='1ère S',
+            niveau='lycee',
+            code_classe=f'LYC-{cls.etab.pk}-1S',
+            capacite_max=30,
+            etablissement=cls.etab,
+        )
+        cls.periode = PeriodeScolaire.objects.create(
+            etablissement=cls.etab,
+            nom_periode='1er Trimestre',
+            type_periode='trimestre',
+            date_debut=date(2026, 9, 1),
+            date_fin=date(2026, 12, 15),
+            annee_scolaire=cls.annee.libelle,
+            annee_scolaire_fk=cls.annee,
+            est_active=True,
+        )
+        suffix = str(cls.etab.pk)
+        cls.matiere = Matiere.objects.create(
+            nom=f'Mathématiques {suffix}',
+            code=f'MA{suffix}'[:10],
+            coefficient=4,
+            etablissement=cls.etab,
+        )
+        cls.matiere_fr = Matiere.objects.create(
+            nom=f'Français {suffix}',
+            code=f'FR{suffix}'[:10],
+            coefficient=3,
+            etablissement=cls.etab,
+        )
+        cls.prof = Professeur.objects.create_user(
+            username=f'prof.v6.{suffix}',
+            email=f'prof.v6.{suffix}@aria-test.local',
+            password='Prof@Test1!',
+            nom='Fall',
+            prenom='Omar',
+            telephone='770000090',
+            numero_employe=f'EMPV6{suffix}',
+            matiere_principale=cls.matiere,
+            etablissement=cls.etab,
+            niveau_enseignement='lycee',
+            actif=True,
+        )
+        cls.salle = Salle.objects.create(
+            nom='Salle A1',
+            numero=f'A1{suffix}'[:10],
+            etablissement=cls.etab,
+            type_salle='classe',
+            actif=True,
+        )
+        cls.salle_b = Salle.objects.create(
+            nom='Salle B2',
+            numero=f'B2{suffix}'[:10],
+            etablissement=cls.etab,
+            type_salle='classe',
+            actif=True,
+        )
+        cls.session = SessionExamen.objects.create(
+            nom_examen='Composition 1',
+            etablissement=cls.etab,
+            periode=cls.periode,
+            date_debut=date(2026, 10, 6),
+            date_fin=date(2026, 10, 10),
+            annee_scolaire=cls.annee,
+        )
+        cls.session.classes.add(cls.classe)
+        cls.session.matieres.add(cls.matiere)
+        cls.creneau = CreneauExamen.objects.create(
+            session_examen=cls.session,
+            matiere=cls.matiere,
+            date_examen=date(2026, 10, 7),
+            heure_debut=datetime_time(8, 0),
+            heure_fin=datetime_time(10, 0),
+            surveillant=cls.prof,
+            salle=cls.salle,
+            annee_scolaire=cls.annee,
+        )
+        cls.eleve = _make_eleve_simple(cls.etab, cls.classe, 'Diallo', 'Awa', 'F', 'v6')
+        cls.note = NoteExamen.objects.create(
+            eleve=cls.eleve,
+            session_examen=cls.session,
+            creneau_examen=cls.creneau,
+            matiere=cls.matiere,
+            professeur=cls.prof,
+            classe=cls.classe,
+            note=Decimal('14.50'),
+            bareme=Decimal('20.00'),
+            statut_publication=NoteExamen.STATUT_PUBLIEE,
+            annee_scolaire=cls.annee,
+        )
+        cls.ctx = build_assistant_context(cls.etab)
+
+    def test_schema_lycee_college_pas_primaire_sans_cg(self):
+        from school_admin.services.assistant_schema import CG_TOOLS
+
+        names = {
+            item['function']['name']
+            for item in directeur_tools_schema(self.ctx)
+            if item.get('function')
+        }
+        for name in self.VAGUE6_NEW_TOOLS:
+            self.assertIn(name, names)
+        self.assertIn('get_examens', names)
+        for name in CG_TOOLS:
+            self.assertNotIn(name, names)
+
+        college = _make_etablissement_type('collège', 'c6')
+        names_c = {
+            item['function']['name']
+            for item in directeur_tools_schema(build_assistant_context(college))
+            if item.get('function')
+        }
+        for name in self.VAGUE6_NEW_TOOLS:
+            self.assertIn(name, names_c)
+
+        primaire = _make_etablissement_type('primary', 'p6')
+        names_p = {
+            item['function']['name']
+            for item in directeur_tools_schema(build_assistant_context(primaire))
+            if item.get('function')
+        }
+        for name in self.VAGUE6_NEW_TOOLS:
+            self.assertNotIn(name, names_p)
+        self.assertIn('get_examens', names_p)
+        self.assertIn('creer_session_examen', names_p)
+        self.assertNotIn('get_ects_etudiant', names_p)
+
+        superieur = _make_etablissement_type('superieur', 's6')
+        names_s = {
+            item['function']['name']
+            for item in directeur_tools_schema(build_assistant_context(superieur))
+            if item.get('function')
+        }
+        self.assertIn('get_emploi_examens', names_s)
+        self.assertIn('get_notes_examen', names_s)
+
+    def test_examens_enrichis_emploi_et_notes(self):
+        sessions = execute_tool(self.ctx, 'get_examens', {})
+        self.assertEqual(sessions['nb'], 1)
+        item = sessions['sessions'][0]
+        self.assertEqual(item['nom'], 'Composition 1')
+        self.assertEqual(item['nb_creneaux'], 1)
+        self.assertIn('1ère S', item['classes'])
+
+        emploi = execute_tool(self.ctx, 'get_emploi_examens', {'query': 'Composition'})
+        self.assertEqual(emploi['nb'], 1)
+        self.assertEqual(emploi['creneaux'][0]['salle'], 'Salle A1')
+        self.assertEqual(emploi['creneaux'][0]['surveillant'], self.prof.nom_complet)
+        self.assertEqual(emploi['creneaux'][0]['heure_debut'], '08:00')
+
+        notes = execute_tool(
+            self.ctx,
+            'get_notes_examen',
+            {'session': 'Composition', 'eleve': 'Diallo'},
+        )
+        self.assertEqual(notes['nb'], 1)
+        self.assertEqual(notes['notes'][0]['note_sur_20'], 14.5)
+        self.assertEqual(notes['notes'][0]['eleve'], self.eleve.nom_complet)
+
+        found = execute_tool(
+            self.ctx,
+            'chercher_en_base',
+            {'question': 'notes d’examen de Diallo'},
+        )
+        self.assertEqual(found['source'], 'notes_examen')
+        self.assertEqual(found['nb'], 1)
+
+    def test_modifier_session_et_creneau_conflit(self):
+        from school_admin.model.creneau_examen_model import CreneauExamen
+        from school_admin.model.session_examen_model import SessionExamen
+
+        draft = execute_tool(
+            self.ctx,
+            'modifier_session_examen',
+            {
+                'query': 'Composition',
+                'nouveau_nom': 'Composition blanche',
+                'date_debut': '2026-10-06',
+                'date_fin': '2026-10-12',
+            },
+        )
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.session.refresh_from_db()
+        self.assertEqual(self.session.nom_examen, 'Composition 1')
+        result = ACTION_SPECS['modifier_session_examen'].apply(self.ctx, draft)
+        self.assertEqual(result['statut'], 'ok')
+        self.session.refresh_from_db()
+        self.assertEqual(self.session.nom_examen, 'Composition blanche')
+        self.assertEqual(self.session.date_fin, date(2026, 10, 12))
+
+        add = execute_tool(
+            self.ctx,
+            'ajouter_creneau_examen',
+            {
+                'session': 'Composition blanche',
+                'matiere': self.matiere_fr.nom,
+                'date': '2026-10-08',
+                'heure_debut': '8h',
+                'heure_fin': '10h',
+                'salle': 'Salle B2',
+                'surveillant': 'Fall',
+            },
+        )
+        self.assertEqual(add['statut'], 'en_attente_confirmation')
+        self.assertFalse(
+            CreneauExamen.objects.filter(
+                session_examen=self.session, matiere=self.matiere_fr
+            ).exists()
+        )
+        applied = ACTION_SPECS['ajouter_creneau_examen'].apply(self.ctx, add)
+        self.assertEqual(applied['statut'], 'ok')
+        self.assertTrue(
+            CreneauExamen.objects.filter(
+                session_examen=self.session, matiere=self.matiere_fr
+            ).exists()
+        )
+
+        conflit = execute_tool(
+            self.ctx,
+            'ajouter_creneau_examen',
+            {
+                'session': 'Composition blanche',
+                'matiere': self.matiere_fr.nom,
+                'date': '2026-10-07',
+                'heure_debut': '8h30',
+                'heure_fin': '10h30',
+                'salle': 'Salle A1',
+            },
+        )
+        self.assertEqual(conflit['statut'], 'en_attente_confirmation')
+        refused = ACTION_SPECS['ajouter_creneau_examen'].apply(self.ctx, conflit)
+        self.assertIn('salle', refused.get('erreur', '').lower())
+
+        delete = execute_tool(
+            self.ctx,
+            'supprimer_creneau_examen',
+            {
+                'session': 'Composition blanche',
+                'matiere': self.matiere_fr.nom,
+                'date': '2026-10-08',
+            },
+        )
+        self.assertEqual(delete['statut'], 'en_attente_confirmation')
+        self.assertTrue(delete.get('destructive'))
+        gone = ACTION_SPECS['supprimer_creneau_examen'].apply(self.ctx, delete)
+        self.assertEqual(gone['statut'], 'ok')
+        self.assertFalse(
+            CreneauExamen.objects.filter(
+                session_examen=self.session, matiere=self.matiere_fr
+            ).exists()
+        )
+        self.assertTrue(SessionExamen.objects.filter(pk=self.session.pk).exists())
+
+    def test_personnel_sans_droit_examens(self):
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+
+        caissier = PersonnelAdministratif(
+            username=f'caissier.v6.{self.etab.pk}',
+            email=f'caissier.v6.{self.etab.pk}@aria-test.local',
+            nom='Kane',
+            prenom='Ibra',
+            telephone='770000091',
+            fonction='caissier',
+            etablissement=self.etab,
+            actif=True,
+            permissions={},
+        )
+        caissier.set_password('Caissier@Test1!')
+        caissier.save()
+        ctx = build_assistant_context(self.etab, personnel=caissier)
+        refused = execute_tool(ctx, 'get_notes_examen', {'session': 'Composition'})
+        self.assertIn('autorisation', refused.get('erreur', '').lower())
+        refused_w = execute_tool(
+            ctx,
+            'ajouter_creneau_examen',
+            {'session': 'Composition', 'matiere': 'Maths'},
+        )
+        self.assertIn('autorisation', refused_w.get('erreur', '').lower())
+
+    def test_intents_examens(self):
+        self.assertEqual(
+            resolve_action_intent('Modifie la session d’examen Composition')[0],
+            'modifier_session_examen',
+        )
+        self.assertEqual(
+            resolve_action_intent('Ajoute un créneau d’examen de maths')[0],
+            'ajouter_creneau_examen',
+        )
+        self.assertEqual(
+            resolve_action_intent('Supprime le créneau d’examen de maths')[0],
+            'supprimer_creneau_examen',
+        )
+        self.assertIsNone(resolve_emploi_intent('Ajoute un créneau d’examen de maths'))

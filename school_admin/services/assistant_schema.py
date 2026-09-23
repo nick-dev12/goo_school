@@ -61,6 +61,16 @@ DUAL_ONLY_TOOLS = frozenset({
     'get_repartition_cycles',
 })
 
+# Créneaux / notes / modifier session : collège, lycée, mixte, supérieur.
+# get_examens / creer / supprimer session restent visibles en primaire.
+EXAMEN_SECONDAIRE_TOOLS = frozenset({
+    'modifier_session_examen',
+    'get_emploi_examens',
+    'ajouter_creneau_examen',
+    'supprimer_creneau_examen',
+    'get_notes_examen',
+})
+
 # Tools CG à exclure tant que le module est masqué. Aucun n’existe encore en Vague 1.
 CG_TOOLS = frozenset({
     'get_plan_comptable',
@@ -184,6 +194,11 @@ TOOL_PERMISSIONS = {
     'get_examens': 'examens_voir',
     'creer_session_examen': 'examens_voir',
     'supprimer_session_examen': 'examens_voir',
+    'modifier_session_examen': 'examens_voir',
+    'get_emploi_examens': 'examens_voir',
+    'ajouter_creneau_examen': 'examens_voir',
+    'supprimer_creneau_examen': 'examens_voir',
+    'get_notes_examen': 'examens_voir',
     'generer_document': 'administrative_voir',
     'get_comptabilite': 'comptabilite_voir',
     'get_fiche_scolarite': 'comptabilite_voir',
@@ -257,6 +272,8 @@ CHERCHER_EN_BASE_SOURCES = {
     'preinscriptions': 'get_preinscriptions',
     'liaisons': 'get_liaisons',
     'examens': 'get_examens',
+    'emploi_examens': 'get_emploi_examens',
+    'notes_examen': 'get_notes_examen',
     'annees': 'get_annees',
     'salles': 'get_salles',
     'matieres': 'get_matieres',
@@ -367,6 +384,8 @@ def hidden_tools_for(ctx):
         hidden.update(SUPERIEUR_ONLY_TOOLS)
     if not getattr(ctx, 'est_college_lycee', False):
         hidden.update(DUAL_ONLY_TOOLS)
+    if getattr(ctx, 'est_primaire', False):
+        hidden.update(EXAMEN_SECONDAIRE_TOOLS)
     if not cg_visible():
         hidden.update(CG_TOOLS)
     return hidden
@@ -478,6 +497,8 @@ def prompt_addendum_for(ctx):
             "\nType d’établissement : primaire.\n"
             "- Parle d’élèves, d’instituteurs, de trimestres et de notes du primaire.\n"
             "- Interdit : filières, modules LMD, ECTS, semestres universitaires, spécialités.\n"
+            "- Examens : sessions seulement (get_examens, creer / supprimer). "
+            "Pas de créneaux ni de notes d’examen.\n"
         )
     elif getattr(ctx, 'est_superieur', False):
         parts.append(
@@ -559,6 +580,16 @@ def prompt_addendum_for(ctx):
         "- Fiche de paie vacataire déjà marquée : ouvrir_fiche_paie "
         "(ouvre l’URL existante). Pas de bulletin CDI.\n"
     )
+    if not getattr(ctx, 'est_primaire', False):
+        parts.append(
+            "\nExamens (collège / lycée / supérieur) :\n"
+            "- Sessions : get_examens (nombre de créneaux et classes).\n"
+            "- Emploi des examens : get_emploi_examens.\n"
+            "- Notes d’examen : get_notes_examen. N’invente aucun chiffre.\n"
+            "- Modifier une session : modifier_session_examen (confirmation).\n"
+            "- Créneau : ajouter_creneau_examen / supprimer_creneau_examen "
+            "(salle, surveillant, conflits). Confirmation obligatoire.\n"
+        )
     if getattr(ctx, 'est_superieur', False):
         parts.append(
             "- get_taux_reussite peut ajouter des crédits validés "

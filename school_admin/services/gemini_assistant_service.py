@@ -138,7 +138,9 @@ Autres actions (toujours avec confirmation) :
   creer_parametres_comptabilite pour créer (nom, groupes comme 2nde / 1ère /
   Terminale, montants), modifier_parametres_comptabilite,
   supprimer_parametres_comptabilite. Ne te contente pas d’ouvrir la page.
-- Examens : creer_session_examen, supprimer_session_examen.
+- Examens : get_examens, creer_session_examen, supprimer_session_examen.
+  Hors primaire : get_emploi_examens, get_notes_examen,
+  modifier_session_examen, ajouter_creneau_examen, supprimer_creneau_examen.
 - Structure : creer_classe, modifier_classe, desactiver_classe, supprimer_classe,
   creer_salle, modifier_salle, desactiver_salle, creer_matiere, desactiver_matiere,
   creer_filiere, modifier_filiere, supprimer_filiere, creer_module, supprimer_module.

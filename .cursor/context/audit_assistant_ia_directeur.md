@@ -107,7 +107,7 @@ Pages catalogue **sans tool métier dédié** : justifications de notes, cartes 
 
 **EDT** : `creer_emploi_du_temps`, `ajouter_creneau_emploi`, `publier_emploi_du_temps`, `supprimer_creneau_emploi`
 
-**Examens** : `creer_session_examen`, `supprimer_session_examen`
+**Examens** : `creer_session_examen`, `supprimer_session_examen` ; Vague 6 : `modifier_session_examen`, `ajouter_creneau_examen`, `supprimer_creneau_examen`
 
 **Pédagogie (barèmes)** : `publier_bulletins`, `calculer_moyennes_classe`, `configurer_visibilite_bulletins`, `configurer_moyennes` (4 recettes 50/50 etc.), `configurer_standards` (seuil /20)
 
@@ -370,12 +370,14 @@ Hors supérieur : ces tools **n’apparaissent pas** dans le schéma (`SUPERIEUR
 
 | Tool | Statut | Rôle |
 |------|--------|------|
-| `get_examens` | existant / **à étendre** | + nb créneaux, classes concernées |
+| `get_examens` | **fait (Vague 6)** | + nb créneaux, classes concernées |
 | `creer_session_examen` / `supprimer_session_examen` | existant | Conserver |
-| `modifier_session_examen` | **à créer** | Dates, période, nom |
-| `get_emploi_examens` | **à créer** | Créneaux d’une session |
-| `ajouter_creneau_examen` / `supprimer_creneau_examen` | **à créer** | Salle + surveillant + conflit |
-| `get_notes_examen` | **à créer** | `NoteExamen` par élève / session |
+| `modifier_session_examen` | **fait (Vague 6)** | Dates, période, nom (confirmation) |
+| `get_emploi_examens` | **fait (Vague 6)** | Créneaux d’une session |
+| `ajouter_creneau_examen` / `supprimer_creneau_examen` | **fait (Vague 6)** | Salle + surveillant + conflit |
+| `get_notes_examen` | **fait (Vague 6)** | `NoteExamen` par élève / session |
+
+Masqués en **primaire** (`EXAMEN_SECONDAIRE_TOOLS`). Visibles collège / lycée / mixte / supérieur. Écritures : confirmation. Pas de tools CG.
 
 ### 5.8 Emploi du temps — commun
 
@@ -445,14 +447,14 @@ Hors supérieur : ces tools **n’apparaissent pas** dans le schéma (`SUPERIEUR
 
 ## 6. Priorisation (validée)
 
-Ordre figé. **Vagues 1–5 livrées.** Ne pas enchaîner 6–7 sans feu vert.
+Ordre figé. **Vagues 1–6 livrées.** Ne pas enchaîner 7 sans feu vert.
 
 1. **Socle (fait)** — schéma + prompt filtrés par type ; flags `collège_lycée` / mixte ; `creer_classe` / `creer_professeur` exigent `cycle` ; `_niveau_enseignement` ne retombe plus sur `primaire` ; personnel bridé par `check_permission`.
 2. **Pilotage / scolarité (fait)** — `get_statistiques_pilotage`, `get_taux_reussite`, `get_taux_presence`, `get_comparatif_periodes`, `get_repartition_cycles`, `get_bilan_scolarite`, `get_impayes`, fiche scolarité enrichie, `ouvrir_recu`, `get_moratoires`, `verifier_statuts_paiement`, `synchroniser_remises_fratrie`.
 3. **Pédagogie quotidienne (fait)** — `get_notes_classe`, `get_moyennes_classe`, `get_bulletin_eleve`, `imprimer_bulletins_classe`, `calculer_moyenne_annuelle`, `get_eleves_difficulte`, `get_justifications_notes`, `traiter_justification`, `get_coefficients`, `configurer_coefficient`, `get_evaluations`. Présences classe / EDT prof / `debloquer_releve` : plus tard.
 4. **Supérieur (fait)** — ECTS / UE / périodes par niveau (`assistant_superieur.py`).
 5. **RH (fait)** — dossier employé, fiche de paie vacataire, absences prof, volume horaire semaine/mois (`assistant_rh.py`). Pas de bulletins permanents.
-6. **Examens** — créneaux + notes d’examen (collège/lycée).
+6. **Examens (fait)** — créneaux + notes d’examen + modifier session (`assistant_examens.py`). Masqués en primaire.
 7. **CG + paie permanents** — seulement après réactivation du module et étapes métier du plan comptable.
 
 ---
@@ -495,7 +497,7 @@ Ordre figé. **Vagues 1–5 livrées.** Ne pas enchaîner 6–7 sans feu vert.
 1. **Filtrer dynamiquement** `TOOLS_SCHEMA` et le prompt par `type_etablissement` dès la Vague 1. Fait (`assistant_schema.py`, `directeur_tools_schema`, `system_prompt_static_for`).
 2. **Collège+lycée / mixte** : un seul espace vocal ; **exiger le cycle** (`college` / `lycee`) dans les paramètres des tools concernés (`creer_classe`, `creer_professeur`). Pas deux assistants.
 3. **Personnel administratif** : même persona `directeur`, exécution bridée par `check_permission` (permissions Django déjà utilisées par les vues).
-4. **Ordre §6 validé.** Vagues 1–5 livrées. Pas de Vague 6 ni de tools CG. Pas de bulletins de paie permanents.
+4. **Ordre §6 validé.** Vagues 1–6 livrées. Pas de Vague 7 ni de tools CG. Pas de bulletins de paie permanents.
 5. **CG vocale hors schéma** tant que `AFFICHER_MODULE_COMPTABILITE_GENERALE` est False (`CG_TOOLS` + addendum de prompt).
 6. **Hors scope §8 validé** (enseignant primaire, compta Aria, liasse, TVA, paie convention complète, etc.).
 
@@ -579,3 +581,24 @@ Phrases vocales (directeur connecté) :
 - « Supprime l’absence de [professeur] du 5 octobre. » → confirmation puis `supprimer_absence_professeur`
 - « Ouvre la fiche de paie de [professeur] pour octobre. » → `ouvrir_fiche_paie` (si déjà marquée payée)
 - « Quel est le volume horaire de [professeur] ce mois-ci ? » / « … cette semaine ? » → `get_volume_horaire`
+
+---
+
+## 14. Vague 6 livrée (2026-09-23)
+
+Module `school_admin/services/assistant_examens.py`. Tests : `AssistantDirecteurVague6Tests`. Cache Gemini : `aria-directeur-tools-v9-{profile}`.
+
+Créneaux / notes / modifier session **filtrés** (`EXAMEN_SECONDAIRE_TOOLS`) : invisibles en primaire. Collège, lycée, mixte et supérieur les voient. `get_examens` / créer / supprimer session restent pour tous. Pas de tools CG.
+
+Écritures : confirmation (`modifier_session_examen`, `ajouter_creneau_examen`, `supprimer_creneau_examen`). Conflits salle / surveillant via `CreneauExamen.clean()`. Notes : lecture `NoteExamen` seulement, aucun chiffre inventé.
+
+Phrases vocales (directeur **collège / lycée / mixte / supérieur** connecté) :
+
+- « Quelles sont les sessions d’examen ? » → `get_examens` (créneaux + classes)
+- « Quel est l’emploi des examens de [session] ? » / « Quels sont les créneaux du [session] ? » → `get_emploi_examens`
+- « Quelles sont les notes d’examen de [élève] ? » / « … de la session [session] ? » → `get_notes_examen`
+- « Renomme la session [session] en [nouveau nom] et prolonge jusqu’au 12 octobre. » → confirmation puis `modifier_session_examen`
+- « Ajoute un créneau d’examen de [matière] le 8 octobre de 8h à 10h, salle A1, surveillant [nom]. » → confirmation puis `ajouter_creneau_examen`
+- « Supprime le créneau d’examen de [matière] du 8 octobre. » → confirmation puis `supprimer_creneau_examen`
+
+Primaire : « Quelles sont les sessions d’examen ? » fonctionne encore ; les phrases créneaux / notes / modifier sont refusées (outil absent du schéma).

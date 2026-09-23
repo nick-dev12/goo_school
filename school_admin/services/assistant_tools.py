@@ -1753,6 +1753,49 @@ def tool_ouvrir_page(ctx, args):
     }
 
 
+SUGGESTION_INTENTS = frozenset({'chat', 'open'})
+
+
+def normalize_suggestions(raw_items, limit=3):
+    """Puces de suite (G4) : 1 à 3, intent chat ou open. Rien n’est écrit."""
+    cleaned = []
+    for item in raw_items or []:
+        if not isinstance(item, dict):
+            continue
+        label = (item.get('label') or item.get('titre') or item.get('nom') or '').strip()
+        if not label:
+            continue
+        intent = (item.get('intent') or '').strip().lower()
+        url = (item.get('url') or '').strip()
+        if intent not in SUGGESTION_INTENTS:
+            intent = 'open' if url else 'chat'
+        if intent == 'open' and not url:
+            intent = 'chat'
+        value = (item.get('value') or label).strip()
+        cleaned.append({
+            'label': label[:80],
+            'value': value[:200],
+            'intent': intent,
+            'url': url[:300],
+        })
+        if len(cleaned) >= limit:
+            break
+    return cleaned
+
+
+def tool_proposer_actions(ctx, args):
+    """Lecture seule : valide et renvoie jusqu’à 3 suggestions cliquables."""
+    items = args.get('suggestions') or args.get('actions') or []
+    if not isinstance(items, list):
+        items = []
+    suggestions = normalize_suggestions(items, limit=3)
+    return {
+        'statut': 'ok',
+        'suggestions': suggestions,
+        'nb': len(suggestions),
+    }
+
+
 TOOL_HANDLERS = {
     'chercher_en_base': tool_chercher_en_base,
     'get_effectifs': tool_effectifs,
@@ -1774,6 +1817,7 @@ TOOL_HANDLERS = {
     'get_structure_superieur': tool_structure_superieur,
     'lister_pages': tool_lister_pages,
     'ouvrir_page': tool_ouvrir_page,
+    'proposer_actions': tool_proposer_actions,
     'get_notifications': tool_notifications,
     'get_preinscriptions': tool_preinscriptions,
     'get_liaisons': tool_liaisons,
@@ -2430,6 +2474,55 @@ TOOLS_SCHEMA.extend(VAGUE3_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE4_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE5_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE6_READ_SCHEMA)
+TOOLS_SCHEMA.extend([
+    {
+        'type': 'function',
+        'function': {
+            'name': 'proposer_actions',
+            'description': (
+                'Affiche jusqu’à 3 propositions cliquables après une lecture utile '
+                '(impayés, effectifs, notes, liste). N’écrit rien. '
+                'Intent chat : le directeur envoie value à Gemini. '
+                'Intent open : ouvrir url. '
+                'Ne pas appeler pour un bonjour, ni pendant une confirmation d’écriture '
+                '(la carte oui / modifier / annuler suffit). '
+                'Ne pas énumérer ces puces à l’oral.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'suggestions': {
+                        'type': 'array',
+                        'maxItems': 3,
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'label': {
+                                    'type': 'string',
+                                    'description': 'Texte court du bouton',
+                                },
+                                'value': {
+                                    'type': 'string',
+                                    'description': 'Message envoyé si clic (intent chat)',
+                                },
+                                'intent': {
+                                    'type': 'string',
+                                    'enum': ['chat', 'open'],
+                                },
+                                'url': {
+                                    'type': 'string',
+                                    'description': 'URL si intent open',
+                                },
+                            },
+                            'required': ['label'],
+                        },
+                    },
+                },
+                'required': ['suggestions'],
+            },
+        },
+    },
+])
 TOOLS_SCHEMA.extend(build_action_tool_schemas())
 
 

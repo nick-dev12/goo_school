@@ -574,11 +574,14 @@
   function renderSuggestions(items) {
     renderChoices(
       (items || []).map(function (item) {
+        var label = item.label || item.titre || item.nom || '';
+        var url = item.url || '';
+        var intent = item.intent || (url ? 'open' : 'chat');
         return {
-          label: item.titre,
-          value: 'Ouvre ' + (item.titre || ''),
-          url: item.url,
-          intent: 'open',
+          label: label,
+          value: item.value || label,
+          url: url,
+          intent: intent,
         };
       })
     );

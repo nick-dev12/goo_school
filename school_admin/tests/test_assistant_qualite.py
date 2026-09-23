@@ -183,7 +183,7 @@ class TtsFallbackQualiteTests(SimpleTestCase):
 
 class QualiteCGeminiTests(SimpleTestCase):
     def test_cache_prompt_v10(self):
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v10')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v11')
 
     def test_navigation_explicite_seulement(self):
         self.assertTrue(is_explicit_navigation('Ouvre le tableau de bord'))
@@ -698,3 +698,115 @@ class GeminiG3RegexTests(SimpleTestCase):
             consumer._speak_and_finish.assert_awaited_once()
 
         asyncio.run(_run())
+
+
+class GeminiG4SuggestionTests(SimpleTestCase):
+    """G4 : propositions cliquables, pas un « Ouvre… » forcé."""
+
+    def test_normalize_suggestions_borne_a_trois_et_chat_par_defaut(self):
+        from school_admin.services.assistant_tools import (
+            normalize_suggestions,
+            tool_proposer_actions,
+        )
+
+        raw = [
+            {'label': 'Relancer les familles', 'value': 'Relance les impayés de la 6e A'},
+            {'titre': 'Fiche Diallo', 'url': '/eleve/1', 'intent': 'open'},
+            {'label': 'Créer un moratoire', 'value': 'Crée un moratoire pour Diallo'},
+            {'label': 'Trop', 'value': 'ignore'},
+        ]
+        cleaned = normalize_suggestions(raw)
+        self.assertEqual(len(cleaned), 3)
+        self.assertEqual(cleaned[0]['intent'], 'chat')
+        self.assertEqual(cleaned[0]['value'], 'Relance les impayés de la 6e A')
+        self.assertEqual(cleaned[1]['intent'], 'open')
+        self.assertEqual(cleaned[1]['url'], '/eleve/1')
+        self.assertNotIn('Ouvre ', cleaned[1]['value'])
+
+        result = tool_proposer_actions(object(), {'suggestions': raw})
+        self.assertEqual(result['nb'], 3)
+        self.assertEqual(result['suggestions'][0]['label'], 'Relancer les familles')
+
+    def test_open_sans_url_devient_chat(self):
+        from school_admin.services.assistant_tools import normalize_suggestions
+
+        cleaned = normalize_suggestions([
+            {'label': 'Les effectifs', 'intent': 'open'},
+        ])
+        self.assertEqual(cleaned[0]['intent'], 'chat')
+        self.assertEqual(cleaned[0]['value'], 'Les effectifs')
+
+    def test_infer_choices_ne_invente_plus_oui_non(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        consumer = AssistantConsumer()
+        consumer.pending_action = None
+        spoken = "Souhaitez-vous que je relance les familles ?"
+        self.assertEqual(consumer._infer_choices(spoken), [])
+
+    def test_proposer_actions_ne_stoppe_pas_et_remplit_les_puces(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        async def _run():
+            consumer = AssistantConsumer()
+            consumer.scope = {}
+            consumer.pending_action = None
+            consumer._followup_suggestions = []
+            consumer._last_tool_memory = ''
+            should_stop = await consumer._on_live_tool_result(
+                'proposer_actions',
+                {
+                    'statut': 'ok',
+                    'suggestions': [
+                        {
+                            'label': 'Relancer',
+                            'value': 'Relance les impayés',
+                            'intent': 'chat',
+                        },
+                    ],
+                },
+            )
+            self.assertFalse(should_stop)
+            self.assertEqual(consumer._followup_suggestions[0]['label'], 'Relancer')
+            sent = []
+
+            async def fake_send(payload):
+                sent.append(payload)
+
+            consumer._send_json = fake_send
+            await consumer._send_suggestions(consumer._followup_suggestions)
+            self.assertEqual(sent[0]['type'], 'suggestions')
+            self.assertEqual(sent[0]['items'][0]['value'], 'Relance les impayés')
+            self.assertNotIn('Ouvre ', sent[0]['items'][0]['value'])
+
+        asyncio.run(_run())
+
+    def test_pas_de_suggestions_si_carte_de_confirmation(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        async def _run():
+            consumer = AssistantConsumer()
+            consumer.scope = {}
+            consumer.pending_action = {
+                'name': 'creer_classe',
+                'draft': {'statut': 'en_attente_confirmation', 'nom': '3e A'},
+            }
+            consumer._followup_suggestions = []
+            await consumer._on_live_tool_result(
+                'proposer_actions',
+                {'suggestions': [{'label': 'Autre chose'}]},
+            )
+            self.assertEqual(consumer._followup_suggestions, [])
+
+        asyncio.run(_run())
+
+    def test_outil_dans_le_schema(self):
+        from school_admin.services.assistant_tools import TOOL_HANDLERS, TOOLS_SCHEMA
+
+        names = {
+            item['function']['name']
+            for item in TOOLS_SCHEMA
+            if item.get('function')
+        }
+        self.assertIn('proposer_actions', names)
+        self.assertIn('proposer_actions', TOOL_HANDLERS)

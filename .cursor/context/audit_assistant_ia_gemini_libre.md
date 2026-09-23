@@ -1,11 +1,12 @@
 # Audit — Aria Gemini libre (intelligence d’abord)
 
 **Date** : 2026-09-23  
-**Statut** : audit **validé** le 2026-09-23. **G1–G2 validées**. **Vague G3 livrée** (regex hors conversation). G4–G7 non commencées.  
+**Statut** : audit **validé** le 2026-09-23. **G1–G3 validées**. **Vague G4 livrée** (suggestions). G5–G7 non commencées.  
 **Branche G0** : `cursor/audit-gemini-libre-a40c`  
 **Branche G1** : `cursor/assistant-g1-takeover-a40c`  
 **Branche G2** : `cursor/assistant-g2-pending-a40c`  
 **Branche G3** : `cursor/assistant-g3-regex-a40c`  
+**Branche G4** : `cursor/assistant-g4-suggestions-a40c`  
 **Persona** : directeur (personnel admin via `check_permission`). Enseignant primaire : même esprit, hors implémentation ici.  
 **Préalable validé** : Vagues métier 1–6 + qualité A+B+C+D + correctif « succès outil ≠ erreur rouge ».  
 **Audits liés** : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md) · [audit_assistant_ia_qualite.md](audit_assistant_ia_qualite.md)
@@ -327,7 +328,7 @@ Ce n’est **pas** un garde-fou : intercepter « créer une classe » par regex 
 
 ## 8. Plan d’actions futures (ordre d’implémentation)
 
-Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **G1–G2 validées.** **Stop après G3** : ne pas démarrer G4 sans feu vert.
+Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **G1–G3 validées.** **Stop après G4** : ne pas démarrer G5 sans feu vert.
 
 Cache prompt : chaque vague qui touche le texte système **bump** `CACHE_DISPLAY_NAME` (`aria-directeur-tools-v11`, puis v12…).
 
@@ -384,18 +385,20 @@ Tests : `school_admin.tests.test_assistant_qualite.GeminiG3RegexTests`.
 
 **Hors G3** : pas de G4 (suggestions).
 
-### Vague G4 — Suggestions vraiment assistante
+### Vague G4 — Suggestions vraiment assistante — **FAITE** (2026-09-23)
 
 **But** : on **sent** l’interaction.
 
 Actions :
 
-1. Distinguer `choices` (confirm / select métier) et `suggestions` (propositions de suite).
-2. `renderSuggestions` : ne plus forcer `Ouvre {titre}`. Une suggestion = `{label, value, intent: chat|open|tool}` ; un clic envoie le `value` comme message (Gemini reprend) ou ouvre l’URL.
-3. Demander à Gemini, en fin de tour, **jusqu’à 3 suggestions** (canal dédié : soit un mini-JSON en fin de réponse filtré hors oral, soit un tool `proposer_actions` lecture-seule qui ne fait que renvoyer des puces). Préférer le **tool lecture-seule** pour ne pas polluer le TTS.
-4. `_infer_choices` regex : ne plus être la source des propositions. Filet Oui/Non seulement si pending de confirmation sans puces.
+1. `choices` = confirmation / select métier. `suggestions` = suites proposées (WS `type: suggestions`).
+2. `renderSuggestions` : `{label, value, intent: chat|open, url}`. Plus de préfixe forcé « Ouvre… ». Un clic chat renvoie `value` à Gemini.
+3. Tool lecture-seule `proposer_actions` (max 3 puces). Prompt + cache **`aria-directeur-tools-v11`**. Pas d’énumération orale.
+4. `_infer_choices` ne fabrique plus de Oui/Non depuis la phrase. Carte oui / modifier / annuler inchangée ; pas de suggestions si une confirmation est prête.
 
-Recette : après des impayés, 2–3 chips utiles apparaissent **et** elle le dit à l’oral sans les énumérer (règle prompt déjà là).
+Tests : `school_admin.tests.test_assistant_qualite.GeminiG4SuggestionTests`. JS `assistant_vocal.js?v=1.9.13`.
+
+**Hors G4** : pas de G5 (MAX_TOOL_ROUNDS).
 
 ### Vague G5 — Tâches complexes (plusieurs tools)
 
@@ -500,7 +503,7 @@ Critère subjectif (le vrai livrable) : **on a l’impression de parler à quelq
 
 1. Gemini est le seul cerveau d’intention ; les tools Django sont les seules « commandes serveur ».
 2. On **supprime** les wizards guidés (annonce, EDT, générique) au profit de Gemini + carte oui/non — G1 coupe le takeover ; G2 retirera les FSM du tour suivant.
-3. Ordre : G1 (**faite, validée**) → G2 (**faite, validée**) → G3 (**faite**) → G4+G5+G6, puis G7.
+3. Ordre : G1–G3 (**faites, validées**) → G4 (**faite**) → G5+G6, puis G7.
 4. Pas de tools CG, pas de shell, pas d’`apply` sans confirmation.
 
 **Stop** : G3 livrée. Ne pas démarrer G4 tant que le directeur n’a pas validé G3 en vocal.

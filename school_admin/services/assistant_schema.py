@@ -103,6 +103,7 @@ TOOL_PERMISSIONS = {
     'chercher_en_base': None,
     'lister_pages': None,
     'ouvrir_page': None,
+    'proposer_actions': None,
     'changer_session': None,
     'get_notifications': None,
     'get_annees': None,

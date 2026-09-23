@@ -41,7 +41,10 @@ from school_admin.services.gemini_assistant_service import (
     run_assistant_turn,
     sanitize_dialog_messages,
 )
-from school_admin.services.assistant_tools import spoken_from_tool_result
+from school_admin.services.assistant_tools import (
+    normalize_suggestions,
+    spoken_from_tool_result,
+)
 from school_admin.services.tts_service import strip_assistant_markup, synthesize_audio
 
 logger = logging.getLogger(__name__)
@@ -188,6 +191,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self._opener_lock = asyncio.Lock()
         self._tts_index = 0
         self._followup_choices = []
+        self._followup_suggestions = []
         self._socket_fresh = True
         self._last_tool_memory = ''
         self._turn_has_output = False
@@ -484,7 +488,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 if item.get('titre') or item.get('nom')
             ]
             if choices:
-                await self._send_choices(choices)
+                await self._send_suggestions(choices)
 
     def _is_enseignant_primaire(self):
         return getattr(self, 'persona', 'directeur') == 'enseignant_primaire'
@@ -512,6 +516,13 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if isinstance(result, dict):
             self._last_tool_memory = compact_tool_memory(name, result)
         if not isinstance(result, dict):
+            return False
+        if name == 'proposer_actions':
+            items = (result or {}).get('suggestions') or []
+            if items and not (
+                self.pending_action and self._pending_is_ready()
+            ):
+                self._followup_suggestions = normalize_suggestions(items)
             return False
         if name in ('ouvrir_page', 'ouvrir_classe'):
             await self._dispatch_navigation(name, result)
@@ -693,10 +704,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             overflow = len(self.history) - MAX_HISTORY_MESSAGES
             if overflow > 0:
                 self.history = self.history[overflow:]
-            await self._send_choices(
-                self._followup_choices or self._infer_choices(spoken)
-            )
+            if self._followup_choices:
+                await self._send_choices(self._followup_choices)
+            elif self._followup_suggestions:
+                await self._send_suggestions(self._followup_suggestions)
+            else:
+                await self._send_choices(self._infer_choices(spoken))
             self._followup_choices = []
+            self._followup_suggestions = []
         elif not leftover and not pending_sentences:
             await self._send_json({
                 'type': 'error',
@@ -919,6 +934,15 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         }
         await self._send_json(payload)
 
+    async def _send_suggestions(self, items):
+        cleaned = normalize_suggestions(items, limit=3)
+        if not cleaned:
+            return
+        await self._send_json({
+            'type': 'suggestions',
+            'items': cleaned,
+        })
+
     async def _restore_pending_ui(self):
         if not self.pending_action:
             return
@@ -1111,24 +1135,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return []
         if self.pending_action and self.pending_action.get('name') == 'choisir_classe':
             return self.pending_action.get('choices') or []
-        if self.pending_action:
-            return []
-        text = spoken or ''
-        if self.pending_action and re.search(
-            r"c['’ ]est bon|je publie|confirme|valider|avant publication",
-            text,
-            re.I,
-        ):
-            return []
-        if re.search(r'\?$', text.strip()) and re.search(
-            r'\b(?:souhaitez[- ]vous|voulez[- ]vous|c["’]est bon)\b',
-            text,
-            re.I,
-        ):
-            return [
-                {'label': 'Oui', 'value': 'Oui.', 'intent': 'chat'},
-                {'label': 'Non', 'value': 'Non.', 'intent': 'chat'},
-            ]
         return []
 
     async def _set_pending(self, draft):

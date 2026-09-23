@@ -50,10 +50,8 @@ Le **filtrage par type** (supérieur : « étudiant », modules, périodes LMD, 
 
 - Route WS : `/ws/assistant/` (même consumer que le directeur).
 - `_resolve_etablissement` (`assistant_consumer.py`) :
-  - Accepte `Professeur` **uniquement** si `actif`, `etablissement_id` renseigné, et **`niveau_enseignement == 'primaire'`**.
-  - Persona alors : `enseignant_primaire`.
-  - **Tout professeur collège / lycée / supérieur est rejeté** à la connexion WS, même si l’UI existait.
-- **Incohérence à corriger** (vague 0) : la connexion OTP (`views.py`) redirige selon `type_etablissement == 'primary'`, pas selon `niveau_enseignement`. Un prof mal typé en base peut avoir l’UI primaire sans WS, ou l’inverse.
+  - Accepte tout `Professeur` **actif** avec `etablissement_id` ; persona via `resolve_professeur_assistant_persona` (**`type_etablissement == 'primary'`** → `enseignant_primaire`, sinon `enseignant`).
+  - `Professeur.niveau_enseignement` est **aligné** sur le type d’établissement à l’enregistrement (migration 0224) ; ce n’est **pas** la source du persona WS.
 
 `build_assistant_context` remplit déjà `professeur`, `persona`, flags `est_*`, et pour `enseignant_primaire` un résumé `affectations_resume` via `AffectationProfesseurPrimaire`.
 

@@ -2585,3 +2585,5 @@ for _spec in _ACTIONS:
 import school_admin.services.assistant_staff  # noqa: E402,F401
 # Fiches longues : dossier, réinscription, moratoire, moyennes, affectations.
 import school_admin.services.assistant_dossiers  # noqa: E402,F401
+# Vague 2 : remises fratrie + recalcul des statuts de paiement.
+import school_admin.services.assistant_pilotage  # noqa: E402,F401

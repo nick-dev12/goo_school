@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from datetime import timedelta
 
-from django.db.models import Count, Max, Q
+from django.db.models import Count, Max, Q, Sum
 from django.utils import timezone
 
 from school_admin.services.assistant_search import CLASSE_PARAM_DESCRIPTION
@@ -234,17 +234,24 @@ def tool_effectifs(ctx, args):
     classes = Classe.objects.filter(etablissement=ctx.etablissement, actif=True)
     par_classe = []
     if classe:
+        capacite = classe.capacite_max or 0
         par_classe.append({
             'nom': classe.nom,
             'niveau': classe.get_niveau_display(),
             'effectif': sexes['total'],
             'filles': sexes['filles'],
             'garcons': sexes['garcons'],
+            'capacite_max': capacite,
+            'places_libres': max(0, capacite - (sexes['total'] or 0)),
         })
+        capacite_totale = capacite
+        places_libres = max(0, capacite - (sexes['total'] or 0))
     else:
+        capacite_totale = classes.aggregate(cap=Sum('capacite_max'))['cap'] or 0
+        places_libres = max(0, capacite_totale - (sexes['total'] or 0))
         rows = (
             eleves.filter(classe_id__isnull=False)
-            .values('classe__nom', 'classe__niveau')
+            .values('classe__nom', 'classe__niveau', 'classe__capacite_max')
             .annotate(
                 effectif=Count('id'),
                 filles=Count('id', filter=Q(sexe='F')),
@@ -253,11 +260,14 @@ def tool_effectifs(ctx, args):
             .order_by('classe__niveau', 'classe__nom')[:30]
         )
         for row in rows:
+            cap = row['classe__capacite_max'] or 0
             par_classe.append({
                 'nom': row['classe__nom'],
                 'effectif': row['effectif'],
                 'filles': row['filles'],
                 'garcons': row['garcons'],
+                'capacite_max': cap,
+                'places_libres': max(0, cap - (row['effectif'] or 0)),
             })
 
     return {
@@ -274,6 +284,8 @@ def tool_effectifs(ctx, args):
         'nb_personnel': PersonnelAdministratif.objects.filter(
             etablissement=ctx.etablissement, actif=True
         ).count(),
+        'capacite_totale': capacite_totale,
+        'places_libres': places_libres,
         'classes': par_classe,
     }
 
@@ -950,24 +962,9 @@ def tool_comptabilite(ctx, args):
         qs = qs.filter(annee_scolaire=ctx.annee_scolaire)
 
     if query:
-        eleve = _find_eleve(ctx, query)
-        if not eleve:
-            return {'erreur': f'Aucun {ctx.libelle_eleve} trouvé pour « {query} ».'}
-        fiche = qs.filter(eleve=eleve).first()
-        if not fiche:
-            return {
-                'eleve': eleve.nom_complet,
-                'message': 'Aucune fiche de comptabilité pour cette session.',
-            }
-        total_du = fiche.calculer_total_du()
-        total_paye = fiche.calculer_total_paye()
-        return {
-            'eleve': eleve.nom_complet,
-            'statut': fiche.get_statut_paiement_display(),
-            'total_du': _safe_decimal(total_du),
-            'total_paye': _safe_decimal(total_paye),
-            'reste': _safe_decimal(total_du - total_paye),
-        }
+        from school_admin.services.assistant_pilotage import tool_fiche_scolarite
+
+        return tool_fiche_scolarite(ctx, args)
 
     impayes = qs.filter(statut_paiement__in=['en_retard', 'impaye']).select_related('eleve')
     items = []
@@ -1162,6 +1159,16 @@ def tool_chercher_en_base(ctx, args):
     if any(token in lowered for token in ('note', 'moyenne', 'bulletin', 'résultat', 'resultat')):
         found = tool_notes_eleve(ctx, payload)
         return {'trouve': not bool(found.get('erreur')), 'source': 'notes', **found}
+    if any(
+        token in lowered
+        for token in (
+            'taux de présence', 'taux de presence', 'taux présence', 'taux presence',
+        )
+    ):
+        from school_admin.services.assistant_pilotage import tool_taux_presence
+
+        found = tool_taux_presence(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'presence_taux', **found}
     if any(token in lowered for token in ('absence', 'présent', 'present', 'présence', 'presence')):
         found = tool_presences(ctx, payload)
         return {'trouve': True, 'source': 'presences', **found}
@@ -1177,6 +1184,65 @@ def tool_chercher_en_base(ctx, args):
     if any(token in lowered for token in ('volume horaire', 'paie', 'vacataire', 'heures à payer')):
         found = tool_volume_horaire(ctx, payload)
         return {'trouve': True, 'source': 'volume_horaire', **found}
+    if any(
+        token in lowered
+        for token in (
+            'tableau de bord', 'pilotage', 'statistiques', 'recouvrement',
+        )
+    ):
+        from school_admin.services.assistant_pilotage import tool_statistiques_pilotage
+
+        found = tool_statistiques_pilotage(ctx, payload)
+        return {'trouve': True, 'source': 'pilotage', **found}
+    if any(
+        token in lowered
+        for token in ('taux de réussite', 'taux de reussite', 'réussite', 'reussite')
+    ):
+        from school_admin.services.assistant_pilotage import tool_taux_reussite
+
+        found = tool_taux_reussite(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'reussite', **found}
+    if any(
+        token in lowered
+        for token in ('comparatif', 'comparer les périodes', 'comparer les periodes')
+    ):
+        from school_admin.services.assistant_pilotage import tool_comparatif_periodes
+
+        found = tool_comparatif_periodes(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'comparatif', **found}
+    if any(
+        token in lowered
+        for token in ('répartition', 'repartition', 'par cycle', 'collège et lycée')
+    ) and getattr(ctx, 'est_college_lycee', False):
+        from school_admin.services.assistant_pilotage import tool_repartition_cycles
+
+        found = tool_repartition_cycles(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'cycles', **found}
+    if any(token in lowered for token in ('reçu', 'recu', 'numéro de reçu', 'numero de recu')):
+        from school_admin.services.assistant_pilotage import tool_ouvrir_recu
+
+        found = tool_ouvrir_recu(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'recu', **found}
+    if any(token in lowered for token in ('moratoire',)):
+        from school_admin.services.assistant_pilotage import tool_moratoires
+
+        found = tool_moratoires(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'moratoires', **found}
+    if any(token in lowered for token in ('bilan scolar', 'totaux scolar', 'recouvrement session')):
+        from school_admin.services.assistant_pilotage import tool_bilan_scolarite
+
+        found = tool_bilan_scolarite(ctx, payload)
+        return {'trouve': True, 'source': 'bilan', **found}
+    if any(token in lowered for token in ('impay',)):
+        from school_admin.services.assistant_pilotage import tool_impayes
+
+        found = tool_impayes(ctx, payload)
+        return {'trouve': True, 'source': 'impayes', **found}
+    if any(token in lowered for token in ('fiche scolar', 'scolarité de', 'scolarite de')):
+        from school_admin.services.assistant_pilotage import tool_fiche_scolarite
+
+        found = tool_fiche_scolarite(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'scolarite', **found}
     if any(token in lowered for token in ('paiement', 'impay', 'frais', 'scolarité', 'scolarite', 'dette')):
         found = tool_comptabilite(ctx, payload)
         return {'trouve': True, 'source': 'comptabilite', **found}
@@ -1531,6 +1597,12 @@ from school_admin.services.assistant_actions import (  # noqa: E402
 )
 import school_admin.services.assistant_staff  # noqa: E402,F401
 import school_admin.services.assistant_dossiers  # noqa: E402,F401
+from school_admin.services.assistant_pilotage import (  # noqa: E402
+    VAGUE2_READ_HANDLERS,
+    VAGUE2_READ_SCHEMA,
+)
+
+TOOL_HANDLERS.update(VAGUE2_READ_HANDLERS)
 
 for _name, _spec in ACTION_SPECS.items():
     TOOL_HANDLERS[_name] = _spec.prepare
@@ -1571,8 +1643,9 @@ TOOLS_SCHEMA = [
             'description': (
                 'Effectifs de l’établissement ou d’une classe : nombre d’élèves, '
                 'filles (sexe F), garçons (sexe M), classes, professeurs, personnel, '
-                'et répartition par classe. À utiliser pour toute question sur '
-                'les filles, les garçons ou le sexe des inscrits.'
+                'capacité, places libres, et répartition par classe. '
+                'À utiliser pour toute question sur les filles, les garçons '
+                'ou le sexe des inscrits.'
             ),
             'parameters': {
                 'type': 'object',
@@ -1859,8 +1932,11 @@ TOOLS_SCHEMA = [
         'function': {
             'name': 'get_comptabilite',
             'description': (
-                'Comptabilité élèves. Avec query : fiche d’un élève. '
-                'Sans query : résumé des impayés.'
+                'Comptabilité élèves. Avec query : fiche enrichie '
+                '(inscription, mensualités, annexes, dernier reçu, moratoire). '
+                'Sans query : résumé des impayés. '
+                'Préfère get_fiche_scolarite, get_bilan_scolarite ou get_impayes '
+                'si la question est plus précise.'
             ),
             'parameters': {
                 'type': 'object',
@@ -2096,6 +2172,7 @@ TOOLS_SCHEMA = [
     },
 ]
 
+TOOLS_SCHEMA.extend(VAGUE2_READ_SCHEMA)
 TOOLS_SCHEMA.extend(build_action_tool_schemas())
 
 

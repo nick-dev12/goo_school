@@ -1,6 +1,6 @@
 # Audit + spec — Assistant IA Directeur
 
-Audit validé le 2026-09-23. **Vague 1 implémentée** (filtrage schéma/prompt + typage des classes). Vagues 2–6 et tools CG : pas commencées.
+Audit validé le 2026-09-23. **Vague 1 et Vague 2 implémentées** (schéma filtré + pilotage/scolarité). Vagues 3–6 et tools CG : pas commencées.
 
 - Date : 2026-09-23
 - Workspace : `C:\wamp64\www\goo_school`
@@ -281,27 +281,27 @@ Statut : **existant** (déjà branché) · **à étendre** · **à créer** · *
 
 | Tool | Statut | Rôle |
 |------|--------|------|
-| `get_effectifs` | existant | Conserver ; étendre (croissance, capacité, places libres) |
-| `get_statistiques_pilotage` | **à créer** | Tableau de bord vocal : effectifs, F/M, profs, personnel, taux présence N jours, taux recouvrement session, nb impayés, nb sanctions |
-| `get_taux_reussite` | **à créer** | % au-dessus du seuil, par classe / période ; supérieur = % crédits validés si disponible |
-| `get_taux_presence` | **à créer** | Établissement / classe / élève |
-| `get_comparatif_periodes` | **à créer** | Moyennes ou crédits, période N vs N-1 |
-| `get_repartition_cycles` | **à créer** | Collège+lycée / mixte : effectifs par cycle |
+| `get_effectifs` | existant / **fait (Vague 2)** | Capacité totale + places libres (pas de croissance annuelle) |
+| `get_statistiques_pilotage` | **fait (Vague 2)** | Tableau de bord vocal : effectifs, F/M, profs, personnel, taux présence N jours, taux recouvrement session, nb impayés, nb sanctions |
+| `get_taux_reussite` | **fait (Vague 2)** | % au-dessus du seuil, par classe / période ; supérieur = % crédits validés **s’ils sont déjà calculés** |
+| `get_taux_presence` | **fait (Vague 2)** | Établissement / classe / élève |
+| `get_comparatif_periodes` | **fait (Vague 2)** | Moyennes (et crédits si supérieur), période N vs N-1 |
+| `get_repartition_cycles` | **fait (Vague 2)** | Collège+lycée / mixte uniquement (`DUAL_ONLY_TOOLS`) |
 
 ### 5.2 Scolarité (nav visible) — commun
 
 | Tool | Statut | Rôle |
 |------|--------|------|
-| `get_comptabilite` | existant / **à étendre** | Ajouter détail : inscription, mensualités, annexes, n° dernier reçu |
+| `get_comptabilite` | existant / **fait (Vague 2)** | Query → fiche enrichie (délègue à `get_fiche_scolarite`) |
 | `get_parametres_comptabilite` + CRUD | existant | Conserver |
 | `enregistrer_paiement` | existant | Conserver |
-| `get_fiche_scolarite` | **à créer** | Alias riche de la fiche élève (charges ouvertes, moratoire, parents à relancer) |
-| `get_bilan_scolarite` | **à créer** | Totaux dus / payés / reste, établissement ou classe |
-| `get_impayes` | **à créer** | Filtres classe / statut / ancienneté (balance âgée applicative) |
-| `ouvrir_recu` | **à créer** | Ouvre `recu_paiement` par n° ou dernier paiement |
-| `get_moratoires` | **à créer** | Liste + échéances ; écriture déjà là (`creer_moratoire`, `payer_echeance_moratoire`) |
-| `verifier_statuts_paiement` | **à créer** | Relance le recalcul directeur |
-| `synchroniser_remises_fratrie` | **à créer** | Appelle le service recouvrement déjà existant |
+| `get_fiche_scolarite` | **fait (Vague 2)** | Fiche élève : charges, mensualités, annexes, reçu, moratoire, parent à relancer |
+| `get_bilan_scolarite` | **fait (Vague 2)** | Totaux dus / payés / reste, établissement ou classe |
+| `get_impayes` | **fait (Vague 2)** | Filtres classe / statut / ancienneté (balance âgée 0-30 / 31-60 / 61+) |
+| `ouvrir_recu` | **fait (Vague 2)** | Ouvre `recu_paiement` par n° ou dernier paiement (nav, pas d’écriture) |
+| `get_moratoires` | **fait (Vague 2)** | Liste + échéances ; écriture déjà là (`creer_moratoire`, `payer_echeance_moratoire`) |
+| `verifier_statuts_paiement` | **fait (Vague 2)** | Recalcul confirmé (`ComptabiliteEleve.verifier_statut_paiement`) |
+| `synchroniser_remises_fratrie` | **fait (Vague 2)** | Service recouvrement, confirmation ; un élève ou toute la session |
 
 ### 5.3 Caisse — commun
 
@@ -445,10 +445,10 @@ Hors supérieur : ces tools **ne doivent pas** apparaître dans le schéma (filt
 
 ## 6. Priorisation (validée)
 
-Ordre figé. **Vague 1 livrée.** Ne pas enchaîner 2–7 sans feu vert.
+Ordre figé. **Vague 1 et Vague 2 livrées.** Ne pas enchaîner 3–7 sans feu vert.
 
 1. **Socle (fait)** — schéma + prompt filtrés par type ; flags `collège_lycée` / mixte ; `creer_classe` / `creer_professeur` exigent `cycle` ; `_niveau_enseignement` ne retombe plus sur `primaire` ; personnel bridé par `check_permission`.
-2. **Pilotage** — `get_statistiques_pilotage`, `get_bilan_scolarite`, `get_impayes`, fiche scolarité enrichie, `get_notes_classe` / `get_moyennes_classe`.
+2. **Pilotage / scolarité (fait)** — `get_statistiques_pilotage`, `get_taux_reussite`, `get_taux_presence`, `get_comparatif_periodes`, `get_repartition_cycles`, `get_bilan_scolarite`, `get_impayes`, fiche scolarité enrichie, `ouvrir_recu`, `get_moratoires`, `verifier_statuts_paiement`, `synchroniser_remises_fratrie`. `get_notes_classe` / `get_moyennes_classe` restent Vague 3 (pédagogie).
 3. **Pédagogie quotidienne** — justifications, bulletin, élèves en difficulté, présences classe, EDT prof.
 4. **Supérieur** — ECTS / UE / périodes par niveau (bloquant pour un directeur LMD).
 5. **RH** — dossier employé, fiche de paie, absences prof, volume horaire paramétrable.
@@ -495,6 +495,27 @@ Ordre figé. **Vague 1 livrée.** Ne pas enchaîner 2–7 sans feu vert.
 1. **Filtrer dynamiquement** `TOOLS_SCHEMA` et le prompt par `type_etablissement` dès la Vague 1. Fait (`assistant_schema.py`, `directeur_tools_schema`, `system_prompt_static_for`).
 2. **Collège+lycée / mixte** : un seul espace vocal ; **exiger le cycle** (`college` / `lycee`) dans les paramètres des tools concernés (`creer_classe`, `creer_professeur`). Pas deux assistants.
 3. **Personnel administratif** : même persona `directeur`, exécution bridée par `check_permission` (permissions Django déjà utilisées par les vues).
-4. **Ordre §6 validé.** Implémentation = **Vague 1 seulement**.
+4. **Ordre §6 validé.** Vague 1 puis Vague 2 livrées. Pas de Vague 3–6 ni de tools CG.
 5. **CG vocale hors schéma** tant que `AFFICHER_MODULE_COMPTABILITE_GENERALE` est False (`CG_TOOLS` + addendum de prompt).
 6. **Hors scope §8 validé** (enseignant primaire, compta Aria, liasse, TVA, paie convention complète, etc.).
+
+---
+
+## 10. Vague 2 livrée (2026-09-23)
+
+Module `school_admin/services/assistant_pilotage.py`. Tests : `AssistantDirecteurVague2Tests` (8). Cache Gemini : `aria-directeur-tools-v5-{profile}`.
+
+Phrases vocales utiles (directeur connecté) :
+
+- « Donne-moi le tableau de bord. » → `get_statistiques_pilotage`
+- « Quel est le taux de réussite ce trimestre ? » → `get_taux_reussite`
+- « Quel est le taux de présence de la 1ère A cette semaine ? » → `get_taux_presence`
+- « Compare ce trimestre au précédent. » → `get_comparatif_periodes`
+- (mixte / collège+lycée) « Combien d’élèves au collège et au lycée ? » → `get_repartition_cycles`
+- « Fiche de scolarité de [nom]. » → `get_fiche_scolarite`
+- « Bilan de scolarité de l’établissement. » → `get_bilan_scolarite`
+- « Liste les impayés de plus de 60 jours. » → `get_impayes`
+- « Ouvre le reçu REC-2026-00001. » / « le dernier reçu de [nom] » → `ouvrir_recu`
+- « Quels sont les moratoires en cours ? » → `get_moratoires`
+- « Recalcule les statuts de paiement. » → confirmation puis `verifier_statuts_paiement`
+- « Applique les remises fratrie. » → confirmation puis `synchroniser_remises_fratrie`

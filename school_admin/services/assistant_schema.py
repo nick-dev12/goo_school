@@ -43,6 +43,10 @@ SUPERIEUR_ONLY_TOOLS = frozenset({
     'supprimer_module',
 })
 
+DUAL_ONLY_TOOLS = frozenset({
+    'get_repartition_cycles',
+})
+
 # Tools CG à exclure tant que le module est masqué. Aucun n’existe encore en Vague 1.
 CG_TOOLS = frozenset({
     'get_plan_comptable',
@@ -152,6 +156,18 @@ TOOL_PERMISSIONS = {
     'supprimer_session_examen': 'examens_voir',
     'generer_document': 'administrative_voir',
     'get_comptabilite': 'comptabilite_voir',
+    'get_fiche_scolarite': 'comptabilite_voir',
+    'get_bilan_scolarite': 'comptabilite_voir',
+    'get_impayes': 'comptabilite_voir',
+    'ouvrir_recu': 'comptabilite_voir',
+    'get_moratoires': 'comptabilite_voir',
+    'verifier_statuts_paiement': 'comptabilite_voir',
+    'synchroniser_remises_fratrie': 'comptabilite_paiements',
+    'get_statistiques_pilotage': 'eleves_liste',
+    'get_taux_reussite': 'notes_liste',
+    'get_taux_presence': 'presences_liste',
+    'get_comparatif_periodes': 'notes_liste',
+    'get_repartition_cycles': 'eleves_liste',
     'get_parametres_comptabilite': 'comptabilite_voir',
     'creer_parametres_comptabilite': 'comptabilite_bilans',
     'modifier_parametres_comptabilite': 'comptabilite_bilans',
@@ -179,6 +195,16 @@ CHERCHER_EN_BASE_SOURCES = {
     'caisse': 'get_caisse',
     'volume_horaire': 'get_volume_horaire',
     'comptabilite': 'get_comptabilite',
+    'pilotage': 'get_statistiques_pilotage',
+    'reussite': 'get_taux_reussite',
+    'presence_taux': 'get_taux_presence',
+    'comparatif': 'get_comparatif_periodes',
+    'cycles': 'get_repartition_cycles',
+    'scolarite': 'get_fiche_scolarite',
+    'bilan': 'get_bilan_scolarite',
+    'impayes': 'get_impayes',
+    'recu': 'ouvrir_recu',
+    'moratoires': 'get_moratoires',
     'emploi': 'get_emploi_du_temps',
     'periodes': 'get_periodes',
     'annonces': 'get_annonces',
@@ -289,6 +315,8 @@ def hidden_tools_for(ctx):
     hidden = set()
     if not getattr(ctx, 'est_superieur', False):
         hidden.update(SUPERIEUR_ONLY_TOOLS)
+    if not getattr(ctx, 'est_college_lycee', False):
+        hidden.update(DUAL_ONLY_TOOLS)
     if not cg_visible():
         hidden.update(CG_TOOLS)
     return hidden
@@ -397,6 +425,32 @@ def prompt_addendum_for(ctx):
         parts.append(
             "\nType d’établissement : secondaire.\n"
             "- Pas d’ECTS ni de modules LMD.\n"
+        )
+    if getattr(ctx, 'est_college_lycee', False):
+        parts.append(
+            "- Pour les effectifs collège vs lycée, utilise get_repartition_cycles.\n"
+        )
+    parts.append(
+        "\nPilotage (lecture) :\n"
+        "- Tableau de bord : get_statistiques_pilotage "
+        "(effectifs, présence, recouvrement, sanctions).\n"
+        "- Réussite : get_taux_reussite (seuil de passage, période active par défaut).\n"
+        "- Présence : get_taux_presence (établissement, classe ou élève).\n"
+        "- Comparer deux périodes : get_comparatif_periodes.\n"
+        "- N’invente aucun chiffre : appelle l’outil avant de parler.\n"
+        "\nScolarité (nav visible, pas la comptabilité générale) :\n"
+        "- Fiche élève : get_fiche_scolarite (charges, reçu, moratoire, parent).\n"
+        "- Totaux : get_bilan_scolarite. Liste : get_impayes "
+        "(classe, statut, ancienneté 0-30 / 31-60 / 61+).\n"
+        "- Reçu : ouvrir_recu (numéro REC-… ou dernier paiement).\n"
+        "- Moratoires : get_moratoires (création déjà via creer_moratoire).\n"
+        "- Recalcul statuts : verifier_statuts_paiement (confirmation).\n"
+        "- Remises fratrie : synchroniser_remises_fratrie (confirmation).\n"
+    )
+    if getattr(ctx, 'est_superieur', False):
+        parts.append(
+            "- get_taux_reussite peut ajouter des crédits validés "
+            "seulement s’ils sont déjà calculés. N’invente pas d’ECTS.\n"
         )
     if not cg_visible():
         parts.append(

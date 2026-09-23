@@ -739,3 +739,391 @@ class AssistantDirecteurVague1Tests(TestCase):
             {'question': 'notes de Diallo'},
         )
         self.assertIn('autorisation', search_notes.get('erreur', '').lower())
+
+
+def _make_eleve_simple(etab, classe, nom, prenom, sexe='F', suffix='1'):
+    from school_admin.model.eleve_model import Eleve
+
+    with patch.object(Eleve, '_should_regenerate_qr', return_value=False):
+        with patch.object(Etablissement, 'recalculer_facturation', return_value=None):
+            eleve = Eleve(
+                username=f'v2-{suffix}-{etab.pk}'[:20],
+                numero_eleve=f'V2{etab.pk}{suffix}'[:20],
+                nom=nom,
+                prenom=prenom,
+                date_naissance=date(2010, 3, 3),
+                lieu_naissance='Dakar',
+                sexe=sexe,
+                nationalite='Sénégalaise',
+                etablissement=etab,
+                classe=classe,
+                date_inscription=date(2026, 9, 1),
+                statut='nouvelle',
+                parent_nom=nom,
+                parent_prenom='Parent',
+                parent_telephone='770000020',
+                parent_lien='pere',
+                mot_de_passe_provisoire='123456',
+                actif=True,
+            )
+            eleve.set_password('Eleve@Test1!')
+            eleve.save()
+    return eleve
+
+
+def _make_inscription(eleve, classe, annee, etab):
+    from school_admin.model.inscription_eleve_model import InscriptionEleve
+
+    return InscriptionEleve.objects.create(
+        annee_scolaire=annee,
+        eleve=eleve,
+        nom=eleve.nom,
+        prenom=eleve.prenom,
+        date_naissance=eleve.date_naissance,
+        lieu_naissance=eleve.lieu_naissance,
+        sexe=eleve.sexe,
+        nationalite=eleve.nationalite,
+        numero_eleve=eleve.numero_eleve,
+        matricule_eleve=eleve.matricule_eleve,
+        etablissement=etab,
+        classe=classe,
+        date_inscription=date(2026, 9, 1),
+        statut='nouvelle',
+        parent_nom=eleve.parent_nom,
+        parent_prenom=eleve.parent_prenom,
+        parent_telephone=eleve.parent_telephone,
+        parent_lien=eleve.parent_lien,
+    )
+
+
+class AssistantDirecteurVague2Tests(TestCase):
+    """Pilotage + scolarité : schéma filtré, lecture, écritures confirmées."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.etab = _make_etablissement()
+        cls.annee = _make_annee(cls.etab)
+        cls.classe = Classe.objects.create(
+            nom='1ère A',
+            niveau='lycee',
+            code_classe=f'LYC-{cls.etab.pk}-1A',
+            capacite_max=25,
+            etablissement=cls.etab,
+        )
+        cls.periode_1 = PeriodeScolaire.objects.create(
+            etablissement=cls.etab,
+            nom_periode='1er Trimestre',
+            type_periode='trimestre',
+            date_debut=date(2026, 9, 1),
+            date_fin=date(2026, 12, 15),
+            annee_scolaire=cls.annee.libelle,
+            annee_scolaire_fk=cls.annee,
+            est_active=False,
+        )
+        cls.periode_2 = PeriodeScolaire.objects.create(
+            etablissement=cls.etab,
+            nom_periode='2e Trimestre',
+            type_periode='trimestre',
+            date_debut=date(2027, 1, 5),
+            date_fin=date(2027, 3, 31),
+            annee_scolaire=cls.annee.libelle,
+            annee_scolaire_fk=cls.annee,
+            est_active=True,
+        )
+        cls.eleve = _make_eleve_simple(cls.etab, cls.classe, 'Ba', 'Awa', 'F', 'a')
+        cls.inscription = _make_inscription(cls.eleve, cls.classe, cls.annee, cls.etab)
+        cls.ctx = build_assistant_context(cls.etab)
+
+    def test_schema_expose_vague2_sauf_cycles_hors_dual(self):
+        from school_admin.services.assistant_schema import CG_TOOLS, DUAL_ONLY_TOOLS
+        from school_admin.services.assistant_tools import directeur_tools_schema
+
+        names = {
+            item['function']['name']
+            for item in directeur_tools_schema(self.ctx)
+            if item.get('function')
+        }
+        for name in (
+            'get_statistiques_pilotage',
+            'get_taux_reussite',
+            'get_taux_presence',
+            'get_comparatif_periodes',
+            'get_fiche_scolarite',
+            'get_bilan_scolarite',
+            'get_impayes',
+            'ouvrir_recu',
+            'get_moratoires',
+            'verifier_statuts_paiement',
+            'synchroniser_remises_fratrie',
+        ):
+            self.assertIn(name, names)
+        for name in DUAL_ONLY_TOOLS:
+            self.assertNotIn(name, names)
+        for name in CG_TOOLS:
+            self.assertNotIn(name, names)
+
+        dual = _make_etablissement_type('mixte', 'v2d')
+        dual_names = {
+            item['function']['name']
+            for item in directeur_tools_schema(build_assistant_context(dual))
+            if item.get('function')
+        }
+        self.assertIn('get_repartition_cycles', dual_names)
+        for name in CG_TOOLS:
+            self.assertNotIn(name, dual_names)
+
+    def test_effectifs_capacite_et_pilotage(self):
+        effectifs = execute_tool(self.ctx, 'get_effectifs', {})
+        self.assertEqual(effectifs['capacite_totale'], 25)
+        self.assertEqual(effectifs['places_libres'], 24)
+        dash = execute_tool(self.ctx, 'get_statistiques_pilotage', {})
+        self.assertEqual(dash['effectifs']['nb_eleves'], 1)
+        self.assertEqual(dash['effectifs']['nb_filles'], 1)
+        self.assertIn('taux_recouvrement', dash['scolarite'])
+        found = execute_tool(
+            self.ctx,
+            'chercher_en_base',
+            {'question': 'tableau de bord de l etablissement'},
+        )
+        self.assertEqual(found['source'], 'pilotage')
+
+    def test_taux_reussite_et_comparatif(self):
+        from school_admin.model.moyenne_periode_model import MoyennePeriode
+        from school_admin.model.standards_reussite_model import StandardsReussite
+
+        StandardsReussite.objects.create(
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            moyenne_passage='10.00',
+        )
+        MoyennePeriode.objects.create(
+            eleve=self.eleve,
+            etablissement=self.etab,
+            periode=self.periode_1,
+            annee_scolaire=self.annee,
+            est_moyenne_generale=True,
+            moyenne_generale='09.00',
+        )
+        MoyennePeriode.objects.create(
+            eleve=self.eleve,
+            etablissement=self.etab,
+            periode=self.periode_2,
+            annee_scolaire=self.annee,
+            est_moyenne_generale=True,
+            moyenne_generale='12.50',
+        )
+        reussite = execute_tool(self.ctx, 'get_taux_reussite', {'periode': '2e'})
+        self.assertEqual(reussite['nb_moyennes'], 1)
+        self.assertEqual(reussite['nb_au_dessus'], 1)
+        self.assertEqual(reussite['taux_reussite'], 100.0)
+        self.assertNotIn('credits', reussite)
+        comparatif = execute_tool(self.ctx, 'get_comparatif_periodes', {})
+        self.assertEqual(comparatif['periode']['moyenne'], 12.5)
+        self.assertEqual(comparatif['periode_precedente']['moyenne'], 9.0)
+        self.assertEqual(comparatif['delta_moyenne'], 3.5)
+
+    def test_taux_presence(self):
+        from school_admin.model.matiere_model import Matiere
+        from school_admin.model.presence_model import Presence
+        from school_admin.model.professeur_model import Professeur
+
+        suffix = str(self.etab.pk)
+        matiere = Matiere.objects.create(
+            nom=f'Histoire {suffix}',
+            code=f'HIST{suffix}'[:10],
+            etablissement=self.etab,
+        )
+        prof = Professeur.objects.create_user(
+            username=f'prof.v2.{suffix}',
+            email=f'prof.v2.{suffix}@aria-test.local',
+            password='Prof@Test1!',
+            nom='Ndiaye',
+            prenom='Omar',
+            telephone='770000030',
+            numero_employe=f'EMPV2{suffix}',
+            matiere_principale=matiere,
+            etablissement=self.etab,
+            niveau_enseignement='lycee',
+            actif=True,
+        )
+        today = date.today()
+        Presence.objects.create(
+            eleve=self.eleve,
+            classe=self.classe,
+            professeur=prof,
+            etablissement=self.etab,
+            date=today,
+            statut='present',
+            annee_scolaire=self.annee,
+        )
+        Presence.objects.create(
+            eleve=self.eleve,
+            classe=self.classe,
+            professeur=prof,
+            etablissement=self.etab,
+            date=today - timedelta(days=1),
+            statut='absent',
+            annee_scolaire=self.annee,
+            numero_appel=1,
+        )
+        taux = execute_tool(self.ctx, 'get_taux_presence', {'jours': 7})
+        self.assertEqual(taux['nb_enregistrements'], 2)
+        self.assertEqual(taux['taux_presence'], 50.0)
+        eleve_taux = execute_tool(self.ctx, 'get_taux_presence', {'query': 'Ba'})
+        self.assertEqual(eleve_taux['eleve'], self.eleve.nom_complet)
+        self.assertEqual(eleve_taux['taux_presence'], 50.0)
+
+    def test_repartition_cycles_dual_seulement(self):
+        refuse = execute_tool(self.ctx, 'get_repartition_cycles', {})
+        self.assertIn('pas proposé', refuse.get('erreur', '').lower())
+        dual = _make_etablissement_type('collège_lycée', 'v2c')
+        annee = _make_annee(dual, libelle='2026-2027-d')
+        college = Classe.objects.create(
+            nom='6e A',
+            niveau='college',
+            code_classe=f'COL-{dual.pk}-6A',
+            capacite_max=20,
+            etablissement=dual,
+        )
+        lycee = Classe.objects.create(
+            nom='2nde B',
+            niveau='lycee',
+            code_classe=f'LYC-{dual.pk}-2B',
+            capacite_max=20,
+            etablissement=dual,
+        )
+        eleve_c = _make_eleve_simple(dual, college, 'Fall', 'Ibra', 'M', 'c')
+        eleve_l = _make_eleve_simple(dual, lycee, 'Diop', 'Sira', 'F', 'l')
+        _make_inscription(eleve_c, college, annee, dual)
+        _make_inscription(eleve_l, lycee, annee, dual)
+        ctx = build_assistant_context(dual)
+        data = execute_tool(ctx, 'get_repartition_cycles', {})
+        self.assertNotIn('erreur', data)
+        cycles = {row['cycle']: row['effectif'] for row in data['cycles']}
+        self.assertEqual(cycles.get('college'), 1)
+        self.assertEqual(cycles.get('lycee'), 1)
+
+    def test_fiche_bilan_impayes_recu_moratoire(self):
+        from decimal import Decimal
+
+        from school_admin.model.comptabilite_eleve_model import (
+            ComptabiliteEleve,
+            FraisInscription,
+            PaiementEleve,
+        )
+        from school_admin.model.recouvrement_model import EcheanceMoratoire, Moratoire
+
+        fiche = ComptabiliteEleve.objects.create(
+            eleve=self.eleve,
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            statut_paiement='en_retard',
+        )
+        frais = FraisInscription.objects.create(
+            eleve=self.eleve,
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            comptabilite_eleve=fiche,
+            montant=Decimal('50000'),
+            montant_paye=Decimal('10000'),
+            reste_a_payer=Decimal('40000'),
+            date_echeance=date(2026, 8, 1),
+            statut='en_retard',
+            type_frais='inscription',
+        )
+        paiement = PaiementEleve.objects.create(
+            eleve=self.eleve,
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            type_paiement='frais_inscription',
+            frais_inscription=frais,
+            montant=Decimal('10000'),
+            mode_paiement='especes',
+            numero_recu='REC-2026-00001',
+        )
+
+        fiche_data = execute_tool(self.ctx, 'get_fiche_scolarite', {'query': 'Ba'})
+        self.assertEqual(fiche_data['eleve'], self.eleve.nom_complet)
+        self.assertEqual(fiche_data['reste'], 40000.0)
+        self.assertTrue(fiche_data['inscription'])
+        self.assertEqual(fiche_data['dernier_recu'], 'REC-2026-00001')
+        self.assertIsNotNone(fiche_data['parent_a_relancer'])
+
+        via_compta = execute_tool(self.ctx, 'get_comptabilite', {'query': 'Ba'})
+        self.assertEqual(via_compta['dernier_recu'], 'REC-2026-00001')
+
+        bilan = execute_tool(self.ctx, 'get_bilan_scolarite', {})
+        self.assertEqual(bilan['total_du'], 50000.0)
+        self.assertEqual(bilan['total_paye'], 10000.0)
+        self.assertEqual(bilan['reste'], 40000.0)
+
+        impayes = execute_tool(self.ctx, 'get_impayes', {})
+        self.assertGreaterEqual(impayes['nb'], 1)
+        self.assertEqual(impayes['impayes'][0]['eleve'], self.eleve.nom_complet)
+
+        recu = execute_tool(self.ctx, 'ouvrir_recu', {'numero': 'REC-2026-00001'})
+        self.assertTrue(recu['ouvrir'])
+        self.assertIn(str(paiement.id), recu['url'] or '')
+
+        mora = Moratoire.objects.create(
+            eleve=self.eleve,
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            comptabilite_eleve=fiche,
+            motif='Échéancier parental',
+            montant_total=Decimal('40000'),
+            statut='actif',
+        )
+        EcheanceMoratoire.objects.create(
+            moratoire=mora,
+            numero=1,
+            date_echeance=date(2026, 10, 1),
+            montant=Decimal('20000'),
+        )
+        moratoires = execute_tool(self.ctx, 'get_moratoires', {'query': 'Ba'})
+        self.assertEqual(moratoires['nb'], 1)
+        self.assertEqual(len(moratoires['moratoires'][0]['echeances']), 1)
+        fiche_mora = execute_tool(self.ctx, 'get_fiche_scolarite', {'query': 'Ba'})
+        self.assertIsNotNone(fiche_mora['moratoire'])
+
+    def test_ecritures_exigent_confirmation(self):
+        from school_admin.model.comptabilite_eleve_model import ComptabiliteEleve
+
+        fiche = ComptabiliteEleve.objects.create(
+            eleve=self.eleve,
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            statut_paiement='a_jour',
+        )
+        draft = execute_tool(self.ctx, 'verifier_statuts_paiement', {})
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        fiche.refresh_from_db()
+        self.assertEqual(fiche.statut_paiement, 'a_jour')
+        result = ACTION_SPECS['verifier_statuts_paiement'].apply(self.ctx, draft)
+        self.assertEqual(result['statut'], 'ok')
+
+        remises = execute_tool(self.ctx, 'synchroniser_remises_fratrie', {})
+        self.assertEqual(remises['statut'], 'en_attente_confirmation')
+        self.assertEqual(remises['perimetre'], 'etablissement')
+
+    def test_personnel_sans_droit_scolarite(self):
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+
+        personnel = PersonnelAdministratif(
+            username=f'caissier.v2.{self.etab.pk}',
+            email=f'caissier.v2.{self.etab.pk}@aria-test.local',
+            nom='Kane',
+            prenom='Awa',
+            telephone='770000040',
+            fonction='secretaire',
+            etablissement=self.etab,
+            actif=True,
+            permissions={},
+        )
+        personnel.set_password('Secret@Test1!')
+        personnel.save()
+        ctx = build_assistant_context(self.etab, personnel=personnel)
+        refused = execute_tool(ctx, 'get_impayes', {})
+        self.assertIn('autorisation', refused.get('erreur', '').lower())
+        refused_write = execute_tool(ctx, 'verifier_statuts_paiement', {})
+        self.assertIn('autorisation', refused_write.get('erreur', '').lower())

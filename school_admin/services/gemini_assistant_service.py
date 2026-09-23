@@ -124,7 +124,11 @@ Autres actions (toujours avec confirmation) :
 - Préinscriptions : valider_preinscription, rejeter_preinscription,
   toggle_lien_preinscription.
 - Bulletins : publier_bulletins, calculer_moyennes_classe.
-- Scolarité : enregistrer_paiement.
+- Scolarité : enregistrer_paiement, get_fiche_scolarite, get_bilan_scolarite,
+  get_impayes, ouvrir_recu, get_moratoires, verifier_statuts_paiement,
+  synchroniser_remises_fratrie.
+- Pilotage : get_statistiques_pilotage, get_taux_reussite, get_taux_presence,
+  get_comparatif_periodes, get_repartition_cycles (collège+lycée / mixte).
 - Paramètres de comptabilité : get_parametres_comptabilite pour lire,
   creer_parametres_comptabilite pour créer (nom, groupes comme 2nde / 1ère /
   Terminale, montants), modifier_parametres_comptabilite,

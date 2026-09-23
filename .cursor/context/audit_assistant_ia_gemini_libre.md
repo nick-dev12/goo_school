@@ -1,7 +1,7 @@
 # Audit — Aria Gemini libre (intelligence d’abord)
 
 **Date** : 2026-09-23  
-**Statut** : audit **validé** le 2026-09-23. **G1–G6 validées**. G7 **non commencée**.  
+**Statut** : audit **validé** le 2026-09-23. **G1–G7 faites**. Stop après G7.  
 **Branche G0** : `cursor/audit-gemini-libre-a40c`  
 **Branche G1** : `cursor/assistant-g1-takeover-a40c`  
 **Branche G2** : `cursor/assistant-g2-pending-a40c`  
@@ -9,6 +9,7 @@
 **Branche G4** : `cursor/assistant-g4-suggestions-a40c`  
 **Branche G5** : `cursor/assistant-g5-multitools-a40c`  
 **Branche G6** : `cursor/assistant-g6-prompt-a40c`  
+**Branche G7** : `cursor/assistant-g7-recette-a40c`  
 **Persona** : directeur (personnel admin via `check_permission`). Enseignant primaire : même esprit, hors implémentation ici.  
 **Préalable validé** : Vagues métier 1–6 + qualité A+B+C+D + correctif « succès outil ≠ erreur rouge ».  
 **Audits liés** : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md) · [audit_assistant_ia_qualite.md](audit_assistant_ia_qualite.md)
@@ -309,7 +310,7 @@ Ce n’est **pas** un garde-fou : intercepter « créer une classe » par regex 
 
 ## 8. Plan d’actions futures (ordre d’implémentation)
 
-Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **G1–G6 validées.** **Stop après G6** : ne pas démarrer G7 sans feu vert.
+Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **G1–G7 faites.** **Stop après G7** : pas de Vague 8.
 
 Cache prompt : chaque vague qui touche le texte système **bump** `CACHE_DISPLAY_NAME` (`aria-directeur-tools-v11`, puis v12…).
 
@@ -413,14 +414,39 @@ Actions :
 
 **Hors G6** : pas de G7 (recette vocale + télémétrie structurée).
 
-### Vague G7 — Recette vocale + télémétrie
+### Vague G7 — Recette vocale + télémétrie — **FAITE** (2026-09-23)
 
-Sans nouvelle UI globale.
+Sans nouvelle UI globale. Pas de Vague 8.
 
-1. Logs structurés : `tool`, `rounds`, `pending_shown`, `suggestions_count`, `takeover` (doit rester à 0).
-2. Parcours directeur primaire (compte Artisant / `oyonoeffe09`) : effectifs → impayés → proposition → annonce → oui/non → changement de sujet.
-3. Parcours collège+lycée : EDT + notes d’examen + switch.
-4. Régression : tests `test_assistant_qualite` + `test_assistant_directeur_tools` (prepare/apply inchangés).
+1. Logs structurés : `assistant.turn {"tool", "rounds", "pending_shown", "suggestions_count", "takeover"}`. **takeover = 0** sur tous les tours live.
+2. Parcours directeur primaire (Artisant / `oyonoeffe09`) : effectifs → impayés CE1 A → listes CP A → brouillon d’annonce + carte → **Annuler** → caisse du mois → ouvre CE1 A + notes → merci + effectifs.
+3. Parcours collège+lycée (`webgeniuses12`) : EDT 3ème A → notes d’examen 6ème A → switch effectifs.
+4. Régression : `test_assistant_qualite` **56 OK** (dont `GeminiG7TelemetryTests`). `test_assistant_directeur_tools` **49 OK / 2 ERROR** préexistantes (`Eleve.save` → `recalculer_facturation` Decimal × float). prepare/apply inchangés.
+
+**Livré G7** : `format_turn_telemetry` / `log_turn_telemetry` ; repli oral chiffré (`get_effectifs`, `get_impayes`, `get_caisse`, notes, EDT) streamé au client (`_emit_spoken_fallback`) pour qu’un 400 Gemini après outil ne produise **plus de bulle rouge**. Cache **v13** inchangé.
+
+**Recette live WS** (Daphne `127.0.0.1:8001`, 2026-09-23) : **13 PASS / 0 FAIL**.
+
+| Scénario | Résultat | Preuve |
+|----------|----------|--------|
+| Effectifs Artisant | PASS | 50 élèves, 5 classes, 7 professeurs ; `takeover: 0` |
+| Impayés CE1 A | PASS | 10 impayés, 2 330 000 restant + phrase « relancer » ; **pas de chips** (`suggestions_count: 0`) |
+| Listes CP A | PASS | multi-tools `rechercher_eleves,get_affectations` ; noms (Atemkeng, Biya, Mbarga) ; pas de wizard |
+| Annonce + carte | PASS | `pending_shown: 1` ; « Rien n’a encore été créé » ; Annuler → rien publié |
+| Switch caisse | PASS | pending droppé ; solde septembre 2026 |
+| Nav + notes CE1 A | PASS | `navigate` + « Aucune note publiée » |
+| Merci + effectifs | PASS | tools on ; CE1 A 10 élèves |
+| EDT 3ème A | PASS | 23 créneaux, statut Publié |
+| Notes d’examen 6ème A | PASS | aucune note, n’invente pas |
+| Switch effectifs collège | PASS | 6ème A 10 élèves |
+
+**Fragile (pas bloquant G7, pas une Vague 8)** :
+
+- Après le 1er round d’outils, Gemini répond **400 `thought_signature`**. Les tools **s’exécutent** ; l’oral est le **repli** Django, pas la synthèse Gemini. D’où l’absence de chips `proposer_actions` en live.
+- Le repli dit les chiffres (c’est le critère « pas de bulle rouge ») mais parle moins « assistante » que Gemini.
+- 2 ERROR Decimal × float dans `test_assistant_directeur_tools` : hors G7.
+
+**Hors G7** : pas de Vague 8, pas de replay `thought_signature`, pas de tools CG, pas de nouvelle feature métier.
 
 ---
 
@@ -458,7 +484,7 @@ G4 et G5 sont parallélisables après G2. G6 idéalement **avec** G1 (sinon le p
 
 ---
 
-## 11. Recette d’interaction (quand G1–G6 seront faites)
+## 11. Recette d’interaction (G7 — jouée le 2026-09-23)
 
 À jouer **à la voix**, pas seulement en tests.
 
@@ -492,7 +518,7 @@ Critère subjectif (le vrai livrable) : **on a l’impression de parler à quelq
 
 1. Gemini est le seul cerveau d’intention ; les tools Django sont les seules « commandes serveur ».
 2. On **supprime** les wizards guidés (annonce, EDT, générique) au profit de Gemini + carte oui/non — G1 coupe le takeover ; G2 retirera les FSM du tour suivant.
-3. Ordre : G1–G6 (**faites**) → G7 (recette + télémétrie). **Stop après G6.**
+3. Ordre : G1–G7 (**faites**). **Stop après G7.** Pas de Vague 8.
 4. Pas de tools CG, pas de shell, pas d’`apply` sans confirmation.
 
-**Stop** : G6 livrée. Ne pas démarrer G7 tant que le directeur n’a pas validé G6 en vocal.
+**Stop** : G7 livrée (recette 13/13, télémétrie, takeover 0). Le directeur vérifie à la voix (Artisant / Fleur de lune). Ne pas ouvrir de Vague 8.

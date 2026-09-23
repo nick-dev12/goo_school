@@ -351,8 +351,12 @@ def _resolve(route):
 
 
 def list_pages():
+    from school_admin.utils.context_processors import AFFICHER_MODULE_COMPTABILITE_GENERALE
+
     items = []
     for page in PAGE_CATALOG:
+        if page['key'] == 'comptabilite_generale' and not AFFICHER_MODULE_COMPTABILITE_GENERALE:
+            continue
         url = _resolve(page['route'])
         if not url:
             continue

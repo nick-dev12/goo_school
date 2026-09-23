@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% load static %}
 {% load i18n %}
+{% load permissions_tags %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
@@ -21,7 +22,7 @@
     />
     <link
         rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/gestion_etablissement.css' %}?v=1.0.5"
+        href="{% static 'school_admin/css/directeur/gestion_etablissement.css' %}?v=1.1.2"
     />
 </head>
 <body>
@@ -45,6 +46,8 @@
         <!-- Navigation Links Container -->
         <div class="navigation-container">
             <div class="nav-cards-grid">
+                {% check_permission request.user "classes_liste" as can_view_classes %}
+                {% if can_view_classes or is_directeur %}
                 <a href="{% url 'directeur:gestion_periodes_scolaires' %}" class="nav-link-card">
                     <span class="nav-card-number">1</span>
                     <div class="nav-card-icon neo-orange">
@@ -88,8 +91,10 @@
                         <p>{% trans "Gestion des salles" %}</p>
                     </div>
                 </a>
+                {% endif %}
                 
-                {% if etablissement.module_comptabilite %}
+                {% check_permission request.user "comptabilite_voir" as can_view_comptabilite %}
+                {% if etablissement.module_comptabilite and can_view_comptabilite %}
                 <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="nav-link-card">
                     <span class="nav-card-number">5</span>
                     <div class="nav-card-icon neo-green">
@@ -100,6 +105,19 @@
                         <p>{% trans "Gestion des paiements des élèves" %}</p>
                     </div>
                 </a>
+
+                {% if afficher_module_comptabilite_generale %}
+                <a href="{% url 'directeur:cg_hub_directeur' %}" class="nav-link-card">
+                    <span class="nav-card-number">6</span>
+                    <div class="nav-card-icon neo-purple">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <div class="nav-link-content">
+                        <h3>{% trans "Comptabilité générale" %}</h3>
+                        <p>{% trans "Plan SYSCOHADA, journaux, trésorerie et états financiers" %}</p>
+                    </div>
+                </a>
+                {% endif %}
                 {% endif %}
             </div>
         </div>

@@ -1,6 +1,9 @@
 """
-Interception locale des demandes d'ouverture (page ou classe).
-Évite l'aller-retour DeepSeek quand l'intention est explicite.
+Helpers d’intention (navigation, extracteurs, tests legacy).
+
+Le chemin conversation directeur ne route plus le métier via ces regex (G3) :
+Gemini + tools. `resolve_action_intent` / `ACTION_INTENT_RES` restent pour les
+tests de régression, pas pour le consumer.
 """
 import re
 
@@ -105,6 +108,7 @@ DEST_HINTS = (
     ('administratif', 'personnel_administratif'),
 )
 
+# Legacy : tests d’outils uniquement. Le consumer n’appelle plus ce routeur (G3).
 ACTION_INTENT_RES = (
     (re.compile(r'justifie[rz]?.{0,50}absence', re.I), 'justifier_absence'),
     (re.compile(r'approuve[rz]?.{0,50}liaison', re.I), 'approuver_liaison'),
@@ -803,6 +807,22 @@ def looks_like_new_topic(question):
 def is_explicit_navigation(question):
     """Ouverture de page 100 % sûre (ouvre / va sur), pas « affiche les effectifs »."""
     return bool(EXPLICIT_NAV_RE.search(question or ''))
+
+
+NAV_TRAILER_RE = re.compile(
+    r'\b(?:et|puis|ensuite)\b.{3,}',
+    re.IGNORECASE,
+)
+
+
+def is_navigation_only(question):
+    """Raccourci « ouvre / va sur » sans consigne métier derrière (G3)."""
+    text = (question or '').strip()
+    if not is_explicit_navigation(text):
+        return False
+    if not resolve_open_intent(text):
+        return False
+    return not NAV_TRAILER_RE.search(text)
 
 
 def is_obvious_pending_continue(question, pending):

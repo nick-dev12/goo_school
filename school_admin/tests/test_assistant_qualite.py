@@ -19,6 +19,7 @@ from school_admin.services.assistant_intents import (
     NEW_QUESTION_RE,
     decide_pending_reply,
     is_explicit_navigation,
+    is_navigation_only,
     is_obvious_pending_continue,
     looks_like_new_topic,
 )
@@ -190,6 +191,11 @@ class QualiteCGeminiTests(SimpleTestCase):
         self.assertFalse(is_explicit_navigation('affiche les effectifs'))
         self.assertFalse(is_explicit_navigation('Crée un emploi du temps pour la 1ère S'))
         self.assertFalse(is_explicit_navigation('quels sont les effectifs ?'))
+        self.assertTrue(is_navigation_only('Ouvre le tableau de bord'))
+        self.assertTrue(is_navigation_only('Ouvre la classe 3e A'))
+        self.assertFalse(is_navigation_only('Ouvre la 6e A et dis-moi les notes'))
+        self.assertFalse(is_navigation_only('Ouvre la 6e A et les impayés'))
+        self.assertFalse(is_navigation_only('affiche les effectifs'))
 
     def test_continue_evident_sans_gemini(self):
         pending = _pending_edt()
@@ -636,5 +642,59 @@ class GeminiG2PendingTests(SimpleTestCase):
             self.assertIsNone(consumer.pending_action)
             consumer._handle_chat.assert_awaited_once_with('quels sont les effectifs ?')
             consumer._confirm_pending.assert_not_called()
+
+        asyncio.run(_run())
+
+
+class GeminiG3RegexTests(SimpleTestCase):
+    """G3 : plus de regex métier sur le chemin conversation."""
+
+    def test_resolve_action_intent_n_est_plus_importe_par_le_consumer(self):
+        import school_admin.consumers.assistant_consumer as consumer_mod
+        import inspect
+
+        source = inspect.getsource(consumer_mod)
+        self.assertNotIn('resolve_action_intent', source)
+        self.assertNotIn('use_tools=not is_small_talk', source)
+        self.assertNotIn('_continue_generic_action', source)
+        self.assertNotIn('_continue_annonce_guidee', source)
+        self.assertNotIn('_continue_emploi_guidee', source)
+
+    def test_nav_plus_consigne_ne_court_circuite_pas_gemini(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        async def _run():
+            consumer = AssistantConsumer()
+            consumer.scope = {}
+            consumer._execute_tool = AsyncMock()
+            consumer._speak_and_finish = AsyncMock()
+            handled = await consumer._handle_local_intent(
+                'Ouvre la 6e A et dis-moi les notes',
+                object(),
+            )
+            self.assertFalse(handled)
+            consumer._execute_tool.assert_not_called()
+            consumer._speak_and_finish.assert_not_called()
+
+        asyncio.run(_run())
+
+    def test_nav_seule_reste_un_raccourci(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        async def _run():
+            consumer = AssistantConsumer()
+            consumer.scope = {}
+            consumer._execute_tool = AsyncMock(
+                return_value={'nom': '3e A', 'url': '/classe/1', 'ouvrir': True},
+            )
+            consumer._dispatch_navigation = AsyncMock()
+            consumer._speak_and_finish = AsyncMock()
+            handled = await consumer._handle_local_intent(
+                'Ouvre la classe 3e A',
+                object(),
+            )
+            self.assertTrue(handled)
+            consumer._execute_tool.assert_awaited_once()
+            consumer._speak_and_finish.assert_awaited_once()
 
         asyncio.run(_run())

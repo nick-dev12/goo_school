@@ -14,11 +14,6 @@ from school_admin.services.assistant_emploi import (
     apply_creneau_draft,
     apply_emploi_du_temps_draft,
     choices_for_emploi,
-    enrich_creneau_draft,
-    enrich_emploi_draft,
-    next_creneau_prompt,
-    next_emploi_prompt,
-    _classe_choices,
 )
 from school_admin.services.assistant_actions import (
     ACTION_SPECS,
@@ -33,16 +28,7 @@ from school_admin.services.assistant_enseignant_actions import (
     get_enseignant_action,
 )
 from school_admin.services.assistant_intents import (
-    ANNONCE_CREATE_RE,
-    CRENEAU_ADD_RE,
-    annonce_field_request,
-    extract_creneau_draft,
-    extract_emploi_draft,
-    infer_destinataires,
-    is_explicit_navigation,
-    is_small_talk,
-    is_vague_annonce_modify,
-    resolve_action_intent,
+    is_navigation_only,
     resolve_open_intent,
 )
 from school_admin.services.assistant_search import (
@@ -50,10 +36,8 @@ from school_admin.services.assistant_search import (
     is_lookup_clarification,
 )
 from school_admin.services.gemini_assistant_service import (
-    WRITTEN_DRAFT_MAX,
     build_system_message,
     compact_tool_memory,
-    generate_written_draft,
     run_assistant_turn,
     sanitize_dialog_messages,
 )
@@ -90,12 +74,6 @@ PENDING_MODIFY_RE = re.compile(
     r'(?:je\s+veux\s+|on\s+peut\s+|peux[- ]tu\s+)?'
     r'(?:modifi(?:er|e)[rz]?|corrige[rz]?|ajuste[rz]?)\b'
     r'|(?:change[rz]?)\s+(?:le|la|les|un|une|ce|cet|cette)\b',
-    re.IGNORECASE,
-)
-WRITE_SPEC_RE = re.compile(
-    r'(\d+\s*(?:mots?|paragraphes?)|en\s+\d+\s+paragraphes?|'
-    r'r[ée]dige[rz]?|ecris|écris|un titre|deux paragraphes|'
-    r'plus (?:court|long))',
     re.IGNORECASE,
 )
 _ALLOWED_WHEN_CANCELLED = frozenset({'done', 'error', 'pong'})
@@ -597,7 +575,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return False
 
     async def _handle_local_intent(self, question, ctx):
-        if not is_explicit_navigation(question):
+        if not is_navigation_only(question):
             return False
         intent = resolve_open_intent(question)
         if not intent:
@@ -667,8 +645,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 on_status=on_status,
                 on_text_delta=on_text_delta,
                 on_tool_result=on_tool_result,
-                use_tools=not is_small_talk(question),
-                tool_memory=self._last_tool_memory,
+                use_tools=True,
+                tool_memory=self._tool_memory_for_turn(),
             )
         except Exception:
             logger.exception("Tour Gemini après outil")
@@ -909,16 +887,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         draft = (self.pending_action or {}).get('draft') or {}
         return bool(draft.get('titre') and draft.get('contenu') and draft.get('destinataires'))
 
-    async def _send_annonce_form_fill(self):
-        draft = (self.pending_action or {}).get('draft') or {}
-        await self._send_json({
-            'type': 'form.fill',
-            'form': 'annonce',
-            'titre': draft.get('titre') or '',
-            'contenu': draft.get('contenu') or '',
-            'destinataires': draft.get('destinataires') or [],
-        })
-
     async def _send_choices(self, choices):
         cleaned = []
         widget = 'buttons'
@@ -1106,24 +1074,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
         return list_classe_choices(ctx)
 
-    async def _open_classe_from_reply(self, question):
-        ctx = await self._build_context()
-        result = await self._execute_tool(
-            ctx, 'ouvrir_classe', {'query': question, 'ouvrir': True}
-        )
-        await self._dispatch_navigation('ouvrir_classe', result)
-        if is_lookup_clarification(result):
-            spoken = "Je n’ai pas trouvé la classe exacte. Voici les plus proches."
-            if result.get('statut') == 'plusieurs':
-                spoken = "Plusieurs classes correspondent. Laquelle voulez-vous ?"
-            choices = choices_from_class_lookup(result, intent='open')
-            await self._speak_and_finish(user_text=question, spoken=spoken, choices=choices)
-            return
-        self.pending_action = None
-        await self._persist_pending()
-        spoken = f"J’ouvre la classe {result.get('nom') or question}."
-        await self._speak_and_finish(user_text=question, spoken=spoken)
-
     def _choices_for_annonce(self):
         draft = (self.pending_action or {}).get('draft') or {}
         focus = draft.get('edit_field')
@@ -1143,14 +1093,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return [
             {'label': 'Oui, publier', 'value': 'Oui, c’est bon.', 'intent': 'confirm'},
             {'label': 'Modifier', 'value': 'Je veux modifier.', 'intent': 'modify'},
-            {'label': 'Annuler', 'value': 'Annuler.', 'intent': 'cancel'},
-        ]
-
-    def _choices_for_annonce_fields(self):
-        return [
-            {'label': 'Le titre', 'value': 'Modifie le titre.', 'intent': 'chat'},
-            {'label': 'Le texte', 'value': 'Modifie le texte.', 'intent': 'chat'},
-            {'label': 'Les destinataires', 'value': 'Change les destinataires.', 'intent': 'chat'},
             {'label': 'Annuler', 'value': 'Annuler.', 'intent': 'cancel'},
         ]
 
@@ -1188,204 +1130,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 {'label': 'Non', 'value': 'Non.', 'intent': 'chat'},
             ]
         return []
-
-    def _next_annonce_prompt(self):
-        draft = (self.pending_action or {}).get('draft') or {}
-        if not draft.get('titre') and not draft.get('contenu'):
-            return "Sur quel sujet souhaitez-vous communiquer ?"
-        if not draft.get('contenu'):
-            return "Quel message souhaitez-vous faire passer ?"
-        if not draft.get('destinataires'):
-            return (
-                "Qui doit recevoir cette annonce : tout le monde, les enseignants, "
-                "les parents ou les élèves ?"
-            )
-        from school_admin.services.assistant_tools import _destinataires_libelle
-
-        dest = _destinataires_libelle(draft.get('destinataires') or ['tous'])
-        return (
-            f"Voici le projet. Titre : {draft.get('titre')}. "
-            f"Destinataires : {dest}. "
-            "C’est bon, ou souhaitez-vous modifier quelque chose avant publication ?"
-        )
-
-    def _needs_written_draft(self, text, draft):
-        if is_affirmative(text) or is_cancel(text):
-            return False
-        if is_vague_annonce_modify(text) or annonce_field_request(text):
-            return False
-        if WRITE_SPEC_RE.search(text or ''):
-            return True
-        if wants_modify(text) and (draft.get('contenu') or draft.get('titre')):
-            return True
-        if not draft.get('contenu') and len((text or '').strip()) < 90:
-            return True
-        return False
-
-    async def _fill_annonce_from_instruction(self, question, draft):
-        ctx = await self._build_context()
-        generated = await generate_written_draft(ctx, question, current=draft)
-        if generated.get('titre'):
-            draft['titre'] = generated['titre'][:255]
-        if generated.get('contenu'):
-            draft['contenu'] = generated['contenu'][:WRITTEN_DRAFT_MAX]
-        return draft
-
-    async def _start_annonce_guidee(self, question, draft=None):
-        from django.urls import reverse
-
-        data = draft or {}
-        current = {
-            'titre': (data.get('titre') or '').strip()[:255],
-            'contenu': (data.get('contenu') or '').strip()[:WRITTEN_DRAFT_MAX],
-            'destinataires': data.get('destinataires'),
-            'publier': True,
-        }
-        leftover_topic = ANNONCE_CREATE_RE.sub('', question or '').strip(' .!?:,')
-        should_draft = bool(
-            current['titre']
-            or current['contenu']
-            or len(leftover_topic) > 8
-            or WRITE_SPEC_RE.search(question or '')
-        )
-        if should_draft and (
-            not current['titre'] or not current['contenu'] or WRITE_SPEC_RE.search(question or '')
-        ):
-            try:
-                current = await self._fill_annonce_from_instruction(question, current)
-            except Exception:
-                logger.exception("Impossible de rédiger le brouillon d’annonce.")
-        if current.get('titre') and current.get('contenu') and not current.get('destinataires'):
-            current['destinataires'] = ['tous']
-        self.pending_action = {
-            'name': 'annonce_guidee',
-            'draft': current,
-        }
-        await self._send_json({
-            'type': 'navigate',
-            'url': reverse('directeur:creer_annonce'),
-            'titre': 'Créer une annonce',
-            'immediate': True,
-        })
-        await self._send_annonce_form_fill()
-        if self._annonce_ready():
-            await self._set_pending(self.pending_action['draft'])
-            self.pending_action['name'] = 'annonce_guidee'
-        await self._persist_pending()
-        spoken = "J’ouvre le formulaire d’annonce. " + self._next_annonce_prompt()
-        await self._speak_and_finish(
-            user_text=question,
-            spoken=spoken,
-            choices=self._choices_for_annonce(),
-        )
-
-    async def _continue_annonce_guidee(self, question):
-        draft = dict((self.pending_action or {}).get('draft') or {})
-        text = (question or '').strip()
-        field = annonce_field_request(text)
-        if is_vague_annonce_modify(text) and not field:
-            await self._speak_and_finish(
-                user_text=question,
-                spoken="Que souhaitez-vous modifier : le titre, le texte ou les destinataires ?",
-                choices=self._choices_for_annonce_fields(),
-            )
-            return
-        if field:
-            draft['edit_field'] = field
-            if field == 'destinataires':
-                draft['destinataires'] = None
-                draft['destinataires_libelle'] = ''
-            self.pending_action['draft'] = draft
-            await self._persist_pending()
-            if field == 'titre':
-                spoken = "Quel nouveau titre souhaitez-vous ?"
-                choices = []
-            elif field == 'contenu':
-                spoken = (
-                    "Quel nouveau texte souhaitez-vous ? Indiquez aussi le format "
-                    "si besoin, par exemple deux paragraphes."
-                )
-                choices = []
-            else:
-                spoken = "Qui doit recevoir cette annonce ?"
-                choices = self._choices_for_annonce()
-            await self._speak_and_finish(
-                user_text=question,
-                spoken=spoken,
-                choices=choices,
-            )
-            return
-
-        focus = draft.get('edit_field')
-        dests = infer_destinataires(text)
-        if focus == 'titre':
-            if self._needs_written_draft(text, draft):
-                try:
-                    generated = await self._fill_annonce_from_instruction(text, draft)
-                    draft['titre'] = (generated.get('titre') or text)[:255]
-                except Exception:
-                    logger.exception("Impossible d’ajuster le titre d’annonce.")
-                    draft['titre'] = text[:255]
-            else:
-                draft['titre'] = text[:255]
-            draft.pop('edit_field', None)
-        elif focus == 'contenu':
-            if self._needs_written_draft(text, draft):
-                try:
-                    draft = await self._fill_annonce_from_instruction(text, draft)
-                except Exception:
-                    logger.exception("Impossible d’ajuster le texte d’annonce.")
-                    draft['contenu'] = text[:WRITTEN_DRAFT_MAX]
-            else:
-                draft['contenu'] = text[:WRITTEN_DRAFT_MAX]
-            draft.pop('edit_field', None)
-        elif dests and (
-            focus == 'destinataires'
-            or not draft.get('destinataires')
-            or 'destinataire' in text.lower()
-        ):
-            draft['destinataires'] = dests
-            draft.pop('edit_field', None)
-        elif focus == 'destinataires':
-            await self._speak_and_finish(
-                user_text=question,
-                spoken="Qui doit recevoir cette annonce : tout le monde, les enseignants, les parents ou les élèves ?",
-                choices=self._choices_for_annonce(),
-            )
-            return
-        elif self._needs_written_draft(text, draft):
-            try:
-                draft = await self._fill_annonce_from_instruction(text, draft)
-            except Exception:
-                logger.exception("Impossible d’ajuster le brouillon d’annonce.")
-                if not draft.get('contenu'):
-                    draft['contenu'] = text[:WRITTEN_DRAFT_MAX]
-                elif not draft.get('titre'):
-                    draft['titre'] = text[:255]
-        elif not draft.get('titre'):
-            draft['titre'] = text[:255]
-        elif not draft.get('contenu'):
-            draft['contenu'] = text[:WRITTEN_DRAFT_MAX]
-        elif not draft.get('destinataires'):
-            draft['destinataires'] = dests or ['tous']
-        elif self._annonce_ready():
-            if len(text) <= 80:
-                draft['titre'] = text[:255]
-            else:
-                draft['contenu'] = text[:WRITTEN_DRAFT_MAX]
-        if draft.get('contenu'):
-            draft['contenu'] = draft['contenu'][:WRITTEN_DRAFT_MAX]
-        self.pending_action['draft'] = draft
-        await self._send_annonce_form_fill()
-        if self._annonce_ready():
-            await self._set_pending(draft)
-            self.pending_action['name'] = 'annonce_guidee'
-        await self._persist_pending()
-        await self._speak_and_finish(
-            user_text=question,
-            spoken=self._next_annonce_prompt(),
-            choices=self._choices_for_annonce(),
-        )
 
     async def _set_pending(self, draft):
         from school_admin.services.assistant_tools import _destinataires_libelle
@@ -1504,98 +1248,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         pending = self.pending_action or {}
         return choices_for_emploi(pending.get('draft') or {}, pending.get('name'))
 
-    async def _navigate_emploi(self, url, titre):
-        if not url:
-            return
-        await self._send_json({
-            'type': 'navigate',
-            'url': url,
-            'titre': titre or 'Emploi du temps',
-        })
-
-    async def _start_emploi_guidee(self, question, draft=None):
-        ctx = await self._build_context()
-        data = await database_sync_to_async(enrich_emploi_draft)(ctx, draft or {})
-        if data.get('suggestions_possibles') or data.get('plusieurs_classes'):
-            data['choices'] = choices_from_class_lookup(data)
-        elif not data.get('classe') and data.get('statut') == 'incomplet':
-            data['choices'] = await database_sync_to_async(_classe_choices)(ctx)
-        self.pending_action = {
-            'name': 'creer_emploi_du_temps',
-            'draft': data,
-        }
-        await self._persist_pending()
-        if data.get('url'):
-            await self._navigate_emploi(data['url'], data.get('classe'))
-        spoken = next_emploi_prompt(data)
-        choices = data.get('choices') or self._choices_for_emploi_action()
-        await self._speak_and_finish(user_text=question, spoken=spoken, choices=choices)
-
-    async def _start_creneau_guidee(self, question, draft=None):
-        ctx = await self._build_context()
-        data = await database_sync_to_async(enrich_creneau_draft)(ctx, draft or {})
-        if data.get('suggestions_possibles') or data.get('plusieurs_classes'):
-            data['choices'] = choices_from_class_lookup(data)
-        elif not data.get('classe') and data.get('statut') == 'incomplet':
-            data['choices'] = await database_sync_to_async(_classe_choices)(ctx)
-        self.pending_action = {
-            'name': 'ajouter_creneau_emploi',
-            'draft': data,
-        }
-        await self._persist_pending()
-        if data.get('url'):
-            await self._navigate_emploi(data['url'], data.get('classe'))
-        spoken = next_creneau_prompt(data)
-        choices = data.get('choices') or self._choices_for_emploi_action()
-        await self._speak_and_finish(user_text=question, spoken=spoken, choices=choices)
-
-    async def _continue_emploi_guidee(self, question):
-        pending = self.pending_action or {}
-        name = pending.get('name')
-        draft = dict(pending.get('draft') or {})
-        text = (question or '').strip()
-        if name == 'creer_emploi_du_temps' and (
-            CRENEAU_ADD_RE.search(text) or re.search(r'cr[ée]neau|cours', text, re.I)
-        ):
-            merged = extract_creneau_draft(text)
-            if draft.get('classe') and not merged.get('classe'):
-                merged['classe'] = draft['classe']
-            await self._start_creneau_guidee(question, merged)
-            return
-        extracted = (
-            extract_creneau_draft(text)
-            if name == 'ajouter_creneau_emploi'
-            else extract_emploi_draft(text)
-        )
-        for key, value in extracted.items():
-            if key == 'action' or not value:
-                continue
-            if wants_modify(text) or not draft.get(key):
-                draft[key] = value
-                if key == 'matiere':
-                    draft.pop('matiere_introuvable', None)
-                    draft.pop('matiere_id', None)
-                if key == 'professeur':
-                    draft.pop('professeur_introuvable', None)
-                    draft.pop('professeur_id', None)
-                if key == 'salle':
-                    draft.pop('salle_introuvable', None)
-                    draft.pop('salle_id', None)
-        if (
-            not draft.get('classe')
-            and not extracted.get('jour')
-            and not extracted.get('heure_debut')
-            and not is_affirmative(text)
-            and not is_cancel(text)
-            and not wants_modify(text)
-            and len(text) <= 40
-        ):
-            draft['classe'] = text
-        if name == 'ajouter_creneau_emploi':
-            await self._start_creneau_guidee(question, draft)
-        else:
-            await self._start_emploi_guidee(question, draft)
-
     async def _confirm_emploi_action(self):
         pending = self.pending_action or {}
         name = pending.get('name')
@@ -1650,62 +1302,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'url': url,
         })
         await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
-
-    async def _start_generic_action(self, name, question, result):
-        data = dict(result or {})
-        if data.get('erreur') and data.get('statut') not in (
-            'incomplet',
-            'en_attente_confirmation',
-        ):
-            await self._clear_pending(silent=True)
-            await self._send_action_result('error', 'Action échouée', data['erreur'])
-            await self._speak_and_finish(user_text=question, spoken=data['erreur'])
-            return
-        self.pending_action = {'name': name, 'draft': data}
-        await self._persist_pending()
-        if data.get('url') and data.get('ouvrir'):
-            await self._send_json({
-                'type': 'navigate',
-                'url': data['url'],
-                'titre': data.get('resume') or data.get('nom') or '',
-            })
-        spoken = data.get('message') or default_prompt(data)
-        if data.get('statut') == 'en_attente_confirmation':
-            spoken = default_prompt(data)
-        elif data.get('statut') == 'ok' and not data.get('erreur'):
-            await self._clear_pending(silent=True)
-            await self._send_action_result(
-                'success',
-                'Action réalisée',
-                data.get('message') or 'C’est déjà fait.',
-                url=data.get('url'),
-            )
-            spoken = data.get('message') or spoken
-            await self._speak_and_finish(user_text=question, spoken=spoken)
-            return
-        choices = self._choices_for_pending_action(name, data)
-        if is_action_ready(data):
-            await self._send_generic_pending_ui(name, data)
-        await self._speak_and_finish(user_text=question, spoken=spoken, choices=choices)
-
-    async def _continue_generic_action(self, question):
-        pending = self.pending_action or {}
-        name = pending.get('name')
-        draft = dict(pending.get('draft') or {})
-        text = (question or '').strip()
-        if is_affirmative(text) and is_action_ready(draft):
-            await self._confirm_generic_action()
-            return
-        manquants = list(draft.get('manquants') or [])
-        if manquants:
-            draft[manquants[0]] = text
-        else:
-            draft['query'] = text
-        other = resolve_action_intent(text)
-        if other and other[0] == name:
-            draft.update(other[1])
-        result = await self._execute_tool(await self._build_context(), name, draft)
-        await self._start_generic_action(name, question, result)
 
     async def _confirm_generic_action(self):
         pending = self.pending_action or {}

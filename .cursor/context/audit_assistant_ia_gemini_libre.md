@@ -1,10 +1,11 @@
 # Audit — Aria Gemini libre (intelligence d’abord)
 
 **Date** : 2026-09-23  
-**Statut** : audit **validé** le 2026-09-23. **G1 validée**. **Vague G2 livrée** (pending = oui / modifier / annuler). G3–G7 non commencées.  
+**Statut** : audit **validé** le 2026-09-23. **G1–G2 validées**. **Vague G3 livrée** (regex hors conversation). G4–G7 non commencées.  
 **Branche G0** : `cursor/audit-gemini-libre-a40c`  
 **Branche G1** : `cursor/assistant-g1-takeover-a40c`  
 **Branche G2** : `cursor/assistant-g2-pending-a40c`  
+**Branche G3** : `cursor/assistant-g3-regex-a40c`  
 **Persona** : directeur (personnel admin via `check_permission`). Enseignant primaire : même esprit, hors implémentation ici.  
 **Préalable validé** : Vagues métier 1–6 + qualité A+B+C+D + correctif « succès outil ≠ erreur rouge ».  
 **Audits liés** : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md) · [audit_assistant_ia_qualite.md](audit_assistant_ia_qualite.md)
@@ -326,7 +327,7 @@ Ce n’est **pas** un garde-fou : intercepter « créer une classe » par regex 
 
 ## 8. Plan d’actions futures (ordre d’implémentation)
 
-Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **G1 validée.** **Stop après G2** : ne pas démarrer G3 sans feu vert.
+Audit **validé**. Une vague à la fois, tests ciblés, pas de nouvelle vue globale, pas de tools CG, pas de PR sauf demande. **G1–G2 validées.** **Stop après G3** : ne pas démarrer G4 sans feu vert.
 
 Cache prompt : chaque vague qui touche le texte système **bump** `CACHE_DISPLAY_NAME` (`aria-directeur-tools-v11`, puis v12…).
 
@@ -360,7 +361,7 @@ Actions :
 
 1. `_route_pending_reply` : `is_affirmative` → apply (si brouillon prêt), `is_cancel` → cancel, `is_pending_modify` → garde la carte et laisse Gemini (overlay brouillon).
 2. Toute autre phrase → **clear silencieux**, puis `_handle_chat` (Gemini). Plus de `classify_pending_intent` / wizard continue sur le chemin live.
-3. `_continue_annonce_guidee` / `_continue_emploi_guidee` / `_continue_generic_action` hors du chemin live (fonctions encore dans le fichier, G3 les nettoiera). `apply` / `confirm` / `cancel` conservés.
+3. `_continue_*` hors du chemin live (G3 les a ensuite retirés du consumer). `apply` / `confirm` / `cancel` conservés.
 4. Carte Oui / Modifier / Annuler inchangée. Boutons UI `confirm` / `cancel` / `modify` inchangés.
 5. Extracteurs jour/heure plus appelés depuis le routeur pending.
 
@@ -368,16 +369,20 @@ Tests : `school_admin.tests.test_assistant_qualite.GeminiG2PendingTests`.
 
 **Hors G2** : pas de G3 (regex hors conversation).
 
-### Vague G3 — Regex hors du chemin conversation
+### Vague G3 — Regex hors du chemin conversation — **FAITE** (2026-09-23)
 
-**But** : `assistant_intents.py` n’est plus un routeur métier.
+**But** : `assistant_intents.py` n’est plus un routeur métier. Gemini gère le sujet.
 
 Actions :
 
-1. `ACTION_INTENT_RES` / `resolve_action_intent` : plus appelés par le consumer. Tests d’outils = appels directs `prepare`/`apply`.
-2. `is_small_talk` : ne plus couper `use_tools`. Le prompt suffit.
-3. Nav : si `is_explicit_navigation` **et** la phrase n’est que ça → raccourci OK ; si et + consigne → Gemini (il appellera `ouvrir_*` + lecture).
-4. Nettoyer les regex morts (annonce/EDT d’entrée) ou les cantonner aux tests de régression documentés comme **legacy**.
+1. `resolve_action_intent` / `ACTION_INTENT_RES` : plus importés ni appelés par le consumer. Restent en **legacy** pour les tests d’outils (`test_assistant_directeur_tools`).
+2. `is_small_talk` ne coupe plus `use_tools` (toujours True). Le prompt suffit pour un « merci ».
+3. Nav raccourci seulement si `is_navigation_only` (« ouvre / va sur » **sans** « et / puis / ensuite » + consigne). « Ouvre la 6e A et les notes » → Gemini.
+4. FSM morts retirés du consumer : `_start_*_guidee`, `_continue_*`, extracteurs annonce/EDT, `generate_written_draft` côté WS. Carte Oui / Modifier / Annuler + `confirm` / `apply` conservés.
+
+Tests : `school_admin.tests.test_assistant_qualite.GeminiG3RegexTests`.
+
+**Hors G3** : pas de G4 (suggestions).
 
 ### Vague G4 — Suggestions vraiment assistante
 
@@ -495,7 +500,7 @@ Critère subjectif (le vrai livrable) : **on a l’impression de parler à quelq
 
 1. Gemini est le seul cerveau d’intention ; les tools Django sont les seules « commandes serveur ».
 2. On **supprime** les wizards guidés (annonce, EDT, générique) au profit de Gemini + carte oui/non — G1 coupe le takeover ; G2 retirera les FSM du tour suivant.
-3. Ordre : G1 (**faite, validée**) → G2 (**faite**) → G3, puis G4+G5+G6, puis G7.
+3. Ordre : G1 (**faite, validée**) → G2 (**faite, validée**) → G3 (**faite**) → G4+G5+G6, puis G7.
 4. Pas de tools CG, pas de shell, pas d’`apply` sans confirmation.
 
-**Stop** : G2 livrée. Ne pas démarrer G3 tant que le directeur n’a pas validé G2 en vocal.
+**Stop** : G3 livrée. Ne pas démarrer G4 tant que le directeur n’a pas validé G3 en vocal.

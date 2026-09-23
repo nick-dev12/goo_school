@@ -109,6 +109,13 @@ PAGE_CATALOG = (
         'route': 'enseignant:notifications_enseignant',
         'mots': 'notifications alertes',
     },
+    {
+        'key': 'noter_examen',
+        'titre': 'Noter un examen',
+        'route': 'enseignant:noter_examen',
+        'route_kwargs': ('classe_id',),
+        'mots': 'examen composition session noter',
+    },
 )
 
 

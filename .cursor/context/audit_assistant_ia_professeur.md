@@ -1,7 +1,7 @@
 # Audit + feuille de route — Assistant IA Professeur
 
 **Date** : 2026-09-23  
-**Statut** : feuille de route **validée**. **P0–P5 livrées** (primaire, secondaire, supérieur LMD). **Stop avant P6** (examens).  
+**Statut** : feuille de route **validée**. **P0–P6 livrées**. **Stop avant P7** (compléments transverses).  
 **Branche** : `cursor/assistant-prof-p0-p1-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
@@ -362,7 +362,7 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | UI | Partial vocal dans **nav/header commun**, pas seulement bottom nav |
 | Priorité métier | Lecture classes/notes/présences → écriture confirmée → supérieur → examens |
 
-**Prochaine étape** : **P6** (examens `noter_examen` secondaire).
+**Prochaine étape** : **P7** (justifications, pages historique via `ouvrir_page`, etc.).
 
 ---
 
@@ -470,7 +470,34 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 4. **« Crée une évaluation … semestre 1 »** → carte **oui / modifier / annuler** avant création en base.
 5. Vérifier qu’un prof **collège** n’a **pas** les tools `get_modules_classe` / `get_credits_etudiant` dans le schéma (cache profil `secondaire`).
 
-### Hors P5 (P6+)
+### Hors P5 (P7+)
 
-- Examens secondaire (`noter_examen`, sessions) — **P6**.
 - Compléments transverses — **P7** ; recette multi-types — **P8**.
+
+---
+
+## 16. Livraison P6 — Examens enseignant (2026-09-23)
+
+### P6 — College / lycee (pas primaire, pas supérieur LMD)
+
+| Élément | Livré |
+|---------|--------|
+| Filtrage | Tools visibles si `persona=enseignant`, `not est_superieur`, `not est_primaire` |
+| Lecture | `get_examens_prof`, `get_notes_examen` (périmètre affectations + matières prof) |
+| Navigation | `ouvrir_noter_examen` → `enseignant:noter_examen(_session)` ; page catalogue `noter_examen` |
+| Écriture | `enregistrer_note_examen` — carte **oui / modifier / annuler** (`NoteExamen`, respect `soumis`) |
+| Intégration | `assistant_enseignant_examens_tools.py` + `assistant_enseignant_examens_actions.py` ; cache **v3** profil `secondaire` |
+| Tests | `test_assistant_enseignant_examens_tools` (6) + régression — **31 tests** enseignant OK |
+
+### Recette vocale prof collège / lycée
+
+1. Prof affecté à une classe avec **session d’examen** incluant sa matière.
+2. **« Quelles sessions d’examen pour ma classe ? »** → `get_examens_prof`.
+3. **« Notes d’examen de … »** → chiffres réels ou message « aucune note ».
+4. **« Ouvre noter examen en … »** → navigation vers la page de saisie.
+5. **« Note … au BAC blanc »** → brouillon + confirmation avant enregistrement.
+
+### Hors P6 (P7–P8)
+
+- Justifier absence, modifier/supprimer évaluation, notifications lues — **P7**.
+- Recette finale multi-types — **P8**.

@@ -507,6 +507,22 @@ def tool_chercher_en_base(ctx, args):
     if 'notification' in question:
         found = tool_get_notifications(ctx, args)
         return {'trouve': True, 'source': 'notifications', **found}
+    if not getattr(ctx, 'est_superieur', False) and not getattr(ctx, 'est_primaire', False):
+        if 'examen' in question or 'composition' in question:
+            from school_admin.services.assistant_enseignant_examens_tools import (
+                tool_get_examens_prof,
+                tool_get_notes_examen,
+                tool_ouvrir_noter_examen,
+            )
+
+            if any(t in question for t in ('note', 'notes')):
+                found = tool_get_notes_examen(ctx, payload)
+                return {'trouve': 'erreur' not in found, 'source': 'notes_examen', **found}
+            if any(t in question for t in ('noter', 'saisir', 'ouvrir')):
+                found = tool_ouvrir_noter_examen(ctx, payload)
+                return {'trouve': 'erreur' not in found, 'source': 'noter_examen', **found}
+            found = tool_get_examens_prof(ctx, payload)
+            return {'trouve': True, 'source': 'examens_prof', **found}
     if getattr(ctx, 'est_superieur', False):
         if any(t in question for t in ('module', 'maquette', 'ue ', ' ue', 'ects', 'credit')):
             if any(t in question for t in ('etudiant', 'eleve', 'etudiante')):
@@ -536,6 +552,14 @@ def tool_get_credits_etudiant(ctx, args):
     return _impl(ctx, args)
 
 
+def _merge_examens_handlers():
+    from school_admin.services.assistant_enseignant_examens_tools import (
+        ENSEIGNANT_EXAMENS_TOOL_HANDLERS,
+    )
+
+    return ENSEIGNANT_EXAMENS_TOOL_HANDLERS
+
+
 ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS = {
     'chercher_en_base': tool_chercher_en_base,
     'get_modules_classe': tool_get_modules_classe,
@@ -559,6 +583,7 @@ ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS = {
     'ouvrir_page': tool_ouvrir_page,
     'ouvrir_classe': tool_ouvrir_classe,
 }
+ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS.update(_merge_examens_handlers())
 
 ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA = [
     {
@@ -814,14 +839,16 @@ ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA.extend(build_enseignant_secondaire_action_too
 
 
 def get_enseignant_secondaire_tools_schema(ctx=None):
+    from school_admin.services.assistant_enseignant_examens_tools import (
+        extend_enseignant_schema_for_examens,
+    )
     from school_admin.services.assistant_enseignant_superieur_tools import (
         extend_enseignant_schema_for_superieur,
     )
 
-    return extend_enseignant_schema_for_superieur(
-        list(ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA),
-        ctx,
-    )
+    schema = list(ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA)
+    schema = extend_enseignant_schema_for_superieur(schema, ctx)
+    return extend_enseignant_schema_for_examens(schema, ctx)
 
 
 def execute_enseignant_secondaire_tool(ctx, name, arguments):
@@ -906,4 +933,11 @@ def spoken_from_enseignant_tool(name, result):
         return f"{nb} module(s) pour {classe}."
     if name == 'get_credits_etudiant' and result.get('message'):
         return result['message'].strip()
+    if name == 'get_examens_prof' and result.get('sessions'):
+        nb = result.get('nb', len(result['sessions']))
+        return result.get('message') or f"{nb} session(s) d'examen dans votre perimetre."
+    if name == 'get_notes_examen' and result.get('message'):
+        return result['message'].strip()
+    if name == 'ouvrir_noter_examen' and result.get('titre'):
+        return f"J'ouvre {result['titre']}."
     return ''

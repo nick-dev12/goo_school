@@ -739,6 +739,15 @@ def _suggestions_after_read_enseignant(tool_results, refs=None, ctx=None):
             {'label': 'Difficulté', 'value': 'Élèves en difficulté.'},
             {'label': 'Moyennes', 'value': f'Calcule les moyennes de {classe}.' if classe else 'Calcule les moyennes.'},
         ]
+    elif names & {'get_examens_prof', 'get_notes_examen', 'ouvrir_noter_examen'}:
+        items = [
+            {
+                'label': 'Noter',
+                'value': f'Noter l\'examen en {classe}.' if classe else 'Ouvrir noter examen.',
+            },
+            {'label': 'Notes examen', 'value': 'Les notes d\'examen de la classe.'},
+            {'label': 'Sessions', 'value': 'Quelles sessions d\'examen ?'},
+        ]
     elif ctx and getattr(ctx, 'est_superieur', False) and names & {
         'get_modules_classe', 'get_credits_etudiant',
     }:

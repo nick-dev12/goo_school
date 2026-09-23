@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 CACHE_DISPLAY_NAME = 'aria-directeur-tools-v14'
 CACHE_DISPLAY_NAME_ENSEIGNANT = 'aria-enseignant-primaire-tools-v3'
-CACHE_DISPLAY_NAME_ENSEIGNANT_SEC = 'aria-enseignant-tools-v2'
+CACHE_DISPLAY_NAME_ENSEIGNANT_SEC = 'aria-enseignant-tools-v3'
 DEFAULT_TTL_SECONDS = 7200
 
 _lock = threading.Lock()
@@ -265,12 +265,23 @@ def ensure_tools_cache(
             )
 
             _prof_ctx = None
-            if (profile or '').strip().lower() == 'superieur':
+            profile_key = (profile or 'secondaire').strip().lower()
+            if profile_key == 'superieur':
 
                 class _ProfSuperieurCtx:
                     est_superieur = True
+                    est_primaire = False
+                    persona = 'enseignant'
 
                 _prof_ctx = _ProfSuperieurCtx()
+            else:
+
+                class _ProfSecondaireCtx:
+                    est_superieur = False
+                    est_primaire = False
+                    persona = 'enseignant'
+
+                _prof_ctx = _ProfSecondaireCtx()
             schema = get_enseignant_secondaire_tools_schema(_prof_ctx)
             suffix = (profile or 'secondaire').strip().lower() or 'secondaire'
             display = f'{CACHE_DISPLAY_NAME_ENSEIGNANT_SEC}-{suffix}'

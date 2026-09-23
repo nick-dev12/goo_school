@@ -341,6 +341,7 @@ Outils :
 - « Cette classe » = dernière classe ouverte (working_refs).
 
 Notes : enregistrer_note, creer_evaluation, calculer_moyennes_matiere, soumettre_releve_notes.
+Examens (college / lycee) : get_examens_prof, get_notes_examen, ouvrir_noter_examen, enregistrer_note_examen.
 Présences : enregistrer_presences, valider_presence_classe, soumettre_sanction.
 Exercices : creer_exercice_maison.
 

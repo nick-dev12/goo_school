@@ -40,12 +40,14 @@ from school_admin.services.gemini_assistant_service import (
     compact_tool_memory,
     extract_working_refs,
     format_cited_refs,
+    format_turn_telemetry,
+    log_turn_telemetry,
     run_assistant_turn,
     sanitize_dialog_messages,
 )
 from school_admin.services.assistant_tools import (
     normalize_suggestions,
-    spoken_from_tool_result,
+    spoken_from_tool_results,
 )
 from school_admin.services.tts_service import strip_assistant_markup, synthesize_audio
 
@@ -198,6 +200,13 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self._last_tool_memory = ''
         self._working_refs = {}
         self._turn_has_output = False
+        self._turn_stats = {
+            'tools': [],
+            'rounds': 0,
+            'pending_shown': 0,
+            'suggestions_count': 0,
+            'takeover': 0,
+        }
         allowed = await self._resolve_etablissement()
         if not allowed:
             await self.close(code=4401)
@@ -335,6 +344,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             self._cancel_notified = False
             self._busy = True
             self._turn_has_output = False
+            self._reset_turn_stats()
             try:
                 await handler()
             except asyncio.CancelledError:
@@ -650,11 +660,18 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             pending_sentences.extend(assembler.feed(clean))
 
         last_tool_results = []
+        turn_stats = getattr(self, '_turn_stats', None)
+        if turn_stats is None:
+            self._reset_turn_stats()
+            turn_stats = self._turn_stats
 
         async def on_tool_result(name, _arguments, result):
             if isinstance(result, dict):
                 last_tool_results.append((name, result))
-            return await self._on_live_tool_result(name, result)
+            should_stop = await self._on_live_tool_result(name, result)
+            if should_stop:
+                turn_stats['takeover'] = turn_stats.get('takeover', 0) + 1
+            return should_stop
 
         try:
             _working, spoken = await run_assistant_turn(
@@ -665,23 +682,41 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 on_tool_result=on_tool_result,
                 use_tools=True,
                 tool_memory=self._tool_memory_for_turn(),
+                turn_stats=turn_stats,
             )
         except Exception:
             logger.exception("Tour Gemini après outil")
-            if last_tool_results:
-                spoken = spoken_from_tool_result(*last_tool_results[-1], ctx=ctx)
-                if spoken:
-                    await self._send_json({'type': 'text_delta', 'text': spoken})
-                    pending_sentences.append(spoken)
-                    await self._flush_tts_queue(pending_sentences)
-                    await self._send_json({'type': 'done'})
-                    return
+            spoken = spoken_from_tool_results(last_tool_results, ctx=ctx)
+            if spoken:
+                await self._send_json({'type': 'text_delta', 'text': spoken})
+                pending_sentences.append(spoken)
+                await self._flush_tts_queue(pending_sentences)
+                if last_tool_results and not turn_stats.get('tools'):
+                    turn_stats['tools'] = [name for name, _result in last_tool_results]
+                self._log_turn_stats()
+                await self._send_json({'type': 'done'})
+                return
             await self._cancel_opener()
+            if last_tool_results or turn_stats.get('pending_shown'):
+                spoken = (
+                    "J’ai préparé l’action. C’est bon ?"
+                    if turn_stats.get('pending_shown')
+                    else "J’ai les informations. Que souhaitez-vous que je fasse ?"
+                )
+                await self._send_json({'type': 'text_delta', 'text': spoken})
+                pending_sentences.append(spoken)
+                await self._flush_tts_queue(pending_sentences)
+                if last_tool_results and not turn_stats.get('tools'):
+                    turn_stats['tools'] = [name for name, _result in last_tool_results]
+                self._log_turn_stats()
+                await self._send_json({'type': 'done'})
+                return
             if not self._turn_has_output:
                 await self._send_json({
                     'type': 'error',
                     'message': "Je n’ai pas pu répondre pour le moment. Réessayez dans un instant.",
                 })
+            self._log_turn_stats()
             await self._send_json({'type': 'done'})
             return
 
@@ -702,10 +737,21 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                     self._working_refs.update(extract_working_refs(tool_name, tool_result))
             self._last_tool_memory = compact_tool_memory(*last_tool_results[-1])
         if not spoken and not leftover and last_tool_results:
-            spoken = spoken_from_tool_result(*last_tool_results[-1], ctx=ctx)
+            spoken = spoken_from_tool_results(last_tool_results, ctx=ctx)
             if spoken:
                 await self._send_json({'type': 'text_delta', 'text': spoken})
                 pending_sentences.append(spoken)
+
+        if not spoken and not leftover and not pending_sentences and (
+            last_tool_results or turn_stats.get('pending_shown')
+        ):
+            spoken = (
+                "J’ai préparé l’action. C’est bon ?"
+                if turn_stats.get('pending_shown')
+                else "J’ai les informations. Que souhaitez-vous que je fasse ?"
+            )
+            await self._send_json({'type': 'text_delta', 'text': spoken})
+            pending_sentences.append(spoken)
 
         await self._flush_tts_queue(pending_sentences)
         if self._cancel_requested:
@@ -731,6 +777,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 'message': "Je n’ai reçu aucune réponse de l’assistant.",
             })
 
+        if last_tool_results and not turn_stats.get('tools'):
+            turn_stats['tools'] = [name for name, _result in last_tool_results]
+        self._log_turn_stats()
         await self._send_json({'type': 'done'})
 
     async def _handle_stt(self, payload):
@@ -951,6 +1000,11 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         cleaned = normalize_suggestions(items, limit=3)
         if not cleaned:
             return
+        stats = getattr(self, '_turn_stats', None)
+        if stats is None:
+            self._reset_turn_stats()
+            stats = self._turn_stats
+        stats['suggestions_count'] = len(cleaned)
         await self._send_json({
             'type': 'suggestions',
             'items': cleaned,
@@ -1058,6 +1112,34 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             )
         return ' | '.join(parts)
 
+    def _reset_turn_stats(self):
+        self._turn_stats = {
+            'tools': [],
+            'rounds': 0,
+            'pending_shown': 0,
+            'suggestions_count': 0,
+            'takeover': 0,
+        }
+
+    def _log_turn_stats(self):
+        stats = getattr(self, '_turn_stats', None) or {}
+        payload = format_turn_telemetry(
+            tools=stats.get('tools') or [],
+            rounds=stats.get('rounds') or 0,
+            pending_shown=stats.get('pending_shown') or 0,
+            suggestions_count=stats.get('suggestions_count') or 0,
+            takeover=stats.get('takeover') or 0,
+        )
+        log_turn_telemetry(payload)
+        return payload
+
+    def _mark_pending_shown(self):
+        stats = getattr(self, '_turn_stats', None)
+        if stats is None:
+            self._reset_turn_stats()
+            stats = self._turn_stats
+        stats['pending_shown'] = 1
+
     async def _route_pending_reply(self, question):
         """G2 : seuls oui / modifier / annuler consomment le pending."""
         await self._ensure_pending_loaded()
@@ -1164,6 +1246,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'name': name,
             'draft': draft,
         }
+        self._mark_pending_shown()
         await self._send_json({
             'type': 'action.pending',
             'action': 'creer_publier_annonce',
@@ -1204,6 +1287,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
     async def _send_generic_pending_ui(self, name, draft):
         draft = dict(draft or {})
+        self._mark_pending_shown()
         await self._send_json({
             'type': 'action.pending',
             'action': name,

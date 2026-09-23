@@ -29,6 +29,7 @@ from school_admin.services.gemini_assistant_service import (
     SYSTEM_PROMPT_STATIC,
     TOOL_TEMPERATURE,
     compact_tool_memory,
+    format_turn_telemetry,
     extract_working_refs,
     format_cited_refs,
     _dialog_to_gemini_contents,
@@ -1121,3 +1122,133 @@ class GeminiG6PromptTests(SimpleTestCase):
         self.assertIn('N’invente aucun crédit', superieur)
         self.assertIn('niveau LMD', superieur)
         self.assertIn('Comptabilité générale : indisponible', superieur)
+
+
+class GeminiG7TelemetryTests(SimpleTestCase):
+    """G7 : une ligne de tour (tool, rounds, pending, suggestions, takeover)."""
+
+    def test_format_turn_telemetry(self):
+        payload = format_turn_telemetry(
+            tools=['get_effectifs', ('get_impayes', {})],
+            rounds=3,
+            pending_shown=True,
+            suggestions_count=2,
+            takeover=0,
+        )
+        self.assertEqual(payload['tool'], 'get_effectifs,get_impayes')
+        self.assertEqual(payload['rounds'], 3)
+        self.assertEqual(payload['pending_shown'], 1)
+        self.assertEqual(payload['suggestions_count'], 2)
+        self.assertEqual(payload['takeover'], 0)
+
+    def test_ecriture_prend_la_carte_sans_takeover(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        async def _run():
+            consumer = AssistantConsumer()
+            consumer.scope = {}
+            consumer.pending_action = None
+            consumer._reset_turn_stats()
+            consumer._persist_pending = AsyncMock()
+            sent = []
+
+            async def fake_send(payload):
+                sent.append(payload)
+
+            consumer._send_json = fake_send
+            should_stop = await consumer._on_live_tool_result(
+                'creer_publier_annonce',
+                {
+                    'statut': 'en_attente_confirmation',
+                    'titre': 'Rentrée',
+                    'contenu': 'Message',
+                    'destinataires': ['parents'],
+                    'destinataires_libelle': 'Parents',
+                    'publier': True,
+                },
+            )
+            self.assertFalse(should_stop)
+            self.assertEqual(consumer._turn_stats['takeover'], 0)
+            self.assertEqual(consumer._turn_stats['pending_shown'], 1)
+            self.assertIn('action.pending', [item.get('type') for item in sent])
+            logged = consumer._log_turn_stats()
+            self.assertEqual(logged['takeover'], 0)
+            self.assertEqual(logged['pending_shown'], 1)
+
+        asyncio.run(_run())
+
+    def test_suggestions_comptees_sans_stopper(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        async def _run():
+            consumer = AssistantConsumer()
+            consumer.scope = {}
+            consumer.pending_action = None
+            consumer._reset_turn_stats()
+            consumer._followup_suggestions = []
+            sent = []
+
+            async def fake_send(payload):
+                sent.append(payload)
+
+            consumer._send_json = fake_send
+            should_stop = await consumer._on_live_tool_result(
+                'proposer_actions',
+                {
+                    'suggestions': [
+                        {'label': 'Relancer', 'value': 'Relance'},
+                        {'label': 'Fiche', 'value': 'Ouvre Diallo'},
+                    ],
+                },
+            )
+            self.assertFalse(should_stop)
+            await consumer._send_suggestions(consumer._followup_suggestions)
+            self.assertEqual(consumer._turn_stats['suggestions_count'], 2)
+            self.assertEqual(consumer._turn_stats['takeover'], 0)
+            self.assertEqual(sent[0]['type'], 'suggestions')
+
+        asyncio.run(_run())
+
+    def test_repli_oral_effectifs_impayes_caisse(self):
+        from school_admin.services.assistant_tools import (
+            spoken_from_tool_result,
+            spoken_from_tool_results,
+        )
+
+        effectifs = spoken_from_tool_result(
+            'get_effectifs',
+            {'nb_eleves_actifs': 42, 'nb_classes': 3, 'nb_professeurs': 8},
+        )
+        self.assertIn('42', effectifs)
+        self.assertIn('3 classes', effectifs)
+        impayes = spoken_from_tool_result(
+            'get_impayes',
+            {'nb': 2, 'perimetre': 'CE1 A', 'total_reste': 15000},
+        )
+        self.assertIn('2 impayés', impayes)
+        self.assertIn('CE1 A', impayes)
+        self.assertIn('relancer', impayes)
+        caisse = spoken_from_tool_result(
+            'get_caisse',
+            {'mois': 'septembre 2026', 'entrees': '1000', 'sorties': '200', 'solde': '800', 'devise': 'XAF'},
+        )
+        self.assertIn('septembre 2026', caisse)
+        self.assertIn('800', caisse)
+        notes = spoken_from_tool_result(
+            'get_notes_classe',
+            {'classe': 'CE1 A', 'nb': 4, 'notes': [{}] * 4},
+        )
+        self.assertIn('4', notes)
+        self.assertIn('CE1 A', notes)
+        edt = spoken_from_tool_result(
+            'get_emploi_du_temps',
+            {'classe': '3ème A', 'statut': 'Publié', 'creneaux': [{}, {}]},
+        )
+        self.assertIn('3ème A', edt)
+        self.assertIn('2 créneaux', edt)
+        walked = spoken_from_tool_results([
+            ('get_effectifs', {'nb_eleves_actifs': 12, 'classe': 'CP A'}),
+            ('proposer_actions', {'suggestions': []}),
+        ])
+        self.assertIn('CP A', walked)
+        self.assertIn('12', walked)

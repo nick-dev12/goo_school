@@ -29,6 +29,47 @@ MAX_TOOL_ROUNDS = 8
 TOOL_TEMPERATURE = 0.5
 CONVERSATION_TEMPERATURE = 0.7
 LLM_TIMEOUT = 60.0
+
+
+def format_turn_telemetry(
+    tools=None,
+    rounds=0,
+    pending_shown=0,
+    suggestions_count=0,
+    takeover=0,
+):
+    """Une ligne de recette G7 : tool, rounds, pending, suggestions, takeover."""
+    names = []
+    for item in tools or []:
+        name = item[0] if isinstance(item, (tuple, list)) else item
+        if name:
+            names.append(str(name))
+    return {
+        'tool': ','.join(names),
+        'rounds': int(rounds or 0),
+        'pending_shown': int(bool(pending_shown)),
+        'suggestions_count': int(suggestions_count or 0),
+        'takeover': int(takeover or 0),
+    }
+
+
+def log_turn_telemetry(payload):
+    logger.info('assistant.turn %s', json.dumps(payload, ensure_ascii=False))
+    return payload
+
+
+def _note_turn_stats(stats, rounds=None, tools=None):
+    if not isinstance(stats, dict):
+        return
+    if rounds is not None:
+        stats['rounds'] = rounds
+    if tools:
+        bag = stats.setdefault('tools', [])
+        for name in tools:
+            if name:
+                bag.append(name)
+
+
 _resolved_gemini_model = None
 GEMINI_MODEL_FALLBACKS = (
     'gemini-3.6-flash',
@@ -816,6 +857,7 @@ async def _run_assistant_turn_cached(
     on_text_delta=None,
     on_tool_result=None,
     tool_memory='',
+    turn_stats=None,
 ):
     from google import genai
     from google.genai import types
@@ -868,6 +910,7 @@ async def _run_assistant_turn_cached(
                 logger.warning(
                     'Tour Gemini après outil échoué, repli oral : %s', exc
                 )
+                _note_turn_stats(turn_stats, rounds=rounds_used)
                 return messages, spoken_from_tool_result(*last_tool, ctx=ctx)
             logger.warning('Tour Gemini avec cache échoué, repli sans cache : %s', exc)
             return None
@@ -882,6 +925,7 @@ async def _run_assistant_turn_cached(
                 rounds_used,
                 MAX_TOOL_ROUNDS,
             )
+            _note_turn_stats(turn_stats, rounds=rounds_used)
             return messages, spoken
 
         call_names = ', '.join(
@@ -892,6 +936,14 @@ async def _run_assistant_turn_cached(
             rounds_used,
             MAX_TOOL_ROUNDS,
             call_names,
+        )
+        _note_turn_stats(
+            turn_stats,
+            rounds=rounds_used,
+            tools=[
+                getattr(call, 'name', '') or ''
+                for call in function_calls
+            ],
         )
         used_tools = True
         model_parts = []
@@ -926,6 +978,7 @@ async def _run_assistant_turn_cached(
         except Exception:
             logger.exception("Suite Gemini après outil — repli sur le résultat d’outil")
             fallback = spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx)
+            _note_turn_stats(turn_stats, rounds=rounds_used)
             return messages, fallback
         if stop_after_tools:
             logger.info(
@@ -933,6 +986,7 @@ async def _run_assistant_turn_cached(
                 rounds_used,
                 MAX_TOOL_ROUNDS,
             )
+            _note_turn_stats(turn_stats, rounds=rounds_used)
             fallback = spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx)
             return messages, fallback or spoken
 
@@ -941,6 +995,7 @@ async def _run_assistant_turn_cached(
         MAX_TOOL_ROUNDS,
         MAX_TOOL_ROUNDS,
     )
+    _note_turn_stats(turn_stats, rounds=MAX_TOOL_ROUNDS)
     if on_status:
         await on_status('speaking')
     return messages, spoken
@@ -954,6 +1009,7 @@ async def run_assistant_turn(
     on_tool_result=None,
     use_tools=True,
     tool_memory='',
+    turn_stats=None,
 ):
     """
     Exécute un tour : outils en auto si besoin, puis stream du texte oral.
@@ -968,6 +1024,7 @@ async def run_assistant_turn(
             on_text_delta=on_text_delta,
             on_tool_result=on_tool_result,
             tool_memory=tool_memory,
+            turn_stats=turn_stats,
         )
         if cached_result is not None:
             return cached_result
@@ -1011,6 +1068,7 @@ async def run_assistant_turn(
                 rounds_used,
                 MAX_TOOL_ROUNDS,
             )
+            _note_turn_stats(turn_stats, rounds=rounds_used)
             spoken = strip_tool_markup(message.content or '')
             if used_tools:
                 if spoken:
@@ -1033,6 +1091,11 @@ async def run_assistant_turn(
             MAX_TOOL_ROUNDS,
             call_names,
         )
+        _note_turn_stats(
+            turn_stats,
+            rounds=rounds_used,
+            tools=[call.get('name') or '' for call in tool_calls],
+        )
         used_tools = True
         working.append(_assistant_message_for_api(message, tool_calls=tool_calls))
         last_compat = None
@@ -1049,6 +1112,7 @@ async def run_assistant_turn(
                         rounds_used,
                         MAX_TOOL_ROUNDS,
                     )
+                    _note_turn_stats(turn_stats, rounds=rounds_used)
                     fallback = spoken_from_tool_result(*last_compat, ctx=ctx)
                     return working, fallback
             working.append({
@@ -1062,6 +1126,7 @@ async def run_assistant_turn(
         MAX_TOOL_ROUNDS,
         MAX_TOOL_ROUNDS,
     )
+    _note_turn_stats(turn_stats, rounds=MAX_TOOL_ROUNDS)
     if on_status:
         await on_status('speaking')
     spoken = strip_tool_markup(

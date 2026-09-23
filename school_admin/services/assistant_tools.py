@@ -602,6 +602,21 @@ def spoken_from_affectations(result):
     return ' '.join(parts)
 
 
+def spoken_from_tool_results(tool_results, ctx=None):
+    """Repli oral : dernier outil parlant, pour un tour multi-tools (G7)."""
+    for item in reversed(tool_results or []):
+        if not item:
+            continue
+        if isinstance(item, (tuple, list)) and len(item) >= 2:
+            name, result = item[0], item[1]
+        else:
+            continue
+        spoken = spoken_from_tool_result(name, result, ctx=ctx)
+        if spoken:
+            return spoken
+    return ''
+
+
 def spoken_from_tool_result(name, result, ctx=None):
     if name == 'get_affectations' or (
         isinstance(result, dict) and result.get('source') == 'affectations'
@@ -620,7 +635,10 @@ def spoken_from_tool_result(name, result, ctx=None):
     listed = _spoken_name_list(result)
     if listed:
         return listed
-    return (result.get('message') or result.get('erreur') or '').strip()
+    text = (result.get('message') or result.get('erreur') or '').strip()
+    if text:
+        return text
+    return _spoken_read_summary(name, result)
 
 
 def _spoken_name_list(result, limit=12):
@@ -649,6 +667,94 @@ def _spoken_name_list(result, limit=12):
         if key == 'professeurs':
             return f'Voici {len(names)} professeurs : {text}.'
         return f'Voici {len(names)} membres du personnel : {text}.'
+    return ''
+
+
+def _spoken_amount(value):
+    if value in (None, ''):
+        return ''
+    text = str(value).strip()
+    return text.replace('.00', '') if text.endswith('.00') else text
+
+
+def _spoken_read_summary(name, result):
+    """Repli chiffré si Gemini se tait après un outil de lecture réussi."""
+    if not isinstance(result, dict):
+        return ''
+    if name == 'get_effectifs':
+        total = result.get('nb_eleves_actifs')
+        if total is None:
+            return ''
+        classe = result.get('classe') or ''
+        filles = result.get('nb_filles')
+        garcons = result.get('nb_garcons')
+        if classe:
+            extra = ''
+            if filles is not None and garcons is not None:
+                extra = f' ({filles} filles, {garcons} garçons)'
+            return f'La {classe} compte {total} élèves{extra}.'
+        classes = result.get('nb_classes')
+        profs = result.get('nb_professeurs')
+        parts = [f'L’établissement compte {total} élèves actifs']
+        if classes is not None:
+            parts.append(f'{classes} classes')
+        if profs is not None:
+            parts.append(f'{profs} professeurs')
+        return f'{parts[0]}, {", ".join(parts[1:])}.' if len(parts) > 1 else f'{parts[0]}.'
+    if name == 'get_impayes':
+        nb = result.get('nb')
+        if nb is None:
+            return ''
+        perimetre = result.get('perimetre') or 'l’établissement'
+        if perimetre == 'etablissement':
+            perimetre = 'l’établissement'
+        reste = _spoken_amount(result.get('total_reste'))
+        if not nb:
+            return f'Aucun impayé pour {perimetre}.'
+        phrase = f'Il y a {nb} impayé{"s" if nb > 1 else ""} pour {perimetre}'
+        if reste:
+            phrase += f', soit {reste} restant'
+        return phrase + '. Je peux relancer les familles ou ouvrir une fiche.'
+    if name == 'get_caisse':
+        mois = result.get('mois')
+        solde = _spoken_amount(result.get('solde'))
+        if not mois and solde == '':
+            return ''
+        entrees = _spoken_amount(result.get('entrees'))
+        sorties = _spoken_amount(result.get('sorties'))
+        devise = result.get('devise') or ''
+        suffix = f' {devise}' if devise else ''
+        return (
+            f'Pour {mois or "ce mois"}, les entrées sont de {entrees}{suffix}, '
+            f'les sorties de {sorties}{suffix}, solde {solde}{suffix}.'
+        )
+    if name in ('get_notes_classe', 'get_notes_examen'):
+        nb = result.get('nb')
+        classe = result.get('classe') or 'cette classe'
+        label = 'notes d’examen' if name == 'get_notes_examen' else 'notes publiées'
+        if not nb:
+            return f'Aucune {label} pour {classe}.'
+        return f'J’ai {nb} {label} pour {classe}.'
+    if name == 'get_emploi_du_temps':
+        classe = result.get('classe') or 'cette classe'
+        creneaux = result.get('creneaux') or []
+        if not creneaux:
+            return f'Aucun emploi du temps actif pour {classe}.'
+        statut = result.get('statut')
+        phrase = f'L’emploi du temps de {classe} a {len(creneaux)} créneau{"x" if len(creneaux) > 1 else ""}.'
+        if statut:
+            phrase += f' Statut : {statut}.'
+        return phrase
+    if name == 'ouvrir_classe':
+        nom = result.get('nom') or result.get('titre') or result.get('classe')
+        if nom:
+            return f'J’ouvre {nom}.'
+        return ''
+    if result.get('statut') == 'en_attente_confirmation':
+        titre = (result.get('titre') or result.get('resume') or '').strip()
+        if titre:
+            return f'J’ai préparé « {titre} ». C’est bon ?'
+        return 'J’ai préparé l’action. C’est bon ?'
     return ''
 
 

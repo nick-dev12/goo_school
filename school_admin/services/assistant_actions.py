@@ -2587,3 +2587,5 @@ import school_admin.services.assistant_staff  # noqa: E402,F401
 import school_admin.services.assistant_dossiers  # noqa: E402,F401
 # Vague 2 : remises fratrie + recalcul des statuts de paiement.
 import school_admin.services.assistant_pilotage  # noqa: E402,F401
+# Vague 3 : justifications, coefficients, moyenne annuelle.
+import school_admin.services.assistant_pedagogie  # noqa: E402,F401

@@ -123,7 +123,11 @@ Autres actions (toujours avec confirmation) :
 - Liaisons : approuver_liaison, rejeter_liaison, desapprouver_liaison.
 - Préinscriptions : valider_preinscription, rejeter_preinscription,
   toggle_lien_preinscription.
-- Bulletins : publier_bulletins, calculer_moyennes_classe.
+- Bulletins : publier_bulletins, calculer_moyennes_classe, get_bulletin_eleve,
+  imprimer_bulletins_classe, calculer_moyenne_annuelle.
+- Pédagogie : get_notes_classe, get_moyennes_classe, get_eleves_difficulte,
+  get_justifications_notes, traiter_justification, get_coefficients,
+  configurer_coefficient, get_evaluations.
 - Scolarité : enregistrer_paiement, get_fiche_scolarite, get_bilan_scolarite,
   get_impayes, ouvrir_recu, get_moratoires, verifier_statuts_paiement,
   synchroniser_remises_fratrie.

@@ -1,6 +1,6 @@
 # Audit + spec — Assistant IA Directeur
 
-Audit validé le 2026-09-23. **Vague 1 et Vague 2 implémentées** (schéma filtré + pilotage/scolarité). Vagues 3–6 et tools CG : pas commencées.
+Audit validé le 2026-09-23. **Vagues 1–3 implémentées** (schéma filtré + pilotage/scolarité + pédagogie). Vagues 4–6 et tools CG : pas commencées.
 
 - Date : 2026-09-23
 - Workspace : `C:\wamp64\www\goo_school`
@@ -335,20 +335,20 @@ Ne pas exposer tant que `AFFICHER_MODULE_COMPTABILITE_GENERALE` est False. Spec 
 
 | Tool | Statut | Variant |
 |------|--------|---------|
-| `get_notes_eleve` | existant / **à étendre** | Primaire : `NotePrimaire`. Secondaire : `Note` + barème. Supérieur : + crédits module / UE / semestre |
-| `get_notes_classe` | **à créer** | Même branchement de modèles. Synthèse matière × élèves |
-| `get_moyennes_classe` | **à créer** | `MoyennePeriode` ; supérieur : crédits + moyenne |
-| `get_bulletin_eleve` | **à créer** | Lire / ouvrir URL bulletin (pas générer un PDF magique) |
-| `imprimer_bulletins_classe` | **à créer** | Ouvre l’URL d’impression déjà existante |
+| `get_notes_eleve` | existant | Primaire : `NotePrimaire`. Secondaire : `Note` + barème. Crédits module/UE : Vague 4 |
+| `get_notes_classe` | **fait (Vague 3)** | Même branchement. Synthèse élève × évaluation |
+| `get_moyennes_classe` | **fait (Vague 3)** | `MoyennePeriode` ; supérieur : crédits s’ils sont déjà calculés |
+| `get_bulletin_eleve` | **fait (Vague 3)** | Résumé + ouvre `voir_bulletin_eleve` (pas de PDF magique) |
+| `imprimer_bulletins_classe` | **fait (Vague 3)** | Ouvre l’URL d’impression existante |
 | `calculer_moyennes_classe` / `publier_bulletins` / configs | existant | Conserver |
-| `calculer_moyenne_annuelle` | **à créer** | Route directeur déjà là |
-| `get_eleves_difficulte` | **à créer** | Sous le seuil ; supérieur = crédits insuffisants |
-| `get_justifications_notes` | **à créer** | Liste en attente |
-| `traiter_justification` | **à créer** | Accepter / refuser (même logique que la vue) |
-| `debloquer_releve` | **à créer** | API directeur déjà existante |
-| `get_coefficients` | **à créer** | Primaire/collège/lycée. Lycée+groupes : `CoefficientMatiereGroupe` |
-| `configurer_coefficient` | **à créer** | Confirmation |
-| `get_evaluations` | **à créer** | Liste évaluations d’une classe / matière / période |
+| `calculer_moyenne_annuelle` | **fait (Vague 3)** | Confirmation puis ouvre la route directeur |
+| `get_eleves_difficulte` | **fait (Vague 3)** | Sous le seuil ; supérieur = crédits insuffisants si calculés |
+| `get_justifications_notes` | **fait (Vague 3)** | Liste (défaut : en attente) |
+| `traiter_justification` | **fait (Vague 3)** | Accepter / refuser, confirmation, même logique que la vue |
+| `debloquer_releve` | **à créer** | Hors Vague 3 (API déjà là) |
+| `get_coefficients` | **fait (Vague 3)** | Primaire/collège/lycée. Lycée+mixte : `CoefficientMatiereGroupe` |
+| `configurer_coefficient` | **fait (Vague 3)** | Confirmation |
+| `get_evaluations` | **fait (Vague 3)** | Liste évaluations d’une classe / matière / période |
 
 ### 5.6 Supérieur — ECTS / LMD
 
@@ -445,11 +445,11 @@ Hors supérieur : ces tools **ne doivent pas** apparaître dans le schéma (filt
 
 ## 6. Priorisation (validée)
 
-Ordre figé. **Vague 1 et Vague 2 livrées.** Ne pas enchaîner 3–7 sans feu vert.
+Ordre figé. **Vagues 1–3 livrées.** Ne pas enchaîner 4–7 sans feu vert.
 
 1. **Socle (fait)** — schéma + prompt filtrés par type ; flags `collège_lycée` / mixte ; `creer_classe` / `creer_professeur` exigent `cycle` ; `_niveau_enseignement` ne retombe plus sur `primaire` ; personnel bridé par `check_permission`.
-2. **Pilotage / scolarité (fait)** — `get_statistiques_pilotage`, `get_taux_reussite`, `get_taux_presence`, `get_comparatif_periodes`, `get_repartition_cycles`, `get_bilan_scolarite`, `get_impayes`, fiche scolarité enrichie, `ouvrir_recu`, `get_moratoires`, `verifier_statuts_paiement`, `synchroniser_remises_fratrie`. `get_notes_classe` / `get_moyennes_classe` restent Vague 3 (pédagogie).
-3. **Pédagogie quotidienne** — justifications, bulletin, élèves en difficulté, présences classe, EDT prof.
+2. **Pilotage / scolarité (fait)** — `get_statistiques_pilotage`, `get_taux_reussite`, `get_taux_presence`, `get_comparatif_periodes`, `get_repartition_cycles`, `get_bilan_scolarite`, `get_impayes`, fiche scolarité enrichie, `ouvrir_recu`, `get_moratoires`, `verifier_statuts_paiement`, `synchroniser_remises_fratrie`.
+3. **Pédagogie quotidienne (fait)** — `get_notes_classe`, `get_moyennes_classe`, `get_bulletin_eleve`, `imprimer_bulletins_classe`, `calculer_moyenne_annuelle`, `get_eleves_difficulte`, `get_justifications_notes`, `traiter_justification`, `get_coefficients`, `configurer_coefficient`, `get_evaluations`. Présences classe / EDT prof / `debloquer_releve` : plus tard.
 4. **Supérieur** — ECTS / UE / périodes par niveau (bloquant pour un directeur LMD).
 5. **RH** — dossier employé, fiche de paie, absences prof, volume horaire paramétrable.
 6. **Examens** — créneaux + notes d’examen (collège/lycée).
@@ -495,7 +495,7 @@ Ordre figé. **Vague 1 et Vague 2 livrées.** Ne pas enchaîner 3–7 sans feu v
 1. **Filtrer dynamiquement** `TOOLS_SCHEMA` et le prompt par `type_etablissement` dès la Vague 1. Fait (`assistant_schema.py`, `directeur_tools_schema`, `system_prompt_static_for`).
 2. **Collège+lycée / mixte** : un seul espace vocal ; **exiger le cycle** (`college` / `lycee`) dans les paramètres des tools concernés (`creer_classe`, `creer_professeur`). Pas deux assistants.
 3. **Personnel administratif** : même persona `directeur`, exécution bridée par `check_permission` (permissions Django déjà utilisées par les vues).
-4. **Ordre §6 validé.** Vague 1 puis Vague 2 livrées. Pas de Vague 3–6 ni de tools CG.
+4. **Ordre §6 validé.** Vagues 1–3 livrées. Pas de Vague 4–6 ni de tools CG.
 5. **CG vocale hors schéma** tant que `AFFICHER_MODULE_COMPTABILITE_GENERALE` est False (`CG_TOOLS` + addendum de prompt).
 6. **Hors scope §8 validé** (enseignant primaire, compta Aria, liasse, TVA, paie convention complète, etc.).
 
@@ -519,3 +519,22 @@ Phrases vocales utiles (directeur connecté) :
 - « Quels sont les moratoires en cours ? » → `get_moratoires`
 - « Recalcule les statuts de paiement. » → confirmation puis `verifier_statuts_paiement`
 - « Applique les remises fratrie. » → confirmation puis `synchroniser_remises_fratrie`
+
+---
+
+## 11. Vague 3 livrée (2026-09-23)
+
+Module `school_admin/services/assistant_pedagogie.py`. Tests : `AssistantDirecteurVague3Tests` (5). Cache Gemini : `aria-directeur-tools-v6-{profile}`.
+
+Phrases vocales :
+
+- « Quelles sont les notes de la 1ère S ? » → `get_notes_classe`
+- « Donne-moi les moyennes de la 1ère S. » → `get_moyennes_classe`
+- « Ouvre le bulletin de [nom]. » → `get_bulletin_eleve`
+- « Imprime les bulletins de la 1ère S. » → `imprimer_bulletins_classe`
+- « Quels élèves sont en difficulté ce trimestre ? » → `get_eleves_difficulte`
+- « Quelles justifications de notes sont en attente ? » → `get_justifications_notes`
+- « Accepte la justification de [nom]. » → confirmation puis `traiter_justification`
+- « Quels sont les coefficients ? » / « Passe le coefficient de maths à 5. » → `get_coefficients` / `configurer_coefficient`
+- « Liste les évaluations de la 1ère S. » → `get_evaluations`
+- « Calcule la moyenne annuelle de la 1ère S. » → confirmation puis ouverture de la route

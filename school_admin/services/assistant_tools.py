@@ -1156,7 +1156,67 @@ def tool_chercher_en_base(ctx, args):
     ):
         found = tool_effectifs(ctx, payload)
         return {'trouve': True, 'source': 'effectifs', **found}
-    if any(token in lowered for token in ('note', 'moyenne', 'bulletin', 'résultat', 'resultat')):
+    if any(
+        token in lowered
+        for token in (
+            'justification', 'justifications', 'rectification de note',
+        )
+    ):
+        from school_admin.services.assistant_pedagogie import tool_justifications_notes
+
+        found = tool_justifications_notes(ctx, payload)
+        return {'trouve': True, 'source': 'justifications', **found}
+    if any(
+        token in lowered
+        for token in (
+            'en difficulté', 'en difficulte', 'sous le seuil', 'élèves faibles',
+            'eleves faibles',
+        )
+    ):
+        from school_admin.services.assistant_pedagogie import tool_eleves_difficulte
+
+        found = tool_eleves_difficulte(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'difficulte', **found}
+    if any(token in lowered for token in ('coefficient', 'coefficients')):
+        from school_admin.services.assistant_pedagogie import tool_coefficients
+
+        found = tool_coefficients(ctx, payload)
+        return {'trouve': True, 'source': 'coefficients', **found}
+    if any(
+        token in lowered
+        for token in ('évaluation', 'evaluation', 'évaluations', 'evaluations')
+    ):
+        from school_admin.services.assistant_pedagogie import tool_evaluations
+
+        found = tool_evaluations(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'evaluations', **found}
+    if any(
+        token in lowered
+        for token in (
+            'notes de la classe', 'notes de classe', 'notes de la ',
+            'notes des élèves de', 'notes des eleves de',
+        )
+    ):
+        from school_admin.services.assistant_pedagogie import tool_notes_classe
+
+        found = tool_notes_classe(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'notes_classe', **found}
+    if any(
+        token in lowered
+        for token in (
+            'moyennes de la classe', 'moyennes de classe', 'moyennes de la ',
+        )
+    ):
+        from school_admin.services.assistant_pedagogie import tool_moyennes_classe
+
+        found = tool_moyennes_classe(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'moyennes_classe', **found}
+    if any(token in lowered for token in ('bulletin', 'bulletins')):
+        from school_admin.services.assistant_pedagogie import tool_bulletin_eleve
+
+        found = tool_bulletin_eleve(ctx, payload)
+        return {'trouve': not bool(found.get('erreur')), 'source': 'bulletin', **found}
+    if any(token in lowered for token in ('note', 'moyenne', 'résultat', 'resultat')):
         found = tool_notes_eleve(ctx, payload)
         return {'trouve': not bool(found.get('erreur')), 'source': 'notes', **found}
     if any(
@@ -1601,8 +1661,13 @@ from school_admin.services.assistant_pilotage import (  # noqa: E402
     VAGUE2_READ_HANDLERS,
     VAGUE2_READ_SCHEMA,
 )
+from school_admin.services.assistant_pedagogie import (  # noqa: E402
+    VAGUE3_READ_HANDLERS,
+    VAGUE3_READ_SCHEMA,
+)
 
 TOOL_HANDLERS.update(VAGUE2_READ_HANDLERS)
+TOOL_HANDLERS.update(VAGUE3_READ_HANDLERS)
 
 for _name, _spec in ACTION_SPECS.items():
     TOOL_HANDLERS[_name] = _spec.prepare
@@ -2173,6 +2238,7 @@ TOOLS_SCHEMA = [
 ]
 
 TOOLS_SCHEMA.extend(VAGUE2_READ_SCHEMA)
+TOOLS_SCHEMA.extend(VAGUE3_READ_SCHEMA)
 TOOLS_SCHEMA.extend(build_action_tool_schemas())
 
 

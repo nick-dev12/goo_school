@@ -1127,3 +1127,231 @@ class AssistantDirecteurVague2Tests(TestCase):
         self.assertIn('autorisation', refused.get('erreur', '').lower())
         refused_write = execute_tool(ctx, 'verifier_statuts_paiement', {})
         self.assertIn('autorisation', refused_write.get('erreur', '').lower())
+
+
+class AssistantDirecteurVague3Tests(TestCase):
+    """Pédagogie : notes/moyennes/bulletin, justifications, coefficients, difficulté."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from school_admin.model.evaluation_model import Evaluation, Note
+        from school_admin.model.justification_note_model import JustificationNote
+        from school_admin.model.matiere_model import Matiere
+        from school_admin.model.moyenne_periode_model import MoyennePeriode
+        from school_admin.model.professeur_model import Professeur
+        from school_admin.model.standards_reussite_model import StandardsReussite
+
+        cls.etab = _make_etablissement()
+        cls.annee = _make_annee(cls.etab)
+        cls.classe = Classe.objects.create(
+            nom='1ère S',
+            niveau='lycee',
+            code_classe=f'LYC-{cls.etab.pk}-1S',
+            capacite_max=30,
+            etablissement=cls.etab,
+        )
+        cls.periode = PeriodeScolaire.objects.create(
+            etablissement=cls.etab,
+            nom_periode='2e Trimestre',
+            type_periode='trimestre',
+            date_debut=date(2027, 1, 5),
+            date_fin=date(2027, 3, 31),
+            annee_scolaire=cls.annee.libelle,
+            annee_scolaire_fk=cls.annee,
+            est_active=True,
+        )
+        cls.eleve = _make_eleve_simple(cls.etab, cls.classe, 'Sy', 'Awa', 'F', 'p')
+        cls.faible = _make_eleve_simple(cls.etab, cls.classe, 'Kane', 'Ibra', 'M', 'q')
+        suffix = str(cls.etab.pk)
+        cls.matiere = Matiere.objects.create(
+            nom=f'Mathématiques {suffix}',
+            code=f'MAT{suffix}'[:10],
+            coefficient=4,
+            etablissement=cls.etab,
+        )
+        cls.prof = Professeur.objects.create_user(
+            username=f'prof.v3.{suffix}',
+            email=f'prof.v3.{suffix}@aria-test.local',
+            password='Prof@Test1!',
+            nom='Fall',
+            prenom='Omar',
+            telephone='770000050',
+            numero_employe=f'EMPV3{suffix}',
+            matiere_principale=cls.matiere,
+            etablissement=cls.etab,
+            niveau_enseignement='lycee',
+            actif=True,
+        )
+        cls.evaluation = Evaluation.objects.create(
+            titre='Devoir 1',
+            classe=cls.classe,
+            professeur=cls.prof,
+            matiere=cls.matiere,
+            date_evaluation=date(2027, 1, 20),
+            bareme=20,
+            periode_scolaire=cls.periode,
+            annee_scolaire=cls.annee,
+        )
+        cls.note = Note.objects.create(
+            eleve=cls.eleve,
+            evaluation=cls.evaluation,
+            matiere=cls.matiere,
+            note=14,
+            statut_publication=Note.STATUT_PUBLIEE,
+        )
+        StandardsReussite.objects.create(
+            etablissement=cls.etab,
+            annee_scolaire=cls.annee,
+            moyenne_passage='10.00',
+        )
+        MoyennePeriode.objects.create(
+            eleve=cls.eleve,
+            etablissement=cls.etab,
+            periode=cls.periode,
+            annee_scolaire=cls.annee,
+            est_moyenne_generale=True,
+            moyenne_generale='13.50',
+            rang=1,
+        )
+        MoyennePeriode.objects.create(
+            eleve=cls.faible,
+            etablissement=cls.etab,
+            periode=cls.periode,
+            annee_scolaire=cls.annee,
+            est_moyenne_generale=True,
+            moyenne_generale='08.00',
+            rang=2,
+        )
+        cls.justification = JustificationNote.objects.create(
+            note=cls.note,
+            classe=cls.classe,
+            evaluation=cls.evaluation,
+            eleve=cls.eleve,
+            matiere=cls.matiere,
+            professeur=cls.prof,
+            etablissement=cls.etab,
+            annee_scolaire=cls.annee,
+            ancienne_note=14,
+            nouvelle_note=16,
+            motif='Erreur de saisie',
+        )
+        cls.ctx = build_assistant_context(cls.etab)
+
+    def test_schema_expose_pedagogie_sans_cg(self):
+        from school_admin.services.assistant_schema import CG_TOOLS
+        from school_admin.services.assistant_tools import directeur_tools_schema
+
+        names = {
+            item['function']['name']
+            for item in directeur_tools_schema(self.ctx)
+            if item.get('function')
+        }
+        for name in (
+            'get_notes_classe',
+            'get_moyennes_classe',
+            'get_bulletin_eleve',
+            'imprimer_bulletins_classe',
+            'get_eleves_difficulte',
+            'get_justifications_notes',
+            'traiter_justification',
+            'get_coefficients',
+            'configurer_coefficient',
+            'get_evaluations',
+            'calculer_moyenne_annuelle',
+            'get_statistiques_pilotage',
+        ):
+            self.assertIn(name, names)
+        for name in CG_TOOLS:
+            self.assertNotIn(name, names)
+
+    def test_notes_moyennes_bulletin_evaluations(self):
+        notes = execute_tool(self.ctx, 'get_notes_classe', {'classe': '1ère S'})
+        self.assertEqual(notes['nb'], 1)
+        self.assertEqual(notes['notes'][0]['note'], 14.0)
+        moyennes = execute_tool(self.ctx, 'get_moyennes_classe', {'classe': '1ère S'})
+        self.assertEqual(moyennes['nb'], 2)
+        self.assertEqual(moyennes['moyennes'][0]['moyenne'], 13.5)
+        bulletin = execute_tool(self.ctx, 'get_bulletin_eleve', {'query': 'Sy'})
+        self.assertTrue(bulletin['ouvrir'])
+        self.assertEqual(bulletin['moyenne'], 13.5)
+        self.assertIn(str(self.eleve.id), bulletin['url'] or '')
+        impression = execute_tool(self.ctx, 'imprimer_bulletins_classe', {'classe': '1ère S'})
+        self.assertTrue(impression['ouvrir'])
+        self.assertIn(str(self.classe.id), impression['url'] or '')
+        evs = execute_tool(self.ctx, 'get_evaluations', {'classe': '1ère S'})
+        self.assertEqual(evs['nb'], 1)
+        found = execute_tool(
+            self.ctx,
+            'chercher_en_base',
+            {'question': 'notes de la classe 1ère S', 'classe': '1ère S'},
+        )
+        self.assertEqual(found['source'], 'notes_classe')
+
+    def test_eleves_difficulte_et_coefficients(self):
+        from decimal import Decimal
+
+        difficulte = execute_tool(self.ctx, 'get_eleves_difficulte', {})
+        self.assertEqual(difficulte['nb'], 1)
+        self.assertEqual(difficulte['eleves'][0]['eleve'], self.faible.nom_complet)
+        coefs = execute_tool(self.ctx, 'get_coefficients', {'query': 'Math'})
+        self.assertGreaterEqual(coefs['nb'], 1)
+        self.assertEqual(coefs['matieres'][0]['coefficient'], 4.0)
+        draft = execute_tool(
+            self.ctx,
+            'configurer_coefficient',
+            {'matiere': 'Math', 'coefficient': '5'},
+        )
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.matiere.refresh_from_db()
+        self.assertEqual(self.matiere.coefficient, Decimal('4.0'))
+        result = ACTION_SPECS['configurer_coefficient'].apply(self.ctx, draft)
+        self.assertEqual(result['statut'], 'ok')
+        self.matiere.refresh_from_db()
+        self.assertEqual(self.matiere.coefficient, Decimal('5.0'))
+
+    def test_justifications_et_traitement_confirme(self):
+        liste = execute_tool(self.ctx, 'get_justifications_notes', {})
+        self.assertEqual(liste['nb'], 1)
+        self.assertEqual(liste['justifications'][0]['eleve'], self.eleve.nom_complet)
+        draft = execute_tool(
+            self.ctx,
+            'traiter_justification',
+            {'query': 'Sy', 'decision': 'valider'},
+        )
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.note.refresh_from_db()
+        self.assertEqual(float(self.note.note), 14.0)
+        result = ACTION_SPECS['traiter_justification'].apply(self.ctx, draft)
+        self.assertEqual(result['statut'], 'ok')
+        self.note.refresh_from_db()
+        self.assertEqual(float(self.note.note), 16.0)
+        refuse_draft = execute_tool(
+            self.ctx,
+            'calculer_moyenne_annuelle',
+            {'classe': '1ère S'},
+        )
+        self.assertEqual(refuse_draft['statut'], 'en_attente_confirmation')
+        applied = ACTION_SPECS['calculer_moyenne_annuelle'].apply(self.ctx, refuse_draft)
+        self.assertTrue(applied.get('ouvrir'))
+
+    def test_personnel_sans_droit_notes(self):
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+
+        personnel = PersonnelAdministratif(
+            username=f'caissier.v3.{self.etab.pk}',
+            email=f'caissier.v3.{self.etab.pk}@aria-test.local',
+            nom='Sow',
+            prenom='Awa',
+            telephone='770000060',
+            fonction='caissier',
+            etablissement=self.etab,
+            actif=True,
+            permissions={},
+        )
+        personnel.set_password('Caissier@Test1!')
+        personnel.save()
+        ctx = build_assistant_context(self.etab, personnel=personnel)
+        refused = execute_tool(ctx, 'get_notes_classe', {'classe': '1ère S'})
+        self.assertIn('autorisation', refused.get('erreur', '').lower())
+        refused_j = execute_tool(ctx, 'traiter_justification', {'query': 'Sy', 'decision': 'valider'})
+        self.assertIn('autorisation', refused_j.get('erreur', '').lower())

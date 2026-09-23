@@ -116,6 +116,17 @@ TOOL_PERMISSIONS = {
     'creer_matiere': 'classes_modifier',
     'desactiver_matiere': 'classes_modifier',
     'get_notes_eleve': 'notes_detail',
+    'get_notes_classe': 'notes_liste',
+    'get_moyennes_classe': 'notes_liste',
+    'get_bulletin_eleve': 'bulletins_voir',
+    'imprimer_bulletins_classe': 'bulletins_voir',
+    'get_eleves_difficulte': 'notes_liste',
+    'get_justifications_notes': 'notes_justifications_voir',
+    'traiter_justification': 'notes_justifications_voir',
+    'get_coefficients': 'notes_liste',
+    'configurer_coefficient': 'classes_modifier',
+    'get_evaluations': 'notes_liste',
+    'calculer_moyenne_annuelle': 'notes_liste',
     'publier_bulletins': 'bulletins_voir',
     'calculer_moyennes_classe': 'notes_liste',
     'configurer_visibilite_bulletins': 'bulletins_voir',
@@ -190,6 +201,13 @@ TOOL_PERMISSIONS = {
 CHERCHER_EN_BASE_SOURCES = {
     'effectifs': 'get_effectifs',
     'notes': 'get_notes_eleve',
+    'notes_classe': 'get_notes_classe',
+    'moyennes_classe': 'get_moyennes_classe',
+    'bulletin': 'get_bulletin_eleve',
+    'difficulte': 'get_eleves_difficulte',
+    'justifications': 'get_justifications_notes',
+    'coefficients': 'get_coefficients',
+    'evaluations': 'get_evaluations',
     'presences': 'get_presences',
     'sanctions': 'get_sanctions',
     'caisse': 'get_caisse',
@@ -446,6 +464,15 @@ def prompt_addendum_for(ctx):
         "- Moratoires : get_moratoires (création déjà via creer_moratoire).\n"
         "- Recalcul statuts : verifier_statuts_paiement (confirmation).\n"
         "- Remises fratrie : synchroniser_remises_fratrie (confirmation).\n"
+        "\nPédagogie :\n"
+        "- Notes d’une classe : get_notes_classe. Moyennes : get_moyennes_classe.\n"
+        "- Bulletin d’un élève : get_bulletin_eleve (ouvre l’URL, ne génère pas de PDF).\n"
+        "- Impression classe : imprimer_bulletins_classe.\n"
+        "- Élèves sous le seuil : get_eleves_difficulte.\n"
+        "- Justifications en attente : get_justifications_notes ; "
+        "traiter_justification (accepter / refuser, confirmation).\n"
+        "- Coefficients : get_coefficients ; configurer_coefficient (confirmation).\n"
+        "- Évaluations : get_evaluations. Moyenne annuelle : calculer_moyenne_annuelle.\n"
     )
     if getattr(ctx, 'est_superieur', False):
         parts.append(

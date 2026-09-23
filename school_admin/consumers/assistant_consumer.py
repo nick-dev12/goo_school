@@ -736,7 +736,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 if isinstance(tool_result, dict):
                     self._working_refs.update(extract_working_refs(tool_name, tool_result))
             self._last_tool_memory = compact_tool_memory(*last_tool_results[-1])
-        if not spoken and not leftover and last_tool_results:
+        if spoken and not leftover and not pending_sentences:
+            await self._send_json({'type': 'text_delta', 'text': spoken})
+            pending_sentences.append(spoken)
+        elif not spoken and not leftover and last_tool_results:
             spoken = spoken_from_tool_results(last_tool_results, ctx=ctx)
             if spoken:
                 await self._send_json({'type': 'text_delta', 'text': spoken})

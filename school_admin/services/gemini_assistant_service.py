@@ -70,6 +70,14 @@ def _note_turn_stats(stats, rounds=None, tools=None):
                 bag.append(name)
 
 
+async def _emit_spoken_fallback(on_text_delta, spoken):
+    """Le repli oral doit aussi passer par le stream, sinon le client reste muet."""
+    text = (spoken or '').strip()
+    if text and on_text_delta:
+        await on_text_delta(text)
+    return text
+
+
 _resolved_gemini_model = None
 GEMINI_MODEL_FALLBACKS = (
     'gemini-3.6-flash',
@@ -911,7 +919,11 @@ async def _run_assistant_turn_cached(
                     'Tour Gemini après outil échoué, repli oral : %s', exc
                 )
                 _note_turn_stats(turn_stats, rounds=rounds_used)
-                return messages, spoken_from_tool_result(*last_tool, ctx=ctx)
+                fallback = await _emit_spoken_fallback(
+                    on_text_delta,
+                    spoken_from_tool_result(*last_tool, ctx=ctx),
+                )
+                return messages, fallback
             logger.warning('Tour Gemini avec cache échoué, repli sans cache : %s', exc)
             return None
 
@@ -977,7 +989,10 @@ async def _run_assistant_turn_cached(
             contents.append(types.Content(role='user', parts=response_parts))
         except Exception:
             logger.exception("Suite Gemini après outil — repli sur le résultat d’outil")
-            fallback = spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx)
+            fallback = await _emit_spoken_fallback(
+                on_text_delta,
+                spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx),
+            )
             _note_turn_stats(turn_stats, rounds=rounds_used)
             return messages, fallback
         if stop_after_tools:
@@ -987,8 +1002,11 @@ async def _run_assistant_turn_cached(
                 MAX_TOOL_ROUNDS,
             )
             _note_turn_stats(turn_stats, rounds=rounds_used)
-            fallback = spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx)
-            return messages, fallback or spoken
+            fallback = await _emit_spoken_fallback(
+                on_text_delta,
+                spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx) or spoken,
+            )
+            return messages, fallback
 
     logger.info(
         'Gemini tool rounds: %s/%s (plafond)',
@@ -1113,7 +1131,10 @@ async def run_assistant_turn(
                         MAX_TOOL_ROUNDS,
                     )
                     _note_turn_stats(turn_stats, rounds=rounds_used)
-                    fallback = spoken_from_tool_result(*last_compat, ctx=ctx)
+                    fallback = await _emit_spoken_fallback(
+                        on_text_delta,
+                        spoken_from_tool_result(*last_compat, ctx=ctx),
+                    )
                     return working, fallback
             working.append({
                 'role': 'tool',

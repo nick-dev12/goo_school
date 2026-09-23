@@ -33,6 +33,7 @@ from school_admin.services.gemini_assistant_service import (
     extract_working_refs,
     format_cited_refs,
     _dialog_to_gemini_contents,
+    _emit_spoken_fallback,
     _run_assistant_turn_cached,
     _stream_cached_round,
 )
@@ -1252,3 +1253,19 @@ class GeminiG7TelemetryTests(SimpleTestCase):
         ])
         self.assertIn('CP A', walked)
         self.assertIn('12', walked)
+
+    def test_repli_oral_est_streamé_au_client(self):
+        deltas = []
+
+        async def _run():
+            async def capture(delta):
+                deltas.append(delta)
+
+            spoken = await _emit_spoken_fallback(
+                capture,
+                'L’établissement compte 12 élèves actifs, 3 classes.',
+            )
+            self.assertIn('12', spoken)
+            self.assertEqual(deltas, [spoken])
+
+        asyncio.run(_run())

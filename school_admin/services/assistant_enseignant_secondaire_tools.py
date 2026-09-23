@@ -864,6 +864,7 @@ def get_enseignant_secondaire_tools_schema(ctx=None):
     )
     from school_admin.services.assistant_enseignant_examens_tools import (
         extend_enseignant_schema_for_examens,
+        filter_enseignant_schema_examens,
     )
     from school_admin.services.assistant_enseignant_superieur_tools import (
         extend_enseignant_schema_for_superieur,
@@ -872,6 +873,7 @@ def get_enseignant_secondaire_tools_schema(ctx=None):
     schema = list(ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA)
     schema = extend_enseignant_schema_for_superieur(schema, ctx)
     schema = extend_enseignant_schema_for_examens(schema, ctx)
+    schema = filter_enseignant_schema_examens(schema, ctx)
     return extend_enseignant_schema_for_complements(schema, ctx)
 
 

@@ -1,8 +1,8 @@
 # Audit + feuille de route — Assistant IA Professeur
 
 **Date** : 2026-09-23  
-**Statut** : feuille de route **validée**. **P0–P7 livrées**. **Stop avant P8** (recette multi-types).  
-**Branche** : `cursor/assistant-prof-p7-complements-a40c`  
+**Statut** : feuille de route **validée**. **P0–P8 livrées** (assistant professeur multi-types).  
+**Branche** : `cursor/assistant-prof-p8-recette-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Approche Directeur (tools, schéma filtré, confirmation) : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md)
@@ -362,7 +362,7 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | UI | Partial vocal dans **nav/header commun**, pas seulement bottom nav |
 | Priorité métier | Lecture classes/notes/présences → écriture confirmée → supérieur → examens |
 
-**Prochaine étape** : **P8** (recette vocale multi-types établissement).
+**Prochaine étape** : maintenance / retours métier (pas de vague P9 prévue).
 
 ---
 
@@ -530,3 +530,52 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 ### Hors P7 (P8)
 
 - Recette finale primaire + collège/lycée + supérieur sur parcours complets — **P8**.
+
+---
+
+## 18. Livraison P8 — Recette multi-types (2026-09-23)
+
+### P8 — Recette (automatisée + manuelle)
+
+| Élément | Résultat |
+|---------|----------|
+| Suite automatisée | `test_assistant_enseignant_recette_p8` (13) + régression P0–P7 — **49 tests** enseignant **OK** (`--keepdb`) |
+| UI (§11.1) | Headers incluent le partial Aria ; gates sur impressions / notifications |
+| Périmètre (§11.2) | Couvert par tests scope existants + recette P8 |
+| Schéma par type (§11.5) | Primaire : pas LMD / pas examens ; collège : examens sans LMD ; supérieur : LMD sans examens |
+| Écriture (§11.4) | `prepare_*` → `en_attente_confirmation` (ex. note, P7 justifier) — pas de persistance directe via tools |
+| Repli oral (§11.3) | `spoken_from_enseignant_tool` non vide sur `get_mes_classes` / effectifs ; `chercher_en_base` + `suggestions_after_read` sans chips caisse |
+| Persona WS | `resolve_professeur_assistant_persona` : primary → `enseignant_primaire`, sinon `enseignant` |
+| Correctif recette | Schéma supérieur : retrait `enregistrer_note_examen` (et outils examens) si profil non éligible — cache secondaire **v5** |
+
+### Recette vocale manuelle (par type)
+
+| Type | Comptes / contexte | Parcours à valider |
+|------|-------------------|-------------------|
+| **Primaire** | Prof Artisant (cf. rules) | Mes classes → infos classe → brouillon note → carte oui ; pas d’outils examens/LMD |
+| **Collège / lycée** | Prof affecté + session examen | Idem + `get_examens_prof` / brouillon note examen ; LMD absent du schéma |
+| **Supérieur** | Prof LMD (ex. compte test supérieur) | Modules / crédits ; création éval. semestre ; **pas** d’outils examens |
+
+Après déploiement ou changement de cache : redémarrer **Daphne** (`aria-daphne` sur VPS, ou `daphne` / service ASGI en local) pour recharger le schéma Gemini.
+
+### Fragile / hors automatisé
+
+- **Voix STT/TTS + Gemini live** : non couvert par les tests Django (pas de suite WS recette prof dédiée).
+- **G1–G7 persona enseignant** : parité runtime partagée avec le directeur, mais **pas** de `test_assistant_qualite` persona `enseignant*` (recette vocale manuelle recommandée).
+- **Données réelles** : script ad hoc `school_admin/_tmp_test_assistant_live.py` cible le **directeur** Artisant, pas le prof.
+- **Primaire vs `niveau_enseignement`** : persona WS = `type_etablissement == 'primary'` ; incohérence base possible (cf. §3.1) — surveiller en prod.
+
+### Vérification rapide
+
+```powershell
+cd C:\wamp64\www\goo_school
+.\env\Scripts\Activate.ps1
+python manage.py test school_admin.tests.test_assistant_enseignant_recette_p8 `
+  school_admin.tests.test_assistant_enseignant_complements_tools `
+  school_admin.tests.test_assistant_enseignant_examens_tools `
+  school_admin.tests.test_assistant_enseignant_secondaire_tools `
+  school_admin.tests.test_assistant_enseignant_primaire_tools `
+  school_admin.tests.test_assistant_enseignant_superieur_tools --keepdb
+```
+
+Puis Ctrl+F5 sur dashboard prof (primaire / secondaire) : bulle Aria, une question « Quelles sont mes classes ? », une écriture test avec **annuler**.

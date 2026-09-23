@@ -303,9 +303,30 @@ ENSEIGNANT_EXAMENS_TOOLS_SCHEMA = [
 ]
 
 
+EXAMEN_SCHEMA_NAMES = frozenset(
+    {
+        'get_examens_prof',
+        'get_notes_examen',
+        'ouvrir_noter_examen',
+        'enregistrer_note_examen',
+    }
+)
+
+
+def filter_enseignant_schema_examens(schema, ctx):
+    """Retire les outils examens déjà injectés via les actions si profil non éligible."""
+    if ctx is None or _examens_allowed(ctx):
+        return schema
+    return [
+        item
+        for item in schema
+        if item.get('function', {}).get('name') not in EXAMEN_SCHEMA_NAMES
+    ]
+
+
 def extend_enseignant_schema_for_examens(schema, ctx):
     if not _examens_allowed(ctx):
-        return schema
+        return filter_enseignant_schema_examens(schema, ctx)
     names = {
         item.get('function', {}).get('name')
         for item in schema

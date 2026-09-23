@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 CACHE_DISPLAY_NAME = 'aria-directeur-tools-v14'
 CACHE_DISPLAY_NAME_ENSEIGNANT = 'aria-enseignant-primaire-tools-v4'
-CACHE_DISPLAY_NAME_ENSEIGNANT_SEC = 'aria-enseignant-tools-v4'
+CACHE_DISPLAY_NAME_ENSEIGNANT_SEC = 'aria-enseignant-tools-v5'
 DEFAULT_TTL_SECONDS = 7200
 
 _lock = threading.Lock()

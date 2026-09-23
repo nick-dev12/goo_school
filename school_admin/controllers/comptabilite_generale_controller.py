@@ -107,7 +107,7 @@ class ComptabiliteGeneraleController:
                 messages.success(request, f"Compte {numero} ajouté.")
             return redirect('directeur:cg_plan_comptable')
 
-        comptes = CompteComptable.objects.filter(etablissement=etablissement)
+        comptes = CompteComptable.objects.filter(etablissement=etablissement, actif=True)
         return render(
             request,
             'school_admin/directeur/comptabilite_generale/plan_comptable.html',

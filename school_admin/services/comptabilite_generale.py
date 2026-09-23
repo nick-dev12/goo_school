@@ -112,7 +112,7 @@ def _meta_compte(numero):
 def ensure_plan_comptable(etablissement, _skip_remap=False):
     created = 0
     for numero, libelle, classe, nature in PLAN_SYSCOHADA_EDUCATION:
-        _, was_created = CompteComptable.objects.get_or_create(
+        obj, was_created = CompteComptable.objects.get_or_create(
             etablissement=etablissement,
             numero=numero,
             defaults={
@@ -125,6 +125,22 @@ def ensure_plan_comptable(etablissement, _skip_remap=False):
         )
         if was_created:
             created += 1
+        else:
+            updates = []
+            if obj.libelle != libelle:
+                obj.libelle = libelle
+                updates.append('libelle')
+            if obj.classe != classe:
+                obj.classe = classe
+                updates.append('classe')
+            if obj.nature != nature:
+                obj.nature = nature
+                updates.append('nature')
+            if not obj.actif:
+                obj.actif = True
+                updates.append('actif')
+            if updates:
+                obj.save(update_fields=updates)
     return created
 
 

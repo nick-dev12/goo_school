@@ -6,6 +6,43 @@ from django.dispatch import receiver
 from ..model.parametres_comptabilite_model import ParametresComptabilite
 
 
+def _emettre_creance_nouvelle(instance, kind, source):
+    from school_admin.services.comptabilite_generale import pont_emission_creance
+
+    try:
+        _emettre_creance_nouvelle_inner(instance, kind, source, pont_emission_creance)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Pont émission créance ignoré (%s #%s)", source, instance.pk)
+
+
+def _emettre_creance_nouvelle_inner(instance, kind, source, pont_emission_creance):
+    reste = instance.get_reste_a_payer() if hasattr(instance, 'get_reste_a_payer') else None
+    if reste is None:
+        reste = (instance.montant or 0) - (instance.montant_paye or 0)
+    if reste <= 0:
+        return
+    eleve_nom = getattr(instance.eleve, 'nom_complet', str(instance.eleve_id))
+    from django.utils import timezone
+    date_ecr = getattr(instance, 'date_echeance', None) or timezone.now().date()
+    type_paiement = {
+        'inscription': 'frais_inscription',
+        'mensualite': 'mensualite',
+        'annexe': 'frais_annexe',
+    }.get(kind, 'autre')
+    pont_emission_creance(
+        instance.etablissement,
+        reste,
+        date_ecr,
+        type_paiement,
+        source,
+        instance.id,
+        f"Créance {kind} — {eleve_nom}",
+        auxiliaire=eleve_nom,
+        annee_scolaire=getattr(instance, 'annee_scolaire', None),
+    )
+
+
 @receiver(post_save, sender=ParametresComptabilite)
 def mettre_a_jour_systeme_apres_sauvegarde_parametres(sender, instance, created, **kwargs):
     """
@@ -24,4 +61,22 @@ def mettre_a_jour_systeme_apres_sauvegarde_parametres(sender, instance, created,
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Erreur lors de la mise à jour automatique du système de comptabilité : {str(e)}")
+
+
+@receiver(post_save, sender='school_admin.FraisInscription')
+def emettre_creance_inscription(sender, instance, created, **kwargs):
+    if created:
+        _emettre_creance_nouvelle(instance, 'inscription', 'creance_inscription')
+
+
+@receiver(post_save, sender='school_admin.Mensualite')
+def emettre_creance_mensualite(sender, instance, created, **kwargs):
+    if created:
+        _emettre_creance_nouvelle(instance, 'mensualite', 'creance_mensualite')
+
+
+@receiver(post_save, sender='school_admin.FraisAnnexe')
+def emettre_creance_annexe(sender, instance, created, **kwargs):
+    if created:
+        _emettre_creance_nouvelle(instance, 'annexe', 'creance_annexe')
 

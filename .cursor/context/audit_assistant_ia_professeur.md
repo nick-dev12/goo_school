@@ -1,7 +1,7 @@
 # Audit + feuille de route — Assistant IA Professeur
 
 **Date** : 2026-09-23  
-**Statut** : feuille de route **validée**. **P0 + P1 faites** (2026-09-23). **Stop avant P2** (secondaire / supérieur).  
+**Statut** : feuille de route **validée**. **P0 + P1 + P2–P4 (secondaire / collège–lycée, shell + tools)** livrées (2026-09-23). **Stop avant P5** (LMD / modules).  
 **Branche** : `cursor/assistant-prof-p0-p1-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
@@ -362,7 +362,7 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | UI | Partial vocal dans **nav/header commun**, pas seulement bottom nav |
 | Priorité métier | Lecture classes/notes/présences → écriture confirmée → supérieur → examens |
 
-**Prochaine étape** : signal utilisateur pour **P2** (shell + WS secondaire / supérieur).
+**Prochaine étape** : **P5** (LMD, modules, crédits) puis **P6** (examens `noter_examen`).
 
 ---
 
@@ -400,5 +400,49 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 
 ### Fragile / hors P0–P1
 
-- Secondaire / supérieur : **pas de WS** (persona `None` → connexion refusée) — **P2**.
-- Pages secondaire réutilisées (historique) : nav du bas encore « enseignant » générique ; assistant primaire présent via gate.
+- ~~Secondaire / supérieur : pas de WS~~ → corrigé en **P2** (voir §14).
+- Pages secondaire réutilisées (historique) : nav du bas « enseignant » générique ; gates **primaire** + **secondaire** sur historiques.
+
+---
+
+## 14. Livraison P2–P4 (secondaire / collège–lycée, 2026-09-23)
+
+### P2 — Shell WS + UI
+
+| Élément | Livré |
+|---------|--------|
+| Persona WS | `enseignant` si établissement ≠ `primary` (`assistant_prof_persona`) |
+| UI header | `assistant_vocal_enseignant.html` dans `header_enseignant_new.html` (`data-persona="enseignant"`) |
+| Pages sans header | Gate `assistant_vocal_secondaire_if_not_primary` : notifications, annonces, historiques présence/sanctions, `imprimer_releve_notes_enseignant` |
+
+### P3 — Tools lecture / écriture
+
+| Élément | Livré |
+|---------|--------|
+| Scope | `assistant_enseignant_scope` : affectations `AffectationProfesseur` + `matiere_ids_for_prof` |
+| Tools | `assistant_enseignant_secondaire_tools.py` (ORM `Evaluation` / `Note`, `MoyennePeriode`, pages `assistant_pages_enseignant.py`) |
+| Actions | `assistant_enseignant_secondaire_actions.py` (notes, relevé, moyennes, présences `niveau: secondaire`, etc.) |
+| Gemini | `SYSTEM_PROMPT_ENSEIGNANT`, cache `aria-enseignant-tools-v1-{superieur\|secondaire}` |
+| Consumer | Branche persona `enseignant`, specs actions secondaire, choix classe `enseignant:detail_classe` |
+
+### P4 — Tests
+
+| Élément | Livré |
+|---------|--------|
+| Régression primaire | `test_assistant_enseignant_primaire_tools` : 11 OK |
+| Secondaire | `test_assistant_enseignant_secondaire_tools` : 9 OK |
+| Total | **20 tests** (`manage.py test … --keepdb`) |
+
+### Recette vocale prof secondaire (manuelle)
+
+1. Connexion prof **collège / lycée / collège+lycée** (ex. compte directeur collège+lycée pour créer un prof test), **Ctrl+F5** dashboard `enseignant`.
+2. Bulle Aria visible (header) ; idem sur annonces / notifications.
+3. **« Quelles sont mes classes ? »** → classes affectées (`AffectationProfesseur`).
+4. **« Ouvre … »** → fiche classe ; chips élèves / notes.
+5. Brouillon **enregistrer note** → carte confirmation avant écriture.
+
+### Hors P2–P4 (P5+)
+
+- **Supérieur LMD** : modules, crédits, parcours dédiés — **P5**.
+- **`noter_examen`**, impressions secondaire restantes — **P6–P7**.
+- Recette multi-types établissement — **P8**.

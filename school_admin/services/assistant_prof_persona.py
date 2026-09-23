@@ -19,4 +19,4 @@ def resolve_professeur_assistant_persona(prof):
         return None
     if getattr(etab, 'type_etablissement', None) == 'primary':
         return 'enseignant_primaire'
-    return None
+    return 'enseignant'

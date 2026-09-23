@@ -110,7 +110,7 @@ def build_assistant_context(
         est_college_lycee=flags['est_college_lycee'],
         cycle_requis=flags['cycle_requis'],
     )
-    if ctx.persona == 'enseignant_primaire' and ctx.professeur:
+    if ctx.persona in ('enseignant_primaire', 'enseignant') and ctx.professeur:
         from school_admin.services.assistant_enseignant_scope import affectations_summary
 
         ctx.affectations_resume = affectations_summary(ctx)
@@ -136,7 +136,7 @@ def context_snapshot(ctx):
         'cycle_requis': getattr(ctx, 'cycle_requis', False),
         'persona': getattr(ctx, 'persona', 'directeur'),
     }
-    if getattr(ctx, 'persona', 'directeur') == 'enseignant_primaire' and ctx.professeur:
+    if getattr(ctx, 'persona', 'directeur') in ('enseignant_primaire', 'enseignant') and ctx.professeur:
         prof = ctx.professeur
         payload['professeur'] = getattr(prof, 'nom_complet', None) or f'{prof.prenom} {prof.nom}'
         payload['affectations'] = getattr(ctx, 'affectations_resume', None) or []
@@ -655,7 +655,7 @@ def enrich_class_snapshot(ctx, tool_results, refs=None, question=''):
     if not ctx or not classe:
         return extra
     persona = getattr(ctx, 'persona', 'directeur')
-    if persona == 'enseignant_primaire':
+    if persona in ('enseignant_primaire', 'enseignant'):
         snapshot_tools = CLASS_SNAPSHOT_TOOLS_ENSEIGNANT
         thin_tools = THIN_CLASS_TOOLS_ENSEIGNANT
     else:
@@ -744,7 +744,7 @@ def _suggestions_after_read_enseignant(tool_results, refs=None):
 
 def suggestions_after_read(tool_results, refs=None, ctx=None):
     """2–3 puces de suite, même si Gemini n’a pas appelé proposer_actions."""
-    if ctx and getattr(ctx, 'persona', 'directeur') == 'enseignant_primaire':
+    if ctx and getattr(ctx, 'persona', 'directeur') in ('enseignant_primaire', 'enseignant'):
         return _suggestions_after_read_enseignant(tool_results, refs)
     names = {
         item[0]
@@ -816,8 +816,17 @@ def spoken_from_tool_result(name, result, ctx=None):
         isinstance(result, dict) and result.get('source') == 'affectations'
     ):
         return spoken_from_affectations(result)
-    if ctx and getattr(ctx, 'persona', 'directeur') == 'enseignant_primaire':
+    persona = getattr(ctx, 'persona', 'directeur') if ctx else 'directeur'
+    if persona == 'enseignant_primaire':
         from school_admin.services.assistant_enseignant_primaire_tools import (
+            spoken_from_enseignant_tool,
+        )
+
+        spoken = spoken_from_enseignant_tool(name, result)
+        if spoken:
+            return spoken
+    if persona == 'enseignant':
+        from school_admin.services.assistant_enseignant_secondaire_tools import (
             spoken_from_enseignant_tool,
         )
 
@@ -2874,6 +2883,12 @@ def execute_tool(ctx, name, arguments):
         )
 
         return execute_enseignant_primaire_tool(ctx, name, arguments)
+    if getattr(ctx, 'persona', 'directeur') == 'enseignant':
+        from school_admin.services.assistant_enseignant_secondaire_tools import (
+            execute_enseignant_secondaire_tool,
+        )
+
+        return execute_enseignant_secondaire_tool(ctx, name, arguments)
     from school_admin.services.assistant_schema import (
         tool_permission_error,
         tool_permission_error_for_search,

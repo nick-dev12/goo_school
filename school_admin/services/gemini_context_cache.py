@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 CACHE_DISPLAY_NAME = 'aria-directeur-tools-v14'
 CACHE_DISPLAY_NAME_ENSEIGNANT = 'aria-enseignant-primaire-tools-v3'
+CACHE_DISPLAY_NAME_ENSEIGNANT_SEC = 'aria-enseignant-tools-v1'
 DEFAULT_TTL_SECONDS = 7200
 
 _lock = threading.Lock()
@@ -250,13 +251,22 @@ def ensure_tools_cache(
     if not cache_enabled():
         return None
     schema = tools_schema if tools_schema is not None else TOOLS_SCHEMA
-    if persona == 'enseignant_primaire':
-        from school_admin.services.assistant_enseignant_primaire_tools import (
-            get_enseignant_primaire_tools_schema,
-        )
+    if persona in ('enseignant_primaire', 'enseignant'):
+        if persona == 'enseignant_primaire':
+            from school_admin.services.assistant_enseignant_primaire_tools import (
+                get_enseignant_primaire_tools_schema,
+            )
 
-        schema = get_enseignant_primaire_tools_schema()
-        display = CACHE_DISPLAY_NAME_ENSEIGNANT
+            schema = get_enseignant_primaire_tools_schema()
+            display = CACHE_DISPLAY_NAME_ENSEIGNANT
+        else:
+            from school_admin.services.assistant_enseignant_secondaire_tools import (
+                get_enseignant_secondaire_tools_schema,
+            )
+
+            schema = get_enseignant_secondaire_tools_schema()
+            suffix = (profile or 'secondaire').strip().lower() or 'secondaire'
+            display = f'{CACHE_DISPLAY_NAME_ENSEIGNANT_SEC}-{suffix}'
         lock = _enseignant_lock
 
         def get_state():

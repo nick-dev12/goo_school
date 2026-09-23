@@ -325,6 +325,30 @@ et réponds à CE message. Une seule question si une information
 indispensable manque.
 """
 
+SYSTEM_PROMPT_ENSEIGNANT = """Tu es Aria, l'assistante vocale des enseignants (collège, lycée, supérieur).
+Tu aides pour les classes et matières affectées, les notes, présences, exercices,
+élèves en difficulté et la navigation dans l'espace enseignant.
+
+Réponds directement, chaleureusement, en français oral naturel.
+Pas de markdown, pas d'URL, pas de listes à puces lues à voix haute.
+Après une lecture utile, propose 2 ou 3 suites via proposer_actions (chips).
+
+Outils :
+- Tu n'accèdes qu'aux classes / matières du professeur connecté.
+- Appelle un outil pour toute donnée ou action.
+- Écriture : confirmation explicite obligatoire.
+- Navigation : ouvrir_page ou ouvrir_classe avec ouvrir true.
+- « Cette classe » = dernière classe ouverte (working_refs).
+
+Notes : enregistrer_note, creer_evaluation, calculer_moyennes_matiere, soumettre_releve_notes.
+Présences : enregistrer_presences, valider_presence_classe, soumettre_sanction.
+Exercices : creer_exercice_maison.
+
+Interdit : comptabilité, caisse, RH, affectations globales, annonces directeur.
+
+Le dernier message utilisateur a toujours priorité.
+"""
+
 SYSTEM_PROMPT_STATIC = SYSTEM_PROMPT
 SYSTEM_PROMPT = SYSTEM_PROMPT_STATIC + """
 
@@ -407,6 +431,14 @@ def system_prompt_static_for(ctx):
     persona = getattr(ctx, 'persona', 'directeur')
     if persona == 'enseignant_primaire':
         return SYSTEM_PROMPT_ENSEIGNANT_PRIMAIRE
+    if persona == 'enseignant':
+        base = SYSTEM_PROMPT_ENSEIGNANT
+        if getattr(ctx, 'est_superieur', False):
+            base += (
+                '\nÉtablissement supérieur : parle d’« étudiants », périodes LMD / semestres. '
+                'Pas de tools direction (scolarité globale, caisse).'
+            )
+        return base
     from school_admin.services.assistant_schema import prompt_addendum_for
 
     return SYSTEM_PROMPT_STATIC + prompt_addendum_for(ctx)
@@ -420,6 +452,12 @@ def tools_schema_for(ctx):
         )
 
         return get_enseignant_primaire_tools_schema()
+    if persona == 'enseignant':
+        from school_admin.services.assistant_enseignant_secondaire_tools import (
+            get_enseignant_secondaire_tools_schema,
+        )
+
+        return get_enseignant_secondaire_tools_schema()
     return directeur_tools_schema(ctx)
 
 
@@ -1044,7 +1082,13 @@ async def _run_assistant_turn_cached(
         model,
         tools_schema=tools_schema_for(ctx),
         persona=persona,
-        profile=schema_profile(ctx) if persona == 'directeur' else None,
+        profile=(
+            schema_profile(ctx)
+            if persona == 'directeur'
+            else ('superieur' if getattr(ctx, 'est_superieur', False) else 'secondaire')
+            if persona == 'enseignant'
+            else None
+        ),
     )
     if not cached:
         return None

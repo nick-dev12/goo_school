@@ -1,12 +1,16 @@
 """
-Périmètre des données accessibles à l'assistant enseignant primaire.
+Périmètre des données accessibles à l'assistant enseignant (primaire + secondaire).
 """
 from django.db.models import Q
 
 from school_admin.services.assistant_search import find_classe as _find_classe_global
 
 
-def affectations_qs(ctx):
+def _persona_primaire(ctx):
+    return getattr(ctx, 'persona', 'directeur') == 'enseignant_primaire'
+
+
+def _affectations_qs_primaire(ctx):
     from school_admin.model.affectation_professeur_primaire_model import (
         AffectationProfesseurPrimaire,
     )
@@ -23,16 +27,44 @@ def affectations_qs(ctx):
     return qs
 
 
+def _affectations_qs_secondaire(ctx):
+    from school_admin.model.affectation_model import AffectationProfesseur
+
+    if not ctx.professeur:
+        return AffectationProfesseur.objects.none()
+    qs = AffectationProfesseur.objects.filter(
+        professeur=ctx.professeur,
+        actif=True,
+        classe__etablissement=ctx.etablissement,
+    ).select_related('classe', 'matiere')
+    if ctx.annee_scolaire:
+        qs = qs.filter(annee_scolaire=ctx.annee_scolaire)
+    return qs
+
+
+def affectations_qs(ctx):
+    if _persona_primaire(ctx):
+        return _affectations_qs_primaire(ctx)
+    return _affectations_qs_secondaire(ctx)
+
+
 def classe_ids_for_prof(ctx):
-    return list(affectations_qs(ctx).values_list('classe_id', flat=True))
+    return list(affectations_qs(ctx).values_list('classe_id', flat=True).distinct())
 
 
 def matiere_ids_for_prof(ctx, classe=None):
     ids = set()
+    if _persona_primaire(ctx):
+        for aff in affectations_qs(ctx):
+            if classe and aff.classe_id != classe.id:
+                continue
+            ids.update(aff.matieres.values_list('id', flat=True))
+        return list(ids)
     for aff in affectations_qs(ctx):
         if classe and aff.classe_id != classe.id:
             continue
-        ids.update(aff.matieres.values_list('id', flat=True))
+        if aff.matiere_id:
+            ids.add(aff.matiere_id)
     return list(ids)
 
 
@@ -114,7 +146,8 @@ def ensure_eleve_access(ctx, eleve):
     if not eleve:
         return {'erreur': 'Élève introuvable.'}
     if not eleves_qs_for_prof(ctx).filter(pk=eleve.pk).exists():
-        return {'erreur': 'Cet élève n’est pas dans vos classes.'}
+        label = ctx.libelle_eleve or 'élève'
+        return {'erreur': f'Cet {label} n’est pas dans vos classes.'}
     return None
 
 
@@ -134,10 +167,24 @@ def classe_eleve_active(ctx, eleve):
 
 def affectations_summary(ctx):
     items = []
+    if _persona_primaire(ctx):
+        for aff in affectations_qs(ctx):
+            items.append({
+                'classe': aff.classe.nom,
+                'classe_id': aff.classe_id,
+                'matieres': [m.nom for m in aff.matieres.all()],
+            })
+        return items
+    seen = set()
     for aff in affectations_qs(ctx):
+        key = (aff.classe_id, aff.matiere_id)
+        if key in seen:
+            continue
+        seen.add(key)
         items.append({
             'classe': aff.classe.nom,
             'classe_id': aff.classe_id,
-            'matieres': [m.nom for m in aff.matieres.all()],
+            'matieres': [aff.matiere.nom] if aff.matiere_id else [],
+            'matiere': aff.matiere.nom if aff.matiere_id else None,
         })
     return items

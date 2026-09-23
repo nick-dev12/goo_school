@@ -27,6 +27,11 @@ from school_admin.services.assistant_enseignant_actions import (
     choices_for_enseignant_action,
     get_enseignant_action,
 )
+from school_admin.services.assistant_enseignant_secondaire_actions import (
+    ENSEIGNANT_SECONDAIRE_ACTION_SPECS,
+    choices_for_enseignant_secondaire_action,
+    get_enseignant_secondaire_action,
+)
 from school_admin.services.assistant_intents import (
     is_navigation_only,
     resolve_open_intent,
@@ -508,19 +513,28 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     def _is_enseignant_primaire(self):
         return getattr(self, 'persona', 'directeur') == 'enseignant_primaire'
 
+    def _is_enseignant_secondaire(self):
+        return getattr(self, 'persona', 'directeur') == 'enseignant'
+
     def _pending_action_names(self):
         if self._is_enseignant_primaire():
             return ENSEIGNANT_ACTION_SPECS
+        if self._is_enseignant_secondaire():
+            return ENSEIGNANT_SECONDAIRE_ACTION_SPECS
         return ACTION_SPECS
 
     def _action_spec(self, name):
         if self._is_enseignant_primaire():
             return get_enseignant_action(name) or ACTION_SPECS.get(name)
+        if self._is_enseignant_secondaire():
+            return get_enseignant_secondaire_action(name) or ACTION_SPECS.get(name)
         return ACTION_SPECS.get(name)
 
     def _choices_for_pending_action(self, name, draft):
         if self._is_enseignant_primaire() and name in ENSEIGNANT_ACTION_SPECS:
             return choices_for_enseignant_action(name, draft)
+        if self._is_enseignant_secondaire() and name in ENSEIGNANT_SECONDAIRE_ACTION_SPECS:
+            return choices_for_enseignant_secondaire_action(name, draft)
         return choices_for_action(name, draft)
 
     def _is_write_tool_name(self, name):
@@ -1228,19 +1242,33 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._speak_and_finish(user_text=question, spoken=spoken, choices=choices)
 
     def _classe_choice_items(self, ctx):
-        if self._is_enseignant_primaire():
+        if self._is_enseignant_primaire() or self._is_enseignant_secondaire():
             from django.urls import reverse
             from school_admin.services.assistant_enseignant_scope import affectations_qs
 
-            return [
-                {
-                    'label': aff.classe.nom,
+            route = (
+                'enseignant_primaire:detail_classe'
+                if self._is_enseignant_primaire()
+                else 'enseignant:detail_classe'
+            )
+            items = []
+            seen = set()
+            for aff in affectations_qs(ctx)[:12]:
+                if aff.classe_id in seen:
+                    continue
+                seen.add(aff.classe_id)
+                label = aff.classe.nom
+                if self._is_enseignant_secondaire() and getattr(aff, 'matiere_id', None):
+                    mat = getattr(aff.matiere, 'nom', None)
+                    if mat:
+                        label = f'{aff.classe.nom} ({mat})'
+                items.append({
+                    'label': label,
                     'value': f'Ouvre la classe {aff.classe.nom}',
-                    'url': reverse('enseignant_primaire:detail_classe', args=[aff.classe_id]),
+                    'url': reverse(route, args=[aff.classe_id]),
                     'intent': 'open',
-                }
-                for aff in affectations_qs(ctx)[:8]
-            ]
+                })
+            return items[:8]
         from school_admin.services.assistant_tools import list_classe_choices
 
         return list_classe_choices(ctx)

@@ -28,12 +28,14 @@ from school_admin.services.gemini_assistant_service import (
     MAX_TOOL_ROUNDS,
     SYSTEM_PROMPT_STATIC,
     TOOL_TEMPERATURE,
+    apply_working_refs,
     compact_tool_memory,
     format_turn_telemetry,
     extract_working_refs,
     format_cited_refs,
     _dialog_to_gemini_contents,
     _emit_spoken_fallback,
+    _model_parts_for_replay,
     _run_assistant_turn_cached,
     _stream_cached_round,
 )
@@ -192,7 +194,7 @@ class TtsFallbackQualiteTests(SimpleTestCase):
 
 class QualiteCGeminiTests(SimpleTestCase):
     def test_cache_prompt_v10(self):
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v13')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v14')
 
     def test_navigation_explicite_seulement(self):
         self.assertTrue(is_explicit_navigation('Ouvre le tableau de bord'))
@@ -285,7 +287,7 @@ class QualiteCGeminiTests(SimpleTestCase):
             async def on_delta(piece):
                 deltas.append(piece)
 
-            _response, calls, spoken = await _stream_cached_round(
+            _response, calls, spoken, _parts = await _stream_cached_round(
                 DummyClient(),
                 'model',
                 'cache',
@@ -826,7 +828,7 @@ class GeminiG5MultiToolTests(SimpleTestCase):
 
     def test_plafond_huit_rounds_et_prompt_enchainement(self):
         self.assertEqual(MAX_TOOL_ROUNDS, 8)
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v13')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v14')
         folded = ' '.join(SYSTEM_PROMPT_STATIC.split())
         self.assertIn('tools puis UNE', folded)
         self.assertIn('classe_id', folded)
@@ -1072,7 +1074,7 @@ class GeminiG6PromptTests(SimpleTestCase):
     """G6 : prompt d’autonomie, catalogue raccourci, pièges conservés."""
 
     def test_cache_et_temperatures(self):
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v13')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v14')
         self.assertEqual(TOOL_TEMPERATURE, 0.5)
         self.assertEqual(CONVERSATION_TEMPERATURE, 0.7)
 
@@ -1098,7 +1100,9 @@ class GeminiG6PromptTests(SimpleTestCase):
         self.assertIn('ECTS', folded)
         self.assertIn('ouvrir_classe', folded)
         self.assertIn('tools puis UNE', folded)
-        self.assertLess(len(SYSTEM_PROMPT_STATIC), 4500)
+        self.assertIn('Cette classe', folded)
+        self.assertIn('effectifs + élèves + professeurs', folded)
+        self.assertLess(len(SYSTEM_PROMPT_STATIC), 4700)
 
     def test_addendum_type_sans_inventaire(self):
         from school_admin.services.assistant_schema import prompt_addendum_for
@@ -1324,3 +1328,89 @@ class GeminiG7TelemetryTests(SimpleTestCase):
             self.assertEqual(deltas, [spoken])
 
         asyncio.run(_run())
+
+    def test_thought_signature_est_rejouee(self):
+        class SignedPart:
+            def __init__(self):
+                self.function_call = type(
+                    'Call', (), {'name': 'get_effectifs', 'args': {}}
+                )()
+                self.thought_signature = b'sig-aria-1'
+
+        parts = _model_parts_for_replay([SignedPart()], [])
+        self.assertEqual(len(parts), 1)
+        self.assertEqual(parts[0].thought_signature, b'sig-aria-1')
+
+    def test_cette_classe_reutilise_la_derniere_ouverte(self):
+        filled = apply_working_refs(
+            'get_effectifs',
+            {'classe': 'cette classe'},
+            {'classe': 'CE1 A', 'classe_id': 9},
+        )
+        self.assertEqual(filled['classe'], 'CE1 A')
+        ouvrir = apply_working_refs(
+            'ouvrir_classe',
+            {'query': ''},
+            {'classe': 'CE1 A'},
+        )
+        self.assertEqual(ouvrir['query'], 'CE1 A')
+        self.assertEqual(ouvrir['classe'], 'CE1 A')
+        garde = apply_working_refs(
+            'get_effectifs',
+            {'classe': 'CM2 A'},
+            {'classe': 'CE1 A'},
+        )
+        self.assertEqual(garde['classe'], 'CM2 A')
+
+    def test_repli_infos_classe_et_suggestions(self):
+        from school_admin.services.assistant_tools import (
+            spoken_from_tool_result,
+            spoken_from_tool_results,
+            suggestions_after_read,
+        )
+
+        ouvrir = spoken_from_tool_result(
+            'ouvrir_classe',
+            {'nom': 'CE1 A', 'effectif': 10, 'url': '/c/1'},
+        )
+        self.assertIn('CE1 A', ouvrir)
+        self.assertIn('10', ouvrir)
+        combined = spoken_from_tool_results([
+            ('get_effectifs', {
+                'nb_eleves_actifs': 10,
+                'classe': 'CE1 A',
+                'nb_filles': 5,
+                'nb_garcons': 5,
+            }),
+            ('rechercher_eleves', {
+                'nb_trouves': 2,
+                'eleves': [{'nom': 'Diallo Awa'}, {'nom': 'Ndiaye Moussa'}],
+            }),
+            ('get_affectations', {
+                'source': 'affectations',
+                'nb_affectations': 1,
+                'affectations': [
+                    {'professeur': 'Julie Atemkeng', 'classe': 'CE1 A', 'matiere': 'Arts'},
+                ],
+            }),
+        ])
+        self.assertIn('10', combined)
+        self.assertIn('Diallo Awa', combined)
+        self.assertIn('Julie Atemkeng', combined)
+        self.assertNotIn('J’ai les informations', combined)
+        vide = spoken_from_tool_result(
+            'get_eleves_difficulte',
+            {
+                'nb': 0,
+                'perimetre': 'CE1 A',
+                'message': 'Aucun élève sous le seuil de passage pour cette période.',
+            },
+        )
+        self.assertIn('Aucun élève', vide)
+        self.assertIn('Je peux', vide)
+        chips = suggestions_after_read(
+            [('get_eleves_difficulte', {'nb': 0, 'message': 'Aucun'})],
+            {'classe': 'CE1 A'},
+        )
+        self.assertGreaterEqual(len(chips), 2)
+        self.assertTrue(all(item.get('label') for item in chips))

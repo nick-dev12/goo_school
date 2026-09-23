@@ -48,6 +48,7 @@ from school_admin.services.gemini_assistant_service import (
 from school_admin.services.assistant_tools import (
     normalize_suggestions,
     spoken_from_tool_results,
+    suggestions_after_read,
 )
 from school_admin.services.tts_service import strip_assistant_markup, synthesize_audio
 
@@ -683,6 +684,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 use_tools=True,
                 tool_memory=self._tool_memory_for_turn(),
                 turn_stats=turn_stats,
+                working_refs=getattr(self, '_working_refs', None) or {},
             )
         except Exception:
             logger.exception("Tour Gemini après outil")
@@ -691,6 +693,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 await self._send_json({'type': 'text_delta', 'text': spoken})
                 pending_sentences.append(spoken)
                 await self._flush_tts_queue(pending_sentences)
+                fallback_sugg = suggestions_after_read(
+                    last_tool_results,
+                    getattr(self, '_working_refs', None),
+                )
+                if fallback_sugg and not (
+                    self.pending_action and self._pending_is_ready()
+                ):
+                    await self._send_suggestions(fallback_sugg)
                 if last_tool_results and not turn_stats.get('tools'):
                     turn_stats['tools'] = [name for name, _result in last_tool_results]
                 self._log_turn_stats()
@@ -770,6 +780,17 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 await self._send_choices(self._followup_choices)
             elif self._followup_suggestions:
                 await self._send_suggestions(self._followup_suggestions)
+            elif last_tool_results and not (
+                self.pending_action and self._pending_is_ready()
+            ):
+                fallback_sugg = suggestions_after_read(
+                    last_tool_results,
+                    getattr(self, '_working_refs', None),
+                )
+                if fallback_sugg:
+                    await self._send_suggestions(fallback_sugg)
+                else:
+                    await self._send_choices(self._infer_choices(spoken))
             else:
                 await self._send_choices(self._infer_choices(spoken))
             self._followup_choices = []

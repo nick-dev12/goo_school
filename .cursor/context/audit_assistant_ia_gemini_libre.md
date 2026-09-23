@@ -442,6 +442,8 @@ Sans nouvelle UI globale. Pas de Vague 8.
 
 **Correctif listes** (2026-09-23, `cursor/assistant-repli-listes-a40c`) : `rechercher_classes` renvoyait les noms mais le repli ne les lisait pas → « J’ai les informations… ». `_spoken_name_list` dit maintenant les **classes** (comme élèves / profs). `get_effectifs` garde les totaux (50 / 5 / 7), pas la liste.
 
+**Correctif thought_signature + fiche classe** (2026-09-23, `cursor/assistant-thought-sig-a40c`) : le 400 Gemini venait du replay `Part.from_function_call` **sans** `thought_signature`. On rejoue les parts modèle d’origine. « Cette classe » = dernière ouverte. Repli : effectifs + élèves + profs + 2–3 puces. Cache **v14**.
+
 **Fragile (pas bloquant G7, pas une Vague 8)** :
 
 - Après le 1er round d’outils, Gemini répond **400 `thought_signature`**. Les tools **s’exécutent** ; l’oral est le **repli** Django, pas la synthèse Gemini. D’où l’absence de chips `proposer_actions` en live.

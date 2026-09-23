@@ -603,8 +603,9 @@ def spoken_from_affectations(result):
 
 
 def spoken_from_tool_results(tool_results, ctx=None):
-    """Repli oral : dernier outil parlant, pour un tour multi-tools (G7)."""
-    for item in reversed(tool_results or []):
+    """Repli oral : combine les outils parlants du tour (effectifs + listes)."""
+    parts = []
+    for item in tool_results or []:
         if not item:
             continue
         if isinstance(item, (tuple, list)) and len(item) >= 2:
@@ -612,9 +613,121 @@ def spoken_from_tool_results(tool_results, ctx=None):
         else:
             continue
         spoken = spoken_from_tool_result(name, result, ctx=ctx)
-        if spoken:
-            return spoken
-    return ''
+        if spoken and spoken not in parts:
+            parts.append(spoken)
+    return ' '.join(parts)
+
+
+CLASS_SNAPSHOT_TOOLS = ('get_effectifs', 'rechercher_eleves', 'get_affectations')
+THIN_CLASS_TOOLS = frozenset({'ouvrir_classe', 'get_affectations'})
+
+
+def looks_like_class_info(question):
+    text = (question or '').lower()
+    return any(
+        token in text
+        for token in (
+            'information',
+            'informations',
+            'infos',
+            'détail',
+            'detail',
+            'de cette classe',
+        )
+    )
+
+
+def enrich_class_snapshot(ctx, tool_results, refs=None, question=''):
+    """Si le tour n’a que l’ouverture / les profs, complète effectifs + élèves."""
+    extra = [item for item in (tool_results or []) if item]
+    names = {
+        item[0]
+        for item in extra
+        if isinstance(item, (tuple, list)) and item
+    }
+    classe = ((refs or {}).get('classe') or '').strip()
+    if not ctx or not classe:
+        return extra
+    thin = bool(names) and names <= THIN_CLASS_TOOLS
+    if not thin and not looks_like_class_info(question):
+        return extra
+    if not thin and set(CLASS_SNAPSHOT_TOOLS).issubset(names):
+        return extra
+    for name in CLASS_SNAPSHOT_TOOLS:
+        if name in names:
+            continue
+        try:
+            extra.append((name, execute_tool(ctx, name, {'classe': classe})))
+        except Exception:
+            logger.exception('Repli fiche classe, outil %s', name)
+    return extra
+
+
+def suggestions_after_read(tool_results, refs=None):
+    """2–3 puces de suite, même si Gemini n’a pas appelé proposer_actions."""
+    names = {
+        item[0]
+        for item in (tool_results or [])
+        if isinstance(item, (tuple, list)) and item
+    }
+    classe = ((refs or {}).get('classe') or '').strip()
+    items = []
+    if 'get_eleves_difficulte' in names or any(
+        isinstance(item, (tuple, list))
+        and isinstance(item[1], dict)
+        and item[1].get('source') == 'difficulte'
+        for item in (tool_results or [])
+        if item
+    ):
+        items = [
+            {
+                'label': 'Toute la classe',
+                'value': f'Cite-moi les élèves de {classe}.' if classe else 'Liste les élèves.',
+            },
+            {
+                'label': 'Les notes',
+                'value': f'Les notes de {classe}.' if classe else 'Montre les notes.',
+            },
+            {'label': 'Annonce parents', 'value': 'Prépare une annonce aux parents.'},
+        ]
+    elif 'rechercher_classes' in names and not (
+        names & {'ouvrir_classe', 'get_effectifs', 'rechercher_eleves'}
+    ):
+        items = [
+            {
+                'label': f'Ouvre {classe}' if classe else 'Ouvre une classe',
+                'value': f'Ouvre {classe}.' if classe else 'Ouvre la première classe.',
+            },
+            {'label': 'Effectifs', 'value': 'Quels sont les effectifs ?'},
+            {
+                'label': 'Impayés',
+                'value': f'Il y a des impayés en {classe} ?' if classe else 'Quels sont les impayés ?',
+            },
+        ]
+    elif names & {
+        'ouvrir_classe', 'get_effectifs', 'rechercher_eleves', 'get_affectations',
+    }:
+        items = [
+            {
+                'label': 'Élèves',
+                'value': f'Cite-moi les élèves de {classe}.' if classe else 'Liste les élèves.',
+            },
+            {
+                'label': 'Notes',
+                'value': f'Les notes de {classe}.' if classe else 'Les notes.',
+            },
+            {
+                'label': 'Impayés',
+                'value': f'Il y a des impayés en {classe} ?' if classe else 'Quels sont les impayés ?',
+            },
+        ]
+    elif 'get_impayes' in names:
+        items = [
+            {'label': 'Relancer', 'value': 'Relance les familles.'},
+            {'label': 'Ouvrir une fiche', 'value': 'Ouvre la fiche du plus élevé.'},
+            {'label': 'Caisse', 'value': 'Et la caisse du mois ?'},
+        ]
+    return normalize_suggestions(items, limit=3)
 
 
 def spoken_from_tool_result(name, result, ctx=None):
@@ -642,6 +755,10 @@ def spoken_from_tool_result(name, result, ctx=None):
         return listed
     text = (result.get('message') or result.get('erreur') or '').strip()
     if text:
+        if (
+            name == 'get_eleves_difficulte' or result.get('source') == 'difficulte'
+        ) and not result.get('nb') and 'Je peux' not in text:
+            text += ' Je peux lister toute la classe ou ouvrir les notes.'
         return text
     return _spoken_read_summary(name, result)
 
@@ -654,7 +771,12 @@ def _spoken_name_list(result, limit=12):
         names = []
         for item in items:
             if isinstance(item, dict):
-                label = (item.get('nom') or item.get('nom_complet') or '').strip()
+                label = (
+                    item.get('nom')
+                    or item.get('nom_complet')
+                    or item.get('eleve')
+                    or ''
+                ).strip()
             else:
                 label = str(item).strip()
             if label:
@@ -755,9 +877,12 @@ def _spoken_read_summary(name, result):
         return phrase
     if name == 'ouvrir_classe':
         nom = result.get('nom') or result.get('titre') or result.get('classe')
-        if nom:
-            return f'J’ouvre {nom}.'
-        return ''
+        if not nom:
+            return ''
+        effectif = result.get('effectif')
+        if effectif is not None:
+            return f'J’ouvre {nom}, {effectif} élèves.'
+        return f'J’ouvre {nom}.'
     if name == 'rechercher_classes':
         return 'Je ne trouve aucune classe.'
     if name == 'rechercher_eleves':

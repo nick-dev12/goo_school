@@ -14,9 +14,11 @@ from school_admin.services.assistant_tools import (
     context_snapshot,
     directeur_tools_schema,
     dumps_tool_result,
+    enrich_class_snapshot,
     execute_tool,
     json_safe_tool_result,
     spoken_from_tool_result,
+    spoken_from_tool_results,
 )
 from school_admin.services.gemini_context_cache import (
     cache_enabled,
@@ -78,6 +80,108 @@ async def _emit_spoken_fallback(on_text_delta, spoken):
     return text
 
 
+DEICTIC_CLASSE = frozenset({
+    '',
+    'cette',
+    'cette classe',
+    'celle-ci',
+    'celle ci',
+    'celle-là',
+    'celle là',
+    'la classe',
+    'cette-ci',
+})
+CLASSE_ARG_TOOLS = frozenset({
+    'get_effectifs',
+    'rechercher_eleves',
+    'rechercher_classes',
+    'ouvrir_classe',
+    'get_affectations',
+    'get_emploi_du_temps',
+    'get_notes_classe',
+    'get_notes_examen',
+    'get_eleves_difficulte',
+    'get_impayes',
+    'get_moyennes_classe',
+    'chercher_en_base',
+    'creer_publier_annonce',
+})
+
+
+def apply_working_refs(name, arguments, refs=None):
+    """« Cette classe » → dernière classe ouverte (classe / classe_id)."""
+    args = dict(arguments or {}) if isinstance(arguments, dict) else {}
+    refs = refs or {}
+    classe = (refs.get('classe') or '').strip()
+    if not classe or name not in CLASSE_ARG_TOOLS:
+        return args
+    raw = (args.get('classe') or args.get('query') or '').strip()
+    lowered = raw.lower()
+    if raw and lowered not in DEICTIC_CLASSE and 'cette classe' not in lowered:
+        return args
+    args['classe'] = classe
+    if name == 'ouvrir_classe':
+        args['query'] = classe
+    if name == 'chercher_en_base' and not (args.get('question') or '').strip():
+        args['query'] = raw or classe
+    return args
+
+
+def _iter_model_parts(response):
+    parts = []
+    for candidate in getattr(response, 'candidates', None) or []:
+        content = getattr(candidate, 'content', None)
+        for part in getattr(content, 'parts', None) or []:
+            parts.append(part)
+    return parts
+
+
+def _part_thought_signature(part):
+    if part is None:
+        return None
+    return getattr(part, 'thought_signature', None) or getattr(
+        getattr(part, 'function_call', None), 'thought_signature', None
+    )
+
+
+def _first_function_call_is_signed(parts):
+    for part in parts or []:
+        call = getattr(part, 'function_call', None)
+        if call and getattr(call, 'name', None):
+            return bool(_part_thought_signature(part))
+    return False
+
+
+def _model_parts_for_replay(model_parts, function_calls):
+    """Rejoue les parts modèle d’origine (thought_signature obligatoire)."""
+    from google.genai import types
+
+    if model_parts:
+        return list(model_parts)
+    replay = []
+    for call in function_calls or []:
+        name = getattr(call, 'name', '') or ''
+        raw_args = getattr(call, 'args', None) or {}
+        arguments = raw_args if isinstance(raw_args, dict) else {}
+        if not isinstance(arguments, dict):
+            arguments = dict(arguments) if arguments else {}
+        part = types.Part.from_function_call(name=name, args=arguments)
+        signature = _part_thought_signature(call)
+        if signature:
+            part.thought_signature = signature
+        replay.append(part)
+    return replay
+
+
+def _unpack_cached_round(packed):
+    if packed is None:
+        return None, [], '', []
+    if len(packed) >= 4:
+        return packed[0], packed[1], packed[2], packed[3] or []
+    response, function_calls, spoken = packed
+    return response, function_calls, spoken, _iter_model_parts(response)
+
+
 _resolved_gemini_model = None
 GEMINI_MODEL_FALLBACKS = (
     'gemini-3.6-flash',
@@ -132,6 +236,9 @@ Outils :
 - Utilise seulement l'API d'outils. N'écris jamais les appels en texte.
 - Une demande riche (ouvrir + notes, effectifs + impayés, préparer une classe)
   = plusieurs tools puis UNE synthèse orale. N'arrête pas après le premier.
+- « Cette classe » = la dernière classe ouverte (classe / classe_id déjà cités).
+- Infos d'une classe = effectifs + élèves + professeurs (plusieurs tools),
+  pas seulement les affectations.
 - Réutilise les ids déjà vus (classe_id, eleve_id) plutôt que de redemander
   le nom (« relance-le », « ouvre sa fiche »).
 - Après une lecture utile, appelle proposer_actions (1 à 3 suites). Une phrase
@@ -821,6 +928,7 @@ async def _stream_cached_round(
     config = _cached_generate_config(cache_name, temperature)
     function_calls = []
     spoken_parts = []
+    model_parts = []
     last_chunk = None
     try:
         stream = await client.aio.models.generate_content_stream(
@@ -830,6 +938,9 @@ async def _stream_cached_round(
         )
         async for chunk in stream:
             last_chunk = chunk
+            chunk_parts = _iter_model_parts(chunk)
+            if chunk_parts:
+                model_parts.extend(chunk_parts)
             calls = _gemini_function_calls(chunk)
             if calls:
                 function_calls.extend(calls)
@@ -848,14 +959,40 @@ async def _stream_cached_round(
             contents=contents,
             config=config,
         )
-        function_calls = _gemini_function_calls(response)
+        parts = _iter_model_parts(response)
+        function_calls = _gemini_function_calls(response) or [
+            getattr(part, 'function_call', None)
+            for part in parts
+            if getattr(part, 'function_call', None)
+            and getattr(part.function_call, 'name', None)
+        ]
         spoken = strip_tool_markup(_gemini_text(response) or '')
         if not function_calls and spoken and on_text_delta:
             await on_text_delta(spoken)
-        return response, function_calls, spoken
+        return response, function_calls, spoken, parts
+
+    if function_calls and not _first_function_call_is_signed(model_parts):
+        try:
+            response = await client.aio.models.generate_content(
+                model=cache_model,
+                contents=contents,
+                config=config,
+            )
+            parts = _iter_model_parts(response)
+            calls = _gemini_function_calls(response) or [
+                getattr(part, 'function_call', None)
+                for part in parts
+                if getattr(part, 'function_call', None)
+                and getattr(part.function_call, 'name', None)
+            ]
+            if calls:
+                logger.info('Gemini tool-call relus avec thought_signature.')
+                return response, calls, '', parts
+        except Exception as exc:
+            logger.warning('Relecture tool-call Gemini échouée : %s', exc)
 
     spoken = '' if function_calls else strip_tool_markup(''.join(spoken_parts))
-    return last_chunk, function_calls, spoken
+    return last_chunk, function_calls, spoken, model_parts
 
 
 async def _run_assistant_turn_cached(
@@ -866,6 +1003,7 @@ async def _run_assistant_turn_cached(
     on_tool_result=None,
     tool_memory='',
     turn_stats=None,
+    working_refs=None,
 ):
     from google import genai
     from google.genai import types
@@ -893,14 +1031,30 @@ async def _run_assistant_turn_cached(
     response = None
     temperature = TOOL_TEMPERATURE
     last_tool = None
+    all_tools = []
+    refs = dict(working_refs or {})
+    last_user = ''
+    for item in reversed(messages or []):
+        if isinstance(item, dict) and item.get('role') == 'user':
+            last_user = item.get('content') or ''
+            break
     rounds_used = 0
+
+    async def _fallback_after_tools():
+        enriched = enrich_class_snapshot(ctx, all_tools, refs, last_user)
+        if on_tool_result and len(enriched) > len(all_tools):
+            for name, result in enriched[len(all_tools):]:
+                await on_tool_result(name, {'classe': refs.get('classe')}, result)
+        return spoken_from_tool_results(enriched, ctx=ctx) or spoken_from_tool_result(
+            *(last_tool or ('', {})), ctx=ctx
+        )
 
     for _round in range(MAX_TOOL_ROUNDS):
         rounds_used = _round + 1
         if on_status:
             await on_status('searching' if used_tools or _round == 0 else 'speaking')
         try:
-            response, function_calls, spoken = await _stream_cached_round(
+            packed = await _stream_cached_round(
                 client,
                 cache_model,
                 cache_name,
@@ -908,6 +1062,7 @@ async def _run_assistant_turn_cached(
                 temperature,
                 on_text_delta,
             )
+            response, function_calls, spoken, model_parts = _unpack_cached_round(packed)
         except Exception as exc:
             name = type(exc).__name__
             if 'Timeout' in name or 'timeout' in str(exc).lower():
@@ -921,7 +1076,7 @@ async def _run_assistant_turn_cached(
                 _note_turn_stats(turn_stats, rounds=rounds_used)
                 fallback = await _emit_spoken_fallback(
                     on_text_delta,
-                    spoken_from_tool_result(*last_tool, ctx=ctx),
+                    await _fallback_after_tools(),
                 )
                 return messages, fallback
             logger.warning('Tour Gemini avec cache échoué, repli sans cache : %s', exc)
@@ -958,7 +1113,7 @@ async def _run_assistant_turn_cached(
             ],
         )
         used_tools = True
-        model_parts = []
+        replay_parts = _model_parts_for_replay(model_parts, function_calls)
         response_parts = []
         stop_after_tools = False
         try:
@@ -968,13 +1123,14 @@ async def _run_assistant_turn_cached(
                 arguments = raw_args if isinstance(raw_args, dict) else {}
                 if not isinstance(arguments, dict):
                     arguments = dict(arguments) if arguments else {}
-                model_parts.append(
-                    types.Part.from_function_call(name=name, args=arguments)
-                )
+                arguments = apply_working_refs(name, arguments, refs)
                 result = await sync_to_async(execute_tool, thread_sensitive=True)(
                     ctx, name, arguments
                 )
                 last_tool = (name, result)
+                all_tools.append((name, result))
+                if isinstance(result, dict):
+                    refs.update(extract_working_refs(name, result))
                 if on_tool_result:
                     should_stop = await on_tool_result(name, arguments, result)
                     if should_stop:
@@ -985,13 +1141,13 @@ async def _run_assistant_turn_cached(
                         response=json_safe_tool_result(result),
                     )
                 )
-            contents.append(types.Content(role='model', parts=model_parts))
+            contents.append(types.Content(role='model', parts=replay_parts))
             contents.append(types.Content(role='user', parts=response_parts))
         except Exception:
             logger.exception("Suite Gemini après outil — repli sur le résultat d’outil")
             fallback = await _emit_spoken_fallback(
                 on_text_delta,
-                spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx),
+                await _fallback_after_tools(),
             )
             _note_turn_stats(turn_stats, rounds=rounds_used)
             return messages, fallback
@@ -1004,7 +1160,7 @@ async def _run_assistant_turn_cached(
             _note_turn_stats(turn_stats, rounds=rounds_used)
             fallback = await _emit_spoken_fallback(
                 on_text_delta,
-                spoken_from_tool_result(*(last_tool or ('', {})), ctx=ctx) or spoken,
+                await _fallback_after_tools() or spoken,
             )
             return messages, fallback
 
@@ -1028,6 +1184,7 @@ async def run_assistant_turn(
     use_tools=True,
     tool_memory='',
     turn_stats=None,
+    working_refs=None,
 ):
     """
     Exécute un tour : outils en auto si besoin, puis stream du texte oral.
@@ -1043,6 +1200,7 @@ async def run_assistant_turn(
             on_tool_result=on_tool_result,
             tool_memory=tool_memory,
             turn_stats=turn_stats,
+            working_refs=working_refs,
         )
         if cached_result is not None:
             return cached_result
@@ -1118,8 +1276,11 @@ async def run_assistant_turn(
         working.append(_assistant_message_for_api(message, tool_calls=tool_calls))
         last_compat = None
         for call in tool_calls:
+            arguments = apply_working_refs(
+                call['name'], call['arguments'], working_refs
+            )
             result = await sync_to_async(execute_tool, thread_sensitive=True)(
-                ctx, call['name'], call['arguments']
+                ctx, call['name'], arguments
             )
             last_compat = (call['name'], result)
             if on_tool_result:

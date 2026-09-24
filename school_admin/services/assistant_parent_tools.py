@@ -188,6 +188,7 @@ def tool_get_notifications(ctx, args):
         for n in qs.order_by('-date_creation')[:12]:
             items.append({
                 'source': 'parent',
+                'notification_id': n.id,
                 'titre': n.titre,
                 'message': (n.message or '')[:200],
                 'lu': bool(n.lu),
@@ -683,6 +684,27 @@ def suggestions_after_parent_read(tool_results):
 def execute_parent_tool(ctx, name, arguments):
     args = arguments if isinstance(arguments, dict) else {}
     lowered = (name or '').strip().lower()
+
+    from school_admin.services.assistant_parent_actions import (
+        PARENT_VOCAL_BLOCKED,
+        get_parent_action,
+    )
+
+    if lowered in PARENT_VOCAL_BLOCKED:
+        return {
+            'erreur': 'Cette action n’est pas disponible via l’assistant vocal parent.',
+            'statut': 'hors_perimetre',
+        }
+
+    parent_action = get_parent_action(lowered)
+    if parent_action and parent_action.prepare:
+        try:
+            return parent_action.prepare(ctx, args)
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception('Erreur action parent %s', name)
+            return {'erreur': f'Impossible de préparer {name} pour le moment.'}
 
     if lowered in PARENT_TOOL_NAMES:
         handler = TOOL_HANDLERS.get(lowered)

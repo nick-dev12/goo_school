@@ -1,8 +1,8 @@
 # Audit + feuille de route — Assistant IA Parent (conseil & suivi enfant)
 
 **Date** : 2026-09-23  
-**Statut** : **Par0–Par6 livrées** (2026-09-24). Par7+ **non démarrées**.  
-**Branche** : `cursor/assistant-parent-par6-a40c`  
+**Statut** : **Par0–Par7 livrées** (2026-09-24). Par8 **non démarrée**.  
+**Branche** : `cursor/assistant-parent-par7-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Directeur (tools, schéma, confirmation) : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md)
@@ -452,8 +452,8 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | Écrans élève rendus | 13 |
 | Templates parent / élève | 9 + 16 |
 | Partials assistant parent | **1** (`assistant_vocal_parent.html`) |
-| Tools assistant parent | **18** (navigation + suivi + scolarité/reçus) |
-| Tests assistant parent | **52+** (scope + tools + scolaire + finance + Wolof + WS + G7 Par6) |
+| Tools assistant parent | **20** (18 lecture/nav + 2 écritures confirmées Par7) |
+| Tests assistant parent | **60+** (scope + tools + scolaire + finance + Wolof + WS + G7 + actions Par7) |
 | Personas WS acceptés | directeur, enseignant, enseignant_primaire, **`parent`** |
 
 ---
@@ -555,10 +555,28 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 3. « Ouvre la scolarité » → navigation seule, pas de pending action.
 4. Logs tour : `takeover=0` sur lectures parent.
 
+### Par7 — Actions confirmées (2026-09-24)
+
+- Fichier : `assistant_parent_actions.py` (registre `PARENT_ACTION_SPECS`, hors schéma directeur).
+- **`marquer_notification_lue`** : brouillon → carte oui / modifier / annuler → `NotificationParent.marquer_comme_lue()` (aligné POST `marquer_notification_parent`).
+- **`demande_liaison_enfant`** : matricule + mot de passe élève ; rate limit 5 tentatives / matricule ; création `LienFamilial` **uniquement après confirm**.
+- Consumer parent : écritures via `_remember_write_pending` ; `_confirm_generic_action` + apply ; lectures inchangées (takeover=0).
+- **Exclus** : paiement vocal, changement mot de passe vocal (`PARENT_VOCAL_BLOCKED`).
+- `get_notifications` expose `notification_id` pour le tool marquer.
+- Tests : `test_assistant_parent_actions.py`.
+
+#### Recette manuelle Par7
+
+1. « Marque ma dernière notification comme lue » → carte confirmation → **Oui** → notification `lu=True`.
+2. **Annuler** sur la carte → rien n’est écrit en base.
+3. « Lie l’enfant matricule X » sans mot de passe → demande complément ; mauvais MDP → message tentatives (pas de lien).
+4. Bon MDP → carte → **Oui** → enfant visible sur le dashboard parent.
+5. « Enregistre un paiement » / « Change mon mot de passe » → refus hors périmètre.
+
 ### Prochaine étape
 
-**Par7** — actions confirmées (`marquer_notification_lue`, etc.). **Par8** recette multi-types : non démarrés.
+**Par8** — recette multi-types (primaire + secondaire + supérieur) + checklist §14.
 
 ---
 
-*Stop après Par6 — pas de Par7 dans cette livraison.*
+*Stop après Par7 — pas de Par8 dans cette livraison.*

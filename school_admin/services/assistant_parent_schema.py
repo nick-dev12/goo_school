@@ -34,7 +34,14 @@ _FINANCE_TOOLS = (
     'ouvrir_recu',
 )
 
-PARENT_TOOL_NAMES_ALL = frozenset(_BASE_TOOLS + _SCOLAIRE_TOOLS + _FINANCE_TOOLS)
+_WRITE_TOOLS = (
+    'marquer_notification_lue',
+    'demande_liaison_enfant',
+)
+
+PARENT_TOOL_NAMES_ALL = frozenset(
+    _BASE_TOOLS + _SCOLAIRE_TOOLS + _FINANCE_TOOLS + _WRITE_TOOLS
+)
 
 # Réservé aux établissements « classiques » (primaire + collège/lycée) : pas de bulletin LMD dédié
 _BULLETIN_STANDARD_ONLY = frozenset()
@@ -76,7 +83,12 @@ def _flags_for_parent_ctx(ctx):
 
 def allowed_tool_names(ctx):
     flags = _flags_for_parent_ctx(ctx)
-    names = set(_BASE_TOOLS) | set(_SCOLAIRE_TOOLS) | set(_FINANCE_TOOLS)
+    names = (
+        set(_BASE_TOOLS)
+        | set(_SCOLAIRE_TOOLS)
+        | set(_FINANCE_TOOLS)
+        | set(_WRITE_TOOLS)
+    )
     if flags.get('est_superieur') and not (
         flags.get('est_primaire') or flags.get('est_college') or flags.get('est_lycee')
     ):
@@ -213,15 +225,19 @@ def _schema_definitions():
 
 
 def build_parent_tool_schemas(ctx=None):
+    from school_admin.services.assistant_parent_actions import build_parent_action_schemas
     from school_admin.services.assistant_parent_tools import PAR2_GEMINI_TOOLS
 
     base = {item['function']['name']: item for item in PAR2_GEMINI_TOOLS}
     extras = _schema_definitions()
+    actions = {item['function']['name']: item for item in build_parent_action_schemas()}
     allowed = allowed_tool_names(ctx)
     out = []
     for name in sorted(allowed):
         if name in base:
             out.append(base[name])
+        elif name in actions:
+            out.append(actions[name])
         elif name in extras:
             spec = extras[name]
             out.append({

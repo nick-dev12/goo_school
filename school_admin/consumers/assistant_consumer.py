@@ -542,6 +542,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return getattr(self, 'persona', 'directeur') == 'enseignant'
 
     def _pending_action_names(self):
+        if self._is_parent():
+            from school_admin.services.assistant_parent_actions import PARENT_ACTION_SPECS
+
+            return PARENT_ACTION_SPECS
         if self._is_enseignant_primaire():
             return ENSEIGNANT_ACTION_SPECS
         if self._is_enseignant_secondaire():
@@ -549,6 +553,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return ACTION_SPECS
 
     def _action_spec(self, name):
+        if self._is_parent():
+            from school_admin.services.assistant_parent_actions import get_parent_action
+
+            return get_parent_action(name)
         if self._is_enseignant_primaire():
             return get_enseignant_action(name) or ACTION_SPECS.get(name)
         if self._is_enseignant_secondaire():
@@ -556,6 +564,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return ACTION_SPECS.get(name)
 
     def _choices_for_pending_action(self, name, draft):
+        if self._is_parent():
+            from school_admin.services.assistant_parent_actions import choices_for_parent_action
+
+            return choices_for_parent_action(name, draft)
         if self._is_enseignant_primaire() and name in ENSEIGNANT_ACTION_SPECS:
             return choices_for_enseignant_action(name, draft)
         if self._is_enseignant_secondaire() and name in ENSEIGNANT_SECONDAIRE_ACTION_SPECS:
@@ -563,6 +575,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return choices_for_action(name, draft)
 
     def _is_write_tool_name(self, name):
+        if self._is_parent():
+            from school_admin.services.assistant_parent_actions import is_parent_write_action
+
+            return is_parent_write_action(name)
         return name in self._pending_action_names() or name in GUIDED_ACTIONS
 
     async def _on_live_tool_result(self, name, result):
@@ -576,6 +592,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 self._last_tool_memory = compact_tool_memory(name, result)
             if name in ('ouvrir_page', 'ouvrir_recu', 'select_enfant'):
                 await self._dispatch_navigation(name, result)
+            elif self._is_write_tool_name(name):
+                await self._remember_write_pending(name, result)
             return False
         if isinstance(result, dict):
             refs = getattr(self, '_working_refs', None)

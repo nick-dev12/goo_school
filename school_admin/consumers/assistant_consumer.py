@@ -189,6 +189,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self.personnel = None
         self.professeur = None
         self.parent = None
+        self.eleve = None
         self.persona = 'directeur'
         self.history = []
         self.pending_action = None
@@ -230,6 +231,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         })
         if getattr(self, 'persona', '') == 'parent':
             await self._send_parent_welcome()
+        elif getattr(self, 'persona', '') == 'eleve':
+            await self._send_eleve_welcome()
         await self._restore_pending_ui()
 
     async def disconnect(self, close_code):
@@ -672,7 +675,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return False
 
     async def _handle_local_intent(self, question, ctx):
-        if getattr(ctx, 'persona', '') == 'parent':
+        if getattr(ctx, 'persona', '') in ('parent', 'eleve'):
             return False
         if not is_navigation_only(question):
             return False
@@ -1099,9 +1102,35 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         from school_admin.model.eleve_model import Eleve
 
         if isinstance(user, Eleve):
-            return False
+            el = Eleve.objects.select_related('etablissement', 'classe').get(pk=user.pk)
+            if not el.actif:
+                return False
+            self.eleve = el
+            self.etablissement = el.etablissement
+            self.personnel = None
+            self.professeur = None
+            self.parent = None
+            self.persona = 'eleve'
+            return bool(self.etablissement)
 
         return False
+
+    async def _send_eleve_welcome(self):
+        from school_admin.services.gemini_assistant_service import ELEVE_WELCOME
+
+        text = ELEVE_WELCOME
+        await self._send_json({
+            'type': 'assistant.welcome',
+            'text': text,
+            'persona': 'eleve',
+        })
+        try:
+            audio, mime = await synthesize_audio(text)
+        except Exception:
+            logger.exception('TTS accueil élève')
+            audio, mime = b'', 'audio/wav'
+        if text:
+            await self._emit_sentence(text, 0, audio=audio or b'', audio_mime=mime or 'audio/wav')
 
     async def _send_parent_welcome(self):
         from school_admin.services.gemini_assistant_service import PARENT_WELCOME_BILINGUAL
@@ -1122,6 +1151,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
     def _is_parent(self):
         return getattr(self, 'persona', 'directeur') == 'parent'
+
+    def _is_eleve(self):
+        return getattr(self, 'persona', 'directeur') == 'eleve'
 
     async def _handle_set_lang_pref(self, payload):
         if not self._is_parent():
@@ -1178,6 +1210,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             personnel=self.personnel,
             professeur=self.professeur,
             parent=self.parent,
+            eleve=self.eleve,
             persona=self.persona,
         )
 

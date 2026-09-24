@@ -63,6 +63,7 @@ class AssistantContext:
     personnel: object = None
     professeur: object = None
     parent: object = None
+    eleve: object = None
     eleve_consulte: object = None
     enfants_lies: list = None
     session_store: dict = None
@@ -80,6 +81,7 @@ def build_assistant_context(
     personnel=None,
     professeur=None,
     parent=None,
+    eleve=None,
     persona='directeur',
 ):
     """Construit le contexte établissement + session consultée."""
@@ -115,6 +117,13 @@ def build_assistant_context(
             if annee is None:
                 annee = AnneeScolaire.get_session_active(etablissement)
 
+    if persona == 'eleve' and eleve:
+        etab_ref = getattr(eleve, 'etablissement', None)
+        if etab_ref and (not etablissement or etab_ref.pk != getattr(etablissement, 'pk', None)):
+            etablissement = etab_ref
+            if annee is None:
+                annee = AnneeScolaire.get_session_active(etablissement)
+
     flags = classify_etablissement(etablissement) if etablissement else {
         'est_superieur': False,
         'est_primaire': False,
@@ -132,6 +141,7 @@ def build_assistant_context(
         personnel=personnel,
         professeur=professeur,
         parent=parent,
+        eleve=eleve,
         eleve_consulte=eleve_consulte,
         enfants_lies=enfants_lies or [],
         session_store=session_store,
@@ -178,6 +188,11 @@ def context_snapshot(ctx):
                 'id': el.id,
                 'nom': getattr(el, 'nom_complet', None) or f'{el.prenom} {el.nom}',
             }
+    if getattr(ctx, 'persona', 'directeur') == 'eleve' and getattr(ctx, 'eleve', None):
+        el = ctx.eleve
+        payload['eleve'] = getattr(el, 'nom_complet', None) or f'{el.prenom} {el.nom}'
+        if getattr(el, 'classe_id', None) and el.classe:
+            payload['classe'] = el.classe.nom
     if getattr(ctx, 'persona', 'directeur') in ('enseignant_primaire', 'enseignant') and ctx.professeur:
         prof = ctx.professeur
         payload['professeur'] = getattr(prof, 'nom_complet', None) or f'{prof.prenom} {prof.nom}'
@@ -2953,6 +2968,10 @@ def directeur_tools_schema(ctx):
 
 def execute_tool(ctx, name, arguments):
     """Exécute un outil et renvoie un dict JSON-serializable."""
+    if getattr(ctx, 'persona', 'directeur') == 'eleve':
+        from school_admin.services.assistant_eleve_tools import execute_eleve_tool
+
+        return execute_eleve_tool(ctx, name, arguments)
     if getattr(ctx, 'persona', 'directeur') == 'parent':
         from school_admin.services.assistant_parent_tools import execute_parent_tool
 

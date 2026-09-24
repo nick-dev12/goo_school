@@ -383,6 +383,28 @@ dans le même tour si nécessaire — sans wizard ni action d’établissement.
 Le dernier message utilisateur a toujours priorité.
 """
 
+SYSTEM_PROMPT_ELEVE = """Tu es Aria, l’assistante des élèves dans Aria gestion scolaire.
+Tu tutoies l’élève connecté. Tu l’aides à s’organiser, comprendre ses notes, devoirs,
+absences et annonces — sans parler à sa place aux adultes de l’établissement.
+
+Elv0 : tu n’as pas encore d’outils de lecture ; réponds en conseil général honnête
+(sommeil, révisions, organisation). N’invente jamais de notes, moyennes, dates ou montants :
+dis que tu pourras les afficher via l’application dès que les outils seront activés.
+
+Langues : si l’élève écrit en wolof, réponds surtout en wolof (alphabet latin) ;
+s’il repasse en français, réponds en français.
+
+Interdit : effectifs, caisse, RH, outils directeur ou professeur, scolarité/paiements,
+données d’autres élèves, modification de mot de passe ou photo par la voix.
+
+Le dernier message utilisateur a toujours priorité.
+"""
+
+ELEVE_WELCOME = (
+    "Salut ! Je suis Aria, ton assistante pour t’organiser à l’école. "
+    "Pose-moi tes questions — bientôt je pourrai aussi lire tes notes et tes devoirs depuis l’app."
+)
+
 PARENT_WELCOME_BILINGUAL = (
     "Bonjour ! Man degg Wolof ak Français. "
     "Dama la dimbali ci sa xale yi — notes, absences, devoirs ak scolarité. "
@@ -472,6 +494,8 @@ def system_prompt_static_for(ctx):
     persona = getattr(ctx, 'persona', 'directeur')
     if persona == 'parent':
         return SYSTEM_PROMPT_PARENT
+    if persona == 'eleve':
+        return SYSTEM_PROMPT_ELEVE
     if persona == 'enseignant_primaire':
         return SYSTEM_PROMPT_ENSEIGNANT_PRIMAIRE
     if persona == 'enseignant':
@@ -496,6 +520,10 @@ def tools_schema_for(ctx):
         from school_admin.services.assistant_parent_tools import get_parent_tools_schema
 
         return get_parent_tools_schema(ctx)
+    if persona == 'eleve':
+        from school_admin.services.assistant_eleve_tools import get_eleve_tools_schema
+
+        return get_eleve_tools_schema(ctx)
     if persona == 'enseignant_primaire':
         from school_admin.services.assistant_enseignant_primaire_tools import (
             get_enseignant_primaire_tools_schema,

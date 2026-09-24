@@ -120,6 +120,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'school_admin.middleware.AuthenticationMiddleware',  # Notre middleware d'authentification personnalisé
     'school_admin.middleware.SessionActiveMiddleware',  # Middleware pour la gestion des sessions actives
+    'school_admin.middleware.CaissierAccessMiddleware',
     'school_admin.middleware.SeoMiddleware',
 ]
 
@@ -381,9 +382,10 @@ GEMINI_API_BASE_URL = env(
 ).strip()
 GEMINI_TTS_MODEL = env(
     'GEMINI_TTS_MODEL',
-    default='gemini-2.5-flash-preview-tts',
+    default='gemini-2.5-flash-tts',
 ).strip()
-GEMINI_TTS_VOICE = env('GEMINI_TTS_VOICE', default='Zephyr').strip()
+# Kore = voix féminine chaleureuse/naturelle (recommandée). Alternatives : Sulafat, Despina, Aoede.
+GEMINI_TTS_VOICE = env('GEMINI_TTS_VOICE', default='Kore').strip()
 GEMINI_TTS_LANGUAGE = env('GEMINI_TTS_LANGUAGE', default='fr-FR').strip()
 GEMINI_CONTEXT_CACHE = env('GEMINI_CONTEXT_CACHE', default='true').strip().lower() in (
     '1',
@@ -406,7 +408,7 @@ DEEPSEEK_API_BASE_URL = env(
     default='https://api.deepseek.com',
 ).strip()
 DEEPSEEK_MODEL = env('DEEPSEEK_MODEL', default='deepseek-flash').strip()
-EDGE_TTS_VOICE = env('EDGE_TTS_VOICE', default='fr-BE-CharlineNeural').strip()
+EDGE_TTS_VOICE = env('EDGE_TTS_VOICE', default='fr-FR-EloiseNeural').strip()
 EDGE_TTS_RATE = env('EDGE_TTS_RATE', default='').strip()
 EDGE_TTS_PITCH = env('EDGE_TTS_PITCH', default='').strip()
 EDGE_TTS_VOLUME = env('EDGE_TTS_VOLUME', default='').strip()

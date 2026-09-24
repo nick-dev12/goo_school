@@ -1,8 +1,11 @@
 """Préparation orale Charline : noms cités, sans casser le rythme natif."""
 from django.test import SimpleTestCase
 
+from django.test import override_settings
+
 from school_admin.services.tts_service import (
     _mark_cited_names,
+    _resolve_gemini_voice,
     parse_pcm_sample_rate,
     pcm16_to_wav,
     prepare_spoken_text,
@@ -83,3 +86,17 @@ class CharlineSpokenTextTests(SimpleTestCase):
         self.assertTrue(wav.startswith(b'RIFF'))
         self.assertIn(b'WAVE', wav[:16])
         self.assertEqual(len(wav), 44 + len(pcm))
+
+
+class GeminiVoiceConfigTests(SimpleTestCase):
+    @override_settings(GEMINI_TTS_VOICE='Kore')
+    def test_default_kore(self):
+        self.assertEqual(_resolve_gemini_voice(), 'Kore')
+
+    @override_settings(GEMINI_TTS_VOICE='sulafat')
+    def test_normalise_casse(self):
+        self.assertEqual(_resolve_gemini_voice(), 'Sulafat')
+
+    @override_settings(GEMINI_TTS_VOICE='InvalidVoice')
+    def test_voix_invalide_repli_kore(self):
+        self.assertEqual(_resolve_gemini_voice(), 'Kore')

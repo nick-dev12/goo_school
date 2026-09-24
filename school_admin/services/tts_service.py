@@ -13,18 +13,25 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 TTS_TIMEOUT_SECONDS = 25
-DEFAULT_VOICE = 'fr-BE-CharlineNeural'
-DEFAULT_GEMINI_VOICE = 'Zephyr'
+DEFAULT_VOICE = 'fr-FR-EloiseNeural'
+DEFAULT_GEMINI_VOICE = 'Kore'
 DEFAULT_GEMINI_LANGUAGE = 'fr-FR'
+# Voix Gemini féminines recommandées pour le français (timbe naturel).
+_GEMINI_FEMALE_VOICES = frozenset({
+    'Achernar', 'Aoede', 'Autonoe', 'Callirrhoe', 'Despina', 'Erinome', 'Gacrux',
+    'Kore', 'Laomedeia', 'Leda', 'Pulcherrima', 'Sulafat', 'Vindemiatrix', 'Zephyr',
+})
 # Consigne identique à chaque phrase pour limiter les variations de timbre.
 GEMINI_TTS_FIXED_INSTRUCTION = (
-    'Lis le texte suivant à voix haute en français. '
-    'Garde exactement le même timbre féminin, le même rythme et la même chaleur '
-    'qu’à l’habitude. Ne commente pas, n’ajoute rien, ne reformule pas.'
+    'Tu es Aria, assistante vocale à voix féminine chaleureuse et naturelle. '
+    'Lis le texte en français standard, rythme conversationnel (pas robotique). '
+    'Prononce clairement les prénoms, noms de famille et lieux (y compris N\'Diaye, '
+    'Sow, Dakar, etc.) sans les angliciser ni les épeler lettre par lettre. '
+    'Ne commente pas, n’ajoute rien, ne reformule pas, ne traduis pas.'
 )
 GEMINI_TTS_WOLOF_INSTRUCTION = (
-    'Lis le texte suivant à voix haute en wolof sénégalais (alphabet latin). '
-    'Garde un timbre féminin chaleureux et un rythme naturel. '
+    'Tu es Aria. Lis le texte à voix haute en wolof sénégalais (alphabet latin), '
+    'voix féminine chaleureuse et naturelle. '
     'Ne commente pas, n’ajoute rien, ne reformule pas, ne traduis pas en français.'
 )
 DEFAULT_EDGE_VOICE_WOLOF = 'fr-SN-AissatouNeural'
@@ -510,12 +517,24 @@ def _gemini_tts_prompt(spoken_text, language='fr'):
         instruction = GEMINI_TTS_WOLOF_INSTRUCTION
     else:
         instruction = GEMINI_TTS_FIXED_INSTRUCTION
-    return f'{instruction}\n\n{spoken_text}'
+    return f'{instruction}\n\nTexte à lire mot pour mot :\n{spoken_text}'
+
+
+def _edge_fallback_enabled():
+    return bool(getattr(settings, 'ASSISTANT_TTS_FALLBACK_EDGE', False))
 
 
 def _resolve_gemini_voice():
     raw = getattr(settings, 'GEMINI_TTS_VOICE', DEFAULT_GEMINI_VOICE) or DEFAULT_GEMINI_VOICE
-    return raw.strip().title()
+    name = raw.strip().title()
+    if name not in _GEMINI_FEMALE_VOICES:
+        logger.warning(
+            'GEMINI_TTS_VOICE=%s inconnue ou non féminine, repli sur %s.',
+            raw,
+            DEFAULT_GEMINI_VOICE,
+        )
+        return DEFAULT_GEMINI_VOICE
+    return name
 
 
 def _resolve_gemini_language():
@@ -545,7 +564,7 @@ async def _synthesize_gemini(clean, language='fr'):
     model = getattr(
         settings,
         'GEMINI_TTS_MODEL',
-        'gemini-2.5-flash-preview-tts',
+        'gemini-2.5-flash-tts',
     )
     voice_name = _resolve_gemini_voice()
     language_code = _resolve_gemini_language()
@@ -660,6 +679,12 @@ async def synthesize_audio(text, voice=None, rate=None, pitch=None, language=Non
     audio, mime = await _synthesize_gemini(clean, language=lang)
     if audio:
         return audio, mime
+    if not _edge_fallback_enabled():
+        logger.warning(
+            'Gemini TTS indisponible et ASSISTANT_TTS_FALLBACK_EDGE=false : '
+            'phrase sans audio (voix Gemini uniquement).'
+        )
+        return None, None
     logger.warning('Gemini TTS indisponible, repli Edge pour cette phrase.')
     audio, mime = await _synthesize_edge_mp3(clean, voice=edge_voice or voice)
     if audio:

@@ -6,6 +6,7 @@ from __future__ import annotations
 import re
 
 SESSION_LANG_KEY = 'aria_parent_lang'
+SESSION_LANG_KEY_ELEVE = 'aria_eleve_lang'
 VALID_PREFS = frozenset({'auto', 'fr', 'wo'})
 
 STT_FR = 'fr-FR'

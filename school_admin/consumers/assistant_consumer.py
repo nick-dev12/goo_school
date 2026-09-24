@@ -308,15 +308,15 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._cancel_pending()
 
     async def _execute_user_message(self, question, lang_pref=None):
-        if self._is_parent():
+        if self._uses_bilingual_lang():
             from school_admin.services.assistant_parent_language import (
                 normalize_lang_preference,
                 resolve_user_turn_language,
             )
 
             if lang_pref:
-                await self._save_parent_lang_pref(lang_pref)
-            self._parent_lang_pref = await self._load_parent_lang_pref()
+                await self._save_persona_lang_pref(lang_pref)
+            self._parent_lang_pref = await self._load_persona_lang_pref()
             if lang_pref:
                 self._parent_lang_pref = normalize_lang_preference(lang_pref)
             self._parent_user_turn_lang = resolve_user_turn_language(
@@ -915,7 +915,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             })
             return
 
-        if self._is_parent():
+        if self._uses_bilingual_lang():
             from school_admin.services.assistant_parent_language import (
                 STT_WOLOF_WEAK_MESSAGE,
                 normalize_lang_preference,
@@ -924,10 +924,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             )
 
             pref = normalize_lang_preference(
-                payload.get('lang_pref') or await self._load_parent_lang_pref()
+                payload.get('lang_pref') or await self._load_persona_lang_pref()
             )
             if payload.get('lang_pref'):
-                await self._save_parent_lang_pref(pref)
+                await self._save_persona_lang_pref(pref)
             self._parent_lang_pref = pref
             order = stt_language_order(pref)
             if len(order) > 1:
@@ -960,7 +960,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         })
 
     def _parent_tts_language(self, sentence):
-        if not self._is_parent():
+        if not self._uses_bilingual_lang():
             return None
         from school_admin.services.assistant_parent_language import resolve_tts_language
 
@@ -1155,47 +1155,54 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     def _is_eleve(self):
         return getattr(self, 'persona', 'directeur') == 'eleve'
 
+    def _uses_bilingual_lang(self):
+        return self._is_parent() or self._is_eleve()
+
     async def _handle_set_lang_pref(self, payload):
-        if not self._is_parent():
+        if not self._uses_bilingual_lang():
             await self._send_json({
                 'type': 'error',
-                'message': 'Préférence langue réservée au parcours parent.',
+                'message': 'Préférence langue non disponible pour ce profil.',
             })
             return
         from school_admin.services.assistant_parent_language import normalize_lang_preference
 
         pref = normalize_lang_preference(payload.get('value'))
-        await self._save_parent_lang_pref(pref)
+        await self._save_persona_lang_pref(pref)
         self._parent_lang_pref = pref
         await self._send_json({'type': 'lang_pref', 'value': pref})
 
+    def _session_lang_key(self):
+        if self._is_eleve():
+            from school_admin.services.assistant_parent_language import SESSION_LANG_KEY_ELEVE
+
+            return SESSION_LANG_KEY_ELEVE
+        from school_admin.services.assistant_parent_language import SESSION_LANG_KEY
+
+        return SESSION_LANG_KEY
+
     @database_sync_to_async
-    def _load_parent_lang_pref(self):
-        from school_admin.services.assistant_parent_language import (
-            SESSION_LANG_KEY,
-            normalize_lang_preference,
-        )
+    def _load_persona_lang_pref(self):
+        from school_admin.services.assistant_parent_language import normalize_lang_preference
 
         session = self.scope.get('session') or {}
-        return normalize_lang_preference(session.get(SESSION_LANG_KEY, 'auto'))
+        return normalize_lang_preference(session.get(self._session_lang_key(), 'auto'))
 
     @database_sync_to_async
-    def _save_parent_lang_pref(self, pref):
-        from school_admin.services.assistant_parent_language import (
-            SESSION_LANG_KEY,
-            normalize_lang_preference,
-        )
+    def _save_persona_lang_pref(self, pref):
+        from school_admin.services.assistant_parent_language import normalize_lang_preference
 
         session = self.scope.get('session')
         if session is None:
             return
-        session[SESSION_LANG_KEY] = normalize_lang_preference(pref)
+        session[self._session_lang_key()] = normalize_lang_preference(pref)
         if not hasattr(session, 'save'):
             return
         try:
             session.save()
         except Exception:
-            logger.exception('Impossible de sauvegarder aria_parent_lang en session.')
+            logger.exception('Impossible de sauvegarder la préférence langue Aria en session.')
+
 
     @database_sync_to_async
     def _build_context(self):

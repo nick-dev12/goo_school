@@ -22,6 +22,12 @@ GEMINI_TTS_FIXED_INSTRUCTION = (
     'Garde exactement le même timbre féminin, le même rythme et la même chaleur '
     'qu’à l’habitude. Ne commente pas, n’ajoute rien, ne reformule pas.'
 )
+GEMINI_TTS_WOLOF_INSTRUCTION = (
+    'Lis le texte suivant à voix haute en wolof sénégalais (alphabet latin). '
+    'Garde un timbre féminin chaleureux et un rythme naturel. '
+    'Ne commente pas, n’ajoute rien, ne reformule pas, ne traduis pas en français.'
+)
+DEFAULT_EDGE_VOICE_WOLOF = 'fr-SN-AissatouNeural'
 
 _gemini_tts_client = None
 
@@ -499,8 +505,12 @@ def pcm16_to_wav(pcm_data, sample_rate=24000, num_channels=1):
     return header + pcm_data
 
 
-def _gemini_tts_prompt(spoken_text):
-    return f'{GEMINI_TTS_FIXED_INSTRUCTION}\n\n{spoken_text}'
+def _gemini_tts_prompt(spoken_text, language='fr'):
+    if (language or 'fr').lower() in ('wo', 'wolof', 'wo-sn'):
+        instruction = GEMINI_TTS_WOLOF_INSTRUCTION
+    else:
+        instruction = GEMINI_TTS_FIXED_INSTRUCTION
+    return f'{instruction}\n\n{spoken_text}'
 
 
 def _resolve_gemini_voice():
@@ -526,7 +536,7 @@ def _get_gemini_tts_client():
     return _gemini_tts_client
 
 
-async def _synthesize_gemini(clean):
+async def _synthesize_gemini(clean, language='fr'):
     api_key = getattr(settings, 'GEMINI_API_KEY', '') or ''
     if not api_key:
         logger.warning('GEMINI_API_KEY manquante pour la synthèse vocale.')
@@ -547,7 +557,7 @@ async def _synthesize_gemini(clean):
         return None, None
 
     client = _get_gemini_tts_client()
-    prompt = _gemini_tts_prompt(clean)
+    prompt = _gemini_tts_prompt(clean, language=language)
 
     async def _call():
         return await client.aio.models.generate_content(
@@ -622,26 +632,36 @@ async def _synthesize_edge_mp3(clean, voice=None):
         return None, None
 
 
-async def synthesize_audio(text, voice=None, rate=None, pitch=None):
+async def synthesize_audio(text, voice=None, rate=None, pitch=None, language=None):
     """
     Convertit un texte en bytes audio + MIME (WAV Gemini ou MP3 Edge).
 
     rate/pitch ignorés (rythme natif du moteur).
+    language: None ou 'fr' (défaut directeur/enseignant) ; 'wo' pour wolof (parent).
     """
     del rate, pitch
     clean = prepare_spoken_text(text)
     if not clean:
         return None, None
 
+    lang = (language or 'fr').lower()
+    edge_voice = voice
+    if not edge_voice and lang in ('wo', 'wolof', 'wo-sn'):
+        edge_voice = getattr(
+            settings,
+            'EDGE_TTS_VOICE_WOLOF',
+            DEFAULT_EDGE_VOICE_WOLOF,
+        ) or DEFAULT_EDGE_VOICE_WOLOF
+
     backend = _tts_backend()
     if backend == 'edge':
-        return await _synthesize_edge_mp3(clean, voice=voice)
+        return await _synthesize_edge_mp3(clean, voice=edge_voice or voice)
 
-    audio, mime = await _synthesize_gemini(clean)
+    audio, mime = await _synthesize_gemini(clean, language=lang)
     if audio:
         return audio, mime
     logger.warning('Gemini TTS indisponible, repli Edge pour cette phrase.')
-    audio, mime = await _synthesize_edge_mp3(clean, voice=voice)
+    audio, mime = await _synthesize_edge_mp3(clean, voice=edge_voice or voice)
     if audio:
         return audio, mime
     logger.warning('TTS vide après Gemini et Edge : phrase muette évitée côté file.')

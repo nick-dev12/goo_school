@@ -1,8 +1,8 @@
 # Audit + feuille de route — Assistant IA Parent (conseil & suivi enfant)
 
 **Date** : 2026-09-23  
-**Statut** : **Par0–Par2 livrées** (2026-09-24). Par3+ **non démarrées**.  
-**Branche** : `cursor/assistant-parent-par2-a40c`  
+**Statut** : **Par0–Par3 livrées** (2026-09-24). Par4+ **non démarrées**.  
+**Branche** : `cursor/assistant-parent-par3-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Directeur (tools, schéma, confirmation) : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md)
@@ -278,7 +278,7 @@ Domaines **déjà calculés** côté Django (sources de vérité pour les futurs
 
 5. **Accessibilité** :
    - Sous-titres dans le panel assistant dans la **langue de réponse**.
-   - Option future : chip « Français / Wolof » mémorisée en session (préférence parent) — Par3+.
+   - Chip « Auto / FR / Wolof » (session navigateur + clé Django `aria_parent_lang`) — **Par3**.
 
 6. **Tests recette wolof** (non automatisables à 100 %) :
    - Scénarios manuels : salutation, question notes, question paiement, conseil révisions.
@@ -452,8 +452,8 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | Écrans élève rendus | 13 |
 | Templates parent / élève | 9 + 16 |
 | Partials assistant parent | **1** (`assistant_vocal_parent.html`) |
-| Tools assistant parent (lecture) | **0** (schéma vide ; garde-fou `execute_parent_tool`) |
-| Tests assistant parent | **12** (`test_assistant_parent_scope`, `test_assistant_parent_ws`) |
+| Tools assistant parent (lecture Par2) | **7** (socle + navigation) |
+| Tests assistant parent | **32+** (scope + tools + langue Wolof + WS) |
 | Personas WS acceptés | directeur, enseignant, enseignant_primaire, **`parent`** |
 
 ---
@@ -474,10 +474,42 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 - Accueil WS : `assistant.welcome` + TTS (`PARENT_WELCOME_BILINGUAL`) ; chat Gemini **sans tools** (`use_tools=False`).
 - JS : accueil parent / `assistant.welcome` dans `assistant_vocal.js` v1.9.14.
 
+### Par2 — Lecture socle + navigation (2026-09-24)
+
+- Fichiers : `assistant_pages_parent.py`, extension `assistant_parent_tools.py` (7 tools).
+- Tools : `get_mes_enfants`, `select_enfant`, `get_resume_enfant`, `get_annonces`, `get_notifications`, `lister_pages`, `ouvrir_page`.
+- Gemini : schéma parent **uniquement** ces tools ; `use_tools=True` ; prompt mis à jour.
+- Session : `select_enfant` pose `eleve_consulte_id` (fix `session or {}` côté consumer).
+- Tests : `test_assistant_parent_tools.py` + extension scope/WS (**23** tests OK).
+
+### Par3 — Wolof v1 (2026-09-24)
+
+- `assistant_parent_language.py` : préférence `auto|fr|wo`, heuristiques wolof, choix STT/TTS.
+- STT parent : `transcribe_pcm16_multi` (`fr-FR` + `wo-SN`) ; message bilingue si qualité wolof faible.
+- TTS parent : `synthesize_audio(..., language='wo')` (consigne Gemini wolof + repli Edge `fr-SN-AissatouNeural`).
+- Consumer : STT/chat avec `lang_pref` ; TTS dynamique par phrase ; `set_lang_pref` WS.
+- UI : chips Auto / FR / Wolof (`assistant_vocal_parent.html`, JS v1.9.15).
+- Tests : `test_assistant_parent_language.py` + extension WS STT.
+
+#### Recette manuelle Wolof (Par3)
+
+1. Connexion parent (hub ou espace enfant) → ouvrir Aria.
+2. **Texte wolof** : « Na nga def? Wax ma ci sama xale. » → réponse surtout en wolof + voix (TTS wolof si non muet).
+3. **Texte français** : « Quelles annonces pour les parents ? » → réponse FR + TTS français (directeur/enseignant inchangés ailleurs).
+4. **Chip Wolof** + note vocale courte → si STT faible : message d’invite à **écrire** en wolof (pas d’envoi automatique du tour).
+5. **Chip FR** : question wolof écrite → réponse attendue en **français** (préférence forcée).
+6. Vérifier qu’aucun tool directeur n’est invoqué (conseil + tools Par2 seulement).
+
+#### Limites STT wolof (Par3)
+
+- Google Speech `wo-SN` : qualité **variable** (accent, bruit, code-switch).
+- Double pass fr+wo : coût x2 sur courtes dictées parent uniquement.
+- Fallback produit : saisie **texte** wolof recommandée si `stt_weak`.
+
 ### Prochaine étape
 
-**Par2** — tools lecture + catalogue `ouvrir_page` (sur signal utilisateur).
+**Par4** — notes, devoirs, absences détaillés (sur signal). **Par5+** scolarité : non démarrés.
 
 ---
 
-*Stop après Par1 — pas de Par2 dans cette livraison.*
+*Stop après Par3 — pas de Par4 dans cette livraison.*

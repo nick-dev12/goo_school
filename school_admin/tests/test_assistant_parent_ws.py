@@ -100,6 +100,34 @@ class AssistantParentWsTests(TransactionTestCase):
 
         _run(_go())
 
+    def test_stt_parent_bilingual_transcript(self):
+        async def _go():
+            consumer, allowed = await _consumer_for_parent(self.parent)
+            self.assertTrue(allowed)
+            consumer._send_json = AsyncMock()
+            import base64
+
+            from unittest.mock import patch
+
+            fake_pcm = b'\x00' * 4000
+            b64 = base64.b64encode(fake_pcm).decode('ascii')
+
+            with patch(
+                'school_admin.services.stt_service.transcribe_pcm16_multi',
+                new=AsyncMock(
+                    return_value={
+                        'fr-FR': '',
+                        'wo-SN': 'Na nga def',
+                    }
+                ),
+            ):
+                await consumer._handle_stt({'audio_base64': b64, 'lang_pref': 'wo'})
+            payload = consumer._send_json.call_args[0][0]
+            self.assertEqual(payload.get('type'), 'transcript')
+            self.assertIn('nga', (payload.get('text') or '').lower())
+
+        _run(_go())
+
     def test_execute_tool_via_consumer_context(self):
         async def _go():
             consumer, allowed = await _consumer_for_parent(

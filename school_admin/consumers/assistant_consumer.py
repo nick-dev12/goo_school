@@ -208,6 +208,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self._last_tool_memory = ''
         self._working_refs = {}
         self._turn_has_output = False
+        self._parent_lang_pref = 'auto'
+        self._parent_user_turn_lang = 'fr'
         self._turn_stats = {
             'tools': [],
             'rounds': 0,
@@ -254,6 +256,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if kind == 'stt':
             await self._handle_stt(payload)
             return
+        if kind == 'set_lang_pref':
+            await self._handle_set_lang_pref(payload)
+            return
         if kind == 'restore_history':
             self._restore_history(payload.get('messages') or [])
             return
@@ -284,7 +289,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             })
             return
 
-        await self._launch_turn(lambda: self._execute_user_message(question))
+        lang_pref = payload.get('lang_pref')
+        await self._launch_turn(lambda: self._execute_user_message(question, lang_pref))
 
     async def _confirm_from_ui(self, payload):
         await self._send_working_ack('Oui, publier.')
@@ -298,7 +304,22 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._ensure_pending_loaded()
         await self._cancel_pending()
 
-    async def _execute_user_message(self, question):
+    async def _execute_user_message(self, question, lang_pref=None):
+        if self._is_parent():
+            from school_admin.services.assistant_parent_language import (
+                normalize_lang_preference,
+                resolve_user_turn_language,
+            )
+
+            if lang_pref:
+                await self._save_parent_lang_pref(lang_pref)
+            self._parent_lang_pref = await self._load_parent_lang_pref()
+            if lang_pref:
+                self._parent_lang_pref = normalize_lang_preference(lang_pref)
+            self._parent_user_turn_lang = resolve_user_turn_language(
+                question,
+                self._parent_lang_pref,
+            )
         await self._send_working_ack(question)
         await self._ensure_pending_loaded()
         if self._socket_fresh:
@@ -850,7 +871,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._send_json({'type': 'done'})
 
     async def _handle_stt(self, payload):
-        from school_admin.services.stt_service import transcribe_pcm16
+        from school_admin.services.stt_service import transcribe_pcm16, transcribe_pcm16_multi
 
         raw = payload.get('audio_base64') or ''
         try:
@@ -863,15 +884,69 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             })
             return
 
+        if self._is_parent():
+            from school_admin.services.assistant_parent_language import (
+                STT_WOLOF_WEAK_MESSAGE,
+                normalize_lang_preference,
+                pick_best_stt_transcript,
+                stt_language_order,
+            )
+
+            pref = normalize_lang_preference(
+                payload.get('lang_pref') or await self._load_parent_lang_pref()
+            )
+            if payload.get('lang_pref'):
+                await self._save_parent_lang_pref(pref)
+            self._parent_lang_pref = pref
+            order = stt_language_order(pref)
+            if len(order) > 1:
+                candidates = await transcribe_pcm16_multi(audio_bytes, order)
+            else:
+                candidates = {
+                    order[0]: await transcribe_pcm16(audio_bytes, order[0]),
+                }
+            text, locale, weak = pick_best_stt_transcript(candidates)
+            prefer_wolof = pref == 'wo' or (
+                pref == 'auto' and locale.startswith('wo')
+            )
+            response = {
+                'type': 'transcript',
+                'text': text,
+                'stt_locale': locale,
+            }
+            if weak and prefer_wolof:
+                response['stt_weak'] = True
+                response['fallback_message'] = STT_WOLOF_WEAK_MESSAGE
+                if not text:
+                    response['text'] = ''
+            await self._send_json(response)
+            return
+
         text = await transcribe_pcm16(audio_bytes)
         await self._send_json({
             'type': 'transcript',
             'text': text,
         })
 
+    def _parent_tts_language(self, sentence):
+        if not self._is_parent():
+            return None
+        from school_admin.services.assistant_parent_language import resolve_tts_language
+
+        lang = resolve_tts_language(
+            sentence or '',
+            user_turn_language=getattr(self, '_parent_user_turn_lang', 'fr'),
+            preference=getattr(self, '_parent_lang_pref', 'auto'),
+        )
+        return lang if lang == 'wo' else None
+
     async def _emit_sentence(self, sentence, index, audio=None, audio_mime='audio/wav'):
         if audio is None:
-            audio, audio_mime = await synthesize_audio(sentence)
+            tts_lang = self._parent_tts_language(sentence)
+            if tts_lang:
+                audio, audio_mime = await synthesize_audio(sentence, language=tts_lang)
+            else:
+                audio, audio_mime = await synthesize_audio(sentence)
         if not audio_mime:
             audio_mime = 'audio/wav'
         voice_failed = not audio
@@ -896,7 +971,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 return
             audio = b''
             mime = 'audio/wav'
-            task = self._track_tts(asyncio.create_task(synthesize_audio(sentence)))
+            tts_lang = self._parent_tts_language(sentence)
+            if tts_lang:
+                synth = synthesize_audio(sentence, language=tts_lang)
+            else:
+                synth = synthesize_audio(sentence)
+            task = self._track_tts(asyncio.create_task(synth))
             try:
                 audio, mime = await task
             except asyncio.CancelledError:
@@ -1014,6 +1094,48 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
     def _is_parent(self):
         return getattr(self, 'persona', 'directeur') == 'parent'
+
+    async def _handle_set_lang_pref(self, payload):
+        if not self._is_parent():
+            await self._send_json({
+                'type': 'error',
+                'message': 'Préférence langue réservée au parcours parent.',
+            })
+            return
+        from school_admin.services.assistant_parent_language import normalize_lang_preference
+
+        pref = normalize_lang_preference(payload.get('value'))
+        await self._save_parent_lang_pref(pref)
+        self._parent_lang_pref = pref
+        await self._send_json({'type': 'lang_pref', 'value': pref})
+
+    @database_sync_to_async
+    def _load_parent_lang_pref(self):
+        from school_admin.services.assistant_parent_language import (
+            SESSION_LANG_KEY,
+            normalize_lang_preference,
+        )
+
+        session = self.scope.get('session') or {}
+        return normalize_lang_preference(session.get(SESSION_LANG_KEY, 'auto'))
+
+    @database_sync_to_async
+    def _save_parent_lang_pref(self, pref):
+        from school_admin.services.assistant_parent_language import (
+            SESSION_LANG_KEY,
+            normalize_lang_preference,
+        )
+
+        session = self.scope.get('session')
+        if session is None:
+            return
+        session[SESSION_LANG_KEY] = normalize_lang_preference(pref)
+        if not hasattr(session, 'save'):
+            return
+        try:
+            session.save()
+        except Exception:
+            logger.exception('Impossible de sauvegarder aria_parent_lang en session.')
 
     @database_sync_to_async
     def _build_context(self):

@@ -61,6 +61,36 @@ async def _transcribe_chunk(client, pcm, language):
     return transcript
 
 
+async def transcribe_pcm16_multi(audio_bytes, languages=None):
+    """
+    Transcrit avec plusieurs locales (parent Wolof v1).
+    Retourne {locale: transcript}.
+    """
+    langs = list(languages or ['fr-FR'])
+    pcm = _extract_pcm(audio_bytes)
+    if not pcm or len(pcm) < 3200:
+        return {lang: '' for lang in langs}
+    if len(pcm) > MAX_PCM_BYTES:
+        pcm = pcm[:MAX_PCM_BYTES]
+
+    out = {lang: '' for lang in langs}
+    try:
+        async with httpx.AsyncClient(timeout=STT_TIMEOUT) as client:
+            for lang in langs:
+                pieces = []
+                for start in range(0, len(pcm), CHUNK_BYTES):
+                    chunk = pcm[start:start + CHUNK_BYTES]
+                    if len(chunk) < 3200:
+                        continue
+                    text = await _transcribe_chunk(client, chunk, lang)
+                    if text:
+                        pieces.append(text)
+                out[lang] = ' '.join(pieces).strip()
+    except Exception:
+        logger.exception('Échec transcription multi-langue.')
+    return out
+
+
 async def transcribe_pcm16(audio_bytes, language='fr-FR'):
     """
     Transcrit du PCM 16-bit mono 16 kHz (éventuellement encapsulé WAV).

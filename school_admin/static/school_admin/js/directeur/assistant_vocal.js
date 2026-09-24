@@ -27,6 +27,7 @@
   var SILENCE_MS = 1600;
   var CACHE_KEY = 'aria.assistant.cache';
   var MUTE_KEY = 'aria.assistant.muted';
+  var PARENT_LANG_KEY = 'aria.parent.lang_pref';
   var ANNONCE_DRAFT_KEY = 'aria.annonce.draft';
   var CHARS_PER_SECOND = 13;
   var TARGET_RATE = 16000;
@@ -322,6 +323,62 @@
       .map(function (item) {
         return { role: item.role, content: item.text };
       });
+  }
+
+  function isParentPersona() {
+    return (root.getAttribute('data-persona') || '').trim() === 'parent';
+  }
+
+  function getLangPref() {
+    if (!isParentPersona()) {
+      return 'auto';
+    }
+    try {
+      var stored = sessionStorage.getItem(PARENT_LANG_KEY);
+      if (stored === 'fr' || stored === 'wo' || stored === 'auto') {
+        return stored;
+      }
+    } catch (err) {
+      /* quota */
+    }
+    return 'auto';
+  }
+
+  function setLangPref(value, syncServer) {
+    if (!isParentPersona()) {
+      return;
+    }
+    var pref = value === 'fr' || value === 'wo' ? value : 'auto';
+    try {
+      sessionStorage.setItem(PARENT_LANG_KEY, pref);
+    } catch (err) {
+      /* quota */
+    }
+    var chips = root.querySelectorAll('[data-lang-pref]');
+    chips.forEach(function (chip) {
+      var active = chip.getAttribute('data-lang-pref') === pref;
+      chip.classList.toggle('is-active', active);
+      chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    if (syncServer !== false && socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'set_lang_pref', value: pref }));
+    }
+  }
+
+  function bindLangPrefChips() {
+    if (!isParentPersona()) {
+      return;
+    }
+    var chips = root.querySelectorAll('[data-lang-pref]');
+    if (!chips.length) {
+      return;
+    }
+    setLangPref(getLangPref(), false);
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        setLangPref(chip.getAttribute('data-lang-pref') || 'auto', true);
+      });
+    });
   }
 
   function greetingText() {
@@ -821,6 +878,12 @@
       }
       return;
     }
+    if (data.type === 'lang_pref') {
+      if (data.value) {
+        setLangPref(data.value, false);
+      }
+      return;
+    }
     if (data.type === 'ack') {
       showThinking();
       return;
@@ -873,6 +936,18 @@
     if (data.type === 'transcript') {
       sttBusy = false;
       var heard = (data.text || '').trim();
+      if (data.stt_weak && data.fallback_message) {
+        markLastVoiceFailed();
+        appendBubble('assistant', data.fallback_message);
+        if (heard && input) {
+          input.value = heard;
+        }
+        setBusy(false);
+        setStatus('Prête');
+        pendingDone = true;
+        finishIfIdle();
+        return;
+      }
       if (heard) {
         pendingTranscript = heard;
         sendQuestion(heard, { skipUserBubble: true });
@@ -1491,7 +1566,11 @@
     ignoreIncoming = false;
     setBusy(true);
     showThinking();
-    socket.send(JSON.stringify({ type: 'chat', text: question }));
+    var payload = { type: 'chat', text: question };
+    if (isParentPersona()) {
+      payload.lang_pref = getLangPref();
+    }
+    socket.send(JSON.stringify(payload));
     if (input) {
       input.value = '';
     }
@@ -1744,7 +1823,11 @@
       }
       sttBusy = true;
       setStatus('Je transcris…');
-      socket.send(JSON.stringify({ type: 'stt', audio_base64: wav }));
+      var sttPayload = { type: 'stt', audio_base64: wav };
+      if (isParentPersona()) {
+        sttPayload.lang_pref = getLangPref();
+      }
+      socket.send(JSON.stringify(sttPayload));
     };
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       connect();
@@ -2136,6 +2219,7 @@
     }
     attachAssistantToBody();
     bindPanelWatchers();
+    bindLangPrefChips();
     restoreAnnonceForm();
     if (restoreCache()) {
       openPanel();

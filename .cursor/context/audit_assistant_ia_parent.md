@@ -1,8 +1,8 @@
 # Audit + feuille de route — Assistant IA Parent (conseil & suivi enfant)
 
 **Date** : 2026-09-23  
-**Statut** : **Par0–Par5 livrées** (2026-09-24). Par6+ **non démarrées**.  
-**Branche** : `cursor/assistant-parent-par5-a40c`  
+**Statut** : **Par0–Par6 livrées** (2026-09-24). Par7+ **non démarrées**.  
+**Branche** : `cursor/assistant-parent-par6-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Directeur (tools, schéma, confirmation) : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md)
@@ -453,7 +453,7 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | Templates parent / élève | 9 + 16 |
 | Partials assistant parent | **1** (`assistant_vocal_parent.html`) |
 | Tools assistant parent | **18** (navigation + suivi + scolarité/reçus) |
-| Tests assistant parent | **44+** (scope + tools + scolaire + finance + Wolof + WS) |
+| Tests assistant parent | **52+** (scope + tools + scolaire + finance + Wolof + WS + G7 Par6) |
 | Personas WS acceptés | directeur, enseignant, enseignant_primaire, **`parent`** |
 
 ---
@@ -539,10 +539,26 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 4. Reçu d’un autre élève → refus `acces_refuse`.
 5. Demande « enregistre un paiement » → refus (pas de paiement vocal).
 
+### Par6 — Parité G1–G7 persona parent (2026-09-24)
+
+- **G1** : `_on_live_tool_result` parent — mémoire outils + navigation (`ouvrir_page`, `ouvrir_recu`, `select_enfant`) ; **retourne toujours `False`** (pas de takeover wizard après lectures).
+- **G4** : `suggestions_after_parent_read` — cas **notes + absences** même tour ; `suggestions_after_read` déjà branché parent.
+- **Multi-tools** : consigne prompt `SYSTEM_PROMPT_PARENT` (notes et absences dans le même tour).
+- **Pas de snapshot directeur** : `enrich_class_snapshot` no-op si `persona == 'parent'`.
+- **Cache Gemini** : `aria-parent-tools-v1` (+ suffixe `schema_profile` enfant : primaire / lycee / etc.) via `ensure_tools_cache(persona='parent')`.
+- Tests : `test_assistant_parent_ws.py` (multi-tools, nav sans takeover), `test_assistant_parent_g7.py` (cache, suggestions, consumer).
+
+#### Recette manuelle Par6
+
+1. Parent + enfant en session → « Montre les notes **et** les absences » → deux tools lecture, réponse Gemini continue (pas de carte annonce/EDT).
+2. Après lecture notes → puces suggestions (bulletin, devoirs, ou scolarité si tour combiné).
+3. « Ouvre la scolarité » → navigation seule, pas de pending action.
+4. Logs tour : `takeover=0` sur lectures parent.
+
 ### Prochaine étape
 
-**Par6** — parité G1–G7 persona parent (sur signal). **Par7** actions confirmées : non démarrés.
+**Par7** — actions confirmées (`marquer_notification_lue`, etc.). **Par8** recette multi-types : non démarrés.
 
 ---
 
-*Stop après Par5 — pas de Par6 dans cette livraison.*
+*Stop après Par6 — pas de Par7 dans cette livraison.*

@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 CACHE_DISPLAY_NAME = 'aria-directeur-tools-v14'
 CACHE_DISPLAY_NAME_ENSEIGNANT = 'aria-enseignant-primaire-tools-v4'
 CACHE_DISPLAY_NAME_ENSEIGNANT_SEC = 'aria-enseignant-tools-v5'
+CACHE_DISPLAY_NAME_PARENT = 'aria-parent-tools-v1'
 DEFAULT_TTL_SECONDS = 7200
 
 _lock = threading.Lock()
@@ -30,6 +31,12 @@ _enseignant_cache_name = None
 _enseignant_cache_model = None
 _enseignant_cache_fingerprint = None
 _enseignant_cache_token_count = None
+
+_parent_lock = threading.Lock()
+_parent_cache_name = None
+_parent_cache_model = None
+_parent_cache_fingerprint = None
+_parent_cache_token_count = None
 
 
 def cache_enabled():
@@ -221,10 +228,30 @@ def _sync_enseignant_state(state):
     _enseignant_cache_token_count = state['token_count']
 
 
+def _parent_state():
+    return {
+        'name': _parent_cache_name,
+        'model': _parent_cache_model,
+        'fingerprint': _parent_cache_fingerprint,
+        'token_count': _parent_cache_token_count,
+    }
+
+
+def _sync_parent_state(state):
+    global _parent_cache_name, _parent_cache_model
+    global _parent_cache_fingerprint, _parent_cache_token_count
+    _parent_cache_name = state['name']
+    _parent_cache_model = state['model']
+    _parent_cache_fingerprint = state['fingerprint']
+    _parent_cache_token_count = state['token_count']
+
+
 def reset_cache_state():
     global _cache_name, _cache_model, _cache_fingerprint, _cache_token_count
     global _enseignant_cache_name, _enseignant_cache_model
     global _enseignant_cache_fingerprint, _enseignant_cache_token_count
+    global _parent_cache_name, _parent_cache_model
+    global _parent_cache_fingerprint, _parent_cache_token_count
     with _lock:
         _cache_name = None
         _cache_model = None
@@ -235,6 +262,11 @@ def reset_cache_state():
         _enseignant_cache_model = None
         _enseignant_cache_fingerprint = None
         _enseignant_cache_token_count = None
+    with _parent_lock:
+        _parent_cache_name = None
+        _parent_cache_model = None
+        _parent_cache_fingerprint = None
+        _parent_cache_token_count = None
 
 
 def ensure_tools_cache(
@@ -251,7 +283,19 @@ def ensure_tools_cache(
     if not cache_enabled():
         return None
     schema = tools_schema if tools_schema is not None else TOOLS_SCHEMA
-    if persona in ('enseignant_primaire', 'enseignant'):
+    if persona == 'parent':
+        suffix = (profile or 'parent').strip().lower() or 'parent'
+        display = CACHE_DISPLAY_NAME_PARENT
+        if suffix and suffix != 'parent':
+            display = f'{CACHE_DISPLAY_NAME_PARENT}-{suffix}'
+        lock = _parent_lock
+
+        def get_state():
+            return _parent_state()
+
+        def sync_state(state):
+            _sync_parent_state(state)
+    elif persona in ('enseignant_primaire', 'enseignant'):
         if persona == 'enseignant_primaire':
             from school_admin.services.assistant_enseignant_primaire_tools import (
                 get_enseignant_primaire_tools_schema,

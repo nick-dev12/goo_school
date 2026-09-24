@@ -567,6 +567,16 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
     async def _on_live_tool_result(self, name, result):
         """Carte / nav si besoin, mais ne jamais arrêter Gemini (G1)."""
+        if self._is_parent():
+            if isinstance(result, dict):
+                refs = getattr(self, '_working_refs', None)
+                if refs is None:
+                    self._working_refs = {}
+                self._working_refs.update(extract_working_refs(name, result))
+                self._last_tool_memory = compact_tool_memory(name, result)
+            if name in ('ouvrir_page', 'ouvrir_recu', 'select_enfant'):
+                await self._dispatch_navigation(name, result)
+            return False
         if isinstance(result, dict):
             refs = getattr(self, '_working_refs', None)
             if refs is None:

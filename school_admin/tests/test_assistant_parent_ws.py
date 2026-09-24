@@ -1,5 +1,5 @@
 """
-Tests WebSocket assistant parent (Par0/Par1).
+Tests WebSocket assistant parent (Par0/Par1 + Par6 G7).
 """
 from __future__ import annotations
 
@@ -140,5 +140,44 @@ class AssistantParentWsTests(TransactionTestCase):
             self.assertEqual(result.get('nb'), 1)
             notes = await consumer._execute_tool(ctx, 'get_absences_enfant', {})
             self.assertEqual(notes.get('eleve_id'), self.eleve.id)
+
+        _run(_go())
+
+    def test_multi_tools_meme_tour_sans_takeover(self):
+        async def _go():
+            consumer, allowed = await _consumer_for_parent(
+                self.parent,
+                session={'eleve_consulte_id': self.eleve.id},
+            )
+            self.assertTrue(allowed)
+            consumer._reset_turn_stats()
+            consumer.pending_action = None
+            consumer._persist_pending = AsyncMock()
+            consumer._dispatch_navigation = AsyncMock()
+
+            for name in ('get_notes_enfant', 'get_absences_enfant'):
+                stop = await consumer._on_live_tool_result(
+                    name,
+                    {'eleve_id': self.eleve.id, 'message': 'ok'},
+                )
+                self.assertFalse(stop)
+            self.assertEqual(consumer._turn_stats['takeover'], 0)
+            self.assertIsNone(consumer.pending_action)
+
+        _run(_go())
+
+    def test_navigation_ouvrir_page_sans_takeover(self):
+        async def _go():
+            consumer, allowed = await _consumer_for_parent(self.parent)
+            self.assertTrue(allowed)
+            consumer._reset_turn_stats()
+            consumer._dispatch_navigation = AsyncMock()
+            stop = await consumer._on_live_tool_result(
+                'ouvrir_page',
+                {'url': '/parent/scolarite/', 'statut': 'ok'},
+            )
+            self.assertFalse(stop)
+            consumer._dispatch_navigation.assert_awaited_once()
+            self.assertEqual(consumer._turn_stats['takeover'], 0)
 
         _run(_go())

@@ -373,6 +373,9 @@ Interdit : effectifs établissement, caisse, RH, inscriptions, validation liaiso
 comptabilité générale, saisie de notes, enregistrement de paiements, données d'autres élèves
 que ceux liés au compte parent (voir contexte enfants_lies / enfant_consulte).
 
+Pour une question combinée (ex. notes et absences), appelle plusieurs outils de lecture
+dans le même tour si nécessaire — sans wizard ni action d’établissement.
+
 Le dernier message utilisateur a toujours priorité.
 """
 
@@ -1127,7 +1130,7 @@ async def _run_assistant_turn_cached(
         persona=persona,
         profile=(
             schema_profile(ctx)
-            if persona == 'directeur'
+            if persona in ('directeur', 'parent')
             else ('superieur' if getattr(ctx, 'est_superieur', False) else 'secondaire')
             if persona == 'enseignant'
             else None

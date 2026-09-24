@@ -618,7 +618,13 @@ def suggestions_after_parent_read(tool_results):
     from school_admin.services.assistant_tools import normalize_suggestions
 
     items = []
-    if 'get_notes_enfant' in names:
+    if {'get_notes_enfant', 'get_absences_enfant'} <= names:
+        items = [
+            {'label': 'Devoirs', 'value': 'Quels devoirs cette semaine ?'},
+            {'label': 'Scolarité', 'value': 'Quel est le reste à payer ?'},
+            {'label': 'Conseil', 'value': 'Comment l’aider à progresser ?'},
+        ]
+    elif 'get_notes_enfant' in names:
         items = [
             {'label': 'Bulletin', 'value': 'Le bulletin est-il publié ?'},
             {'label': 'Devoirs', 'value': 'Quels devoirs cette semaine ?'},

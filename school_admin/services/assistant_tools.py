@@ -697,6 +697,8 @@ def enrich_class_snapshot(ctx, tool_results, refs=None, question=''):
     if not ctx or not classe:
         return extra
     persona = getattr(ctx, 'persona', 'directeur')
+    if persona == 'parent':
+        return extra
     if persona in ('enseignant_primaire', 'enseignant'):
         snapshot_tools = CLASS_SNAPSHOT_TOOLS_ENSEIGNANT
         thin_tools = THIN_CLASS_TOOLS_ENSEIGNANT

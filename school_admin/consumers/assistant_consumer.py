@@ -598,6 +598,16 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             elif self._is_write_tool_name(name):
                 await self._remember_write_pending(name, result)
             return False
+        if self._is_eleve():
+            if isinstance(result, dict):
+                refs = getattr(self, '_working_refs', None)
+                if refs is None:
+                    self._working_refs = {}
+                self._working_refs.update(extract_working_refs(name, result))
+                self._last_tool_memory = compact_tool_memory(name, result)
+            if name == 'ouvrir_page':
+                await self._dispatch_navigation(name, result)
+            return False
         if isinstance(result, dict):
             refs = getattr(self, '_working_refs', None)
             if refs is None:

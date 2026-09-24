@@ -18,6 +18,7 @@ CACHE_DISPLAY_NAME = 'aria-directeur-tools-v14'
 CACHE_DISPLAY_NAME_ENSEIGNANT = 'aria-enseignant-primaire-tools-v4'
 CACHE_DISPLAY_NAME_ENSEIGNANT_SEC = 'aria-enseignant-tools-v5'
 CACHE_DISPLAY_NAME_PARENT = 'aria-parent-tools-v1'
+CACHE_DISPLAY_NAME_ELEVE = 'aria-eleve-tools-v1'
 DEFAULT_TTL_SECONDS = 7200
 
 _lock = threading.Lock()
@@ -37,6 +38,12 @@ _parent_cache_name = None
 _parent_cache_model = None
 _parent_cache_fingerprint = None
 _parent_cache_token_count = None
+
+_eleve_lock = threading.Lock()
+_eleve_cache_name = None
+_eleve_cache_model = None
+_eleve_cache_fingerprint = None
+_eleve_cache_token_count = None
 
 
 def cache_enabled():
@@ -246,12 +253,32 @@ def _sync_parent_state(state):
     _parent_cache_token_count = state['token_count']
 
 
+def _eleve_state():
+    return {
+        'name': _eleve_cache_name,
+        'model': _eleve_cache_model,
+        'fingerprint': _eleve_cache_fingerprint,
+        'token_count': _eleve_cache_token_count,
+    }
+
+
+def _sync_eleve_state(state):
+    global _eleve_cache_name, _eleve_cache_model
+    global _eleve_cache_fingerprint, _eleve_cache_token_count
+    _eleve_cache_name = state['name']
+    _eleve_cache_model = state['model']
+    _eleve_cache_fingerprint = state['fingerprint']
+    _eleve_cache_token_count = state['token_count']
+
+
 def reset_cache_state():
     global _cache_name, _cache_model, _cache_fingerprint, _cache_token_count
     global _enseignant_cache_name, _enseignant_cache_model
     global _enseignant_cache_fingerprint, _enseignant_cache_token_count
     global _parent_cache_name, _parent_cache_model
     global _parent_cache_fingerprint, _parent_cache_token_count
+    global _eleve_cache_name, _eleve_cache_model
+    global _eleve_cache_fingerprint, _eleve_cache_token_count
     with _lock:
         _cache_name = None
         _cache_model = None
@@ -267,6 +294,11 @@ def reset_cache_state():
         _parent_cache_model = None
         _parent_cache_fingerprint = None
         _parent_cache_token_count = None
+    with _eleve_lock:
+        _eleve_cache_name = None
+        _eleve_cache_model = None
+        _eleve_cache_fingerprint = None
+        _eleve_cache_token_count = None
 
 
 def ensure_tools_cache(
@@ -295,6 +327,18 @@ def ensure_tools_cache(
 
         def sync_state(state):
             _sync_parent_state(state)
+    elif persona == 'eleve':
+        suffix = (profile or 'secondaire').strip().lower() or 'secondaire'
+        display = CACHE_DISPLAY_NAME_ELEVE
+        if suffix and suffix not in ('eleve', 'secondaire'):
+            display = f'{CACHE_DISPLAY_NAME_ELEVE}-{suffix}'
+        lock = _eleve_lock
+
+        def get_state():
+            return _eleve_state()
+
+        def sync_state(state):
+            _sync_eleve_state(state)
     elif persona in ('enseignant_primaire', 'enseignant'):
         if persona == 'enseignant_primaire':
             from school_admin.services.assistant_enseignant_primaire_tools import (

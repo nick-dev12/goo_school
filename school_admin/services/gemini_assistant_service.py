@@ -1170,7 +1170,7 @@ async def _run_assistant_turn_cached(
         persona=persona,
         profile=(
             schema_profile(ctx)
-            if persona in ('directeur', 'parent')
+            if persona in ('directeur', 'parent', 'eleve')
             else ('superieur' if getattr(ctx, 'est_superieur', False) else 'secondaire')
             if persona == 'enseignant'
             else None

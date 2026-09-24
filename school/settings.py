@@ -382,7 +382,7 @@ GEMINI_API_BASE_URL = env(
 ).strip()
 GEMINI_TTS_MODEL = env(
     'GEMINI_TTS_MODEL',
-    default='gemini-2.5-flash-tts',
+    default='gemini-2.5-pro-preview-tts',
 ).strip()
 # Kore = voix féminine chaleureuse/naturelle (recommandée). Alternatives : Sulafat, Despina, Aoede.
 GEMINI_TTS_VOICE = env('GEMINI_TTS_VOICE', default='Kore').strip()

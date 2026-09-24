@@ -564,7 +564,7 @@ async def _synthesize_gemini(clean, language='fr'):
     model = getattr(
         settings,
         'GEMINI_TTS_MODEL',
-        'gemini-2.5-flash-tts',
+        'gemini-2.5-pro-preview-tts',
     )
     voice_name = _resolve_gemini_voice()
     language_code = _resolve_gemini_language()

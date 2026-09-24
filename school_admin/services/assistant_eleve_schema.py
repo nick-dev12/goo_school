@@ -44,8 +44,8 @@ def _flags_for_eleve_ctx(ctx):
 
 
 def allowed_tool_names(ctx):
-    """Elv4 — navigation + lecture scolaire (+ notif/historique en Elv5)."""
-    return set(ELEVE_NAV_TOOLS | ELEVE_SCOLAIRE_TOOLS)
+    """Elv5 — catalogue complet lecture (sans écriture Elv7)."""
+    return set(ELEVE_TOOL_NAMES_ALL)
 
 
 def _notes_description(flags):

@@ -273,6 +273,96 @@ def tool_get_mon_emploi(ctx, args):
     return _wrap_scolaire(eleve, ctx, read_emploi_enfant)
 
 
+def tool_get_notifications(ctx, args):
+    from school_admin.model.notification_eleve_model import NotificationEleve
+
+    eleve, err = _require_self(ctx, args)
+    if err:
+        return err
+    notif_id = args.get('notification_id')
+    if notif_id:
+        notif = NotificationEleve.objects.filter(pk=notif_id, eleve=eleve).first()
+        if not notif:
+            return {'erreur': 'Notification introuvable.', 'statut': 'introuvable'}
+        return {
+            'notification_id': notif.id,
+            'titre': notif.titre,
+            'message': (notif.message or '')[:500],
+            'lu': bool(getattr(notif, 'lu', False)),
+            'date': notif.date_creation.isoformat() if notif.date_creation else None,
+            'message_resume': f"Notification : {notif.titre}.",
+        }
+
+    qs = NotificationEleve.objects.filter(eleve=eleve)
+    if ctx.annee_scolaire:
+        qs = qs.filter(annee_scolaire=ctx.annee_scolaire)
+    if args.get('non_lues_seulement'):
+        qs = qs.filter(lu=False)
+    items = []
+    for n in qs.order_by('-date_creation')[:15]:
+        items.append({
+            'notification_id': n.id,
+            'titre': n.titre,
+            'message': (n.message or '')[:200],
+            'lu': bool(getattr(n, 'lu', False)),
+            'date': n.date_creation.isoformat() if n.date_creation else None,
+        })
+    nb_non_lues = qs.filter(lu=False).count()
+    return {
+        'nb_non_lues': nb_non_lues,
+        'notifications': items,
+        'url_notifications': reverse('eleve:notifications_eleve'),
+        'message': (
+            f"Tu as {nb_non_lues} notification(s) non lue(s)."
+            if nb_non_lues
+            else 'Aucune notification non lue.'
+        ),
+    }
+
+
+def tool_get_mon_historique(ctx, args):
+    from django.db.models import Q
+
+    from school_admin.model.inscription_eleve_model import InscriptionEleve
+    from school_admin.model.presence_model import Presence
+    from school_admin.model.sanction_model import Sanction
+
+    eleve, err = _require_self(ctx, args)
+    if err:
+        return err
+    etab = eleve.etablissement
+    if not etab:
+        return {'annees': [], 'message': 'Établissement introuvable.'}
+    inscriptions = InscriptionEleve.objects.filter(
+        eleve=eleve,
+        etablissement=etab,
+        annee_scolaire__est_active=False,
+    ).select_related('annee_scolaire', 'classe').order_by('-annee_scolaire__date_debut')[:8]
+    rows = []
+    for ins in inscriptions:
+        annee = ins.annee_scolaire
+        pres = Presence.objects.filter(eleve=eleve, annee_scolaire=annee)
+        absences = pres.filter(Q(statut='absent') | Q(statut='absent_justifie')).count()
+        sanctions = Sanction.objects.filter(eleve=eleve, annee_scolaire=annee).count()
+        rows.append({
+            'annee_id': annee.id if annee else None,
+            'libelle': getattr(annee, 'nom_annee', None) or str(annee),
+            'classe': ins.classe.nom if ins.classe_id else None,
+            'absences': absences,
+            'sanctions': sanctions,
+        })
+    return {
+        'nb': len(rows),
+        'annees': rows,
+        'url_historique': reverse('eleve:historique_annees'),
+        'message': (
+            f"{len(rows)} année(s) passée(s) dans ton historique."
+            if rows
+            else 'Aucune année archivée pour le moment.'
+        ),
+    }
+
+
 def tool_get_mon_profil(ctx, args):
     eleve, err = _require_self(ctx, args)
     if err:
@@ -306,6 +396,8 @@ TOOL_HANDLERS = {
     'get_mes_convocations': tool_get_mes_convocations,
     'get_mon_emploi': tool_get_mon_emploi,
     'get_mon_profil': tool_get_mon_profil,
+    'get_notifications': tool_get_notifications,
+    'get_mon_historique': tool_get_mon_historique,
 }
 
 

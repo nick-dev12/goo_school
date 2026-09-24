@@ -99,3 +99,16 @@ class AssistantParentWsTests(TransactionTestCase):
             consumer._emit_sentence.assert_awaited()
 
         _run(_go())
+
+    def test_execute_tool_via_consumer_context(self):
+        async def _go():
+            consumer, allowed = await _consumer_for_parent(
+                self.parent,
+                session={'eleve_consulte_id': self.eleve.id},
+            )
+            self.assertTrue(allowed)
+            ctx = await consumer._build_context()
+            result = await consumer._execute_tool(ctx, 'get_mes_enfants', {})
+            self.assertEqual(result.get('nb'), 1)
+
+        _run(_go())

@@ -714,7 +714,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 turn_stats['takeover'] = turn_stats.get('takeover', 0) + 1
             return should_stop
 
-        use_tools = getattr(ctx, 'persona', 'directeur') != 'parent'
+        use_tools = True
         try:
             _working, spoken = await run_assistant_turn(
                 ctx,
@@ -1019,7 +1019,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     def _build_context(self):
         from school_admin.services.assistant_tools import build_assistant_context
 
-        session_store = self.scope.get('session') or {}
+        session_store = self.scope.get('session')
+        if session_store is None:
+            session_store = {}
         return build_assistant_context(
             self.etablissement,
             session_store,

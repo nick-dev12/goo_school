@@ -1,8 +1,8 @@
 # Audit + feuille de route — Assistant IA Parent (conseil & suivi enfant)
 
 **Date** : 2026-09-23  
-**Statut** : **Par0 + Par1 livrées** (2026-09-24). Par2+ **non démarrées**.  
-**Branche** : `cursor/assistant-parent-par0-par1-a40c`  
+**Statut** : **Par0–Par2 livrées** (2026-09-24). Par3+ **non démarrées**.  
+**Branche** : `cursor/assistant-parent-par2-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Directeur (tools, schéma, confirmation) : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md)

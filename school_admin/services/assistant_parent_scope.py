@@ -90,6 +90,44 @@ def resume_enfants(parent, limit=12):
     return items
 
 
+def find_enfant_par_nom(parent, query):
+    """Recherche un enfant lié par nom / prénom / matricule (partiel)."""
+    q = (query or '').strip().lower()
+    if not q or not parent:
+        return None
+    for lien in liens_valides_qs(parent).filter(eleve__actif=True):
+        el = lien.eleve
+        haystack = ' '.join(
+            filter(
+                None,
+                [
+                    getattr(el, 'nom_complet', ''),
+                    el.nom,
+                    el.prenom,
+                    getattr(el, 'matricule_eleve', ''),
+                ],
+            )
+        ).lower()
+        if q in haystack:
+            return el
+    return None
+
+
+def apply_consultation_session(session, parent, eleve):
+    """Pose les clés session comme dashboard_enfant."""
+    if session is None or not parent or not eleve:
+        return False
+    session['parent_id'] = parent.id
+    if getattr(parent, 'matricule_parental', None):
+        session['parent_matricule'] = parent.matricule_parental
+    session['eleve_consulte_id'] = eleve.id
+    session['eleve_consulte_nom'] = getattr(eleve, 'nom_complet', None) or f'{eleve.prenom} {eleve.nom}'
+    session['mode_consultation_parent'] = True
+    if hasattr(session, 'save'):
+        session.save()
+    return True
+
+
 def etablissement_effectif(parent, eleve_consulte=None):
     """Établissement de référence pour le type pédagogique (enfant consulté prioritaire)."""
     if eleve_consulte and getattr(eleve_consulte, 'etablissement_id', None):

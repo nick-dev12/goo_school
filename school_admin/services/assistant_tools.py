@@ -65,6 +65,7 @@ class AssistantContext:
     parent: object = None
     eleve_consulte: object = None
     enfants_lies: list = None
+    session_store: dict = None
     persona: str = 'directeur'
     affectations_resume: list = None
     est_college: bool = False
@@ -133,6 +134,7 @@ def build_assistant_context(
         parent=parent,
         eleve_consulte=eleve_consulte,
         enfants_lies=enfants_lies or [],
+        session_store=session_store,
         persona=persona or 'directeur',
         affectations_resume=None,
         est_college=flags['est_college'],

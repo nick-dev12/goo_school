@@ -114,10 +114,10 @@ class AssistantParentScopeTests(TestCase):
             parent=self.parent,
             persona='parent',
         )
-        out = execute_parent_tool(ctx, 'get_notes_enfant', {'eleve_id': self.eleve_autre.id})
+        out = execute_parent_tool(ctx, 'get_resume_enfant', {'eleve_id': self.eleve_autre.id})
         self.assertEqual(out.get('statut'), 'acces_refuse')
 
-    def test_schema_parent_vide_par1(self):
+    def test_schema_parent_par2(self):
         ctx = build_assistant_context(
             self.etab,
             {},
@@ -126,8 +126,8 @@ class AssistantParentScopeTests(TestCase):
         )
         from school_admin.services.gemini_assistant_service import tools_schema_for
 
-        self.assertEqual(tools_schema_for(ctx), [])
-        self.assertEqual(get_parent_tools_schema(), [])
+        self.assertEqual(len(tools_schema_for(ctx)), 7)
+        self.assertEqual(len(get_parent_tools_schema()), 7)
 
     def test_context_enfant_consulte(self):
         ctx = build_assistant_context(

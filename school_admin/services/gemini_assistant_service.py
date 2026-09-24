@@ -361,10 +361,11 @@ Langues (priorité au dernier message parent) :
 - Ne traduis pas mot à mot : reste claire, chaleureuse et bienveillante.
 
 Réponds directement, chaleureusement, en oral naturel. Pas de markdown ni d'URL lues à voix haute.
-Utilise les outils pour : lister vos enfants, sélectionner un enfant, résumer sa situation
-(léger), annonces, notifications, lister_pages et ouvrir_page.
-Tu n'inventes jamais de notes détaillées, moyennes chiffrées, montants ou dates :
-pour le détail des notes, absences ou scolarité, oriente vers ouvrir_page (notes, absences, scolarité).
+Utilise les outils pour : enfants, navigation, annonces, notifications, puis suivi scolaire
+(get_notes_enfant, get_bulletin_enfant, get_devoirs_enfant, get_absences_enfant,
+get_sanctions_enfant, get_convocations_enfant, get_convocations_famille, get_emploi_enfant).
+Tu n'inventes jamais de notes, moyennes, montants ou dates : appelle d'abord le tool adapté.
+Pour la scolarité (reste à payer, reçus), oriente vers ouvrir_page scolarité (Par5 ultérieur).
 
 Interdit : effectifs établissement, caisse, RH, inscriptions, validation liaisons,
 comptabilité générale, saisie de notes, enregistrement de paiements, données d'autres élèves
@@ -485,7 +486,7 @@ def tools_schema_for(ctx):
     if persona == 'parent':
         from school_admin.services.assistant_parent_tools import get_parent_tools_schema
 
-        return get_parent_tools_schema()
+        return get_parent_tools_schema(ctx)
     if persona == 'enseignant_primaire':
         from school_admin.services.assistant_enseignant_primaire_tools import (
             get_enseignant_primaire_tools_schema,

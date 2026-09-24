@@ -1,5 +1,5 @@
 """
-Outils assistant parent — Par2 : lecture socle + navigation.
+Outils assistant parent — Par2 navigation + Par4 suivi scolaire.
 """
 from django.db.models import Q
 from django.urls import reverse
@@ -15,15 +15,9 @@ from school_admin.services.assistant_parent_scope import (
     resume_enfants,
 )
 
-PARENT_TOOL_NAMES = frozenset({
-    'get_mes_enfants',
-    'select_enfant',
-    'get_resume_enfant',
-    'lister_pages',
-    'ouvrir_page',
-    'get_notifications',
-    'get_annonces',
-})
+from school_admin.services.assistant_parent_schema import PARENT_TOOL_NAMES_ALL
+
+PARENT_TOOL_NAMES = PARENT_TOOL_NAMES_ALL
 
 _FORBIDDEN_TOOL_PREFIXES = (
     'get_effectifs',
@@ -348,6 +342,81 @@ def tool_ouvrir_page(ctx, args):
     }
 
 
+def tool_get_notes_enfant(ctx, args):
+    eleve, err = _resolve_eleve_cible(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_notes_enfant
+
+    return read_notes_enfant(eleve, ctx)
+
+
+def tool_get_bulletin_enfant(ctx, args):
+    eleve, err = _resolve_eleve_cible(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_bulletin_enfant
+
+    return read_bulletin_enfant(eleve, ctx)
+
+
+def tool_get_devoirs_enfant(ctx, args):
+    eleve, err = _resolve_eleve_cible(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_devoirs_enfant
+
+    return read_devoirs_enfant(eleve, ctx, periode=args.get('periode'))
+
+
+def tool_get_absences_enfant(ctx, args):
+    eleve, err = _resolve_eleve_cible(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_absences_enfant
+
+    return read_absences_enfant(eleve, ctx)
+
+
+def tool_get_sanctions_enfant(ctx, args):
+    eleve, err = _resolve_eleve_cible(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_sanctions_enfant
+
+    return read_sanctions_enfant(eleve, ctx)
+
+
+def tool_get_convocations_enfant(ctx, args):
+    eleve, err = _resolve_eleve_cible(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_convocations_enfant
+
+    a_venir = args.get('a_venir')
+    if a_venir is None:
+        a_venir = True
+    return read_convocations_enfant(eleve, ctx, a_venir=bool(a_venir))
+
+
+def tool_get_convocations_famille(ctx, _args):
+    parent = getattr(ctx, 'parent', None)
+    if not parent:
+        return {'erreur': 'Compte parent requis.'}
+    from school_admin.services.assistant_parent_scolaire import read_convocations_famille
+
+    return read_convocations_famille(parent, ctx)
+
+
+def tool_get_emploi_enfant(ctx, args):
+    eleve, err = _resolve_eleve_cible(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_emploi_enfant
+
+    return read_emploi_enfant(eleve, ctx)
+
+
 TOOL_HANDLERS = {
     'get_mes_enfants': tool_get_mes_enfants,
     'select_enfant': tool_select_enfant,
@@ -356,11 +425,18 @@ TOOL_HANDLERS = {
     'ouvrir_page': tool_ouvrir_page,
     'get_notifications': tool_get_notifications,
     'get_annonces': tool_get_annonces,
+    'get_notes_enfant': tool_get_notes_enfant,
+    'get_bulletin_enfant': tool_get_bulletin_enfant,
+    'get_devoirs_enfant': tool_get_devoirs_enfant,
+    'get_absences_enfant': tool_get_absences_enfant,
+    'get_sanctions_enfant': tool_get_sanctions_enfant,
+    'get_convocations_enfant': tool_get_convocations_enfant,
+    'get_convocations_famille': tool_get_convocations_famille,
+    'get_emploi_enfant': tool_get_emploi_enfant,
 }
 
 
-def build_parent_tool_schemas():
-    return [
+PAR2_GEMINI_TOOLS = [
         {
             'type': 'function',
             'function': {
@@ -458,8 +534,89 @@ def build_parent_tool_schemas():
     ]
 
 
-def get_parent_tools_schema():
-    return build_parent_tool_schemas()
+def build_parent_tool_schemas():
+    return list(PAR2_GEMINI_TOOLS)
+
+
+def get_parent_tools_schema(ctx=None):
+    from school_admin.services.assistant_parent_schema import build_parent_tool_schemas
+
+    return build_parent_tool_schemas(ctx)
+
+
+def spoken_from_parent_tool(name, result):
+    if not isinstance(result, dict):
+        return ''
+    if result.get('message'):
+        return str(result['message']).strip()
+    if result.get('erreur'):
+        return str(result['erreur']).strip()
+    if name == 'get_notes_enfant' and result.get('moyenne_generale') is not None:
+        return (
+            f"Moyenne générale {result['moyenne_generale']} "
+            f"pour {result.get('nom') or 'votre enfant'}."
+        )
+    if name == 'get_bulletin_enfant':
+        if result.get('publie'):
+            return result.get('message') or 'Bulletin publié.'
+        return result.get('message') or 'Bulletin non publié.'
+    if name == 'get_devoirs_enfant':
+        return result.get('message') or 'Devoirs récupérés.'
+    if name == 'get_absences_enfant':
+        return result.get('message') or 'Absences récupérées.'
+    if name == 'get_convocations_famille':
+        return result.get('message') or 'Convocations familiale.'
+    return ''
+
+
+def suggestions_after_parent_read(tool_results):
+    names = {
+        item[0]
+        for item in (tool_results or [])
+        if isinstance(item, (tuple, list)) and item
+    }
+    from school_admin.services.assistant_tools import normalize_suggestions
+
+    items = []
+    if 'get_notes_enfant' in names:
+        items = [
+            {'label': 'Bulletin', 'value': 'Le bulletin est-il publié ?'},
+            {'label': 'Devoirs', 'value': 'Quels devoirs cette semaine ?'},
+            {'label': 'Ouvrir notes', 'value': 'Ouvre la page des notes.'},
+        ]
+    elif 'get_devoirs_enfant' in names:
+        items = [
+            {'label': 'Notes', 'value': 'Montre les notes récentes.'},
+            {'label': 'Absences', 'value': 'Combien d’absences ?'},
+            {'label': 'Emploi du temps', 'value': 'Emploi du temps demain ?'},
+        ]
+    elif 'get_absences_enfant' in names:
+        items = [
+            {'label': 'Sanctions', 'value': 'Y a-t-il des sanctions ?'},
+            {'label': 'Convocations', 'value': 'Convocations à venir ?'},
+            {'label': 'Conseil', 'value': 'Comment l’aider à mieux assister ?'},
+        ]
+    elif 'get_bulletin_enfant' in names:
+        items = [
+            {'label': 'Ouvrir bulletin', 'value': 'Ouvre le bulletin.'},
+            {'label': 'Notes détail', 'value': 'Détail des notes par matière.'},
+        ]
+    elif 'get_convocations_enfant' in names or 'get_convocations_famille' in names:
+        items = [
+            {'label': 'Notifications', 'value': 'Notifications non lues ?'},
+            {'label': 'Annonces', 'value': 'Annonces de l’école ?'},
+        ]
+    elif 'get_emploi_enfant' in names:
+        items = [
+            {'label': 'Devoirs', 'value': 'Devoirs pour cette semaine ?'},
+            {'label': 'Notes', 'value': 'Notes récentes ?'},
+        ]
+    elif 'get_sanctions_enfant' in names:
+        items = [
+            {'label': 'Absences', 'value': 'Absences récentes ?'},
+            {'label': 'Convocations', 'value': 'Convocations ?'},
+        ]
+    return normalize_suggestions(items, limit=3)
 
 
 def execute_parent_tool(ctx, name, arguments):

@@ -138,5 +138,7 @@ class AssistantParentWsTests(TransactionTestCase):
             ctx = await consumer._build_context()
             result = await consumer._execute_tool(ctx, 'get_mes_enfants', {})
             self.assertEqual(result.get('nb'), 1)
+            notes = await consumer._execute_tool(ctx, 'get_absences_enfant', {})
+            self.assertEqual(notes.get('eleve_id'), self.eleve.id)
 
         _run(_go())

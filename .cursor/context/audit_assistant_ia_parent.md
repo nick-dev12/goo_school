@@ -1,8 +1,8 @@
 # Audit + feuille de route — Assistant IA Parent (conseil & suivi enfant)
 
 **Date** : 2026-09-23  
-**Statut** : **Par0–Par3 livrées** (2026-09-24). Par4+ **non démarrées**.  
-**Branche** : `cursor/assistant-parent-par3-a40c`  
+**Statut** : **Par0–Par4 livrées** (2026-09-24). Par5+ **non démarrées**.  
+**Branche** : `cursor/assistant-parent-par4-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Directeur (tools, schéma, confirmation) : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md)
@@ -452,8 +452,8 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | Écrans élève rendus | 13 |
 | Templates parent / élève | 9 + 16 |
 | Partials assistant parent | **1** (`assistant_vocal_parent.html`) |
-| Tools assistant parent (lecture Par2) | **7** (socle + navigation) |
-| Tests assistant parent | **32+** (scope + tools + langue Wolof + WS) |
+| Tools assistant parent | **15** (Par2 navigation + Par4 suivi scolaire) |
+| Tests assistant parent | **39+** (scope + tools + scolaire + Wolof + WS) |
 | Personas WS acceptés | directeur, enseignant, enseignant_primaire, **`parent`** |
 
 ---
@@ -506,10 +506,27 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 - Double pass fr+wo : coût x2 sur courtes dictées parent uniquement.
 - Fallback produit : saisie **texte** wolof recommandée si `stt_weak`.
 
+### Par4 — Suivi scolaire (2026-09-24)
+
+- Fichiers : `assistant_parent_scolaire.py`, `assistant_parent_schema.py`, extension `assistant_parent_tools.py`.
+- **8 tools lecture** : `get_notes_enfant`, `get_bulletin_enfant`, `get_devoirs_enfant`, `get_absences_enfant`, `get_sanctions_enfant`, `get_convocations_enfant`, `get_convocations_famille`, `get_emploi_enfant`.
+- Données alignées vues `eleve:*` (notes primaire / secondaire / supérieur, bulletin publié, présences, etc.).
+- Schéma Gemini filtré via `get_parent_tools_schema(ctx)` — flags type établissement **de l’enfant** (`eleve_consulte` ou union enfants liés).
+- `spoken_from_parent_tool` + `suggestions_after_parent_read` (G4 après lectures).
+- Tests : `test_assistant_parent_scolaire.py` + MAJ scope/tools/WS.
+
+#### Recette manuelle Par4
+
+1. Parent + enfant lié en session → « Quelles notes publiées pour mon enfant ? » → chiffres via `get_notes_enfant`, pas d’invention.
+2. « Devoirs cette semaine ? » → `get_devoirs_enfant` + suggestion ouvrir page devoirs.
+3. « Combien d’absences ? » → `get_absences_enfant`.
+4. Hub sans session enfant → « Convocations de la famille ? » → `get_convocations_famille`.
+5. `eleve_id` d’un autre élève → refus `acces_refuse`.
+
 ### Prochaine étape
 
-**Par4** — notes, devoirs, absences détaillés (sur signal). **Par5+** scolarité : non démarrés.
+**Par5** — scolarité (reste dû, reçus, montants) sur signal. **Par6+** G7 persona : non démarrés.
 
 ---
 
-*Stop après Par3 — pas de Par4 dans cette livraison.*
+*Stop après Par4 — pas de Par5 dans cette livraison.*

@@ -806,6 +806,12 @@ def _suggestions_after_read_enseignant(tool_results, refs=None, ctx=None):
 
 def suggestions_after_read(tool_results, refs=None, ctx=None):
     """2–3 puces de suite, même si Gemini n’a pas appelé proposer_actions."""
+    if ctx and getattr(ctx, 'persona', 'directeur') == 'parent':
+        from school_admin.services.assistant_parent_tools import suggestions_after_parent_read
+
+        sugg = suggestions_after_parent_read(tool_results)
+        if sugg:
+            return sugg
     if ctx and getattr(ctx, 'persona', 'directeur') in ('enseignant_primaire', 'enseignant'):
         return _suggestions_after_read_enseignant(tool_results, refs, ctx=ctx)
     names = {
@@ -879,6 +885,12 @@ def spoken_from_tool_result(name, result, ctx=None):
     ):
         return spoken_from_affectations(result)
     persona = getattr(ctx, 'persona', 'directeur') if ctx else 'directeur'
+    if persona == 'parent':
+        from school_admin.services.assistant_parent_tools import spoken_from_parent_tool
+
+        spoken = spoken_from_parent_tool(name, result)
+        if spoken:
+            return spoken
     if persona == 'enseignant_primaire':
         from school_admin.services.assistant_enseignant_primaire_tools import (
             spoken_from_enseignant_tool,

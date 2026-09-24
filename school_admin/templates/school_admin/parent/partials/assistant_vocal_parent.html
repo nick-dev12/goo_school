@@ -1,0 +1,143 @@
+{% load static %}
+<link
+  rel="stylesheet"
+  href="{% static 'school_admin/css/directeur/assistant_vocal.css' %}?v=1.9.7"
+/>
+<link
+  rel="stylesheet"
+  href="{% static 'school_admin/css/parent/assistant_vocal_parent.css' %}?v=1.0.0"
+/>
+<div
+  id="assistant-vocal-root"
+  class="assistant-vocal-root notranslate assistant-vocal-root--parent"
+  translate="no"
+  data-persona="parent"
+  data-etablissement="{% if etablissement %}{{ etablissement.nom }}{% elif eleve.etablissement %}{{ eleve.etablissement.nom }}{% endif %}"
+  data-user-name="{% if parent %}{{ parent.nom_complet }}{% elif est_parent %}{{ request.user.nom_complet }}{% endif %}"
+  data-avatar-url="{% static 'school_admin/img/aria-assistante.png' %}"
+>
+  <div
+    id="assistant-vocal-panel"
+    class="assistant-vocal-panel"
+    role="dialog"
+    aria-labelledby="assistant-vocal-title"
+    aria-hidden="true"
+  >
+    <div class="assistant-vocal-header">
+      <div class="assistant-vocal-header-identity">
+        <img
+          class="assistant-vocal-avatar assistant-vocal-avatar--lg"
+          src="{% static 'school_admin/img/aria-assistante.png' %}"
+          alt="Aria"
+        />
+        <div>
+          <div class="assistant-vocal-title-row">
+            <h2 id="assistant-vocal-title">Aria</h2>
+            <button
+              type="button"
+              id="assistant-vocal-mute"
+              class="assistant-vocal-mute"
+              aria-label="Couper le son des réponses"
+              aria-pressed="false"
+              title="Couper le son"
+            >
+              <i class="fas fa-volume-up"></i>
+            </button>
+          </div>
+          <p>Assistante famille — Wolof &amp; Français</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        id="assistant-vocal-close"
+        class="assistant-vocal-close"
+        aria-label="Fermer l’assistant"
+      >
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div id="assistant-vocal-messages" class="assistant-vocal-messages">
+      <p id="assistant-vocal-empty" class="assistant-vocal-empty">
+        Posez une question sur la scolarité de votre enfant, en français ou en wolof.
+        Wax ma ci Wolof walla ci Français.
+      </p>
+    </div>
+    <div id="assistant-vocal-live" class="assistant-vocal-live" hidden>
+      <div class="assistant-vocal-voice-rec" aria-live="polite">
+        <span class="assistant-vocal-voice-dot" aria-hidden="true"></span>
+        <span id="assistant-vocal-voice-timer" class="assistant-vocal-voice-timer">0:00</span>
+        <div id="assistant-vocal-voice-waves" class="assistant-vocal-voice-waves" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+    <form id="assistant-vocal-form" class="assistant-vocal-form" action="#" method="post">
+      <button
+        type="button"
+        id="assistant-vocal-mic-cancel"
+        class="assistant-vocal-icon-btn assistant-vocal-cancel-btn"
+        aria-label="Annuler la note vocale"
+        title="Annuler"
+        hidden
+      >
+        <i class="fas fa-stop"></i>
+      </button>
+      <button
+        type="button"
+        id="assistant-vocal-mic"
+        class="assistant-vocal-icon-btn"
+        aria-label="Note vocale"
+        aria-pressed="false"
+        title="Note vocale"
+      >
+        <i class="fas fa-microphone"></i>
+      </button>
+      <input
+        id="assistant-vocal-input"
+        type="text"
+        name="message"
+        maxlength="8000"
+        placeholder="Votre question (FR / Wolof)…"
+        autocomplete="off"
+        required
+      />
+      <button
+        type="submit"
+        id="assistant-vocal-send"
+        class="assistant-vocal-send"
+        aria-label="Envoyer"
+      >
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </form>
+    <div id="assistant-vocal-confirm" class="assistant-vocal-confirm" hidden>
+      <div class="assistant-vocal-confirm-card">
+        <p>Annuler cette note vocale ? L’enregistrement sera perdu.</p>
+        <div class="assistant-vocal-confirm-btns">
+          <button type="button" id="assistant-vocal-confirm-yes">Oui, annuler</button>
+          <button type="button" id="assistant-vocal-confirm-no">Non, continuer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button
+    type="button"
+    id="assistant-vocal-fab"
+    class="assistant-vocal-fab"
+    aria-label="Ouvrir l’assistante Aria"
+    aria-expanded="false"
+    aria-controls="assistant-vocal-panel"
+    title="Aria, assistante famille"
+  >
+    <span class="assistant-vocal-fab-rings" aria-hidden="true">
+      <span></span>
+      <span></span>
+    </span>
+    <img
+      class="assistant-vocal-fab-photo"
+      src="{% static 'school_admin/img/aria-assistante.png' %}"
+      alt=""
+    />
+  </button>
+</div>
+<script src="{% static 'school_admin/js/directeur/assistant_vocal.js' %}?v=1.9.14"></script>

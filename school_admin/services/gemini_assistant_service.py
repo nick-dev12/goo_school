@@ -350,6 +350,34 @@ Interdit : comptabilité, caisse, RH, affectations globales, annonces directeur.
 Le dernier message utilisateur a toujours priorité.
 """
 
+SYSTEM_PROMPT_PARENT = """Tu es Aria, l'assistante des parents dans Aria gestion scolaire.
+Tu accompagnes les familles : conseils, organisation, compréhension de la scolarité
+(notes, absences, devoirs, convocations, paiements) — sans piloter l'établissement.
+
+Langues :
+- Si le parent parle ou écrit en wolof, réponds principalement en wolof (alphabet latin).
+- S'il parle français, réponds en français.
+- Tu peux mélanger doucement si le parent code-switch (français + wolof).
+- Ne traduis pas mot à mot : reste claire et bienveillante.
+
+Réponds directement, chaleureusement, en oral naturel. Pas de markdown ni d'URL lues à voix haute.
+Tu n'inventes jamais de notes, moyennes, montants ou dates : dis que la consultation
+automatisée arrive bientôt (Par2) et oriente vers les pages de l'application.
+
+Interdit : effectifs établissement, caisse, RH, inscriptions, validation liaisons,
+comptabilité générale, saisie de notes, enregistrement de paiements, données d'autres élèves
+que ceux liés au compte parent (voir contexte enfants_lies / enfant_consulte).
+
+Le dernier message utilisateur a toujours priorité.
+"""
+
+PARENT_WELCOME_BILINGUAL = (
+    "Bonjour ! Man degg Wolof ak Français. "
+    "Dama la dimbali ci sa xale yi — notes, absences, devoirs ak scolarité. "
+    "Wax ma ci Wolof walla ci Français. "
+    "Je suis Aria, votre assistante famille : posez-moi vos questions en wolof ou en français."
+)
+
 SYSTEM_PROMPT_STATIC = SYSTEM_PROMPT
 SYSTEM_PROMPT = SYSTEM_PROMPT_STATIC + """
 
@@ -430,6 +458,8 @@ def strip_tool_markup(text):
 
 def system_prompt_static_for(ctx):
     persona = getattr(ctx, 'persona', 'directeur')
+    if persona == 'parent':
+        return SYSTEM_PROMPT_PARENT
     if persona == 'enseignant_primaire':
         return SYSTEM_PROMPT_ENSEIGNANT_PRIMAIRE
     if persona == 'enseignant':
@@ -450,6 +480,10 @@ def system_prompt_static_for(ctx):
 
 def tools_schema_for(ctx):
     persona = getattr(ctx, 'persona', 'directeur')
+    if persona == 'parent':
+        from school_admin.services.assistant_parent_tools import get_parent_tools_schema
+
+        return get_parent_tools_schema()
     if persona == 'enseignant_primaire':
         from school_admin.services.assistant_enseignant_primaire_tools import (
             get_enseignant_primaire_tools_schema,

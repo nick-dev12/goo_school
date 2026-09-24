@@ -7,35 +7,59 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% trans "Reçu de paiement" %} {{ paiement.numero_recu }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/recu_paiement.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/recu_paiement.css' %}?v=1.1.0" />
 </head>
 <body class="recu-body">
     <div class="print-actions">
-        <button type="button" class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> {% trans "Imprimer" %}</button>
+        <button type="button" class="btn-print" onclick="window.print()">
+            <i class="fas fa-print"></i> {% trans "Imprimer" %}
+        </button>
         {% if is_parent %}
             <a href="{% url 'school_admin:scolarite_parent' %}" class="btn-back">{% trans "Retour" %}</a>
         {% else %}
-            <a href="{% url 'directeur:details_comptabilite_eleve_directeur' eleve.id %}" class="btn-back">{% trans "Retour" %}</a>
+            <a href="{% url 'directeur:details_comptabilite_eleve_directeur' eleve.id %}" class="btn-back">{% trans "Retour à la fiche" %}</a>
         {% endif %}
     </div>
 
     <article class="recu-sheet">
-        <header class="recu-head">
-            <div>
-                <p class="recu-school-name">{{ etablissement.nom }}</p>
-                <p class="recu-school-meta">
-                    {{ etablissement.adresse }} — {{ etablissement.ville }}{% if etablissement.pays %}, {{ etablissement.pays }}{% endif %}<br />
-                    {% trans "Tél." %} {{ etablissement.telephone|default:"—" }} · {{ etablissement.email }}<br />
-                    {% trans "Devise" %} : <strong>{{ devise_monnaie }}</strong>
-                </p>
+        <div class="recu-banner">
+            <div class="recu-brand">
+                {% if etablissement.logo %}
+                    <img src="{{ etablissement.logo.url }}" alt="" class="recu-logo" width="72" height="72" />
+                {% else %}
+                    <img src="{% static 'school_admin/img/logo.png' %}" alt="Aria" class="recu-logo recu-logo--default" width="72" height="48" />
+                {% endif %}
+                <div>
+                    <p class="recu-school-name">{{ etablissement.nom }}</p>
+                    <p class="recu-school-meta">
+                        {% if etablissement.adresse %}{{ etablissement.adresse }}{% endif %}
+                        {% if etablissement.ville %} — {{ etablissement.ville }}{% endif %}
+                        {% if etablissement.pays %}, {{ etablissement.pays }}{% endif %}
+                    </p>
+                </div>
             </div>
             <div class="recu-title-block">
-                <p class="recu-title">{% trans "REÇU OFFICIEL DE PAIEMENT" %}</p>
+                <p class="recu-kicker">{% trans "Document officiel" %}</p>
+                <p class="recu-title">{% trans "REÇU DE PAIEMENT" %}</p>
                 <p class="recu-number">{{ paiement.numero_recu|default:"—" }}</p>
             </div>
-        </header>
+        </div>
+
+        <div class="recu-contact-row">
+            <span><i class="fas fa-phone"></i> {{ etablissement.telephone|default:"—" }}</span>
+            <span><i class="fas fa-envelope"></i> {{ etablissement.email|default:"—" }}</span>
+            <span><i class="fas fa-coins"></i> {{ devise_monnaie }}</span>
+        </div>
+
+        <div class="recu-objet">
+            <span class="recu-label">{% trans "Objet du versement" %}</span>
+            <p class="recu-objet-text">{{ objet_paiement|default:paiement.get_type_paiement_display }}</p>
+            <span class="recu-badge {% if est_avance %}recu-badge--warn{% else %}recu-badge--ok{% endif %}">
+                {{ type_operation|default:"Paiement" }}
+            </span>
+        </div>
 
         <div class="recu-grid">
             <div>
@@ -77,19 +101,47 @@
             <strong>{{ paiement.montant|floatformat:0 }} {{ devise_monnaie }}</strong>
         </div>
 
+        {% if montant_ligne is not None %}
+        <div class="recu-soldes">
+            <div class="recu-solde-item">
+                <span class="recu-label">{% trans "Montant total de la ligne" %}</span>
+                <span class="recu-value">{{ montant_ligne|floatformat:0 }} {{ devise_monnaie }}</span>
+            </div>
+            <div class="recu-solde-item">
+                <span class="recu-label">{% trans "Reste à payer sur cette ligne" %}</span>
+                <span class="recu-value recu-value--reste">{{ reste_ligne|floatformat:0 }} {{ devise_monnaie }}</span>
+            </div>
+        </div>
+        {% endif %}
+
         {% if paiement.notes %}
             <p class="recu-mentions">{{ paiement.notes }}</p>
         {% endif %}
 
         <p class="recu-mentions">
             {% trans "Ce reçu atteste l'encaissement du montant ci-dessus par" %} {{ etablissement.nom }}.
-            {% trans "Conservez ce document. Numérotation séquentielle ininterrompue pour l'année scolaire." %}
+            {% trans "Conservez ce document. Numérotation séquentielle pour l'année scolaire en cours." %}
         </p>
 
         <div class="recu-stamp">
             <div class="recu-stamp-box">{% trans "Le payeur" %}</div>
             <div class="recu-stamp-box">{% trans "Cachet et signature de l'établissement" %}</div>
         </div>
+
+        <footer class="recu-footer">
+            <span>{% trans "Émis via ARIA" %} · {{ paiement.date_paiement|date:"d/m/Y" }}</span>
+        </footer>
     </article>
+
+    {% if auto_print %}
+    <script>
+      window.addEventListener('load', function () {
+        window.setTimeout(function () { window.print(); }, 400);
+      });
+    </script>
+    {% endif %}
+    {% if is_parent %}
+    {% include 'school_admin/parent/partials/assistant_vocal_parent.html' %}
+    {% endif %}
 </body>
 </html>

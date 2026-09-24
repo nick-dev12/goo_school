@@ -62,6 +62,9 @@ class AssistantContext:
     libelle_eleve: str
     personnel: object = None
     professeur: object = None
+    parent: object = None
+    eleve_consulte: object = None
+    enfants_lies: list = None
     persona: str = 'directeur'
     affectations_resume: list = None
     est_college: bool = False
@@ -75,26 +78,50 @@ def build_assistant_context(
     session_store=None,
     personnel=None,
     professeur=None,
+    parent=None,
     persona='directeur',
 ):
     """Construit le contexte établissement + session consultée."""
     from school_admin.model.annee_scolaire_model import AnneeScolaire
 
+    session_store = session_store if session_store is not None else {}
     annee = None
-    session_id = None
-    if session_store is not None:
-        session_id = session_store.get('annee_scolaire_consultee_id')
-    if session_id:
+    session_id = session_store.get('annee_scolaire_consultee_id')
+    if session_id and etablissement:
         annee = AnneeScolaire.objects.filter(
             pk=session_id,
             etablissement=etablissement,
         ).first()
-    if annee is None:
+    if annee is None and etablissement:
         annee = AnneeScolaire.get_session_active(etablissement)
 
     from school_admin.services.assistant_schema import classify_etablissement
 
-    flags = classify_etablissement(etablissement)
+    eleve_consulte = None
+    enfants_lies = None
+    if persona == 'parent' and parent:
+        from school_admin.services.assistant_parent_scope import (
+            eleve_depuis_session,
+            etablissement_effectif,
+            resume_enfants,
+        )
+
+        eleve_consulte = eleve_depuis_session(parent, session_store)
+        enfants_lies = resume_enfants(parent)
+        etab_ref = etablissement_effectif(parent, eleve_consulte) or etablissement
+        if etab_ref and (not etablissement or etab_ref.pk != getattr(etablissement, 'pk', None)):
+            etablissement = etab_ref
+            if annee is None:
+                annee = AnneeScolaire.get_session_active(etablissement)
+
+    flags = classify_etablissement(etablissement) if etablissement else {
+        'est_superieur': False,
+        'est_primaire': False,
+        'est_college': False,
+        'est_lycee': False,
+        'est_college_lycee': False,
+        'cycle_requis': False,
+    }
     ctx = AssistantContext(
         etablissement=etablissement,
         annee_scolaire=annee,
@@ -103,6 +130,9 @@ def build_assistant_context(
         libelle_eleve='étudiant' if flags['est_superieur'] else 'élève',
         personnel=personnel,
         professeur=professeur,
+        parent=parent,
+        eleve_consulte=eleve_consulte,
+        enfants_lies=enfants_lies or [],
         persona=persona or 'directeur',
         affectations_resume=None,
         est_college=flags['est_college'],
@@ -136,6 +166,16 @@ def context_snapshot(ctx):
         'cycle_requis': getattr(ctx, 'cycle_requis', False),
         'persona': getattr(ctx, 'persona', 'directeur'),
     }
+    if getattr(ctx, 'persona', 'directeur') == 'parent' and getattr(ctx, 'parent', None):
+        par = ctx.parent
+        payload['parent'] = getattr(par, 'nom_complet', None) or f'{par.prenom} {par.nom}'
+        payload['enfants_lies'] = getattr(ctx, 'enfants_lies', None) or []
+        if getattr(ctx, 'eleve_consulte', None):
+            el = ctx.eleve_consulte
+            payload['enfant_consulte'] = {
+                'id': el.id,
+                'nom': getattr(el, 'nom_complet', None) or f'{el.prenom} {el.nom}',
+            }
     if getattr(ctx, 'persona', 'directeur') in ('enseignant_primaire', 'enseignant') and ctx.professeur:
         prof = ctx.professeur
         payload['professeur'] = getattr(prof, 'nom_complet', None) or f'{prof.prenom} {prof.nom}'
@@ -2897,6 +2937,10 @@ def directeur_tools_schema(ctx):
 
 def execute_tool(ctx, name, arguments):
     """Exécute un outil et renvoie un dict JSON-serializable."""
+    if getattr(ctx, 'persona', 'directeur') == 'parent':
+        from school_admin.services.assistant_parent_tools import execute_parent_tool
+
+        return execute_parent_tool(ctx, name, arguments)
     if getattr(ctx, 'persona', 'directeur') == 'enseignant_primaire':
         from school_admin.services.assistant_enseignant_primaire_tools import (
             execute_enseignant_primaire_tool,

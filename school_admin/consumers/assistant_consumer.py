@@ -182,12 +182,13 @@ class SentenceAssembler:
 
 
 class AssistantConsumer(AsyncWebsocketConsumer):
-    """Canal privé directeur / personnel administratif / enseignant primaire."""
+    """Canal privé directeur / personnel / enseignant / parent."""
 
     async def connect(self):
         self.etablissement = None
         self.personnel = None
         self.professeur = None
+        self.parent = None
         self.persona = 'directeur'
         self.history = []
         self.pending_action = None
@@ -223,7 +224,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._send_json({
             'type': 'connection.established',
             'etablissement': getattr(self.etablissement, 'nom', ''),
+            'persona': getattr(self, 'persona', 'directeur'),
         })
+        if getattr(self, 'persona', '') == 'parent':
+            await self._send_parent_welcome()
         await self._restore_pending_ui()
 
     async def disconnect(self, close_code):
@@ -619,6 +623,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return False
 
     async def _handle_local_intent(self, question, ctx):
+        if getattr(ctx, 'persona', '') == 'parent':
+            return False
         if not is_navigation_only(question):
             return False
         intent = resolve_open_intent(question)
@@ -708,6 +714,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 turn_stats['takeover'] = turn_stats.get('takeover', 0) + 1
             return should_stop
 
+        use_tools = getattr(ctx, 'persona', 'directeur') != 'parent'
         try:
             _working, spoken = await run_assistant_turn(
                 ctx,
@@ -715,7 +722,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 on_status=on_status,
                 on_text_delta=on_text_delta,
                 on_tool_result=on_tool_result,
-                use_tools=True,
+                use_tools=use_tools,
                 tool_memory=self._tool_memory_for_turn(),
                 turn_stats=turn_stats,
                 working_refs=getattr(self, '_working_refs', None) or {},
@@ -967,7 +974,46 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             self.personnel = None
             self.persona = persona
             return True
+
+        from school_admin.model.parent_model import Parent
+
+        if isinstance(user, Parent):
+            par = Parent.objects.select_related('etablissement').get(pk=user.pk)
+            if not par.actif:
+                return False
+            self.parent = par
+            self.etablissement = par.etablissement
+            self.personnel = None
+            self.professeur = None
+            self.persona = 'parent'
+            return bool(self.etablissement)
+
+        from school_admin.model.eleve_model import Eleve
+
+        if isinstance(user, Eleve):
+            return False
+
         return False
+
+    async def _send_parent_welcome(self):
+        from school_admin.services.gemini_assistant_service import PARENT_WELCOME_BILINGUAL
+
+        text = PARENT_WELCOME_BILINGUAL
+        await self._send_json({
+            'type': 'assistant.welcome',
+            'text': text,
+            'persona': 'parent',
+        })
+        try:
+            audio, mime = await synthesize_audio(text)
+        except Exception:
+            logger.exception('TTS accueil parent')
+            audio, mime = b'', 'audio/wav'
+        if text:
+            await self._emit_sentence(text, 0, audio=audio or b'', audio_mime=mime or 'audio/wav')
+
+    def _is_parent(self):
+        return getattr(self, 'persona', 'directeur') == 'parent'
 
     @database_sync_to_async
     def _build_context(self):
@@ -979,6 +1025,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             session_store,
             personnel=self.personnel,
             professeur=self.professeur,
+            parent=self.parent,
             persona=self.persona,
         )
 

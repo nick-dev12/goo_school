@@ -88,6 +88,7 @@
   var lastResultAt = 0;
   var pendingActionResult = null;
   var RESULT_VISIBLE_MS = 1400;
+  var serverWelcomeText = '';
 
   function setStatus(_text) {
     return;
@@ -324,6 +325,16 @@
   }
 
   function greetingText() {
+    if (serverWelcomeText) {
+      return serverWelcomeText;
+    }
+    var persona = (root.getAttribute('data-persona') || '').trim();
+    if (persona === 'parent') {
+      return (
+        'Bonjour ! Man degg Wolof ak Français. Dama la dimbali ci sa xale yi. ' +
+        'Wax ma ci Wolof walla ci Français — je suis Aria, votre assistante famille.'
+      );
+    }
     var hour = new Date().getHours();
     var hello = hour >= 5 && hour < 18 ? 'Bonjour' : 'Bonsoir';
     var name = (root.getAttribute('data-user-name') || '').replace(/\s+/g, ' ').trim();
@@ -801,6 +812,13 @@
       return;
     }
     if (ignoreIncoming && data.type !== 'done' && data.type !== 'pong' && data.type !== 'error') {
+      return;
+    }
+    if (data.type === 'assistant.welcome') {
+      serverWelcomeText = (data.text || '').trim() || serverWelcomeText;
+      if (root.classList.contains('is-open') && !chatLog.length) {
+        showWelcomeIfNeeded();
+      }
       return;
     }
     if (data.type === 'ack') {

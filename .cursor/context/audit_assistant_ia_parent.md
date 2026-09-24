@@ -1,7 +1,8 @@
 # Audit + feuille de route — Assistant IA Parent (conseil & suivi enfant)
 
 **Date** : 2026-09-23  
-**Statut** : audit **à valider** — **aucune implémentation**  
+**Statut** : **Par0 + Par1 livrées** (2026-09-24). Par2+ **non démarrées**.  
+**Branche** : `cursor/assistant-parent-par0-par1-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Directeur (tools, schéma, confirmation) : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md)
@@ -450,11 +451,33 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | Routes élève (`eleve_url.py`) | 14 |
 | Écrans élève rendus | 13 |
 | Templates parent / élève | 9 + 16 |
-| Partials assistant parent | **0** |
-| Tools assistant parent | **0** |
-| Tests assistant parent | **0** |
-| Personas WS acceptés aujourd’hui | directeur, enseignant, enseignant_primaire |
+| Partials assistant parent | **1** (`assistant_vocal_parent.html`) |
+| Tools assistant parent (lecture) | **0** (schéma vide ; garde-fou `execute_parent_tool`) |
+| Tests assistant parent | **12** (`test_assistant_parent_scope`, `test_assistant_parent_ws`) |
+| Personas WS acceptés | directeur, enseignant, enseignant_primaire, **`parent`** |
 
 ---
 
-*Document rédigé pour validation — **stop implémentation** jusqu’à accord explicite sur les vagues Par0+.*
+## 18. Livraison Par0 + Par1 (2026-09-24)
+
+### Par0 — Sécurité / scope
+
+- WebSocket : persona **`parent`**, refus **`Eleve`** seul.
+- `assistant_parent_scope.py` : liens `LienFamilial`, session `eleve_consulte_id`, refus élève non lié.
+- `execute_tool` → `execute_parent_tool` : blocage tools directeur/enseignant/CG ; schéma Gemini **vide**.
+- `build_assistant_context(..., parent=)` + champs `eleve_consulte`, `enfants_lies`.
+- Prompt `SYSTEM_PROMPT_PARENT` (conseil, bilingue, pas d’invention de chiffres).
+
+### Par1 — UI + WS
+
+- Widget sur hub parent (bottom nav), espace élève parent (bottom nav + pages sans nav : bulletin, historique, notifications, reçu).
+- Accueil WS : `assistant.welcome` + TTS (`PARENT_WELCOME_BILINGUAL`) ; chat Gemini **sans tools** (`use_tools=False`).
+- JS : accueil parent / `assistant.welcome` dans `assistant_vocal.js` v1.9.14.
+
+### Prochaine étape
+
+**Par2** — tools lecture + catalogue `ouvrir_page` (sur signal utilisateur).
+
+---
+
+*Stop après Par1 — pas de Par2 dans cette livraison.*

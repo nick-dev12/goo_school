@@ -1291,8 +1291,15 @@
       spokenPlain = total;
       paintAssistant(spokenPlain, false);
       isPlaying = false;
-      currentAudio = null;
-      playNext();
+      releaseCurrentAudio();
+      var next = function () {
+        playNext();
+      };
+      if (audioQueue.length) {
+        window.setTimeout(next, 90);
+      } else {
+        next();
+      }
     };
 
     var reveal = function () {
@@ -1405,13 +1412,30 @@
     playAudioSafely(currentAudio, fallbackType);
   }
 
+  function releaseCurrentAudio() {
+    if (!currentAudio) {
+      return;
+    }
+    try {
+      currentAudio.onended = null;
+      currentAudio.onerror = null;
+      currentAudio.onplaying = null;
+      currentAudio.oncanplay = null;
+      currentAudio.ontimeupdate = null;
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio.removeAttribute('src');
+      currentAudio.load();
+    } catch (err) {
+      /* ignore */
+    }
+    currentAudio = null;
+  }
+
   function stopAudio() {
     audioQueue = [];
     clearTypewriter();
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio = null;
-    }
+    releaseCurrentAudio();
     isPlaying = false;
   }
 

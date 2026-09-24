@@ -4,12 +4,16 @@ from django.test import SimpleTestCase
 from django.test import override_settings
 
 from school_admin.services.tts_service import (
+    _gemini_tts_system_instruction,
     _mark_cited_names,
     _resolve_gemini_voice,
+    finalize_pcm16,
     parse_pcm_sample_rate,
     pcm16_to_wav,
+    smooth_pcm16_edges,
     prepare_spoken_text,
     strip_assistant_markup,
+    trim_pcm16_trailing_artifacts,
 )
 
 
@@ -87,6 +91,40 @@ class CharlineSpokenTextTests(SimpleTestCase):
         self.assertIn(b'WAVE', wav[:16])
         self.assertEqual(len(wav), 44 + len(pcm))
 
+    def test_smooth_pcm16_fades_end_to_silence(self):
+        import array
+
+        samples = array.array('h', [16000] * 500)
+        pcm = samples.tobytes()
+        smoothed = smooth_pcm16_edges(pcm, sample_rate=24000, fade_in_ms=6, fade_out_ms=18)
+        out = array.array('h')
+        out.frombytes(smoothed)
+        self.assertEqual(out[-1], 0)
+        self.assertLess(abs(out[0]), 16000)
+
+    def test_trim_trailing_low_noise(self):
+        import array
+
+        samples = array.array('h', [12000] * 400 + [40] * 80)
+        trimmed = trim_pcm16_trailing_artifacts(
+            samples.tobytes(),
+            sample_rate=24000,
+            hangover_ms=1,
+        )
+        out = array.array('h')
+        out.frombytes(trimmed)
+        self.assertLess(len(out), len(samples))
+
+    def test_finalize_pcm16_ends_silent(self):
+        import array
+
+        samples = array.array('h', [8000] * 300 + [500] * 100)
+        final = finalize_pcm16(samples.tobytes(), sample_rate=24000)
+        out = array.array('h')
+        out.frombytes(final)
+        self.assertEqual(out[-1], 0)
+        self.assertEqual(out[-2], 0)
+
 
 class GeminiVoiceConfigTests(SimpleTestCase):
     @override_settings(GEMINI_TTS_VOICE='Kore')
@@ -100,3 +138,12 @@ class GeminiVoiceConfigTests(SimpleTestCase):
     @override_settings(GEMINI_TTS_VOICE='InvalidVoice')
     def test_voix_invalide_repli_kore(self):
         self.assertEqual(_resolve_gemini_voice(), 'Kore')
+
+
+class GeminiTtsInstructionTests(SimpleTestCase):
+    def test_system_instruction_ne_contient_pas_le_texte_parle(self):
+        spoken = 'Bonjour, voici la liste des classes.'
+        instruction = _gemini_tts_system_instruction('fr')
+        self.assertIn('Aria', instruction)
+        self.assertNotIn(spoken, instruction)
+        self.assertIn('mot pour mot', instruction.lower())

@@ -4,6 +4,7 @@ Synthèse vocale pour Aria : Gemini TTS (défaut) ou Edge Charline (rollback).
 import asyncio
 import base64
 import logging
+import math
 import re
 import struct
 from xml.sax.saxutils import escape as xml_escape
@@ -485,6 +486,124 @@ def parse_pcm_sample_rate(mime_type):
     return 24000
 
 
+def _pcm16_to_samples(pcm_data):
+    import array
+
+    usable = len(pcm_data) - (len(pcm_data) % 2)
+    if usable < 2:
+        return array.array('h'), 0
+    samples = array.array('h')
+    samples.frombytes(pcm_data[:usable])
+    return samples, len(samples)
+
+
+def trim_pcm16_trailing_artifacts(
+    pcm_data,
+    sample_rate=24000,
+    max_trim_ms=150,
+    noise_floor=96,
+    hangover_ms=12,
+):
+    """
+    Retire la queue bruitée (souffle / artefact Gemini) avant le fade-out.
+    """
+    samples, count = _pcm16_to_samples(pcm_data)
+    if count < 16:
+        return pcm_data
+
+    max_trim = max(8, int(sample_rate * max_trim_ms / 1000))
+    hangover = max(4, int(sample_rate * hangover_ms / 1000))
+    scan_start = max(0, count - max_trim)
+    last_loud = count - 1
+    for index in range(count - 1, scan_start - 1, -1):
+        if abs(samples[index]) > noise_floor:
+            last_loud = index
+            break
+    end = min(count, last_loud + hangover)
+    if end < count:
+        del samples[end:count]
+    return samples.tobytes()
+
+
+def smooth_pcm16_edges(pcm_data, sample_rate=24000, fade_in_ms=5, fade_out_ms=35):
+    """
+    Atténue les bords du PCM (cosinus) pour éviter les clics entre phrases.
+    """
+    samples, count = _pcm16_to_samples(pcm_data)
+    if count < 8:
+        return samples.tobytes() if count else pcm_data
+
+    fade_in = min(count // 4, max(2, int(sample_rate * fade_in_ms / 1000)))
+    fade_out = min(count // 3, max(4, int(sample_rate * fade_out_ms / 1000)))
+
+    for index in range(fade_in):
+        t = (index + 1) / fade_in
+        factor = math.sin(t * math.pi / 2)
+        samples[index] = int(samples[index] * factor)
+
+    for offset in range(fade_out):
+        index = count - 1 - offset
+        t = offset / max(fade_out - 1, 1)
+        factor = math.sin(t * math.pi / 2)
+        samples[index] = int(samples[index] * factor)
+
+    for tail in range(min(4, count)):
+        samples[count - 1 - tail] = 0
+
+    return samples.tobytes()
+
+
+def finalize_pcm16(pcm_data, sample_rate=24000):
+    pcm = trim_pcm16_trailing_artifacts(pcm_data, sample_rate=sample_rate)
+    return smooth_pcm16_edges(pcm, sample_rate=sample_rate)
+
+
+def _join_pcm16_with_micro_crossfade(left_pcm, right_pcm, sample_rate=24000, overlap_ms=4):
+    """Évite un clic si Gemini renvoie plusieurs parts PCM pour une même phrase."""
+    left, left_n = _pcm16_to_samples(left_pcm)
+    right, right_n = _pcm16_to_samples(right_pcm)
+    if left_n < 2 or right_n < 2:
+        return left_pcm + right_pcm
+
+    overlap = min(
+        left_n // 4,
+        right_n // 4,
+        max(2, int(sample_rate * overlap_ms / 1000)),
+    )
+    if overlap < 2:
+        return left.tobytes() + right.tobytes()
+
+    out = left[: left_n - overlap]
+    for index in range(overlap):
+        li = left_n - overlap + index
+        ri = index
+        t = (index + 1) / overlap
+        fade_out = math.cos(t * math.pi / 2)
+        fade_in = math.sin(t * math.pi / 2)
+        mixed = int(left[li] * fade_out + right[ri] * fade_in)
+        out.append(max(-32768, min(32767, mixed)))
+    out.extend(right[overlap:right_n])
+    return out.tobytes()
+
+
+def concat_pcm16_chunks(chunks, sample_rate=24000):
+    if not chunks:
+        return b''
+    normalized = []
+    for chunk in chunks:
+        usable = len(chunk) - (len(chunk) % 2)
+        if usable >= 2:
+            normalized.append(chunk[:usable])
+    if not normalized:
+        return b''
+    if len(normalized) == 1:
+        return normalized[0]
+    merged = normalized[0]
+    for chunk in normalized[1:]:
+        merged = _join_pcm16_with_micro_crossfade(merged, chunk, sample_rate=sample_rate)
+    return merged
+
+
 def pcm16_to_wav(pcm_data, sample_rate=24000, num_channels=1):
     """Encapsule du PCM 16-bit little-endian en WAV."""
     if not pcm_data:
@@ -512,11 +631,22 @@ def pcm16_to_wav(pcm_data, sample_rate=24000, num_channels=1):
     return header + pcm_data
 
 
-def _gemini_tts_prompt(spoken_text, language='fr'):
+def _gemini_tts_system_instruction(language='fr'):
+    """Consignes modèle (systemInstruction) — ne doivent pas être lues à voix haute."""
     if (language or 'fr').lower() in ('wo', 'wolof', 'wo-sn'):
-        instruction = GEMINI_TTS_WOLOF_INSTRUCTION
+        base = GEMINI_TTS_WOLOF_INSTRUCTION
     else:
-        instruction = GEMINI_TTS_FIXED_INSTRUCTION
+        base = GEMINI_TTS_FIXED_INSTRUCTION
+    return (
+        f'{base}\n\n'
+        'Règle absolue : tu génères uniquement l’audio du message utilisateur, '
+        'mot pour mot, sans lire ni paraphraser ces consignes.'
+    )
+
+
+def _gemini_tts_prompt(spoken_text, language='fr'):
+    """Compat tests / ancien format — ne plus envoyer tel quel au modèle TTS lite."""
+    instruction = _gemini_tts_system_instruction(language)
     return f'{instruction}\n\nTexte à lire mot pour mot :\n{spoken_text}'
 
 
@@ -576,12 +706,12 @@ async def _synthesize_gemini(clean, language='fr'):
         return None, None
 
     client = _get_gemini_tts_client()
-    prompt = _gemini_tts_prompt(clean, language=language)
+    # gemini-3.8-flash-lite-tts : lire uniquement `clean` (pas de system_instruction → 400).
 
     async def _call():
         return await client.aio.models.generate_content(
             model=model,
-            contents=prompt,
+            contents=clean,
             config=types.GenerateContentConfig(
                 response_modalities=['AUDIO'],
                 speech_config=types.SpeechConfig(
@@ -605,6 +735,8 @@ async def _synthesize_gemini(clean, language='fr'):
     for candidate in candidates:
         content = getattr(candidate, 'content', None)
         parts = getattr(content, 'parts', None) or []
+        pcm_chunks = []
+        rate = 24000
         for part in parts:
             inline = getattr(part, 'inline_data', None)
             if not inline:
@@ -618,6 +750,10 @@ async def _synthesize_gemini(clean, language='fr'):
             else:
                 continue
             rate = parse_pcm_sample_rate(mime)
+            pcm_chunks.append(pcm)
+        if pcm_chunks:
+            pcm = concat_pcm16_chunks(pcm_chunks, sample_rate=rate)
+            pcm = finalize_pcm16(pcm, sample_rate=rate)
             wav = pcm16_to_wav(pcm, sample_rate=rate)
             return wav, 'audio/wav'
     logger.warning('Gemini TTS : aucun segment audio dans la réponse.')

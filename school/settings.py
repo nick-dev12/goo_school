@@ -384,7 +384,7 @@ GEMINI_TTS_MODEL = env(
     'GEMINI_TTS_MODEL',
     default='gemini-2.5-pro-preview-tts',
 ).strip()
-# Kore = voix féminine chaleureuse/naturelle (recommandée). Alternatives : Sulafat, Despina, Aoede.
+# Kore = voix Studio recommandée. Alternatives : Aoede, Sulafat, Despina.
 GEMINI_TTS_VOICE = env('GEMINI_TTS_VOICE', default='Kore').strip()
 GEMINI_TTS_LANGUAGE = env('GEMINI_TTS_LANGUAGE', default='fr-FR').strip()
 GEMINI_CONTEXT_CACHE = env('GEMINI_CONTEXT_CACHE', default='true').strip().lower() in (

@@ -16,6 +16,7 @@ from school_admin.tests.test_assistant_directeur_tools import (
     _make_eleve_simple,
     _make_etablissement,
 )
+from school_admin.services.gemini_assistant_service import ELEVE_WELCOME_BILINGUAL
 from school_admin.tests.test_assistant_parent_scope import _make_parent
 
 
@@ -75,5 +76,8 @@ class AssistantEleveWsTests(TransactionTestCase):
             payload = consumer._send_json.call_args[0][0]
             self.assertEqual(payload.get('type'), 'assistant.welcome')
             self.assertEqual(payload.get('persona'), 'eleve')
+            self.assertEqual(payload.get('text'), ELEVE_WELCOME_BILINGUAL)
+            self.assertIn('Wolof', payload.get('text', ''))
+            self.assertIn('ton assistante', payload.get('text', ''))
 
         _run(_go())

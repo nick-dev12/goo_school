@@ -1,8 +1,8 @@
 # Audit + feuille de route — Assistant IA Élève (compte élève seul)
 
 **Date** : 2026-09-24  
-**Statut** : **Elv0 livrée** (2026-09-24). Elv1+ **non démarrées**.  
-**Branche** : `cursor/assistant-eleve-elv0-a40c`  
+**Statut** : **Elv0 + Elv1 livrées** (2026-09-24). Elv2+ **non démarrées**.  
+**Branche** : `cursor/assistant-eleve-elv1-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Parent (Par0–Par8 livrées, réutilisation cible) : [audit_assistant_ia_parent.md](audit_assistant_ia_parent.md)
@@ -16,7 +16,7 @@
 
 ## 1. Verdict en une phrase
 
-**Elv0 posé côté backend** : WebSocket **`Eleve` accepté**, persona **`eleve`**, scope self-only, prompt tutoiement, schéma tools **vide** (conseil sans chiffres). **UI élève seul** : widget toujours **absent** (`est_parent` seulement) → **Elv1**. Mode parent sur espace enfant : **persona parent** inchangé.
+**Elv0 + Elv1** : WebSocket **`Eleve`**, persona **`eleve`**, scope self-only, schéma tools **vide**. **UI élève seul** : `assistant_vocal_eleve.html` sur **14 écrans** (`est_parent` → widget parent inchangé). Accueil WS **`ELEVE_WELCOME_BILINGUAL`** (tutoiement). Mode parent sur espace enfant : **persona parent** inchangé.
 
 ---
 
@@ -63,7 +63,7 @@ Les deux personas peuvent **partager** les fonctions de lecture (`read_notes`, `
 | Contexte | `build_assistant_context` | `eleve=` + `persona='eleve'` |
 | LLM | `gemini_assistant_service.py` | **`SYSTEM_PROMPT_ELEVE`** (tutoiement, Elv0 sans tools chiffres) |
 | Schéma / tools | `assistant_eleve_tools.py` | **`get_eleve_tools_schema()` → []** ; blocage directeur/prof/parent |
-| UI | `eleve/partials/bottom_nav_eleve.html` | **Elv1** : `assistant_vocal_eleve.html` ; aujourd’hui widget **parent only** |
+| UI | `eleve/partials/assistant_vocal_eleve.html` + `bottom_nav_eleve.html` | **Elv1 livré** : widget élève si `not est_parent` ; parent si `est_parent` |
 | Vues | `eleve_view.get_eleve_from_request` | `(Eleve user, est_parent=False)` **déjà supporté** |
 | STT/TTS | `assistant_parent_language.py` | Réutilisable (préférence langue) avec copy/prompt élève |
 | gtranslate | `eleve/partials/header.html` | UI statique ; **ne remplace pas** wolof vocal Aria |
@@ -243,9 +243,9 @@ Source : `school_admin/personal_url/eleve_url.py` + templates `school_admin/temp
 | Routes `eleve:` (dont redirect/logout) | 15 |
 | Écrans élève rendus | 14 |
 | Templates élève | 14 + partials |
-| Widget Aria élève seul | **0** (Elv1) |
+| Widget Aria élève seul | **14** écrans (Elv1) |
 | Tools assistant élève (exposés) | **0** (Elv0) ; ~14 lecture prévus Elv2–Elv5 |
-| Tests assistant élève | **11** (scope + WS Elv0) |
+| Tests assistant élève | **15+** (scope + WS + UI Elv1) |
 | Personas WS acceptés | directeur, enseignant*, parent, **`eleve`** |
 
 ---
@@ -258,10 +258,19 @@ Source : `school_admin/personal_url/eleve_url.py` + templates `school_admin/temp
 - `assert_self_only` : refus tout `eleve_id` ≠ compte connecté.
 - Tests : `test_assistant_eleve_scope.py`, `test_assistant_eleve_ws.py`.
 
+## 15. Livraison Elv1 (2026-09-24)
+
+- Partial `eleve/partials/assistant_vocal_eleve.html` (`data-persona="eleve"`), CSS `assistant_vocal_eleve.css`.
+- Includes : 9 pages via `bottom_nav_eleve.html` + 5 pages sans nav (bulletin ×2, notifications, historique ×2).
+- Condition : `{% if est_parent %}` → parent ; `{% else %}` → élève (pas de double widget).
+- WS : `ELEVE_WELCOME_BILINGUAL` dans `_send_eleve_welcome`.
+- JS `assistant_vocal.js` v1.9.16 : `isElevePersona`, chips langue, accueil fallback bilingue.
+- Tests : `test_assistant_eleve_ui_elv1.py`, `test_assistant_eleve_ws.py` (welcome bilingue).
+
 ### Prochaine étape
 
-**Elv1** — widget `assistant_vocal_eleve.html` sur les 14 écrans (élève seul).
+**Elv2** — navigation : `get_mon_resume`, `lister_pages`, `ouvrir_page`.
 
 ---
 
-*Stop après Elv0 — pas de Elv1 dans cette livraison.*
+*Stop après Elv1 — pas de Elv2 dans cette livraison.*

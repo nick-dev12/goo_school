@@ -1116,9 +1116,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return False
 
     async def _send_eleve_welcome(self):
-        from school_admin.services.gemini_assistant_service import ELEVE_WELCOME
+        from school_admin.services.gemini_assistant_service import ELEVE_WELCOME_BILINGUAL
 
-        text = ELEVE_WELCOME
+        text = ELEVE_WELCOME_BILINGUAL
         await self._send_json({
             'type': 'assistant.welcome',
             'text': text,

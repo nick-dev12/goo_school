@@ -28,6 +28,7 @@
   var CACHE_KEY = 'aria.assistant.cache';
   var MUTE_KEY = 'aria.assistant.muted';
   var PARENT_LANG_KEY = 'aria.parent.lang_pref';
+  var ELEVE_LANG_KEY = 'aria.eleve.lang_pref';
   var ANNONCE_DRAFT_KEY = 'aria.annonce.draft';
   var CHARS_PER_SECOND = 13;
   var TARGET_RATE = 16000;
@@ -329,12 +330,30 @@
     return (root.getAttribute('data-persona') || '').trim() === 'parent';
   }
 
+  function isElevePersona() {
+    return (root.getAttribute('data-persona') || '').trim() === 'eleve';
+  }
+
+  function hasLangPrefPersona() {
+    return isParentPersona() || isElevePersona();
+  }
+
+  function langPrefStorageKey() {
+    if (isElevePersona()) {
+      return ELEVE_LANG_KEY;
+    }
+    if (isParentPersona()) {
+      return PARENT_LANG_KEY;
+    }
+    return '';
+  }
+
   function getLangPref() {
-    if (!isParentPersona()) {
+    if (!hasLangPrefPersona()) {
       return 'auto';
     }
     try {
-      var stored = sessionStorage.getItem(PARENT_LANG_KEY);
+      var stored = sessionStorage.getItem(langPrefStorageKey());
       if (stored === 'fr' || stored === 'wo' || stored === 'auto') {
         return stored;
       }
@@ -345,12 +364,12 @@
   }
 
   function setLangPref(value, syncServer) {
-    if (!isParentPersona()) {
+    if (!hasLangPrefPersona()) {
       return;
     }
     var pref = value === 'fr' || value === 'wo' ? value : 'auto';
     try {
-      sessionStorage.setItem(PARENT_LANG_KEY, pref);
+      sessionStorage.setItem(langPrefStorageKey(), pref);
     } catch (err) {
       /* quota */
     }
@@ -366,7 +385,7 @@
   }
 
   function bindLangPrefChips() {
-    if (!isParentPersona()) {
+    if (!hasLangPrefPersona()) {
       return;
     }
     var chips = root.querySelectorAll('[data-lang-pref]');
@@ -390,6 +409,12 @@
       return (
         'Bonjour ! Man degg Wolof ak Français. Dama la dimbali ci sa xale yi. ' +
         'Wax ma ci Wolof walla ci Français — je suis Aria, votre assistante famille.'
+      );
+    }
+    if (persona === 'eleve') {
+      return (
+        'Nanga def ! Man degg Wolof ak Français. Dama la dimbali ngir nga organize sa école. ' +
+        'Wax ma ci Wolof walla ci Français — Salut, je suis Aria, ton assistante.'
       );
     }
     var hour = new Date().getHours();
@@ -1567,7 +1592,7 @@
     setBusy(true);
     showThinking();
     var payload = { type: 'chat', text: question };
-    if (isParentPersona()) {
+    if (hasLangPrefPersona()) {
       payload.lang_pref = getLangPref();
     }
     socket.send(JSON.stringify(payload));
@@ -1824,7 +1849,7 @@
       sttBusy = true;
       setStatus('Je transcris…');
       var sttPayload = { type: 'stt', audio_base64: wav };
-      if (isParentPersona()) {
+      if (hasLangPrefPersona()) {
         sttPayload.lang_pref = getLangPref();
       }
       socket.send(JSON.stringify(sttPayload));

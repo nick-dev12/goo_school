@@ -405,6 +405,13 @@ ELEVE_WELCOME = (
     "Pose-moi tes questions — bientôt je pourrai aussi lire tes notes et tes devoirs depuis l’app."
 )
 
+ELEVE_WELCOME_BILINGUAL = (
+    "Nanga def ! Man degg Wolof ak Français. "
+    "Dama la dimbali ngir nga organize sa école — notes, devoirs, absences. "
+    "Wax ma ci Wolof walla ci Français. "
+    "Salut ! Je suis Aria, ton assistante : pose-moi tes questions en wolof ou en français."
+)
+
 PARENT_WELCOME_BILINGUAL = (
     "Bonjour ! Man degg Wolof ak Français. "
     "Dama la dimbali ci sa xale yi — notes, absences, devoirs ak scolarité. "

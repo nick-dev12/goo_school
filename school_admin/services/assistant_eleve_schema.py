@@ -30,7 +30,8 @@ ELEVE_HIST_NOTIF_TOOLS = frozenset({
 
 ELEVE_TOOL_NAMES_ALL = ELEVE_NAV_TOOLS | ELEVE_SCOLAIRE_TOOLS | ELEVE_HIST_NOTIF_TOOLS
 
-# Elv7 : pas de marquer_notification_lue (arbitrage produit)
+# Elv7 (volontairement vide) : pas de marquer_notification_lue — la page notifications
+# marque déjà les alertes à la visite ; pas d’apply vocal élève dans cette version.
 ELEVE_WRITE_TOOLS = frozenset()
 
 

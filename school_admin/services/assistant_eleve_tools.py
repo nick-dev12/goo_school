@@ -4,6 +4,7 @@ Outils assistant élève — navigation, lecture scolaire (self-only).
 from __future__ import annotations
 
 from django.db.models import Q
+from django.urls import reverse
 
 from school_admin.services.assistant_eleve_scope import assert_self_only, get_self_eleve
 from school_admin.services.assistant_eleve_schema import (
@@ -149,10 +150,162 @@ def tool_ouvrir_page(ctx, args):
     }
 
 
+def tool_get_annonces(ctx, args):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from school_admin.model.annonce_model import Annonce
+
+    eleve, err = _require_self(ctx, args)
+    if err:
+        return err
+    etab = eleve.etablissement
+    if not etab:
+        return {'annonces': [], 'nb': 0, 'message': 'Établissement introuvable.'}
+    periode = (args.get('periode') or '').strip().lower()
+    today = timezone.now().date()
+    qs = Annonce.objects.filter(
+        etablissement=etab,
+        statut='publiee',
+        actif=True,
+    ).filter(
+        Q(destinataires__contains=['tous']) | Q(destinataires__contains=['eleves'])
+    )
+    if ctx.annee_scolaire:
+        qs = qs.filter(annee_scolaire=ctx.annee_scolaire)
+    if periode == 'semaine':
+        qs = qs.filter(date_publication__gte=today - timedelta(days=7))
+    elif periode == 'mois':
+        qs = qs.filter(date_publication__gte=today - timedelta(days=30))
+    items = [
+        {
+            'titre': a.titre,
+            'date': a.date_publication.isoformat() if a.date_publication else None,
+            'extrait': (a.contenu or '')[:160],
+        }
+        for a in qs.order_by('-date_publication', '-date_creation')[:10]
+    ]
+    return {
+        'nb': len(items),
+        'annonces': items,
+        'url_annonces': reverse('eleve:annonces_eleve'),
+        'message': f"{len(items)} annonce(s) pour toi." if items else 'Aucune annonce récente.',
+    }
+
+
+def _wrap_scolaire(eleve, ctx, reader, **kwargs):
+    from django.urls import reverse
+
+    out = reader(eleve, ctx, **kwargs) if kwargs else reader(eleve, ctx)
+    if isinstance(out, dict) and out.get('message') and eleve:
+        prenom = eleve.prenom or 'toi'
+        out['message'] = out['message'].replace(f"de {prenom}", 'pour toi').replace(
+            f"pour {prenom}", 'pour toi'
+        )
+    return out
+
+
+def tool_get_mes_notes(ctx, args):
+    eleve, err = _require_self(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_notes_enfant
+
+    return _wrap_scolaire(eleve, ctx, read_notes_enfant)
+
+
+def tool_get_mon_bulletin(ctx, args):
+    eleve, err = _require_self(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_bulletin_enfant
+
+    return _wrap_scolaire(eleve, ctx, read_bulletin_enfant)
+
+
+def tool_get_mes_devoirs(ctx, args):
+    eleve, err = _require_self(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_devoirs_enfant
+
+    periode = args.get('periode') or 'semaine'
+    return _wrap_scolaire(eleve, ctx, read_devoirs_enfant, periode=periode)
+
+
+def tool_get_mes_absences(ctx, args):
+    eleve, err = _require_self(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_absences_enfant
+
+    return _wrap_scolaire(eleve, ctx, read_absences_enfant)
+
+
+def tool_get_mes_sanctions(ctx, args):
+    eleve, err = _require_self(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_sanctions_enfant
+
+    return _wrap_scolaire(eleve, ctx, read_sanctions_enfant)
+
+
+def tool_get_mes_convocations(ctx, args):
+    eleve, err = _require_self(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_convocations_enfant
+
+    a_venir = args.get('a_venir')
+    if a_venir is None:
+        a_venir = True
+    return _wrap_scolaire(eleve, ctx, read_convocations_enfant, a_venir=bool(a_venir))
+
+
+def tool_get_mon_emploi(ctx, args):
+    eleve, err = _require_self(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolaire import read_emploi_enfant
+
+    return _wrap_scolaire(eleve, ctx, read_emploi_enfant)
+
+
+def tool_get_mon_profil(ctx, args):
+    eleve, err = _require_self(ctx, args)
+    if err:
+        return err
+    from django.urls import reverse
+
+    return {
+        'nom': getattr(eleve, 'nom_complet', None) or f'{eleve.prenom} {eleve.nom}',
+        'prenom': eleve.prenom,
+        'matricule': getattr(eleve, 'matricule_eleve', None),
+        'email': getattr(eleve, 'email', None),
+        'classe': eleve.classe.nom if eleve.classe_id else None,
+        'url_profil': reverse('eleve:profil_eleve'),
+        'message': (
+            f"Ton compte : {eleve.prenom} {eleve.nom}. "
+            'Pour la photo ou le mot de passe, utilise la page profil.'
+        ),
+    }
+
+
 TOOL_HANDLERS = {
     'get_mon_resume': tool_get_mon_resume,
     'lister_pages': tool_lister_pages,
     'ouvrir_page': tool_ouvrir_page,
+    'get_annonces': tool_get_annonces,
+    'get_mes_notes': tool_get_mes_notes,
+    'get_mon_bulletin': tool_get_mon_bulletin,
+    'get_mes_devoirs': tool_get_mes_devoirs,
+    'get_mes_absences': tool_get_mes_absences,
+    'get_mes_sanctions': tool_get_mes_sanctions,
+    'get_mes_convocations': tool_get_mes_convocations,
+    'get_mon_emploi': tool_get_mon_emploi,
+    'get_mon_profil': tool_get_mon_profil,
 }
 
 

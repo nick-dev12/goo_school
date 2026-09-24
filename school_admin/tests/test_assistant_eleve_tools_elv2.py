@@ -40,13 +40,13 @@ class AssistantEleveToolsElv2Tests(TestCase):
             persona='eleve',
         )
 
-    def test_schema_nav_only(self):
+    def test_schema_contient_nav(self):
         names = {
             item['function']['name']
             for item in get_eleve_tools_schema(self._ctx())
             if item.get('function')
         }
-        self.assertEqual(names, set(ELEVE_NAV_TOOLS))
+        self.assertTrue(set(ELEVE_NAV_TOOLS) <= names)
 
     def test_lister_pages_espace_eleve(self):
         out = execute_eleve_tool(self._ctx(), 'lister_pages', {})
@@ -74,10 +74,6 @@ class AssistantEleveToolsElv2Tests(TestCase):
             'eleve_id': autre.id,
         })
         self.assertEqual(out.get('statut'), 'acces_refuse')
-
-    def test_scolaire_tool_pas_encore_expose(self):
-        out = execute_eleve_tool(self._ctx(), 'get_mes_notes', {})
-        self.assertEqual(out.get('statut'), 'outil_inconnu')
 
     def test_bloque_directeur(self):
         out = execute_tool(self._ctx(), 'get_effectifs', {})

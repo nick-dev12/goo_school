@@ -712,7 +712,7 @@ def enrich_class_snapshot(ctx, tool_results, refs=None, question=''):
     if not ctx or not classe:
         return extra
     persona = getattr(ctx, 'persona', 'directeur')
-    if persona == 'parent':
+    if persona in ('parent', 'eleve'):
         return extra
     if persona in ('enseignant_primaire', 'enseignant'):
         snapshot_tools = CLASS_SNAPSHOT_TOOLS_ENSEIGNANT
@@ -829,6 +829,12 @@ def suggestions_after_read(tool_results, refs=None, ctx=None):
         sugg = suggestions_after_parent_read(tool_results)
         if sugg:
             return sugg
+    if ctx and getattr(ctx, 'persona', 'directeur') == 'eleve':
+        from school_admin.services.assistant_eleve_tools import suggestions_after_eleve_read
+
+        sugg = suggestions_after_eleve_read(tool_results)
+        if sugg:
+            return sugg
     if ctx and getattr(ctx, 'persona', 'directeur') in ('enseignant_primaire', 'enseignant'):
         return _suggestions_after_read_enseignant(tool_results, refs, ctx=ctx)
     names = {
@@ -906,6 +912,12 @@ def spoken_from_tool_result(name, result, ctx=None):
         from school_admin.services.assistant_parent_tools import spoken_from_parent_tool
 
         spoken = spoken_from_parent_tool(name, result)
+        if spoken:
+            return spoken
+    if persona == 'eleve':
+        from school_admin.services.assistant_eleve_tools import spoken_from_eleve_tool
+
+        spoken = spoken_from_eleve_tool(name, result)
         if spoken:
             return spoken
     if persona == 'enseignant_primaire':

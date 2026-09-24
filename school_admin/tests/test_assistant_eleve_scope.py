@@ -49,8 +49,13 @@ class AssistantEleveScopeTests(TestCase):
         denied = assert_self_only(ctx, self.autre.id)
         self.assertEqual(denied.get('statut'), 'acces_refuse')
 
-    def test_schema_vide(self):
-        self.assertEqual(get_eleve_tools_schema(self._ctx()), [])
+    def test_schema_nav_elv2(self):
+        names = {
+            item['function']['name']
+            for item in get_eleve_tools_schema(self._ctx())
+            if item.get('function')
+        }
+        self.assertIn('ouvrir_page', names)
 
     def test_bloque_tool_directeur(self):
         out = execute_tool(self._ctx(), 'get_effectifs', {})
@@ -60,7 +65,7 @@ class AssistantEleveScopeTests(TestCase):
         out = execute_eleve_tool(self._ctx(), 'get_mes_enfants', {})
         self.assertEqual(out.get('statut'), 'hors_perimetre')
 
-    def test_bloque_tool_inconnu(self):
+    def test_bloque_tool_scolaire_non_expose(self):
         out = execute_eleve_tool(self._ctx(), 'get_mes_notes', {})
         self.assertEqual(out.get('statut'), 'outil_inconnu')
 

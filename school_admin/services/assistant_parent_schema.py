@@ -98,20 +98,49 @@ def allowed_tool_names(ctx):
     return names
 
 
-def _schema_definitions():
-    lib_primaire = ' (établissement primaire : notes CM/CP, évaluations primaires)'
-    lib_superieur = ' (supérieur / LMD : moyennes semestre, bulletin étudiant)'
-    lib_secondaire = ' (collège/lycée : notes par matière et coefficients)'
+def _mixed_type_flags(flags):
+    kinds = sum(
+        1
+        for key in ('est_primaire', 'est_college', 'est_lycee', 'est_superieur')
+        if flags.get(key)
+    )
+    return kinds > 1
+
+
+def _notes_description(flags):
+    base = (
+        'Notes publiées et moyennes par matière pour un enfant lié. '
+        'Toujours appeler avant de citer des chiffres.'
+    )
+    if _mixed_type_flags(flags):
+        return (
+            f'{base} Adapter au type d’établissement de l’enfant '
+            '(primaire, collège/lycée ou supérieur/LMD étudiant — pas le pilotage direction).'
+        )
+    if flags.get('est_superieur'):
+        return f'{base} (supérieur / LMD étudiant : moyennes semestre).'
+    if flags.get('est_primaire'):
+        return f'{base} (primaire : CM/CP, évaluations primaires).'
+    if flags.get('est_college') or flags.get('est_lycee') or flags.get('est_college_lycee'):
+        return f'{base} (collège/lycée : notes par matière et coefficients).'
+    return base
+
+
+def _bulletin_description(flags):
+    base = 'État de publication du bulletin et moyenne générale (pas le PDF).'
+    if _mixed_type_flags(flags):
+        return f'{base} Bulletin élève/étudiant lié — pas publication direction.'
+    if flags.get('est_superieur'):
+        return f'{base} (bulletin étudiant supérieur / LMD).'
+    return base
+
+
+def _schema_definitions(flags=None):
+    flags = flags or {}
 
     return {
         'get_notes_enfant': {
-            'description': (
-                'Notes publiées et moyennes par matière pour un enfant lié. '
-                'Toujours appeler avant de citer des chiffres.'
-                + lib_primaire
-                + lib_secondaire
-                + lib_superieur
-            ),
+            'description': _notes_description(flags),
             'parameters': {
                 'type': 'object',
                 'properties': {
@@ -121,10 +150,7 @@ def _schema_definitions():
             },
         },
         'get_bulletin_enfant': {
-            'description': (
-                'État de publication du bulletin et moyenne générale (pas le PDF).'
-                + lib_superieur
-            ),
+            'description': _bulletin_description(flags),
             'parameters': {
                 'type': 'object',
                 'properties': {
@@ -228,8 +254,9 @@ def build_parent_tool_schemas(ctx=None):
     from school_admin.services.assistant_parent_actions import build_parent_action_schemas
     from school_admin.services.assistant_parent_tools import PAR2_GEMINI_TOOLS
 
+    flags = _flags_for_parent_ctx(ctx)
     base = {item['function']['name']: item for item in PAR2_GEMINI_TOOLS}
-    extras = _schema_definitions()
+    extras = _schema_definitions(flags)
     actions = {item['function']['name']: item for item in build_parent_action_schemas()}
     allowed = allowed_tool_names(ctx)
     out = []

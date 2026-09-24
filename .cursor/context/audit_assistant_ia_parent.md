@@ -1,8 +1,8 @@
 # Audit + feuille de route — Assistant IA Parent (conseil & suivi enfant)
 
 **Date** : 2026-09-23  
-**Statut** : **Par0–Par7 livrées** (2026-09-24). Par8 **non démarrée**.  
-**Branche** : `cursor/assistant-parent-par7-a40c`  
+**Statut** : **Par0–Par8 livrées** (2026-09-24). Feuille parent **terminée**.  
+**Branche** : `cursor/assistant-parent-par8-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Directeur (tools, schéma, confirmation) : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md)
@@ -453,7 +453,7 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | Templates parent / élève | 9 + 16 |
 | Partials assistant parent | **1** (`assistant_vocal_parent.html`) |
 | Tools assistant parent | **20** (18 lecture/nav + 2 écritures confirmées Par7) |
-| Tests assistant parent | **60+** (scope + tools + scolaire + finance + Wolof + WS + G7 + actions Par7) |
+| Tests assistant parent | **75+** (+ recette multi-types Par8) |
 | Personas WS acceptés | directeur, enseignant, enseignant_primaire, **`parent`** |
 
 ---
@@ -573,10 +573,31 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 4. Bon MDP → carte → **Oui** → enfant visible sur le dashboard parent.
 5. « Enregistre un paiement » / « Change mon mot de passe » → refus hors périmètre.
 
-### Prochaine étape
+### Par8 — Recette multi-types & doc (2026-09-24)
 
-**Par8** — recette multi-types (primaire + secondaire + supérieur) + checklist §14.
+- Tests : `test_assistant_parent_recette_p8.py` — parent **3 enfants** (primaire + lycée + supérieur), schéma/descriptions adaptés au type (`assistant_parent_schema.py`).
+- Scan auto : aucun tool directeur (effectifs, CG, examens direction, paiement…) dans le schéma parent ; noms ⊆ `PARENT_TOOL_NAMES_ALL`.
+- UI : scan templates §5 — `assistant_vocal_parent` via bottom nav ou include direct.
+- Checklist §15 : voir tableau ci-dessous.
+
+#### Checklist métier §15
+
+| # | Critère | Auto (Par8) | Manuel |
+|---|---------|-------------|--------|
+| 1 | Bulle Aria sur pages §5 | Scan templates (nav + includes) | Ctrl+F5 visuel chaque écran |
+| 2 | Montants scolarité via tools | `get_scolarite_*` structure `reste` / `dette_totale` | Phrase naturelle « combien je dois pour X » |
+| 3 | Refus hors lien | `acces_refuse` | Matricule tiers |
+| 4 | Wolof | `wolof_marker_score` smoke | STT/TTS wolof audible |
+| 5 | Nav devoirs | `ouvrir_page` → URL devoirs | Session enfant + clic bulle |
+| 6 | Pas tools directeur | Scan schéma P8 | — |
+| 7 | Écriture après confirm | `apply_marquer_*` vs prepare | Carte Oui/Annuler UI |
+
+#### Recette manuelle Par8 (complément)
+
+1. Parent **3 types d’établissement** → poser questions notes/bulletin/scolarité par enfant ; vérifier réponses outillées.
+2. Hub sans enfant sélectionné → `get_scolarite_famille` / `get_mes_enfants`.
+3. Parcours wolof complet (chip + voix) sur hub et espace enfant.
 
 ---
 
-*Stop après Par7 — pas de Par8 dans cette livraison.*
+*Feuille parent Par0–Par8 : livraison terminée.*

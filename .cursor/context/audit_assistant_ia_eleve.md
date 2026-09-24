@@ -16,7 +16,7 @@
 
 ## 1. Verdict en une phrase
 
-**L’UI élève est partiellement prête pour le parent, pas pour l’élève seul** : le widget Aria (`assistant_vocal_parent.html`) n’est inclus que si `est_parent` ; le WebSocket **refuse explicitement** `Eleve` ; il n’existe **aucun** persona `eleve`, schéma Gemini, ni prompt dédié — alors que les **vues et données** (`eleve:*`, `get_eleve_from_request`) couvrent déjà notes, devoirs, absences, etc. pour l’élève connecté. Il faut un **persona `eleve` distinct du `parent`**, un périmètre **strictement « moi-même »**, une **réutilisation** des lecteurs `assistant_parent_scolaire` / pages enfant, et une **UI élève** non conditionnée à `est_parent`.
+**Elv0 posé côté backend** : WebSocket **`Eleve` accepté**, persona **`eleve`**, scope self-only, prompt tutoiement, schéma tools **vide** (conseil sans chiffres). **UI élève seul** : widget toujours **absent** (`est_parent` seulement) → **Elv1**. Mode parent sur espace enfant : **persona parent** inchangé.
 
 ---
 
@@ -59,11 +59,11 @@ Les deux personas peuvent **partager** les fonctions de lecture (`read_notes`, `
 
 | Couche | Fichier | État pour **élève seul** |
 |--------|---------|---------------------------|
-| WebSocket | `assistant_consumer.py` | `Parent` → OK ; **`Eleve` → `return False`** (l.1101–1102) |
-| Contexte | `build_assistant_context` | Pas de branche `eleve=`, pas de `persona='eleve'` |
-| LLM | `gemini_assistant_service.py` | Pas de `SYSTEM_PROMPT_ELEVE` |
-| Schéma / tools | `assistant_parent_*` | Calibrés **parent** ; `execute_tool` parent only |
-| UI | `eleve/partials/bottom_nav_eleve.html` | `{% if est_parent %}` → **widget parent seulement** (l.209–211) ; pages bulletin/notifications/historique : idem |
+| WebSocket | `assistant_consumer.py` | **`Eleve` → persona `eleve`** ; `Parent` → `parent` (session enfant consulté séparé) |
+| Contexte | `build_assistant_context` | `eleve=` + `persona='eleve'` |
+| LLM | `gemini_assistant_service.py` | **`SYSTEM_PROMPT_ELEVE`** (tutoiement, Elv0 sans tools chiffres) |
+| Schéma / tools | `assistant_eleve_tools.py` | **`get_eleve_tools_schema()` → []** ; blocage directeur/prof/parent |
+| UI | `eleve/partials/bottom_nav_eleve.html` | **Elv1** : `assistant_vocal_eleve.html` ; aujourd’hui widget **parent only** |
 | Vues | `eleve_view.get_eleve_from_request` | `(Eleve user, est_parent=False)` **déjà supporté** |
 | STT/TTS | `assistant_parent_language.py` | Réutilisable (préférence langue) avec copy/prompt élève |
 | gtranslate | `eleve/partials/header.html` | UI statique ; **ne remplace pas** wolof vocal Aria |
@@ -226,13 +226,13 @@ Source : `school_admin/personal_url/eleve_url.py` + templates `school_admin/temp
 
 ---
 
-## 12. Risques & arbitrages à trancher avant Elv0
+## 12. Arbitrages validés (2026-09-24)
 
-1. **JS/CSS** : partial élève dédié vs generalisation du partial parent (recommandation : partial **`assistant_vocal_eleve.html`** + réutilisation JS avec `data-persona="eleve"`).
-2. **Notifications** : la page marque tout lu à l’ouverture — faut-il un tool `marquer_notification_lue` (Elv7) ou considérer la navigation suffisante ?
-3. **Ton** : tutoiement systématique vs vouvoiement (à fixer dans le prompt Elv0).
-4. **Supérieur** : même jeu de tools que parent enfant consulté ; vérifier libellés « étudiant » dans le prompt.
-5. **Coexistence** : en mode parent sur espace enfant, **ne pas** activer persona `eleve` (rester `parent`).
+1. Partial **`assistant_vocal_eleve.html`** + `data-persona="eleve"` → **Elv1** (pas Elv0).
+2. **Pas** de tool `marquer_notification_lue` (Elv7 sauté ou très léger plus tard).
+3. **Tutoiement** dans `SYSTEM_PROMPT_ELEVE`.
+4. Mode parent sur espace enfant : **persona parent** (ne pas activer `eleve`).
+5. Supérieur : libellés « étudiant » à affiner en Elv4/Elv8.
 
 ---
 
@@ -243,18 +243,25 @@ Source : `school_admin/personal_url/eleve_url.py` + templates `school_admin/temp
 | Routes `eleve:` (dont redirect/logout) | 15 |
 | Écrans élève rendus | 14 |
 | Templates élève | 14 + partials |
-| Widget Aria élève seul | **0** |
-| Tools assistant élève | **0** (≈14–15 lecture + 0–1 écriture proposés) |
-| Personas WS (cible) | directeur, enseignant*, parent, **`eleve`** |
+| Widget Aria élève seul | **0** (Elv1) |
+| Tools assistant élève (exposés) | **0** (Elv0) ; ~14 lecture prévus Elv2–Elv5 |
+| Tests assistant élève | **11** (scope + WS Elv0) |
+| Personas WS acceptés | directeur, enseignant*, parent, **`eleve`** |
 
 ---
 
-## 14. Prochaine étape (validation utilisateur)
+## 14. Livraison Elv0 (2026-09-24)
 
-1. Valider ce audit + découpage **Elv0–Elv8**.
-2. Trancher §12 (notifications, tutoiement, partial UI).
-3. Signal **« go Elv0 »** — seulement alors implémentation.
+- Fichiers : `assistant_eleve_scope.py`, `assistant_eleve_tools.py`.
+- Consumer : résolution `Eleve`, welcome `assistant.welcome` persona `eleve`.
+- `execute_tool` → `execute_eleve_tool` ; blocage `PARENT_TOOL_NAMES_ALL` + préfixes directeur/prof.
+- `assert_self_only` : refus tout `eleve_id` ≠ compte connecté.
+- Tests : `test_assistant_eleve_scope.py`, `test_assistant_eleve_ws.py`.
+
+### Prochaine étape
+
+**Elv1** — widget `assistant_vocal_eleve.html` sur les 14 écrans (élève seul).
 
 ---
 
-*Document audit / plan — pas de code applicatif dans cette livraison.*
+*Stop après Elv0 — pas de Elv1 dans cette livraison.*

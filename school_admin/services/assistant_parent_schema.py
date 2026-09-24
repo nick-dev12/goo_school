@@ -28,7 +28,13 @@ _SCOLAIRE_TOOLS = (
     'get_emploi_enfant',
 )
 
-PARENT_TOOL_NAMES_ALL = frozenset(_BASE_TOOLS + _SCOLAIRE_TOOLS)
+_FINANCE_TOOLS = (
+    'get_scolarite_enfant',
+    'get_scolarite_famille',
+    'ouvrir_recu',
+)
+
+PARENT_TOOL_NAMES_ALL = frozenset(_BASE_TOOLS + _SCOLAIRE_TOOLS + _FINANCE_TOOLS)
 
 # Réservé aux établissements « classiques » (primaire + collège/lycée) : pas de bulletin LMD dédié
 _BULLETIN_STANDARD_ONLY = frozenset()
@@ -70,7 +76,7 @@ def _flags_for_parent_ctx(ctx):
 
 def allowed_tool_names(ctx):
     flags = _flags_for_parent_ctx(ctx)
-    names = set(_BASE_TOOLS) | set(_SCOLAIRE_TOOLS)
+    names = set(_BASE_TOOLS) | set(_SCOLAIRE_TOOLS) | set(_FINANCE_TOOLS)
     if flags.get('est_superieur') and not (
         flags.get('est_primaire') or flags.get('est_college') or flags.get('est_lycee')
     ):
@@ -169,6 +175,38 @@ def _schema_definitions():
                     'eleve_id': {'type': 'integer'},
                     'nom': {'type': 'string'},
                 },
+            },
+        },
+        'get_scolarite_enfant': {
+            'description': (
+                'Reste dû, échéances et reçus récents pour un enfant lié '
+                '(resume_dette_eleve). Toujours appeler avant de citer un montant.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'eleve_id': {'type': 'integer'},
+                    'nom': {'type': 'string'},
+                },
+            },
+        },
+        'get_scolarite_famille': {
+            'description': (
+                'Hub parent : dette totale tous enfants liés + prochaine échéance la plus proche.'
+            ),
+            'parameters': {'type': 'object', 'properties': {}},
+        },
+        'ouvrir_recu': {
+            'description': (
+                'Ouvre le reçu officiel parent (lecture seule) si le paiement appartient à un enfant lié.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'paiement_id': {'type': 'integer'},
+                    'ouvrir': {'type': 'boolean'},
+                },
+                'required': ['paiement_id'],
             },
         },
     }

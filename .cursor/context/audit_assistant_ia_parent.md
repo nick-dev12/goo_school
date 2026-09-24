@@ -1,8 +1,8 @@
 # Audit + feuille de route — Assistant IA Parent (conseil & suivi enfant)
 
 **Date** : 2026-09-23  
-**Statut** : **Par0–Par4 livrées** (2026-09-24). Par5+ **non démarrées**.  
-**Branche** : `cursor/assistant-parent-par4-a40c`  
+**Statut** : **Par0–Par5 livrées** (2026-09-24). Par6+ **non démarrées**.  
+**Branche** : `cursor/assistant-parent-par5-a40c`  
 **Workspace** : `C:\wamp64\www\goo_school`  
 **Références** :
 - Directeur (tools, schéma, confirmation) : [audit_assistant_ia_directeur.md](audit_assistant_ia_directeur.md)
@@ -452,8 +452,8 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 | Écrans élève rendus | 13 |
 | Templates parent / élève | 9 + 16 |
 | Partials assistant parent | **1** (`assistant_vocal_parent.html`) |
-| Tools assistant parent | **15** (Par2 navigation + Par4 suivi scolaire) |
-| Tests assistant parent | **39+** (scope + tools + scolaire + Wolof + WS) |
+| Tools assistant parent | **18** (navigation + suivi + scolarité/reçus) |
+| Tests assistant parent | **44+** (scope + tools + scolaire + finance + Wolof + WS) |
 | Personas WS acceptés | directeur, enseignant, enseignant_primaire, **`parent`** |
 
 ---
@@ -523,10 +523,26 @@ Chaque vague = livrable testable + mise à jour de ce fichier. **Ne pas démarre
 4. Hub sans session enfant → « Convocations de la famille ? » → `get_convocations_famille`.
 5. `eleve_id` d’un autre élève → refus `acces_refuse`.
 
+### Par5 — Scolarité multi-enfant + reçus (2026-09-24)
+
+- Fichier : `assistant_parent_scolarite.py` (+ schéma / handlers).
+- **3 tools** : `get_scolarite_enfant`, `get_scolarite_famille` (dette totale + prochaine échéance hub), `ouvrir_recu`.
+- Source de vérité : `resume_dette_eleve`, `PaiementEleve`, URL `recu_paiement_parent` (contrôle `LienFamilial` comme la vue Django).
+- Montants **uniquement** via tools ; `enregistrer_paiement` reste hors périmètre.
+- Tests : `test_assistant_parent_finance.py`.
+
+#### Recette manuelle Par5
+
+1. « Combien je dois pour l’école de [prénom] ? » → `get_scolarite_enfant` avant toute somme.
+2. Hub parent → « Quelle est ma dette totale ? » / « Prochaine échéance ? » → `get_scolarite_famille`.
+3. « Ouvre le reçu du dernier paiement » → `ouvrir_recu` avec `paiement_id` d’un enfant lié.
+4. Reçu d’un autre élève → refus `acces_refuse`.
+5. Demande « enregistre un paiement » → refus (pas de paiement vocal).
+
 ### Prochaine étape
 
-**Par5** — scolarité (reste dû, reçus, montants) sur signal. **Par6+** G7 persona : non démarrés.
+**Par6** — parité G1–G7 persona parent (sur signal). **Par7** actions confirmées : non démarrés.
 
 ---
 
-*Stop après Par4 — pas de Par5 dans cette livraison.*
+*Stop après Par5 — pas de Par6 dans cette livraison.*

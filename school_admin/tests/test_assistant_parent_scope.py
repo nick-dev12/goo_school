@@ -126,8 +126,8 @@ class AssistantParentScopeTests(TestCase):
         )
         from school_admin.services.gemini_assistant_service import tools_schema_for
 
-        self.assertEqual(len(tools_schema_for(ctx)), 15)
-        self.assertEqual(len(get_parent_tools_schema()), 15)
+        self.assertEqual(len(tools_schema_for(ctx)), 18)
+        self.assertEqual(len(get_parent_tools_schema()), 18)
 
     def test_context_enfant_consulte(self):
         ctx = build_assistant_context(

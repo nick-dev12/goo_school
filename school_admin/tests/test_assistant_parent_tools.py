@@ -55,9 +55,9 @@ class AssistantParentToolsPar2Tests(TestCase):
         schema = get_parent_tools_schema()
         names = {item['function']['name'] for item in schema}
         self.assertEqual(names, PARENT_TOOL_NAMES)
-        self.assertEqual(len(names), 15)
+        self.assertEqual(len(names), 18)
         ctx = self._ctx({'eleve_consulte_id': self.eleve.id})
-        self.assertEqual(len(tools_schema_for(ctx)), 15)
+        self.assertEqual(len(tools_schema_for(ctx)), 18)
 
     def test_catalogue_pages_parent_enfant(self):
         pages = list_pages()

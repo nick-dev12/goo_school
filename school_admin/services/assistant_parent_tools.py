@@ -436,6 +436,42 @@ TOOL_HANDLERS = {
 }
 
 
+def tool_get_scolarite_enfant(ctx, args):
+    eleve, err = _resolve_eleve_cible(ctx, args)
+    if err:
+        return err
+    from school_admin.services.assistant_parent_scolarite import read_scolarite_enfant
+
+    return read_scolarite_enfant(eleve, ctx)
+
+
+def tool_get_scolarite_famille(ctx, _args):
+    parent = getattr(ctx, 'parent', None)
+    if not parent:
+        return {'erreur': 'Compte parent requis.'}
+    from school_admin.services.assistant_parent_scolarite import read_scolarite_famille
+
+    return read_scolarite_famille(parent, ctx)
+
+
+def tool_ouvrir_recu(ctx, args):
+    parent = getattr(ctx, 'parent', None)
+    if not parent:
+        return {'erreur': 'Compte parent requis.'}
+    from school_admin.services.assistant_parent_scolarite import ouvrir_recu_parent
+
+    pid = args.get('paiement_id') or args.get('id')
+    ouvrir = args.get('ouvrir', True)
+    return ouvrir_recu_parent(parent, pid, ouvrir=ouvrir)
+
+
+TOOL_HANDLERS.update({
+    'get_scolarite_enfant': tool_get_scolarite_enfant,
+    'get_scolarite_famille': tool_get_scolarite_famille,
+    'ouvrir_recu': tool_ouvrir_recu,
+})
+
+
 PAR2_GEMINI_TOOLS = [
         {
             'type': 'function',
@@ -566,6 +602,10 @@ def spoken_from_parent_tool(name, result):
         return result.get('message') or 'Absences récupérées.'
     if name == 'get_convocations_famille':
         return result.get('message') or 'Convocations familiale.'
+    if name in ('get_scolarite_enfant', 'get_scolarite_famille'):
+        return result.get('message') or 'Scolarité récupérée.'
+    if name == 'ouvrir_recu' and result.get('url'):
+        return result.get('message') or 'Reçu ouvert.'
     return ''
 
 
@@ -615,6 +655,21 @@ def suggestions_after_parent_read(tool_results):
         items = [
             {'label': 'Absences', 'value': 'Absences récentes ?'},
             {'label': 'Convocations', 'value': 'Convocations ?'},
+        ]
+    elif 'get_scolarite_enfant' in names:
+        items = [
+            {'label': 'Reçu', 'value': 'Ouvre le dernier reçu de paiement.'},
+            {'label': 'Famille', 'value': 'Dette totale pour tous mes enfants ?'},
+            {'label': 'Page scolarité', 'value': 'Ouvre la page scolarité parent.'},
+        ]
+    elif 'get_scolarite_famille' in names:
+        items = [
+            {'label': 'Détail enfant', 'value': 'Combien je dois pour mon enfant ?'},
+            {'label': 'Ouvrir scolarité', 'value': 'Ouvre la page scolarité.'},
+        ]
+    elif 'ouvrir_recu' in names:
+        items = [
+            {'label': 'Scolarité', 'value': 'Quel est le reste à payer ?'},
         ]
     return normalize_suggestions(items, limit=3)
 

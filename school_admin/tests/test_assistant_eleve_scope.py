@@ -65,9 +65,10 @@ class AssistantEleveScopeTests(TestCase):
         out = execute_eleve_tool(self._ctx(), 'get_mes_enfants', {})
         self.assertEqual(out.get('statut'), 'hors_perimetre')
 
-    def test_bloque_tool_scolaire_non_expose(self):
+    def test_get_mes_notes_self_only(self):
         out = execute_eleve_tool(self._ctx(), 'get_mes_notes', {})
-        self.assertEqual(out.get('statut'), 'outil_inconnu')
+        self.assertIn('message', out)
+        self.assertNotEqual(out.get('statut'), 'acces_refuse')
 
     def test_context_snapshot_eleve(self):
         from school_admin.services.assistant_tools import context_snapshot

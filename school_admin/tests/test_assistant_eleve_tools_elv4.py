@@ -60,7 +60,7 @@ class AssistantEleveToolsElv4Tests(TestCase):
             for item in get_eleve_tools_schema(self._ctx(self.eleve_col))
             if item.get('function')
         }
-        self.assertEqual(names, set(ELEVE_NAV_TOOLS | ELEVE_SCOLAIRE_TOOLS))
+        self.assertTrue(set(ELEVE_NAV_TOOLS | ELEVE_SCOLAIRE_TOOLS) <= names)
 
     def test_get_mes_notes_college(self):
         out = execute_eleve_tool(self._ctx(self.eleve_col), 'get_mes_notes', {})

@@ -164,6 +164,39 @@ class ProfHubPartialIntegrationTests(TestCase):
         self.assertIn('id="prof-hub-panel"', body)
         self.assertIn('prof-primaire-periodes-bar', body)
 
+    def test_classes_hub_partial_swap(self):
+        self._assert_hub_swap('enseignant_primaire:gestion_classes')
+
+    def test_justifications_hub_partial_swap(self):
+        resp = self.client.get(
+            reverse('enseignant_primaire:justifications_notes'),
+            {
+                'hub_partial': 'hub',
+                'periode': str(self.periode.id),
+                'classe': str(self.classe.id),
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('id="prof-hub-chrome"', body)
+        self.assertIn('id="prof-hub-panel"', body)
+
+    def test_eleves_difficulte_hub_partial_swap(self):
+        resp = self.client.get(
+            reverse('enseignant_primaire:eleves_en_difficulte'),
+            {
+                'hub_partial': 'hub',
+                'periode': str(self.periode.id),
+                'classe': str(self.classe.id),
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('id="prof-hub-chrome"', body)
+        self.assertIn('id="prof-hub-panel"', body)
+
 
 def _make_etablissement_college():
     suffix = date.today().strftime('%Y%m%d%H%M%S%f')

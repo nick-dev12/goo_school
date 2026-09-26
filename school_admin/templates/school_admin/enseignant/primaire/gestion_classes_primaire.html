@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_classes.css' %}">
     {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
 </head>
-<body data-prof-hub-key="professeur:primaire-classes" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}">
+<body data-prof-hub-nav-live="1" data-prof-hub-key="professeur:primaire-classes" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}">
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
     <!-- Main Content -->
@@ -73,124 +73,11 @@
                 </div>
             </div>
 
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-
-            <!-- Onglets par catégorie -->
-            <div class="tabs-container">
-                <div class="tabs-nav">
-                    {% for niveau, data in classes_grouped.items %}
-                        <button class="tab-btn {% if forloop.first %}active{% endif %}" 
-                                data-tab="tab-{{ forloop.counter }}"
-                                onclick="switchTab('tab-{{ forloop.counter }}')">
-                            <div class="tab-content">
-                                <span class="tab-title">{{ niveau }}</span>
-                                <span class="tab-badge">{{ data.nombre_classes }}</span>
-                            </div>
-                            <div class="tab-info">
-                                <span class="tab-students">{{ data.total_eleves }} élèves</span>
-                            </div>
-                        </button>
-                    {% endfor %}
-                </div>
-
-                <!-- Contenu des onglets -->
-                {% for niveau, data in classes_grouped.items %}
-                    <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
-                        <!-- Info catégorie -->
-                        <div class="category-info">
-                            <div class="category-details">
-                                <h3><i class="fas fa-layer-group"></i> {{ niveau }}</h3>
-                                <p>
-                                    {{ data.nombre_classes }} classe{{ data.nombre_classes|pluralize }} - 
-                                    {{ data.total_eleves }} élève{{ data.total_eleves|pluralize }} / 
-                                    {{ data.total_capacite }} places ({{ data.taux_moyen }}% occupation)
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Grille de cartes des classes -->
-                        <div class="classes-grid">
-                            {% for classe_data in data.classes %}
-                                <div class="classe-card" data-classe-card-id="{{ classe_data.classe.id }}" data-classe-panel="{{ classe_data.classe.id }}">
-                                    <!-- Header -->
-                                    <div class="classe-header">
-                                        <div class="classe-icon" style="background: #667eea;">
-                                            <i class="fas fa-users"></i>
-                                        </div>
-                                        <div class="classe-info">
-                                            <h3 class="classe-nom">{{ classe_data.classe.nom }}</h3>
-                                            <div class="classe-badges">
-                                                <span class="badge principal">
-                                                    <i class="fas fa-star"></i> Polyvalent
-                                                </span>
-                                                <span class="badge active">
-                                                    Active
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Statistiques de la classe -->
-                                    <div class="classe-stats">
-                                        <div class="stat-item">
-                                            <div class="stat-icon-small">
-                                                <i class="fas fa-user-friends"></i>
-                                            </div>
-                                            <div class="stat-content">
-                                                <span class="stat-label">Effectif</span>
-                                                <span class="stat-value">{{ classe_data.nombre_eleves }}/{{ classe_data.capacite_max }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Barre de progression -->
-                                    <div class="progress-container">
-                                        <div class="progress-bar">
-                                            <div class="progress-fill {% if classe_data.taux_occupation >= 90 %}danger{% elif classe_data.taux_occupation >= 75 %}warning{% else %}success{% endif %}" 
-                                                 style="width: {{ classe_data.taux_occupation }}%;">
-                                            </div>
-                                        </div>
-                                        <span class="progress-text">
-                                            {{ classe_data.nombre_eleves }} / {{ classe_data.capacite_max }} élèves
-                                        </span>
-                                    </div>
-
-                                    <!-- Matières enseignées (spécifique primaire) -->
-                                    <div class="matieres-primaire">
-                                        <div class="matieres-header">
-                                            <i class="fas fa-book-open"></i>
-                                            <span>{{ classe_data.matieres|length }} matières enseignées</span>
-                                        </div>
-                                        <div class="matieres-badges">
-                                            {% for matiere in classe_data.matieres|slice:":5" %}
-                                                <span class="matiere-badge" title="{{ matiere.nom }}">{{ matiere.code }}</span>
-                                            {% endfor %}
-                                            {% if classe_data.matieres|length > 5 %}
-                                                <span class="matiere-badge more">+{{ classe_data.matieres|length|add:"-5" }}</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-
-                                    <!-- Actions -->
-                                    <div class="classe-actions">
-                                        <a href="{% url 'enseignant_primaire:detail_classe' classe_data.classe.id %}" class="action-btn primary" title="Voir les détails">
-                                            <i class="fas fa-eye"></i>
-                                            <span>Détails</span>
-                                        </a>
-                                        <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="action-btn secondary" title="Liste des élèves">
-                                            <i class="fas fa-users"></i>
-                                            <span>Élèves</span>
-                                        </a>
-                                        <a href="{% url 'enseignant_primaire:noter_eleves' classe_data.classe.id %}" class="action-btn success" title="Gérer les notes">
-                                            <i class="fas fa-clipboard-check"></i>
-                                            <span>Notes</span>
-                                        </a>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endfor %}
+            <div id="prof-hub-chrome">
+                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+            </div>
+            <div id="prof-hub-panel">
+                {% include 'school_admin/enseignant/primaire/partials/gestion_classes_primaire_hub_panel.html' %}
             </div>
         {% else %}
             <!-- État vide -->

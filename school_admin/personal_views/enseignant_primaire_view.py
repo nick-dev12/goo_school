@@ -478,7 +478,7 @@ def gestion_classes_primaire(request):
     affectations_principales = affectations.filter(statut='principal').count()
     affectations_polyvalentes = affectations.filter(statut='polyvalent').count()
     
-    classes_flat, initial_classe_id, _, _ = _primaire_classe_hub_bundle(
+    classes_flat, initial_classe_id, classe_selectionnee, _ = _primaire_classe_hub_bundle(
         request, affectations, pick_first=True
     )
 
@@ -487,6 +487,7 @@ def gestion_classes_primaire(request):
         'classes_grouped': classes_grouped,
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
+        'classe_selectionnee': classe_selectionnee,
         'total_classes': total_classes,
         'total_eleves': total_eleves,
         'total_matieres': total_matieres,
@@ -495,10 +496,21 @@ def gestion_classes_primaire(request):
         'annee_scolaire_active': annee_scolaire_active,
     }
 
-    if initial_classe_id and not request.GET.get('classe'):
-        from django.http import HttpResponseRedirect
-        return HttpResponseRedirect(request.path + '?classe=' + initial_classe_id)
-    
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if initial_classe_id and not request.GET.get('classe'):
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(request.path + '?classe=' + initial_classe_id)
+
+    partial_resp = render_prof_hub_partial(
+        request,
+        context,
+        'school_admin/enseignant/primaire/partials/gestion_classes_primaire_hub_swap.html',
+    )
+    if partial_resp:
+        return partial_resp
+
     return render(request, 'school_admin/enseignant/primaire/gestion_classes_primaire.html', context)
 
 
@@ -1350,6 +1362,7 @@ def justifications_notes_primaire(request):
             {
                 'professeur': professeur,
                 'periodes': periodes,
+                'periodes_scolaires': periodes,
                 'periode_selectionnee': periode_selectionnee,
                 'classes_grouped': OrderedDict(),
                 'stats': {'total_classes': 0, 'total_eleves': 0},
@@ -1662,6 +1675,7 @@ def justifications_notes_primaire(request):
     context = {
         'professeur': professeur,
         'periodes': periodes,
+        'periodes_scolaires': periodes,
         'periode_selectionnee': periode_selectionnee,
         'classes_grouped': classes_grouped_ordered,
         'classes_flat': classes_flat,
@@ -1677,14 +1691,25 @@ def justifications_notes_primaire(request):
         'annee_scolaire_active': annee_scolaire_active,
     }
 
-    if not request.GET.get('periode') and periode_selectionnee:
-        from django.http import HttpResponseRedirect
-        q = f"periode={periode_selectionnee.id}"
-        if initial_classe_id:
-            q += f"&classe={initial_classe_id}"
-        if initial_matiere_id:
-            q += f"&matiere={initial_matiere_id}"
-        return HttpResponseRedirect(request.path + '?' + q)
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if not request.GET.get('periode') and periode_selectionnee:
+            from django.http import HttpResponseRedirect
+            q = f"periode={periode_selectionnee.id}"
+            if initial_classe_id:
+                q += f"&classe={initial_classe_id}"
+            if initial_matiere_id:
+                q += f"&matiere={initial_matiere_id}"
+            return HttpResponseRedirect(request.path + '?' + q)
+
+    partial_resp = render_prof_hub_partial(
+        request,
+        context,
+        'school_admin/enseignant/primaire/partials/justifications_notes_primaire_hub_swap.html',
+    )
+    if partial_resp:
+        return partial_resp
 
     return render(request, 'school_admin/enseignant/primaire/justifications_notes_primaire.html', context)
 
@@ -5462,17 +5487,30 @@ def eleves_en_difficulte_primaire(request):
         'classe_selectionnee': classe_selectionnee,
         'stats': stats,
         'periode_selectionnee': periode_selectionnee,
+        'periode_active': periode_selectionnee,
         'periodes': periodes,
+        'periodes_scolaires': periodes,
         'annee_scolaire_active': annee_scolaire_active,
     }
 
-    if periode_selectionnee and not request.GET.get('periode'):
-        from django.http import HttpResponseRedirect
-        q = 'periode=' + str(periode_selectionnee.id)
-        if initial_classe_id:
-            q += '&classe=' + initial_classe_id
-        return HttpResponseRedirect(request.path + '?' + q)
-    
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if periode_selectionnee and not request.GET.get('periode'):
+            from django.http import HttpResponseRedirect
+            q = 'periode=' + str(periode_selectionnee.id)
+            if initial_classe_id:
+                q += '&classe=' + initial_classe_id
+            return HttpResponseRedirect(request.path + '?' + q)
+
+    partial_resp = render_prof_hub_partial(
+        request,
+        context,
+        'school_admin/enseignant/primaire/partials/eleves_en_difficulte_primaire_hub_swap.html',
+    )
+    if partial_resp:
+        return partial_resp
+
     return render(request, 'school_admin/enseignant/primaire/eleves_en_difficulte_primaire.html', context)
 
 

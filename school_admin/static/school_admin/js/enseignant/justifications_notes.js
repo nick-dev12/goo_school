@@ -46,16 +46,20 @@ const cancelModalBtn = document.getElementById("cancelJustification");
 const noteSelect = document.getElementById("noteSelect");
 const nouvelleNoteInput = document.getElementById("nouvelleNoteInput");
 const baremeHint = document.getElementById("baremeHint");
+const noteTypeInput = document.getElementById("noteTypeInput");
 
-const notesDataElement = document.getElementById("notes-data");
 let notesData = {};
 
-if (notesDataElement && notesDataElement.textContent.trim()) {
-  try {
-    notesData = JSON.parse(notesDataElement.textContent);
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn("Impossible d'interpréter les données des notes.", error);
+function loadNotesData() {
+  const notesDataElement = document.getElementById("notes-data");
+  notesData = {};
+  if (notesDataElement && notesDataElement.textContent.trim()) {
+    try {
+      notesData = JSON.parse(notesDataElement.textContent);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn("Impossible d'interpréter les données des notes.", error);
+    }
   }
 }
 
@@ -92,68 +96,84 @@ const updateBaremeHint = () => {
   }
 };
 
-const justificationButtons = document.querySelectorAll("[data-justify-btn]");
-
-justificationButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const eleveId = button.dataset.eleveId;
-    const classeId = button.dataset.classeId || "";
-    const matiereId = button.dataset.matiereId || "";
-    const eleveNotes = (notesData[eleveId] || []).filter(
-      (item) =>
-        item.classe_id === classeId &&
-        (matiereId === "" || item.matiere_id === matiereId)
-    );
-
-    noteSelect.innerHTML = "";
-
-    if (eleveNotes.length === 0) {
-      const option = document.createElement("option");
-      option.textContent = "Aucune note disponible";
-      option.value = "";
-      noteSelect.appendChild(option);
-      noteSelect.setAttribute("disabled", "disabled");
-      nouvelleNoteInput.setAttribute("disabled", "disabled");
-      baremeHint.textContent = "Aucune note disponible pour justification.";
-      openModal();
+function bindJustificationButtons() {
+  document.querySelectorAll("[data-justify-btn]").forEach((button) => {
+    if (button.dataset.justifyBound === "1") {
       return;
     }
+    button.dataset.justifyBound = "1";
+    button.addEventListener("click", () => {
+      const eleveId = button.dataset.eleveId;
+      const classeId = button.dataset.classeId || "";
+      const matiereId = button.dataset.matiereId || "";
+      const eleveNotes = (notesData[eleveId] || []).filter(
+        (item) =>
+          item.classe_id === classeId &&
+          (matiereId === "" || item.matiere_id === matiereId)
+      );
 
-    noteSelect.removeAttribute("disabled");
-    nouvelleNoteInput.removeAttribute("disabled");
+      noteSelect.innerHTML = "";
 
-    eleveNotes.forEach((item) => {
-      const option = document.createElement("option");
-      option.value = item.id;
-      option.textContent = item.label;
-      option.dataset.bareme = item.bareme;
-      option.dataset.noteType = item.note_type || "evaluation";
-      noteSelect.appendChild(option);
+      if (eleveNotes.length === 0) {
+        const option = document.createElement("option");
+        option.textContent = "Aucune note disponible";
+        option.value = "";
+        noteSelect.appendChild(option);
+        noteSelect.setAttribute("disabled", "disabled");
+        nouvelleNoteInput.setAttribute("disabled", "disabled");
+        baremeHint.textContent = "Aucune note disponible pour justification.";
+        openModal();
+        return;
+      }
+
+      noteSelect.removeAttribute("disabled");
+      nouvelleNoteInput.removeAttribute("disabled");
+
+      eleveNotes.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item.id;
+        option.textContent = item.label;
+        option.dataset.bareme = item.bareme;
+        option.dataset.noteType = item.note_type || "evaluation";
+        noteSelect.appendChild(option);
+      });
+
+      updateBaremeHint();
+      openModal();
     });
-
-    updateBaremeHint();
-    openModal();
   });
-});
+}
 
-const noteTypeInput = document.getElementById("noteTypeInput");
-noteSelect.addEventListener("change", () => {
-  updateBaremeHint();
-  const selectedOption = noteSelect.options[noteSelect.selectedIndex];
-  if (selectedOption && selectedOption.dataset.noteType) {
-    noteTypeInput.value = selectedOption.dataset.noteType;
-  } else {
-    noteTypeInput.value = "evaluation";
-  }
-});
+function initJustificationsPage() {
+  loadNotesData();
+  bindJustificationButtons();
+}
 
-noteSelect.addEventListener("change", updateBaremeHint);
-closeModalBtn.addEventListener("click", closeModal);
-cancelModalBtn.addEventListener("click", closeModal);
+if (noteSelect) {
+  noteSelect.addEventListener("change", () => {
+    updateBaremeHint();
+    const selectedOption = noteSelect.options[noteSelect.selectedIndex];
+    if (selectedOption && selectedOption.dataset.noteType) {
+      noteTypeInput.value = selectedOption.dataset.noteType;
+    } else {
+      noteTypeInput.value = "evaluation";
+    }
+  });
+}
 
-modalOverlay.addEventListener("click", (event) => {
-  if (event.target === modalOverlay) {
-    closeModal();
-  }
-});
+if (closeModalBtn) {
+  closeModalBtn.addEventListener("click", closeModal);
+}
+if (cancelModalBtn) {
+  cancelModalBtn.addEventListener("click", closeModal);
+}
+if (modalOverlay) {
+  modalOverlay.addEventListener("click", (event) => {
+    if (event.target === modalOverlay) {
+      closeModal();
+    }
+  });
+}
 
+initJustificationsPage();
+document.addEventListener("prof-hub-panel-loaded", initJustificationsPage);

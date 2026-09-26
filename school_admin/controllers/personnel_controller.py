@@ -54,7 +54,7 @@ class PersonnelController:
         ]
         
         fonctions_administration = [
-            'secretaire_principal', 'secretaire', 'gestionnaire', 'comptable', 'intendant', 'secretaire_vie_scolaire'
+            'secretaire_principal', 'secretaire', 'gestionnaire', 'comptable', 'caissier', 'intendant', 'secretaire_vie_scolaire'
         ]
         
         # Catégoriser chaque personnel
@@ -88,7 +88,7 @@ class PersonnelController:
         fonctions_surveillants = ['surveillant_general', 'surveillant']
         fonctions_administration = [
             'secretaire_principal', 'secretaire', 'gestionnaire', 'comptable',
-            'intendant', 'secretaire_vie_scolaire',
+            'caissier', 'intendant', 'secretaire_vie_scolaire',
         ]
         if fonction in fonctions_direction:
             return 'direction'
@@ -112,6 +112,7 @@ class PersonnelController:
                 ('secretaire', 'Secrétaire'),
                 ('gestionnaire', 'Gestionnaire'),
                 ('comptable', 'Comptable'),
+                ('caissier', 'Caissier'),
                 ('intendant', 'Intendant'),
                 ('surveillant_general', 'Surveillant Général'),
                 ('surveillant', 'Surveillant'),
@@ -130,6 +131,7 @@ class PersonnelController:
                 ('secretaire', 'Secrétaire'),
                 ('gestionnaire', 'Gestionnaire'),
                 ('comptable', 'Comptable'),
+                ('caissier', 'Caissier'),
                 ('intendant', 'Intendant'),
                 ('autre', 'Autre'),
             ],
@@ -146,6 +148,7 @@ class PersonnelController:
                 ('secretaire', 'Secrétaire'),
                 ('gestionnaire', 'Gestionnaire'),
                 ('comptable', 'Comptable'),
+                ('caissier', 'Caissier'),
                 ('intendant', 'Intendant'),
                 ('autre', 'Autre'),
             ],
@@ -158,6 +161,7 @@ class PersonnelController:
                 ('secretaire', 'Secrétaire'),
                 ('gestionnaire', 'Gestionnaire'),
                 ('comptable', 'Comptable'),
+                ('caissier', 'Caissier'),
                 ('intendant', 'Intendant'),
                 # Pédagogie - Censeurs
                 ('censeur_etudes', 'Censeur des Études (Collèges & Lycées)'),
@@ -187,6 +191,7 @@ class PersonnelController:
                 ('secretaire', 'Secrétaire'),
                 ('gestionnaire', 'Gestionnaire'),
                 ('comptable', 'Comptable'),
+                ('caissier', 'Caissier'),
                 ('intendant', 'Intendant'),
                 # Pédagogie - Censeurs
                 ('censeur', 'Censeur'),
@@ -212,6 +217,7 @@ class PersonnelController:
                 ('secretaire', 'Secrétaire'),
                 ('gestionnaire', 'Gestionnaire'),
                 ('comptable', 'Comptable'),
+                ('caissier', 'Caissier'),
                 ('intendant', 'Intendant'),
                 ('autre', 'Autre'),
             ],
@@ -248,6 +254,9 @@ class PersonnelController:
             # Administration
             'secretaire_principal': 'SEC-P',
             'gestionnaire': 'GES',
+            'comptable': 'COMPTA',
+            'caissier': 'CAISSE',
+            'intendant': 'INT',
             # Pédagogie
             'censeur': 'CEN',
             'censeur_etudes': 'CEN-ET',
@@ -417,6 +426,12 @@ class PersonnelController:
             'type_contrat_choices': prof_ctx['type_contrat_choices'],
         }
         
+        from ..utils.directeur_ui_tabs import attach_personnel_tab_context
+
+        attach_personnel_tab_context(
+            request, context, list(categories_personnel.keys())
+        )
+
         # Nettoyer la session après utilisation
         if 'form_data_personnel' in request.session:
             del request.session['form_data_personnel']

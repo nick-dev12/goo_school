@@ -11,6 +11,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.1.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_personnel.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/formulaires_personnel.css' %}?v=1.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/personnel_modals.css' %}?v=1.0.0" />
@@ -55,47 +57,60 @@
                 <input type="search" id="persSearchInput" class="pers-search-input" placeholder="{% trans 'Rechercher par nom, email, fonction…' %}" autocomplete="off" />
             </label>
             <div class="pers-filter-group" role="group" aria-label="{% trans 'Filtrer par statut' %}">
-                <button type="button" class="pers-filter-btn active" data-pers-filter="all">{% trans "Tous" %}</button>
-                <button type="button" class="pers-filter-btn" data-pers-filter="active">{% trans "Actifs" %}</button>
-                <button type="button" class="pers-filter-btn" data-pers-filter="inactive">{% trans "Inactifs" %}</button>
+                <button type="button" class="pers-filter-btn {% if initial_statut_filtre == 'all' %}active{% endif %}" data-pers-filter="all">{% trans "Tous" %}</button>
+                <button type="button" class="pers-filter-btn {% if initial_statut_filtre == 'active' %}active{% endif %}" data-pers-filter="active">{% trans "Actifs" %}</button>
+                <button type="button" class="pers-filter-btn {% if initial_statut_filtre == 'inactive' %}active{% endif %}" data-pers-filter="inactive">{% trans "Inactifs" %}</button>
             </div>
         </div>
 
         <p class="pers-results-line" id="persResultsLine" aria-live="polite"></p>
 
-        <div class="tabs-container pers-tabs-wrap">
-            <div class="tabs-nav">
-                <button type="button" class="tab-btn active" data-tab="professeurs" aria-selected="true">
-                    <i class="fas fa-chalkboard-teacher"></i>
-                    <span>{% trans "Professeurs" %}</span>
-                    <span class="tab-count">{{ stats.total_professeurs }}</span>
-                </button>
-                {% for key, categorie in categories_personnel.items %}
-                    {% if categorie.personnel|length > 0 %}
-                        <button type="button" class="tab-btn" data-tab="{{ key }}" aria-selected="false">
-                            <i class="fas {{ categorie.icon }}"></i>
-                            <span>{{ categorie.label }}</span>
-                            <span class="tab-count">{{ categorie.personnel|length }}</span>
-                        </button>
-                    {% endif %}
-                {% endfor %}
+        <div class="pers-category-nav">
+            <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'catégorie' %}" data-overflow-items-label="{% trans 'catégories' %}">
+                <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Catégories de personnel' %}">
+                    <button type="button" role="tab" class="tab-btn matiere-tab-btn pers-cat-tab {% if initial_personnel_onglet == 'professeurs' %}active{% endif %}"
+                            data-tab="professeurs" data-onglet="professeurs"
+                            aria-selected="{% if initial_personnel_onglet == 'professeurs' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        <span>{% trans "Professeurs" %}</span>
+                        <span class="tab-count">{{ stats.total_professeurs }}</span>
+                    </button>
+                    {% for key, categorie in categories_personnel.items %}
+                        {% if categorie.personnel|length > 0 %}
+                            <button type="button" role="tab" class="tab-btn matiere-tab-btn pers-cat-tab {% if initial_personnel_onglet == key|lower %}active{% endif %}"
+                                    data-tab="{{ key }}" data-onglet="{{ key|lower }}"
+                                    aria-selected="{% if initial_personnel_onglet == key|lower %}true{% else %}false{% endif %}">
+                                <i class="fas {{ categorie.icon }}"></i>
+                                <span>{{ categorie.label }}</span>
+                                <span class="tab-count">{{ categorie.personnel|length }}</span>
+                            </button>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="matiere-tabs-more-wrap" hidden>
+                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres catégories' %}">
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        <span class="matiere-tabs-more-label">{% trans "Autres catégories" %}</span>
+                    </button>
+                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                </div>
             </div>
         </div>
 
         <div class="tabs-content pers-tabs-content">
-            <div class="tab-pane active" id="professeurs-pane" data-tab-pane="professeurs">
+            <div class="tab-pane {% if initial_personnel_onglet == 'professeurs' %}active{% endif %}" id="professeurs-pane" data-tab-pane="professeurs"{% if initial_personnel_onglet != 'professeurs' %} hidden{% endif %}>
                 {% if professeurs %}
                 <div class="pers-matiere-nav">
                     <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'matière' %}" data-overflow-items-label="{% trans 'matières' %}">
                         <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Filtrer par matière' %}">
-                            <button type="button" role="tab" class="matiere-tab-btn active" data-matiere="all" data-order="0" aria-selected="true">
+                            <button type="button" role="tab" class="matiere-tab-btn {% if initial_matiere == 'all' %}active{% endif %}" data-matiere="all" data-order="0" aria-selected="{% if initial_matiere == 'all' %}true{% else %}false{% endif %}">
                                 <i class="fas fa-users"></i>
                                 <span>{% trans "Toutes" %}</span>
                                 <span class="tab-count">{{ stats.total_professeurs }}</span>
                             </button>
                             {% for item in matieres_avec_compteurs %}
                                 {% if item.count > 0 %}
-                                    <button type="button" role="tab" class="matiere-tab-btn" data-matiere="{{ item.matiere.id }}" data-order="{{ forloop.counter }}" aria-selected="false">
+                                    <button type="button" role="tab" class="matiere-tab-btn {% if initial_matiere == item.matiere.id|stringformat:'s' %}active{% endif %}" data-matiere="{{ item.matiere.id }}" data-order="{{ forloop.counter }}" aria-selected="{% if initial_matiere == item.matiere.id|stringformat:'s' %}true{% else %}false{% endif %}">
                                         <i class="fas fa-book"></i>
                                         <span>{{ item.matiere.nom }}</span>
                                         <span class="tab-count">{{ item.count }}</span>
@@ -133,7 +148,7 @@
 
             {% for key, categorie in categories_personnel.items %}
                 {% if categorie.personnel|length > 0 %}
-                <div class="tab-pane" id="{{ key }}-pane" data-tab-pane="{{ key }}">
+                <div class="tab-pane {% if initial_personnel_onglet == key|lower %}active{% endif %}" id="{{ key }}-pane" data-tab-pane="{{ key }}"{% if initial_personnel_onglet != key|lower %} hidden{% endif %}>
                     <div class="pers-pane-intro">
                         <h2 class="pers-pane-title"><i class="fas {{ categorie.icon }}"></i> {{ categorie.label }}</h2>
                         <p class="pers-pane-desc">{% blocktrans with label=categorie.label %}Membres du personnel classés dans la catégorie « {{ label }} ».{% endblocktrans %}</p>
@@ -274,7 +289,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/intlTelInput.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
-    <script src="{% static 'school_admin/js/directeur/liste_personnel.js' %}?v=2.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/directeur_tab_storage.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_personnel.js' %}?v=2.1.0"></script>
     <script src="{% static 'school_admin/js/directeur/liste_personnel_modals.js' %}?v=1.0.0"></script>
     <script src="{% static 'school_admin/js/directeur/ajouter_professeur.js' %}?v=1.0.5"></script>
     <script src="{% static 'school_admin/js/directeur/employe_documents.js' %}?v=1.0.0"></script>

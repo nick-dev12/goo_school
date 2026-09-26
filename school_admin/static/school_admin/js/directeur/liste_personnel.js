@@ -1,166 +1,223 @@
 /**
- * Gestion du personnel — UI v2
- * Onglets catégories, filtre matière (professeurs), recherche et statut
+ * Gestion du personnel — onglets, filtres, persistance (UI v2, Vague 4)
  */
 
 (function () {
-    'use strict';
+  'use strict';
 
-    var state = {
-        tab: 'professeurs',
-        matiere: 'all',
-        status: 'all',
-        search: ''
-    };
+  var STORAGE_KEY = 'directeur:personnel';
+  var CAT_TAB_SELECTOR = '.pers-cat-tab[data-tab]';
 
-    document.addEventListener('DOMContentLoaded', function () {
-        initCategoryTabs();
-        initMatiereTabs();
-        initToolbar();
-        applyFilters();
+  var state = {
+    tab: 'professeurs',
+    matiere: 'all',
+    status: 'all',
+    search: '',
+  };
 
-        if (typeof window.layoutTabsOverflowNav === 'function') {
-            window.layoutTabsOverflowNav();
-        }
+  function readInitialStateFromDom() {
+    var activeCat = document.querySelector(CAT_TAB_SELECTOR + '.active');
+    if (activeCat) {
+      state.tab = activeCat.getAttribute('data-tab') || 'professeurs';
+    }
+    var activeMatiere = document.querySelector('.pers-matiere-nav .matiere-tab-btn.active[data-matiere]');
+    if (activeMatiere) {
+      state.matiere = activeMatiere.getAttribute('data-matiere') || 'all';
+    }
+    var activeStatut = document.querySelector('.pers-filter-btn.active[data-pers-filter]');
+    if (activeStatut) {
+      state.status = activeStatut.getAttribute('data-pers-filter') || 'all';
+    }
+  }
+
+  function persistState() {
+    if (!window.directeurTabStorage) return;
+    var ongletBtn = document.querySelector(CAT_TAB_SELECTOR + '.active[data-onglet]');
+    window.directeurTabStorage.syncUrlAndStore(STORAGE_KEY, {
+      onglet: ongletBtn ? ongletBtn.getAttribute('data-onglet') : state.tab,
+      matiere: state.matiere,
+      statut: state.status,
+    });
+  }
+
+  function restoreFromStorage() {
+    if (!window.directeurTabStorage) return false;
+    var params = new URLSearchParams(window.location.search);
+    if (!params.has('onglet')) {
+      var stored = window.directeurTabStorage.readStore(STORAGE_KEY);
+      if (stored.onglet) {
+        params.set('onglet', stored.onglet);
+        if (stored.matiere) params.set('matiere', stored.matiere);
+        if (stored.statut) params.set('statut', stored.statut);
+        window.location.replace(window.location.pathname + '?' + params.toString());
+        return true;
+      }
+    }
+    window.directeurTabStorage.mergeUrlFromStore(STORAGE_KEY, ['onglet', 'matiere', 'statut']);
+    persistState();
+    return false;
+  }
+
+  function switchCategoryTab(tabKey, btn) {
+    state.tab = tabKey;
+    if (tabKey !== 'professeurs') {
+      state.matiere = 'all';
+    }
+
+    document.querySelectorAll(CAT_TAB_SELECTOR).forEach(function (b) {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('.pers-tabs-content .tab-pane').forEach(function (pane) {
+      pane.classList.remove('active');
+      pane.hidden = true;
     });
 
-    function initCategoryTabs() {
-        var tabButtons = document.querySelectorAll('.pers-tabs-wrap .tab-btn');
-        var tabPanes = document.querySelectorAll('.pers-tabs-content .tab-pane');
+    if (btn) {
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+    }
 
-        tabButtons.forEach(function (button) {
-            button.addEventListener('click', function () {
-                state.tab = this.getAttribute('data-tab') || 'professeurs';
-                state.matiere = 'all';
+    var pane = document.getElementById(tabKey + '-pane');
+    if (pane) {
+      pane.classList.add('active');
+      pane.hidden = false;
+    }
 
-                tabButtons.forEach(function (btn) {
-                    btn.classList.remove('active');
-                    btn.setAttribute('aria-selected', 'false');
-                });
-                tabPanes.forEach(function (pane) {
-                    pane.classList.remove('active');
-                });
+    if (tabKey === 'professeurs') {
+      document.querySelectorAll('.pers-matiere-nav .matiere-tab-btn').forEach(function (b) {
+        var isAll = b.getAttribute('data-matiere') === state.matiere;
+        b.classList.toggle('active', isAll);
+        b.setAttribute('aria-selected', isAll ? 'true' : 'false');
+      });
+    }
 
-                this.classList.add('active');
-                this.setAttribute('aria-selected', 'true');
+    persistState();
+    applyFilters();
+    if (typeof window.layoutTabsOverflowNav === 'function') {
+      window.layoutTabsOverflowNav();
+    }
+  }
 
-                var pane = document.getElementById(state.tab + '-pane');
-                if (pane) pane.classList.add('active');
+  function initCategoryTabs() {
+    document.querySelectorAll(CAT_TAB_SELECTOR).forEach(function (button) {
+      button.addEventListener('click', function () {
+        switchCategoryTab(this.getAttribute('data-tab') || 'professeurs', this);
+      });
+    });
+  }
 
-                document.querySelectorAll('.matiere-tab-btn').forEach(function (btn) {
-                    var isAll = btn.getAttribute('data-matiere') === 'all';
-                    btn.classList.toggle('active', isAll);
-                    btn.setAttribute('aria-selected', isAll ? 'true' : 'false');
-                });
-
-                applyFilters();
-
-                if (typeof window.layoutTabsOverflowNav === 'function') {
-                    window.layoutTabsOverflowNav();
-                }
-            });
+  function initMatiereTabs() {
+    document.querySelectorAll('.pers-matiere-nav .matiere-tab-btn').forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (state.tab !== 'professeurs') return;
+        state.matiere = this.getAttribute('data-matiere') || 'all';
+        document.querySelectorAll('.pers-matiere-nav .matiere-tab-btn').forEach(function (btn) {
+          btn.classList.remove('active');
+          btn.setAttribute('aria-selected', 'false');
         });
-    }
-
-    function initMatiereTabs() {
-        document.querySelectorAll('.matiere-tab-btn').forEach(function (button) {
-            button.addEventListener('click', function () {
-                if (state.tab !== 'professeurs') return;
-
-                state.matiere = this.getAttribute('data-matiere') || 'all';
-
-                document.querySelectorAll('.matiere-tab-btn').forEach(function (btn) {
-                    btn.classList.remove('active');
-                    btn.setAttribute('aria-selected', 'false');
-                });
-                this.classList.add('active');
-                this.setAttribute('aria-selected', 'true');
-
-                applyFilters();
-
-                if (typeof window.layoutTabsOverflowNav === 'function') {
-                    window.layoutTabsOverflowNav();
-                }
-            });
-        });
-    }
-
-    function initToolbar() {
-        var searchInput = document.getElementById('persSearchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', function () {
-                state.search = this.value.trim().toLowerCase();
-                applyFilters();
-            });
-        }
-
-        document.querySelectorAll('[data-pers-filter]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                document.querySelectorAll('[data-pers-filter]').forEach(function (b) {
-                    b.classList.remove('active');
-                });
-                this.classList.add('active');
-                state.status = this.getAttribute('data-pers-filter');
-                applyFilters();
-            });
-        });
-    }
-
-    function getActivePane() {
-        return document.querySelector('.pers-tabs-content .tab-pane.active');
-    }
-
-    function cardMatches(card) {
-        var actif = card.getAttribute('data-actif') === '1';
-        var searchBlob = (card.getAttribute('data-search') || '').toLowerCase();
-        var matiere = card.getAttribute('data-matiere') || '';
-
-        if (state.status === 'active' && !actif) return false;
-        if (state.status === 'inactive' && actif) return false;
-        if (state.search && searchBlob.indexOf(state.search) === -1) return false;
-        if (state.tab === 'professeurs' && state.matiere !== 'all' && matiere !== state.matiere) {
-            return false;
-        }
-        return true;
-    }
-
-    function applyFilters() {
-        var pane = getActivePane();
-        if (!pane) return;
-
-        var cards = pane.querySelectorAll('.pers-member-card');
-        var visible = 0;
-
-        cards.forEach(function (card) {
-            var show = cardMatches(card);
-            card.classList.toggle('pers-hidden', !show);
-            if (show) visible += 1;
-        });
-
-        var emptyEl = document.getElementById(state.tab + '-empty-filter');
-        if (emptyEl) {
-            emptyEl.hidden = visible > 0 || cards.length === 0;
-        }
-
-        var resultsLine = document.getElementById('persResultsLine');
-        if (resultsLine) {
-            var filtering = state.search || state.status !== 'all' || (state.tab === 'professeurs' && state.matiere !== 'all');
-            if (filtering && cards.length > 0) {
-                resultsLine.textContent = visible + ' résultat' + (visible > 1 ? 's' : '') + ' dans cet onglet';
-            } else {
-                resultsLine.textContent = '';
-            }
-        }
-    }
-
-    window.searchPersonnel = function (query) {
-        var input = document.getElementById('persSearchInput');
-        if (input) input.value = query;
-        state.search = (query || '').trim().toLowerCase();
+        this.classList.add('active');
+        this.setAttribute('aria-selected', 'true');
+        persistState();
         applyFilters();
-    };
+        if (typeof window.layoutTabsOverflowNav === 'function') {
+          window.layoutTabsOverflowNav();
+        }
+      });
+    });
+  }
 
-    window.filterPersonnelByType = function () {
+  function initToolbar() {
+    var searchInput = document.getElementById('persSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        state.search = this.value.trim().toLowerCase();
         applyFilters();
-    };
+      });
+    }
+
+    document.querySelectorAll('[data-pers-filter]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('[data-pers-filter]').forEach(function (b) {
+          b.classList.remove('active');
+        });
+        this.classList.add('active');
+        state.status = this.getAttribute('data-pers-filter');
+        persistState();
+        applyFilters();
+      });
+    });
+  }
+
+  function getActivePane() {
+    return document.querySelector('.pers-tabs-content .tab-pane.active');
+  }
+
+  function cardMatches(card) {
+    var actif = card.getAttribute('data-actif') === '1';
+    var searchBlob = (card.getAttribute('data-search') || '').toLowerCase();
+    var matiere = card.getAttribute('data-matiere') || '';
+
+    if (state.status === 'active' && !actif) return false;
+    if (state.status === 'inactive' && actif) return false;
+    if (state.search && searchBlob.indexOf(state.search) === -1) return false;
+    if (state.tab === 'professeurs' && state.matiere !== 'all' && matiere !== state.matiere) {
+      return false;
+    }
+    return true;
+  }
+
+  function applyFilters() {
+    var pane = getActivePane();
+    if (!pane) return;
+
+    var cards = pane.querySelectorAll('.pers-member-card');
+    var visible = 0;
+
+    cards.forEach(function (card) {
+      var show = cardMatches(card);
+      card.classList.toggle('pers-hidden', !show);
+      if (show) visible += 1;
+    });
+
+    var emptyEl = document.getElementById(state.tab + '-empty-filter');
+    if (emptyEl) {
+      emptyEl.hidden = visible > 0 || cards.length === 0;
+    }
+
+    var resultsLine = document.getElementById('persResultsLine');
+    if (resultsLine) {
+      var filtering = state.search || state.status !== 'all' || (state.tab === 'professeurs' && state.matiere !== 'all');
+      if (filtering && cards.length > 0) {
+        resultsLine.textContent = visible + ' résultat' + (visible > 1 ? 's' : '') + ' dans cet onglet';
+      } else {
+        resultsLine.textContent = '';
+      }
+    }
+  }
+
+  window.searchPersonnel = function (query) {
+    var input = document.getElementById('persSearchInput');
+    if (input) input.value = query;
+    state.search = (query || '').trim().toLowerCase();
+    applyFilters();
+  };
+
+  window.filterPersonnelByType = function () {
+    applyFilters();
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (restoreFromStorage()) {
+      return;
+    }
+    readInitialStateFromDom();
+    initCategoryTabs();
+    initMatiereTabs();
+    initToolbar();
+    applyFilters();
+    if (typeof window.layoutTabsOverflowNav === 'function') {
+      window.layoutTabsOverflowNav();
+    }
+  });
 })();

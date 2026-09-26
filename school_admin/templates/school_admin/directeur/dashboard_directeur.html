@@ -9,8 +9,10 @@
     {% include 'school_admin/partials/seo_head.html' %}
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.0.3"
+      href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.1.0"
     />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link
       rel="stylesheet"
       href="{% static 'school_admin/css/fcm_notifications.css' %}?v=1.0.0">
@@ -48,6 +50,15 @@
         </span>
       </div>
       {% endif %}
+
+      <header class="dbd-hero">
+        <div class="dbd-hero-text">
+          <h1 class="dbd-hero-title"><i class="fas fa-gauge-high"></i> Tableau de bord</h1>
+          {% if annee_scolaire_active %}
+          <span class="dbd-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+          {% endif %}
+        </div>
+      </header>
 
       <!-- Dashboard Overview -->
       <div class="dashboard-overview">
@@ -173,9 +184,45 @@
           Historique des dernières activités
         </h2>
 
-        <div class="activites-grid">
-          <!-- Section Absences -->
-          <div class="activite-section">
+        <div class="dbd-activites-tabs">
+          <div class="matiere-tabs-bar" data-overflow-item-label="Activité" data-overflow-items-label="activités">
+            <div class="matiere-tabs-track" role="tablist" aria-label="Type d'activité">
+              <button type="button" role="tab" class="matiere-tab-btn dbd-activity-tab {% if initial_dashboard_activite == 'absences' %}active{% endif %}"
+                      data-tab="tab-absences" data-activite="absences"
+                      aria-selected="{% if initial_dashboard_activite == 'absences' %}true{% else %}false{% endif %}">
+                <i class="fas fa-user-times"></i><span>Absences</span>
+              </button>
+              <button type="button" role="tab" class="matiere-tab-btn dbd-activity-tab {% if initial_dashboard_activite == 'notes' %}active{% endif %}"
+                      data-tab="tab-notes" data-activite="notes"
+                      aria-selected="{% if initial_dashboard_activite == 'notes' %}true{% else %}false{% endif %}">
+                <i class="fas fa-file-alt"></i><span>Notes</span>
+              </button>
+              <button type="button" role="tab" class="matiere-tab-btn dbd-activity-tab {% if initial_dashboard_activite == 'sanctions' %}active{% endif %}"
+                      data-tab="tab-sanctions" data-activite="sanctions"
+                      aria-selected="{% if initial_dashboard_activite == 'sanctions' %}true{% else %}false{% endif %}">
+                <i class="fas fa-gavel"></i><span>Sanctions</span>
+              </button>
+              <button type="button" role="tab" class="matiere-tab-btn dbd-activity-tab {% if initial_dashboard_activite == 'justifications' %}active{% endif %}"
+                      data-tab="tab-justifications" data-activite="justifications"
+                      aria-selected="{% if initial_dashboard_activite == 'justifications' %}true{% else %}false{% endif %}">
+                <i class="fas fa-scale-balanced"></i><span>Justifications</span>
+                {% if total_justifications_en_attente > 0 %}
+                <span class="tab-count">{{ total_justifications_en_attente }}</span>
+                {% endif %}
+              </button>
+            </div>
+            <div class="matiere-tabs-more-wrap" hidden>
+              <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres activités">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                <span class="matiere-tabs-more-label">Autres activités</span>
+              </button>
+              <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dbd-tabs-content">
+          <div class="tab-panel activite-section {% if initial_dashboard_activite == 'absences' %}active{% endif %}" id="tab-absences"{% if initial_dashboard_activite != 'absences' %} hidden{% endif %}>
             <div class="activite-header">
               <h3 class="activite-title">
                 <i class="fas fa-user-times" style="color: var(--accent);"></i>
@@ -223,8 +270,7 @@
             </div>
           </div>
 
-          <!-- Section Notes -->
-          <div class="activite-section">
+          <div class="tab-panel activite-section {% if initial_dashboard_activite == 'notes' %}active{% endif %}" id="tab-notes"{% if initial_dashboard_activite != 'notes' %} hidden{% endif %}>
             <div class="activite-header">
               <h3 class="activite-title">
                 <i class="fas fa-file-alt" style="color: var(--primary);"></i>
@@ -272,8 +318,7 @@
             </div>
           </div>
 
-          <!-- Section Sanctions -->
-          <div class="activite-section">
+          <div class="tab-panel activite-section {% if initial_dashboard_activite == 'sanctions' %}active{% endif %}" id="tab-sanctions"{% if initial_dashboard_activite != 'sanctions' %} hidden{% endif %}>
             <div class="activite-header">
               <h3 class="activite-title">
                 <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
@@ -321,8 +366,7 @@
             </div>
           </div>
 
-          <!-- Section Justifications de notes -->
-          <div class="activite-section">
+          <div class="tab-panel activite-section {% if initial_dashboard_activite == 'justifications' %}active{% endif %}" id="tab-justifications"{% if initial_dashboard_activite != 'justifications' %} hidden{% endif %}>
             <div class="activite-header">
               <h3 class="activite-title">
                 <i class="fas fa-scale-balanced" style="color: var(--primary);"></i>
@@ -404,7 +448,8 @@
     <!-- Conteneur pour les notifications toast -->
     <div id="fcm-toast-container"></div>
 
-    <script src="{% static 'school_admin/js/directeur/dashboard_directeur.js' %}"></script>
+    <script src="{% static 'school_admin/js/directeur/directeur_tab_storage.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/dashboard_directeur.js' %}?v=2.0.0"></script>
     <script type="module" src="{% static 'school_admin/js/fcm_notifications.js' %}"></script>
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

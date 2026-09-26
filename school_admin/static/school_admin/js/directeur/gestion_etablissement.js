@@ -1,188 +1,110 @@
 /**
- * Gestion de l'Établissement - JavaScript
- * Fonctionnalités pour la page de gestion de l'établissement
+ * Hub gestion établissement — sections, recherche, persistance (UI v2, Vague 4)
  */
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Page de gestion de l\'établissement chargée');
-    
-    // Initialiser les interactions
-    initializeNavigationCards();
-    initializeActionItems();
-    animateCardsOnLoad();
-});
+  var STORAGE_KEY = 'directeur:gestion-etablissement';
+  var TAB_SELECTOR = '.etab-section-tab[data-tab]';
 
-/**
- * Initialiser les interactions des cartes de navigation
- */
-function initializeNavigationCards() {
-    const navCards = document.querySelectorAll('.nav-link-card');
-    
-    navCards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-3px)';
-            this.style.boxShadow = 'var(--shadow-md)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-            this.style.boxShadow = 'var(--shadow-sm)';
-        });
-        
-        card.addEventListener('click', function(e) {
-            // Animation de clic
-            this.style.transform = 'scale(0.98)';
-            setTimeout(() => {
-                this.style.transform = 'translateY(-3px)';
-            }, 150);
-        });
+  function persistSection(section) {
+    if (!window.directeurTabStorage) return;
+    window.directeurTabStorage.syncUrlAndStore(STORAGE_KEY, {
+      section: section || '',
     });
-}
+  }
 
-/**
- * Animer les cartes au chargement - DÉSACTIVÉ
- */
-function animateCardsOnLoad() {
-    const statCards = document.querySelectorAll('.stat-card');
-    const navCards = document.querySelectorAll('.nav-link-card');
-    
-    // Pas d'animation d'apparition pour les cartes de statistiques
-    statCards.forEach((card) => {
-        card.style.opacity = '1';
-        card.style.transform = 'translateY(0)';
-    });
-    
-    // Pas d'animation d'apparition pour les cartes de navigation
-    navCards.forEach((card) => {
-        card.style.opacity = '1';
-        card.style.transform = 'translateY(0)';
-    });
-}
+  function restoreSection() {
+    if (!window.directeurTabStorage) return false;
+    var params = new URLSearchParams(window.location.search);
+    if (!params.has('section')) {
+      var stored = window.directeurTabStorage.readStore(STORAGE_KEY);
+      if (stored.section) {
+        params.set('section', stored.section);
+        window.location.replace(window.location.pathname + '?' + params.toString());
+        return true;
+      }
+    }
+    window.directeurTabStorage.mergeUrlFromStore(STORAGE_KEY, ['section']);
+    var section = params.get('section') || 'structure';
+    var btn = document.querySelector(TAB_SELECTOR + '[data-section="' + CSS.escape(section) + '"]');
+    switchSectionTab(btn ? btn.getAttribute('data-tab') : 'tab-etab-structure', btn, { skipPersist: true });
+    persistSection(section);
+    return false;
+  }
 
-/**
- * Initialiser les éléments d'action
- */
-function initializeActionItems() {
-    const actionItems = document.querySelectorAll('.action-item');
-    
-    actionItems.forEach((item) => {
-        // Pas d'animation d'apparition
-        item.style.opacity = '1';
-        item.style.transform = 'translateX(0)';
-        
-        // Ajouter un effet de clic
-        item.addEventListener('click', function() {
-            console.log('Action cliquée:', this.querySelector('.action-text').textContent);
-            // Ajouter ici la logique pour afficher les détails de l'action
-        });
+  function switchSectionTab(tabId, btn, opts) {
+    opts = opts || {};
+    document.querySelectorAll('.etab-tabs-content .tab-panel').forEach(function (panel) {
+      panel.classList.remove('active');
+      panel.hidden = true;
     });
-}
-
-/**
- * Afficher un message temporaire
- */
-function showTemporaryMessage(message, type = 'info') {
-    // Créer l'élément de message
-    const messageEl = document.createElement('div');
-    messageEl.className = `temp-message temp-message-${type}`;
-    messageEl.textContent = message;
-    
-    // Styles du message
-    const bgColor = type === 'info' ? '#7c3aed' : '#ef4444';
-    messageEl.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${bgColor};
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        z-index: 1000;
-        font-weight: 500;
-        animation: slideIn 0.3s ease;
-    `;
-    
-    // Ajouter l'animation CSS
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    // Ajouter au DOM
-    document.body.appendChild(messageEl);
-    
-    // Supprimer après 3 secondes
-    setTimeout(() => {
-        messageEl.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => {
-            if (messageEl.parentNode) {
-                messageEl.parentNode.removeChild(messageEl);
-            }
-        }, 300);
-    }, 3000);
-}
-
-/**
- * Initialiser les interactions des cartes de navigation
- */
-function initializeNavigationCardInteractions() {
-    const navCards = document.querySelectorAll('.nav-link-card');
-    navCards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-3px)';
-            this.style.boxShadow = 'var(--shadow-md)';
-        });
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-            this.style.boxShadow = 'var(--shadow-sm)';
-        });
+    document.querySelectorAll(TAB_SELECTOR).forEach(function (b) {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
     });
-}
 
-/**
- * Initialiser les interactions des boutons d'actions rapides
- */
-function initializeQuickActionButtons() {
-    const quickActionBtns = document.querySelectorAll('.quick-action-btn');
-    quickActionBtns.forEach(btn => {
-        btn.addEventListener('click', function(event) {
-            console.log('Action rapide cliquée:', this.querySelector('span').textContent);
-            // Ajouter ici la logique spécifique à chaque action rapide
-        });
-    });
-}
+    var panel = document.getElementById(tabId);
+    if (panel) {
+      panel.classList.add('active');
+      panel.hidden = false;
+    }
+    var targetBtn = btn || document.querySelector(TAB_SELECTOR + '[data-tab="' + tabId + '"]');
+    if (targetBtn) {
+      targetBtn.classList.add('active');
+      targetBtn.setAttribute('aria-selected', 'true');
+      if (!opts.skipPersist) {
+        persistSection(targetBtn.getAttribute('data-section') || '');
+      }
+    }
 
-/**
- * Initialiser les interactions des éléments d'activité récente
- */
-function initializeActivityItems() {
-    const activityItems = document.querySelectorAll('.activity-item');
-    activityItems.forEach(item => {
-        item.addEventListener('click', function() {
-            console.log('Activité récente cliquée:', this.querySelector('.activity-text').textContent);
-            // Ajouter ici la logique pour afficher les détails de l'activité
-        });
-    });
-}
+    filterCards();
+    if (typeof window.layoutTabsOverflowNav === 'function') {
+      window.layoutTabsOverflowNav();
+    }
+  }
 
-/**
- * Initialiser les interactions des cartes de notification
- */
-function initializeNotificationCards() {
-    const notificationCards = document.querySelectorAll('.notification-card');
-    notificationCards.forEach(card => {
-        card.addEventListener('click', function() {
-            console.log('Notification cliquée:', this.querySelector('h3').textContent);
-            // Ajouter ici la logique pour gérer la notification
-        });
+  function filterCards() {
+    var input = document.getElementById('etabSearchInput');
+    var term = input ? input.value.trim().toLowerCase() : '';
+    var panel = document.querySelector('.etab-tabs-content .tab-panel.active');
+    if (!panel) return;
+
+    var cards = panel.querySelectorAll('.nav-link-card');
+    var visible = 0;
+    cards.forEach(function (card) {
+      var blob = (card.getAttribute('data-etab-search') || '') + ' ' + card.textContent;
+      blob = blob.toLowerCase();
+      var show = !term || blob.indexOf(term) !== -1;
+      card.style.display = show ? '' : 'none';
+      if (show) visible += 1;
     });
-}
+
+    var emptyId = panel.id === 'tab-etab-finances' ? 'etab-empty-finances' : 'etab-empty-structure';
+    var emptyEl = document.getElementById(emptyId);
+    if (emptyEl) {
+      emptyEl.hidden = !term || visible > 0 || cards.length === 0;
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    var tabBtn = event.target.closest(TAB_SELECTOR);
+    if (tabBtn) {
+      switchSectionTab(tabBtn.getAttribute('data-tab'), tabBtn);
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (restoreSection()) {
+      return;
+    }
+    var searchInput = document.getElementById('etabSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', filterCards);
+    }
+    filterCards();
+    if (typeof window.layoutTabsOverflowNav === 'function') {
+      window.layoutTabsOverflowNav();
+    }
+  });
+})();

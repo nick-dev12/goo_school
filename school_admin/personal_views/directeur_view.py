@@ -1244,6 +1244,10 @@ def dashboard_directeur(request):
         'dernieres_justifications': dernieres_justifications,
         'total_justifications_en_attente': total_justifications_en_attente,
     }
+
+    from ..utils.directeur_ui_tabs import attach_dashboard_tab_context
+
+    attach_dashboard_tab_context(request, context)
     
     return render(request, 'school_admin/directeur/dashboard_directeur.html', context)
 
@@ -6751,12 +6755,25 @@ def gestion_etablissement(request):
     # Récupérer l'année scolaire active
     annee_scolaire_active = _get_session_directeur(request, etablissement)
     
+    from ..model.classe_model import Classe
+    from ..model.matiere_model import Matiere
+    from ..model.salle_model import Salle
+    from ..utils.directeur_ui_tabs import attach_etablissement_hub_context
+
+    stats_hub = {
+        'nombre_classes': Classe.objects.filter(etablissement=etablissement, actif=True).count(),
+        'nombre_matieres': Matiere.objects.filter(etablissement=etablissement).count(),
+        'nombre_salles': Salle.objects.filter(etablissement=etablissement, actif=True).count(),
+    }
+
     context = {
         'etablissement': etablissement,
         'annee_scolaire_active': annee_scolaire_active,
         'is_directeur': is_directeur,
         'personnel': personnel,
+        'stats_hub': stats_hub,
     }
+    attach_etablissement_hub_context(request, context)
    
     return render(request, 'school_admin/directeur/gestion_etablissement.html', context)
 
@@ -9962,8 +9979,9 @@ def profil_etablissement(request):
         return redirect('school_admin:connexion_compte_user')
     success_message = None
     
-    # Récupérer l'onglet actif depuis POST ou GET
-    active_tab = request.POST.get('active_tab') or request.GET.get('tab', 'informations')
+    from ..utils.directeur_ui_tabs import resolve_profil_tab
+
+    active_tab = request.POST.get('active_tab') or resolve_profil_tab(request, is_directeur)
 
     if request.method == 'POST':
         form_type = request.POST.get('form_type')
@@ -10117,6 +10135,8 @@ def profil_etablissement(request):
             'nombre_eleves_factures': etablissement.nombre_eleves_factures,
         }
 
+    from ..utils.directeur_ui_tabs import attach_profil_tab_context
+
     context = {
         'etablissement': etablissement,
         'modules_config': modules_config,
@@ -10127,6 +10147,7 @@ def profil_etablissement(request):
         'is_personnel_administratif': is_personnel,
         'personnel': personnel,
     }
+    attach_profil_tab_context(request, context, is_directeur)
 
     return render(request, 'school_admin/directeur/mon_profil_etablissement.html', context)
 

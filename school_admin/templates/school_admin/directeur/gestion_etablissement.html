@@ -8,185 +8,157 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% trans "Institution Management" %} - {{ etablissement.nom }}</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet"
-    />
-    <link
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-        rel="stylesheet"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/gestion_etablissement.css' %}?v=1.1.2"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_etablissement.css' %}?v=1.2.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
 </head>
-<body>
-    <!-- Header -->
+<body class="etab-hub-body" data-live-page="gestion-etablissement">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content -->
-    <div class="main-content-container">
-        <!-- Page Header -->
-        <div class="page-header">
+    <div class="main-content-container etab-hub">
+        <div class="page-header page-header-minimal">
             {% url 'directeur:dashboard_directeur' as directeur_dashboard_url %}
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=directeur_dashboard_url %}
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-school"></i>
-                    {% trans "Gestion de l'Établissement" %}
-                </h1>
+        </div>
+
+        <header class="etab-hero">
+            <div class="etab-hero-text">
+                <h1 class="etab-hero-title"><i class="fas fa-school"></i> {% trans "Gestion de l'établissement" %}</h1>
+                <p class="etab-hero-sub">{% trans "Structure pédagogique, locaux et accès financiers de votre institution." %}</p>
+                {% if annee_scolaire_active %}
+                <span class="etab-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+                {% endif %}
+            </div>
+            <div class="etab-hero-stats">
+                <div class="etab-stat-pill"><span class="etab-stat-num">{{ stats_hub.nombre_classes }}</span><span class="etab-stat-lbl">{% trans "Classes" %}</span></div>
+                <div class="etab-stat-pill"><span class="etab-stat-num">{{ stats_hub.nombre_matieres }}</span><span class="etab-stat-lbl">{% trans "Matières" %}</span></div>
+                <div class="etab-stat-pill"><span class="etab-stat-num">{{ stats_hub.nombre_salles }}</span><span class="etab-stat-lbl">{% trans "Salles" %}</span></div>
+            </div>
+        </header>
+
+        <div class="etab-toolbar">
+            <label class="etab-search-wrap">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input type="search" id="etabSearchInput" class="etab-search-input" placeholder="{% trans 'Rechercher un accès…' %}" autocomplete="off" aria-label="{% trans 'Rechercher' %}" />
+            </label>
+        </div>
+
+        <div class="etab-section-nav">
+            <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'section' %}" data-overflow-items-label="{% trans 'sections' %}">
+                <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Sections' %}">
+                    <button type="button" role="tab" class="matiere-tab-btn etab-section-tab {% if initial_etab_section == 'structure' %}active{% endif %}"
+                            data-tab="tab-etab-structure" data-section="structure"
+                            aria-selected="{% if initial_etab_section == 'structure' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-layer-group"></i>
+                        <span>{% trans "Structure" %}</span>
+                    </button>
+                    <button type="button" role="tab" class="matiere-tab-btn etab-section-tab {% if initial_etab_section == 'finances' %}active{% endif %}"
+                            data-tab="tab-etab-finances" data-section="finances"
+                            aria-selected="{% if initial_etab_section == 'finances' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-wallet"></i>
+                        <span>{% trans "Finances" %}</span>
+                    </button>
+                </div>
+                <div class="matiere-tabs-more-wrap" hidden>
+                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres sections' %}">
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        <span class="matiere-tabs-more-label">{% trans "Autres sections" %}</span>
+                    </button>
+                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                </div>
             </div>
         </div>
 
-        <!-- Navigation Links Container -->
-        <div class="navigation-container">
-            <div class="nav-cards-grid">
-                {% check_permission request.user "classes_liste" as can_view_classes %}
-                {% if can_view_classes or is_directeur %}
-                <a href="{% url 'directeur:gestion_periodes_scolaires' %}" class="nav-link-card">
-                    <span class="nav-card-number">1</span>
-                    <div class="nav-card-icon neo-orange">
-                        <i class="fas fa-calendar-alt"></i>
+        <div class="etab-tabs-content">
+            <div class="tab-panel {% if initial_etab_section == 'structure' %}active{% endif %}" id="tab-etab-structure"{% if initial_etab_section != 'structure' %} hidden{% endif %}>
+                <div class="navigation-container">
+                    <div class="nav-cards-grid">
+                        {% check_permission request.user "classes_liste" as can_view_classes %}
+                        {% if can_view_classes or is_directeur %}
+                        <a href="{% url 'directeur:gestion_periodes_scolaires' %}" class="nav-link-card" data-etab-search="périodes trimestres semestres">
+                            <span class="nav-card-number">1</span>
+                            <div class="nav-card-icon neo-orange"><i class="fas fa-calendar-alt"></i></div>
+                            <div class="nav-link-content">
+                                <h3>{% trans "Périodes scolaires" %}</h3>
+                                <p>{% trans "Trimestres et semestres" %}</p>
+                            </div>
+                        </a>
+                        <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="nav-link-card" data-etab-search="classes">
+                            <span class="nav-card-number">2</span>
+                            <div class="nav-card-icon neo-blue"><i class="fas fa-chalkboard"></i></div>
+                            <div class="nav-link-content">
+                                <h3>{% trans "Classes" %}</h3>
+                                <p>{% trans "Gestion des classes" %}</p>
+                            </div>
+                        </a>
+                        <a href="{% url 'matiere:liste_matieres' %}" class="nav-link-card" data-etab-search="matières modules">
+                            <span class="nav-card-number">3</span>
+                            <div class="nav-card-icon neo-purple"><i class="fas fa-book-open"></i></div>
+                            <div class="nav-link-content">
+                                <h3>{% trans "Matières" %}</h3>
+                                <p>{% trans "Organisation des matières et classes" %}</p>
+                            </div>
+                        </a>
+                        <a href="{% url 'salle:liste_salles' %}" class="nav-link-card" data-etab-search="salles locaux">
+                            <span class="nav-card-number">4</span>
+                            <div class="nav-card-icon neo-blue"><i class="fas fa-door-open"></i></div>
+                            <div class="nav-link-content">
+                                <h3>{% trans "Salles" %}</h3>
+                                <p>{% trans "Gestion des salles" %}</p>
+                            </div>
+                        </a>
+                        <a href="{% url 'directeur:profil_etablissement' %}" class="nav-link-card" data-etab-search="profil établissement logo modules">
+                            <span class="nav-card-number">5</span>
+                            <div class="nav-card-icon neo-green"><i class="fas fa-id-card"></i></div>
+                            <div class="nav-link-content">
+                                <h3>{% trans "Profil établissement" %}</h3>
+                                <p>{% trans "Informations, logo et modules" %}</p>
+                            </div>
+                        </a>
+                        {% endif %}
                     </div>
-                    <div class="nav-link-content">
-                        <h3>{% trans "Périodes scolaires" %}</h3>
-                        <p>{% trans "Trimestres et semestres" %}</p>
-                    </div>
-                </a>
+                    <p class="etab-empty-filter" id="etab-empty-structure" hidden>{% trans "Aucun accès ne correspond à votre recherche." %}</p>
+                </div>
+            </div>
 
-                <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="nav-link-card">
-                    <span class="nav-card-number">2</span>
-                    <div class="nav-card-icon neo-blue">
-                        <i class="fas fa-chalkboard"></i>
+            <div class="tab-panel {% if initial_etab_section == 'finances' %}active{% endif %}" id="tab-etab-finances"{% if initial_etab_section != 'finances' %} hidden{% endif %}>
+                <div class="navigation-container">
+                    <div class="nav-cards-grid">
+                        {% check_permission request.user "comptabilite_voir" as can_view_comptabilite %}
+                        {% if etablissement.module_comptabilite and can_view_comptabilite %}
+                        <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="nav-link-card" data-etab-search="scolarité paiements élèves">
+                            <span class="nav-card-number">1</span>
+                            <div class="nav-card-icon neo-green"><i class="fas fa-calculator"></i></div>
+                            <div class="nav-link-content">
+                                <h3>{% trans "Scolarité" %}</h3>
+                                <p>{% trans "Gestion des paiements des élèves" %}</p>
+                            </div>
+                        </a>
+                        {% if afficher_module_comptabilite_generale %}
+                        <a href="{% url 'directeur:cg_hub_directeur' %}" class="nav-link-card" data-etab-search="comptabilité générale syscohada">
+                            <span class="nav-card-number">2</span>
+                            <div class="nav-card-icon neo-purple"><i class="fas fa-balance-scale"></i></div>
+                            <div class="nav-link-content">
+                                <h3>{% trans "Comptabilité générale" %}</h3>
+                                <p>{% trans "Plan SYSCOHADA, journaux, trésorerie et états financiers" %}</p>
+                            </div>
+                        </a>
+                        {% endif %}
+                        {% else %}
+                        <p class="etab-panel-empty">{% trans "Aucun module financier accessible pour votre profil." %}</p>
+                        {% endif %}
                     </div>
-                    <div class="nav-link-content">
-                        <h3>{% trans "Classes" %}</h3>
-                        <p>{% trans "Gestion des classes" %}</p>
-                    </div>
-                </a>
-                
-                <a href="{% url 'matiere:liste_matieres' %}" class="nav-link-card">
-                    <span class="nav-card-number">3</span>
-                    <div class="nav-card-icon neo-purple">
-                        <i class="fas fa-book-open"></i>
-                    </div>
-                    <div class="nav-link-content">
-                        <h3>{% trans "Matières" %}</h3>
-                        <p>{% trans "Organisation des matières et classes" %}</p>
-                    </div>
-                </a>
-
-                <a href="{% url 'salle:liste_salles' %}" class="nav-link-card">
-                    <span class="nav-card-number">4</span>
-                    <div class="nav-card-icon neo-blue">
-                        <i class="fas fa-door-open"></i>
-                    </div>
-                    <div class="nav-link-content">
-                        <h3>{% trans "Salles" %}</h3>
-                        <p>{% trans "Gestion des salles" %}</p>
-                    </div>
-                </a>
-                {% endif %}
-                
-                {% check_permission request.user "comptabilite_voir" as can_view_comptabilite %}
-                {% if etablissement.module_comptabilite and can_view_comptabilite %}
-                <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="nav-link-card">
-                    <span class="nav-card-number">5</span>
-                    <div class="nav-card-icon neo-green">
-                        <i class="fas fa-calculator"></i>
-                    </div>
-                    <div class="nav-link-content">
-                        <h3>{% trans "Scolarité" %}</h3>
-                        <p>{% trans "Gestion des paiements des élèves" %}</p>
-                    </div>
-                </a>
-
-                {% if afficher_module_comptabilite_generale %}
-                <a href="{% url 'directeur:cg_hub_directeur' %}" class="nav-link-card">
-                    <span class="nav-card-number">6</span>
-                    <div class="nav-card-icon neo-purple">
-                        <i class="fas fa-balance-scale"></i>
-                    </div>
-                    <div class="nav-link-content">
-                        <h3>{% trans "Comptabilité générale" %}</h3>
-                        <p>{% trans "Plan SYSCOHADA, journaux, trésorerie et états financiers" %}</p>
-                    </div>
-                </a>
-                {% endif %}
-                {% endif %}
+                    <p class="etab-empty-filter" id="etab-empty-finances" hidden>{% trans "Aucun accès ne correspond à votre recherche." %}</p>
+                </div>
             </div>
         </div>
-
-        <!-- Dernières actions établissement -->
-        {% comment %} <div class="recent-actions-section">
-            <h2 class="section-title">{% trans "Dernières actions établissement" %}</h2>
-            <div class="actions-list">
-                <div class="action-item">
-                    <div class="action-icon success">
-                        <i class="fas fa-school"></i>
-                    </div>
-                    <div class="action-content">
-                        <p class="action-text">{% trans "Informations de l'établissement mises à jour" %}</p>
-                        <span class="action-time">{% trans "Il y a 30 minutes" %}</span>
-                    </div>
-                </div>
-                <div class="action-item">
-                    <div class="action-icon primary">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <div class="action-content">
-                        <p class="action-text">{% trans "Nouvelle année scolaire configurée" %}</p>
-                        <span class="action-time">{% trans "Il y a 2 heures" %}</span>
-                    </div>
-                </div>
-                <div class="action-item">
-                    <div class="action-icon warning">
-                        <i class="fas fa-door-open"></i>
-                    </div>
-                    <div class="action-content">
-                        <p class="action-text">{% trans "Nouvelle salle de classe ajoutée" %}</p>
-                        <span class="action-time">{% trans "Hier" %}</span>
-                    </div>
-                </div>
-                <div class="action-item">
-                    <div class="action-icon info">
-                        <i class="fas fa-cogs"></i>
-                    </div>
-                    <div class="action-content">
-                        <p class="action-text">{% trans "Paramètres de sécurité modifiés" %}</p>
-                        <span class="action-time">{% trans "Il y a 2 jours" %}</span>
-                    </div>
-                </div>
-                <div class="action-item">
-                    <div class="action-icon success">
-                        <i class="fas fa-database"></i>
-                    </div>
-                    <div class="action-content">
-                        <p class="action-text">{% trans "Sauvegarde automatique effectuée" %}</p>
-                        <span class="action-time">{% trans "Il y a 3 jours" %}</span>
-                    </div>
-                </div>
-                <div class="action-item">
-                    <div class="action-icon primary">
-                        <i class="fas fa-chart-bar"></i>
-                    </div>
-                    <div class="action-content">
-                        <p class="action-text">{% trans "Rapport mensuel généré" %}</p>
-                        <span class="action-time">{% trans "Il y a 5 jours" %}</span>
-                    </div>
-                </div>
-            </div>
-        </div> {% endcomment %}
     </div>
 
-    <!-- Scripts -->
-    <script src="{% static 'school_admin/js/directeur/gestion_etablissement.js' %}"></script>
-
+    <script src="{% static 'school_admin/js/directeur/directeur_tab_storage.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/gestion_etablissement.js' %}?v=2.0.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

@@ -183,3 +183,77 @@ def resolve_annonce_statut_filtre(request):
     raw = (request.GET.get('statut') or '').strip().lower()
     allowed = {'publiee', 'brouillon', 'archivee'}
     return raw if raw in allowed else ''
+
+
+DASHBOARD_ACTIVITE_CHOICES = ('absences', 'notes', 'sanctions', 'justifications')
+
+
+def resolve_dashboard_activite(request):
+    """Tableau de bord — ?activite=absences|notes|sanctions|justifications."""
+    return resolve_main_section_tab(
+        request, 'activite', DASHBOARD_ACTIVITE_CHOICES, 'absences'
+    )
+
+
+def attach_dashboard_tab_context(request, context):
+    activite = resolve_dashboard_activite(request)
+    context['initial_dashboard_activite'] = activite
+    context['initial_dashboard_tab_id'] = 'tab-' + activite
+    return context
+
+
+ETABLISSEMENT_SECTION_CHOICES = ('structure', 'finances')
+
+
+def resolve_etablissement_section(request):
+    """Hub établissement — ?section=structure|finances."""
+    return resolve_main_section_tab(
+        request, 'section', ETABLISSEMENT_SECTION_CHOICES, 'structure'
+    )
+
+
+def attach_etablissement_hub_context(request, context):
+    section = resolve_etablissement_section(request)
+    context['initial_etab_section'] = section
+    context['initial_etab_tab_id'] = 'tab-etab-' + section
+    return context
+
+
+PROFIL_TAB_DIRECTEUR = ('informations', 'logo', 'modules', 'facturation', 'securite')
+PROFIL_TAB_PERSONNEL = ('informations', 'securite')
+
+
+def resolve_profil_tab(request, is_directeur):
+    allowed = PROFIL_TAB_DIRECTEUR if is_directeur else PROFIL_TAB_PERSONNEL
+    return resolve_main_section_tab(request, 'tab', allowed, 'informations')
+
+
+def attach_profil_tab_context(request, context, is_directeur):
+    tab = resolve_profil_tab(request, is_directeur)
+    context['active_tab'] = tab
+    context['initial_profil_tab'] = tab
+    return context
+
+
+def resolve_personnel_onglet(request, category_keys):
+    """Liste personnel — ?onglet=professeurs|<clé catégorie>."""
+    allowed = ['professeurs'] + [str(k).lower() for k in (category_keys or [])]
+    return resolve_main_section_tab(request, 'onglet', tuple(allowed), 'professeurs')
+
+
+def resolve_personnel_matiere_filtre(request):
+    raw = (request.GET.get('matiere') or 'all').strip()
+    return raw if raw else 'all'
+
+
+def resolve_personnel_statut_filtre(request):
+    raw = (request.GET.get('statut') or 'all').strip().lower()
+    return raw if raw in ('all', 'active', 'inactive') else 'all'
+
+
+def attach_personnel_tab_context(request, context, category_keys):
+    onglet = resolve_personnel_onglet(request, category_keys)
+    context['initial_personnel_onglet'] = onglet
+    context['initial_matiere'] = resolve_personnel_matiere_filtre(request)
+    context['initial_statut_filtre'] = resolve_personnel_statut_filtre(request)
+    return context

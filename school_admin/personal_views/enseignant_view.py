@@ -5751,11 +5751,13 @@ def liste_presence_enseignant(request, classe_id):
     eleves_avec_presence = []
     for eleve in eleves:
         presence = presences_dict.get(eleve.id)
-        eleves_avec_presence.append({
+        from ..utils.professeur_ui_tabs import enrich_eleve_presence_row
+        row = {
             'eleve': eleve,
             'presence': presence,
-            'statut': presence.statut if presence else 'present'
-        })
+        }
+        row.update(enrich_eleve_presence_row(presence))
+        eleves_avec_presence.append(row)
     
     # Créer une liste_presence vide si elle n'existe pas encore (pour l'affichage)
     if not liste_presence:
@@ -5786,6 +5788,9 @@ def liste_presence_enseignant(request, classe_id):
         'annee_scolaire_active': annee_scolaire_active,
         'modal_mode': request.GET.get('partial') == '1',
     }
+    from ..utils.professeur_ui_tabs import attach_presence_liste_tab_context
+
+    attach_presence_liste_tab_context(request, context)
 
     if request.GET.get('partial') == '1' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, 'school_admin/enseignant/partials/liste_presence_inner.html', context)
@@ -6293,7 +6298,7 @@ def modifier_presence_eleve(request, presence_id):
     
     # Modifier le statut
     nouveau_statut = request.POST.get('statut')
-    if nouveau_statut in ['present', 'absent', 'retard', 'absent_justifie']:
+    if nouveau_statut in ['present', 'absent']:
         ancien_statut = presence.statut
         presence.statut = nouveau_statut
         presence.save()
@@ -6457,87 +6462,18 @@ def justifier_absence_eleve(request):
     Traite le formulaire de justification d'absence
     """
     logger.info(f"Justification absence - User: {request.user}")
-    
-    if request.method != 'POST':
-        messages.error(request, "Méthode non autorisée.")
-        return redirect('enseignant:gestion_eleves')
-    
-    if not isinstance(request.user, Professeur):
-        messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
-    
-    professeur = request.user
-    from ..model.presence_model import Presence
-    from django.shortcuts import get_object_or_404
-    from django.utils import timezone
-    
-    # Récupérer les données du formulaire
-    presence_id = request.POST.get('presence_id')
-    type_justificatif = request.POST.get('type_justificatif')
-    
-    if not presence_id or not type_justificatif:
-        messages.error(request, "Données manquantes.")
-        return redirect('enseignant:gestion_eleves')
-    
-    # Récupérer la présence
-    presence = get_object_or_404(Presence, id=presence_id)
-    eleve = presence.eleve
-    
-    # Vérifier que le professeur est affecté à cette classe
-    from ..model.affectation_model import AffectationProfesseur
-    affectation = AffectationProfesseur.objects.filter(
-        professeur=professeur,
-        classe=presence.classe,
-        actif=True
-    ).first()
-    
-    if not affectation:
-        messages.error(request, "Vous n'êtes pas autorisé à justifier cette absence.")
-        return redirect('enseignant:historique_presence', eleve_id=eleve.id)
-    
-    # Vérifier que c'est bien une absence non justifiée
-    if presence.statut != 'absent':
-        messages.warning(request, "Cette présence n'est pas une absence.")
-        return redirect('enseignant:historique_presence', eleve_id=eleve.id)
-    
-    if presence.type_justificatif:
-        messages.warning(request, "Cette absence a déjà été justifiée.")
-        return redirect('enseignant:historique_presence', eleve_id=eleve.id)
-    
-    # Enregistrer la justification
-    try:
-        presence.type_justificatif = type_justificatif
-        presence.statut = 'absent_justifie'
-        presence.justificatif_valide = True
-        presence.date_justification = timezone.now()
-        presence.save()
-        
-        logger.info(f"Absence justifiée - Élève: {eleve.nom_complet}, Date: {presence.date}, Type: {type_justificatif}")
-        messages.success(
-            request,
-            f"Absence du {presence.date.strftime('%d/%m/%Y')} justifiée avec succès : {presence.get_type_justificatif_display()}"
-        )
-        _emit_enseignant_live(
-            professeur,
-            'presence.mise_a_jour',
-            classe_id=presence.classe_id,
-            eleve_id=eleve.id,
-            count=1,
-        )
-        from ..services.realtime_helpers import wants_json_response, json_ok
-        if wants_json_response(request):
-            return json_ok(
-                message=f"Absence justifiée pour {eleve.nom_complet}.",
-                eleve_id=eleve.id,
-            )
-    except Exception as e:
-        logger.error(f"Erreur justification absence: {str(e)}")
-        messages.error(request, f"Erreur lors de la justification : {str(e)}")
-    
-    from django.http import HttpResponseRedirect
-    from django.urls import reverse
-    url = reverse('enseignant:historique_presence', kwargs={'eleve_id': eleve.id})
-    return HttpResponseRedirect(url)
+
+    messages.info(
+        request,
+        "La justification des absences est gérée par l'établissement. "
+        "Utilisez Présent ou Absent lors de l'appel.",
+    )
+    if isinstance(request.user, Professeur):
+        etab = getattr(request.user, 'etablissement', None)
+        if etab and getattr(etab, 'type_etablissement', None) == 'primary':
+            return redirect('enseignant_primaire:gestion_presence')
+        return redirect('enseignant:gestion_presence')
+    return redirect('school_admin:connexion_compte_user')
 
 
 def detail_classe_enseignant(request, classe_id):

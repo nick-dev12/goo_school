@@ -36,6 +36,7 @@ TYPES_ETABLISSEMENT_SECONDAIRE = {
 }
 
 STATUTS_VALIDES = {"present", "absent", "retard", "absent_justifie"}
+STATUTS_SAISIE_PROF = {"present", "absent"}
 
 
 class PresenceSyncError(Exception):
@@ -206,9 +207,12 @@ def _statuts_par_eleve(presences) -> dict[int, str]:
             eleve_id = int(item.get("eleve_id"))
         except (TypeError, ValueError):
             continue
-        statut = str(item.get("statut") or "present")
-        if statut not in STATUTS_VALIDES:
-            statut = "present"
+        statut = str(item.get("statut") or "present").strip()
+        if statut not in STATUTS_SAISIE_PROF:
+            raise PresenceSyncError(
+                "Seuls les statuts Présent et Absent sont autorisés à l'appel.",
+                code="invalid_statut",
+            )
         mapping[eleve_id] = statut
     return mapping
 

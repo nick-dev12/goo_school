@@ -1,0 +1,71 @@
+{% load static %}
+<div class="notes-hub-evaluations-panel" id="notesPanelEvaluations">
+    <div class="notes-hub-eval-stats">
+        <div class="notes-hub-stat">
+            <span class="notes-hub-stat-value">{{ evaluations_liste_stats.total }}</span>
+            <span class="notes-hub-stat-label">Total</span>
+        </div>
+        <div class="notes-hub-stat">
+            <span class="notes-hub-stat-value notes-hub-stat-success">{{ evaluations_liste_stats.passees }}</span>
+            <span class="notes-hub-stat-label">Passées</span>
+        </div>
+        <div class="notes-hub-stat">
+            <span class="notes-hub-stat-value notes-hub-stat-warning">{{ evaluations_liste_stats.a_venir }}</span>
+            <span class="notes-hub-stat-label">À venir</span>
+        </div>
+    </div>
+
+    {% if evaluations_par_matiere %}
+        {% for matiere_id, matiere_data in evaluations_par_matiere.items %}
+            <section class="notes-hub-eval-matiere" aria-labelledby="eval-matiere-{{ matiere_id }}">
+                <h3 id="eval-matiere-{{ matiere_id }}" class="notes-hub-eval-matiere-title">
+                    <span class="notes-hub-matiere-code">{{ matiere_data.matiere.code }}</span>
+                    {{ matiere_data.matiere.nom }}
+                    <span class="notes-hub-eval-count">{{ matiere_data.evaluations|length }} éval.</span>
+                </h3>
+                <ul class="notes-hub-eval-list">
+                    {% for evaluation in matiere_data.evaluations %}
+                        <li class="notes-hub-eval-item">
+                            <div class="notes-hub-eval-item-head">
+                                <strong>{{ evaluation.titre }}</strong>
+                                <span class="notes-hub-eval-date">{{ evaluation.date_evaluation|date:"d/m/Y" }}</span>
+                            </div>
+                            {% if evaluation.description %}
+                                <p class="notes-hub-eval-desc">{{ evaluation.description|truncatewords:24 }}</p>
+                            {% endif %}
+                            <div class="notes-hub-eval-meta">
+                                <span>Barème {{ evaluation.bareme|floatformat:0 }}</span>
+                                {% if evaluation.est_passe %}
+                                    <span class="notes-hub-badge notes-hub-badge-success">Passée</span>
+                                {% else %}
+                                    <span class="notes-hub-badge notes-hub-badge-warning">À venir</span>
+                                {% endif %}
+                            </div>
+                            <div class="notes-hub-eval-actions">
+                                <button type="button" class="btn btn-secondary btn-sm" data-eval-modifier="{{ evaluation.id }}">
+                                    <i class="fas fa-edit" aria-hidden="true"></i> Modifier
+                                </button>
+                                <a href="{% url 'enseignant_primaire:noter_eleves' classe_selectionnee.id %}?periode={{ periode_selectionnee.id }}&matiere={{ matiere_data.matiere.id }}"
+                                   class="btn btn-primary btn-sm">
+                                    <i class="fas fa-clipboard-check" aria-hidden="true"></i> Noter
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state" role="status">
+            <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+            <p>Aucune évaluation pour cette sélection.</p>
+            {% if classe_selectionnee %}
+                <button type="button" class="btn btn-primary" data-open-evaluation-modal
+                        data-classe-id="{{ classe_selectionnee.id }}"
+                        data-periode-id="{{ periode_selectionnee.id }}">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Créer une évaluation
+                </button>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

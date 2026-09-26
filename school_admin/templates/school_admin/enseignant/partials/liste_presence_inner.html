@@ -129,52 +129,36 @@
                                 </td>
                                 <td colspan="4" class="col-statut-container">
                                     <div class="statut-buttons">
-                                        <label class="statut-option present {% if item.statut == 'present' %}active{% endif %} {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}">
+                                        {% if item.statut_legacy %}
+                                        <p class="presence-legacy-hint" role="status">
+                                            <i class="fas fa-info-circle" aria-hidden="true"></i>
+                                            {{ item.statut_legacy }}
+                                        </p>
+                                        {% endif %}
+                                        <label class="statut-option present {% if item.statut_saisie == 'present' %}active{% endif %} {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}">
                                             <input type="radio" 
                                                    name="presence_{{ item.eleve.id }}" 
                                                    value="present" 
-                                                   {% if item.statut == 'present' %}checked{% endif %}
-                                                   {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}>
+                                                   {% if item.statut_saisie == 'present' %}checked{% endif %}
+                                                   {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}
+                                                   required>
                                             <span class="statut-icon">
                                                 <i class="fas fa-check-circle"></i>
                                             </span>
                                             <span class="statut-label">Présent</span>
                                         </label>
                                         
-                                        <label class="statut-option absent {% if item.statut == 'absent' %}active{% endif %} {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}">
+                                        <label class="statut-option absent {% if item.statut_saisie == 'absent' %}active{% endif %} {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}">
                                             <input type="radio" 
                                                    name="presence_{{ item.eleve.id }}" 
                                                    value="absent" 
-                                                   {% if item.statut == 'absent' %}checked{% endif %}
-                                                   {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}>
+                                                   {% if item.statut_saisie == 'absent' %}checked{% endif %}
+                                                   {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}
+                                                   required>
                                             <span class="statut-icon">
                                                 <i class="fas fa-times-circle"></i>
                                             </span>
                                             <span class="statut-label">Absent</span>
-                                        </label>
-                                        
-                                        <label class="statut-option retard {% if item.statut == 'retard' %}active{% endif %} {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}">
-                                            <input type="radio" 
-                                                   name="presence_{{ item.eleve.id }}" 
-                                                   value="retard" 
-                                                   {% if item.statut == 'retard' %}checked{% endif %}
-                                                   {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}>
-                                            <span class="statut-icon">
-                                                <i class="fas fa-clock"></i>
-                                            </span>
-                                            <span class="statut-label">Retard</span>
-                                        </label>
-                                        
-                                        <label class="statut-option absent-justifie {% if item.statut == 'absent_justifie' %}active{% endif %} {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}">
-                                            <input type="radio" 
-                                                   name="presence_{{ item.eleve.id }}" 
-                                                   value="absent_justifie" 
-                                                   {% if item.statut == 'absent_justifie' %}checked{% endif %}
-                                                   {% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}>
-                                            <span class="statut-icon">
-                                                <i class="fas fa-file-medical"></i>
-                                            </span>
-                                            <span class="statut-label">Absent Justifié</span>
                                         </label>
                                     </div>
                                 </td>

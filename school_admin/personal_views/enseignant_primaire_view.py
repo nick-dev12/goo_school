@@ -59,6 +59,25 @@ from django.db.models.functions import Lower
 logger = logging.getLogger(__name__)
 
 
+def _notes_primaire_hub_url(periode_id=None, classe_id=None, matiere_id=None, vue=None, extra=None):
+    """URL hub notes primaire (?periode=&classe=&matiere=&vue=)."""
+    from django.urls import reverse
+
+    params = {}
+    if periode_id:
+        params['periode'] = str(periode_id)
+    if classe_id:
+        params['classe'] = str(classe_id)
+    if matiere_id:
+        params['matiere'] = str(matiere_id)
+    if vue:
+        params['vue'] = vue
+    if extra:
+        params.update(extra)
+    base = reverse('enseignant_primaire:gestion_notes')
+    return base + ('?' + urlencode(params) if params else '')
+
+
 def _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active=None):
     """
     Récupère les élèves d'une classe depuis InscriptionEleve pour l'année scolaire active.
@@ -601,11 +620,6 @@ def gestion_notes_primaire(request):
     if not annee_scolaire_active:
         messages.warning(request, "Aucune année scolaire active n'est définie pour votre établissement.")
     
-    # Récupérer les paramètres de navigation
-    classe_id = request.GET.get('classe')
-    matiere_id = request.GET.get('matiere')
-    periode_id = request.GET.get('periode')
-    
     # Récupérer toutes les périodes
     periodes = PeriodeScolaire.objects.filter(
         etablissement=professeur.etablissement,
@@ -615,12 +629,6 @@ def gestion_notes_primaire(request):
         periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
     periodes = periodes.order_by('date_debut')
     
-    # Période active par défaut
-    if periode_id:
-        periode_selectionnee = get_object_or_404(PeriodeScolaire, id=periode_id)
-    else:
-        periode_selectionnee = periodes.filter(est_active=True).first() or periodes.first()
-    
     # Récupérer les affectations et grouper les classes par type
     affectations = AffectationProfesseurPrimaire.objects.filter(
         professeur=professeur,
@@ -629,6 +637,44 @@ def gestion_notes_primaire(request):
     if annee_scolaire_active:
         affectations = affectations.filter(annee_scolaire=annee_scolaire_active)
     affectations = affectations.select_related('classe').prefetch_related('matieres')
+
+    classes_flat = []
+    seen_classe_ids = set()
+    for affectation in affectations:
+        if affectation.classe_id in seen_classe_ids:
+            continue
+        seen_classe_ids.add(affectation.classe_id)
+        classes_flat.append({
+            'classe': affectation.classe,
+            'affectation': affectation,
+            'nombre_eleves': affectation.classe.nombre_eleves,
+        })
+    classes_flat.sort(key=lambda item: item['classe'].nom)
+
+    matieres_ids_for_tabs = []
+    raw_cls_get = (request.GET.get('classe') or '').strip()
+    if raw_cls_get.isdigit():
+        for item in classes_flat:
+            if str(item['classe'].id) == raw_cls_get:
+                matieres_ids_for_tabs = [m.id for m in item['affectation'].matieres.all()]
+                break
+
+    from ..utils.professeur_ui_tabs import attach_notes_primaire_tab_context
+
+    tab_ctx = {}
+    attach_notes_primaire_tab_context(
+        request, tab_ctx, list(periodes), classes_flat, matieres_ids_for_tabs
+    )
+    periode_id = tab_ctx.get('initial_notes_periode_id') or ''
+    classe_id = tab_ctx.get('initial_notes_classe_id') or ''
+    matiere_id = tab_ctx.get('initial_notes_matiere_id') or ''
+    notes_vue = tab_ctx.get('initial_notes_vue') or 'releve'
+
+    # Période active
+    if periode_id:
+        periode_selectionnee = get_object_or_404(PeriodeScolaire, id=periode_id)
+    else:
+        periode_selectionnee = periodes.filter(est_active=True).first() or periodes.first()
     
     # Grouper les classes par catégorie (CI, CP, CE1, CE2, CM1, CM2)
     import re
@@ -710,12 +756,12 @@ def gestion_notes_primaire(request):
                     'nombre_evaluations': nb_evaluations + nb_examens  # Total des évaluations + examens
                 })
     
-    # Si une matière est sélectionnée, préparer le relevé de notes
+    # Si une matière est sélectionnée, préparer le relevé de notes (vue=releve)
     releve_data = []
     matiere_selectionnee = None
     evaluations_matiere = []
     
-    if classe_id and matiere_id:
+    if classe_id and matiere_id and notes_vue == 'releve':
         matiere_selectionnee = get_object_or_404(Matiere, id=matiere_id)
         classe_selectionnee = get_object_or_404(Classe, id=classe_id)
         
@@ -903,6 +949,38 @@ def gestion_notes_primaire(request):
     matieres_releve_complet = []
     releve_deja_soumis = False
     
+    evaluations_par_matiere = {}
+    evaluations_liste_stats = {'total': 0, 'passees': 0, 'a_venir': 0}
+    if notes_vue == 'evaluations' and classe_selectionnee and periode_selectionnee:
+        evaluations_query = EvaluationPrimaire.objects.filter(
+            professeur=professeur,
+            classe=classe_selectionnee,
+            periode_scolaire=periode_selectionnee,
+            actif=True,
+        )
+        if annee_scolaire_active:
+            evaluations_query = evaluations_query.filter(annee_scolaire=annee_scolaire_active)
+        if matiere_id:
+            evaluations_query = evaluations_query.filter(matiere_id=matiere_id)
+        evaluations_query = evaluations_query.select_related('matiere', 'periode_scolaire').order_by('-date_evaluation')
+        evaluations_liste = list(evaluations_query)
+        evaluations_liste_stats['total'] = len(evaluations_liste)
+        evaluations_liste_stats['passees'] = sum(
+            1 for ev in evaluations_liste if ev.date_evaluation and ev.date_evaluation < date.today()
+        )
+        evaluations_liste_stats['a_venir'] = evaluations_liste_stats['total'] - evaluations_liste_stats['passees']
+        for evaluation in evaluations_liste:
+            matiere = evaluation.matiere
+            if matiere.id not in evaluations_par_matiere:
+                evaluations_par_matiere[matiere.id] = {
+                    'matiere': matiere,
+                    'evaluations': [],
+                }
+            evaluations_par_matiere[matiere.id]['evaluations'].append(evaluation)
+
+    if matiere_id and not matiere_selectionnee and classe_selectionnee:
+        matiere_selectionnee = get_object_or_404(Matiere, id=matiere_id)
+
     if show_releve_complet and classe_selectionnee and affectation_selectionnee:
         # Calculer toutes les moyennes pour le relevé complet
         from ..utils.calcul_moyennes_primaire import calculer_toutes_moyennes_classe
@@ -925,12 +1003,20 @@ def gestion_notes_primaire(request):
         'periodes': periodes,
         'periode_selectionnee': periode_selectionnee,
         'classes_grouped': classes_grouped_ordered,
+        'classes_flat': classes_flat,
         'classe_selectionnee': classe_selectionnee,
         'affectation_selectionnee': affectation_selectionnee,
         'matieres_data': matieres_data,
         'matiere_selectionnee': matiere_selectionnee,
         'releve_data': releve_data,
         'evaluations_matiere': evaluations_matiere,
+        'notes_vue': notes_vue,
+        'initial_notes_periode_id': tab_ctx.get('initial_notes_periode_id', ''),
+        'initial_notes_classe_id': tab_ctx.get('initial_notes_classe_id', ''),
+        'initial_notes_matiere_id': tab_ctx.get('initial_notes_matiere_id', ''),
+        'initial_notes_vue': notes_vue,
+        'evaluations_par_matiere': evaluations_par_matiere,
+        'evaluations_liste_stats': evaluations_liste_stats,
         'total_classes': total_classes,
         'total_eleves': total_eleves,
         'show_releve_complet': show_releve_complet,
@@ -943,6 +1029,20 @@ def gestion_notes_primaire(request):
         'eval_matiere_id': request.GET.get('eval_matiere', ''),
         'eval_periode_id': request.GET.get('eval_periode', ''),
     }
+
+    if not request.GET.get('releve_complet') and not request.GET.get('open_evaluation'):
+        from django.http import HttpResponseRedirect
+
+        q = request.GET.copy()
+        needs_redirect = False
+        if periode_selectionnee and not request.GET.get('periode'):
+            q['periode'] = str(periode_selectionnee.id)
+            needs_redirect = True
+        if not request.GET.get('vue'):
+            q['vue'] = notes_vue
+            needs_redirect = True
+        if needs_redirect:
+            return HttpResponseRedirect(request.path + '?' + q.urlencode())
     
     return render(request, 'school_admin/enseignant/primaire/gestion_notes_primaire.html', context)
 
@@ -3187,110 +3287,17 @@ def supprimer_evaluation_primaire(request, evaluation_id):
 
 def evaluations_classe_primaire(request, classe_id):
     """
-    Affiche toutes les évaluations créées par le professeur pour une classe donnée.
-    Navigation par onglets pour les périodes.
+    Redirige vers le hub notes (?classe=&vue=evaluations).
     """
-    if not isinstance(request.user, Professeur):
-        messages.error(request, "Accès non autorisé.")
-        return redirect('school_admin:connexion_compte_user')
-    
-    professeur = request.user
-    classe = get_object_or_404(Classe, id=classe_id, actif=True)
-    
-    # Récupérer l'année scolaire active
-    annee_scolaire_active = get_session_active(request, professeur.etablissement)
-    if not annee_scolaire_active:
-        messages.error(request, "Aucune année scolaire active n'est définie pour votre établissement.")
-        return redirect('enseignant_primaire:gestion_notes')
-    
-    # Vérifier que le professeur est affecté à cette classe
-    affectation_qs = AffectationProfesseurPrimaire.objects.filter(
-        professeur=professeur,
-        classe=classe,
-        actif=True
-    )
-    if annee_scolaire_active:
-        affectation_qs = affectation_qs.filter(annee_scolaire=annee_scolaire_active)
-    affectation = affectation_qs.first()
-    
-    if not affectation:
-        messages.error(request, "Vous n'êtes pas affecté à cette classe.")
-        return redirect('enseignant_primaire:gestion_notes')
-    
-    # Récupérer toutes les périodes scolaires de l'établissement
-    periodes = PeriodeScolaire.objects.filter(
-        etablissement=professeur.etablissement,
-        est_active=True
-    )
-    if annee_scolaire_active:
-        periodes = periodes.filter(annee_scolaire_fk=annee_scolaire_active)
-    periodes = periodes.order_by('date_debut')
-    
-    # Récupérer la période sélectionnée depuis l'URL
-    periode_id = request.GET.get('periode')
-    periode_selectionnee = None
-    
-    if periode_id:
-        try:
-            periode_selectionnee = periodes.get(id=periode_id)
-        except PeriodeScolaire.DoesNotExist:
-            pass
-    
-    # Si aucune période sélectionnée, utiliser la première active
-    if not periode_selectionnee:
-        periode_selectionnee = periodes.filter(est_active=True).first() or periodes.first()
-    
-    # Récupérer toutes les évaluations créées par ce professeur pour cette classe
-    evaluations_query = EvaluationPrimaire.objects.filter(
-        professeur=professeur,
-        classe=classe,
-        actif=True
-    )
-    if annee_scolaire_active:
-        evaluations_query = evaluations_query.filter(annee_scolaire=annee_scolaire_active)
-    evaluations_query = evaluations_query.select_related('matiere', 'periode_scolaire').order_by('-date_evaluation')
-    
-    # Filtrer par période si une période est sélectionnée
-    if periode_selectionnee:
-        evaluations = evaluations_query.filter(periode_scolaire=periode_selectionnee)
-    else:
-        evaluations = evaluations_query
-    
-    # Grouper les évaluations par matière
-    evaluations_par_matiere = {}
-    for evaluation in evaluations:
-        matiere = evaluation.matiere
-        if matiere.id not in evaluations_par_matiere:
-            evaluations_par_matiere[matiere.id] = {
-                'matiere': matiere,
-                'evaluations': []
-            }
-        evaluations_par_matiere[matiere.id]['evaluations'].append(evaluation)
-    
-    # Statistiques globales
-    total_evaluations = evaluations.count()
-    evaluations_passees = evaluations.filter(date_evaluation__lt=date.today()).count()
-    evaluations_a_venir = evaluations.filter(date_evaluation__gte=date.today()).count()
-    
-    # Récupérer les matières pour le formulaire de modification
-    matieres = affectation.matieres.all()
-    
-    context = {
-        'professeur': professeur,
-        'classe': classe,
-        'affectation': affectation,
-        'periodes': periodes,
-        'periode_selectionnee': periode_selectionnee,
-        'evaluations': evaluations,
-        'evaluations_par_matiere': evaluations_par_matiere,
-        'total_evaluations': total_evaluations,
-        'evaluations_passees': evaluations_passees,
-        'evaluations_a_venir': evaluations_a_venir,
-        'matieres': matieres,
-        'annee_scolaire_active': annee_scolaire_active,
-    }
-    
-    return render(request, 'school_admin/enseignant/primaire/evaluations_classe_primaire.html', context)
+    from django.http import HttpResponseRedirect
+    from django.urls import reverse
+
+    params = request.GET.copy()
+    params['classe'] = str(classe_id)
+    params['vue'] = 'evaluations'
+    base = reverse('enseignant_primaire:gestion_notes')
+    query = params.urlencode()
+    return HttpResponseRedirect(base + ('?' + query if query else ''))
 
 
 def modifier_evaluation_primaire(request, evaluation_id):
@@ -3350,7 +3357,9 @@ def modifier_evaluation_primaire(request, evaluation_id):
                     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                         return JsonResponse({'success': False, 'message': 'Tous les champs obligatoires doivent être remplis.'})
                     messages.error(request, "Tous les champs obligatoires doivent être remplis.")
-                    return redirect('enseignant_primaire:evaluations_classe', classe_id=classe.id)
+                    return redirect(_notes_primaire_hub_url(
+                        periode_id=periode_id, classe_id=classe.id, vue='evaluations'
+                    ))
                 
                 matiere = get_object_or_404(Matiere, id=matiere_id)
                 periode = get_object_or_404(PeriodeScolaire, id=periode_id)
@@ -3360,7 +3369,9 @@ def modifier_evaluation_primaire(request, evaluation_id):
                     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                         return JsonResponse({'success': False, 'message': "Vous n'enseignez pas cette matière dans cette classe."})
                     messages.error(request, "Vous n'enseignez pas cette matière dans cette classe.")
-                    return redirect('enseignant_primaire:evaluations_classe', classe_id=classe.id)
+                    return redirect(_notes_primaire_hub_url(
+                        periode_id=periode.id, classe_id=classe.id, vue='evaluations'
+                    ))
                 
                 # Mettre à jour l'évaluation
                 evaluation.titre = titre
@@ -3377,11 +3388,15 @@ def modifier_evaluation_primaire(request, evaluation_id):
                     return JsonResponse({
                         'success': True,
                         'message': f"Évaluation '{titre}' modifiée avec succès.",
-                        'redirect_url': f"/enseignant/primaire/evaluations-classe/{classe.id}/?periode={periode.id}"
+                        'redirect_url': _notes_primaire_hub_url(
+                            periode.id, classe.id, matiere.id, vue='evaluations'
+                        ),
                     })
                 
                 messages.success(request, f"Évaluation '{titre}' modifiée avec succès.")
-                return redirect('enseignant_primaire:evaluations_classe', classe_id=classe.id)
+                return redirect(_notes_primaire_hub_url(
+                    periode.id, classe.id, matiere.id, vue='evaluations'
+                ))
                 
         except Exception as e:
             logger.error(f"Erreur lors de la modification de l'évaluation: {e}")
@@ -3402,7 +3417,7 @@ def modifier_evaluation_primaire(request, evaluation_id):
         return JsonResponse({'html': html})
     
     # Pour les requêtes normales (redirection)
-    return redirect('enseignant_primaire:evaluations_classe', classe_id=classe.id)
+    return redirect(_notes_primaire_hub_url(classe_id=classe.id, vue='evaluations'))
 
 
 def calculer_moyennes_classe_primaire(request, classe_id):
@@ -3632,19 +3647,17 @@ def liste_presence_primaire(request, classe_id):
         # Construire la liste des élèves avec leur statut
         for eleve in eleves:
             presence = presences_dict.get(eleve.id)
-            eleves_avec_presence.append({
-                'eleve': eleve,
-                'presence': presence,
-                'statut': presence.statut if presence else 'present'
-            })
+            from ..utils.professeur_ui_tabs import enrich_eleve_presence_row
+            row = {'eleve': eleve, 'presence': presence}
+            row.update(enrich_eleve_presence_row(presence))
+            eleves_avec_presence.append(row)
     else:
         # Aucune liste actuelle (limite atteinte)
         for eleve in eleves:
-            eleves_avec_presence.append({
-                'eleve': eleve,
-                'presence': None,
-                'statut': 'present'
-            })
+            from ..utils.professeur_ui_tabs import enrich_eleve_presence_row
+            row = {'eleve': eleve, 'presence': None}
+            row.update(enrich_eleve_presence_row(None))
+            eleves_avec_presence.append(row)
     
     context = {
         'professeur': professeur,
@@ -3659,6 +3672,9 @@ def liste_presence_primaire(request, classe_id):
         'appels_du_jour': appels_du_jour,
         'annee_scolaire_active': annee_scolaire_active,
     }
+    from ..utils.professeur_ui_tabs import attach_presence_liste_tab_context
+
+    attach_presence_liste_tab_context(request, context)
     
     return render(request, 'school_admin/enseignant/primaire/liste_presence_primaire.html', context)
 

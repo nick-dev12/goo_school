@@ -204,6 +204,21 @@ def etablissement_type(request) -> Dict:
     }
 
 
+def professeur_hub_v3(request) -> Dict[str, bool]:
+    """Vague 3 UI — collège / lycée / mixte (assets shell + flag par défaut)."""
+    user = getattr(request, "user", None)
+    if user is None or not user.is_authenticated:
+        return {"hub_v3": False}
+
+    from school_admin.model.professeur_model import Professeur
+    from school_admin.utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
+
+    if not isinstance(user, Professeur):
+        return {"hub_v3": False}
+
+    return {"hub_v3": enseignant_est_hub_v3_collège_lycée(user)}
+
+
 def seo_context(request) -> Dict[str, object]:
     """Métadonnées SEO automatiques selon l'URL (voir school_admin.seo)."""
     from school_admin.seo import resolve_seo

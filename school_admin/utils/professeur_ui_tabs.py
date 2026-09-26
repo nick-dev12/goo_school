@@ -8,6 +8,34 @@ STATUTS_PRESENCE_SAISIE = ('present', 'absent')
 NOTES_PRIMAIRE_VUE_CHOICES = ('releve', 'saisie', 'evaluations')
 
 
+def enseignant_est_hub_v3_collège_lycée(professeur):
+    """Vague 3 : collège / lycée / mixte — hors primaire et supérieur LMD."""
+    etab = getattr(professeur, 'etablissement', None)
+    if not etab:
+        return False
+    te = getattr(etab, 'type_etablissement', None)
+    return te not in ('primary', 'superieur')
+
+
+def classes_flat_from_secondaire_affectations(affectations, nombre_eleves_by_classe=None):
+    """Liste plate classes — AffectationProfesseur (collège/lycée)."""
+    flat = []
+    seen = set()
+    counts = nombre_eleves_by_classe or {}
+    for aff in affectations or []:
+        if aff.classe_id in seen:
+            continue
+        seen.add(aff.classe_id)
+        flat.append({
+            'classe': aff.classe,
+            'affectation': aff,
+            'nombre_eleves': counts.get(aff.classe_id, getattr(aff.classe, 'nombre_eleves', None)),
+            'matiere': getattr(aff, 'matiere', None),
+        })
+    flat.sort(key=lambda item: item['classe'].nom)
+    return flat
+
+
 def classes_flat_from_affectations(affectations):
     """Liste plate des classes du prof (ordre alphabétique)."""
     flat = []

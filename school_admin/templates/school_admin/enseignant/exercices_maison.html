@@ -12,8 +12,9 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/exercices_maison_primaire.css' %}?v=1.0.2">
 
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
+    {% if hub_v3 %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
-<body data-live-page="exercices">
+<body data-live-page="exercices"{% if hub_v3 %} data-prof-hub-key="professeur:secondaire-exercices" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <div class="main-content-container">
@@ -93,6 +94,12 @@
                 </div>
             </div>
 
+            {% if hub_v3 %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un exercice…" search_target=".prof-primaire-searchable .exercice-card" %}
+            {% endif %}
+
             <div class="tabs-container">
                 <div class="tabs-nav">
                     {% for categorie in categories_data %}
@@ -123,11 +130,13 @@
                             </div>
                         </div>
 
+                        {% if not hub_v3 %}
                         <div class="classes-tabs">
                             {% for classe_data in categorie.classes %}
                                 {% with classe_id=classe_data.classe.id %}
                                     <button class="classe-tab-btn {% if classe_selectionnee and classe_selectionnee.id == classe_id %}active{% elif not classe_selectionnee and forloop.first and forloop.parentloop.first %}active{% endif %}"
                                             data-classe="classe-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                                            data-classe-id="{{ classe_id }}"
                                             onclick="showClasse('classe-{{ forloop.parentloop.counter }}-{{ forloop.counter }}', 'tab-{{ forloop.parentloop.counter }}')">
                                         <div class="classe-tab-icon">
                                             <i class="fas fa-chalkboard-teacher"></i>
@@ -144,11 +153,13 @@
                                 {% endwith %}
                             {% endfor %}
                         </div>
+                        {% endif %}
 
                         {% for classe_data in categorie.classes %}
                             {% with classe_id=classe_data.classe.id %}
-                                <div class="classe-content {% if classe_selectionnee and classe_selectionnee.id == classe_id %}active{% elif not classe_selectionnee and forloop.first and forloop.parentloop.first %}active{% endif %}"
-                                     id="classe-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                                <div class="classe-content {% if not hub_v3 %}{% if classe_selectionnee and classe_selectionnee.id == classe_id %}active{% elif not classe_selectionnee and forloop.first and forloop.parentloop.first %}active{% endif %}{% endif %}"
+                                     id="classe-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                                     data-classe-panel="{{ classe_id }}">
                                     <div class="classe-header-actions">
                                         <div class="classe-header-info">
                                             <h3>
@@ -185,7 +196,7 @@
                                     {% if classe_selectionnee and classe_selectionnee.id == classe_id %}
                                         {% if matiere_selectionnee %}
                                             {% if exercices_cards %}
-                                                <div class="exercices-card-grid">
+                                                <div class="exercices-card-grid{% if hub_v3 %} prof-primaire-searchable{% endif %}">
                                                     {% for exercice in exercices_cards %}
                                                     <article class="exercice-card">
                                                         <span class="status-chip status-{{ exercice.status_class }}">
@@ -362,6 +373,7 @@
     {{ exercices_json|json_script:"exercices-data" }}
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+    {% if hub_v3 %}{% include 'school_admin/enseignant/partials/prof_hub_ui_scripts.html' %}{% endif %}
     <script src="{% static 'school_admin/js/enseignant/gestion_eleves.js' %}"></script>
     <script>
         const classesData = JSON.parse(document.getElementById('classes-data').textContent || '[]');

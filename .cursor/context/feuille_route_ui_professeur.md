@@ -2,12 +2,13 @@
 
 **Store** : `...\bc-451181e0-...\files\docs\feuille-route-ui-professeur.md`
 
-**Statut** : **Vagues 0–2 livrées** — branche `cursor/prof-ui-vague2-a40c` — STOP avant Vague 3 (collège/lycée).
+**Statut** : **Vagues 0–3 livrées** — branche `cursor/prof-ui-vague3-a40c` — **STOP avant Vague 4 (LMD supérieur)**.
 
-## V2 — reste primaire
+## V3 — collège / lycée / mixte
 
-Stack partagée : `prof_primaire_ui_assets.html`, `prof_primaire_hub.js`, `professeur_ui_tabs.classes_flat_from_affectations`.
+- Hub : `prof_hub_ui_assets.html` / `prof_hub_ui_scripts.html`, partials primaire (classe, période, recherche).
+- Backend : `enseignant_est_hub_v3_collège_lycée`, `_enseignant_classe_hub_bundle`, context processor `professeur_hub_v3`.
+- URLs clés : `/enseignant/classes/`, `eleves/`, `presence/`, `notes/`, `justifications-notes/`, `exercices/`, `eleves-difficulte/` avec `?classe=` / `?periode=`.
+- Hors scope : `est_superieur` (Vague 4), primaire (V0–2), directeur, assistant, CG, shell.
 
-Pages hub : classes, élèves, présence, exercices, justifications, élèves en difficulté (+ assets dashboard, profil, EDT, historique, annonces, détail classe/élève, sanctions).
-
-Recette 8047 : bottom nav primaire + F5 sur `?classe=` / `?periode=`.
+Voir le store pour le détail recette et manuel restant.

@@ -27,6 +27,51 @@ from django.db.models.functions import Lower
 logger = logging.getLogger(__name__)
 
 
+def _enseignant_classe_hub_bundle(request, affectations, etablissement, annee_scolaire_active, pick_first=False):
+    """Hub V3 — ?classe= + classes_flat (collège/lycée uniquement)."""
+    from ..utils.professeur_ui_tabs import (
+        classes_flat_from_secondaire_affectations,
+        attach_primaire_classe_tab_context,
+    )
+
+    counts = {}
+    for aff in affectations:
+        if aff.classe_id in counts:
+            continue
+        if annee_scolaire_active and etablissement:
+            counts[aff.classe_id] = InscriptionEleve.objects.filter(
+                annee_scolaire=annee_scolaire_active,
+                classe_id=aff.classe_id,
+                etablissement=etablissement,
+            ).count()
+        else:
+            counts[aff.classe_id] = aff.classe.nombre_eleves
+    classes_flat = classes_flat_from_secondaire_affectations(affectations, counts)
+    tab_ctx = {}
+    attach_primaire_classe_tab_context(
+        request, tab_ctx, classes_flat, pick_first_if_missing=pick_first
+    )
+    initial_classe_id = tab_ctx.get('initial_classe_id') or ''
+    classe_selectionnee = None
+    if initial_classe_id:
+        for item in classes_flat:
+            if str(item['classe'].id) == initial_classe_id:
+                classe_selectionnee = item['classe']
+                break
+    return classes_flat, initial_classe_id, classe_selectionnee, tab_ctx
+
+
+def _enseignant_hub_redirect_classe(request, initial_classe_id, extra=None):
+    if not initial_classe_id or request.GET.get('classe'):
+        return None
+    from django.http import HttpResponseRedirect
+
+    params = {'classe': initial_classe_id}
+    if extra:
+        params.update(extra)
+    return HttpResponseRedirect(request.path + '?' + urlencode(params))
+
+
 def _emit_enseignant_live(professeur, event_type, **extra):
     """Émet un événement temps réel pour l'établissement du professeur."""
     from ..services.realtime_helpers import emit_live
@@ -682,9 +727,25 @@ def gestion_classes_enseignant(request):
         'classes_classiques': sum(1 for cd in classes_data if not cd['est_principal']),
     }
     
+    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
+
+    classes_flat = []
+    initial_classe_id = ''
+    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur)
+    if hub_v3:
+        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
+            request, affectations, etablissement, annee_scolaire_active, pick_first=True
+        )
+        redir = _enseignant_hub_redirect_classe(request, initial_classe_id)
+        if redir:
+            return redir
+
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
+        'hub_v3': hub_v3,
         'stats': stats,
         'total_classes': stats['total_classes'],
         'annee_scolaire_active': annee_scolaire_active,
@@ -833,9 +894,27 @@ def gestion_eleves_enseignant(request):
         'total_eleves': total_eleves,
     }
     
+    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
+
+    classes_flat = []
+    initial_classe_id = ''
+    classe_selectionnee = None
+    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur)
+    if hub_v3:
+        classes_flat, initial_classe_id, classe_selectionnee, _ = _enseignant_classe_hub_bundle(
+            request, affectations, etablissement, annee_scolaire_active, pick_first=True
+        )
+        redir = _enseignant_hub_redirect_classe(request, initial_classe_id)
+        if redir:
+            return redir
+
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
+        'classe_selectionnee': classe_selectionnee,
+        'hub_v3': hub_v3,
         'stats': stats,
         'annee_scolaire_active': annee_scolaire_active,
     }
@@ -1134,13 +1213,40 @@ def gestion_notes_enseignant(request):
         'total_eleves': total_eleves,
     }
     
+    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
+
+    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur) and not est_superieur
+    classes_flat = []
+    initial_classe_id = ''
+    if hub_v3:
+        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
+            request, affectations, etablissement, annee_scolaire_active, pick_first=True
+        )
+        if periode_active_obj and not request.GET.get('periode'):
+            from django.http import HttpResponseRedirect
+            q = {'periode': str(periode_active_obj.id)}
+            if initial_classe_id:
+                q['classe'] = initial_classe_id
+            return HttpResponseRedirect(request.path + '?' + urlencode(q))
+        if initial_classe_id and not request.GET.get('classe'):
+            from django.http import HttpResponseRedirect
+            q = {'classe': initial_classe_id}
+            if periode_active_obj:
+                q['periode'] = str(periode_active_obj.id)
+            return HttpResponseRedirect(request.path + '?' + urlencode(q))
+
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
+        'hub_v3': hub_v3,
         'stats': stats,
         'matiere_principale': professeur.matiere_principale,
         'periode_active': None if est_superieur else periode_active_obj,
+        'periode_selectionnee': periode_active_obj,
         'periodes_scolaires': periodes_scolaires,
+        'periodes': periodes_scolaires,
         'sessions_examens_par_classe': sessions_examens_par_classe,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur,
@@ -1598,14 +1704,34 @@ def justifications_notes_enseignant(request):
 
     notes_json = json.dumps(notes_payload, ensure_ascii=False)
 
+    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
+
+    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur)
+    classes_flat = []
+    initial_classe_id = ''
+    if hub_v3:
+        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
+            request, affectations, etablissement, annee_scolaire_active, pick_first=False
+        )
+        if periode_active and not request.GET.get('periode'):
+            from django.http import HttpResponseRedirect
+            q = {'periode': str(periode_active.id)}
+            if initial_classe_id:
+                q['classe'] = initial_classe_id
+            return HttpResponseRedirect(request.path + '?' + urlencode(q))
+
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
+        'hub_v3': hub_v3,
         'stats': stats,
         'notes_json': notes_json,
         'motifs_justification': MOTIFS_JUSTIFICATION_SECONDAIRE,
         'periodes': periodes,
         'periode_active': periode_active,
+        'periode_selectionnee': periode_active,
         'annee_scolaire_active': annee_scolaire_active,
     }
 
@@ -1996,11 +2122,30 @@ def exercices_maison_enseignant(request):
             'date_rendu': exercice.date_rendu.isoformat(),
         })
 
+    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
+
+    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur)
+    classes_flat = []
+    initial_classe_id = ''
+    if hub_v3:
+        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
+            request, affectations, etablissement, annee_scolaire_active, pick_first=True
+        )
+        if periode_selectionnee and not request.GET.get('periode'):
+            from django.http import HttpResponseRedirect
+            q = {'periode': str(periode_selectionnee.id)}
+            if initial_classe_id:
+                q['classe'] = initial_classe_id
+            return HttpResponseRedirect(request.path + '?' + urlencode(q))
+
     context = {
         'professeur': professeur,
         'periodes': periodes,
         'periode_selectionnee': periode_selectionnee,
         'classes_grouped': classes_grouped,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
+        'hub_v3': hub_v3,
         'classes_categories': classes_categories,
         'classes_options': classes_options,
         'categories_data': categories_data,
@@ -2169,9 +2314,25 @@ def gestion_presence_enseignant(request):
         'total_eleves': total_eleves,
     }
     
+    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
+
+    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur)
+    classes_flat = []
+    initial_classe_id = ''
+    if hub_v3:
+        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
+            request, affectations, etablissement, annee_scolaire_active, pick_first=True
+        )
+        redir = _enseignant_hub_redirect_classe(request, initial_classe_id)
+        if redir:
+            return redir
+
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
+        'hub_v3': hub_v3,
         'stats': stats,
         'matiere_principale': professeur.matiere_principale,
         'annee_scolaire_active': annee_scolaire_active,
@@ -2466,13 +2627,34 @@ def eleves_en_difficulte_enseignant(request):
         'total_eleves': total_eleves_difficulte,
     }
     
+    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
+
+    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur) and not est_superieur
+    classes_flat = []
+    initial_classe_id = ''
+    if hub_v3:
+        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
+            request, affectations, etablissement, annee_scolaire_active, pick_first=True
+        )
+        if periode_active_obj and not request.GET.get('periode'):
+            from django.http import HttpResponseRedirect
+            q = {'periode': str(periode_active_obj.id)}
+            if initial_classe_id:
+                q['classe'] = initial_classe_id
+            return HttpResponseRedirect(request.path + '?' + urlencode(q))
+
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
+        'hub_v3': hub_v3,
         'stats': stats,
         'matiere_principale': professeur.matiere_principale,
         'periode_active': None if est_superieur else periode_active_obj,
+        'periode_selectionnee': periode_active_obj,
         'periodes_scolaires': periodes_scolaires,
+        'periodes': periodes_scolaires,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur,
     }

@@ -10,8 +10,9 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_eleves.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
+    {% if hub_v3 %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
-<body data-live-page="eleves-gestion">
+<body data-live-page="eleves-gestion"{% if hub_v3 %} data-prof-hub-key="professeur:secondaire-eleves" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <!-- Main Content -->
@@ -77,6 +78,11 @@
                 </div>
             </div>
 
+            {% if hub_v3 %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" search_target=".prof-primaire-searchable .presence-row" %}
+            {% endif %}
+
             <!-- Onglets par catégorie -->
             <div class="tabs-container">
                 <div class="tabs-nav">
@@ -110,10 +116,12 @@
                         </div>
 
                         <!-- Sous-onglets par classe -->
+                        {% if not hub_v3 %}
                         <div class="classes-tabs">
                             {% for classe_data in data.classes %}
                                 <button class="classe-tab-btn {% if forloop.first %}active{% endif %}"
                                         data-classe="classe-{{ categorie }}-{{ forloop.counter }}"
+                                        data-classe-id="{{ classe_data.classe.id }}"
                                         onclick="showClasse('classe-{{ categorie }}-{{ forloop.counter }}', 'tab-{{ forloop.parentloop.counter }}')">
                                     <div class="classe-tab-icon">
                                         <i class="fas fa-users"></i>
@@ -134,10 +142,11 @@
                                 </button>
                             {% endfor %}
                         </div>
+                        {% endif %}
 
                         <!-- Contenu de chaque classe -->
                         {% for classe_data in data.classes %}
-                            <div class="classe-content {% if forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}">
+                            <div class="classe-content {% if not hub_v3 and forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}" data-classe-panel="{{ classe_data.classe.id }}">
                                 <!-- Header classe avec bouton présence -->
                                 <div class="classe-header-actions">
                                     <div class="classe-header-info">
@@ -165,7 +174,7 @@
 
                                 {% if classe_data.eleves %}
                                     <!-- Liste des élèves -->
-                                    <div class="table-responsive">
+                                    <div class="table-responsive{% if hub_v3 %} prof-primaire-searchable{% endif %}">
                                         <div class="presence-list">
                                             <div class="presence-header">
                                                 <div class="col-numero">#</div>
@@ -256,6 +265,7 @@
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+    {% if hub_v3 %}{% include 'school_admin/enseignant/partials/prof_hub_ui_scripts.html' %}{% endif %}
     <script src="{% static 'school_admin/js/enseignant/gestion_eleves.js' %}"></script>
     <script>
         // Fonction pour changer d'onglet principal

@@ -100,11 +100,13 @@
       window.professeurTabStorage.syncUrlAndStore(key, values);
     }
 
-    document.querySelectorAll('.prof-primaire-tab-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        syncHubLinkStore(link);
+    if (document.body.getAttribute('data-prof-hub-nav-live') !== '1') {
+      document.querySelectorAll('.prof-primaire-tab-link').forEach(function (link) {
+        link.addEventListener('click', function () {
+          syncHubLinkStore(link);
+        });
       });
-    });
+    }
 
     document.querySelectorAll('.prof-hub-lmd-periode-link').forEach(function (link) {
       link.addEventListener('click', function () {
@@ -117,5 +119,16 @@
       searchInput.addEventListener('input', filterSearchRows);
     }
     window.addEventListener('resize', layoutOverflow);
+
+    document.addEventListener('prof-hub-panel-loaded', function () {
+      var params = new URLSearchParams(window.location.search);
+      var classeId = params.get('classe') || document.body.getAttribute('data-initial-classe') || '';
+      activateClassePanels(classeId);
+      layoutOverflow();
+      var searchInput = document.getElementById('profPrimaireSearchInput');
+      if (searchInput) {
+        filterSearchRows();
+      }
+    });
   });
 })();

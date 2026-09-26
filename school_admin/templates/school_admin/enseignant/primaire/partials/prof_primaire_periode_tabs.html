@@ -5,7 +5,7 @@
         <div class="matiere-tabs-track" role="tablist">
             {% for periode in periodes_list %}
                 <a role="tab"
-                   class="matiere-tab-btn prof-primaire-tab-link {% if sel_periode and sel_periode.id == periode.id %}active{% endif %}"
+                   class="matiere-tab-btn prof-primaire-tab-link prof-hub-nav-link {% if sel_periode and sel_periode.id == periode.id %}active{% endif %}"
                    aria-selected="{% if sel_periode and sel_periode.id == periode.id %}true{% else %}false{% endif %}"
                    href="?periode={{ periode.id }}{% if initial_classe_id %}&classe={{ initial_classe_id }}{% endif %}{% if initial_matiere_id %}&matiere={{ initial_matiere_id }}{% endif %}">
                     <i class="fas fa-calendar-alt" aria-hidden="true"></i>

@@ -4,7 +4,7 @@
         <div class="matiere-tabs-track" role="tablist">
             {% for item in classes_flat %}
                 <a role="tab"
-                   class="matiere-tab-btn prof-primaire-tab-link {% if initial_classe_id == item.classe.id|stringformat:'s' %}active{% endif %}"
+                   class="matiere-tab-btn prof-primaire-tab-link prof-hub-nav-link {% if initial_classe_id == item.classe.id|stringformat:'s' %}active{% endif %}"
                    aria-selected="{% if initial_classe_id == item.classe.id|stringformat:'s' %}true{% else %}false{% endif %}"
                    data-classe-id="{{ item.classe.id }}"
                    href="?classe={{ item.classe.id }}{% if periode_selectionnee %}&periode={{ periode_selectionnee.id }}{% endif %}{% if initial_matiere_id %}&matiere={{ initial_matiere_id }}{% endif %}">

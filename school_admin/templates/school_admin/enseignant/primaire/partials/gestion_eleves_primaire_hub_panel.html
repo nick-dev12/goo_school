@@ -1,0 +1,154 @@
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
+
+            <!-- Onglets par catégorie -->
+            <div class="tabs-container">
+                <div class="tabs-nav">
+                    {% for categorie, data in eleves_par_categorie.items %}
+                        <button class="tab-btn {% if forloop.first %}active{% endif %}" 
+                                data-tab="tab-{{ forloop.counter }}"
+                                onclick="switchTab('tab-{{ forloop.counter }}')">
+                            <div class="tab-content">
+                                <span class="tab-title">{{ categorie }}</span>
+                                <span class="tab-badge">{{ data.classes|length }}</span>
+                            </div>
+                            <div class="tab-info">
+                                <span class="tab-students">{{ data.total_eleves }} élèves</span>
+                            </div>
+                        </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Contenu des onglets -->
+                {% for categorie, data in eleves_par_categorie.items %}
+                    <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                        <!-- Info catégorie -->
+                        <div class="category-info">
+                            <div class="category-details">
+                                <h3><i class="fas fa-layer-group"></i> {{ categorie }}</h3>
+                                <p>
+                                    {{ data.classes|length }} classe{{ data.classes|length|pluralize }} - 
+                                    {{ data.total_eleves }} élève{{ data.total_eleves|pluralize }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Sous-onglets par classe -->
+                        <div class="classes-tabs">
+                            {% for classe_data in data.classes %}
+                                <button class="classe-tab-btn {% if forloop.first %}active{% endif %}"
+                                        data-classe="classe-{{ categorie }}-{{ forloop.counter }}"
+                                        data-classe-id="{{ classe_data.classe.id }}"
+                                        onclick="showClasse('classe-{{ categorie }}-{{ forloop.counter }}', 'tab-{{ forloop.parentloop.counter }}')">
+                                    <div class="classe-tab-icon">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="classe-tab-content">
+                                        <span class="classe-tab-name">{{ classe_data.classe.nom }}</span>
+                                        <span class="classe-tab-badge principal">Polyvalent</span>
+                                    </div>
+                                    <span class="classe-tab-count">{{ classe_data.nombre_eleves }}</span>
+                                </button>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Contenu de chaque classe -->
+                        {% for classe_data in data.classes %}
+                            <div class="classe-content {% if forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}" data-classe-panel="{{ classe_data.classe.id }}">
+                                <!-- Header classe avec boutons présence et sanctions -->
+                                <div class="classe-header-actions">
+                                    <div class="classe-header-info">
+                                        <h3><i class="fas fa-chalkboard"></i> {{ classe_data.classe.nom }}</h3>
+                                        <span class="eleves-count">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }}</span>
+                                    </div>
+                                    <div class="action-buttons">
+                                        <a href="{% url 'enseignant_primaire:liste_presence' classe_data.classe.id %}" class="btn-action primary" title="Liste de présence">
+                                            <i class="fas fa-clipboard-list"></i>
+                                            <span>Liste de présence</span>
+                                        </a>
+                                        <a href="{% url 'enseignant_primaire:liste_sanctions_classe' classe_data.classe.id %}" class="btn-action warning" title="Liste des sanctions">
+                                            <i class="fas fa-gavel"></i>
+                                            <span>Liste des sanctions</span>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                {% if classe_data.eleves %}
+                                    <!-- Liste des élèves -->
+                                    <div class="table-responsive prof-primaire-searchable">
+                                        <div class="presence-list">
+                                            <div class="presence-header">
+                                                <div class="col-numero">#</div>
+                                                <div class="col-nom">Nom complet</div>
+                                                <div class="col-sexe">Sexe</div>
+                                                <div class="col-absences">Absences</div>
+                                                <div class="col-sanctions">Sanctions</div>
+                                                <div class="col-actions">Actions</div>
+                                            </div>
+                                            
+                                            {% for eleve_data in classe_data.eleves %}
+                                                <div class="presence-row">
+                                                    <div class="col-numero">{{ forloop.counter }}</div>
+                                                    <div class="col-nom">
+                                                        <div class="eleve-avatar-small">
+                                                            {{ eleve_data.eleve.nom.0 }}{{ eleve_data.eleve.prenom.0 }}
+                                                        </div>
+                                                        <div class="eleve-info">
+                                                            <span class="eleve-nom-complet">{{ eleve_data.eleve.nom_complet }}</span>
+                                                            <span class="eleve-matricule">{{ eleve_data.eleve.numero_matricule_complet }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sexe">
+                                                        <span class="badge-sexe {% if eleve_data.eleve.sexe == 'M' %}masculin{% else %}feminin{% endif %}">
+                                                            <i class="fas fa-{% if eleve_data.eleve.sexe == 'M' %}mars{% else %}venus{% endif %}"></i>
+                                                            {{ eleve_data.eleve.get_sexe_display }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="col-absences">
+                                                        {% if eleve_data.nombre_absences > 0 %}
+                                                            <span class="badge-absences {% if eleve_data.nombre_absences >= 5 %}danger{% elif eleve_data.nombre_absences >= 3 %}warning{% else %}info{% endif %}">
+                                                                <i class="fas fa-calendar-times"></i>
+                                                                {{ eleve_data.nombre_absences }}
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="badge-absences success">
+                                                                <i class="fas fa-check"></i>
+                                                                0
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-sanctions">
+                                                        {% if eleve_data.nombre_sanctions > 0 %}
+                                                            <span class="badge-sanctions {% if eleve_data.nombre_sanctions >= 3 %}danger{% elif eleve_data.nombre_sanctions >= 2 %}warning{% else %}info{% endif %}">
+                                                                <i class="fas fa-exclamation-triangle"></i>
+                                                                {{ eleve_data.nombre_sanctions }}
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="badge-sanctions success">
+                                                                <i class="fas fa-check"></i>
+                                                                0
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-actions">
+                                                        <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=informations" class="action-btn-small primary" title="Voir le profil">
+                                                            <i class="fas fa-user"></i>
+                                                        </a>
+                                                        <button class="action-btn-small warning" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom_complet }}', {{ classe_data.classe.id }})">
+                                                            <i class="fas fa-gavel"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="empty-class-state">
+                                        <i class="fas fa-users-slash"></i>
+                                        <p>Aucun élève dans cette classe</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>

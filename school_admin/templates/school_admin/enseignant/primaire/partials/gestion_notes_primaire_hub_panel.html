@@ -1,0 +1,236 @@
+{% load notes_tags %}
+{% if classe_selectionnee %}
+<div class="notes-hub-toolbar">
+    <div class="notes-hub-vue-switch" role="tablist" aria-label="Vue">
+        <a role="tab" class="notes-hub-vue-btn prof-hub-nav-link {% if notes_vue == 'releve' %}active{% endif %}"
+           aria-selected="{% if notes_vue == 'releve' %}true{% else %}false{% endif %}"
+           href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}&vue=releve">Relevé</a>
+        <a role="tab" class="notes-hub-vue-btn prof-hub-nav-link {% if notes_vue == 'saisie' %}active{% endif %}"
+           aria-selected="{% if notes_vue == 'saisie' %}true{% else %}false{% endif %}"
+           href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}&vue=saisie">Saisie</a>
+        <a role="tab" class="notes-hub-vue-btn prof-hub-nav-link {% if notes_vue == 'evaluations' %}active{% endif %}"
+           aria-selected="{% if notes_vue == 'evaluations' %}true{% else %}false{% endif %}"
+           href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}&vue=evaluations">Évaluations</a>
+    </div>
+    <div class="notes-hub-toolbar-actions">
+        <label class="notes-hub-search-wrap">
+            <span class="visually-hidden">Rechercher un élève</span>
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input type="search" id="notesHubSearchInput" class="notes-hub-search-input" placeholder="Rechercher un élève…" autocomplete="off" />
+        </label>
+        <a href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}&releve_complet=1{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}&vue={{ notes_vue }}"
+           class="btn btn-success btn-sm prof-hub-nav-link">
+            <i class="fas fa-file-alt" aria-hidden="true"></i> Relevé complet
+        </a>
+        <button type="button" class="btn btn-primary btn-sm" data-open-evaluation-modal
+                data-classe-id="{{ classe_selectionnee.id }}"
+                data-periode-id="{{ periode_selectionnee.id }}"
+                {% if matiere_selectionnee %}data-matiere-id="{{ matiere_selectionnee.id }}"{% endif %}>
+            <i class="fas fa-plus" aria-hidden="true"></i> Créer évaluation
+        </button>
+    </div>
+</div>
+{% endif %}
+
+{% if notes_vue == 'saisie' and classe_selectionnee and matiere_selectionnee %}
+    <section class="notes-hub-saisie-panel" aria-labelledby="notesSaisieTitle">
+        <h2 id="notesSaisieTitle" class="visually-hidden">Saisie des notes</h2>
+        <p class="notes-hub-saisie-lead">
+            Saisie pour <strong>{{ matiere_selectionnee.nom }}</strong> — {{ classe_selectionnee.nom }} ({{ periode_selectionnee.nom_periode }}).
+        </p>
+        <a href="{% url 'enseignant_primaire:noter_eleves' classe_selectionnee.id %}?periode={{ periode_selectionnee.id }}&matiere={{ matiere_selectionnee.id }}"
+           class="btn btn-primary" data-hub-full-nav="1">
+            <i class="fas fa-edit" aria-hidden="true"></i> Ouvrir la saisie des notes
+        </a>
+    </section>
+{% elif notes_vue == 'evaluations' and classe_selectionnee %}
+    {% include 'school_admin/enseignant/primaire/partials/notes_primaire_evaluations_panel.html' %}
+{% elif matiere_selectionnee and releve_data %}
+    <div class="releve-section releve-section-inline">
+        <div class="releve-header">
+            <div>
+                <h2>
+                    <i class="fas fa-file-alt"></i>
+                    Relevé de Notes
+                </h2>
+                <p class="releve-subtitle">
+                    {{ classe_selectionnee.nom }} - {{ matiere_selectionnee.nom }} - {{ periode_selectionnee.nom_periode }}
+                </p>
+            </div>
+            <div class="releve-actions">
+                <a href="{% url 'enseignant_primaire:noter_eleves' classe_selectionnee.id %}?periode={{ periode_selectionnee.id }}&matiere={{ matiere_selectionnee.id }}"
+                   class="btn btn-primary" data-hub-full-nav="1">
+                    <i class="fas fa-edit"></i>
+                    Saisir les notes
+                </a>
+            </div>
+        </div>
+
+        <div class="releve-table-container table-responsive" id="notesReleveTable">
+            <table class="releve-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" class="eleve-col">Élève</th>
+                        {% if evaluations_matiere %}
+                            <th colspan="{{ evaluations_matiere|length }}" class="devoirs-header">Devoirs / Évaluations</th>
+                        {% endif %}
+                        <th rowspan="2" class="moyenne-col">Moyenne<br>(/20)</th>
+                        <th rowspan="2" class="appreciation-col">Appréciation</th>
+                    </tr>
+                    <tr>
+                        {% for eval in evaluations_matiere %}
+                            <th class="eval-col">
+                                {{ eval.type_label }}
+                                <br><small>/{{ eval.bareme|floatformat:0 }}</small>
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in releve_data %}
+                        <tr class="{% cycle 'row-even' 'row-odd' %}">
+                            <td class="eleve-cell">
+                                <div class="eleve-info">
+                                    <div class="eleve-avatar">
+                                        {{ data.eleve.nom.0 }}{{ data.eleve.prenom.0 }}
+                                    </div>
+                                    <span class="eleve-nom">{{ data.eleve.nom_complet }}</span>
+                                </div>
+                            </td>
+                            {% for eval in evaluations_matiere %}
+                                <td class="note-cell">
+                                    {% with note_data=data.notes_evaluations|get_item:eval.id %}
+                                        {% if note_data.note_obj and note_data.note_obj.note %}
+                                            <span class="note-value" style="color: {{ note_data.couleur }};">
+                                                {{ note_data.note_obj.note|floatformat:2 }}
+                                            </span>
+                                        {% elif note_data.note_obj and note_data.note_obj.absent %}
+                                            <span class="note-absent">ABS</span>
+                                        {% else %}
+                                            <span class="note-empty">--</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                            {% endfor %}
+                            <td class="moyenne-cell">
+                                {% if data.moyenne is not None %}
+                                    <span class="moyenne-badge {% if data.moyenne >= 16 %}excellent{% elif data.moyenne >= 14 %}tres-bien{% elif data.moyenne >= 12 %}bien{% elif data.moyenne >= 10 %}passable{% elif data.moyenne >= 8 %}fragile{% else %}insuffisant{% endif %}">
+                                        {{ data.moyenne|floatformat:2 }}
+                                    </span>
+                                {% else %}
+                                    <span class="moyenne-badge non-calcule">--</span>
+                                {% endif %}
+                            </td>
+                            <td class="appreciation-cell">
+                                {% if data.appreciation %}
+                                    <span class="appreciation-text">{{ data.appreciation }}</span>
+                                {% else %}
+                                    <span class="appreciation-text non-evalue">Non évalué</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% elif classe_selectionnee and matiere_selectionnee %}
+    <div class="empty-state">
+        <i class="fas fa-clipboard-list"></i>
+        <p>Aucune donnée disponible pour cette matière</p>
+        <a href="{% url 'enseignant_primaire:noter_eleves' classe_selectionnee.id %}?periode={{ periode_selectionnee.id }}" class="btn btn-primary" data-hub-full-nav="1">
+            <i class="fas fa-plus"></i>
+            Créer une évaluation
+        </a>
+    </div>
+{% endif %}
+
+{% if show_releve_complet %}
+    <a href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}&vue={{ notes_vue }}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}"
+       class="releve-modal-backdrop prof-hub-nav-link" aria-label="Fermer le relevé complet"></a>
+    <div class="releve-section releve-modal releve-complet-modal">
+        <div class="releve-header">
+            <div>
+                <h2>
+                    <i class="fas fa-file-alt"></i>
+                    Relevé de Notes Complet
+                </h2>
+                <p class="releve-subtitle">
+                    {{ classe_selectionnee.nom }} - {{ periode_selectionnee.nom_periode }} - Toutes matières
+                </p>
+            </div>
+            <div class="releve-actions">
+                {% if releve_deja_soumis %}
+                    <div class="badge-soumis">
+                        <i class="fas fa-lock"></i>
+                        Relevé déjà soumis
+                    </div>
+                {% else %}
+                    <form method="POST" action="{% url 'enseignant_primaire:soumettre_releve' classe_selectionnee.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="periode_id" value="{{ periode_selectionnee.id }}">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check-circle"></i>
+                            Soumettre le relevé
+                        </button>
+                    </form>
+                {% endif %}
+                <a href="{% url 'enseignant_primaire:imprimer_releve' classe_selectionnee.id %}?periode={{ periode_selectionnee.id }}"
+                   class="btn btn-primary" target="_blank" data-hub-full-nav="1">
+                    <i class="fas fa-print"></i>
+                    Imprimer
+                </a>
+                <a href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}&vue={{ notes_vue }}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}"
+                   class="btn-close-modal prof-hub-nav-link">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </div>
+        <div class="releve-table-container table-responsive">
+            <table class="releve-table releve-complet-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" class="eleve-col">Élève</th>
+                        {% for matiere in matieres_releve_complet %}
+                            <th class="matiere-header">{{ matiere.code }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in resultats_releve_complet %}
+                        <tr class="{% cycle 'row-even' 'row-odd' %}">
+                            <td class="eleve-cell">
+                                <div class="eleve-info">
+                                    <div class="eleve-avatar">
+                                        {{ result.eleve.nom.0 }}{{ result.eleve.prenom.0 }}
+                                    </div>
+                                    <span class="eleve-nom">{{ result.eleve.nom_complet }}</span>
+                                </div>
+                            </td>
+                            {% for matiere in matieres_releve_complet %}
+                                <td class="note-cell">
+                                    {% with matiere_data=result.moyennes_par_matiere|get_item:matiere.code %}
+                                        {% if matiere_data and matiere_data.moyenne %}
+                                            <span class="note-value" style="color: {% if matiere_data.moyenne >= 16 %}#10b981{% elif matiere_data.moyenne >= 14 %}#3b82f6{% elif matiere_data.moyenne >= 12 %}#8b5cf6{% elif matiere_data.moyenne >= 10 %}#f59e0b{% elif matiere_data.moyenne >= 8 %}#f97316{% else %}#ef4444{% endif %};">
+                                                {{ matiere_data.moyenne|floatformat:2 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="note-empty">--</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="{{ matieres_releve_complet|length|add:1 }}" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                                <i class="fas fa-inbox"></i>
+                                <p>Aucun résultat disponible</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}

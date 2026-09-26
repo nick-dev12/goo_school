@@ -639,10 +639,21 @@ def gestion_eleves_primaire(request):
         'annee_scolaire_active': annee_scolaire_active,
     }
 
-    if initial_classe_id and not request.GET.get('classe'):
-        from django.http import HttpResponseRedirect
-        return HttpResponseRedirect(request.path + '?classe=' + initial_classe_id)
-    
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if initial_classe_id and not request.GET.get('classe'):
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(request.path + '?classe=' + initial_classe_id)
+
+    partial_resp = render_prof_hub_partial(
+        request,
+        context,
+        'school_admin/enseignant/primaire/partials/gestion_eleves_primaire_hub_swap.html',
+    )
+    if partial_resp:
+        return partial_resp
+
     return render(request, 'school_admin/enseignant/primaire/gestion_eleves_primaire.html', context)
 
 
@@ -1072,20 +1083,31 @@ def gestion_notes_primaire(request):
         'eval_periode_id': request.GET.get('eval_periode', ''),
     }
 
-    if not request.GET.get('releve_complet') and not request.GET.get('open_evaluation'):
-        from django.http import HttpResponseRedirect
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
 
-        q = request.GET.copy()
-        needs_redirect = False
-        if periode_selectionnee and not request.GET.get('periode'):
-            q['periode'] = str(periode_selectionnee.id)
-            needs_redirect = True
-        if not request.GET.get('vue'):
-            q['vue'] = notes_vue
-            needs_redirect = True
-        if needs_redirect:
-            return HttpResponseRedirect(request.path + '?' + q.urlencode())
-    
+    if not wants_prof_hub_partial(request):
+        if not request.GET.get('releve_complet') and not request.GET.get('open_evaluation'):
+            from django.http import HttpResponseRedirect
+
+            q = request.GET.copy()
+            needs_redirect = False
+            if periode_selectionnee and not request.GET.get('periode'):
+                q['periode'] = str(periode_selectionnee.id)
+                needs_redirect = True
+            if not request.GET.get('vue'):
+                q['vue'] = notes_vue
+                needs_redirect = True
+            if needs_redirect:
+                return HttpResponseRedirect(request.path + '?' + q.urlencode())
+
+    partial_resp = render_prof_hub_partial(
+        request,
+        context,
+        'school_admin/enseignant/primaire/partials/gestion_notes_primaire_hub_swap.html',
+    )
+    if partial_resp:
+        return partial_resp
+
     return render(request, 'school_admin/enseignant/primaire/gestion_notes_primaire.html', context)
 
 
@@ -2058,12 +2080,23 @@ def exercices_maison_primaire(request):
         'annee_scolaire_active': annee_scolaire_active,
     }
 
-    if periode_selectionnee and not request.GET.get('periode'):
-        from django.http import HttpResponseRedirect
-        q = 'periode=' + str(periode_selectionnee.id)
-        if initial_classe_id:
-            q += '&classe=' + initial_classe_id
-        return HttpResponseRedirect(request.path + '?' + q)
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if periode_selectionnee and not request.GET.get('periode'):
+            from django.http import HttpResponseRedirect
+            q = 'periode=' + str(periode_selectionnee.id)
+            if initial_classe_id:
+                q += '&classe=' + initial_classe_id
+            return HttpResponseRedirect(request.path + '?' + q)
+
+    partial_resp = render_prof_hub_partial(
+        request,
+        context,
+        'school_admin/enseignant/primaire/partials/exercices_maison_primaire_hub_swap.html',
+    )
+    if partial_resp:
+        return partial_resp
 
     return render(request, 'school_admin/enseignant/primaire/exercices_maison_primaire.html', context)
 
@@ -5225,10 +5258,21 @@ def gestion_presence_primaire(request):
         'annee_scolaire_active': annee_scolaire_active,
     }
 
-    if initial_classe_id and not request.GET.get('classe'):
-        from django.http import HttpResponseRedirect
-        return HttpResponseRedirect(request.path + '?classe=' + initial_classe_id)
-    
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if initial_classe_id and not request.GET.get('classe'):
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(request.path + '?classe=' + initial_classe_id)
+
+    partial_resp = render_prof_hub_partial(
+        request,
+        context,
+        'school_admin/enseignant/primaire/partials/gestion_presence_primaire_hub_swap.html',
+    )
+    if partial_resp:
+        return partial_resp
+
     return render(request, 'school_admin/enseignant/primaire/gestion_presence_primaire.html', context)
 
 

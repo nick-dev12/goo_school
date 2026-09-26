@@ -122,18 +122,28 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    if (restoreFromStore()) {
-      return;
-    }
+  function initNotesHubPanel() {
     bindHubLinks();
     bindEvalModifier();
     bindEvalSupprimer();
     layoutOverflow();
     var searchInput = document.getElementById('notesHubSearchInput');
-    if (searchInput) {
+    if (searchInput && !searchInput.dataset.bound) {
+      searchInput.dataset.bound = '1';
       searchInput.addEventListener('input', filterReleveRows);
     }
+    if (typeof window.initEvaluationModalTriggers === 'function') {
+      window.initEvaluationModalTriggers();
+    }
+  }
+
+  document.addEventListener('prof-hub-panel-loaded', initNotesHubPanel);
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (restoreFromStore()) {
+      return;
+    }
+    initNotesHubPanel();
     window.addEventListener('resize', layoutOverflow);
 
     var alerts = document.querySelectorAll('.alert');

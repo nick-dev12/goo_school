@@ -1,0 +1,77 @@
+<!-- Barre 1 : Périodes -->
+<nav class="notes-hub-nav" aria-label="Périodes scolaires">
+    <div class="matiere-tabs-bar notes-hub-periodes-bar" data-overflow-item-label="Période" data-overflow-items-label="périodes">
+        <div class="matiere-tabs-track" role="tablist">
+            {% for periode in periodes %}
+                <a role="tab"
+                   class="matiere-tab-btn notes-hub-tab-link prof-hub-nav-link {% if periode_selectionnee and periode_selectionnee.id == periode.id %}active{% endif %}"
+                   aria-selected="{% if periode_selectionnee and periode_selectionnee.id == periode.id %}true{% else %}false{% endif %}"
+                   href="?periode={{ periode.id }}{% if classe_selectionnee %}&classe={{ classe_selectionnee.id }}{% endif %}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}&vue={{ notes_vue }}">
+                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                    <span>{{ periode.nom_periode }}</span>
+                </a>
+            {% empty %}
+                <p class="empty-message">Aucune période scolaire définie</p>
+            {% endfor %}
+        </div>
+        <div class="matiere-tabs-more-wrap" hidden>
+            <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres périodes">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                <span class="matiere-tabs-more-label">Autres périodes</span>
+            </button>
+            <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+        </div>
+    </div>
+</nav>
+
+<!-- Barre 2 : Classes -->
+<nav class="notes-hub-nav" aria-label="Classes">
+    <div class="matiere-tabs-bar notes-hub-classes-bar" data-overflow-item-label="Classe" data-overflow-items-label="classes">
+        <div class="matiere-tabs-track" role="tablist">
+            {% for classe_data in classes_flat %}
+                <a role="tab"
+                   class="matiere-tab-btn notes-hub-tab-link prof-hub-nav-link {% if classe_selectionnee and classe_selectionnee.id == classe_data.classe.id %}active{% endif %}"
+                   aria-selected="{% if classe_selectionnee and classe_selectionnee.id == classe_data.classe.id %}true{% else %}false{% endif %}"
+                   href="?periode={{ periode_selectionnee.id }}&classe={{ classe_data.classe.id }}&vue={{ notes_vue }}">
+                    <i class="fas fa-users" aria-hidden="true"></i>
+                    <span>{{ classe_data.classe.nom }}</span>
+                    <span class="tab-count">{{ classe_data.nombre_eleves }}</span>
+                </a>
+            {% endfor %}
+        </div>
+        <div class="matiere-tabs-more-wrap" hidden>
+            <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres classes">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                <span class="matiere-tabs-more-label">Autres classes</span>
+            </button>
+            <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+        </div>
+    </div>
+</nav>
+
+{% if classe_selectionnee and matieres_data %}
+<!-- Barre 3 : Matières -->
+<nav class="notes-hub-nav" aria-label="Matières">
+    <div class="matiere-tabs-bar notes-hub-matieres-bar" data-overflow-item-label="Matière" data-overflow-items-label="matières">
+        <div class="matiere-tabs-track" role="tablist">
+            {% for matiere_data in matieres_data %}
+                <a role="tab"
+                   class="matiere-tab-btn notes-hub-tab-link prof-hub-nav-link {% if matiere_selectionnee and matiere_selectionnee.id == matiere_data.matiere.id %}active{% endif %}"
+                   aria-selected="{% if matiere_selectionnee and matiere_selectionnee.id == matiere_data.matiere.id %}true{% else %}false{% endif %}"
+                   href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}&matiere={{ matiere_data.matiere.id }}&vue={{ notes_vue }}">
+                    <i class="fas fa-book-open" aria-hidden="true"></i>
+                    <span>{{ matiere_data.matiere.code }}</span>
+                    <span class="tab-count">{{ matiere_data.nombre_evaluations }}</span>
+                </a>
+            {% endfor %}
+        </div>
+        <div class="matiere-tabs-more-wrap" hidden>
+            <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres matières">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                <span class="matiere-tabs-more-label">Autres matières</span>
+            </button>
+            <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+        </div>
+    </div>
+</nav>
+{% endif %}

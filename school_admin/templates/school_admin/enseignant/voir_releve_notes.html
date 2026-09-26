@@ -384,15 +384,6 @@
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <div class="main-content">
-        <!-- Breadcrumb -->
-        <div class="breadcrumb">
-            <a href="{% url 'enseignant:dashboard_enseignant' %}"><i class="fas fa-home"></i> Tableau de bord</a>
-            <i class="fas fa-chevron-right"></i>
-            <a href="{% url 'enseignant:gestion_notes' %}">Gestion des notes</a>
-            <i class="fas fa-chevron-right"></i>
-            <span>Relevé de notes - {{ classe.nom }}</span>
-        </div>
-
         <!-- Page Header -->
         <div class="page-header">
             <h1>
@@ -431,10 +422,6 @@
 
         <!-- Actions -->
         <div class="actions-bar">
-            <a href="{% url 'enseignant:gestion_notes' %}?periode={{ periode_active.id }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i>
-                Retour à la gestion des notes
-            </a>
             <div style="display: flex; gap: 1rem;">
                 {% if releve_notes and not releve_notes.soumis %}
                     <a href="{% url 'enseignant:noter_eleves' classe.id %}?periode={{ periode_active.id }}" class="btn btn-primary">
@@ -632,10 +619,6 @@
                     <i class="fas fa-clipboard"></i>
                     <h3>Aucune évaluation pour cette période</h3>
                     <p>Créez des évaluations pour commencer à noter les élèves</p>
-                    <a href="{% url 'enseignant:gestion_notes' %}" class="btn btn-primary">
-                        <i class="fas fa-arrow-left"></i>
-                        Retour à la gestion des notes
-                    </a>
                 </div>
             {% endif %}
         </div>

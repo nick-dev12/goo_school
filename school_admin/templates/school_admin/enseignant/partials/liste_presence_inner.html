@@ -180,26 +180,14 @@
                         <i class="fas fa-times"></i>
                         Fermer
                     </button>
-                    {% else %}
-                    <a href="{% url 'enseignant:gestion_presence' %}" class="btn-secondary">
-                        <i class="fas fa-arrow-left"></i>
-                        Retour
-                    </a>
                     {% endif %}
                 </div>
-            {% else %}
+            {% elif modal_mode %}
                 <div class="actions-container bottom-actions">
-                    {% if modal_mode %}
                     <button type="button" class="btn-secondary" data-close-presence-modal>
                         <i class="fas fa-times"></i>
                         Fermer
                     </button>
-                    {% else %}
-                    <a href="{% url 'enseignant:gestion_presence' %}" class="btn-secondary">
-                        <i class="fas fa-arrow-left"></i>
-                        Retour
-                    </a>
-                    {% endif %}
                 </div>
             {% endif %}
         </form>

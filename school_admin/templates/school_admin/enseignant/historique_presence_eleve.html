@@ -16,17 +16,6 @@
 
     <!-- Main Content -->
     <div class="main-content-wrapper">
-        <!-- Breadcrumb -->
-        <nav class="breadcrumb">
-            <a href="{% url 'enseignant:dashboard_enseignant' %}">Tableau de bord</a>
-            <span class="separator">›</span>
-            <a href="{% url 'enseignant:gestion_eleves' %}">Gestion des élèves</a>
-            <span class="separator">›</span>
-            <a href="{% url 'enseignant:detail_eleve' eleve.id %}?onglet=presences">{{ eleve.nom_complet }}</a>
-            <span class="separator">›</span>
-            <span class="current">Historique de présence</span>
-        </nav>
-
         <!-- Header Élève -->
         <div class="eleve-header-card">
             <div class="eleve-avatar-large">
@@ -173,10 +162,6 @@
 
         <!-- Actions Footer -->
         <div class="actions-footer">
-            <a href="{% url 'enseignant:detail_eleve' eleve.id %}?onglet=presences" class="btn-secondary">
-                <i class="fas fa-arrow-left"></i>
-                Retour au profil
-            </a>
             <a href="{% url 'enseignant:gestion_eleves' %}" class="btn-secondary">
                 <i class="fas fa-list"></i>
                 Liste des élèves

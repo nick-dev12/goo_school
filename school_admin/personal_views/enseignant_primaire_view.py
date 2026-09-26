@@ -4488,6 +4488,8 @@ def detail_eleve_primaire(request, eleve_id):
         'annee_scolaire_active': annee_scolaire_active,
     }
     
+    from ..utils.prof_nav_trail import set_prof_breadcrumb_current_label
+    set_prof_breadcrumb_current_label(request, eleve.nom_complet)
     return render(request, 'school_admin/enseignant/primaire/detail_eleve_primaire.html', context)
 
 
@@ -4797,6 +4799,8 @@ def detail_classe_primaire(request, classe_id):
         'annee_scolaire_active': annee_scolaire_active,
     }
     
+    from ..utils.prof_nav_trail import set_prof_breadcrumb_current_label
+    set_prof_breadcrumb_current_label(request, classe.nom)
     return render(request, 'school_admin/enseignant/primaire/detail_classe_primaire.html', context)
 
 

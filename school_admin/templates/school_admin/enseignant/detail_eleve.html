@@ -19,15 +19,6 @@
 
     <!-- Main Content -->
     <div class="main-content-wrapper">
-        <!-- Breadcrumb -->
-        <nav class="breadcrumb">
-            <a href="{% url 'enseignant:dashboard_enseignant' %}">Tableau de bord</a>
-            <span class="separator">›</span>
-            <a href="{% url 'enseignant:gestion_eleves' %}">Gestion des élèves</a>
-            <span class="separator">›</span>
-            <span class="current">{{ eleve.nom_complet }}</span>
-        </nav>
-
         {% if annee_scolaire_active %}
         {% comment %} <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
           <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
@@ -594,10 +585,6 @@
 
         <!-- Actions Footer -->
         <div class="actions-footer">
-            <a href="{% url 'enseignant:gestion_eleves' %}" class="btn-secondary">
-                <i class="fas fa-arrow-left"></i>
-                Retour à la liste
-            </a>
             {% if onglet_actif == 'presences' %}
                 <a href="{% url 'enseignant:historique_presence' eleve.id %}" class="btn-primary">
                     <i class="fas fa-history"></i>

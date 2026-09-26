@@ -29,12 +29,6 @@
                     Élèves avec une moyenne inférieure à 9/20
                 </p>
             </div>
-            <div class="header-actions">
-                <a href="{% url 'enseignant:gestion_notes' %}{% if periode_active %}?periode={{ periode_active.id }}{% endif %}" class="btn-action">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>Retour aux notes</span>
-                </a>
-            </div>
         </div>
 
         {% if stats.total_classes > 0 %}
@@ -356,10 +350,6 @@
                 </div>
                 <h3 style="color: #10b981;">Excellent travail !</h3>
                 <p>Aucun élève n'a une moyenne inférieure à 9/20. Vos élèves sont tous sur la bonne voie ! 🎉</p>
-                <a href="{% url 'enseignant:gestion_notes' %}{% if periode_active %}?periode={{ periode_active.id }}{% endif %}" class="btn-action">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>Retour aux notes</span>
-                </a>
             </div>
         {% endif %}
     </div>

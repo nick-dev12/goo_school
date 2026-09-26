@@ -5948,6 +5948,8 @@ def liste_presence_enseignant(request, classe_id):
                 'today': date.today(),
                 'nombre_eleves': eleves_queryset.count(),
             }
+            from ..utils.prof_nav_trail import set_prof_breadcrumb_current_label
+            set_prof_breadcrumb_current_label(request, 'Sélection de la matière')
             return render(request, 'school_admin/enseignant/selection_matiere_presence.html', context)
     else:
         # Pour les établissements primaires ou une seule affectation
@@ -6580,6 +6582,8 @@ def detail_eleve_enseignant(request, eleve_id):
         'annee_scolaire_active': annee_scolaire_active,
     }
     
+    from ..utils.prof_nav_trail import set_prof_breadcrumb_current_label
+    set_prof_breadcrumb_current_label(request, eleve.nom_complet)
     return render(request, 'school_admin/enseignant/detail_eleve.html', context)
 
 
@@ -7171,6 +7175,8 @@ def detail_classe_enseignant(request, classe_id):
         'evaluations_periode_module_verrouillee': evaluations_periode_module_verrouillee,
     }
     
+    from ..utils.prof_nav_trail import set_prof_breadcrumb_current_label
+    set_prof_breadcrumb_current_label(request, classe.nom)
     return render(request, 'school_admin/enseignant/detail_classe.html', context)
 
 

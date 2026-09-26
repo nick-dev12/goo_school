@@ -18,15 +18,6 @@
 
     <!-- Main Content -->
     <div class="main-content-wrapper">
-        <!-- Breadcrumb -->
-        <nav class="breadcrumb">
-            <a href="{% url 'enseignant_primaire:dashboard' %}">Tableau de bord</a>
-            <span class="separator">›</span>
-            <a href="{% url 'enseignant_primaire:gestion_eleves' %}">Gestion des élèves</a>
-            <span class="separator">›</span>
-            <span class="current">{{ eleve.nom_complet }}</span>
-        </nav>
-
         <!-- Header Élève -->
         <div class="eleve-header-card">
             <div class="eleve-avatar-large">
@@ -432,10 +423,6 @@
 
         <!-- Actions Footer -->
         <div class="actions-footer">
-            <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="btn-secondary">
-                <i class="fas fa-arrow-left"></i>
-                Retour à la liste
-            </a>
             {% if onglet_actif == 'presences' %}
                 <a href="{% url 'enseignant_primaire:historique_presence' eleve.id %}" class="btn-primary">
                     <i class="fas fa-history"></i>

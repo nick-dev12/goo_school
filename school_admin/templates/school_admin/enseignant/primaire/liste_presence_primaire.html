@@ -16,15 +16,6 @@
 
     <!-- Main Content -->
     <div class="main-content-wrapper">
-        <!-- Breadcrumb -->
-        <nav class="breadcrumb">
-            <a href="{% url 'enseignant_primaire:dashboard' %}">Tableau de bord</a>
-            <span class="separator">›</span>
-            <a href="{% url 'enseignant_primaire:gestion_eleves' %}">Gestion des élèves</a>
-            <span class="separator">›</span>
-            <span class="current">Liste de présence</span>
-        </nav>
-
         <!-- Page Header -->
         <div class="page-header">
             <div class="header-content">
@@ -122,10 +113,6 @@
                             <i class="fas fa-check-circle"></i>
                             Valider l'appel n°{{ numero_appel_actuel }}
                         </button>
-                        <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="btn-secondary">
-                            <i class="fas fa-arrow-left"></i>
-                            Retour
-                        </a>
                     </div>
                 {% endif %}
 
@@ -199,10 +186,6 @@
                             <i class="fas fa-check-circle"></i>
                             Valider l'appel n°{{ numero_appel_actuel }}
                         </button>
-                        <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="btn-secondary">
-                            <i class="fas fa-arrow-left"></i>
-                            Retour
-                        </a>
                     </div>
                 {% else %}
                     <div class="actions-container bottom-actions">
@@ -212,10 +195,6 @@
                                 Faire un nouvel appel ({{ nombre_appels_valides|add:1 }}/3)
                             </a>
                         {% endif %}
-                        <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="btn-secondary">
-                            <i class="fas fa-arrow-left"></i>
-                            Retour
-                        </a>
                     </div>
                 {% endif %}
             </form>

@@ -144,6 +144,7 @@ TEMPLATES = [
                 'school_admin.context_processors.session_directeur',
                 'school_admin.context_processors.etablissement_type',
                 'school_admin.context_processors.professeur_hub_v3',
+                'school_admin.context_processors.prof_nav_trail',
                 'school_admin.utils.context_processors.permissions',
                 'school_admin.context_processors.seo_context',
             ],

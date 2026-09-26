@@ -204,6 +204,14 @@ def etablissement_type(request) -> Dict:
     }
 
 
+def prof_nav_trail(request) -> Dict[str, object]:
+    """Fil d'Ariane prof (1 niveau) — absent sur dashboard."""
+    from school_admin.utils.prof_nav_trail import resolve_prof_nav_trail
+
+    trail = resolve_prof_nav_trail(request)
+    return {"prof_nav_trail": trail}
+
+
 def professeur_hub_v3(request) -> Dict[str, bool]:
     """Hub prof V3/V4 — flags par défaut (vues peuvent surcharger)."""
     user = getattr(request, "user", None)

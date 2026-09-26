@@ -22,6 +22,14 @@ def resolve_niveau_classe_tab_selection(request, classes_grouped):
 
     default_niveau = ordered_keys[0]
     niveau_param = _normalize_niveau_key(request.GET.get('niveau'))
+    tab_legacy = (request.GET.get('tab') or '').strip().lower()
+    if not niveau_param and tab_legacy.startswith('tab-'):
+        try:
+            idx = int(tab_legacy.replace('tab-', '', 1))
+            if 1 <= idx <= len(ordered_keys):
+                default_niveau = ordered_keys[idx - 1]
+        except (TypeError, ValueError):
+            pass
     classe_raw = request.GET.get('classe')
     classe_id = None
     if classe_raw not in (None, ''):
@@ -144,3 +152,34 @@ def attach_gestion_periodes_tab_context(request, context, periodes_tabs):
             niveau_code = codes[0]
     context['gps_initial_niveau_tab'] = niveau_code
     return context
+
+
+LIAISON_ONGLET_CHOICES = ('a-approuver', 'reussies', 'refusees')
+
+
+def resolve_liaison_onglet(request):
+    """Demandes liaison parent — ?onglet=a-approuver|reussies|refusees."""
+    raw = _normalize_niveau_key(request.GET.get('onglet')).replace('_', '-')
+    alias = {
+        'a-approuver': 'a-approuver',
+        'approuver': 'a-approuver',
+        'reussies': 'reussies',
+        'reussie': 'reussies',
+        'refusees': 'refusees',
+        'refusee': 'refusees',
+    }
+    return alias.get(raw, 'a-approuver')
+
+
+def attach_liaison_tab_context(request, context):
+    onglet = resolve_liaison_onglet(request)
+    context['initial_liaison_onglet'] = onglet
+    context['initial_liaison_tab_id'] = f'tab-{onglet}'
+    return context
+
+
+def resolve_annonce_statut_filtre(request):
+    """Annonces directeur — ?statut=publiee|brouillon|archivee ou vide = toutes."""
+    raw = (request.GET.get('statut') or '').strip().lower()
+    allowed = {'publiee', 'brouillon', 'archivee'}
+    return raw if raw in allowed else ''

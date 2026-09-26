@@ -83,25 +83,28 @@
                 <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'onglet' %}" data-overflow-items-label="{% trans 'onglets' %}">
                     <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Statut des demandes' %}">
                         <button type="button" role="tab"
-                                class="matiere-tab-btn dml-status-tab active"
+                                class="matiere-tab-btn dml-status-tab {% if initial_liaison_onglet == 'a-approuver' %}active{% endif %}"
                                 data-tab="tab-a-approuver"
-                                aria-selected="true">
+                                data-onglet="a-approuver"
+                                aria-selected="{% if initial_liaison_onglet == 'a-approuver' %}true{% else %}false{% endif %}">
                             <i class="fas fa-clock"></i>
                             <span>{% trans "À approuver" %}</span>
                             <span class="tab-count">{{ stats.en_attente|add:stats.bloquee }}</span>
                         </button>
                         <button type="button" role="tab"
-                                class="matiere-tab-btn dml-status-tab"
+                                class="matiere-tab-btn dml-status-tab {% if initial_liaison_onglet == 'reussies' %}active{% endif %}"
                                 data-tab="tab-reussies"
-                                aria-selected="false">
+                                data-onglet="reussies"
+                                aria-selected="{% if initial_liaison_onglet == 'reussies' %}true{% else %}false{% endif %}">
                             <i class="fas fa-check-circle"></i>
                             <span>{% trans "Liaisons réussies" %}</span>
                             <span class="tab-count">{{ stats.reussie|add:stats.approuvee }}</span>
                         </button>
                         <button type="button" role="tab"
-                                class="matiere-tab-btn dml-status-tab"
+                                class="matiere-tab-btn dml-status-tab {% if initial_liaison_onglet == 'refusees' %}active{% endif %}"
                                 data-tab="tab-refusees"
-                                aria-selected="false">
+                                data-onglet="refusees"
+                                aria-selected="{% if initial_liaison_onglet == 'refusees' %}true{% else %}false{% endif %}">
                             <i class="fas fa-times-circle"></i>
                             <span>{% trans "Refusées" %}</span>
                             <span class="tab-count">{{ stats.refusee|add:stats.echec }}</span>
@@ -119,7 +122,7 @@
 
             <div class="dml-tabs-content">
                 <!-- Onglet À approuver -->
-                <div class="tab-panel active" id="tab-a-approuver">
+                <div class="tab-panel {% if initial_liaison_onglet == 'a-approuver' %}active{% endif %}" id="tab-a-approuver"{% if initial_liaison_onglet != 'a-approuver' %} hidden{% endif %}>
                     <div class="dml-toolbar">
                         <div class="dml-search-wrap">
                             <i class="fas fa-search"></i>
@@ -245,7 +248,7 @@
                 </div>
 
                 <!-- Onglet Liaisons réussies -->
-                <div class="tab-panel" id="tab-reussies">
+                <div class="tab-panel {% if initial_liaison_onglet == 'reussies' %}active{% endif %}" id="tab-reussies"{% if initial_liaison_onglet != 'reussies' %} hidden{% endif %}>
                     <div class="dml-toolbar">
                         <div class="dml-search-wrap">
                             <i class="fas fa-search"></i>
@@ -343,7 +346,7 @@
                 </div>
 
                 <!-- Onglet Refusées -->
-                <div class="tab-panel" id="tab-refusees">
+                <div class="tab-panel {% if initial_liaison_onglet == 'refusees' %}active{% endif %}" id="tab-refusees"{% if initial_liaison_onglet != 'refusees' %} hidden{% endif %}>
                     <div class="dml-toolbar">
                         <div class="dml-search-wrap">
                             <i class="fas fa-search"></i>
@@ -456,8 +459,7 @@
     </div>
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
-    <script src="{% static 'school_admin/js/directeur/matiere_tabs_overflow.js' %}?v=1.0.0"></script>
-    <script src="{% static 'school_admin/js/directeur/demandes_liaison_liste.js' %}?v=2.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/demandes_liaison_liste.js' %}?v=2.1.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

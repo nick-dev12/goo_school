@@ -5,12 +5,24 @@
 (function () {
   'use strict';
 
+  var STORAGE_KEY = 'directeur:demandes-liaison';
   var TAB_SELECTOR = '.dml-status-tab[data-tab]';
   var PANEL_SELECTOR = '.dml-tabs-content .tab-panel';
 
-  function switchStatusTab(tabId, btn) {
+  function dmlPersistOnglet(onglet, filtre) {
+    if (!window.directeurTabStorage) return;
+    var values = { onglet: onglet || '' };
+    if (filtre !== undefined) {
+      values.filtre = filtre;
+    }
+    window.directeurTabStorage.syncUrlAndStore(STORAGE_KEY, values);
+  }
+
+  function switchStatusTab(tabId, btn, opts) {
+    opts = opts || {};
     document.querySelectorAll(PANEL_SELECTOR).forEach(function (panel) {
       panel.classList.remove('active');
+      panel.hidden = true;
     });
     document.querySelectorAll(TAB_SELECTOR).forEach(function (b) {
       b.classList.remove('active');
@@ -18,12 +30,19 @@
     });
 
     var panel = document.getElementById(tabId);
-    if (panel) panel.classList.add('active');
+    if (panel) {
+      panel.classList.add('active');
+      panel.hidden = false;
+    }
 
     var targetBtn = btn || document.querySelector(TAB_SELECTOR + '[data-tab="' + tabId + '"]');
     if (targetBtn) {
       targetBtn.classList.add('active');
       targetBtn.setAttribute('aria-selected', 'true');
+    }
+
+    if (!opts.skipPersist && targetBtn) {
+      dmlPersistOnglet(targetBtn.getAttribute('data-onglet') || '');
     }
 
     if (typeof window.layoutTabsOverflowNav === 'function') {
@@ -78,6 +97,47 @@
         resultsWrap.hidden = true;
       }
     }
+
+    if (panelKey === 'a-approuver' && window.directeurTabStorage) {
+      var activeTab = document.querySelector(TAB_SELECTOR + '.active[data-onglet]');
+      if (activeTab && activeTab.getAttribute('data-onglet') === 'a-approuver') {
+        dmlPersistOnglet('a-approuver', statusFilter);
+      }
+    }
+  }
+
+  function dmlRestoreFromStorage() {
+    if (!window.directeurTabStorage) return;
+    var params = new URLSearchParams(window.location.search);
+    if (!params.has('onglet')) {
+      var stored = window.directeurTabStorage.readStore(STORAGE_KEY);
+      if (stored.onglet) {
+        params.set('onglet', stored.onglet);
+        window.location.replace(window.location.pathname + '?' + params.toString());
+        return true;
+      }
+    }
+    window.directeurTabStorage.mergeUrlFromStore(STORAGE_KEY, ['onglet', 'filtre']);
+    var onglet = params.get('onglet') || 'a-approuver';
+    var tabId = 'tab-' + onglet;
+    var btn = document.querySelector(TAB_SELECTOR + '[data-onglet="' + CSS.escape(onglet) + '"]');
+    switchStatusTab(tabId, btn, { skipPersist: true });
+
+    var filtre = params.get('filtre') || window.directeurTabStorage.readStore(STORAGE_KEY).filtre;
+    if (filtre && filtre !== 'tous' && onglet === 'a-approuver') {
+      var panel = document.getElementById('tab-a-approuver');
+      var filterBtn = panel
+        ? panel.querySelector('.dml-filter-btn[data-filter-status="' + CSS.escape(filtre) + '"]')
+        : null;
+      if (filterBtn) {
+        panel.querySelectorAll('.dml-filter-btn[data-panel="a-approuver"]').forEach(function (b) {
+          b.classList.remove('active');
+        });
+        filterBtn.classList.add('active');
+      }
+    }
+    dmlPersistOnglet(onglet, filtre || 'tous');
+    return false;
   }
 
   document.addEventListener('click', function (event) {
@@ -118,6 +178,9 @@
   });
 
   document.addEventListener('DOMContentLoaded', function () {
+    if (dmlRestoreFromStorage()) {
+      return;
+    }
     ['a-approuver', 'reussies', 'refusees'].forEach(function (panelKey) {
       filterPanelRows(panelKey);
     });

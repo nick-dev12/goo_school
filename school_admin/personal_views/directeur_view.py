@@ -6542,35 +6542,6 @@ def suivi_presence(request):
         classes_grouped[categorie]['total_eleves'] += classe_info['nombre_eleves']
         classes_grouped[categorie]['nombre_classes'] += 1
 
-    tab_items = list(classes_grouped.items())
-    active_tab_index = 1
-    tab_param = request.GET.get('tab', '')
-    if tab_param.startswith('tab-'):
-        try:
-            active_tab_index = int(tab_param.replace('tab-', ''))
-        except ValueError:
-            active_tab_index = 1
-    if tab_items:
-        active_tab_index = max(1, min(active_tab_index, len(tab_items)))
-
-    active_classe_id = None
-    classes_in_active_tab = tab_items[active_tab_index - 1][1]['classes'] if tab_items else []
-    valid_classe_ids = {item['classe'].id for item in classes_in_active_tab}
-    classe_param = request.GET.get('classe')
-    if classe_param:
-        try:
-            classe_id = int(classe_param)
-            if classe_id in valid_classe_ids:
-                active_classe_id = classe_id
-        except ValueError:
-            pass
-    if active_classe_id is None and classes_in_active_tab:
-        active_classe_id = classes_in_active_tab[0]['classe'].id
-
-    tab_nav_query = f'tab=tab-{active_tab_index}'
-    if active_classe_id:
-        tab_nav_query += f'&classe={active_classe_id}'
-
     total_eleves = sum(d['total_eleves'] for d in classes_grouped.values())
     total_classes = sum(d['nombre_classes'] for d in classes_grouped.values())
     total_absents_aujourdhui = 0
@@ -6597,11 +6568,15 @@ def suivi_presence(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur,
         'date_aujourdhui': timezone.localdate().isoformat(),
-        'active_tab_index': active_tab_index,
-        'active_classe_id': active_classe_id,
-        'tab_nav_query': tab_nav_query,
         'stats_generales': stats_generales,
     }
+    context = _attach_directeur_niveau_classe_tabs(request, context, classes_grouped)
+    nav_parts = []
+    if context.get('initial_niveau_key'):
+        nav_parts.append('niveau=' + context['initial_niveau_key'])
+    if context.get('initial_classe_id'):
+        nav_parts.append('classe=' + str(context['initial_classe_id']))
+    context['tab_nav_query'] = '&'.join(nav_parts)
 
     return render(request, 'school_admin/directeur/suivi_presence.html', context)
 
@@ -9391,13 +9366,16 @@ def demandes_liaison_liste(request):
         'refusee': demandes.filter(statut='refusee').count(),
     }
     
+    from ..utils.directeur_ui_tabs import attach_liaison_tab_context
+
     context = {
         'etablissement': etablissement,
         'demandes': demandes,
         'stats': stats,
         'annee_scolaire_active': annee_scolaire_active,
     }
-    
+    attach_liaison_tab_context(request, context)
+
     return render(request, 'school_admin/directeur/demandes_liaison_liste.html', context)
 
 
@@ -9585,8 +9563,9 @@ def annonces_directeur(request):
     annonces_brouillon = annonces.filter(statut='brouillon').count()
     annonces_archivees = annonces.filter(statut='archivee').count()
 
-    # Filtrer par statut si demandé
-    statut_filtre = request.GET.get('statut', '')
+    from ..utils.directeur_ui_tabs import resolve_annonce_statut_filtre
+
+    statut_filtre = resolve_annonce_statut_filtre(request)
     if statut_filtre:
         annonces = annonces.filter(statut=statut_filtre)
 

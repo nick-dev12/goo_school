@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/suivi_presence.css' %}?v=2.0.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
 </head>
 <body class="sp-page-body" data-live-page="suivi-presence" data-reference-date="{{ date_aujourdhui }}">
@@ -56,9 +57,10 @@
         <div class="tabs-container sp-niveau-tabs">
             <div class="tabs-nav" role="tablist" aria-label="{% trans 'Niveaux' %}">
                 {% for categorie, data in classes_grouped.items %}
-                    <button type="button" role="tab" class="tab-btn sp-niveau-tab {% if forloop.counter == active_tab_index %}active{% endif %}"
+                    <button type="button" role="tab" class="tab-btn sp-niveau-tab {% if categorie|lower == initial_niveau_key %}active{% endif %}"
                             data-tab="tab-{{ forloop.counter }}"
-                            aria-selected="{% if forloop.counter == active_tab_index %}true{% else %}false{% endif %}">
+                            data-niveau-key="{{ categorie|lower }}"
+                            aria-selected="{% if categorie|lower == initial_niveau_key %}true{% else %}false{% endif %}">
                         <i class="fas fa-layer-group"></i>
                         <span>{{ categorie }}</span>
                         <span class="tab-count">{{ data.total_eleves }}</span>
@@ -68,15 +70,16 @@
 
             <!-- Contenu des onglets -->
             {% for categorie, data in classes_grouped.items %}
-                <div class="tab-content-panel {% if forloop.counter == active_tab_index %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                <div class="tab-content-panel {% if categorie|lower == initial_niveau_key %}active{% endif %}" id="tab-{{ forloop.counter }}"{% if categorie|lower != initial_niveau_key %} hidden{% endif %}>
                     
                     <div class="sp-classe-nav">
                         <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
                             <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes' %}">
                                 {% for classe_data in data.classes %}
-                                    <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if classe_data.classe.id == active_classe_id %}active{% endif %}"
+                                    <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}"
                                             data-subtab="classe-{{ classe_data.classe.id }}"
-                                            aria-selected="{% if classe_data.classe.id == active_classe_id %}true{% else %}false{% endif %}">
+                                            data-classe-id="{{ classe_data.classe.id }}"
+                                            aria-selected="{% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}true{% else %}false{% endif %}">
                                         <i class="fas fa-door-open"></i>
                                         <span>{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
                                         <span class="tab-count">{{ classe_data.nombre_eleves }}</span>
@@ -95,7 +98,7 @@
 
                     <!-- Contenu des sous-onglets (classes) -->
                     {% for classe_data in data.classes %}
-                        <div class="classe-subtab-content {% if classe_data.classe.id == active_classe_id %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+                        <div class="classe-subtab-content {% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}" id="classe-{{ classe_data.classe.id }}"{% if categorie|lower != initial_niveau_key or classe_data.classe.id != initial_classe_id %} hidden{% endif %}>
                             {% if est_superieur %}
                             <nav class="sp-periodes-bar sp-periodes-bar--classe periodes-tabs-container periodes-tabs-container--classe" aria-label="{% trans 'Semestre' %}">
                                 {% if classe_data.periodes_nav %}
@@ -276,7 +279,9 @@
         </div>
     </div>
 
-    <script src="{% static 'school_admin/js/directeur/suivi_presence.js' %}?v=2.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/directeur_tab_storage.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/directeur_niveau_classe_persist.js' %}?v=1.0.1"></script>
+    <script src="{% static 'school_admin/js/directeur/suivi_presence.js' %}?v=2.1.0"></script>
     <script src="{% static 'school_admin/js/directeur/suivi_presence_filters.js' %}?v=1.2.2"></script>
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
     <script src="{% static 'school_admin/js/directeur/notes_presence_live.js' %}?v=1.0.1"></script>

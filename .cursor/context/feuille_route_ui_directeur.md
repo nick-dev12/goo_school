@@ -6,8 +6,17 @@ Référence store : `docs/feuille-route-ui-directeur.md` (agent store).
 |-------|--------|
 | 0 — Liste élèves | Livrée |
 | 1 — Hub élèves, certificats, attestations, fiches, convocations, cartes, réinscription | Livrée |
-| **2 — Matières, classes, examens, périodes, EDT, notes/bulletins** | **Livrée (2026-09-26)** |
-| 3+ | Hors scope session |
+| 2 — Matières, classes, examens, périodes, EDT, notes/bulletins | Livrée (2026-09-26) |
+| **3 — Annonces, liaison parents, présences** | **Livrée (2026-09-26)** |
+| 4+ | Hors scope session |
+
+## Recette Vague 3 (`http://127.0.0.1:8047`)
+
+- `/directeur/annonces/` — statut + recherche
+- `/demandes-liaison/` — onglets liaison + filtres
+- `/suivi-presence/` — niveau/classe + période
+
+Ctrl+F5, overflow, F5 persistance, smoke métier.
 
 ## Recette Vague 2 (`http://127.0.0.1:8047`)
 

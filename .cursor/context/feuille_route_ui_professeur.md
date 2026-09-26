@@ -2,12 +2,12 @@
 
 **Store** : `...\bc-451181e0-...\files\docs\feuille-route-ui-professeur.md`
 
-**Statut** : **Vagues 0–4 livrées** — branche `cursor/prof-ui-vague4-a40c` — **STOP avant Vague 5**.
+**Statut** : **Vagues 0–5 terminées** — branche `cursor/prof-ui-vague5-a40c` — feuille close.
 
-## V4 — supérieur LMD
+## V5 — finitions
 
-- `enseignant_est_hub_v4_lmd`, `_enseignant_prof_hub_nav_bundle`, `hub_v4` / `hub_prof_ui`.
-- Périodes par classe : `prof_hub_lmd_periodes_tabs.html` + query `periode_<classe_id>`.
-- Notes & difficulté : hub réactivé (plus d’exclusion `est_superieur`).
+- Tests auto : `test_prof_ui_v5_recette.py`
+- Print : `prof_print_shared.css`, `prof_imprimer_print_assets.html`
+- Recette 3 profils : store `docs/recette-prof-ui-v5.md`, copie `.cursor/context/recette_prof_ui_v5.md`
 
-Hors scope : Vague 5+, directeur, assistant, CG, shell, primaire/collège (V0–3).
+Hors scope : directeur, assistant, CG, shell.

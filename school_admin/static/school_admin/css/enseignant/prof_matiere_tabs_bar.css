@@ -1,0 +1,129 @@
+/* Onglets hub enseignant — pills ARIA (#2563EB) + barre overflow (directeur) */
+
+.prof-primaire-hub-nav .matiere-tabs-bar,
+.notes-hub-nav .matiere-tabs-bar {
+  padding: 0.5rem 0.65rem;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+}
+
+.matiere-tabs-track .matiere-tab-btn {
+  flex-shrink: 0;
+}
+
+button.matiere-tab-btn,
+a.matiere-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  min-height: 44px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  font-family: inherit;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+button.matiere-tab-btn:hover,
+a.matiere-tab-btn:hover {
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+button.matiere-tab-btn:focus-visible,
+a.matiere-tab-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+button.matiere-tab-btn.active,
+a.matiere-tab-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+button.matiere-tab-btn.active:hover,
+a.matiere-tab-btn.active:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
+}
+
+.matiere-tab-btn i {
+  font-size: 0.875rem;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.matiere-tab-btn.active i {
+  color: #ffffff;
+}
+
+.matiere-tab-btn span {
+  font-weight: 600;
+}
+
+.matiere-tab-btn .tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.matiere-tab-btn.active .tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.matiere-tab-btn:not(.active) .tab-count {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+/* Legacy: onglets matière sans barre overflow (détail classe, noter élèves) */
+.matieres-tabs-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.matieres-tabs-nav .matiere-tab-btn {
+  flex-direction: column;
+  min-width: 5.5rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.625rem;
+}
+
+@media (max-width: 640px) {
+  button.matiere-tab-btn,
+  a.matiere-tab-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .prof-primaire-hub-nav .matiere-tabs-bar,
+  .notes-hub-nav .matiere-tabs-bar {
+    padding: 0.4rem;
+  }
+}

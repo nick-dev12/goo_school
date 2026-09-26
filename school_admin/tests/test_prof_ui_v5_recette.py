@@ -123,3 +123,12 @@ class ProfPrintTemplatesV5Tests(SimpleTestCase):
         from django.template.loader import get_template
 
         get_template('school_admin/enseignant/partials/prof_hub_lmd_periodes_tabs.html')
+
+    def test_primaire_ui_assets_includes_matiere_tab_styles(self):
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html',
+        )
+        self.assertIn('prof_matiere_tabs_bar.css', html)
+        self.assertIn('tabs_nav_overflow.css', html)

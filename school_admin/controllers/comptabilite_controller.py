@@ -330,6 +330,8 @@ class ComptabiliteController:
         # Récupérer la devise monétaire
         devise_monnaie = ComptabiliteController._get_devise_monnaie(etablissement)
         
+        from ..utils.directeur_ui_tabs import attach_niveau_classe_tab_context
+
         context = {
             'etablissement': etablissement,
             'annee_scolaire_active': annee_scolaire_active,
@@ -343,6 +345,7 @@ class ComptabiliteController:
             'devise_monnaie': devise_monnaie,  # Ajouter la devise au contexte
             'est_superieur': etablissement.type_etablissement == 'superieur',
         }
+        attach_niveau_classe_tab_context(request, context, dict(classes_grouped))
         
         return render(request, 'school_admin/directeur/comptabilite/liste_comptabilite_eleves.html', context)
 
@@ -591,6 +594,10 @@ class ComptabiliteController:
             'remise_fratrie_active': remise_active,
             'remise_fratrie_pct': remise_pct,
         }
+
+        from ..utils.directeur_ui_tabs import attach_details_compta_tab_context
+
+        attach_details_compta_tab_context(request, context)
         
         return render(request, 'school_admin/directeur/comptabilite/details_comptabilite_eleve.html', context)
 
@@ -1828,6 +1835,10 @@ class ComptabiliteController:
             'is_directeur': is_directeur,
             'personnel': personnel,
         }
+
+        from ..utils.directeur_ui_tabs import attach_bilan_tab_context
+
+        attach_bilan_tab_context(request, context)
         
         return render(request, 'school_admin/directeur/comptabilite/bilan_comptable.html', context)
 
@@ -2144,7 +2155,11 @@ class ComptabiliteController:
             'is_directeur': is_directeur,
             'personnel': personnel,
         }
-        
+
+        from ..utils.directeur_ui_tabs import attach_bilan_classe_tab_context
+
+        attach_bilan_classe_tab_context(request, context)
+
         return render(request, 'school_admin/directeur/comptabilite/bilan_comptable_classe.html', context)
 
     @staticmethod

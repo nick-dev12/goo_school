@@ -10,7 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/details_comptabilite_eleve.css' %}?v=2.0.2" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/details_comptabilite_eleve.css' %}?v=2.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
 <body class="scd-page-body" data-live-page="compta-details" data-eleve-id="{{ eleve.id }}" data-devise="{{ devise_monnaie|default:'FCFA' }}">
@@ -145,32 +147,41 @@
         {% endif %}
 
         <div class="scd-tabs-wrap">
-            <nav class="scd-tabs-nav" role="tablist" aria-label="{% trans 'Sections comptabilité' %}">
-                <button type="button" role="tab" class="scd-tab-btn active" data-scd-tab="scd-panel-frais" aria-selected="true">
-                    <i class="fas fa-user-plus"></i>
-                    <span>{% trans "Inscription" %}</span>
-                    <span class="scd-tab-count">{{ frais_inscription_avec_paiements|length }}</span>
-                </button>
-                {% if etablissement.type_etablissement_comptabilite == 'prive' %}
-                <button type="button" role="tab" class="scd-tab-btn" data-scd-tab="comptaMensualitesSection" aria-selected="false">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>{% trans "Mensualités" %}</span>
-                    <span class="scd-tab-count">{{ mensualites_avec_paiements|length }}</span>
-                </button>
-                {% endif %}
-                <button type="button" role="tab" class="scd-tab-btn" data-scd-tab="scd-panel-annexes" aria-selected="false">
-                    <i class="fas fa-tags"></i>
-                    <span>{% trans "Frais annexes" %}</span>
-                    <span class="scd-tab-count" id="comptaAnnexesCount">{{ frais_annexes_avec_paiements|length }}</span>
-                </button>
-                <button type="button" role="tab" class="scd-tab-btn" data-scd-tab="scd-panel-historique" aria-selected="false">
-                    <i class="fas fa-history"></i>
-                    <span>{% trans "Historique" %}</span>
-                    <span class="scd-tab-count">{{ paiements|length }}</span>
-                </button>
-            </nav>
+            <div class="matiere-tabs-bar scd-tabs-bar" data-overflow-item-label="{% trans 'section' %}" data-overflow-items-label="{% trans 'sections' %}">
+                <div class="matiere-tabs-track scd-tabs-nav" role="tablist" aria-label="{% trans 'Sections comptabilité' %}">
+                    <button type="button" role="tab" class="matiere-tab-btn scd-tab-btn {% if initial_compta_details_section == 'frais' %}active{% endif %}" data-scd-tab="scd-panel-frais" data-section="frais" aria-selected="{% if initial_compta_details_section == 'frais' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-user-plus"></i>
+                        <span>{% trans "Inscription" %}</span>
+                        <span class="scd-tab-count tab-count">{{ frais_inscription_avec_paiements|length }}</span>
+                    </button>
+                    {% if etablissement.type_etablissement_comptabilite == 'prive' %}
+                    <button type="button" role="tab" class="matiere-tab-btn scd-tab-btn {% if initial_compta_details_section == 'mensualites' %}active{% endif %}" data-scd-tab="comptaMensualitesSection" data-section="mensualites" aria-selected="{% if initial_compta_details_section == 'mensualites' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>{% trans "Mensualités" %}</span>
+                        <span class="scd-tab-count tab-count">{{ mensualites_avec_paiements|length }}</span>
+                    </button>
+                    {% endif %}
+                    <button type="button" role="tab" class="matiere-tab-btn scd-tab-btn {% if initial_compta_details_section == 'annexes' %}active{% endif %}" data-scd-tab="scd-panel-annexes" data-section="annexes" aria-selected="{% if initial_compta_details_section == 'annexes' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-tags"></i>
+                        <span>{% trans "Frais annexes" %}</span>
+                        <span class="scd-tab-count tab-count" id="comptaAnnexesCount">{{ frais_annexes_avec_paiements|length }}</span>
+                    </button>
+                    <button type="button" role="tab" class="matiere-tab-btn scd-tab-btn {% if initial_compta_details_section == 'historique' %}active{% endif %}" data-scd-tab="scd-panel-historique" data-section="historique" aria-selected="{% if initial_compta_details_section == 'historique' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-history"></i>
+                        <span>{% trans "Historique" %}</span>
+                        <span class="scd-tab-count tab-count">{{ paiements|length }}</span>
+                    </button>
+                </div>
+                <div class="matiere-tabs-more-wrap" hidden>
+                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres sections' %}">
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        <span class="matiere-tabs-more-label">{% trans "Autres sections" %}</span>
+                    </button>
+                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                </div>
+            </div>
 
-            <div class="scd-tab-panel active" id="scd-panel-frais" role="tabpanel">
+            <div class="scd-tab-panel {% if initial_compta_details_panel_id == 'scd-panel-frais' %}active{% endif %}" id="scd-panel-frais" role="tabpanel"{% if initial_compta_details_panel_id != 'scd-panel-frais' %} hidden{% endif %}>
                 <header class="scd-section-head">
                     <h2 class="scd-section-title"><i class="fas fa-user-plus"></i> {% trans "Frais d'inscription / réinscription" %}</h2>
                 </header>
@@ -229,7 +240,7 @@
             </div>
 
             {% if etablissement.type_etablissement_comptabilite == 'prive' %}
-            <div class="scd-tab-panel" id="comptaMensualitesSection" role="tabpanel">
+            <div class="scd-tab-panel {% if initial_compta_details_panel_id == 'comptaMensualitesSection' %}active{% endif %}" id="comptaMensualitesSection" role="tabpanel"{% if initial_compta_details_panel_id != 'comptaMensualitesSection' %} hidden{% endif %}>
                 <header class="scd-section-head">
                     <h2 class="scd-section-title"><i class="fas fa-calendar-alt"></i> {% trans "Mensualités" %}</h2>
                 </header>
@@ -302,7 +313,7 @@
             <div id="comptaMensualitesSection" hidden></div>
             {% endif %}
 
-            <div class="scd-tab-panel" id="scd-panel-annexes" role="tabpanel">
+            <div class="scd-tab-panel {% if initial_compta_details_panel_id == 'scd-panel-annexes' %}active{% endif %}" id="scd-panel-annexes" role="tabpanel"{% if initial_compta_details_panel_id != 'scd-panel-annexes' %} hidden{% endif %}>
                 <header class="scd-section-head">
                     <h2 class="scd-section-title"><i class="fas fa-tags"></i> {% trans "Frais annexes" %}</h2>
                 </header>
@@ -367,7 +378,7 @@
                 {% endif %}
             </div>
 
-            <div class="scd-tab-panel" id="scd-panel-historique" role="tabpanel">
+            <div class="scd-tab-panel {% if initial_compta_details_panel_id == 'scd-panel-historique' %}active{% endif %}" id="scd-panel-historique" role="tabpanel"{% if initial_compta_details_panel_id != 'scd-panel-historique' %} hidden{% endif %}>
                 <header class="scd-section-head">
                     <h2 class="scd-section-title"><i class="fas fa-history"></i> {% trans "Historique des paiements" %}</h2>
                 </header>
@@ -480,7 +491,8 @@
     </div>
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
-    <script src="{% static 'school_admin/js/directeur/details_comptabilite_eleve.js' %}?v=2.0.1"></script>
+    <script src="{% static 'school_admin/js/directeur/directeur_tab_storage.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/details_comptabilite_eleve.js' %}?v=2.1.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

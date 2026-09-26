@@ -66,19 +66,23 @@ class RecouvrementController:
         total_eleves = sum(len(g['eleves']) for g in groupes)
         devise = devise_etablissement(etablissement)
 
+        from ..utils.directeur_ui_tabs import attach_impayes_tab_context
+
+        context = {
+            'etablissement': etablissement,
+            'annee_scolaire_active': annee,
+            'groupes': groupes,
+            'total_reste': total_reste,
+            'total_eleves': total_eleves,
+            'devise_monnaie': devise,
+            'is_directeur': is_directeur,
+            'personnel': personnel,
+        }
+        attach_impayes_tab_context(request, context, groupes)
         return render(
             request,
             'school_admin/directeur/comptabilite/liste_impayes.html',
-            {
-                'etablissement': etablissement,
-                'annee_scolaire_active': annee,
-                'groupes': groupes,
-                'total_reste': total_reste,
-                'total_eleves': total_eleves,
-                'devise_monnaie': devise,
-                'is_directeur': is_directeur,
-                'personnel': personnel,
-            },
+            context,
         )
 
     @staticmethod
@@ -190,20 +194,22 @@ class RecouvrementController:
             annee_scolaire=paiement.annee_scolaire,
         ).select_related('classe').first()
 
-        return render(
-            request,
-            'school_admin/directeur/comptabilite/recu_paiement.html',
-            {
-                'paiement': paiement,
-                'eleve': paiement.eleve,
-                'etablissement': etablissement,
-                'annee_scolaire': paiement.annee_scolaire,
-                'inscription': inscription,
-                'devise_monnaie': devise_etablissement(etablissement),
-                'is_directeur': is_directeur,
-                'personnel': personnel,
-            },
-        )
+        from school_admin.services.recouvrement import build_recu_paiement_extra_context
+
+        extra = build_recu_paiement_extra_context(paiement)
+        context = {
+            'paiement': paiement,
+            'eleve': paiement.eleve,
+            'etablissement': etablissement,
+            'annee_scolaire': paiement.annee_scolaire,
+            'inscription': inscription,
+            'devise_monnaie': devise_etablissement(etablissement),
+            'is_directeur': is_directeur,
+            'personnel': personnel,
+            'auto_print': request.GET.get('auto_print') == '1',
+        }
+        context.update(extra)
+        return render(request, 'school_admin/directeur/comptabilite/recu_paiement.html', context)
 
     @staticmethod
     @login_required

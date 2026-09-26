@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Caisse" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/caisse.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="caisse-page-body" data-live-page="caisse">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="content-container caisse-page">
+        {% include 'school_admin/partials/messages.html' %}
+
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:liste_comptabilite_eleves_directeur' as back_scolarite_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_scolarite_url %}
+        </div>
+
+        <header class="caisse-hero">
+            <div>
+                <h1 class="caisse-hero-title"><i class="fas fa-cash-register"></i> {% trans "Caisse du mois" %}</h1>
+                <p class="caisse-hero-sub">{% trans "Les paiements des familles entrent tout seuls. Vous n'ajoutez que les sorties (salaires, loyer, fournitures)." %}</p>
+                {% if annee_scolaire_active %}
+                    <span class="caisse-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+                {% endif %}
+            </div>
+            <div class="caisse-stat {% if solde >= 0 %}caisse-stat--ok{% else %}caisse-stat--warn{% endif %}">
+                <span class="caisse-stat-num">{{ solde|floatformat:0 }}</span>
+                <span class="caisse-stat-lbl">{% trans "Solde" %} ({{ devise_monnaie }})</span>
+            </div>
+            <div class="caisse-stat">
+                <span class="caisse-stat-num">{{ entrees|floatformat:0 }}</span>
+                <span class="caisse-stat-lbl">{% trans "Entrées" %}</span>
+            </div>
+            <div class="caisse-stat">
+                <span class="caisse-stat-num">{{ sorties|floatformat:0 }}</span>
+                <span class="caisse-stat-lbl">{% trans "Sorties" %}</span>
+            </div>
+        </header>
+
+        <form class="caisse-month-form" method="get" action="{% url 'directeur:caisse_mois_directeur' %}" id="caisseMonthForm">
+            <label for="caisse-mois">{% trans "Mois" %}</label>
+            <input id="caisse-mois" type="month" name="mois" value="{{ bornes.valeur }}" />
+            {% if initial_caisse_vue %}<input type="hidden" name="vue" value="{{ initial_caisse_vue }}" />{% endif %}
+            <button type="submit" class="caisse-btn caisse-btn--primary">{% trans "Afficher" %}</button>
+            <span class="caisse-period">{{ bornes.label }} · {{ bornes.debut|date:"d/m/Y" }} → {{ bornes.fin|date:"d/m/Y" }}</span>
+        </form>
+
+        <div class="caisse-tabs-wrap">
+            <div class="matiere-tabs-bar caisse-tabs-bar" data-overflow-item-label="{% trans 'vue' %}" data-overflow-items-label="{% trans 'vues' %}">
+                <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Mouvements caisse' %}">
+                    <button type="button" role="tab" class="matiere-tab-btn caisse-vue-tab {% if initial_caisse_vue == 'entrees' %}active{% endif %}"
+                            data-tab="caisse-panel-entrees" data-vue="entrees"
+                            aria-selected="{% if initial_caisse_vue == 'entrees' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-arrow-down"></i><span>{% trans "Entrées" %}</span>
+                        <span class="tab-count">{{ recettes|length }}</span>
+                    </button>
+                    <button type="button" role="tab" class="matiere-tab-btn caisse-vue-tab {% if initial_caisse_vue == 'sorties' %}active{% endif %}"
+                            data-tab="caisse-panel-sorties" data-vue="sorties"
+                            aria-selected="{% if initial_caisse_vue == 'sorties' %}true{% else %}false{% endif %}">
+                        <i class="fas fa-arrow-up"></i><span>{% trans "Sorties" %}</span>
+                        <span class="tab-count">{{ depenses|length }}</span>
+                    </button>
+                </div>
+                <div class="matiere-tabs-more-wrap" hidden>
+                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres vues' %}">
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        <span class="matiere-tabs-more-label">{% trans "Autres vues" %}</span>
+                    </button>
+                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                </div>
+            </div>
+
+            <div class="caisse-tabs-content">
+                <section class="tab-panel caisse-tab-panel {% if initial_caisse_vue == 'entrees' %}active{% endif %}" id="caisse-panel-entrees" role="tabpanel"{% if initial_caisse_vue != 'entrees' %} hidden{% endif %}>
+                    <h2>{% trans "Entrées — paiements familles" %}</h2>
+                    <div class="table-responsive">
+                        <table class="caisse-table">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Date" %}</th>
+                                    <th>{% trans "Élève" %}</th>
+                                    <th>{% trans "Nature" %}</th>
+                                    <th class="num">{% trans "Montant" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for paiement in recettes %}
+                                <tr>
+                                    <td>{{ paiement.date_paiement|date:"d/m/Y" }}</td>
+                                    <td>{{ paiement.eleve.nom }} {{ paiement.eleve.prenom }}</td>
+                                    <td>{{ paiement.get_type_paiement_display }}</td>
+                                    <td class="num">{{ paiement.montant|floatformat:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="caisse-empty">{% trans "Aucun paiement encaissé ce mois-ci." %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="tab-panel caisse-tab-panel {% if initial_caisse_vue == 'sorties' %}active{% endif %}" id="caisse-panel-sorties" role="tabpanel"{% if initial_caisse_vue != 'sorties' %} hidden{% endif %}>
+                    <section class="caisse-form-card">
+                        <h2>{% trans "Ajouter une sortie" %}</h2>
+                        <form method="post" action="{% url 'directeur:ajouter_depense_directeur' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="mois" value="{{ bornes.valeur }}" />
+                            <div class="caisse-form-grid">
+                                <div>
+                                    <label for="date_depense">{% trans "Date" %}</label>
+                                    <input id="date_depense" type="date" name="date_depense" value="{{ date_defaut }}" required />
+                                </div>
+                                <div>
+                                    <label for="motif">{% trans "Motif" %}</label>
+                                    <select id="motif" name="motif">
+                                        {% for code, label in motifs %}
+                                        <option value="{{ code }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="montant">{% trans "Montant" %} ({{ devise_monnaie }})</label>
+                                    <input id="montant" type="number" name="montant" min="1" step="1" required />
+                                </div>
+                                <div>
+                                    <label for="libelle">{% trans "Précision" %} <span class="caisse-optional">{% trans "(optionnel)" %}</span></label>
+                                    <input id="libelle" type="text" name="libelle" maxlength="160" placeholder="{% trans 'Ex. loyer septembre' %}" />
+                                </div>
+                            </div>
+                            <button type="submit" class="caisse-btn caisse-btn--primary">
+                                <i class="fas fa-plus"></i> {% trans "Enregistrer la sortie" %}
+                            </button>
+                        </form>
+                    </section>
+                    <h2>{% trans "Sorties enregistrées" %}</h2>
+                    <div class="table-responsive">
+                        <table class="caisse-table">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Date" %}</th>
+                                    <th>{% trans "Motif" %}</th>
+                                    <th class="num">{% trans "Montant" %}</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for depense in depenses %}
+                                <tr>
+                                    <td>{{ depense.date_depense|date:"d/m/Y" }}</td>
+                                    <td>{{ depense.libelle_affiche }}</td>
+                                    <td class="num">{{ depense.montant|floatformat:0 }}</td>
+                                    <td>
+                                        <form method="post" action="{% url 'directeur:supprimer_depense_directeur' depense.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="mois" value="{{ bornes.valeur }}" />
+                                            <button type="submit" class="caisse-btn caisse-btn--ghost">{% trans "Retirer" %}</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="caisse-empty">{% trans "Aucune sortie ce mois-ci." %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'school_admin/js/directeur/directeur_tab_storage.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/caisse_mois.js' %}?v=1.0.0"></script>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

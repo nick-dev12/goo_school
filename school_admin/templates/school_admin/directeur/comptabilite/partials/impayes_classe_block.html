@@ -1,0 +1,66 @@
+{% load i18n %}
+<section class="imp-classe"{% if groupe.classe_id %} data-classe-id="{{ groupe.classe_id }}"{% endif %}>
+    <div class="imp-classe-head">
+        <h2><i class="fas fa-chalkboard"></i> {{ groupe.classe_nom }}</h2>
+        <div>
+            <strong>{{ groupe.total_reste|floatformat:0 }} {{ devise_monnaie }}</strong>
+            {% if groupe.classe_id %}
+            <form method="post" action="{% url 'directeur:relancer_impayes_classe_directeur' %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="classe_id" value="{{ groupe.classe_id }}" />
+                <input type="hidden" name="next" value="{% url 'directeur:liste_impayes_directeur' %}" />
+                <button type="submit" class="imp-action-btn imp-action-btn--warn">
+                    <i class="fas fa-paper-plane"></i> {% trans "Relancer la classe" %}
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="imp-table">
+            <thead>
+                <tr>
+                    <th>{% trans "Élève" %}</th>
+                    <th class="num">{% trans "Reste dû" %}</th>
+                    <th>{% trans "Prochaine échéance" %}</th>
+                    <th>{% trans "Libellé" %}</th>
+                    <th>{% trans "Statut" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in groupe.eleves %}
+                    <tr>
+                        <td>{{ row.eleve.nom }} {{ row.eleve.prenom }}</td>
+                        <td class="num"><strong>{{ row.resume.reste|floatformat:0 }} {{ devise_monnaie }}</strong></td>
+                        <td>{% if row.resume.prochaine_echeance %}{{ row.resume.prochaine_echeance|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                        <td>{{ row.resume.prochaine_libelle|default:"—" }}</td>
+                        <td>
+                            {% if row.en_retard %}
+                                <span class="imp-badge imp-badge--danger">{% trans "En retard" %}</span>
+                            {% else %}
+                                <span class="imp-badge imp-badge--warn">{% trans "À recouvrer" %}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'directeur:details_comptabilite_eleve_directeur' row.eleve.id %}" class="imp-action-btn imp-action-btn--secondary">
+                                {% trans "Fiche" %}
+                            </a>
+                            <form method="post" action="{% url 'directeur:relancer_impaye_directeur' row.eleve.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'directeur:liste_impayes_directeur' %}" />
+                                <button type="submit" class="imp-action-btn imp-action-btn--primary">
+                                    <i class="fas fa-sms"></i> {% trans "Relancer" %}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr class="imp-empty-row">
+                        <td colspan="6" class="imp-empty">{% trans "Aucun impayé dans cette classe." %}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>

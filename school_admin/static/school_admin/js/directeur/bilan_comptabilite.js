@@ -5,24 +5,71 @@
 (function () {
   'use strict';
 
-  function switchScbTab(tabId, btn) {
+  var STORAGE_KEY = 'directeur:bilan-scolarite';
+  var TAB_SELECTOR = '.scb-tab-btn[data-scb-tab]';
+
+  function persistSection(section) {
+    if (!window.directeurTabStorage) return;
+    window.directeurTabStorage.syncUrlAndStore(STORAGE_KEY, {
+      section: section || 'synthese',
+    });
+  }
+
+  function switchScbTab(tabId, btn, opts) {
+    opts = opts || {};
     document.querySelectorAll('.scb-tab-panel').forEach(function (panel) {
       panel.classList.remove('active');
+      panel.hidden = true;
     });
-    document.querySelectorAll('.scb-tab-btn').forEach(function (b) {
+    document.querySelectorAll(TAB_SELECTOR).forEach(function (b) {
       b.classList.remove('active');
       b.setAttribute('aria-selected', 'false');
     });
     var panel = document.getElementById(tabId);
-    if (panel) panel.classList.add('active');
-    var targetBtn = btn || document.querySelector('.scb-tab-btn[data-scb-tab="' + tabId + '"]');
+    if (panel) {
+      panel.classList.add('active');
+      panel.hidden = false;
+    }
+    var targetBtn = btn || document.querySelector(TAB_SELECTOR + '[data-scb-tab="' + tabId + '"]');
     if (targetBtn) {
       targetBtn.classList.add('active');
       targetBtn.setAttribute('aria-selected', 'true');
+      if (!opts.skipPersist) {
+        persistSection(targetBtn.getAttribute('data-section') || 'synthese');
+      }
     }
     if (tabId === 'scb-panel-graphiques' && window.SCB_initCharts && !window.SCB_chartsReady) {
       window.SCB_initCharts();
     }
+    if (typeof window.layoutTabsOverflowNav === 'function') {
+      window.layoutTabsOverflowNav();
+    }
+  }
+
+  function restoreSectionFromStorage() {
+    if (!window.directeurTabStorage) return false;
+    var params = new URLSearchParams(window.location.search);
+    if (!params.has('section')) {
+      var stored = window.directeurTabStorage.readStore(STORAGE_KEY);
+      if (stored.section) {
+        params.set('section', stored.section);
+        window.location.replace(window.location.pathname + '?' + params.toString());
+        return true;
+      }
+    }
+    window.directeurTabStorage.mergeUrlFromStore(STORAGE_KEY, ['section']);
+    var section = params.get('section') || 'synthese';
+    var targetBtn = document.querySelector(TAB_SELECTOR + '[data-section="' + CSS.escape(section) + '"]');
+    if (targetBtn) {
+      switchScbTab(targetBtn.getAttribute('data-scb-tab'), targetBtn, { skipPersist: true });
+      persistSection(section);
+    } else if (document.querySelector('.scb-tab-panel.active')) {
+      var activePanel = document.querySelector('.scb-tab-panel.active');
+      if (activePanel.id === 'scb-panel-graphiques' && window.SCB_initCharts && !window.SCB_chartsReady) {
+        window.SCB_initCharts();
+      }
+    }
+    return false;
   }
 
   function readChartData() {
@@ -140,6 +187,15 @@
   });
 
   document.addEventListener('DOMContentLoaded', function () {
-    switchScbTab('scb-panel-synthese');
+    if (restoreSectionFromStorage()) {
+      return;
+    }
+    var active = document.querySelector('.scb-tab-panel.active');
+    if (active && active.id === 'scb-panel-graphiques' && window.SCB_initCharts && !window.SCB_chartsReady) {
+      window.SCB_initCharts();
+    }
+    if (typeof window.layoutTabsOverflowNav === 'function') {
+      window.layoutTabsOverflowNav();
+    }
   });
 })();

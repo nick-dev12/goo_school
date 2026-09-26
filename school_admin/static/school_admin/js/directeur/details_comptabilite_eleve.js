@@ -20,21 +20,63 @@
     }).format(amount);
   }
 
-  function switchScdTab(tabId, btn) {
+  var STORAGE_KEY = 'directeur:compta-details-eleve';
+  var TAB_SELECTOR = '.scd-tab-btn[data-scd-tab]';
+
+  function persistSection(section) {
+    if (!window.directeurTabStorage) return;
+    window.directeurTabStorage.syncUrlAndStore(STORAGE_KEY, {
+      section: section || 'frais',
+    });
+  }
+
+  function switchScdTab(tabId, btn, opts) {
+    opts = opts || {};
     document.querySelectorAll('.scd-tab-panel').forEach(function (panel) {
       panel.classList.remove('active');
+      panel.hidden = true;
     });
-    document.querySelectorAll('.scd-tab-btn').forEach(function (b) {
+    document.querySelectorAll(TAB_SELECTOR).forEach(function (b) {
       b.classList.remove('active');
       b.setAttribute('aria-selected', 'false');
     });
     var panel = document.getElementById(tabId);
-    if (panel) panel.classList.add('active');
-    var targetBtn = btn || document.querySelector('.scd-tab-btn[data-scd-tab="' + tabId + '"]');
+    if (panel) {
+      panel.classList.add('active');
+      panel.hidden = false;
+    }
+    var targetBtn = btn || document.querySelector(TAB_SELECTOR + '[data-scd-tab="' + tabId + '"]');
     if (targetBtn) {
       targetBtn.classList.add('active');
       targetBtn.setAttribute('aria-selected', 'true');
+      if (!opts.skipPersist) {
+        persistSection(targetBtn.getAttribute('data-section') || 'frais');
+      }
     }
+    if (typeof window.layoutTabsOverflowNav === 'function') {
+      window.layoutTabsOverflowNav();
+    }
+  }
+
+  function restoreSectionFromStorage() {
+    if (!window.directeurTabStorage) return false;
+    var params = new URLSearchParams(window.location.search);
+    if (!params.has('section')) {
+      var stored = window.directeurTabStorage.readStore(STORAGE_KEY);
+      if (stored.section) {
+        params.set('section', stored.section);
+        window.location.replace(window.location.pathname + '?' + params.toString());
+        return true;
+      }
+    }
+    window.directeurTabStorage.mergeUrlFromStore(STORAGE_KEY, ['section']);
+    var section = params.get('section') || 'frais';
+    var targetBtn = document.querySelector(TAB_SELECTOR + '[data-section="' + CSS.escape(section) + '"]');
+    if (targetBtn) {
+      switchScdTab(targetBtn.getAttribute('data-scd-tab'), targetBtn, { skipPersist: true });
+      persistSection(section);
+    }
+    return false;
   }
 
   function updateResteAPayerDisplay() {
@@ -128,8 +170,8 @@
       switchScdTab(tabBtn.getAttribute('data-scd-tab'), tabBtn);
       return;
     }
-    var closeBtn = event.target.closest('[data-close-paiement-modal]');
-    if (closeBtn) {
+    var closeBtn = event.target.closest('[data-close-paiement-modal], .scd-modal-close');
+    if (closeBtn && document.getElementById('paiementModal') && document.getElementById('paiementModal').contains(closeBtn)) {
       window.closePaiementModal();
     }
   });
@@ -153,6 +195,11 @@
   });
 
   document.addEventListener('DOMContentLoaded', function () {
-    switchScdTab('scd-panel-frais');
+    if (restoreSectionFromStorage()) {
+      return;
+    }
+    if (typeof window.layoutTabsOverflowNav === 'function') {
+      window.layoutTabsOverflowNav();
+    }
   });
 })();

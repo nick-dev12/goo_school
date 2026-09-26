@@ -45,9 +45,32 @@
     }
   });
 
+  function filterParamCards() {
+    var input = document.getElementById('scpSearchInput');
+    if (!input) return;
+    var term = input.value.trim().toLowerCase();
+    var cards = document.querySelectorAll('.scp-param-card[data-scp-search]');
+    var visible = 0;
+    cards.forEach(function (card) {
+      var blob = (card.getAttribute('data-scp-search') || '') + ' ' + card.textContent;
+      blob = blob.toLowerCase();
+      var show = !term || blob.indexOf(term) !== -1;
+      card.style.display = show ? '' : 'none';
+      if (show) visible += 1;
+    });
+    var emptyEl = document.getElementById('scpSearchEmpty');
+    if (emptyEl) {
+      emptyEl.hidden = !term || visible > 0;
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     if (document.body.getAttribute('data-open-ajouter-modal') === '1') {
       openAjouterModal();
+    }
+    var searchInput = document.getElementById('scpSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', filterParamCards);
     }
   });
 })();

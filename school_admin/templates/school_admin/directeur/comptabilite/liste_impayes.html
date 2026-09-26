@@ -10,7 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/impayes.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/impayes.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
 <body class="imp-page-body" data-live-page="compta-impayes">
@@ -48,73 +50,65 @@
 
         {% if not groupes %}
             <p class="imp-empty"><i class="fas fa-check-circle"></i> {% trans "Aucun reste à payer pour l'année en cours." %}</p>
-        {% endif %}
+        {% else %}
+            <div class="imp-toolbar">
+                <label class="imp-search-wrap">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input type="search" id="impSearchInput" class="imp-search-input" placeholder="{% trans 'Rechercher un élève…' %}" autocomplete="off" />
+                </label>
+            </div>
 
-        {% for groupe in groupes %}
-            <section class="imp-classe">
-                <div class="imp-classe-head">
-                    <h2><i class="fas fa-chalkboard"></i> {{ groupe.classe_nom }}</h2>
-                    <div>
-                        <strong>{{ groupe.total_reste|floatformat:0 }} {{ devise_monnaie }}</strong>
-                        {% if groupe.classe_id %}
-                        <form method="post" action="{% url 'directeur:relancer_impayes_classe_directeur' %}" style="display:inline;">
-                            {% csrf_token %}
-                            <input type="hidden" name="classe_id" value="{{ groupe.classe_id }}" />
-                            <input type="hidden" name="next" value="{% url 'directeur:liste_impayes_directeur' %}" />
-                            <button type="submit" class="imp-action-btn imp-action-btn--warn">
-                                <i class="fas fa-paper-plane"></i> {% trans "Relancer la classe" %}
+            <div class="imp-classe-nav">
+                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
+                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes' %}">
+                        <button type="button" role="tab" class="matiere-tab-btn imp-classe-tab {% if initial_impayes_classe_key == 'tous' %}active{% endif %}"
+                                data-tab="imp-panel-tous" data-classe-key="tous"
+                                aria-selected="{% if initial_impayes_classe_key == 'tous' %}true{% else %}false{% endif %}">
+                            <i class="fas fa-layer-group"></i><span>{% trans "Toutes" %}</span>
+                            <span class="tab-count">{{ total_eleves }}</span>
+                        </button>
+                        {% for groupe in groupes %}
+                            {% if groupe.classe_id %}
+                            <button type="button" role="tab" class="matiere-tab-btn imp-classe-tab {% if initial_impayes_classe_key == groupe.classe_id|stringformat:'s' %}active{% endif %}"
+                                    data-tab="imp-panel-classe-{{ groupe.classe_id }}" data-classe-key="{{ groupe.classe_id }}"
+                                    aria-selected="{% if initial_impayes_classe_key == groupe.classe_id|stringformat:'s' %}true{% else %}false{% endif %}">
+                                <i class="fas fa-chalkboard"></i><span>{{ groupe.classe_nom }}</span>
+                                <span class="tab-count">{{ groupe.eleves|length }}</span>
                             </button>
-                        </form>
-                        {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="matiere-tabs-more-wrap" hidden>
+                        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres classes' %}">
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            <span class="matiere-tabs-more-label">{% trans "Autres classes" %}</span>
+                        </button>
+                        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="imp-table">
-                        <thead>
-                            <tr>
-                                <th>{% trans "Élève" %}</th>
-                                <th class="num">{% trans "Reste dû" %}</th>
-                                <th>{% trans "Prochaine échéance" %}</th>
-                                <th>{% trans "Libellé" %}</th>
-                                <th>{% trans "Statut" %}</th>
-                                <th>{% trans "Actions" %}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in groupe.eleves %}
-                                <tr>
-                                    <td>{{ row.eleve.nom }} {{ row.eleve.prenom }}</td>
-                                    <td class="num"><strong>{{ row.resume.reste|floatformat:0 }} {{ devise_monnaie }}</strong></td>
-                                    <td>{% if row.resume.prochaine_echeance %}{{ row.resume.prochaine_echeance|date:"d/m/Y" }}{% else %}—{% endif %}</td>
-                                    <td>{{ row.resume.prochaine_libelle|default:"—" }}</td>
-                                    <td>
-                                        {% if row.en_retard %}
-                                            <span class="imp-badge imp-badge--danger">{% trans "En retard" %}</span>
-                                        {% else %}
-                                            <span class="imp-badge imp-badge--warn">{% trans "À recouvrer" %}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{% url 'directeur:details_comptabilite_eleve_directeur' row.eleve.id %}" class="imp-action-btn imp-action-btn--secondary">
-                                            {% trans "Fiche" %}
-                                        </a>
-                                        <form method="post" action="{% url 'directeur:relancer_impaye_directeur' row.eleve.id %}" style="display:inline;">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="next" value="{% url 'directeur:liste_impayes_directeur' %}" />
-                                            <button type="submit" class="imp-action-btn imp-action-btn--primary">
-                                                <i class="fas fa-sms"></i> {% trans "Relancer" %}
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            </div>
+
+            <div class="imp-tabs-content">
+                <div class="tab-panel {% if initial_impayes_classe_key == 'tous' %}active{% endif %}" id="imp-panel-tous"{% if initial_impayes_classe_key != 'tous' %} hidden{% endif %}>
+                    {% for groupe in groupes %}
+                        {% include 'school_admin/directeur/comptabilite/partials/impayes_classe_block.html' with groupe=groupe %}
+                    {% endfor %}
+                    <p class="imp-empty-filter" hidden>{% trans "Aucun élève ne correspond à votre recherche." %}</p>
                 </div>
-            </section>
-        {% endfor %}
+                {% for groupe in groupes %}
+                    {% if groupe.classe_id %}
+                    <div class="tab-panel {% if initial_impayes_classe_key == groupe.classe_id|stringformat:'s' %}active{% endif %}" id="imp-panel-classe-{{ groupe.classe_id }}"{% if initial_impayes_classe_key != groupe.classe_id|stringformat:'s' %} hidden{% endif %}>
+                        {% include 'school_admin/directeur/comptabilite/partials/impayes_classe_block.html' with groupe=groupe %}
+                        <p class="imp-empty-filter" hidden>{% trans "Aucun élève ne correspond à votre recherche." %}</p>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
     </div>
 
+    <script src="{% static 'school_admin/js/directeur/directeur_tab_storage.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_impayes.js' %}?v=1.0.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

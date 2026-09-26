@@ -1,20 +1,41 @@
 /**
- * Scolarité des élèves — navigation onglets + filtres (UI v2)
+ * Scolarité des élèves — navigation, filtres, persistance (UI v2, Vague 5)
  */
 
 (function () {
   'use strict';
 
-  window.switchMainTab = function (tabId, btn) {
+  var STORAGE_KEY = 'directeur:compta-eleves';
+
+  function persistStatut(classeId, statut) {
+    if (!window.directeurTabStorage) return;
+    var store = window.directeurTabStorage.readStore(STORAGE_KEY);
+    var byClasse = store.statutParClasse && typeof store.statutParClasse === 'object'
+      ? store.statutParClasse
+      : {};
+    if (classeId) {
+      byClasse[String(classeId)] = statut || '';
+    }
+    window.directeurTabStorage.writeStore(STORAGE_KEY, {
+      statutParClasse: byClasse,
+    });
+  }
+
+  window.switchMainTab = function (tabId, btn, opts) {
+    opts = opts || {};
     document.querySelectorAll('.tab-panel').forEach(function (panel) {
       panel.classList.remove('active');
+      panel.hidden = true;
     });
     document.querySelectorAll('.tab-button').forEach(function (b) {
       b.classList.remove('active');
       b.setAttribute('aria-selected', 'false');
     });
     var panel = document.getElementById(tabId);
-    if (panel) panel.classList.add('active');
+    if (panel) {
+      panel.classList.add('active');
+      panel.hidden = false;
+    }
     var targetBtn = btn || document.querySelector('.tab-button[data-tab="' + tabId + '"]');
     if (targetBtn) {
       targetBtn.classList.add('active');
@@ -25,7 +46,8 @@
     }
   };
 
-  window.switchClasseTab = function (event, classeId) {
+  window.switchClasseTab = function (event, classeId, opts) {
+    opts = opts || {};
     if (event) event.stopPropagation();
     var parentPanel = event && event.target
       ? event.target.closest('.tab-panel')
@@ -38,6 +60,7 @@
 
     parentPanel.querySelectorAll('.classe-subtab-content').forEach(function (el) {
       el.classList.remove('active');
+      el.hidden = true;
     });
     parentPanel.querySelectorAll('.classe-subtab-btn').forEach(function (b) {
       b.classList.remove('active');
@@ -45,7 +68,10 @@
     });
 
     var target = document.getElementById(classeId);
-    if (target) target.classList.add('active');
+    if (target) {
+      target.classList.add('active');
+      target.hidden = false;
+    }
 
     var subBtn = parentPanel.querySelector('.classe-subtab-btn[data-subtab="' + classeId + '"]');
     if (subBtn) {
@@ -69,6 +95,9 @@
     var statutValue = filterStatut ? filterStatut.value : '';
 
     if (clearButton) clearButton.hidden = !searchTerm;
+    if (filterStatut && statutValue) {
+      persistStatut(classeId, statutValue);
+    }
 
     var classeContent = document.getElementById('classe-' + classeId);
     if (!classeContent) return;
@@ -122,6 +151,7 @@
     var filterStatut = document.getElementById('filter-statut-' + classeId);
     if (searchInput) searchInput.value = '';
     if (filterStatut) filterStatut.value = '';
+    persistStatut(classeId, '');
     filterStudentsComptabilite(classeId);
   }
 
@@ -160,6 +190,9 @@
   });
 
   document.addEventListener('DOMContentLoaded', function () {
+    if (typeof window.enhanceDirecteurNiveauClasseTabs === 'function') {
+      window.enhanceDirecteurNiveauClasseTabs({ storageKey: STORAGE_KEY + ':niveau-classe' });
+    }
     if (typeof window.layoutTabsOverflowNav === 'function') {
       window.layoutTabsOverflowNav();
     }

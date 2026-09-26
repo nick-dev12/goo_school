@@ -257,3 +257,107 @@ def attach_personnel_tab_context(request, context, category_keys):
     context['initial_matiere'] = resolve_personnel_matiere_filtre(request)
     context['initial_statut_filtre'] = resolve_personnel_statut_filtre(request)
     return context
+
+
+BILAN_SECTION_CHOICES = (
+    'synthese', 'graphiques', 'mois', 'classes', 'modes', 'annexes', 'inscription',
+)
+BILAN_SECTION_PANEL = {
+    'synthese': 'scb-panel-synthese',
+    'graphiques': 'scb-panel-graphiques',
+    'mois': 'scb-panel-mois',
+    'classes': 'scb-panel-classes',
+    'modes': 'scb-panel-modes',
+    'annexes': 'scb-panel-annexes',
+    'inscription': 'scb-panel-inscription',
+}
+
+
+def attach_bilan_tab_context(request, context):
+    section = resolve_main_section_tab(
+        request, 'section', BILAN_SECTION_CHOICES, 'synthese'
+    )
+    context['initial_bilan_section'] = section
+    context['initial_bilan_panel_id'] = BILAN_SECTION_PANEL[section]
+    return context
+
+
+BILAN_CLASSE_SECTION_CHOICES = (
+    'synthese', 'graphiques', 'mois', 'eleves', 'modes', 'annexes', 'inscription',
+)
+BILAN_CLASSE_SECTION_PANEL = {
+    'synthese': 'scb-panel-synthese',
+    'graphiques': 'scb-panel-graphiques',
+    'mois': 'scb-panel-mois',
+    'eleves': 'scb-panel-eleves',
+    'modes': 'scb-panel-modes',
+    'annexes': 'scb-panel-annexes',
+    'inscription': 'scb-panel-inscription',
+}
+
+
+def attach_bilan_classe_tab_context(request, context):
+    section = resolve_main_section_tab(
+        request, 'section', BILAN_CLASSE_SECTION_CHOICES, 'synthese'
+    )
+    context['initial_bilan_section'] = section
+    context['initial_bilan_panel_id'] = BILAN_CLASSE_SECTION_PANEL[section]
+    return context
+
+
+DETAILS_COMPTA_SECTION_CHOICES = ('frais', 'mensualites', 'annexes', 'historique')
+DETAILS_COMPTA_PANEL = {
+    'frais': 'scd-panel-frais',
+    'mensualites': 'comptaMensualitesSection',
+    'annexes': 'scd-panel-annexes',
+    'historique': 'scd-panel-historique',
+}
+
+
+def attach_details_compta_tab_context(request, context):
+    section = resolve_main_section_tab(
+        request, 'section', DETAILS_COMPTA_SECTION_CHOICES, 'frais'
+    )
+    context['initial_compta_details_section'] = section
+    context['initial_compta_details_panel_id'] = DETAILS_COMPTA_PANEL[section]
+    return context
+
+
+def resolve_impayes_classe(request, classe_ids):
+    """Impayés — ?classe=tous|<id>."""
+    allowed = ['tous'] + [str(int(cid)) for cid in (classe_ids or []) if cid]
+    raw = (request.GET.get('classe') or 'tous').strip().lower()
+    if raw == 'tous':
+        return 'tous', None
+    try:
+        cid = int(raw)
+    except (TypeError, ValueError):
+        return 'tous', None
+    if str(cid) in allowed[1:]:
+        return str(cid), cid
+    return 'tous', None
+
+
+def attach_impayes_tab_context(request, context, groupes):
+    ids = []
+    for g in groupes or []:
+        cid = g.get('classe_id')
+        if cid is not None:
+            ids.append(cid)
+    key, cid = resolve_impayes_classe(request, ids)
+    context['initial_impayes_classe_key'] = key
+    context['initial_impayes_classe_id'] = cid
+    context['initial_impayes_panel_id'] = (
+        'imp-panel-tous' if key == 'tous' else 'imp-panel-classe-' + key
+    )
+    return context
+
+
+CAISSE_VUE_CHOICES = ('entrees', 'sorties')
+
+
+def attach_caisse_tab_context(request, context):
+    vue = resolve_main_section_tab(request, 'vue', CAISSE_VUE_CHOICES, 'entrees')
+    context['initial_caisse_vue'] = vue
+    context['initial_caisse_panel_id'] = 'caisse-panel-' + vue
+    return context

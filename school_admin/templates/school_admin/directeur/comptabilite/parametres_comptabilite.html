@@ -55,6 +55,15 @@
             </div>
         </header>
 
+        {% if parametres_groupes %}
+        <div class="scp-toolbar">
+            <label class="scp-search-wrap">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input type="search" id="scpSearchInput" class="scp-search-input" placeholder="{% trans 'Rechercher un jeu ou un groupe…' %}" autocomplete="off" aria-label="{% trans 'Rechercher' %}" />
+            </label>
+        </div>
+        {% endif %}
+
         {% if afficher_module_comptabilite_generale %}
         <section class="scp-regime-card" id="regime-comptable">
             <div class="scp-regime-text">
@@ -85,9 +94,9 @@
         {% endif %}
 
         {% if parametres_groupes %}
-            <div class="scp-cards-grid parametres-list">
+            <div class="scp-cards-grid parametres-list" id="scpParamCardsGrid">
                 {% for parametre in parametres_groupes %}
-                    <article class="scp-param-card parametre-card" data-parametre-id="{{ parametre.id }}">
+                    <article class="scp-param-card parametre-card" data-parametre-id="{{ parametre.id }}" data-scp-search="{{ parametre.nom|lower }} {% for groupe in parametre.groupes_classes %}{{ groupe|lower }} {% endfor %}">
                         <div class="scp-param-card-head parametre-card-header">
                             <h3 class="scp-param-card-title parametre-card-title">{{ parametre.nom }}</h3>
                             <div class="scp-groupes-list groupes-list">
@@ -162,6 +171,7 @@
                     </article>
                 {% endfor %}
             </div>
+            <p id="scpSearchEmpty" class="scp-search-empty" hidden>{% trans "Aucun jeu ne correspond à votre recherche." %}</p>
         {% else %}
             <div class="scp-empty empty-state">
                 <i class="fas fa-layer-group"></i>
@@ -194,7 +204,7 @@
     </div>
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
-    <script src="{% static 'school_admin/js/directeur/parametres_comptabilite.js' %}?v=2.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/parametres_comptabilite.js' %}?v=2.1.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

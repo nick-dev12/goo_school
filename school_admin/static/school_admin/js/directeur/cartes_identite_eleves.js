@@ -1,21 +1,25 @@
 /**
- * Cartes d'identité scolaires — navigation onglets + recherche (UI v2)
+ * Cartes d'identité — onglets niveau/classe + overflow + persistance (UI v2.1)
  */
-
 (function () {
   'use strict';
 
-  window.switchMainTab = function (tabId, btn) {
+  function setPanelVisible(panel, show) {
+    if (!panel) return;
+    panel.classList.toggle('active', show);
+    panel.hidden = !show;
+  }
+
+  window.switchMainTab = function (tabId, btn, opts) {
     document.querySelectorAll('.tab-panel').forEach(function (panel) {
-      panel.classList.remove('active');
+      setPanelVisible(panel, panel.id === tabId);
     });
-    document.querySelectorAll('.tab-button').forEach(function (b) {
-      b.classList.remove('active');
-      b.setAttribute('aria-selected', 'false');
+    document.querySelectorAll('.sci-niveau-tab, .tab-button[data-tab]').forEach(function (b) {
+      var active = b.getAttribute('data-tab') === tabId;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
     });
-    var panel = document.getElementById(tabId);
-    if (panel) panel.classList.add('active');
-    var targetBtn = btn || document.querySelector('.tab-button[data-tab="' + tabId + '"]');
+    var targetBtn = btn || document.querySelector('[data-tab="' + tabId + '"]');
     if (targetBtn) {
       targetBtn.classList.add('active');
       targetBtn.setAttribute('aria-selected', 'true');
@@ -25,7 +29,7 @@
     }
   };
 
-  window.switchClasseTab = function (event, classeId) {
+  window.switchClasseTab = function (event, classeId, opts) {
     if (event) event.stopPropagation();
     var parentPanel = event && event.target
       ? event.target.closest('.tab-panel')
@@ -37,21 +41,13 @@
     if (!parentPanel) return;
 
     parentPanel.querySelectorAll('.classe-subtab-content').forEach(function (el) {
-      el.classList.remove('active');
+      setPanelVisible(el, el.id === classeId);
     });
     parentPanel.querySelectorAll('.classe-subtab-btn').forEach(function (b) {
-      b.classList.remove('active');
-      b.setAttribute('aria-selected', 'false');
+      var active = b.getAttribute('data-subtab') === classeId;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
     });
-
-    var target = document.getElementById(classeId);
-    if (target) target.classList.add('active');
-
-    var subBtn = parentPanel.querySelector('.classe-subtab-btn[data-subtab="' + classeId + '"]');
-    if (subBtn) {
-      subBtn.classList.add('active');
-      subBtn.setAttribute('aria-selected', 'true');
-    }
     if (typeof window.layoutTabsOverflowNav === 'function') {
       window.layoutTabsOverflowNav();
     }
@@ -78,19 +74,13 @@
       var prenom = row.dataset.prenom || '';
       var matricule = row.dataset.matricule || '';
       var numero = row.dataset.numero || '';
-
-      var matchesSearch = !searchTerm ||
+      var matches = !searchTerm ||
         nom.includes(searchTerm) ||
         prenom.includes(searchTerm) ||
         matricule.includes(searchTerm) ||
         numero.includes(searchTerm);
-
-      if (matchesSearch) {
-        row.classList.remove('hidden');
-        visibleCount += 1;
-      } else {
-        row.classList.add('hidden');
-      }
+      row.classList.toggle('hidden', !matches);
+      if (matches) visibleCount += 1;
     });
 
     if (resultsDiv && resultsCount) {
@@ -103,42 +93,15 @@
     }
   }
 
-  function clearSearchCartes(classeId) {
-    var searchInput = document.getElementById('search-input-' + classeId);
-    if (searchInput) {
-      searchInput.value = '';
-      filterStudentsCartes(classeId);
-    }
-  }
-
-  function activateClasseFromHash() {
-    var hash = window.location.hash;
-    if (!hash || !hash.startsWith('#classe-')) return;
-    var classeId = hash.slice(1);
-    var panel = document.getElementById(classeId);
-    if (!panel) return;
-
-    var mainPanel = panel.closest('.tab-panel');
-    if (mainPanel && mainPanel.id) {
-      window.switchMainTab(mainPanel.id);
-    }
-    window.switchClasseTab(null, classeId);
-  }
-
   document.addEventListener('click', function (event) {
-    var tabBtn = event.target.closest('.tab-button[data-tab]');
-    if (tabBtn) {
-      window.switchMainTab(tabBtn.getAttribute('data-tab'), tabBtn);
+    var niveauBtn = event.target.closest('.sci-niveau-tab[data-tab]');
+    if (niveauBtn) {
+      window.switchMainTab(niveauBtn.getAttribute('data-tab'), niveauBtn);
       return;
     }
     var classeBtn = event.target.closest('.classe-subtab-btn[data-subtab]');
     if (classeBtn) {
       window.switchClasseTab(event, classeBtn.getAttribute('data-subtab'));
-      return;
-    }
-    var clearBtn = event.target.closest('[data-clear-search]');
-    if (clearBtn) {
-      clearSearchCartes(clearBtn.getAttribute('data-clear-search'));
     }
   });
 
@@ -148,10 +111,7 @@
     }
   });
 
-  document.addEventListener('DOMContentLoaded', function () {
-    if (typeof window.layoutTabsOverflowNav === 'function') {
-      window.layoutTabsOverflowNav();
-    }
-    activateClasseFromHash();
-  });
+  if (typeof window.enhanceDirecteurNiveauClasseTabs === 'function') {
+    window.enhanceDirecteurNiveauClasseTabs({ storageKey: 'directeur:cartes-identite' });
+  }
 })();

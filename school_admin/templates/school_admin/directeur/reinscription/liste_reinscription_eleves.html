@@ -201,7 +201,7 @@
         }
     </style>" %}
 </head>
-<body>
+<body data-live-page="reinscription">
     <!-- Header -->
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
@@ -242,7 +242,7 @@
 
             <!-- Barre de recherche -->
             <div class="search-bar-container" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); margin-bottom: 1.5rem;">
-                <form method="get" action="{% url 'directeur:liste_reinscription' %}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;"{% if est_superieur %} data-filiere-classe-mode="filter"{% endif %}>
+                <form id="reinscription-search-form" class="reinscription-search-form" method="get" action="{% url 'directeur:liste_reinscription' %}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;"{% if est_superieur %} data-filiere-classe-mode="filter"{% endif %}>
                     <div class="search-input-wrapper" style="flex: 1; min-width: 250px;">
                         <i class="fas fa-user"></i>
                         <input type="text" 
@@ -382,6 +382,7 @@
     {% if est_superieur %}
     <script src="{% static 'school_admin/js/directeur/inscription_superieur_filiere_classe.js' %}?v=1.0.0"></script>
     {% endif %}
+    <script src="{% static 'school_admin/js/directeur/reinscription_liste_persist.js' %}?v=1.0.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

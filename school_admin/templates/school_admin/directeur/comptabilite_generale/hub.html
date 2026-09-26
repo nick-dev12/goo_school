@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.2" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
 <body class="cg-page-body">
@@ -24,9 +24,6 @@
         <header class="cg-hero">
             <div>
                 <h1 class="cg-hero-title"><i class="fas fa-balance-scale"></i> {% trans "Comptabilité générale" %}</h1>
-                <p class="cg-hero-sub">{% trans "Pont entre la scolarité, la paie et les charges. Plan SYSCOHADA révisé ; la caisse et les impayés restent dans le langage de l'école." %}</p>
-                {% if exercice %}<span class="cg-badge"><i class="fas fa-calendar-check"></i> {% trans "Exercice civil" %} {{ exercice.libelle }} — {{ exercice.get_statut_display }}</span>{% endif %}
-                {% if regime_comptable %}<span class="cg-badge"><i class="fas fa-balance-scale"></i> {% if regime_comptable == 'engagement' %}{% trans "Régime engagement (411)" %}{% else %}{% trans "Régime trésorerie" %}{% endif %}</span>{% endif %}
             </div>
             <div class="cg-stat cg-stat--ok">
                 <span class="cg-stat-num">{{ kpis.taux_recouvrement }}%</span>
@@ -42,56 +39,34 @@
             </div>
         </header>
 
-        <p class="cg-hero-sub" style="margin-bottom:1rem;">{% trans "1. Paramétrage" %} · {% trans "2. Clients" %} · {% trans "3. Fournisseurs" %} · {% trans "4. Trésorerie" %} · {% trans "5. Paie" %} · {% trans "6. États" %}</p>
-
         <div class="cg-grid">
             <a class="cg-card" href="{% url 'directeur:cg_plan_comptable' %}">
-                <span class="cg-card-num">1</span>
                 <span class="cg-card-icon" style="background:#3b82f6;"><i class="fas fa-sitemap"></i></span>
                 <h3>{% trans "Plan comptable" %}</h3>
-                <p>{% trans "SYSCOHADA révisé — 571 / 521 / 585, 7051–7061, 411." %} {{ nb_comptes }} {% trans "comptes" %}.</p>
             </a>
             <a class="cg-card" href="{% url 'directeur:cg_journaux' %}">
-                <span class="cg-card-num">1</span>
                 <span class="cg-card-icon" style="background:#1d4ed8;"><i class="fas fa-book"></i></span>
                 <h3>{% trans "Journaux" %}</h3>
-                <p>{% trans "Caisse, Banque, Achats, Scolarité, OD, Paie." %} {{ nb_journaux }} {% trans "journaux" %}.</p>
             </a>
             <a class="cg-card" href="{% url 'directeur:cg_exercices' %}">
-                <span class="cg-card-num">1</span>
                 <span class="cg-card-icon" style="background:#7c3aed;"><i class="fas fa-lock"></i></span>
                 <h3>{% trans "Exercices et périodes" %}</h3>
-                <p>{% trans "Année civile, régime engagement / trésorerie, verrouillage des périodes." %}</p>
-            </a>
-            <a class="cg-card" href="{% url 'directeur:cg_clients' %}">
-                <span class="cg-card-num">2</span>
-                <span class="cg-card-icon" style="background:#10b981;"><i class="fas fa-user-graduate"></i></span>
-                <h3>{% trans "Clients — scolarité" %}</h3>
-                <p>{% trans "Balance âgée, impayés par classe, relances. Les encaissements créent les écritures." %}</p>
             </a>
             <a class="cg-card" href="{% url 'directeur:cg_fournisseurs' %}">
-                <span class="cg-card-num">3</span>
                 <span class="cg-card-icon" style="background:#f59e0b;"><i class="fas fa-file-invoice"></i></span>
                 <h3>{% trans "Fournisseurs et patrimoine" %}</h3>
-                <p>{% trans "Échéancier, factures, immobilisations et amortissements." %}</p>
             </a>
             <a class="cg-card" href="{% url 'directeur:cg_tresorerie' %}">
-                <span class="cg-card-num">4</span>
                 <span class="cg-card-icon" style="background:#06b6d4;"><i class="fas fa-cash-register"></i></span>
                 <h3>{% trans "Trésorerie" %}</h3>
-                <p>{% trans "Brouillard, virement caisse → banque, rapprochement (pointage)." %}</p>
             </a>
             <a class="cg-card" href="{% url 'directeur:cg_paie' %}">
-                <span class="cg-card-num">5</span>
                 <span class="cg-card-icon" style="background:#8b5cf6;"><i class="fas fa-user-clock"></i></span>
                 <h3>{% trans "Paie et honoraires" %}</h3>
-                <p>{% trans "Écritures générées depuis le volume horaire (vacataires) et les salaires." %}</p>
             </a>
             <a class="cg-card" href="{% url 'directeur:cg_etats' %}">
-                <span class="cg-card-num">6</span>
                 <span class="cg-card-icon" style="background:#ef4444;"><i class="fas fa-chart-pie"></i></span>
                 <h3>{% trans "États financiers" %}</h3>
-                <p>{% trans "Grand livre, balance, bilan, compte de résultat, export CSV." %}</p>
             </a>
         </div>
     </div>

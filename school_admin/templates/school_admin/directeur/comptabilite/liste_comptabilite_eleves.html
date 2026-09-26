@@ -41,6 +41,10 @@
                 <div class="sco-stat-pill"><span class="sco-stat-num">{{ stats_generales.montant_paye|floatformat:0 }}</span><span class="sco-stat-lbl">{% trans "Encaissé" %} ({{ devise_monnaie|default:"FCFA" }})</span></div>
             </div>
             <div class="sco-hero-actions">
+                {% if not is_caissier %}
+                <a href="{% url 'directeur:caisse_mois_directeur' %}" class="sco-action-btn sco-action-btn--primary">
+                    <i class="fas fa-cash-register"></i> {% trans "Caisse" %}
+                </a>
                 <a href="{% url 'directeur:liste_impayes_directeur' %}" class="sco-action-btn sco-action-btn--primary">
                     <i class="fas fa-exclamation-circle"></i> {% trans "Impayés & relances" %}
                 </a>
@@ -50,6 +54,7 @@
                 <a href="{% url 'directeur:parametres_comptabilite_directeur' %}" class="sco-action-btn sco-action-btn--secondary">
                     <i class="fas fa-cog"></i> {% trans "Paramètres de scolarité" %}
                 </a>
+                {% endif %}
             </div>
         </header>
 

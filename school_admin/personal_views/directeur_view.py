@@ -45,6 +45,27 @@ from django.db import transaction
 from datetime import datetime, date
 
 
+def _attach_directeur_niveau_classe_tabs(request, context, classes_grouped):
+    from ..utils.directeur_ui_tabs import attach_niveau_classe_tab_context
+
+    return attach_niveau_classe_tab_context(request, context, classes_grouped)
+
+
+def _finalize_directeur_classes_grouped(classes_grouped, total_classes=None):
+    total_eleves = sum(data.get('total_eleves', 0) for data in classes_grouped.values())
+    for categorie, data in classes_grouped.items():
+        data['label'] = data.get('label') or categorie
+        data['nombre_classes'] = len(data.get('classes') or [])
+    stats = {
+        'total_eleves': total_eleves,
+        'total_classes': total_classes if total_classes is not None else sum(
+            len(data.get('classes') or []) for data in classes_grouped.values()
+        ),
+        'total_niveaux': len(classes_grouped),
+    }
+    return dict(classes_grouped), stats
+
+
 def _get_user_etablissement(request, required_permission=None):
     """
     Helper pour récupérer l'établissement de l'utilisateur et vérifier les permissions
@@ -6732,13 +6753,20 @@ def gestion_etablissement(request):
     """
     Vue de la page de gestion de l'établissement pour les directeurs d'établissement et le personnel administratif
     """
-    # Vérifier que l'utilisateur a accès
-    result = _get_user_etablissement(request, 'etablissement_profil')
+    from school_admin.utils.decorators_permissions import check_permission as user_has_perm
+
+    result = _get_user_etablissement(request)
     if result[0] is None:
         messages.error(request, "Vous n'avez pas l'autorisation d'accéder à cette fonctionnalité.")
         return redirect('directeur:dashboard_directeur')
-    
+
     etablissement, is_directeur, personnel = result
+    if not is_directeur and not (
+        user_has_perm(request.user, 'classes_liste')
+        or user_has_perm(request.user, 'comptabilite_voir')
+    ):
+        messages.error(request, "Vous n'avez pas l'autorisation d'accéder à cette fonctionnalité.")
+        return redirect('directeur:dashboard_directeur')
     
     from ..utils.session_utils import get_session_active
     
@@ -7941,6 +7969,7 @@ def certificat_scolarite_liste(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
     }
+    context = _attach_directeur_niveau_classe_tabs(request, context, classes_grouped)
 
     return render(request, 'school_admin/directeur/certificat_scolarite_liste.html', context)
 
@@ -8073,7 +8102,8 @@ def convocation_liste(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
     }
-    
+    context = _attach_directeur_niveau_classe_tabs(request, context, classes_grouped)
+
     return render(request, 'school_admin/directeur/convocation_liste.html', context)
 
 
@@ -8645,6 +8675,7 @@ def attestation_reussite_liste(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
     }
+    context = _attach_directeur_niveau_classe_tabs(request, context, classes_grouped)
 
     return render(request, 'school_admin/directeur/attestation_reussite_liste.html', context)
 
@@ -8772,7 +8803,8 @@ def attestation_conduite_liste(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
     }
-    
+    context = _attach_directeur_niveau_classe_tabs(request, context, classes_grouped)
+
     return render(request, 'school_admin/directeur/attestation_conduite_liste.html', context)
 
 
@@ -8904,7 +8936,8 @@ def fiche_inscription_liste(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
     }
-    
+    context = _attach_directeur_niveau_classe_tabs(request, context, classes_grouped)
+
     return render(request, 'school_admin/directeur/fiche_inscription_liste.html', context)
 
 
@@ -9076,13 +9109,21 @@ def certificat_radiation_liste(request):
         
         classes_grouped[categorie]['classes'].append(classe_data)
         classes_grouped[categorie]['total_eleves'] += eleves.count()
-    
+
+    classes_grouped, stats_generales = _finalize_directeur_classes_grouped(
+        classes_grouped,
+        total_classes=classes.count(),
+    )
+
     context = {
         'etablissement': etablissement,
-        'classes_grouped': dict(classes_grouped),
+        'classes_grouped': classes_grouped,
+        'stats_generales': stats_generales,
         'annee_scolaire_active': annee_scolaire_active,
+        'est_superieur': etablissement.type_etablissement == 'superieur',
     }
-    
+    context = _attach_directeur_niveau_classe_tabs(request, context, classes_grouped)
+
     return render(request, 'school_admin/directeur/certificat_radiation_liste.html', context)
 
 
@@ -10608,3 +10649,87 @@ def creer_moratoire_directeur(request, eleve_id):
 @login_required
 def payer_echeance_moratoire_directeur(request, eleve_id, echeance_id):
     return RecouvrementController.payer_echeance_moratoire_directeur(request, eleve_id, echeance_id)
+
+
+from ..controllers.caisse_controller import CaisseController
+from ..controllers.comptabilite_generale_controller import ComptabiliteGeneraleController
+
+
+@login_required
+def caisse_mois_directeur(request):
+    return CaisseController.caisse_mois_directeur(request)
+
+
+@login_required
+def ajouter_depense_directeur(request):
+    return CaisseController.ajouter_depense_directeur(request)
+
+
+@login_required
+def supprimer_depense_directeur(request, depense_id):
+    return CaisseController.supprimer_depense_directeur(request, depense_id)
+
+
+@login_required
+def marquer_paie_directeur(request, professeur_id):
+    return VolumeHoraireController.marquer_paie_directeur(request, professeur_id)
+
+
+@login_required
+def fiche_paie_directeur(request, professeur_id):
+    return VolumeHoraireController.fiche_paie_directeur(request, professeur_id)
+
+
+@login_required
+def enregistrer_absence_directeur(request, professeur_id):
+    return VolumeHoraireController.enregistrer_absence_directeur(request, professeur_id)
+
+
+@login_required
+def supprimer_absence_directeur(request, professeur_id, absence_id):
+    return VolumeHoraireController.supprimer_absence_directeur(request, professeur_id, absence_id)
+
+
+@login_required
+def cg_hub_directeur(request):
+    return ComptabiliteGeneraleController.hub(request)
+
+
+@login_required
+def cg_plan_comptable(request):
+    return ComptabiliteGeneraleController.plan_comptable(request)
+
+
+@login_required
+def cg_journaux(request):
+    return ComptabiliteGeneraleController.journaux(request)
+
+
+@login_required
+def cg_exercices(request):
+    return ComptabiliteGeneraleController.exercices(request)
+
+
+@login_required
+def cg_clients(request):
+    return ComptabiliteGeneraleController.clients(request)
+
+
+@login_required
+def cg_fournisseurs(request):
+    return ComptabiliteGeneraleController.fournisseurs(request)
+
+
+@login_required
+def cg_tresorerie(request):
+    return ComptabiliteGeneraleController.tresorerie(request)
+
+
+@login_required
+def cg_paie(request):
+    return ComptabiliteGeneraleController.paie(request)
+
+
+@login_required
+def cg_etats(request):
+    return ComptabiliteGeneraleController.etats(request)

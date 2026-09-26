@@ -5,16 +5,20 @@
 (function () {
   'use strict';
 
-  window.switchMainTab = function (tabId, btn) {
+  function setPanelVisible(panel, show) {
+    if (!panel) return;
+    panel.classList.toggle('active', show);
+    panel.hidden = !show;
+  }
+
+  window.switchMainTab = function (tabId, btn, opts) {
     document.querySelectorAll('.tab-panel').forEach(function (panel) {
-      panel.classList.remove('active');
+      setPanelVisible(panel, panel.id === tabId);
     });
     document.querySelectorAll('.csc-niveau-tab').forEach(function (b) {
       b.classList.remove('active');
       b.setAttribute('aria-selected', 'false');
     });
-    var panel = document.getElementById(tabId);
-    if (panel) panel.classList.add('active');
     var targetBtn = btn || document.querySelector('.csc-niveau-tab[data-tab="' + tabId + '"]');
     if (targetBtn) {
       targetBtn.classList.add('active');
@@ -25,7 +29,7 @@
     }
   };
 
-  window.switchClasseTab = function (event, classeId) {
+  window.switchClasseTab = function (event, classeId, opts) {
     if (event) event.stopPropagation();
     var parentPanel = event && event.target
       ? event.target.closest('.tab-panel')
@@ -37,15 +41,12 @@
     if (!parentPanel) return;
 
     parentPanel.querySelectorAll('.classe-subtab-content').forEach(function (el) {
-      el.classList.remove('active');
+      setPanelVisible(el, el.id === classeId);
     });
     parentPanel.querySelectorAll('.classe-subtab-btn').forEach(function (b) {
       b.classList.remove('active');
       b.setAttribute('aria-selected', 'false');
     });
-
-    var target = document.getElementById(classeId);
-    if (target) target.classList.add('active');
 
     var subBtn = parentPanel.querySelector('.classe-subtab-btn[data-subtab="' + classeId + '"]');
     if (subBtn) {
@@ -157,9 +158,7 @@
     }
   });
 
-  document.addEventListener('DOMContentLoaded', function () {
-    if (typeof window.layoutTabsOverflowNav === 'function') {
-      window.layoutTabsOverflowNav();
-    }
-  });
+  if (typeof window.enhanceDirecteurNiveauClasseTabs === 'function') {
+    window.enhanceDirecteurNiveauClasseTabs({ storageKey: 'directeur:certificat-scolarite' });
+  }
 })();

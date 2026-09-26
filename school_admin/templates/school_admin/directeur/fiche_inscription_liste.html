@@ -69,9 +69,10 @@
                     <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Niveaux' %}">
                         {% for categorie, data in classes_grouped.items %}
                             <button type="button" role="tab"
-                                    class="matiere-tab-btn fic-niveau-tab tab-button {% if forloop.first %}active{% endif %}"
+                                    class="matiere-tab-btn fic-niveau-tab tab-button {% if categorie|lower == initial_niveau_key %}active{% endif %}"
                                     data-tab="tab-{{ forloop.counter }}"
-                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                                    data-niveau-key="{{ categorie|lower }}"
+                                    aria-selected="{% if categorie|lower == initial_niveau_key %}true{% else %}false{% endif %}">
                                 <i class="fas fa-layer-group"></i>
                                 <span>{{ data.label }}</span>
                                 <span class="tab-count">{{ data.total_eleves }}</span>
@@ -90,15 +91,16 @@
 
             <div class="tabs-content fic-tabs-content">
                 {% for categorie, data in classes_grouped.items %}
-                    <div class="tab-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
+                    <div class="tab-panel {% if categorie|lower == initial_niveau_key %}active{% endif %}" id="tab-{{ forloop.counter }}"{% if categorie|lower != initial_niveau_key %} hidden{% endif %}>
 
                         <div class="fic-classe-nav">
                             <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
                                 <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes' %}">
                                     {% for classe_data in data.classes %}
-                                        <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if forloop.first %}active{% endif %}"
+                                        <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}"
                                                 data-subtab="classe-{{ classe_data.classe.id }}"
-                                                aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                                                data-classe-id="{{ classe_data.classe.id }}"
+                                                aria-selected="{% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}true{% else %}false{% endif %}">
                                             <i class="fas fa-door-open"></i>
                                             <span>{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
                                             <span class="tab-count">{{ classe_data.nombre_eleves }}</span>
@@ -116,7 +118,7 @@
                         </div>
 
                         {% for classe_data in data.classes %}
-                            <div class="classe-subtab-content fic-classe-panel {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
+                            <div class="classe-subtab-content fic-classe-panel {% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}" id="classe-{{ classe_data.classe.id }}"{% if categorie|lower != initial_niveau_key or classe_data.classe.id != initial_classe_id %} hidden{% endif %}>
 
                                 <header class="fic-classe-header">
                                     <div>
@@ -251,7 +253,8 @@
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
     <script src="{% static 'school_admin/js/directeur/matiere_tabs_overflow.js' %}?v=1.0.0"></script>
-    <script src="{% static 'school_admin/js/directeur/fiche_inscription_liste.js' %}?v=2.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/directeur_niveau_classe_persist.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/fiche_inscription_liste.js' %}?v=2.1.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

@@ -19,7 +19,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css?v=1.0.0"
     />
   </head>
-  <body>
+  <body data-live-page="dashboard">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="container">
@@ -66,6 +66,7 @@
           
           </div>
 
+          {% if not is_caissier %}
           <div class="indicator-card">
             <div class="indicator-icon" style="background-color: var(--purple)">
               <i class="fas fa-chalkboard-teacher"></i>
@@ -89,6 +90,7 @@
               </span>
             </div>
           </div>
+          {% endif %}
 
           <div class="indicator-card">
             <div
@@ -104,6 +106,7 @@
             </div>
           </div>
 
+          {% if not is_caissier %}
           <div class="indicator-card">
             <div
               class="indicator-icon"
@@ -158,9 +161,11 @@
               <span class="indicator-trend">Non disponible</span>
             </div>
           </div>
+          {% endif %}
         </div>
       </div>
 
+      {% if not is_caissier %}
       <!-- Historique des dernières activités -->
       <div class="historique-activites">
         <h2 class="section-title">
@@ -391,6 +396,7 @@
           </div>
         </div>
       </div>
+      {% endif %}
 
       <!-- Alertes et notifications importantes -->
     </div>

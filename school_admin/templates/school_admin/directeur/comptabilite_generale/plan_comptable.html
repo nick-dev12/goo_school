@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.3" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
 <body class="cg-page-body">
@@ -29,25 +29,34 @@
         </header>
         <section class="cg-section">
             <h2>{% trans "Ajouter un compte" %}</h2>
+            <p class="cg-form-hint" id="cg-plan-hint" hidden></p>
             <form method="post" action="{% url 'directeur:cg_plan_comptable' %}" class="cg-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="ajouter_compte" />
-                <label>{% trans "Numéro" %}<input name="numero" required maxlength="12" placeholder="7061" /></label>
+                <label>{% trans "Numéro" %}<input id="cg-plan-numero" name="numero" required maxlength="12" placeholder="7061" autocomplete="off" /></label>
                 <label>{% trans "Libellé" %}<input name="libelle" required maxlength="160" placeholder="{% trans 'Cantine' %}" /></label>
                 <label>{% trans "Classe" %}
-                    <select name="classe">
-                        <option value="2">2</option><option value="4">4</option><option value="5">5</option>
-                        <option value="6" selected>6</option><option value="7">7</option>
+                    <select id="cg-plan-classe" name="classe">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7" selected>7</option>
+                        <option value="8">8</option>
                     </select>
                 </label>
                 <label>{% trans "Nature" %}
-                    <select name="nature">
+                    <select id="cg-plan-nature" name="nature">
                         <option value="charge">{% trans "Charge" %}</option>
-                        <option value="produit">{% trans "Produit" %}</option>
+                        <option value="produit" selected>{% trans "Produit" %}</option>
                         <option value="actif">{% trans "Actif" %}</option>
                         <option value="passif">{% trans "Passif" %}</option>
+                        <option value="hors">{% trans "Hors bilan" %}</option>
                     </select>
                 </label>
+                <p class="cg-form-help">{% trans "Ex. recette cantine : 7061 (classe 7, produit). Ex. achat denrées : 602 ou 604 (classe 6, charge)." %}</p>
                 <button type="submit" class="cg-btn cg-btn--primary">{% trans "Enregistrer" %}</button>
             </form>
         </section>
@@ -68,5 +77,6 @@
         </section>
     </div>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script src="{% static 'school_admin/js/directeur/plan_comptable.js' %}?v=1.0.0"></script>
 </body>
 </html>

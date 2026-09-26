@@ -54,6 +54,24 @@
             </select>
         </div>
         <div class="form-group">
+            <label class="form-label" for="{{ prefix }}prix_volume_horaire">
+                <i class="fas fa-coins"></i>
+                {% trans "Prix du volume horaire" %}
+                <span class="label-optional">{% trans "(Facultatif — FCFA/heure)" %}</span>
+            </label>
+            <input type="number"
+                   step="0.01"
+                   min="0"
+                   class="form-input form-control {% if field_errors.prix_volume_horaire %}is-invalid{% endif %}"
+                   id="{{ prefix }}prix_volume_horaire"
+                   name="prix_volume_horaire"
+                   value="{% if dossier_data.prix_volume_horaire %}{{ dossier_data.prix_volume_horaire }}{% elif dossier and dossier.prix_volume_horaire is not None %}{{ dossier.prix_volume_horaire }}{% endif %}"
+                   placeholder="{% trans 'Ex: 5000' %}">
+            {% if field_errors.prix_volume_horaire %}
+                <div class="invalid-feedback">{{ field_errors.prix_volume_horaire }}</div>
+            {% endif %}
+        </div>
+        <div class="form-group">
             <label class="form-label" for="{{ prefix }}date_fin_contrat">{% trans "Date de fin de contrat" %}</label>
             <input type="date" class="form-input form-control" id="{{ prefix }}date_fin_contrat" name="date_fin_contrat"
                    value="{% if dossier_data.date_fin_contrat %}{{ dossier_data.date_fin_contrat }}{% elif dossier and dossier.date_fin_contrat %}{{ dossier.date_fin_contrat|date:'Y-m-d' }}{% endif %}">

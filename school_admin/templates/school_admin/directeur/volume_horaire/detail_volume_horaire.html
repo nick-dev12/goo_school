@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/volume_horaire.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
-<body class="vh-page-body">
+<body class="vh-page-body" data-live-page="volume-horaire-detail">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container vh-page">
@@ -104,6 +104,95 @@
                     </strong>
                 </p>
             </article>
+        </section>
+
+        <section class="vh-card" style="margin-bottom:1rem;">
+            <h2>{% trans "Paie de la période" %}</h2>
+            {% if paie %}
+                <p>
+                    {% trans "Payé le" %} {{ paie.date_paiement|date:"d/m/Y" }}
+                    — {{ paie.montant_net|floatformat:0 }} {{ devise_monnaie }}
+                    {% trans "net" %}.
+                </p>
+                <p>
+                    <a class="vh-link-btn" href="{% url 'directeur:fiche_paie_directeur' professeur.id %}{{ query_periode }}">
+                        {% trans "Voir / imprimer la fiche" %}
+                    </a>
+                </p>
+            {% elif resultat.montant is not None %}
+                <form method="post" action="{% url 'directeur:marquer_paie_directeur' professeur.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="periode" value="{{ periode_kind }}" />
+                    <input type="hidden" name="date" value="{{ periode_date_value }}" />
+                    <input type="hidden" name="mois" value="{{ periode_mois_value }}" />
+                    <label class="vh-filter-label" for="retenue_pct">{% trans "Charges %" %} <span class="vh-muted">{% trans "(laisser 0 si aucune)" %}</span></label>
+                    <input class="vh-filter-input" id="retenue_pct" type="number" name="retenue_pct" min="0" max="100" step="0.01" value="0" style="max-width:8rem;" />
+                    <button type="submit" class="vh-btn vh-btn-primary">{% trans "Marquer payé" %}</button>
+                </form>
+            {% else %}
+                <p class="vh-muted">{% trans "Renseignez le tarif horaire du professeur pour pouvoir le payer." %}</p>
+            {% endif %}
+        </section>
+
+        <section class="vh-card" style="margin-bottom:1rem;">
+            <h2>{% trans "Absence / remplacement" %}</h2>
+            <p class="vh-muted">{% trans "Un jour d'absence retire les heures de l'EDT. Si quelqu'un a fait le cours, ses heures s'ajoutent à sa paie." %}</p>
+            <form method="post" action="{% url 'directeur:enregistrer_absence_directeur' professeur.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="periode" value="{{ periode_kind }}" />
+                <input type="hidden" name="semaine_du" value="{{ periode_date_value }}" />
+                <input type="hidden" name="mois" value="{{ periode_mois_value }}" />
+                <div class="vh-filters-grid">
+                    <div class="vh-filter-field">
+                        <label class="vh-filter-label" for="absence-date">{% trans "Date d'absence" %}</label>
+                        <input class="vh-filter-input" id="absence-date" type="date" name="date" required />
+                    </div>
+                    <div class="vh-filter-field">
+                        <label class="vh-filter-label" for="remplacant_id">{% trans "Qui a fait le cours" %}</label>
+                        <select class="vh-filter-input" id="remplacant_id" name="remplacant_id">
+                            <option value="">{% trans "Personne / cours non assuré" %}</option>
+                            {% for autre in autres_profs %}
+                            <option value="{{ autre.id }}">{{ autre.nom }} {{ autre.prenom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="vh-filter-actions">
+                        <button type="submit" class="vh-btn vh-btn-primary">{% trans "Enregistrer" %}</button>
+                    </div>
+                </div>
+            </form>
+            {% if absences %}
+            <div class="table-responsive vh-table-wrap" style="margin-top:0.75rem;">
+                <table class="vh-table">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Date" %}</th>
+                            <th>{% trans "Heures retirées" %}</th>
+                            <th>{% trans "Remplaçant" %}</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for absence in absences %}
+                        <tr>
+                            <td>{{ absence.date|date:"d/m/Y" }}</td>
+                            <td>{{ absence.minutes }} min</td>
+                            <td>{% if absence.remplacant %}{{ absence.remplacant.nom }} {{ absence.remplacant.prenom }}{% else %}—{% endif %}</td>
+                            <td>
+                                <form method="post" action="{% url 'directeur:supprimer_absence_directeur' professeur.id absence.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="periode" value="{{ periode_kind }}" />
+                                    <input type="hidden" name="date" value="{{ periode_date_value }}" />
+                                    <input type="hidden" name="mois" value="{{ periode_mois_value }}" />
+                                    <button type="submit" class="vh-link-btn">{% trans "Retirer" %}</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
         </section>
 
         {% if periode_vide %}

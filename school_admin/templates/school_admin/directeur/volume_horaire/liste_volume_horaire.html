@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/volume_horaire.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
-<body class="vh-page-body">
+<body class="vh-page-body" data-live-page="volume-horaire">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container vh-page">
@@ -112,6 +112,7 @@
                         <th class="vh-num">{% trans "Heures planifiées" %}</th>
                         <th class="vh-num">{% trans "Heures" %}</th>
                         <th class="vh-num">{% trans "Montant à payer" %}</th>
+                        <th>{% trans "Paie" %}</th>
                         <th>{% trans "Détail" %}</th>
                     </tr>
                 </thead>
@@ -143,6 +144,22 @@
                             {% endif %}
                         </td>
                         <td>
+                            {% if ligne.paie %}
+                                <span class="vh-chip">{% trans "Payé" %}</span>
+                            {% elif ligne.resultat.montant is not None %}
+                                <form method="post" action="{% url 'directeur:marquer_paie_directeur' ligne.professeur.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="periode" value="{{ periode_kind }}" />
+                                    <input type="hidden" name="date" value="{{ periode_date_value }}" />
+                                    <input type="hidden" name="mois" value="{{ periode_mois_value }}" />
+                                    <input type="hidden" name="next" value="liste" />
+                                    <button type="submit" class="vh-link-btn">{% trans "Marquer payé" %}</button>
+                                </form>
+                            {% else %}
+                                <span class="vh-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
                             <a class="vh-link-btn" href="{% url 'directeur:detail_volume_horaire' ligne.professeur.id %}?periode={{ periode_kind }}{% if periode_kind == 'semaine' %}&amp;date={{ periode_date_value }}{% elif periode_kind == 'mois' %}&amp;mois={{ periode_mois_value }}{% endif %}">
                                 <i class="fas fa-eye"></i> {% trans "Voir" %}
                             </a>
@@ -150,7 +167,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="vh-empty">{% trans "Aucun professeur dans cet établissement." %}</td>
+                        <td colspan="9" class="vh-empty">{% trans "Aucun professeur dans cet établissement." %}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -160,7 +177,7 @@
                         <th colspan="5">{% trans "Total" %}</th>
                         <th class="vh-num">{{ total_heures|floatformat:2 }}</th>
                         <th class="vh-num vh-montant">{{ total_montant|floatformat:0 }} {{ devise_monnaie }}</th>
-                        <th></th>
+                        <th colspan="2"></th>
                     </tr>
                 </tfoot>
                 {% endif %}

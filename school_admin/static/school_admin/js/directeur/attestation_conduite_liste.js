@@ -5,16 +5,20 @@
 (function () {
   'use strict';
 
-  window.switchMainTab = function (tabId, btn) {
+  function setPanelVisible(panel, show) {
+    if (!panel) return;
+    panel.classList.toggle('active', show);
+    panel.hidden = !show;
+  }
+
+  window.switchMainTab = function (tabId, btn, opts) {
     document.querySelectorAll('.tab-panel').forEach(function (panel) {
-      panel.classList.remove('active');
+      setPanelVisible(panel, panel.id === tabId);
     });
     document.querySelectorAll('.acd-niveau-tab').forEach(function (b) {
       b.classList.remove('active');
       b.setAttribute('aria-selected', 'false');
     });
-    var panel = document.getElementById(tabId);
-    if (panel) panel.classList.add('active');
     var targetBtn = btn || document.querySelector('.acd-niveau-tab[data-tab="' + tabId + '"]');
     if (targetBtn) {
       targetBtn.classList.add('active');
@@ -25,7 +29,7 @@
     }
   };
 
-  window.switchClasseTab = function (event, classeId) {
+  window.switchClasseTab = function (event, classeId, opts) {
     if (event) event.stopPropagation();
     var parentPanel = event && event.target
       ? event.target.closest('.tab-panel')
@@ -37,15 +41,12 @@
     if (!parentPanel) return;
 
     parentPanel.querySelectorAll('.classe-subtab-content').forEach(function (el) {
-      el.classList.remove('active');
+      setPanelVisible(el, el.id === classeId);
     });
     parentPanel.querySelectorAll('.classe-subtab-btn').forEach(function (b) {
       b.classList.remove('active');
       b.setAttribute('aria-selected', 'false');
     });
-
-    var target = document.getElementById(classeId);
-    if (target) target.classList.add('active');
 
     var subBtn = parentPanel.querySelector('.classe-subtab-btn[data-subtab="' + classeId + '"]');
     if (subBtn) {
@@ -57,7 +58,7 @@
     }
   };
 
-  function filterStudentsConduite(classeId) {
+  function filterStudentsAttestationConduite(classeId) {
     var searchInput = document.getElementById('search-input-' + classeId);
     var filterSexe = document.getElementById('filter-sexe-' + classeId);
     var clearButton = document.getElementById('clear-search-' + classeId);
@@ -107,20 +108,20 @@
     }
   }
 
-  function clearSearchConduite(classeId) {
+  function clearSearchCertificat(classeId) {
     var searchInput = document.getElementById('search-input-' + classeId);
     if (searchInput) {
       searchInput.value = '';
-      filterStudentsConduite(classeId);
+      filterStudentsAttestationConduite(classeId);
     }
   }
 
-  function resetFiltersConduite(classeId) {
+  function resetFiltersCertificat(classeId) {
     var searchInput = document.getElementById('search-input-' + classeId);
     var filterSexe = document.getElementById('filter-sexe-' + classeId);
     if (searchInput) searchInput.value = '';
     if (filterSexe) filterSexe.value = '';
-    filterStudentsConduite(classeId);
+    filterStudentsAttestationConduite(classeId);
   }
 
   document.addEventListener('click', function (event) {
@@ -136,30 +137,28 @@
     }
     var clearBtn = event.target.closest('[data-clear-search]');
     if (clearBtn) {
-      clearSearchConduite(clearBtn.getAttribute('data-clear-search'));
+      clearSearchCertificat(clearBtn.getAttribute('data-clear-search'));
       return;
     }
     var resetBtn = event.target.closest('[data-reset-filters]');
     if (resetBtn) {
-      resetFiltersConduite(resetBtn.getAttribute('data-reset-filters'));
+      resetFiltersCertificat(resetBtn.getAttribute('data-reset-filters'));
     }
   });
 
   document.addEventListener('input', function (event) {
     if (event.target.matches('.acd-search-input[data-classe-id]')) {
-      filterStudentsConduite(event.target.getAttribute('data-classe-id'));
+      filterStudentsAttestationConduite(event.target.getAttribute('data-classe-id'));
     }
   });
 
   document.addEventListener('change', function (event) {
     if (event.target.matches('.acd-filter-select[data-classe-id]')) {
-      filterStudentsConduite(event.target.getAttribute('data-classe-id'));
+      filterStudentsAttestationConduite(event.target.getAttribute('data-classe-id'));
     }
   });
 
-  document.addEventListener('DOMContentLoaded', function () {
-    if (typeof window.layoutTabsOverflowNav === 'function') {
-      window.layoutTabsOverflowNav();
-    }
-  });
+  if (typeof window.enhanceDirecteurNiveauClasseTabs === 'function') {
+    window.enhanceDirecteurNiveauClasseTabs({ storageKey: 'directeur:attestation-conduite' });
+  }
 })();

@@ -1,5 +1,5 @@
 /**
- * Fiches inscription — navigation onglets + filtres (UI v2)
+ * Certificats de scolarité — navigation onglets + filtres (UI v2)
  */
 
 (function () {
@@ -15,11 +15,11 @@
     document.querySelectorAll('.tab-panel').forEach(function (panel) {
       setPanelVisible(panel, panel.id === tabId);
     });
-    document.querySelectorAll('.fic-niveau-tab').forEach(function (b) {
+    document.querySelectorAll('.csc-niveau-tab').forEach(function (b) {
       b.classList.remove('active');
       b.setAttribute('aria-selected', 'false');
     });
-    var targetBtn = btn || document.querySelector('.fic-niveau-tab[data-tab="' + tabId + '"]');
+    var targetBtn = btn || document.querySelector('.csc-niveau-tab[data-tab="' + tabId + '"]');
     if (targetBtn) {
       targetBtn.classList.add('active');
       targetBtn.setAttribute('aria-selected', 'true');
@@ -58,7 +58,7 @@
     }
   };
 
-  function filterStudentsFiche(classeId) {
+  function filterStudentsCertificat(classeId) {
     var searchInput = document.getElementById('search-input-' + classeId);
     var filterSexe = document.getElementById('filter-sexe-' + classeId);
     var clearButton = document.getElementById('clear-search-' + classeId);
@@ -112,7 +112,7 @@
     var searchInput = document.getElementById('search-input-' + classeId);
     if (searchInput) {
       searchInput.value = '';
-      filterStudentsFiche(classeId);
+      filterStudentsCertificat(classeId);
     }
   }
 
@@ -121,11 +121,11 @@
     var filterSexe = document.getElementById('filter-sexe-' + classeId);
     if (searchInput) searchInput.value = '';
     if (filterSexe) filterSexe.value = '';
-    filterStudentsFiche(classeId);
+    filterStudentsCertificat(classeId);
   }
 
   document.addEventListener('click', function (event) {
-    var niveauBtn = event.target.closest('.fic-niveau-tab[data-tab]');
+    var niveauBtn = event.target.closest('.csc-niveau-tab[data-tab]');
     if (niveauBtn) {
       window.switchMainTab(niveauBtn.getAttribute('data-tab'), niveauBtn);
       return;
@@ -147,18 +147,18 @@
   });
 
   document.addEventListener('input', function (event) {
-    if (event.target.matches('.fic-search-input[data-classe-id]')) {
-      filterStudentsFiche(event.target.getAttribute('data-classe-id'));
+    if (event.target.matches('.csc-search-input[data-classe-id]')) {
+      filterStudentsCertificat(event.target.getAttribute('data-classe-id'));
     }
   });
 
   document.addEventListener('change', function (event) {
-    if (event.target.matches('.fic-filter-select[data-classe-id]')) {
-      filterStudentsFiche(event.target.getAttribute('data-classe-id'));
+    if (event.target.matches('.csc-filter-select[data-classe-id]')) {
+      filterStudentsCertificat(event.target.getAttribute('data-classe-id'));
     }
   });
 
   if (typeof window.enhanceDirecteurNiveauClasseTabs === 'function') {
-    window.enhanceDirecteurNiveauClasseTabs({ storageKey: 'directeur:fiche-inscription' });
+    window.enhanceDirecteurNiveauClasseTabs({ storageKey: 'directeur:certificat-radiation' });
   }
 })();

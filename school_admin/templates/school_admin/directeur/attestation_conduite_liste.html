@@ -7,480 +7,247 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "Attestations de conduite" %} - {{ etablissement.nom }}</title>
+    <title>{% trans "Attestations de réussite" %} - {{ etablissement.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/attestation_conduite_liste.css' %}?v=2.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
-</head>
-<body class="acd-page-body" data-live-page="attestation-conduite">
-    {% include 'school_admin/directeur/partials/header_directeur.html' %}
-
-    <div class="content-container acd-page">
-        {% include 'school_admin/partials/messages.html' %}
-
-        <div class="page-header page-header-minimal">
-            {% url 'directeur:gestion_administrative' as back_admin_url %}
-            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_admin_url %}
-        </div>
-
-        <header class="acd-hero">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
-
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
-
 </head>
-
 <body class="acd-page-body" data-live-page="attestation-conduite">
-
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-
-
     <div class="content-container acd-page">
-
         {% include 'school_admin/partials/messages.html' %}
 
-
-
         <div class="page-header page-header-minimal">
-
             {% url 'directeur:gestion_administrative' as back_admin_url %}
-
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_admin_url %}
-
         </div>
 
-
-
         <header class="acd-hero">
-
             <div class="acd-hero-text">
-
-                <h1 class="acd-hero-title"><i class="fas fa-user-shield"></i> {% trans "Attestations de conduite" %}</h1>
+                <h1 class="acd-hero-title"><i class="fas fa-trophy"></i> {% trans "Attestations de réussite" %}</h1>
 {% if annee_scolaire_active %}
-
                     <span class="acd-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
-
                 {% endif %}
-
             </div>
-
             <div class="acd-hero-stats">
-
                 <div class="acd-stat-pill">
-
                     <span class="acd-stat-num">{{ stats_generales.total_eleves }}</span>
-
                     <span class="acd-stat-lbl">{% trans "Élèves" %}</span>
-
                 </div>
-
                 <div class="acd-stat-pill acd-stat-pill--accent">
-
                     <span class="acd-stat-num">{{ stats_generales.total_classes }}</span>
-
                     <span class="acd-stat-lbl">{% trans "Classes" %}</span>
-
                 </div>
-
                 <div class="acd-stat-pill">
-
                     <span class="acd-stat-num">{{ stats_generales.total_niveaux }}</span>
-
                     <span class="acd-stat-lbl">{% trans "Niveaux" %}</span>
-
                 </div>
-
             </div>
-
             <div class="acd-hero-actions">
-
                 <a href="{% url 'secretaire:liste_eleves' %}" class="acd-action-btn acd-action-btn--secondary">
-
                     <i class="fas fa-users"></i> {% trans "Gestion des élèves" %}
-
                 </a>
-
             </div>
-
         </header>
 
-
-
         {% if not annee_scolaire_active %}
-
         <div class="acd-alert acd-alert-warn">
-
             <i class="fas fa-exclamation-triangle"></i>
-
             <span>{% trans "Aucune année scolaire active. Tous les élèves inscrits sont affichés." %}</span>
-
         </div>
-
         {% endif %}
-
 
         {% if classes_grouped %}
-
         <div class="tabs-container acd-niveau-tabs">
-
             <div class="acd-niveau-nav">
-
                 <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
-
                     <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Niveaux' %}">
-
                         {% for categorie, data in classes_grouped.items %}
-
                             <button type="button" role="tab"
-
-                                    class="matiere-tab-btn acd-niveau-tab tab-button {% if forloop.first %}active{% endif %}"
-
+                                    class="matiere-tab-btn acd-niveau-tab tab-button {% if categorie|lower == initial_niveau_key %}active{% endif %}"
                                     data-tab="tab-{{ forloop.counter }}"
-
-                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
-
+                                    data-niveau-key="{{ categorie|lower }}"
+                                    aria-selected="{% if categorie|lower == initial_niveau_key %}true{% else %}false{% endif %}">
                                 <i class="fas fa-layer-group"></i>
-
                                 <span>{{ data.label }}</span>
-
                                 <span class="tab-count">{{ data.total_eleves }}</span>
-
                             </button>
-
                         {% endfor %}
-
                     </div>
-
                     <div class="matiere-tabs-more-wrap" hidden>
-
                         <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres niveaux' %}">
-
                             <i class="fas fa-chevron-down" aria-hidden="true"></i>
-
                             <span class="matiere-tabs-more-label">{% trans "Autres niveaux" %}</span>
-
                         </button>
-
                         <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
-
                     </div>
-
                 </div>
-
             </div>
-
-
 
             <div class="tabs-content acd-tabs-content">
-
                 {% for categorie, data in classes_grouped.items %}
-
-                    <div class="tab-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
-
-
+                    <div class="tab-panel {% if categorie|lower == initial_niveau_key %}active{% endif %}" id="tab-{{ forloop.counter }}"{% if categorie|lower != initial_niveau_key %} hidden{% endif %}>
 
                         <div class="acd-classe-nav">
-
                             <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
-
                                 <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes' %}">
-
                                     {% for classe_data in data.classes %}
-
-                                        <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if forloop.first %}active{% endif %}"
-
+                                        <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}"
                                                 data-subtab="classe-{{ classe_data.classe.id }}"
-
-                                                aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
-
+                                                data-classe-id="{{ classe_data.classe.id }}"
+                                                aria-selected="{% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}true{% else %}false{% endif %}">
                                             <i class="fas fa-door-open"></i>
-
                                             <span>{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
-
                                             <span class="tab-count">{{ classe_data.nombre_eleves }}</span>
-
                                         </button>
-
                                     {% endfor %}
-
                                 </div>
-
                                 <div class="matiere-tabs-more-wrap" hidden>
-
                                     <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres classes' %}">
-
                                         <i class="fas fa-chevron-down" aria-hidden="true"></i>
-
                                         <span class="matiere-tabs-more-label">{% trans "Autres classes" %}</span>
-
                                     </button>
-
                                     <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
-
                                 </div>
-
                             </div>
-
                         </div>
 
-
-
                         {% for classe_data in data.classes %}
-
-                            <div class="classe-subtab-content acd-classe-panel {% if forloop.first %}active{% endif %}" id="classe-{{ classe_data.classe.id }}">
-
-
+                            <div class="classe-subtab-content acd-classe-panel {% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}" id="classe-{{ classe_data.classe.id }}"{% if categorie|lower != initial_niveau_key or classe_data.classe.id != initial_classe_id %} hidden{% endif %}>
 
                                 <header class="acd-classe-header">
-
                                     <div>
-
                                         <h2 class="acd-classe-title">
-
                                             <i class="fas fa-chalkboard"></i>
-
                                             {% if est_superieur %}
-
                                                 {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
-
                                             {% else %}
-
                                                 {{ classe_data.classe.nom }} — {{ classe_data.classe.get_niveau_display }}
-
                                             {% endif %}
-
                                         </h2>
-
-                                        <p class="acd-classe-desc">{% if classe_data.classe.description %}{{ classe_data.classe.description }}{% else %}{% trans "Sélectionnez un élève pour générer son attestation de conduite." %}{% endif %}</p>
-
+                                        <p class="acd-classe-desc">{% if classe_data.classe.description %}{{ classe_data.classe.description }}{% else %}{% trans "Sélectionnez un élève pour générer son attestation de réussite." %}{% endif %}</p>
                                     </div>
-
                                     <div class="acd-classe-meta">
-
                                         <span class="acd-mini-stat"><strong>{{ classe_data.nombre_eleves }}</strong> {% trans "élève(s)" %}</span>
-
                                     </div>
-
                                 </header>
 
-
-
                                 <section class="acd-students-section">
-
                                     <h3 class="acd-section-title"><i class="fas fa-users"></i> {% trans "Élèves" %} ({{ classe_data.eleves|length }})</h3>
 
-
-
                                     <div class="acd-toolbar search-filter-container" id="search-filter-{{ classe_data.classe.id }}">
-
                                         <div class="acd-search-wrap">
-
                                             <i class="fas fa-search"></i>
-
                                             <input type="text"
-
                                                    class="acd-search-input search-input"
-
                                                    id="search-input-{{ classe_data.classe.id }}"
-
                                                    data-classe-id="{{ classe_data.classe.id }}"
-
                                                    placeholder="{% trans "Rechercher un élève (nom, prénom, numéro…)" %}" />
-
                                             <button type="button" class="clear-search" id="clear-search-{{ classe_data.classe.id }}" data-clear-search="{{ classe_data.classe.id }}" hidden aria-label="{% trans 'Effacer la recherche' %}">
-
                                                 <i class="fas fa-times"></i>
-
                                             </button>
-
                                         </div>
-
                                         <div class="acd-filters-row filters-box">
-
                                             <div class="filter-group">
-
                                                 <label class="filter-label" for="filter-sexe-{{ classe_data.classe.id }}">
-
                                                     <i class="fas fa-venus-mars"></i> {% trans "Sexe" %}
-
                                                 </label>
-
                                                 <select class="acd-filter-select filter-select" id="filter-sexe-{{ classe_data.classe.id }}" data-classe-id="{{ classe_data.classe.id }}">
-
                                                     <option value="">{% trans "Tous" %}</option>
-
                                                     <option value="M">{% trans "Masculin" %}</option>
-
                                                     <option value="F">{% trans "Féminin" %}</option>
-
                                                 </select>
-
                                             </div>
-
                                             <button type="button" class="acd-reset-btn btn-reset-filters" data-reset-filters="{{ classe_data.classe.id }}">
-
                                                 <i class="fas fa-redo"></i> {% trans "Réinitialiser" %}
-
                                             </button>
-
                                         </div>
-
                                         <div class="acd-filter-results filter-results" id="filter-results-{{ classe_data.classe.id }}" hidden>
-
                                             <span id="results-count-{{ classe_data.classe.id }}">0</span> {% trans "résultat(s)" %}
-
                                         </div>
-
                                     </div>
 
-
-
                                     {% if classe_data.eleves %}
-
                                         <div class="acd-list-scroll table-responsive">
-
                                             <div class="students-list">
-
                                                 <div class="list-header">
-
                                                     <div class="list-cell header-cell">{% trans "Élève" %}</div>
-
                                                     <div class="list-cell header-cell">{% trans "N° élève" %}</div>
-
                                                     <div class="list-cell header-cell">{% trans "Sexe" %}</div>
-
                                                     <div class="list-cell header-cell">{% trans "Attestation" %}</div>
-
                                                 </div>
 
-
-
                                                 {% for eleve in classe_data.eleves %}
-
                                                     <div class="list-row"
-
                                                          data-nom="{{ eleve.nom|lower }}"
-
                                                          data-prenom="{{ eleve.prenom|lower }}"
-
                                                          data-numero="{{ eleve.numero_eleve|lower }}"
-
                                                          data-sexe="{{ eleve.sexe }}">
-
                                                         <div class="list-cell student-cell">
-
                                                             <div class="student-avatar-small"><i class="fas fa-user"></i></div>
-
                                                             <div class="student-info-compact">
-
                                                                 <h4 class="student-name">
-
                                                                     <span class="student-name-full">{{ eleve.nom }} {{ eleve.prenom }}</span>
-
                                                                     <span class="student-name-mobile">{{ eleve.nom|premier_nom }} {{ eleve.prenom|premier_prenom }}</span>
-
                                                                 </h4>
-
                                                             </div>
-
                                                         </div>
-
                                                         <div class="list-cell">
-
                                                             <span class="student-number">{{ eleve.numero_eleve }}</span>
-
                                                         </div>
-
                                                         <div class="list-cell">
-
                                                             <span class="acd-sexe-badge acd-sexe-badge--{% if eleve.sexe == 'M' %}m{% else %}f{% endif %}">
-
                                                                 {{ eleve.get_sexe_display }}
-
                                                             </span>
-
                                                         </div>
-
                                                         <div class="list-cell">
-
                                                             <a href="{% url 'directeur:generer_attestation_conduite' eleve.id %}"
-
                                                                class="acd-att-btn"
-
-                                                               title="{% trans "Générer attestation de conduite" %}"
-
+                                                               title="{% trans "Générer attestation de réussite" %}"
                                                                target="_blank" rel="noopener">
-
-                                                                <i class="fas fa-user-shield"></i>
-
+                                                                <i class="fas fa-trophy"></i>
                                                                 <span>{% trans "Générer" %}</span>
-
                                                             </a>
-
                                                         </div>
-
                                                     </div>
-
                                                 {% endfor %}
-
                                             </div>
-
                                         </div>
-
                                     {% else %}
-
                                         <div class="acd-empty-state">
-
                                             <i class="fas fa-user-slash"></i>
-
                                             <h3>{% trans "Aucun élève inscrit" %}</h3>
-
                                             <p>{% trans "Cette classe ne contient aucun élève pour le moment." %}</p>
-
                                         </div>
-
                                     {% endif %}
-
                                 </section>
-
                             </div>
-
                         {% endfor %}
-
                     </div>
-
                 {% endfor %}
-
             </div>
-
         </div>
-
         {% else %}
-
         <div class="acd-empty-page">
-
             <i class="fas fa-school"></i>
-
             <h3>{% trans "Aucune classe disponible" %}</h3>
-
             <p>{% trans "Créez des classes et inscrivez des élèves pour générer leurs attestations." %}</p>
-
             <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="acd-action-btn acd-action-btn--secondary">
-
                 <i class="fas fa-plus"></i> {% trans "Gérer les classes" %}
-
             </a>
-
         </div>
-
         {% endif %}
-
     </div>
 
-
-
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    <script src="{% static 'school_admin/js/directeur/matiere_tabs_overflow.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/directeur_niveau_classe_persist.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/attestation_conduite_liste.js' %}?v=2.1.0"></script>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

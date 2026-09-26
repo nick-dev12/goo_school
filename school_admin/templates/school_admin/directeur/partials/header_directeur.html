@@ -40,7 +40,11 @@
           <span class="scanner-text">{% trans "Scanner" %}</span>
         </button>
 
+        {% if is_caissier %}
+        <div class="header-profile" aria-label="{% trans 'Profil' %}">
+        {% else %}
         <a href="{% url 'directeur:profil_etablissement' %}" class="header-profile" aria-label="{% trans 'Profil de l\'établissement' %}" title="{% trans 'Profil de l\'établissement' %}">
+        {% endif %}
           {% if is_directeur %}
             <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
             <div class="header-user-info">
@@ -60,7 +64,11 @@
               <div class="header-user-role">{% if titre_direction %}{{ titre_direction }}{% else %}{% trans "Directeur" %}{% endif %}</div>
             </div>
           {% endif %}
+        {% if is_caissier %}
+        </div>
+        {% else %}
         </a>
+        {% endif %}
       </div>
     </header>
 
@@ -175,6 +183,7 @@
           </div>
         </a>
         {% endif %}
+        {% if not is_caissier %}
         <a href="{% url 'directeur:profil_etablissement' %}" class="nav-link-card nav-link-complementary">
           <div class="nav-card-icon neo-cyan">
             <i class="fas fa-user-cog"></i>
@@ -184,6 +193,7 @@
             <p>{% trans "Paramètres et informations" %}</p>
           </div>
         </a>
+        {% endif %}
         {% check_permission request.user "comptabilite_voir" as can_view_comptabilite %}
         {% if can_view_comptabilite or is_directeur %}
         <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="nav-link-card nav-link-complementary">
@@ -233,6 +243,7 @@
 <!-- Scripts JavaScript -->
 <script src="{% static 'school_admin/js/directeur/header_directeur.js' %}"></script>
 {% include 'school_admin/partials/realtime_scripts.html' %}
+{% include 'school_admin/partials/directeur_live_scripts.html' %}
 <script>
   // Mettre à jour le compteur de notifications depuis le localStorage si disponible
   document.addEventListener('DOMContentLoaded', function() {
@@ -704,5 +715,7 @@
     }
   }
 </style>
+{% if not is_caissier %}
 {% include 'school_admin/directeur/partials/assistant_vocal_directeur.html' %}
+{% endif %}
 

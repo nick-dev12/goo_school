@@ -162,6 +162,44 @@ def _main_tab_id_for_classe(etablissement, classe_id, annee_scolaire_active=None
     return 'tab-1'
 
 
+def _resolve_liste_eleves_tab_selection(request, classes_grouped):
+    """Onglet niveau / classe initial via ?niveau= & ?classe= (partageable, refresh-safe)."""
+    keys = list(classes_grouped.keys())
+    if not keys:
+        return '', None
+
+    niveau_param = (request.GET.get('niveau') or '').strip().lower()
+    classe_raw = request.GET.get('classe')
+    classe_id = None
+    if classe_raw not in (None, ''):
+        try:
+            classe_id = int(classe_raw)
+        except (TypeError, ValueError):
+            classe_id = None
+
+    active_niveau = keys[0]
+    active_classe_id = None
+
+    if classe_id is not None:
+        for key, data in classes_grouped.items():
+            for classe_info in data['classes']:
+                if classe_info['classe'].id == classe_id:
+                    active_niveau = key
+                    active_classe_id = classe_id
+                    break
+            if active_classe_id is not None:
+                break
+
+    if active_classe_id is None and niveau_param in classes_grouped:
+        active_niveau = niveau_param
+
+    classes_in_niveau = classes_grouped.get(active_niveau, {}).get('classes') or []
+    if active_classe_id is None and classes_in_niveau:
+        active_classe_id = classes_in_niveau[0]['classe'].id
+
+    return active_niveau, active_classe_id
+
+
 def _resolve_eleves_access(request, permission_inscrire=False):
     from ..utils.decorators_permissions import check_permission
 
@@ -834,6 +872,10 @@ def liste_eleves(request):
         messages.warning(request, "Aucune année scolaire active. Les élèves affichés ne sont pas filtrés par session.")
     
     classes_grouped, stats_generales = _build_classes_grouped_data(etablissement, annee_scolaire_active)
+    initial_niveau_key, initial_classe_id = _resolve_liste_eleves_tab_selection(
+        request,
+        classes_grouped,
+    )
 
     session_form_data = request.session.pop('inscription_form_data', None)
     session_field_errors = request.session.pop('inscription_field_errors', None)
@@ -854,6 +896,8 @@ def liste_eleves(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
         'open_inscription_modal': request.GET.get('inscrire') == '1' or bool(session_field_errors),
+        'initial_niveau_key': initial_niveau_key,
+        'initial_classe_id': initial_classe_id,
         **inscription_ctx,
     }
     

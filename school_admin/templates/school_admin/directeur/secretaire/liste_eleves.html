@@ -21,7 +21,7 @@
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3"
     />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=2.2.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=2.3.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link
@@ -46,7 +46,7 @@
       href="{% static 'school_admin/css/partials/messages.css' %}"
     />
   </head>
-  <body class="ele-page-body" data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}>
+  <body class="ele-page-body" data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2" data-initial-niveau="{{ initial_niveau_key|default:'' }}" data-initial-classe="{{ initial_classe_id|default:'' }}"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container ele-page">
@@ -84,24 +84,29 @@
       </div>
       {% endif %}
 
-      <section class="ele-main-panel" data-ele-liste-zone>
-        <p class="ele-panel-hint">
-          <i class="fas fa-info-circle"></i>
-          {% trans "Choisissez un niveau ou une catégorie, puis une classe pour consulter ou inscrire des élèves." %}
-        </p>
+      <section class="ele-main-panel" data-ele-liste-zone aria-labelledby="ele-nav-title">
+        <header class="ele-panel-head">
+          <h2 id="ele-nav-title" class="ele-panel-title">{% trans "Parcourir les effectifs" %}</h2>
+          <p class="ele-panel-hint">
+            <i class="fas fa-info-circle" aria-hidden="true"></i>
+            {% trans "1. Niveau ou filière — 2. Classe — 3. Recherche et actions sur la liste." %}
+          </p>
+        </header>
 
         <div class="ele-niveau-zone" data-ele-niveau-zone>
+          <p class="ele-nav-kicker"><i class="fas fa-layer-group" aria-hidden="true"></i> {% trans "Niveau / catégorie" %}</p>
           <div class="ele-niveau-nav">
             <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
               <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Niveaux / catégories' %}">
                 {% for cat_key, data in classes_grouped.items %}
                 <button type="button" role="tab"
-                        class="matiere-tab-btn ele-niveau-tab tab-button {% if forloop.first %}active{% endif %}"
+                        class="matiere-tab-btn ele-niveau-tab tab-button {% if cat_key == initial_niveau_key %}active{% endif %}"
                         data-tab="tab-{{ forloop.counter }}"
+                        data-niveau-key="{{ cat_key }}"
                         data-niveau-idx="{{ forloop.counter0 }}"
                         data-order="{{ forloop.counter0 }}"
-                        aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
-                  <i class="fas fa-layer-group"></i>
+                        aria-selected="{% if cat_key == initial_niveau_key %}true{% else %}false{% endif %}">
+                  <i class="fas fa-layer-group" aria-hidden="true"></i>
                   <span>{{ data.label|truncatechars:22 }}</span>
                   <span class="tab-count">{{ data.total_eleves }}</span>
                 </button>
@@ -117,22 +122,25 @@
             </div>
           </div>
 
-          {% for categorie, data in classes_grouped.items %}
-            <div class="ele-niveau-panel tab-panel {% if forloop.first %}active{% endif %}"
+          {% for cat_key, data in classes_grouped.items %}
+            <div class="ele-niveau-panel tab-panel {% if cat_key == initial_niveau_key %}active{% endif %}"
                  id="tab-{{ forloop.counter }}"
+                 data-niveau-key="{{ cat_key }}"
                  data-niveau-idx="{{ forloop.counter0 }}"
                  role="tabpanel"
-                 {% if not forloop.first %}hidden{% endif %}>
+                 {% if cat_key != initial_niveau_key %}hidden{% endif %}>
 
               <div class="ele-classe-zone" data-ele-classe-zone>
+              <p class="ele-nav-kicker"><i class="fas fa-door-open" aria-hidden="true"></i> {% trans "Classe" %}</p>
               <div class="ele-classe-nav">
                 <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
                   <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes du niveau' %}">
                     {% for classe_data in data.classes %}
-                      <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if forloop.first %}active{% endif %}"
+                      <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if cat_key == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}"
                               data-subtab="classe-{{ classe_data.classe.id }}"
-                              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
-                        <i class="fas fa-door-open"></i>
+                              data-classe-id="{{ classe_data.classe.id }}"
+                              aria-selected="{% if cat_key == initial_niveau_key and classe_data.classe.id == initial_classe_id %}true{% else %}false{% endif %}">
+                        <i class="fas fa-door-open" aria-hidden="true"></i>
                         <span>{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
                         <span class="tab-count">{{ classe_data.stats.total_eleves }}</span>
                       </button>
@@ -149,12 +157,14 @@
               </div>
 
               {% for classe_data in data.classes %}
-                <div class="ele-classe-panel classe-subtab-content {% if forloop.first %}active{% endif %}"
+                <div class="ele-classe-panel classe-subtab-content {% if cat_key == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}"
                      id="classe-{{ classe_data.classe.id }}"
                      data-main-tab="tab-{{ forloop.parentloop.counter }}"
+                     data-classe-id="{{ classe_data.classe.id }}"
                      role="tabpanel"
-                     {% if not forloop.first %}hidden{% endif %}>
-                  <div class="ele-panel-stats">
+                     {% if cat_key != initial_niveau_key or classe_data.classe.id != initial_classe_id %}hidden{% endif %}>
+                  <div class="ele-classe-card">
+                  <div class="ele-panel-stats" aria-label="{% trans 'Indicateurs de la classe' %}">
                     <span class="ele-panel-stat"><strong>{{ classe_data.stats.total_eleves }}/{{ classe_data.classe.capacite_max }}</strong> {% trans "Élèves" %}</span>
                     <span class="ele-panel-stat"><strong>{{ classe_data.stats.taux_occupation }}%</strong> {% trans "Occupation" %}</span>
                     <span class="ele-panel-stat ele-panel-stat--new"><strong>{{ classe_data.stats.nouveaux_eleves }}</strong> {% trans "Nouveaux" %}</span>
@@ -221,7 +231,7 @@
                     </p>
                   </div>
 
-                  <div class="students-section">
+                  <div class="students-section ele-list-section">
                   {% if classe_data.eleves %}
                     <div class="ele-list-scroll">
                     <div class="students-list ele-list">
@@ -317,6 +327,7 @@
                       </button>
                     </div>
                   {% endif %}
+                  </div>
                   </div>
                 </div>
               {% endfor %}
@@ -537,7 +548,7 @@
     {% endif %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="{% static 'school_admin/js/realtime_page.js' %}?v=1.0.2"></script>
-    <script src="{% static 'school_admin/js/directeur/liste_eleves.js' %}?v=2.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_eleves.js' %}?v=2.2.0"></script>
     <script src="{% static 'school_admin/js/directeur/liste_eleves_live.js' %}?v=1.1.0"></script>
   
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

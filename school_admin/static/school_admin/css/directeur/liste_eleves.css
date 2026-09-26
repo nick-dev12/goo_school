@@ -1994,7 +1994,13 @@ body {
 /* ========== UX v2 — Liste élèves ========== */
 
 .ele-page-body {
-  background: var(--gray-50, #f9fafb);
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --page-bg: #f8fafc;
+  --text-title: #1e293b;
+  --text-muted: #64748b;
+  background: var(--page-bg);
+  color: var(--text-title);
 }
 
 .content-container.ele-page {
@@ -2037,7 +2043,7 @@ body {
 }
 
 .ele-hero-title i {
-  color: #3b82f6;
+  color: var(--primary, #2563eb);
 }
 
 .ele-hero-sub {
@@ -2116,7 +2122,7 @@ body {
 }
 
 .ele-action-btn--primary {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, var(--primary, #2563eb), var(--primary-dark, #1d4ed8));
   color: #fff;
 }
 
@@ -2489,17 +2495,54 @@ body {
   margin-bottom: 1rem;
 }
 
+.ele-panel-head {
+  margin-bottom: 0.875rem;
+}
+
+.ele-panel-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-title, #1e293b);
+}
+
 .ele-panel-hint {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  margin: 0 0 0.875rem;
+  margin: 0;
   padding: 0.625rem 0.875rem;
   font-size: 0.8125rem;
-  color: var(--gray-600, #4b5563);
-  background: rgba(59, 130, 246, 0.06);
-  border: 1px solid rgba(59, 130, 246, 0.15);
+  color: var(--text-muted, #64748b);
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.14);
   border-radius: 8px;
+}
+
+.ele-nav-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.45rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+}
+
+.ele-nav-kicker i {
+  color: var(--primary, #2563eb);
+}
+
+.ele-classe-card {
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--gray-200, #e5e7eb);
+  margin-top: 0.625rem;
+}
+
+.ele-list-section {
+  margin-top: 0.5rem;
 }
 
 .ele-panel-hint i {
@@ -2529,7 +2572,7 @@ body {
 }
 
 .ele-niveau-nav .matiere-tab-btn.ele-niveau-tab.active {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, var(--primary, #2563eb), var(--primary-dark, #1d4ed8));
   border-color: transparent;
   color: #fff;
 }

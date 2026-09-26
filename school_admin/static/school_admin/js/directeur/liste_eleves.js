@@ -1,8 +1,10 @@
 /**
- * Liste des élèves — navigation onglets niveau/classe + overflow + filtres (UI v2.1)
+ * Liste des élèves — navigation onglets niveau/classe, overflow, persistance URL (UI v2.2)
  */
 (function () {
   'use strict';
+
+  var STORAGE_KEY = 'directeur:liste-eleves:tabs';
 
   function layoutOverflow() {
     if (typeof window.layoutTabsOverflowNav === 'function') {
@@ -14,6 +16,75 @@
     if (!panel) return;
     panel.classList.toggle('active', show);
     panel.hidden = !show;
+  }
+
+  function readPersistedSelection() {
+    var params = new URLSearchParams(window.location.search);
+    var niveau = (params.get('niveau') || '').trim().toLowerCase();
+    var classeRaw = params.get('classe');
+    var classe = classeRaw ? String(parseInt(classeRaw, 10)) : '';
+
+    if (!niveau && !classe) {
+      try {
+        var stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || 'null');
+        if (stored && typeof stored === 'object') {
+          niveau = (stored.niveau || '').trim().toLowerCase();
+          if (stored.classe != null && stored.classe !== '') {
+            classe = String(parseInt(stored.classe, 10));
+          }
+        }
+      } catch (err) {
+        /* ignore */
+      }
+    }
+
+    if (classe === 'NaN') {
+      classe = '';
+    }
+    return { niveau: niveau, classe: classe };
+  }
+
+  function activeSelectionFromDom() {
+    var niveauBtn = document.querySelector('.ele-niveau-tab.active[data-niveau-key]');
+    var classeBtn = document.querySelector('.ele-classe-panel:not([hidden]) .classe-subtab-btn.active[data-classe-id]')
+      || document.querySelector('.ele-niveau-panel:not([hidden]) .classe-subtab-btn.active[data-classe-id]');
+    return {
+      niveau: niveauBtn ? niveauBtn.getAttribute('data-niveau-key') : '',
+      classe: classeBtn ? String(classeBtn.getAttribute('data-classe-id') || '') : '',
+    };
+  }
+
+  function persistTabSelection() {
+    var sel = activeSelectionFromDom();
+    if (!sel.niveau && !sel.classe) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ niveau: sel.niveau, classe: sel.classe, at: Date.now() })
+      );
+    } catch (err) {
+      /* ignore */
+    }
+
+    var params = new URLSearchParams(window.location.search);
+    if (sel.niveau) {
+      params.set('niveau', sel.niveau);
+    } else {
+      params.delete('niveau');
+    }
+    if (sel.classe) {
+      params.set('classe', sel.classe);
+    } else {
+      params.delete('classe');
+    }
+    var query = params.toString();
+    var next = window.location.pathname + (query ? '?' + query : '') + window.location.hash;
+    if (next !== window.location.pathname + window.location.search + window.location.hash) {
+      window.history.replaceState(null, '', next);
+    }
   }
 
   function resetClasseTabsInNiveau(niveauPanel) {
@@ -33,7 +104,8 @@
     });
   }
 
-  window.switchMainTab = function (tabId, btn) {
+  window.switchMainTab = function (tabId, btn, options) {
+    options = options || {};
     document.querySelectorAll('.ele-niveau-panel.tab-panel').forEach(function (panel) {
       setPanelVisible(panel, panel.id === tabId);
     });
@@ -44,7 +116,7 @@
     });
 
     var activePanel = document.getElementById(tabId);
-    if (activePanel) {
+    if (activePanel && !options.skipResetClasse) {
       resetClasseTabsInNiveau(activePanel);
     }
 
@@ -53,13 +125,20 @@
       btn.setAttribute('aria-selected', 'true');
     }
 
+    if (!options.skipPersist) {
+      persistTabSelection();
+    }
     layoutOverflow();
   };
 
-  window.switchClasseTab = function (event, subtabId) {
+  window.switchClasseTab = function (event, subtabId, options) {
+    options = options || {};
     if (event) event.stopPropagation();
 
     var btn = event && event.target ? event.target.closest('.classe-subtab-btn') : null;
+    if (!btn && subtabId) {
+      btn = document.querySelector('.classe-subtab-btn[data-subtab="' + subtabId + '"]');
+    }
     var niveauPanel = btn
       ? btn.closest('.ele-niveau-panel')
       : document.querySelector('.ele-classe-panel#' + subtabId)?.closest('.ele-niveau-panel');
@@ -75,8 +154,36 @@
       b.setAttribute('aria-selected', active ? 'true' : 'false');
     });
 
+    if (!options.skipPersist) {
+      persistTabSelection();
+    }
     layoutOverflow();
   };
+
+  function applyStoredTabs(selection) {
+    if (!selection || (!selection.niveau && !selection.classe)) {
+      layoutOverflow();
+      return;
+    }
+
+    var niveauBtn = selection.niveau
+      ? document.querySelector('.ele-niveau-tab[data-niveau-key="' + CSS.escape(selection.niveau) + '"]')
+      : null;
+    if (niveauBtn) {
+      window.switchMainTab(niveauBtn.getAttribute('data-tab'), niveauBtn, {
+        skipResetClasse: true,
+        skipPersist: true,
+      });
+    }
+
+    if (selection.classe) {
+      var subtabId = 'classe-' + selection.classe;
+      window.switchClasseTab(null, subtabId, { skipPersist: true });
+    }
+
+    persistTabSelection();
+    layoutOverflow();
+  }
 
   window.filterStudents = function (classeId) {
     var searchInput = document.getElementById('search-input-' + classeId);
@@ -198,7 +305,15 @@
       });
     }
 
-    layoutOverflow();
+    var params = readPersistedSelection();
+    var hasQuery = window.location.search.indexOf('niveau=') !== -1 ||
+      window.location.search.indexOf('classe=') !== -1;
+    if (hasQuery || params.niveau || params.classe) {
+      applyStoredTabs(params);
+    } else {
+      persistTabSelection();
+      layoutOverflow();
+    }
   }
 
   if (document.readyState === 'loading') {

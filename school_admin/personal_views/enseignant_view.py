@@ -27,8 +27,64 @@ from django.db.models.functions import Lower
 logger = logging.getLogger(__name__)
 
 
+def _enseignant_prof_hub_nav_bundle(
+    request,
+    professeur,
+    affectations,
+    etablissement,
+    annee_scolaire_active,
+    *,
+    pick_first=False,
+    college_periode_obj=None,
+):
+    """
+    Hub V3/V4 — classes_flat, ?classe=, redirects canoniques.
+    college_periode_obj : pour collège/lycée, ajoute ?periode= aux redirects si absent.
+    """
+    from ..utils.professeur_ui_tabs import (
+        enseignant_est_hub_v3_collège_lycée,
+        enseignant_est_hub_v4_lmd,
+    )
+
+    hub_v4 = enseignant_est_hub_v4_lmd(professeur)
+    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur) if not hub_v4 else False
+    hub_prof_ui = hub_v3 or hub_v4
+    classes_flat = []
+    initial_classe_id = ''
+    if not hub_prof_ui:
+        return hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, None
+
+    classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
+        request, affectations, etablissement, annee_scolaire_active, pick_first=pick_first
+    )
+    if hub_v4:
+        redir = _enseignant_hub_redirect_classe(request, initial_classe_id)
+        return hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, redir
+
+    if college_periode_obj and not request.GET.get('periode'):
+        from django.http import HttpResponseRedirect
+
+        q = {'periode': str(college_periode_obj.id)}
+        if initial_classe_id:
+            q['classe'] = initial_classe_id
+        return hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, HttpResponseRedirect(
+            request.path + '?' + urlencode(q)
+        )
+    if initial_classe_id and not request.GET.get('classe'):
+        from django.http import HttpResponseRedirect
+
+        q = {'classe': initial_classe_id}
+        if college_periode_obj:
+            q['periode'] = str(college_periode_obj.id)
+        return hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, HttpResponseRedirect(
+            request.path + '?' + urlencode(q)
+        )
+    redir = _enseignant_hub_redirect_classe(request, initial_classe_id)
+    return hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, redir
+
+
 def _enseignant_classe_hub_bundle(request, affectations, etablissement, annee_scolaire_active, pick_first=False):
-    """Hub V3 — ?classe= + classes_flat (collège/lycée uniquement)."""
+    """Hub V3/V4 — ?classe= + classes_flat (collège/lycée/LMD)."""
     from ..utils.professeur_ui_tabs import (
         classes_flat_from_secondaire_affectations,
         attach_primaire_classe_tab_context,
@@ -727,18 +783,11 @@ def gestion_classes_enseignant(request):
         'classes_classiques': sum(1 for cd in classes_data if not cd['est_principal']),
     }
     
-    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
-
-    classes_flat = []
-    initial_classe_id = ''
-    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur)
-    if hub_v3:
-        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
-            request, affectations, etablissement, annee_scolaire_active, pick_first=True
-        )
-        redir = _enseignant_hub_redirect_classe(request, initial_classe_id)
-        if redir:
-            return redir
+    hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, hub_redir = _enseignant_prof_hub_nav_bundle(
+        request, professeur, affectations, etablissement, annee_scolaire_active, pick_first=True
+    )
+    if hub_redir:
+        return hub_redir
 
     context = {
         'professeur': professeur,
@@ -746,6 +795,8 @@ def gestion_classes_enseignant(request):
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
         'hub_v3': hub_v3,
+        'hub_v4': hub_v4,
+        'hub_prof_ui': hub_prof_ui,
         'stats': stats,
         'total_classes': stats['total_classes'],
         'annee_scolaire_active': annee_scolaire_active,
@@ -894,19 +945,17 @@ def gestion_eleves_enseignant(request):
         'total_eleves': total_eleves,
     }
     
-    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
-
-    classes_flat = []
-    initial_classe_id = ''
+    hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, hub_redir = _enseignant_prof_hub_nav_bundle(
+        request, professeur, affectations, etablissement, annee_scolaire_active, pick_first=True
+    )
     classe_selectionnee = None
-    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur)
-    if hub_v3:
-        classes_flat, initial_classe_id, classe_selectionnee, _ = _enseignant_classe_hub_bundle(
-            request, affectations, etablissement, annee_scolaire_active, pick_first=True
-        )
-        redir = _enseignant_hub_redirect_classe(request, initial_classe_id)
-        if redir:
-            return redir
+    if initial_classe_id:
+        for item in classes_flat:
+            if str(item['classe'].id) == initial_classe_id:
+                classe_selectionnee = item['classe']
+                break
+    if hub_redir:
+        return hub_redir
 
     context = {
         'professeur': professeur,
@@ -915,6 +964,8 @@ def gestion_eleves_enseignant(request):
         'initial_classe_id': initial_classe_id,
         'classe_selectionnee': classe_selectionnee,
         'hub_v3': hub_v3,
+        'hub_v4': hub_v4,
+        'hub_prof_ui': hub_prof_ui,
         'stats': stats,
         'annee_scolaire_active': annee_scolaire_active,
     }
@@ -1213,27 +1264,17 @@ def gestion_notes_enseignant(request):
         'total_eleves': total_eleves,
     }
     
-    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
-
-    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur) and not est_superieur
-    classes_flat = []
-    initial_classe_id = ''
-    if hub_v3:
-        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
-            request, affectations, etablissement, annee_scolaire_active, pick_first=True
-        )
-        if periode_active_obj and not request.GET.get('periode'):
-            from django.http import HttpResponseRedirect
-            q = {'periode': str(periode_active_obj.id)}
-            if initial_classe_id:
-                q['classe'] = initial_classe_id
-            return HttpResponseRedirect(request.path + '?' + urlencode(q))
-        if initial_classe_id and not request.GET.get('classe'):
-            from django.http import HttpResponseRedirect
-            q = {'classe': initial_classe_id}
-            if periode_active_obj:
-                q['periode'] = str(periode_active_obj.id)
-            return HttpResponseRedirect(request.path + '?' + urlencode(q))
+    hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, hub_redir = _enseignant_prof_hub_nav_bundle(
+        request,
+        professeur,
+        affectations,
+        etablissement,
+        annee_scolaire_active,
+        pick_first=True,
+        college_periode_obj=periode_active_obj if not est_superieur else None,
+    )
+    if hub_redir:
+        return hub_redir
 
     context = {
         'professeur': professeur,
@@ -1241,6 +1282,8 @@ def gestion_notes_enseignant(request):
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
         'hub_v3': hub_v3,
+        'hub_v4': hub_v4,
+        'hub_prof_ui': hub_prof_ui,
         'stats': stats,
         'matiere_principale': professeur.matiere_principale,
         'periode_active': None if est_superieur else periode_active_obj,
@@ -1704,21 +1747,20 @@ def justifications_notes_enseignant(request):
 
     notes_json = json.dumps(notes_payload, ensure_ascii=False)
 
-    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
-
-    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur)
-    classes_flat = []
-    initial_classe_id = ''
-    if hub_v3:
-        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
-            request, affectations, etablissement, annee_scolaire_active, pick_first=False
-        )
-        if periode_active and not request.GET.get('periode'):
-            from django.http import HttpResponseRedirect
-            q = {'periode': str(periode_active.id)}
-            if initial_classe_id:
-                q['classe'] = initial_classe_id
-            return HttpResponseRedirect(request.path + '?' + urlencode(q))
+    est_superieur_justif = bool(
+        etablissement and getattr(etablissement, 'type_etablissement', None) == 'superieur'
+    )
+    hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, hub_redir = _enseignant_prof_hub_nav_bundle(
+        request,
+        professeur,
+        affectations,
+        etablissement,
+        annee_scolaire_active,
+        pick_first=False,
+        college_periode_obj=periode_active if not est_superieur_justif else None,
+    )
+    if hub_redir:
+        return hub_redir
 
     context = {
         'professeur': professeur,
@@ -1726,6 +1768,8 @@ def justifications_notes_enseignant(request):
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
         'hub_v3': hub_v3,
+        'hub_v4': hub_v4,
+        'hub_prof_ui': hub_prof_ui,
         'stats': stats,
         'notes_json': notes_json,
         'motifs_justification': MOTIFS_JUSTIFICATION_SECONDAIRE,
@@ -1733,6 +1777,7 @@ def justifications_notes_enseignant(request):
         'periode_active': periode_active,
         'periode_selectionnee': periode_active,
         'annee_scolaire_active': annee_scolaire_active,
+        'est_superieur': est_superieur_justif,
     }
 
     return render(request, 'school_admin/enseignant/justifications_notes.html', context)
@@ -2122,21 +2167,20 @@ def exercices_maison_enseignant(request):
             'date_rendu': exercice.date_rendu.isoformat(),
         })
 
-    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
-
-    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur)
-    classes_flat = []
-    initial_classe_id = ''
-    if hub_v3:
-        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
-            request, affectations, etablissement, annee_scolaire_active, pick_first=True
-        )
-        if periode_selectionnee and not request.GET.get('periode'):
-            from django.http import HttpResponseRedirect
-            q = {'periode': str(periode_selectionnee.id)}
-            if initial_classe_id:
-                q['classe'] = initial_classe_id
-            return HttpResponseRedirect(request.path + '?' + urlencode(q))
+    est_superieur_exo = bool(
+        etablissement and getattr(etablissement, 'type_etablissement', None) == 'superieur'
+    )
+    hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, hub_redir = _enseignant_prof_hub_nav_bundle(
+        request,
+        professeur,
+        affectations,
+        etablissement,
+        annee_scolaire_active,
+        pick_first=True,
+        college_periode_obj=periode_selectionnee if not est_superieur_exo else None,
+    )
+    if hub_redir:
+        return hub_redir
 
     context = {
         'professeur': professeur,
@@ -2146,6 +2190,9 @@ def exercices_maison_enseignant(request):
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
         'hub_v3': hub_v3,
+        'hub_v4': hub_v4,
+        'hub_prof_ui': hub_prof_ui,
+        'est_superieur': est_superieur_exo,
         'classes_categories': classes_categories,
         'classes_options': classes_options,
         'categories_data': categories_data,
@@ -2314,18 +2361,11 @@ def gestion_presence_enseignant(request):
         'total_eleves': total_eleves,
     }
     
-    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
-
-    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur)
-    classes_flat = []
-    initial_classe_id = ''
-    if hub_v3:
-        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
-            request, affectations, etablissement, annee_scolaire_active, pick_first=True
-        )
-        redir = _enseignant_hub_redirect_classe(request, initial_classe_id)
-        if redir:
-            return redir
+    hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, hub_redir = _enseignant_prof_hub_nav_bundle(
+        request, professeur, affectations, etablissement, annee_scolaire_active, pick_first=True
+    )
+    if hub_redir:
+        return hub_redir
 
     context = {
         'professeur': professeur,
@@ -2333,6 +2373,8 @@ def gestion_presence_enseignant(request):
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
         'hub_v3': hub_v3,
+        'hub_v4': hub_v4,
+        'hub_prof_ui': hub_prof_ui,
         'stats': stats,
         'matiere_principale': professeur.matiere_principale,
         'annee_scolaire_active': annee_scolaire_active,
@@ -2627,21 +2669,17 @@ def eleves_en_difficulte_enseignant(request):
         'total_eleves': total_eleves_difficulte,
     }
     
-    from ..utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
-
-    hub_v3 = enseignant_est_hub_v3_collège_lycée(professeur) and not est_superieur
-    classes_flat = []
-    initial_classe_id = ''
-    if hub_v3:
-        classes_flat, initial_classe_id, _, _ = _enseignant_classe_hub_bundle(
-            request, affectations, etablissement, annee_scolaire_active, pick_first=True
-        )
-        if periode_active_obj and not request.GET.get('periode'):
-            from django.http import HttpResponseRedirect
-            q = {'periode': str(periode_active_obj.id)}
-            if initial_classe_id:
-                q['classe'] = initial_classe_id
-            return HttpResponseRedirect(request.path + '?' + urlencode(q))
+    hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, hub_redir = _enseignant_prof_hub_nav_bundle(
+        request,
+        professeur,
+        affectations,
+        etablissement,
+        annee_scolaire_active,
+        pick_first=True,
+        college_periode_obj=periode_active_obj if not est_superieur else None,
+    )
+    if hub_redir:
+        return hub_redir
 
     context = {
         'professeur': professeur,
@@ -2649,6 +2687,8 @@ def eleves_en_difficulte_enseignant(request):
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
         'hub_v3': hub_v3,
+        'hub_v4': hub_v4,
+        'hub_prof_ui': hub_prof_ui,
         'stats': stats,
         'matiere_principale': professeur.matiere_principale,
         'periode_active': None if est_superieur else periode_active_obj,

@@ -11,9 +11,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}">
-    {% if hub_v3 %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
+    {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
-<body{% if hub_v3 %} data-prof-hub-key="professeur:secondaire-difficulte" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
+<body{% if hub_v4 %} data-prof-hub-key="professeur:lmd-difficulte" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-difficulte" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <!-- Main Content -->
@@ -42,6 +42,9 @@
             {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
             {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
             {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
+            {% elif hub_v4 %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un étudiant…" %}
             {% elif not est_superieur %}
             <div class="periodes-tabs-horizontal">
                 <div class="periodes-nav">
@@ -122,7 +125,7 @@
                         </div>
 
                         <!-- Sous-onglets par classe -->
-                        {% if not hub_v3 %}
+                        {% if not hub_prof_ui %}
                         <div class="classes-tabs">
                             {% for classe_data in data.classes %}
                                 <button class="classe-tab-btn {% if forloop.first %}active{% endif %}"
@@ -149,7 +152,7 @@
 
                         <!-- Contenu de chaque classe -->
                         {% for classe_data in data.classes %}
-                            <div class="classe-content {% if not hub_v3 and forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}" data-classe-panel="{{ classe_data.classe.id }}">
+                            <div class="classe-content {% if not hub_prof_ui and forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}" data-classe-panel="{{ classe_data.classe.id }}">
                                 <!-- Header classe avec actions -->
                                 <div class="classe-header-actions">
                                     <div class="classe-header-info">
@@ -161,7 +164,7 @@
                                         </h3>
                                         <span class="eleves-count" style="color: #ef4444;">{{ classe_data.nombre_eleves }} élève{{ classe_data.nombre_eleves|pluralize }} en difficulté sur {{ classe_data.nombre_total_eleves }}</span>
                                     </div>
-                                    {% if est_superieur and classe_data.periodes_nav %}
+                                    {% if est_superieur and classe_data.periodes_nav and not hub_v4 %}
                                     <div class="periodes-tabs-horizontal" style="flex-basis: 100%; width: 100%; margin-top: 0.5rem;">
                                         <div class="periodes-nav">
                                             {% for nav in classe_data.periodes_nav %}
@@ -173,6 +176,8 @@
                                             {% endfor %}
                                         </div>
                                     </div>
+                                    {% elif hub_v4 and classe_data.periodes_nav %}
+                                    {% include 'school_admin/enseignant/partials/prof_hub_lmd_periodes_tabs.html' with periodes_nav=classe_data.periodes_nav only %}
                                     {% endif %}
                                     <div class="action-buttons">
                                         <a href="{% url 'enseignant:detail_classe' classe_data.classe.id %}{% if classe_data.matiere %}?matiere={{ classe_data.matiere.id }}{% endif %}" class="btn-action info" title="Voir les détails de la classe">
@@ -214,7 +219,7 @@
                                     </div>
 
                                     <!-- Tableau relevé de notes -->
-                                    <div class="releve-table-container{% if hub_v3 %} prof-primaire-searchable{% endif %}">
+                                    <div class="releve-table-container{% if hub_prof_ui %} prof-primaire-searchable{% endif %}">
                                         <table class="releve-table">
                                             <thead>
                                                 <tr>
@@ -345,7 +350,7 @@
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
-    {% if hub_v3 %}{% include 'school_admin/enseignant/partials/prof_hub_ui_scripts.html' %}{% endif %}
+    {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_scripts.html' %}{% endif %}
     <script src="{% static 'school_admin/js/enseignant/gestion_notes.js' %}"></script>
     <script>
         // Fonction pour changer d'onglet principal

@@ -13,9 +13,9 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/liste_presence_primaire.css' %}?v=1.0.3">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.1">
-    {% if hub_v3 %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
+    {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
-<body data-live-page="presence-gestion"{% if hub_v3 %} data-prof-hub-key="professeur:secondaire-presence" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
+<body data-live-page="presence-gestion"{% if hub_v4 %} data-prof-hub-key="professeur:lmd-presence" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-presence" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <!-- Main Content -->
@@ -64,7 +64,7 @@
         </div>
 
         {% if stats.total_classes > 0 %}
-            {% if hub_v3 %}
+            {% if hub_prof_ui %}
             {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
             {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
             {% endif %}
@@ -83,7 +83,7 @@
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
-    {% if hub_v3 %}{% include 'school_admin/enseignant/partials/prof_hub_ui_scripts.html' %}{% endif %}
+    {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_scripts.html' %}{% endif %}
     <script src="{% static 'school_admin/js/enseignant/gestion_notes.js' %}"></script>
     <script>
         // Fonction pour changer d'onglet principal

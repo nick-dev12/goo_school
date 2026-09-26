@@ -205,18 +205,27 @@ def etablissement_type(request) -> Dict:
 
 
 def professeur_hub_v3(request) -> Dict[str, bool]:
-    """Vague 3 UI — collège / lycée / mixte (assets shell + flag par défaut)."""
+    """Hub prof V3/V4 — flags par défaut (vues peuvent surcharger)."""
     user = getattr(request, "user", None)
     if user is None or not user.is_authenticated:
-        return {"hub_v3": False}
+        return {"hub_v3": False, "hub_v4": False, "hub_prof_ui": False}
 
     from school_admin.model.professeur_model import Professeur
-    from school_admin.utils.professeur_ui_tabs import enseignant_est_hub_v3_collège_lycée
+    from school_admin.utils.professeur_ui_tabs import (
+        enseignant_est_hub_v3_collège_lycée,
+        enseignant_est_hub_v4_lmd,
+    )
 
     if not isinstance(user, Professeur):
-        return {"hub_v3": False}
+        return {"hub_v3": False, "hub_v4": False, "hub_prof_ui": False}
 
-    return {"hub_v3": enseignant_est_hub_v3_collège_lycée(user)}
+    hub_v4 = enseignant_est_hub_v4_lmd(user)
+    hub_v3 = enseignant_est_hub_v3_collège_lycée(user) if not hub_v4 else False
+    return {
+        "hub_v3": hub_v3,
+        "hub_v4": hub_v4,
+        "hub_prof_ui": hub_v3 or hub_v4,
+    }
 
 
 def seo_context(request) -> Dict[str, object]:

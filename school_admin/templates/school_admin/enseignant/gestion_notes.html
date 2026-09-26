@@ -1,4 +1,4 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 {% load static %}
 {% load exam_filters %}
 {% load notes_tags %}
@@ -14,14 +14,14 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/creer_evaluation.css' %}?v=1.0.4">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.3">
-    {% if hub_v3 %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
+    {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
-<body data-live-page="notes-gestion"{% if hub_v3 %} data-prof-hub-key="professeur:secondaire-notes" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}{% if open_evaluation %} data-open-evaluation-modal="1" data-eval-classe-id="{{ eval_classe_id }}" data-eval-matiere-id="{{ eval_matiere_id }}" data-eval-periode-id="{{ eval_periode_id }}"{% endif %}>
+<body data-live-page="notes-gestion"{% if hub_v4 %} data-prof-hub-key="professeur:lmd-notes" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-notes" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}{% if open_evaluation %} data-open-evaluation-modal="1" data-eval-classe-id="{{ eval_classe_id }}" data-eval-matiere-id="{{ eval_matiere_id }}" data-eval-periode-id="{{ eval_periode_id }}"{% endif %}>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <!-- Main Content -->
     <div class="main-content-container">
-        <!-- Message d'information sur l'annÃ©e scolaire active -->
+        <!-- Message d'information sur l'année scolaire active -->
         {% if annee_scolaire_active %}
         {% comment %} <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
           <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
@@ -29,10 +29,10 @@
           </span>
           <div>
             <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-              AnnÃ©e scolaire active : {{ annee_scolaire_active.libelle }}
+              Année scolaire active : {{ annee_scolaire_active.libelle }}
             </p>
             <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              Les notes, Ã©valuations et moyennes affichÃ©es sont filtrÃ©es par cette annÃ©e scolaire.
+              Les notes, évaluations et moyennes affichées sont filtrées par cette année scolaire.
             </p>
           </div>
         </div> {% endcomment %}
@@ -40,7 +40,7 @@
         <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
           <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
           <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            Aucune annÃ©e scolaire active. Les notes affichÃ©es ne sont pas filtrÃ©es par session.
+            Aucune année scolaire active. Les notes affichées ne sont pas filtrées par session.
           </span>
         </div>
         {% endif %}
@@ -50,20 +50,20 @@
             <div class="page-title-section">
                 <h1 class="page-title">
                     <i class="fas fa-clipboard-list"></i>
-                    Gestion des Notes & Ã‰valuations
+                    Gestion des Notes & Évaluations
                 </h1>
                 <p class="page-subtitle">
-                    MatiÃ¨re : {{ matiere_principale.nom }}
+                    Matière : {{ matiere_principale.nom }}
                 </p>
             </div>
             <div class="header-actions">
                 <a href="{% url 'enseignant:liste_evaluations' %}" class="btn-action">
                     <i class="fas fa-calendar-alt"></i>
-                    <span>Mes Ã©valuations</span>
+                    <span>Mes évaluations</span>
                 </a>
                 <a href="{% url 'enseignant:eleves_en_difficulte' %}{% if periode_active %}?periode={{ periode_active.id }}{% endif %}" class="btn-action" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <span>Ã‰lÃ¨ves en difficultÃ©</span>
+                    <span>Élèves en difficulté</span>
                 </a>
             </div>
         </div>
@@ -72,24 +72,27 @@
             {% if hub_v3 %}
             {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
             {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+            {% elif hub_v4 %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un étudiant?" %}
             {% endif %}
             <div id="gestion-notes-live-root">
             {% include 'school_admin/enseignant/partials/gestion_notes_live_inner.html' %}
             </div>
         {% else %}
-            <!-- Ã‰tat vide -->
+            <!-- État vide -->
             <div class="empty-state">
                 <div class="empty-icon">
                     <i class="fas fa-clipboard-list"></i>
                 </div>
-                <h3>Aucune classe affectÃ©e</h3>
-                <p>Vous n'avez actuellement aucune classe affectÃ©e. Contactez l'administration de votre Ã©tablissement.</p>
+                <h3>Aucune classe affectée</h3>
+                <p>Vous n'avez actuellement aucune classe affectée. Contactez l'administration de votre établissement.</p>
             </div>
         {% endif %}
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
-    {% if hub_v3 %}{% include 'school_admin/enseignant/partials/prof_hub_ui_scripts.html' %}{% endif %}
+    {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_scripts.html' %}{% endif %}
     <script src="{% static 'school_admin/js/enseignant/gestion_notes.js' %}"></script>
     <script>
         // Fonction pour changer d'onglet principal
@@ -110,7 +113,7 @@
             }
         }
         
-        // Fonction pour afficher une classe spÃ©cifique
+        // Fonction pour afficher une classe spécifique
         function showClasse(classeId, tabId) {
             const tabPanel = document.getElementById(tabId);
             if (tabPanel) {
@@ -131,12 +134,12 @@
             }
         }
         
-        // Fonction pour imprimer le relevÃ©
+        // Fonction pour imprimer le relevé
         function imprimerReleve() {
             window.print();
         }
         
-        // Modal pour afficher le relevÃ© de notes
+        // Modal pour afficher le relevé de notes
         function ouvrirModalReleve(classeId, periodeId, matiereId = null) {
             const modal = document.getElementById('modal-releve-notes');
             const modalBody = document.getElementById('modal-releve-body');
@@ -151,7 +154,7 @@
             modalBody.innerHTML = `
                 <div class="loading-spinner">
                     <i class="fas fa-spinner fa-spin"></i>
-                    <p>Chargement du relevÃ©...</p>
+                    <p>Chargement du relevé...</p>
                 </div>
             `;
             
@@ -161,7 +164,7 @@
                 url += `&matiere=${matiereId}`;
             }
             
-            // Charger les donnÃ©es via AJAX
+            // Charger les données via AJAX
             fetch(url, {
                 method: 'GET',
                 headers: {
@@ -176,7 +179,7 @@
                     modalBody.innerHTML = `
                         <div class="error-message">
                             <i class="fas fa-exclamation-triangle"></i>
-                            <p>${data.error || 'Erreur lors du chargement du relevÃ©'}</p>
+                            <p>${data.error || 'Erreur lors du chargement du relevé'}</p>
                         </div>
                     `;
                 }
@@ -186,7 +189,7 @@
                 modalBody.innerHTML = `
                     <div class="error-message">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <p>Une erreur est survenue lors du chargement du relevÃ©.</p>
+                        <p>Une erreur est survenue lors du chargement du relevé.</p>
                     </div>
                 `;
             });
@@ -198,8 +201,8 @@
             const periodeLib = (data.periode && (data.periode.nom_periode != null ? data.periode.nom_periode : data.periode.nom)) || '';
             const niveauLib = (data.classe && data.classe.niveau_libelle) ? String(data.classe.niveau_libelle) : '';
             
-            // Mettre Ã  jour le titre (niveau + pÃ©riode : l'API envoie nom sous nom et nom_periode)
-            modalTitle.textContent = `RelevÃ© de Notes - ${data.classe.nom}${niveauLib ? ' â€” ' + niveauLib : ''} - ${data.matiere.nom} - ${periodeLib}`;
+            // Mettre à jour le titre (niveau + période : l'API envoie nom sous nom et nom_periode)
+            modalTitle.textContent = `Relevé de Notes - ${data.classe.nom}${niveauLib ? ' — ' + niveauLib : ''} - ${data.matiere.nom} - ${periodeLib}`;
             
             // Construire le tableau HTML
             let tableHTML = `
@@ -215,11 +218,11 @@
                     </div>` : ''}
                     <div class="info-item">
                         <i class="fas fa-book"></i>
-                        <strong>MatiÃ¨re:</strong> ${data.matiere.nom}
+                        <strong>Matière:</strong> ${data.matiere.nom}
                     </div>
                     <div class="info-item">
                         <i class="fas fa-calendar-alt"></i>
-                        <strong>PÃ©riode:</strong> ${periodeLib}
+                        <strong>Période:</strong> ${periodeLib}
                     </div>
                 </div>
                 
@@ -228,10 +231,10 @@
                         <thead>
                             <tr>
                                 <th class="col-rang">#</th>
-                                <th class="col-eleve">Ã‰lÃ¨ve</th>
+                                <th class="col-eleve">Élève</th>
             `;
             
-            // Ajouter les colonnes d'Ã©valuation
+            // Ajouter les colonnes d'évaluation
             data.colonnes.forEach(colonne => {
                 tableHTML += `<th class="col-evaluation-retenue">${colonne.titre}</th>`;
             });
@@ -243,15 +246,15 @@
             
             tableHTML += `
                                 <th class="col-moyenne">Moyenne</th>
-                                <th class="col-appreciation">ApprÃ©ciation</th>
+                                <th class="col-appreciation">Appréciation</th>
                             </tr>
                         </thead>
                         <tbody>
             `;
             
-            // Ajouter les lignes pour chaque Ã©lÃ¨ve
+            // Ajouter les lignes pour chaque élève
             data.eleves.forEach((eleve, index) => {
-                // GÃ©nÃ©rer les initiales
+                // Générer les initiales
                 const initiales = (eleve.prenom.charAt(0) + eleve.nom.charAt(0)).toUpperCase();
                 
                 tableHTML += `
@@ -268,7 +271,7 @@
                         </td>
                 `;
                 
-                // Afficher les notes retenues pour cet Ã©lÃ¨ve
+                // Afficher les notes retenues pour cet élève
                 data.colonnes.forEach((colonne, colIndex) => {
                     const noteRetenue = eleve.notes_retenues[colIndex];
                     if (noteRetenue) {
@@ -329,7 +332,7 @@
                     tableHTML += `<td class="col-moyenne"><span class="note-vide">-</span></td>`;
                 }
                 
-                // ApprÃ©ciation
+                // Appréciation
                 tableHTML += `
                     <td class="col-appreciation">
                         <span class="appreciation-text">${eleve.appreciation || '-'}</span>
@@ -347,25 +350,25 @@
             
             modalBody.innerHTML = tableHTML;
 
-            // Ajouter barre d'actions (soumission du relevÃ©)
+            // Ajouter barre d'actions (soumission du relevé)
             const actionsHTML = `
                 <div class="modal-releve-actions">
                     <button id="btn-soumettre-releve" class="btn-action primary">
                         <i class="fas fa-lock"></i>
-                        <span>Soumettre le relevÃ©</span>
+                        <span>Soumettre le relevé</span>
                     </button>
                 </div>
             `;
             modalBody.insertAdjacentHTML('beforeend', actionsHTML);
 
-            // Gestion du clic sur "Soumettre le relevÃ©"
+            // Gestion du clic sur "Soumettre le relevé"
             const btnSoumettre = document.getElementById('btn-soumettre-releve');
             if (btnSoumettre) {
-                // DÃ©sactiver si relevÃ© dÃ©jÃ  soumis
+                // Désactiver si relevé déjà soumis
                 if (data.releve_soumis) {
                     btnSoumettre.disabled = true;
                     btnSoumettre.classList.add('disabled');
-                    btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> <span>RelevÃ© soumis</span>';
+                    btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> <span>Relevé soumis</span>';
                 }
                 btnSoumettre.addEventListener('click', async () => {
                     try {
@@ -384,10 +387,10 @@
                             // Feedback visuel
                             const success = document.createElement('div');
                             success.className = 'alert alert-success';
-                            success.innerHTML = '<i class="fas fa-check-circle"></i> RelevÃ© soumis avec succÃ¨s.';
+                            success.innerHTML = '<i class="fas fa-check-circle"></i> Relevé soumis avec succès.';
                             modalBody.prepend(success);
-                            // Optionnel: dÃ©sactiver le bouton aprÃ¨s succÃ¨s
-                            btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> RelevÃ© soumis';
+                            // Optionnel: désactiver le bouton après succès
+                            btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> Relevé soumis';
                             btnSoumettre.disabled = true;
                             btnSoumettre.classList.add('disabled');
                         } else {
@@ -397,7 +400,7 @@
                             error.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erreur lors de la soumission: ${txt}`;
                             modalBody.prepend(error);
                             btnSoumettre.disabled = false;
-                            btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> Soumettre le relevÃ©';
+                            btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> Soumettre le relevé';
                         }
                     } catch (e) {
                         const error = document.createElement('div');
@@ -405,7 +408,7 @@
                         error.innerHTML = `<i class=\"fas fa-exclamation-triangle\"></i> Erreur inattendue: ${e}`;
                         modalBody.prepend(error);
                         btnSoumettre.disabled = false;
-                        btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> Soumettre le relevÃ©';
+                        btnSoumettre.innerHTML = '<i class="fas fa-lock"></i> Soumettre le relevé';
                     }
                 });
             }
@@ -437,18 +440,18 @@
         });
     </script>
     
-    <!-- Modal pour le relevÃ© de notes -->
+    <!-- Modal pour le relevé de notes -->
     <div id="modal-releve-notes" class="modal-releve-fullscreen">
         <div class="modal-releve-content">
             <div class="modal-releve-header">
-                <h2 id="modal-releve-title">RelevÃ© de Notes</h2>
+                <h2 id="modal-releve-title">Relevé de Notes</h2>
                 <button class="btn-close-modal-releve" onclick="fermerModalReleve()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-releve-body">
                 <div id="modal-releve-body">
-                    <!-- Le contenu sera chargÃ© dynamiquement -->
+                    <!-- Le contenu sera chargé dynamiquement -->
                 </div>
             </div>
         </div>
@@ -458,7 +461,7 @@
         <div class="modal-creneau-overlay"></div>
         <div class="modal-creneau-content">
             <div class="modal-creneau-header">
-                <h2><i class="fas fa-plus-circle"></i> CrÃ©er une Ã©valuation</h2>
+                <h2><i class="fas fa-plus-circle"></i> Créer une évaluation</h2>
                 <button type="button" class="modal-creneau-close" onclick="closeModalEnseignant('modalCreerEvaluation')" aria-label="Fermer">
                     <i class="fas fa-times"></i>
                 </button>

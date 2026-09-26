@@ -1,0 +1,27 @@
+{% if periodes_nav %}
+<nav class="prof-primaire-hub-nav prof-hub-lmd-periodes" aria-label="Périodes module">
+    <div class="matiere-tabs-bar prof-primaire-periodes-bar" data-overflow-item-label="Période" data-overflow-items-label="périodes">
+        <div class="matiere-tabs-track" role="tablist">
+            {% for nav in periodes_nav %}
+                <a role="tab"
+                   class="matiere-tab-btn prof-primaire-tab-link prof-hub-lmd-periode-link {% if nav.active %}active{% endif %}"
+                   aria-selected="{% if nav.active %}true{% else %}false{% endif %}"
+                   href="?{% if initial_classe_id %}classe={{ initial_classe_id }}&{% endif %}{{ nav.query }}">
+                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                    <span>{{ nav.periode.libelle_affichage_superieur }}</span>
+                    {% if nav.periode.est_en_cours %}
+                        <span class="tab-count" style="background:#28a745;">En cours</span>
+                    {% endif %}
+                </a>
+            {% endfor %}
+        </div>
+        <div class="matiere-tabs-more-wrap" hidden>
+            <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres périodes">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                <span class="matiere-tabs-more-label">Autres périodes</span>
+            </button>
+            <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+        </div>
+    </div>
+</nav>
+{% endif %}

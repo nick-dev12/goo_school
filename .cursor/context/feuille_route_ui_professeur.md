@@ -2,13 +2,12 @@
 
 **Store** : `...\bc-451181e0-...\files\docs\feuille-route-ui-professeur.md`
 
-**Statut** : **Vagues 0–3 livrées** — branche `cursor/prof-ui-vague3-a40c` — **STOP avant Vague 4 (LMD supérieur)**.
+**Statut** : **Vagues 0–4 livrées** — branche `cursor/prof-ui-vague4-a40c` — **STOP avant Vague 5**.
 
-## V3 — collège / lycée / mixte
+## V4 — supérieur LMD
 
-- Hub : `prof_hub_ui_assets.html` / `prof_hub_ui_scripts.html`, partials primaire (classe, période, recherche).
-- Backend : `enseignant_est_hub_v3_collège_lycée`, `_enseignant_classe_hub_bundle`, context processor `professeur_hub_v3`.
-- URLs clés : `/enseignant/classes/`, `eleves/`, `presence/`, `notes/`, `justifications-notes/`, `exercices/`, `eleves-difficulte/` avec `?classe=` / `?periode=`.
-- Hors scope : `est_superieur` (Vague 4), primaire (V0–2), directeur, assistant, CG, shell.
+- `enseignant_est_hub_v4_lmd`, `_enseignant_prof_hub_nav_bundle`, `hub_v4` / `hub_prof_ui`.
+- Périodes par classe : `prof_hub_lmd_periodes_tabs.html` + query `periode_<classe_id>`.
+- Notes & difficulté : hub réactivé (plus d’exclusion `est_superieur`).
 
-Voir le store pour le détail recette et manuel restant.
+Hors scope : Vague 5+, directeur, assistant, CG, shell, primaire/collège (V0–3).

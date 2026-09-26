@@ -86,18 +86,29 @@
     activateClassePanels(classeId);
     layoutOverflow();
 
+    function syncHubLinkStore(link) {
+      var key = document.body.getAttribute('data-prof-hub-key');
+      if (!key || !window.professeurTabStorage) return;
+      var fields = (document.body.getAttribute('data-prof-hub-fields') || 'classe').split(',');
+      var values = {};
+      var linkParams = new URL(link.href, window.location.origin).searchParams;
+      fields.forEach(function (name) {
+        name = name.trim();
+        if (!name) return;
+        values[name] = linkParams.get(name) || '';
+      });
+      window.professeurTabStorage.syncUrlAndStore(key, values);
+    }
+
     document.querySelectorAll('.prof-primaire-tab-link').forEach(function (link) {
       link.addEventListener('click', function () {
-        var key = document.body.getAttribute('data-prof-hub-key');
-        if (!key || !window.professeurTabStorage) return;
-        var fields = (document.body.getAttribute('data-prof-hub-fields') || 'classe').split(',');
-        var values = {};
-        fields.forEach(function (name) {
-          name = name.trim();
-          if (!name) return;
-          values[name] = new URL(link.href, window.location.origin).searchParams.get(name) || '';
-        });
-        window.professeurTabStorage.syncUrlAndStore(key, values);
+        syncHubLinkStore(link);
+      });
+    });
+
+    document.querySelectorAll('.prof-hub-lmd-periode-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        syncHubLinkStore(link);
       });
     });
 

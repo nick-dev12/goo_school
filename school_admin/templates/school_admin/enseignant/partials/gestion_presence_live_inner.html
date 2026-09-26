@@ -54,7 +54,7 @@
                         </div>
 
                         <!-- Sous-onglets par classe -->
-                        {% if not hub_v3 %}
+                        {% if not hub_prof_ui %}
                         <div class="classes-tabs">
                             {% for classe_data in data.classes %}
                                 <button class="classe-tab-btn {% if forloop.first %}active{% endif %}"
@@ -84,7 +84,7 @@
 
                         <!-- Contenu de chaque classe -->
                         {% for classe_data in data.classes %}
-                            <div class="classe-content {% if not hub_v3 and forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}" data-classe-panel="{{ classe_data.classe.id }}">
+                            <div class="classe-content {% if not hub_prof_ui and forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}" data-classe-panel="{{ classe_data.classe.id }}">
                                 <!-- Header classe avec actions -->
                                 <div class="classe-header-actions">
                                     <div class="classe-header-info">
@@ -116,7 +116,7 @@
 
                                 {% if classe_data.eleves %}
                                     <!-- Tableau des élèves avec statistiques de présence -->
-                                    <div class="releve-table-container{% if hub_v3 %} prof-primaire-searchable{% endif %}">
+                                    <div class="releve-table-container{% if hub_prof_ui %} prof-primaire-searchable{% endif %}">
                                         <table class="releve-table">
                                             <thead>
                                                 <tr>

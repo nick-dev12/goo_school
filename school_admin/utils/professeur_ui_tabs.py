@@ -17,6 +17,14 @@ def enseignant_est_hub_v3_collège_lycée(professeur):
     return te not in ('primary', 'superieur')
 
 
+def enseignant_est_hub_v4_lmd(professeur):
+    """Vague 4 : supérieur LMD — même stack hub que V3, périodes par classe/module."""
+    etab = getattr(professeur, 'etablissement', None)
+    if not etab:
+        return False
+    return getattr(etab, 'type_etablissement', None) == 'superieur'
+
+
 def classes_flat_from_secondaire_affectations(affectations, nombre_eleves_by_classe=None):
     """Liste plate classes — AffectationProfesseur (collège/lycée)."""
     flat = []

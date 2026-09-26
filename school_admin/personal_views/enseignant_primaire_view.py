@@ -1747,6 +1747,7 @@ def exercices_maison_primaire(request):
             {
                 'professeur': professeur,
                 'periodes': periodes,
+                'periodes_scolaires': periodes,
                 'periode_selectionnee': periode_selectionnee,
                 'classes_grouped': {},
                 'classes_categories': [],
@@ -2084,6 +2085,7 @@ def exercices_maison_primaire(request):
     context = {
         'professeur': professeur,
         'periodes': periodes,
+        'periodes_scolaires': periodes,
         'periode_selectionnee': periode_selectionnee,
         'classes_grouped': classes_grouped,
         'classes_flat': classes_flat,

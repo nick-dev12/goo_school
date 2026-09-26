@@ -107,6 +107,14 @@ class ProfHubPartialIntegrationTests(TestCase):
             actif=True,
         )
         aff.matieres.add(cls.matiere)
+        cls.periode = PeriodeScolaire.objects.create(
+            etablissement=cls.etab,
+            nom_periode='Trimestre 1',
+            date_debut=date(2026, 9, 1),
+            date_fin=date(2026, 12, 20),
+            est_active=True,
+            annee_scolaire_fk=cls.annee,
+        )
 
     def setUp(self):
         self.client = Client()
@@ -129,6 +137,32 @@ class ProfHubPartialIntegrationTests(TestCase):
 
     def test_presence_hub_partial_swap(self):
         self._assert_hub_swap('enseignant_primaire:gestion_presence')
+
+    def test_exercices_full_page_periode_classe(self):
+        resp = self.client.get(
+            reverse('enseignant_primaire:exercices_maison'),
+            {'periode': str(self.periode.id), 'classe': str(self.classe.id)},
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('prof-hub-chrome', body)
+        self.assertIn('prof-primaire-periodes-bar', body)
+
+    def test_exercices_hub_partial_swap_periode_classe(self):
+        resp = self.client.get(
+            reverse('enseignant_primaire:exercices_maison'),
+            {
+                'hub_partial': 'hub',
+                'periode': str(self.periode.id),
+                'classe': str(self.classe.id),
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('id="prof-hub-chrome"', body)
+        self.assertIn('id="prof-hub-panel"', body)
+        self.assertIn('prof-primaire-periodes-bar', body)
 
 
 def _make_etablissement_college():

@@ -57,3 +57,22 @@
   outline: 3px solid var(--primary, #4f46e5);
   outline-offset: 2px;
 }
+
+/* Hub chrome = classe / période / matière. Masquer l’ancienne rangée
+   CP/CE1/… (ou 6ème/5ème) et les sous-pills de classe dans le panel. */
+body[data-prof-hub-nav-live="1"] .tabs-container > .tabs-nav,
+body[data-prof-hub-nav-live="1"] .classes-tabs-container > .tabs-nav,
+body[data-prof-hub-nav-live="1"] .classes-tabs {
+  display: none !important;
+}
+
+body[data-prof-hub-nav-live="1"] .tabs-container > .tab-content-panel,
+body[data-prof-hub-nav-live="1"] .classes-tabs-container > .tab-content {
+  display: block !important;
+  animation: none;
+}
+
+body[data-prof-hub-nav-live="1"] .tabs-container > .tab-content-panel > .category-info,
+body[data-prof-hub-nav-live="1"] .classes-tabs-container > .tab-content > .category-info {
+  display: none !important;
+}

@@ -2,7 +2,13 @@
 
 from django.contrib.auth.backends import BaseBackend
 from django.contrib.auth.hashers import check_password
-import threading
+
+try:
+    from asgiref.local import Local as _ContextLocal
+except ImportError:  # pragma: no cover
+    import threading
+    _ContextLocal = threading.local
+
 from .model.compte_user import CompteUser
 from .model.etablissement_model import Etablissement
 from .model.personnel_administratif_model import PersonnelAdministratif
@@ -10,8 +16,30 @@ from .model.eleve_model import Eleve
 from .model.professeur_model import Professeur
 from .model.parent_model import Parent
 
-# Thread-local storage pour passer le type d'utilisateur à get_user()
-_user_type_context = threading.local()
+# Context-local (async-safe) pour passer le type d'utilisateur à get_user().
+# threading.local fuit entre requêtes Daphne et peut renvoyer le mauvais modèle
+# (même PK dans une autre table) → hash de session invalide → flush → /connexion/.
+_user_type_context = _ContextLocal()
+
+AUTH_USER_TYPE_MAP = {
+    'Etablissement': 'etablissement',
+    'CompteUser': 'compte_user',
+    'PersonnelAdministratif': 'personnel',
+    'Professeur': 'professeur',
+    'Eleve': 'eleve',
+    'Parent': 'parent',
+}
+
+
+def persist_auth_user_type(request, user) -> str:
+    """Écrit `_auth_user_type` dans la session + le contexte de la requête."""
+    user_type = AUTH_USER_TYPE_MAP.get(type(user).__name__, 'unknown')
+    if request is not None:
+        request.session['_auth_user_type'] = user_type
+    _user_type_context.user_type = user_type
+    if user is not None:
+        user._auth_user_type = user_type
+    return user_type
 
 
 class MultiUserBackend(BaseBackend):
@@ -269,95 +297,47 @@ class MultiUserBackend(BaseBackend):
             else:
                 logger.warning(f"Utilisateur de type {user_type} avec ID {user_id} non trouvé, recherche dans toutes les tables")
         
-        # Si le type n'est pas disponible ou si l'utilisateur n'a pas été trouvé,
-        # chercher dans toutes les tables dans un ordre optimisé
-        # IMPORTANT: Chaque section est indépendante et cherche dans SA PROPRE TABLE uniquement
-        
-        # ==========================================
-        # SECTION 1: ÉTABLISSEMENTS (Directeurs)
-        # ==========================================
-        try:
-            user = Etablissement.objects.get(pk=user_id)
-            print(f"[GET_USER] [OK] ETABLISSEMENT trouve: {user.nom} (ID: {user.id})")
-            logger.info(f"Établissement trouvé: {getattr(user, 'email', 'N/A')}")
+        # Fallback sans type : ne renvoyer un user QUE s'il n'y a qu'un seul
+        # match. Plusieurs tables peuvent partager le même PK — renvoyer le
+        # premier (établissement / CompteUser) invalide le hash de session et
+        # Django flush la session → 302 /connexion/?next=… pour un prof connecté.
+        candidates = self._collect_users_by_id(user_id, logger)
+        if len(candidates) == 1:
+            user = candidates[0]
+            print(f"[GET_USER] [OK] unique match {type(user).__name__} ID {user_id}")
             return user
-        except Etablissement.DoesNotExist:
-            logger.debug(f"Pas d'établissement avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans Etablissement: {e}")
-        
-        # ==========================================
-        # SECTION 2: COMPTE UTILISATEURS (Admin, Commercial, etc.)
-        # ==========================================
-        try:
-            user = CompteUser.objects.get(pk=user_id)
-            print(f"[GET_USER] [OK] COMPTE_USER trouve: {user.email} (ID: {user.id}, Fonction: {user.fonction})")
-            logger.info(f"CompteUser trouvé: {user.email}")
-            return user
-        except CompteUser.DoesNotExist:
-            logger.debug(f"Pas de CompteUser avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans CompteUser: {e}")
-        
-        # ==========================================
-        # SECTION 3: PERSONNEL ADMINISTRATIF
-        # ==========================================
-        try:
-            user = PersonnelAdministratif.objects.get(pk=user_id)
-            print(f"[GET_USER] [OK] PERSONNEL trouve: {user.nom} {user.prenom} (ID: {user.id}, Fonction: {user.fonction})")
-            logger.info(f"PersonnelAdministratif trouvé: {getattr(user, 'email', 'N/A')}")
-            return user
-        except PersonnelAdministratif.DoesNotExist:
-            logger.debug(f"Pas de PersonnelAdministratif avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans PersonnelAdministratif: {e}")
-        
-        # ==========================================
-        # SECTION 4: PROFESSEURS
-        # ==========================================
-        try:
-            user = Professeur.objects.get(pk=user_id)
-            nom_complet = user.nom_complet if hasattr(user, 'nom_complet') else f"{user.nom} {user.prenom}"
-            print(f"[GET_USER] [OK] PROFESSEUR trouve: {nom_complet} (ID: {user.id})")
-            logger.info(f"Professeur trouvé: {getattr(user, 'email', 'N/A')}")
-            return user
-        except Professeur.DoesNotExist:
-            logger.debug(f"Pas de Professeur avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans Professeur: {e}")
-        
-        # ==========================================
-        # SECTION 5: ÉLÈVES
-        # ==========================================
-        try:
-            user = Eleve.objects.get(pk=user_id)
-            print(f"[GET_USER] [OK] ELEVE trouve: {user.nom_complet} (ID: {user.id})")
-            logger.info(f"Eleve trouvé: {getattr(user, 'email', 'N/A')}")
-            return user
-        except Eleve.DoesNotExist:
-            logger.debug(f"Pas d'Eleve avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans Eleve: {e}")
-        
-        # ==========================================
-        # SECTION 6: PARENTS
-        # ==========================================
-        try:
-            user = Parent.objects.get(pk=user_id)
-            print(f"[GET_USER] [OK] PARENT trouve: {user.nom_complet} (ID: {user.id})")
-            logger.info(f"Parent trouvé: {getattr(user, 'email', 'N/A')}")
-            return user
-        except Parent.DoesNotExist:
-            logger.debug(f"Pas de Parent avec ID {user_id}")
-        except Exception as e:
-            logger.error(f"Erreur lors de la recherche dans Parent: {e}")
-        
-        # ==========================================
-        # AUCUN UTILISATEUR TROUVÉ
-        # ==========================================
+        if len(candidates) > 1:
+            logger.warning(
+                "get_user(%s): %s candidats sans _auth_user_type — refus pour éviter un flush de session",
+                user_id,
+                [type(u).__name__ for u in candidates],
+            )
+            print(f"[GET_USER] [SKIP] collision ID {user_id}: {[type(u).__name__ for u in candidates]}")
+            return None
+
         logger.warning(f"[ERREUR] Aucun utilisateur trouve avec l'ID: {user_id} dans AUCUNE table")
         print(f"[GET_USER] [ERREUR] Aucun utilisateur avec ID {user_id} dans aucune des 6 tables")
         return None
+
+    def _collect_users_by_id(self, user_id, logger):
+        """Tous les users ayant ce PK (tables disjointes, collisions possibles)."""
+        found = []
+        lookups = (
+            Etablissement,
+            CompteUser,
+            PersonnelAdministratif,
+            Professeur,
+            Eleve,
+            Parent,
+        )
+        for model in lookups:
+            try:
+                found.append(model.objects.get(pk=user_id))
+            except model.DoesNotExist:
+                continue
+            except Exception as exc:
+                logger.error("Erreur get_user %s pk=%s: %s", model.__name__, user_id, exc)
+        return found
     
     def _get_user_by_type(self, user_id, user_type, logger):
         """

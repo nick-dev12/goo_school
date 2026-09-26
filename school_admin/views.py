@@ -1118,12 +1118,15 @@ def professeur_connexion_otp_verification(request, token):
                 update_fields=["is_used", "used_at", "professeur", "updated_at"]
             )
 
-            professeur._auth_user_type = "professeur"
+            from school_admin.authentication_backends import persist_auth_user_type
+
+            persist_auth_user_type(request, professeur)
             login(
                 request,
                 professeur,
                 backend="school_admin.authentication_backends.MultiUserBackend",
             )
+            persist_auth_user_type(request, professeur)
 
             if professeur.etablissement.type_etablissement == "primary":
                 redirect_url = "enseignant_primaire:dashboard"

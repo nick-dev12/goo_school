@@ -334,17 +334,8 @@ class CompteUserController:
                         from datetime import timedelta
                         request.session.set_expiry(timedelta(days=365 * 10))  # 10 ans
                         
-                        # Stocker le type d'utilisateur dans la session pour get_user()
-                        user_type_map = {
-                            'Etablissement': 'etablissement',
-                            'CompteUser': 'compte_user',
-                            'PersonnelAdministratif': 'personnel',
-                            'Professeur': 'professeur',
-                            'Eleve': 'eleve',
-                            'Parent': 'parent',
-                        }
-                        user_type = user_type_map.get(type(user).__name__, 'unknown')
-                        request.session['_auth_user_type'] = user_type
+                        from school_admin.authentication_backends import persist_auth_user_type
+                        user_type = persist_auth_user_type(request, user)
                         logger.info(f"Login réussi pour {getattr(user, 'email', 'N/A')}, Type: {type(user).__name__}, Session type: {user_type}, Session persistante activée")
                         
                         # Sauvegarder l'année scolaire active dans la session pour les élèves

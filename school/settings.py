@@ -45,6 +45,9 @@ SESSION_SAVE_EVERY_REQUEST = True  # Renouveler la session à chaque requête po
 # La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 365 * 10  # 10 ans (315360000 secondes)
 
+# @login_required et fallback Django — même page que le middleware custom
+LOGIN_URL = '/connexion/'
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/

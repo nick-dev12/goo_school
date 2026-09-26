@@ -61,6 +61,11 @@
 
   function activateClassePanels(classeId) {
     if (!classeId) return;
+    document.querySelectorAll('.tab-content-panel, .tab-content').forEach(function (panel) {
+      if (panel.querySelector('[data-classe-panel="' + classeId + '"]')) {
+        panel.classList.add('active');
+      }
+    });
     document.querySelectorAll('[data-classe-panel]').forEach(function (el) {
       var match = el.getAttribute('data-classe-panel') === String(classeId);
       el.classList.toggle('prof-primaire-panel-hidden', !match);

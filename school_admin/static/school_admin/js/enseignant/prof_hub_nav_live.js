@@ -86,6 +86,7 @@
     fetch(fetchUrl.toString(), {
       method: 'GET',
       credentials: 'same-origin',
+      redirect: 'follow',
       headers: {
         'X-Requested-With': 'XMLHttpRequest',
         Accept: 'text/html',
@@ -93,12 +94,18 @@
       },
     })
       .then(function (response) {
+        if (response.redirected && /\/connexion\/?(\?|$)/.test(response.url)) {
+          throw new Error('auth-redirect');
+        }
         if (!response.ok) {
           throw new Error('HTTP ' + response.status);
         }
         return response.text();
       })
       .then(function (html) {
+        if (!html || html.indexOf('id="prof-hub-chrome"') === -1) {
+          throw new Error('invalid-hub-partial');
+        }
         applySwap(html);
         var clean = new URL(fetchUrl.toString());
         clean.searchParams.delete('hub_partial');

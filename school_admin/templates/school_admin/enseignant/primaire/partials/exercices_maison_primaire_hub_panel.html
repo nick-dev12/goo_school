@@ -88,7 +88,8 @@
                         {% for classe_data in categorie.classes %}
                             {% with classe_id=classe_data.classe.id %}
                                 <div class="classe-content {% if classe_selectionnee and classe_selectionnee.id == classe_id %}active{% elif not classe_selectionnee and forloop.first and forloop.parentloop.first %}active{% endif %}"
-                                     id="classe-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                                     id="classe-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                                     data-classe-panel="{{ classe_id }}">
                                     <div class="classe-header-actions">
                                         <div class="classe-header-info">
                                             <h3>

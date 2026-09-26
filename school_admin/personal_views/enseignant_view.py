@@ -1511,6 +1511,13 @@ def justifications_notes_enseignant(request):
         if justification_obj:
             from ..services.notification_tasks import schedule_justification_note_directeur_notification
             schedule_justification_note_directeur_notification(justification_obj.id)
+            _emit_enseignant_live(
+                professeur,
+                'justification.soumise',
+                classe_id=classe_obj.id,
+                eleve_id=eleve_obj.id,
+                matiere_id=matiere_obj.id,
+            )
 
         from ..services.realtime_helpers import wants_json_response, json_ok
         if wants_json_response(request):

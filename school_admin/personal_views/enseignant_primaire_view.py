@@ -1307,6 +1307,13 @@ def justifications_notes_primaire(request):
         if justification_obj:
             from ..services.notification_tasks import schedule_justification_note_directeur_notification
             schedule_justification_note_directeur_notification(justification_obj.id)
+            _emit_enseignant_live(
+                professeur,
+                'justification.soumise',
+                classe_id=classe_obj.id,
+                eleve_id=eleve_obj.id,
+                matiere_id=matiere_obj.id,
+            )
 
         # Rediriger en gardant les paramètres periode, classe et matiere
         return _redirect_with_params()
@@ -1966,6 +1973,14 @@ def exercices_maison_primaire(request):
             logger.info(f"Envoi des notifications programmé en arrière-plan pour l'exercice de maison {exercice.id}")
 
         messages.success(request, f"Exercice de maison « {titre} » {action_message} avec succès.")
+        event_type = 'exercice.modifie' if exercice_id else 'exercice.publie'
+        _emit_enseignant_live(
+            professeur,
+            event_type,
+            classe_id=classe_obj.id,
+            classe_nom=classe_obj.nom,
+            titre=titre,
+        )
 
         query_params = {
             'classe': classe_obj.id,
@@ -3956,7 +3971,16 @@ def soumettre_sanction_eleve_primaire(request):
             request,
             f"Sanction '{sanction.get_type_sanction_display()}' enregistrée avec succès pour {eleve.nom_complet}."
         )
-        
+        _emit_enseignant_live(
+            professeur,
+            'sanction.ajoutee',
+            eleve_id=eleve.id,
+            eleve_nom=eleve.nom_complet,
+            classe_id=classe.id,
+            classe_nom=classe.nom,
+            type_sanction=sanction.get_type_sanction_display(),
+        )
+
         # Envoyer les notifications push
         try:
             from school_admin.services.firebase_service import FirebaseService

@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
     {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
-<body data-live-page="exercices"{% if hub_v4 %} data-prof-hub-key="professeur:lmd-exercices" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-exercices" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
+<body data-live-page="exercices"{% if hub_prof_ui %} data-prof-hub-nav-live="1"{% endif %}{% if hub_v4 %} data-prof-hub-key="professeur:lmd-exercices" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-exercices" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <div class="main-content-container">
@@ -94,15 +94,21 @@
                 </div>
             </div>
 
-            {% if hub_v3 %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un exercice…" search_target=".prof-primaire-searchable .exercice-card" %}
-            {% elif hub_v4 %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un exercice…" search_target=".prof-primaire-searchable .exercice-card" %}
-            {% endif %}
-
+            {% if hub_prof_ui %}
+            <div id="prof-hub-chrome">
+                {% if hub_v3 %}
+                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
+                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un exercice…" search_target=".prof-primaire-searchable .exercice-card" %}
+                {% elif hub_v4 %}
+                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un exercice…" search_target=".prof-primaire-searchable .exercice-card" %}
+                {% endif %}
+            </div>
+            <div id="prof-hub-panel">
+                {% include 'school_admin/enseignant/partials/exercices_maison_enseignant_hub_panel.html' %}
+            </div>
+            {% else %}
             <div class="tabs-container">
                 <div class="tabs-nav">
                     {% for categorie in categories_data %}
@@ -258,6 +264,7 @@
                     </div>
                 {% endfor %}
             </div>
+            {% endif %}
         {% else %}
             <div class="empty-state">
                 <div class="empty-icon">

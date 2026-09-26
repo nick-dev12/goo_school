@@ -786,8 +786,11 @@ def gestion_classes_enseignant(request):
     hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, hub_redir = _enseignant_prof_hub_nav_bundle(
         request, professeur, affectations, etablissement, annee_scolaire_active, pick_first=True
     )
-    if hub_redir:
-        return hub_redir
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if hub_redir:
+            return hub_redir
 
     context = {
         'professeur': professeur,
@@ -801,7 +804,16 @@ def gestion_classes_enseignant(request):
         'total_classes': stats['total_classes'],
         'annee_scolaire_active': annee_scolaire_active,
     }
-    
+
+    if hub_prof_ui:
+        partial_resp = render_prof_hub_partial(
+            request,
+            context,
+            'school_admin/enseignant/partials/gestion_classes_enseignant_hub_swap.html',
+        )
+        if partial_resp:
+            return partial_resp
+
     return render(request, 'school_admin/enseignant/gestion_classes.html', context)
 
 
@@ -954,8 +966,11 @@ def gestion_eleves_enseignant(request):
             if str(item['classe'].id) == initial_classe_id:
                 classe_selectionnee = item['classe']
                 break
-    if hub_redir:
-        return hub_redir
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if hub_redir:
+            return hub_redir
 
     context = {
         'professeur': professeur,
@@ -969,7 +984,16 @@ def gestion_eleves_enseignant(request):
         'stats': stats,
         'annee_scolaire_active': annee_scolaire_active,
     }
-    
+
+    if hub_prof_ui:
+        partial_resp = render_prof_hub_partial(
+            request,
+            context,
+            'school_admin/enseignant/partials/gestion_eleves_enseignant_hub_swap.html',
+        )
+        if partial_resp:
+            return partial_resp
+
     return render(request, 'school_admin/enseignant/gestion_eleves.html', context)
 
 
@@ -1786,8 +1810,11 @@ def justifications_notes_enseignant(request):
         pick_first=False,
         college_periode_obj=periode_active if not est_superieur_justif else None,
     )
-    if hub_redir:
-        return hub_redir
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if hub_redir:
+            return hub_redir
 
     context = {
         'professeur': professeur,
@@ -1801,11 +1828,21 @@ def justifications_notes_enseignant(request):
         'notes_json': notes_json,
         'motifs_justification': MOTIFS_JUSTIFICATION_SECONDAIRE,
         'periodes': periodes,
+        'periodes_scolaires': periodes,
         'periode_active': periode_active,
         'periode_selectionnee': periode_active,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur_justif,
     }
+
+    if hub_prof_ui:
+        partial_resp = render_prof_hub_partial(
+            request,
+            context,
+            'school_admin/enseignant/partials/justifications_notes_enseignant_hub_swap.html',
+        )
+        if partial_resp:
+            return partial_resp
 
     return render(request, 'school_admin/enseignant/justifications_notes.html', context)
 def exercices_maison_enseignant(request):
@@ -2206,12 +2243,16 @@ def exercices_maison_enseignant(request):
         pick_first=True,
         college_periode_obj=periode_selectionnee if not est_superieur_exo else None,
     )
-    if hub_redir:
-        return hub_redir
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if hub_redir:
+            return hub_redir
 
     context = {
         'professeur': professeur,
         'periodes': periodes,
+        'periodes_scolaires': periodes,
         'periode_selectionnee': periode_selectionnee,
         'classes_grouped': classes_grouped,
         'classes_flat': classes_flat,
@@ -2234,6 +2275,15 @@ def exercices_maison_enseignant(request):
         'stats': stats,
         'annee_scolaire_active': annee_scolaire_active,
     }
+
+    if hub_prof_ui:
+        partial_resp = render_prof_hub_partial(
+            request,
+            context,
+            'school_admin/enseignant/partials/exercices_maison_enseignant_hub_swap.html',
+        )
+        if partial_resp:
+            return partial_resp
 
     return render(request, 'school_admin/enseignant/exercices_maison.html', context)
 def gestion_presence_enseignant(request):
@@ -2725,8 +2775,11 @@ def eleves_en_difficulte_enseignant(request):
         pick_first=True,
         college_periode_obj=periode_active_obj if not est_superieur else None,
     )
-    if hub_redir:
-        return hub_redir
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if hub_redir:
+            return hub_redir
 
     context = {
         'professeur': professeur,
@@ -2745,7 +2798,16 @@ def eleves_en_difficulte_enseignant(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur,
     }
-    
+
+    if hub_prof_ui:
+        partial_resp = render_prof_hub_partial(
+            request,
+            context,
+            'school_admin/enseignant/partials/eleves_en_difficulte_enseignant_hub_swap.html',
+        )
+        if partial_resp:
+            return partial_resp
+
     return render(request, 'school_admin/enseignant/eleves_en_difficulte.html', context)
 
 

@@ -322,3 +322,48 @@ class ProfHubSecondaryIntegrationTests(TestCase):
         body = resp.content.decode('utf-8')
         self.assertIn('id="prof-hub-chrome"', body)
         self.assertIn('id="gestion-presence-live-root"', body)
+
+    def _college_hub(self, url_name, extra=None):
+        params = {'hub_partial': 'hub', 'classe': str(self.classe.id), 'periode': str(self.periode.id)}
+        if extra:
+            params.update(extra)
+        return self.client.get(
+            reverse(url_name),
+            params,
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+    def test_college_classes_hub_partial_swap(self):
+        resp = self._college_hub('enseignant:gestion_classes')
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('id="prof-hub-chrome"', body)
+        self.assertIn('id="prof-hub-panel"', body)
+
+    def test_college_eleves_hub_partial_swap(self):
+        resp = self._college_hub('enseignant:gestion_eleves')
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('id="prof-hub-chrome"', body)
+        self.assertIn('id="prof-hub-panel"', body)
+
+    def test_college_justifications_hub_partial_swap(self):
+        resp = self._college_hub('enseignant:justifications_notes')
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('id="prof-hub-chrome"', body)
+        self.assertIn('id="prof-hub-panel"', body)
+
+    def test_college_exercices_hub_partial_swap(self):
+        resp = self._college_hub('enseignant:exercices_maison')
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('id="prof-hub-chrome"', body)
+        self.assertIn('id="prof-hub-panel"', body)
+
+    def test_college_difficulte_hub_partial_swap(self):
+        resp = self._college_hub('enseignant:eleves_en_difficulte')
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('id="prof-hub-chrome"', body)
+        self.assertIn('id="prof-hub-panel"', body)

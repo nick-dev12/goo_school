@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
     {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
-<body data-live-page="eleves-gestion"{% if hub_v4 %} data-prof-hub-key="professeur:lmd-eleves" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-eleves" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
+<body data-live-page="eleves-gestion"{% if hub_prof_ui %} data-prof-hub-nav-live="1"{% endif %}{% if hub_v4 %} data-prof-hub-key="professeur:lmd-eleves" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-eleves" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <!-- Main Content -->
@@ -79,10 +79,14 @@
             </div>
 
             {% if hub_prof_ui %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" search_target=".prof-primaire-searchable .presence-row" %}
-            {% endif %}
-
+            <div id="prof-hub-chrome">
+                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" search_target=".prof-primaire-searchable .presence-row" %}
+            </div>
+            <div id="prof-hub-panel">
+                {% include 'school_admin/enseignant/partials/gestion_eleves_enseignant_hub_panel.html' %}
+            </div>
+            {% else %}
             <!-- Onglets par catégorie -->
             <div class="tabs-container">
                 <div class="tabs-nav">
@@ -252,6 +256,7 @@
                     </div>
                 {% endfor %}
             </div>
+            {% endif %}
         {% else %}
             <!-- État vide -->
             <div class="empty-state">

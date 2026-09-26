@@ -1,0 +1,14 @@
+<div id="prof-hub-chrome">
+{% if hub_v3 %}
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
+{% elif hub_v4 %}
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un étudiant…" %}
+{% endif %}
+
+</div>
+<div id="prof-hub-panel">
+    {% include 'school_admin/enseignant/partials/justifications_notes_enseignant_hub_panel.html' %}
+</div>

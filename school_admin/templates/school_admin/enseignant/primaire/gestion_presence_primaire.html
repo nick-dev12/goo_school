@@ -10,8 +10,9 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_presence_primaire.css' %}?v=1.0.1">
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
 </head>
-<body>
+<body data-prof-hub-key="professeur:primaire-presence" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}">
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
     <!-- Main Content -->
@@ -59,6 +60,9 @@
                 </div>
             </div>
 
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" search_target=".prof-primaire-searchable tbody tr" %}
+
             <!-- Onglets par catégorie -->
             <div class="tabs-container">
                 <div class="tabs-nav">
@@ -93,7 +97,7 @@
 
                         <!-- Contenu de chaque classe -->
                         {% for classe_data in data.classes %}
-                            <div class="classe-content {% if forloop.first %}active{% endif %}" style="margin-bottom: 2rem;">
+                            <div class="classe-content {% if forloop.first %}active{% endif %}" style="margin-bottom: 2rem;" data-classe-panel="{{ classe_data.classe.id }}">
                                 <!-- Header classe avec actions -->
                                 <div class="classe-header-actions">
                                     <div class="classe-header-info">
@@ -116,7 +120,7 @@
 
                                 {% if classe_data.eleves %}
                                     <!-- Tableau des élèves avec statistiques de présence -->
-                                    <div class="releve-table-container table-responsive">
+                                    <div class="releve-table-container table-responsive prof-primaire-searchable">
                                         <table class="releve-table">
                                             <thead>
                                                 <tr>
@@ -222,6 +226,7 @@
             }
         }
     </script>
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_scripts.html' %}
 
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
 </body>

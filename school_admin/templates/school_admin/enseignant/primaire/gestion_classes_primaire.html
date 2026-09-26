@@ -9,8 +9,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_classes.css' %}">
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
 </head>
-<body>
+<body data-prof-hub-key="professeur:primaire-classes" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}">
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
     <!-- Main Content -->
@@ -72,6 +73,8 @@
                 </div>
             </div>
 
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+
             <!-- Onglets par catégorie -->
             <div class="tabs-container">
                 <div class="tabs-nav">
@@ -108,7 +111,7 @@
                         <!-- Grille de cartes des classes -->
                         <div class="classes-grid">
                             {% for classe_data in data.classes %}
-                                <div class="classe-card">
+                                <div class="classe-card" data-classe-card-id="{{ classe_data.classe.id }}" data-classe-panel="{{ classe_data.classe.id }}">
                                     <!-- Header -->
                                     <div class="classe-header">
                                         <div class="classe-icon" style="background: #667eea;">
@@ -202,6 +205,7 @@
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_scripts.html' %}
     <script>
         // Fonction pour changer d'onglet
         function switchTab(tabId) {

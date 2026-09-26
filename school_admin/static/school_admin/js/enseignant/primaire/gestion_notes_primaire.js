@@ -83,12 +83,52 @@
     });
   }
 
+  function bindEvalSupprimer() {
+    document.querySelectorAll('[data-eval-supprimer]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var evaluationId = btn.getAttribute('data-eval-supprimer');
+        var titre = btn.getAttribute('data-eval-titre') || 'cette évaluation';
+        if (!evaluationId || !window.confirm('Supprimer « ' + titre + ' » ?')) {
+          return;
+        }
+        var csrfEl = document.querySelector('[name=csrfmiddlewaretoken]');
+        var csrfToken = csrfEl ? csrfEl.value : '';
+        if (!csrfToken) {
+          var m = document.cookie.match(/csrftoken=([^;]+)/);
+          csrfToken = m ? m[1] : '';
+        }
+        fetch('/enseignant/primaire/supprimer-evaluation/' + evaluationId + '/', {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken,
+          },
+        })
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (data) {
+            if (data.success) {
+              if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+              } else {
+                window.location.reload();
+              }
+            } else if (data.message) {
+              window.alert(data.message);
+            }
+          });
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     if (restoreFromStore()) {
       return;
     }
     bindHubLinks();
     bindEvalModifier();
+    bindEvalSupprimer();
     layoutOverflow();
     var searchInput = document.getElementById('notesHubSearchInput');
     if (searchInput) {

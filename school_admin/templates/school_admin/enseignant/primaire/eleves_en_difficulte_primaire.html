@@ -10,8 +10,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}">
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
 </head>
-<body>
+<body data-prof-hub-key="professeur:primaire-difficulte" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}">
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
     <!-- Main Content -->
@@ -36,28 +37,9 @@
         </div>
 
         {% if stats.total_classes > 0 %}
-            <!-- Onglets de périodes -->
-            <div class="periodes-tabs-horizontal">
-                <div class="periodes-nav">
-                    {% if periodes %}
-                        {% for periode in periodes %}
-                            <a href="?periode={{ periode.id }}" 
-                               class="periode-tab-horizontal {% if periode_selectionnee and periode_selectionnee.id == periode.id %}active{% endif %}">
-                                <i class="fas fa-calendar-alt"></i>
-                                <span>{{ periode.nom_periode }}</span>
-                                {% if periode.est_en_cours %}
-                                    <span class="badge-en-cours" style="margin-left: 0.5rem; background: #28a745; color: white; padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.75rem;">En cours</span>
-                                {% endif %}
-                            </a>
-                        {% endfor %}
-                    {% else %}
-                        <div style="padding: 1rem; text-align: center; color: #999;">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            Aucune période scolaire définie. Contactez l'administration.
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
 
             <!-- Statistiques globales -->
             <div class="stats-container">
@@ -139,7 +121,7 @@
 
                         <!-- Contenu de chaque classe -->
                         {% for classe_data in data.classes %}
-                            <div class="classe-content {% if forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}">
+                            <div class="classe-content {% if forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}" data-classe-panel="{{ classe_data.classe.id }}">
                                 <!-- Header classe avec actions -->
                                 <div class="classe-header-actions">
                                     <div class="classe-header-info">
@@ -323,6 +305,7 @@
             }
         }
     </script>
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_scripts.html' %}
 
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
 </body>

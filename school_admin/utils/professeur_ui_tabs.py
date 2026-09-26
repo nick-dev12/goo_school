@@ -8,6 +8,41 @@ STATUTS_PRESENCE_SAISIE = ('present', 'absent')
 NOTES_PRIMAIRE_VUE_CHOICES = ('releve', 'saisie', 'evaluations')
 
 
+def classes_flat_from_affectations(affectations):
+    """Liste plate des classes du prof (ordre alphabétique)."""
+    flat = []
+    seen = set()
+    for aff in affectations or []:
+        classe = getattr(aff, 'classe', None)
+        if not classe or aff.classe_id in seen:
+            continue
+        seen.add(aff.classe_id)
+        flat.append({
+            'classe': classe,
+            'affectation': aff,
+            'nombre_eleves': getattr(classe, 'nombre_eleves', None),
+        })
+    flat.sort(key=lambda item: item['classe'].nom)
+    return flat
+
+
+def attach_primaire_classe_tab_context(
+    request, context, classes_flat, param='classe', pick_first_if_missing=False
+):
+    """Persistance ?classe= pour hubs primaire (Vague 2+)."""
+    classe_ids = [str(c['classe'].id) for c in (classes_flat or []) if c.get('classe')]
+    raw = (request.GET.get(param) or '').strip()
+    if raw.isdigit() and raw in classe_ids:
+        classe_key = raw
+    elif pick_first_if_missing and classe_ids:
+        classe_key = classe_ids[0]
+    else:
+        classe_key = ''
+    context['classes_flat'] = classes_flat or []
+    context['initial_classe_id'] = classe_key
+    return context
+
+
 def statut_saisie_presence(presence):
     """Valeur pour les radios Présent/Absent (legacy retard / justifié en lecture)."""
     if not presence:

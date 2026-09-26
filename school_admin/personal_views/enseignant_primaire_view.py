@@ -59,6 +59,27 @@ from django.db.models.functions import Lower
 logger = logging.getLogger(__name__)
 
 
+def _primaire_classe_hub_bundle(request, affectations, pick_first=False):
+    from ..utils.professeur_ui_tabs import (
+        classes_flat_from_affectations,
+        attach_primaire_classe_tab_context,
+    )
+
+    classes_flat = classes_flat_from_affectations(affectations)
+    tab_ctx = {}
+    attach_primaire_classe_tab_context(
+        request, tab_ctx, classes_flat, pick_first_if_missing=pick_first
+    )
+    initial_classe_id = tab_ctx.get('initial_classe_id') or ''
+    classe_selectionnee = None
+    if initial_classe_id:
+        for item in classes_flat:
+            if str(item['classe'].id) == initial_classe_id:
+                classe_selectionnee = item['classe']
+                break
+    return classes_flat, initial_classe_id, classe_selectionnee, tab_ctx
+
+
 def _notes_primaire_hub_url(periode_id=None, classe_id=None, matiere_id=None, vue=None, extra=None):
     """URL hub notes primaire (?periode=&classe=&matiere=&vue=)."""
     from django.urls import reverse
@@ -457,9 +478,15 @@ def gestion_classes_primaire(request):
     affectations_principales = affectations.filter(statut='principal').count()
     affectations_polyvalentes = affectations.filter(statut='polyvalent').count()
     
+    classes_flat, initial_classe_id, _, _ = _primaire_classe_hub_bundle(
+        request, affectations, pick_first=True
+    )
+
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
         'total_classes': total_classes,
         'total_eleves': total_eleves,
         'total_matieres': total_matieres,
@@ -467,6 +494,10 @@ def gestion_classes_primaire(request):
         'affectations_polyvalentes': affectations_polyvalentes,
         'annee_scolaire_active': annee_scolaire_active,
     }
+
+    if initial_classe_id and not request.GET.get('classe'):
+        from django.http import HttpResponseRedirect
+        return HttpResponseRedirect(request.path + '?classe=' + initial_classe_id)
     
     return render(request, 'school_admin/enseignant/primaire/gestion_classes_primaire.html', context)
 
@@ -592,14 +623,25 @@ def gestion_eleves_primaire(request):
     else:
         total_eleves = sum(aff.classe.nombre_eleves for aff in affectations)
     
+    classes_flat, initial_classe_id, classe_selectionnee, _ = _primaire_classe_hub_bundle(
+        request, affectations, pick_first=True
+    )
+
     context = {
         'professeur': professeur,
         'eleves_par_categorie': eleves_par_categorie_ordered,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
+        'classe_selectionnee': classe_selectionnee or (classes_flat[0]['classe'] if classes_flat else None),
         'total_classes': total_classes,
         'total_eleves': total_eleves,
         'today': datetime.now().date(),
         'annee_scolaire_active': annee_scolaire_active,
     }
+
+    if initial_classe_id and not request.GET.get('classe'):
+        from django.http import HttpResponseRedirect
+        return HttpResponseRedirect(request.path + '?classe=' + initial_classe_id)
     
     return render(request, 'school_admin/enseignant/primaire/gestion_eleves_primaire.html', context)
 
@@ -1573,11 +1615,21 @@ def justifications_notes_primaire(request):
 
     notes_json = json.dumps(notes_payload, ensure_ascii=False)
 
+    classes_flat, initial_classe_id, _, tab_ctx = _primaire_classe_hub_bundle(
+        request, affectations, pick_first=False
+    )
+    if not initial_classe_id and classe_selectionnee:
+        initial_classe_id = str(classe_selectionnee.id)
+    initial_matiere_id = str(matiere_selectionnee.id) if matiere_selectionnee else ''
+
     context = {
         'professeur': professeur,
         'periodes': periodes,
         'periode_selectionnee': periode_selectionnee,
         'classes_grouped': classes_grouped_ordered,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
+        'initial_matiere_id': initial_matiere_id,
         'classe_selectionnee': classe_selectionnee,
         'matiere_selectionnee': matiere_selectionnee,
         'releve_data': releve_data,
@@ -1587,6 +1639,15 @@ def justifications_notes_primaire(request):
         'motifs_justification': MOTIFS_JUSTIFICATION_PRIMAIRE,
         'annee_scolaire_active': annee_scolaire_active,
     }
+
+    if not request.GET.get('periode') and periode_selectionnee:
+        from django.http import HttpResponseRedirect
+        q = f"periode={periode_selectionnee.id}"
+        if initial_classe_id:
+            q += f"&classe={initial_classe_id}"
+        if initial_matiere_id:
+            q += f"&matiere={initial_matiere_id}"
+        return HttpResponseRedirect(request.path + '?' + q)
 
     return render(request, 'school_admin/enseignant/primaire/justifications_notes_primaire.html', context)
 
@@ -1966,11 +2027,22 @@ def exercices_maison_primaire(request):
             'date_rendu': exercice.date_rendu.isoformat(),
         })
 
+    classes_flat, initial_classe_id, _, _ = _primaire_classe_hub_bundle(
+        request, affectations, pick_first=True
+    )
+    if initial_classe_id and not classe_selectionnee:
+        for aff in affectations:
+            if str(aff.classe_id) == initial_classe_id:
+                classe_selectionnee = aff.classe
+                break
+
     context = {
         'professeur': professeur,
         'periodes': periodes,
         'periode_selectionnee': periode_selectionnee,
         'classes_grouped': classes_grouped,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
         'classes_categories': classes_categories,
         'classes_options': classes_options,
         'categories_data': categories_data,
@@ -1985,6 +2057,13 @@ def exercices_maison_primaire(request):
         'stats': stats,
         'annee_scolaire_active': annee_scolaire_active,
     }
+
+    if periode_selectionnee and not request.GET.get('periode'):
+        from django.http import HttpResponseRedirect
+        q = 'periode=' + str(periode_selectionnee.id)
+        if initial_classe_id:
+            q += '&classe=' + initial_classe_id
+        return HttpResponseRedirect(request.path + '?' + q)
 
     return render(request, 'school_admin/enseignant/primaire/exercices_maison_primaire.html', context)
 
@@ -3261,14 +3340,21 @@ def supprimer_evaluation_primaire(request, evaluation_id):
         
         logger.info(f"Évaluation primaire {evaluation_id} supprimée par {professeur.nom_complet}")
         
+        hub_url = _notes_primaire_hub_url(
+            evaluation.periode_scolaire_id,
+            evaluation.classe_id,
+            evaluation.matiere_id,
+            vue='evaluations',
+        )
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 'success': True,
                 'message': f"L'évaluation '{titre_evaluation}' a été supprimée avec succès.",
+                'redirect_url': hub_url,
             })
         
         messages.success(request, f"L'évaluation '{titre_evaluation}' a été supprimée avec succès.")
-        return redirect('enseignant_primaire:liste_evaluations')
+        return redirect(hub_url)
         
     except EvaluationPrimaire.DoesNotExist:
         error_message = "Évaluation introuvable ou vous n'avez pas la permission de la supprimer."
@@ -5125,12 +5211,23 @@ def gestion_presence_primaire(request):
         'total_eleves': total_eleves,
     }
     
+    classes_flat, initial_classe_id, classe_selectionnee, _ = _primaire_classe_hub_bundle(
+        request, affectations, pick_first=True
+    )
+
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
+        'classe_selectionnee': classe_selectionnee,
         'stats': stats,
         'annee_scolaire_active': annee_scolaire_active,
     }
+
+    if initial_classe_id and not request.GET.get('classe'):
+        from django.http import HttpResponseRedirect
+        return HttpResponseRedirect(request.path + '?classe=' + initial_classe_id)
     
     return render(request, 'school_admin/enseignant/primaire/gestion_presence_primaire.html', context)
 
@@ -5267,14 +5364,28 @@ def eleves_en_difficulte_primaire(request):
         'total_eleves': total_eleves_difficulte,
     }
     
+    classes_flat, initial_classe_id, classe_selectionnee, _ = _primaire_classe_hub_bundle(
+        request, affectations, pick_first=True
+    )
+
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
+        'classes_flat': classes_flat,
+        'initial_classe_id': initial_classe_id,
+        'classe_selectionnee': classe_selectionnee,
         'stats': stats,
         'periode_selectionnee': periode_selectionnee,
         'periodes': periodes,
         'annee_scolaire_active': annee_scolaire_active,
     }
+
+    if periode_selectionnee and not request.GET.get('periode'):
+        from django.http import HttpResponseRedirect
+        q = 'periode=' + str(periode_selectionnee.id)
+        if initial_classe_id:
+            q += '&classe=' + initial_classe_id
+        return HttpResponseRedirect(request.path + '?' + q)
     
     return render(request, 'school_admin/enseignant/primaire/eleves_en_difficulte_primaire.html', context)
 

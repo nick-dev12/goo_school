@@ -1,0 +1,28 @@
+{% if classes_flat %}
+<nav class="prof-primaire-hub-nav" aria-label="Classes">
+    <div class="matiere-tabs-bar prof-primaire-classes-bar" data-overflow-item-label="Classe" data-overflow-items-label="classes">
+        <div class="matiere-tabs-track" role="tablist">
+            {% for item in classes_flat %}
+                <a role="tab"
+                   class="matiere-tab-btn prof-primaire-tab-link {% if initial_classe_id == item.classe.id|stringformat:'s' %}active{% endif %}"
+                   aria-selected="{% if initial_classe_id == item.classe.id|stringformat:'s' %}true{% else %}false{% endif %}"
+                   data-classe-id="{{ item.classe.id }}"
+                   href="?classe={{ item.classe.id }}{% if periode_selectionnee %}&periode={{ periode_selectionnee.id }}{% endif %}{% if initial_matiere_id %}&matiere={{ initial_matiere_id }}{% endif %}">
+                    <i class="fas fa-users" aria-hidden="true"></i>
+                    <span>{{ item.classe.nom }}</span>
+                    {% if item.nombre_eleves != None %}
+                        <span class="tab-count">{{ item.nombre_eleves }}</span>
+                    {% endif %}
+                </a>
+            {% endfor %}
+        </div>
+        <div class="matiere-tabs-more-wrap" hidden>
+            <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres classes">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                <span class="matiere-tabs-more-label">Autres classes</span>
+            </button>
+            <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+        </div>
+    </div>
+</nav>
+{% endif %}

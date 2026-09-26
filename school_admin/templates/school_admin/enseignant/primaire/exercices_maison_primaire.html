@@ -11,8 +11,9 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_eleves.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/exercices_maison_primaire.css' %}?v=1.0.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
 </head>
-<body data-live-page="exercices">
+<body data-live-page="exercices" data-prof-hub-key="professeur:primaire-exercices" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}">
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
     <div class="main-content-container">
@@ -31,6 +32,10 @@
                 </p>
             </div>
         </div>
+
+        {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
+        {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+        {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un exercice…" search_target=".exercice-card" %}
 
         <div class="page-actions info-only">
             <div class="info-selected">
@@ -530,6 +535,7 @@
         });
     </script>
 
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_scripts.html' %}
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
 {% include 'school_admin/partials/enseignant_live_scripts.html' %}
 </body>

@@ -1273,8 +1273,11 @@ def gestion_notes_enseignant(request):
         pick_first=True,
         college_periode_obj=periode_active_obj if not est_superieur else None,
     )
-    if hub_redir:
-        return hub_redir
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if hub_redir:
+            return hub_redir
 
     context = {
         'professeur': professeur,
@@ -1298,6 +1301,23 @@ def gestion_notes_enseignant(request):
         'eval_matiere_id': request.GET.get('eval_matiere', ''),
         'eval_periode_id': request.GET.get('eval_periode', ''),
     }
+
+    partial_mode = wants_prof_hub_partial(request)
+    if partial_mode == 'panel' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(
+            request,
+            'school_admin/enseignant/partials/gestion_notes_enseignant_hub_panel_only.html',
+            context,
+        )
+
+    if hub_prof_ui:
+        partial_resp = render_prof_hub_partial(
+            request,
+            context,
+            'school_admin/enseignant/partials/gestion_notes_enseignant_hub_swap.html',
+        )
+        if partial_resp:
+            return partial_resp
 
     if request.GET.get('live_partial') == 'notes' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(
@@ -2364,8 +2384,11 @@ def gestion_presence_enseignant(request):
     hub_v3, hub_v4, hub_prof_ui, classes_flat, initial_classe_id, hub_redir = _enseignant_prof_hub_nav_bundle(
         request, professeur, affectations, etablissement, annee_scolaire_active, pick_first=True
     )
-    if hub_redir:
-        return hub_redir
+    from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+
+    if not wants_prof_hub_partial(request):
+        if hub_redir:
+            return hub_redir
 
     context = {
         'professeur': professeur,
@@ -2379,6 +2402,23 @@ def gestion_presence_enseignant(request):
         'matiere_principale': professeur.matiere_principale,
         'annee_scolaire_active': annee_scolaire_active,
     }
+
+    partial_mode = wants_prof_hub_partial(request)
+    if partial_mode == 'panel' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(
+            request,
+            'school_admin/enseignant/partials/gestion_presence_enseignant_hub_panel_only.html',
+            context,
+        )
+
+    if hub_prof_ui:
+        partial_resp = render_prof_hub_partial(
+            request,
+            context,
+            'school_admin/enseignant/partials/gestion_presence_enseignant_hub_swap.html',
+        )
+        if partial_resp:
+            return partial_resp
 
     if request.GET.get('live_partial') == 'presence' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(

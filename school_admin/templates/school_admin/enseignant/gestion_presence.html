@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.1">
     {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
-<body data-live-page="presence-gestion"{% if hub_v4 %} data-prof-hub-key="professeur:lmd-presence" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-presence" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
+<body data-live-page="presence-gestion"{% if hub_prof_ui %} data-prof-hub-nav-live="1"{% endif %}{% if hub_v4 %} data-prof-hub-key="professeur:lmd-presence" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-presence" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <!-- Main Content -->
@@ -65,12 +65,20 @@
 
         {% if stats.total_classes > 0 %}
             {% if hub_prof_ui %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
-            {% endif %}
+            <div id="prof-hub-chrome">
+                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
+            </div>
+            <div id="prof-hub-panel">
+                <div id="gestion-presence-live-root">
+                {% include 'school_admin/enseignant/partials/gestion_presence_live_inner.html' %}
+                </div>
+            </div>
+            {% else %}
             <div id="gestion-presence-live-root">
             {% include 'school_admin/enseignant/partials/gestion_presence_live_inner.html' %}
             </div>
+            {% endif %}
         {% else %}
             <div class="empty-state">
                 <div class="empty-icon">

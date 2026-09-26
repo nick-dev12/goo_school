@@ -1,4 +1,8 @@
-"""Réponses fragment HTML pour navigation hub professeur (hub_partial)."""
+"""Réponses fragment HTML pour navigation hub professeur (hub_partial).
+
+hub_partial=hub|chrome|panel remplace progressivement live_partial=notes|presence
+pour les rafraîchissements WS (voir enseignant_live.js).
+"""
 from __future__ import annotations
 
 from django.shortcuts import render

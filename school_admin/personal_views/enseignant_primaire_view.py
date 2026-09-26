@@ -1100,6 +1100,14 @@ def gestion_notes_primaire(request):
             if needs_redirect:
                 return HttpResponseRedirect(request.path + '?' + q.urlencode())
 
+    partial_mode = wants_prof_hub_partial(request)
+    if partial_mode == 'panel':
+        return render(
+            request,
+            'school_admin/enseignant/primaire/partials/gestion_notes_primaire_hub_panel_only.html',
+            context,
+        )
+
     partial_resp = render_prof_hub_partial(
         request,
         context,
@@ -5264,6 +5272,14 @@ def gestion_presence_primaire(request):
         if initial_classe_id and not request.GET.get('classe'):
             from django.http import HttpResponseRedirect
             return HttpResponseRedirect(request.path + '?classe=' + initial_classe_id)
+
+    partial_mode = wants_prof_hub_partial(request)
+    if partial_mode == 'panel':
+        return render(
+            request,
+            'school_admin/enseignant/primaire/partials/gestion_presence_primaire_hub_panel_only.html',
+            context,
+        )
 
     partial_resp = render_prof_hub_partial(
         request,

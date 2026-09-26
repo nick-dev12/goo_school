@@ -68,11 +68,30 @@
     return true;
   }
 
+  function hubNavLiveOn() {
+    return document.body.getAttribute('data-prof-hub-nav-live') === '1';
+  }
+
+  function buildHubPanelRefreshUrl(extraParams) {
+    var params = { hub_partial: 'panel' };
+    if (extraParams) {
+      Object.keys(extraParams).forEach(function (key) {
+        if (extraParams[key]) {
+          params[key] = extraParams[key];
+        }
+      });
+    }
+    return buildRefreshUrl(params);
+  }
+
   function buildLiveRefreshUrl(page, itemOrForm) {
     if (page === 'notes-gestion') {
       return buildNotesRefreshUrl(itemOrForm);
     }
     if (page === 'presence-gestion') {
+      if (hubNavLiveOn()) {
+        return buildHubPanelRefreshUrl();
+      }
       return buildRefreshUrl({ live_partial: 'presence' });
     }
     return buildRefreshUrl();
@@ -194,12 +213,16 @@
   }
 
   function buildNotesRefreshUrl(itemOrForm) {
-    var params = { live_partial: 'notes' };
+    var extra = {};
     if (itemOrForm && itemOrForm.periode_id) {
-      Object.assign(params, periodeParamsFromItem(itemOrForm) || {});
+      Object.assign(extra, periodeParamsFromItem(itemOrForm) || {});
     } else if (itemOrForm && itemOrForm.querySelector) {
-      Object.assign(params, periodeParamsFromForm(itemOrForm) || {});
+      Object.assign(extra, periodeParamsFromForm(itemOrForm) || {});
     }
+    if (hubNavLiveOn()) {
+      return buildHubPanelRefreshUrl(extra);
+    }
+    var params = Object.assign({ live_partial: 'notes' }, extra);
     return buildRefreshUrl(params);
   }
 
@@ -219,8 +242,13 @@
 
   function getLiveRootConfig() {
     var page = currentPage();
+    if (hubNavLiveOn() && document.getElementById('prof-hub-panel')) {
+      if (page === 'notes-gestion' || page === 'presence-gestion') {
+        return { rootId: 'prof-hub-panel', hubPartial: 'panel', captureTabs: page === 'notes-gestion' };
+      }
+    }
     if (page === 'notes-gestion' && document.getElementById('gestion-notes-live-root')) {
-      return { rootId: 'gestion-notes-live-root', livePartial: 'notes' };
+      return { rootId: 'gestion-notes-live-root', livePartial: 'notes', captureTabs: true };
     }
     if (page === 'presence-gestion' && document.getElementById('gestion-presence-live-root')) {
       return { rootId: 'gestion-presence-live-root', livePartial: 'presence' };
@@ -233,10 +261,16 @@
       return;
     }
     var liveCfg = getLiveRootConfig();
-    var tabState = liveCfg ? captureNotesTabState() : null;
-    var url =
-      fetchUrl ||
-      buildRefreshUrl(liveCfg ? { live_partial: liveCfg.livePartial } : null);
+    var tabState = liveCfg && liveCfg.captureTabs ? captureNotesTabState() : null;
+    var url = fetchUrl;
+    if (!url && liveCfg) {
+      url = liveCfg.hubPartial
+        ? buildHubPanelRefreshUrl()
+        : buildRefreshUrl({ live_partial: liveCfg.livePartial });
+    }
+    if (!url) {
+      url = buildRefreshUrl();
+    }
 
     fetch(url, {
       method: 'GET',
@@ -260,7 +294,15 @@
           var fresh = doc.getElementById(liveCfg.rootId);
           if (root && fresh) {
             root.innerHTML = fresh.innerHTML;
-            restoreNotesTabState(tabState);
+            if (tabState) {
+              restoreNotesTabState(tabState);
+            }
+            if (liveCfg.hubPartial) {
+              document.dispatchEvent(new CustomEvent('prof-hub-panel-loaded'));
+            }
+            if (typeof window.layoutTabsOverflowNav === 'function') {
+              window.layoutTabsOverflowNav();
+            }
           }
         } else {
           selectors.forEach(function (sel) {
@@ -310,7 +352,7 @@
       page === 'notes-gestion'
         ? buildNotesRefreshUrl(payload && payload.item ? payload.item : payload)
         : page === 'presence-gestion'
-          ? buildRefreshUrl({ live_partial: 'presence' })
+          ? buildLiveRefreshUrl('presence-gestion')
           : null;
     scheduleRefresh(selectors, message || 'Données mises à jour.', true, fetchUrl);
   }

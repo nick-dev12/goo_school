@@ -230,6 +230,21 @@ class ProfHubSecondaryIntegrationTests(TestCase):
         self.assertIn('id="prof-hub-chrome"', body)
         self.assertIn('id="gestion-notes-live-root"', body)
 
+    def test_college_notes_hub_partial_panel(self):
+        resp = self.client.get(
+            reverse('enseignant:gestion_notes'),
+            {
+                'hub_partial': 'panel',
+                'classe': str(self.classe.id),
+                'periode': str(self.periode.id),
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('id="prof-hub-panel"', body)
+        self.assertIn('id="gestion-notes-live-root"', body)
+
     def test_college_presence_hub_partial_swap(self):
         resp = self.client.get(
             reverse('enseignant:gestion_presence'),

@@ -14,9 +14,21 @@ function getMatieresParSession() {
 
 var matieresParSession = getMatieresParSession();
 
-window.switchSessionTab = function (tabId, btn) {
+var EDTEX_STORAGE_KEY = 'directeur:emploi-du-temps-examens';
+
+function edtexPersistSession() {
+    if (!window.directeurTabStorage) return;
+    var btn = document.querySelector('.edtex-session-tab.active[data-session-id]');
+    window.directeurTabStorage.syncUrlAndStore(EDTEX_STORAGE_KEY, {
+        session: btn ? btn.getAttribute('data-session-id') : '',
+    });
+}
+
+window.switchSessionTab = function (tabId, btn, opts) {
+    opts = opts || {};
     document.querySelectorAll('.edtex-session-panel').forEach(function (panel) {
         panel.classList.remove('active');
+        panel.hidden = true;
     });
     document.querySelectorAll('.edtex-session-tab').forEach(function (button) {
         button.classList.remove('active');
@@ -24,7 +36,10 @@ window.switchSessionTab = function (tabId, btn) {
     });
 
     var panel = document.getElementById(tabId);
-    if (panel) panel.classList.add('active');
+    if (panel) {
+        panel.classList.add('active');
+        panel.hidden = false;
+    }
 
     var targetBtn = btn || document.querySelector('.edtex-session-tab[data-tab="' + tabId + '"]');
     if (targetBtn) {
@@ -32,10 +47,23 @@ window.switchSessionTab = function (tabId, btn) {
         targetBtn.setAttribute('aria-selected', 'true');
     }
 
+    if (!opts.skipPersist) {
+        edtexPersistSession();
+    }
+
     if (typeof window.layoutTabsOverflowNav === 'function') {
         window.layoutTabsOverflowNav();
     }
 };
+
+function edtexRestoreSessionTab() {
+    if (!window.directeurTabStorage) return;
+    var sel = window.directeurTabStorage.mergeUrlFromStore(EDTEX_STORAGE_KEY, ['session']);
+    if (sel.session) {
+        window.switchSessionTab('session-' + sel.session, null, { skipPersist: true });
+    }
+    edtexPersistSession();
+}
 
 function openModal() {
     document.getElementById('creneauModal').classList.add('show');
@@ -109,6 +137,7 @@ function animateCreneaux() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    edtexRestoreSessionTab();
     var sessionSelect = document.getElementById('session_examen_id');
     if (sessionSelect) {
         sessionSelect.addEventListener('change', updateMatieresForSession);

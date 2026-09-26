@@ -144,10 +144,74 @@
         });
     }
 
+    var GCL_TABS_STORAGE = 'directeur:liste-classes:tabs';
+
+    function gclPersistInnerTabs() {
+        if (!window.directeurTabStorage) return;
+        var values = {};
+        var catBtn = document.querySelector('.cls-cat-btn.active[data-category]');
+        if (catBtn) {
+            values.categorie = catBtn.getAttribute('data-category');
+        }
+        var filiereBtn = document.querySelector('.gcl-filiere-tab.active[data-filiere-idx]');
+        if (filiereBtn) {
+            values.filiere = filiereBtn.getAttribute('data-filiere-idx');
+        }
+        var niveauBtn = document.querySelector('.gcl-niveau-tab.active[data-niveau-idx]');
+        if (niveauBtn) {
+            values.niveau = niveauBtn.getAttribute('data-niveau-idx');
+        }
+        window.directeurTabStorage.syncUrlAndStore(GCL_TABS_STORAGE, values);
+    }
+
+    function gclRestoreInnerTabs() {
+        if (!window.directeurTabStorage) return;
+        var sel = window.directeurTabStorage.mergeUrlFromStore(GCL_TABS_STORAGE, ['categorie', 'filiere', 'niveau']);
+        if (sel.categorie) {
+            var catBtn = document.querySelector('.cls-cat-btn[data-category="' + CSS.escape(sel.categorie) + '"]');
+            if (catBtn) {
+                var catRoot = document.querySelector('[data-gcl-cat-zone]');
+                activateGclCategory(catRoot, catBtn);
+            }
+        }
+        if (sel.filiere) {
+            var filiereBtn = document.querySelector('.gcl-filiere-tab[data-filiere-idx="' + CSS.escape(sel.filiere) + '"]');
+            var filiereRoot = document.querySelector('[data-gcl-filiere-zone]');
+            if (filiereBtn && filiereRoot) {
+                activateGclFiliereTab(filiereRoot, filiereBtn);
+            }
+        }
+        if (sel.niveau) {
+            var niveauBtn = document.querySelector('.gcl-niveau-tab[data-niveau-idx="' + CSS.escape(sel.niveau) + '"]');
+            var zone = niveauBtn ? niveauBtn.closest('[data-gcl-niveau-zone]') : null;
+            if (niveauBtn && zone) {
+                activateGclNiveauTab(zone, niveauBtn);
+            }
+        }
+        gclPersistInnerTabs();
+    }
+
+    var _activateGclCategory = activateGclCategory;
+    activateGclCategory = function (root, btn) {
+        _activateGclCategory(root, btn);
+        gclPersistInnerTabs();
+    };
+    var _activateGclFiliereTab = activateGclFiliereTab;
+    activateGclFiliereTab = function (root, btn) {
+        _activateGclFiliereTab(root, btn);
+        gclPersistInnerTabs();
+    };
+    var _activateGclNiveauTab = activateGclNiveauTab;
+    activateGclNiveauTab = function (zone, btn) {
+        _activateGclNiveauTab(zone, btn);
+        gclPersistInnerTabs();
+    };
+
     function bootGclTabs() {
         initGclCategoryTabs();
         initGclFiliereTabs();
         initGclNiveauTabs();
+        gclRestoreInnerTabs();
         layoutOverflow();
     }
 

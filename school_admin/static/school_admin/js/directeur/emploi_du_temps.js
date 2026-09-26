@@ -6,6 +6,7 @@ var EDT_MORE_BTN_WIDTH = 130;
 document.addEventListener('DOMContentLoaded', function () {
     initEdtCategoryTabs();
     initEdtCategoryNavOverflow();
+    edtRestoreCategoryFromUrl();
     initEdtFilters();
     initEdtSearch();
 });
@@ -68,6 +69,8 @@ function updateEdtMoreButtonLabel(overflowCount) {
     );
 }
 
+var EDT_LIST_STORAGE = 'directeur:emplois-du-temps-liste';
+
 function activateEdtCategory(category) {
     var buttons = getAllEdtCatButtons();
     var panels = document.querySelectorAll('.edt-panel[data-edt-panel]');
@@ -82,8 +85,28 @@ function activateEdtCategory(category) {
         panel.classList.toggle('active', panel.id === 'panel-' + slugify(category));
     });
 
+    if (window.directeurTabStorage) {
+        window.directeurTabStorage.syncUrlAndStore(EDT_LIST_STORAGE, {
+            niveau: slugify(category),
+        });
+    }
+
     closeEdtOverflowMenu();
     layoutEdtCategoryNav();
+}
+
+function edtRestoreCategoryFromUrl() {
+    if (!window.directeurTabStorage) return;
+    var sel = window.directeurTabStorage.mergeUrlFromStore(EDT_LIST_STORAGE, ['niveau']);
+    if (!sel.niveau) return;
+    var buttons = getAllEdtCatButtons();
+    for (var i = 0; i < buttons.length; i++) {
+        var btn = buttons[i];
+        if (slugify(btn.getAttribute('data-category')) === sel.niveau) {
+            activateEdtCategory(btn.getAttribute('data-category'));
+            break;
+        }
+    }
 }
 
 function initEdtCategoryTabs() {

@@ -43,7 +43,8 @@ def enrich_liste_matieres_superieur_context(request, etablissement, context, mat
     from .module_controller import _build_liste_modules_context, _modal_ajouter_from_query
 
     if matieres_main_tab is None:
-        matieres_main_tab = 'modules'
+        tab_param = (request.GET.get('tab') or '').strip().lower()
+        matieres_main_tab = 'modules' if tab_param == 'modules' else 'matieres'
 
     mods = _build_liste_modules_context(request, etablissement)
     if request.GET.get('ouvrir_modal'):

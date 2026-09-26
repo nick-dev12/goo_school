@@ -11,7 +11,20 @@
         }
     }
 
-    function activateGpsMainTab(root, btn) {
+    var GPS_STORAGE_KEY = 'directeur:gestion-periodes';
+
+    function gpsPersistTabs(root) {
+        if (!window.directeurTabStorage || !root) return;
+        var sectionBtn = root.querySelector('.gps-main-tab.active[data-main-tab]');
+        var niveauBtn = document.querySelector('.gps-niveau-tab.active[data-tab-target]');
+        window.directeurTabStorage.syncUrlAndStore(GPS_STORAGE_KEY, {
+            section: sectionBtn ? sectionBtn.getAttribute('data-main-tab') : '',
+            niveau_lmd: niveauBtn ? niveauBtn.getAttribute('data-tab-target') : '',
+        });
+    }
+
+    function activateGpsMainTab(root, btn, opts) {
+        opts = opts || {};
         if (!root || !btn) return;
 
         var target = btn.getAttribute('data-main-tab');
@@ -30,6 +43,10 @@
             panel.hidden = !show;
         });
 
+        if (!opts.skipPersist) {
+            gpsPersistTabs(root);
+        }
+
         layoutOverflow();
     }
 
@@ -42,9 +59,28 @@
             if (!btn || !root.contains(btn)) return;
             activateGpsMainTab(root, btn);
         });
+
+        if (window.directeurTabStorage) {
+            var sel = window.directeurTabStorage.mergeUrlFromStore(GPS_STORAGE_KEY, ['section', 'niveau_lmd']);
+            var section = sel.section || root.getAttribute('data-initial-section') || 'annees';
+            var sectionBtn = root.querySelector('.gps-main-tab[data-main-tab="' + CSS.escape(section) + '"]');
+            if (sectionBtn) {
+                activateGpsMainTab(root, sectionBtn, { skipPersist: true });
+            }
+            if (sel.niveau_lmd) {
+                var niveauBtn = document.querySelector(
+                    '.gps-niveau-tab[data-tab-target="' + CSS.escape(sel.niveau_lmd) + '"]'
+                );
+                if (niveauBtn) {
+                    activateGpsNiveauTab(document.querySelector('[data-gps-niveau-tabs]'), niveauBtn, { skipPersist: true });
+                }
+            }
+            gpsPersistTabs(root);
+        }
     }
 
-    function activateGpsNiveauTab(root, btn) {
+    function activateGpsNiveauTab(root, btn, opts) {
+        opts = opts || {};
         if (!root || !btn) return;
 
         var code = btn.getAttribute('data-tab-target');
@@ -62,6 +98,11 @@
             panel.classList.toggle('active', show);
             panel.hidden = !show;
         });
+
+        if (!opts.skipPersist) {
+            var mainRoot = document.querySelector('[data-gps-main-tabs]');
+            gpsPersistTabs(mainRoot);
+        }
 
         layoutOverflow();
     }
@@ -319,8 +360,8 @@
     window.closeAnneeScolaireModal = closeAnneeScolaireModal;
 
     function bootGpsPage() {
-        initGpsMainTabs();
         initGpsNiveauTabs();
+        initGpsMainTabs();
         initSemestresLmd();
         initModals();
         layoutOverflow();

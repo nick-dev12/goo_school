@@ -28,7 +28,11 @@
       if (addModuleHeader) {
         addModuleHeader.hidden = target !== 'modules';
       }
-      if (window.history && window.history.replaceState) {
+      if (window.directeurTabStorage) {
+        window.directeurTabStorage.syncUrlAndStore('directeur:liste-matieres:main', {
+          tab: target === 'matieres' ? '' : target,
+        });
+      } else if (window.history && window.history.replaceState) {
         var url = new URL(window.location.href);
         if (target === 'modules') {
           url.searchParams.set('tab', 'modules');
@@ -49,6 +53,10 @@
     });
 
     var initial = root.getAttribute('data-initial-tab') || 'matieres';
+    if (window.directeurTabStorage) {
+      var sel = window.directeurTabStorage.mergeUrlFromStore('directeur:liste-matieres:main', ['tab']);
+      if (sel.tab) initial = sel.tab;
+    }
     activateTab(initial);
   }
 

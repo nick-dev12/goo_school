@@ -59,22 +59,22 @@
         </div>
         {% endif %}
 
-        <section class="gps-main-panel" data-gps-main-tabs>
+        <section class="gps-main-panel" data-gps-main-tabs data-initial-section="{{ gps_main_section }}">
             <div class="gps-main-nav">
                 <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'section' %}" data-overflow-items-label="{% trans 'sections' %}">
                     <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Sections' %}">
                         <button type="button" role="tab"
-                                class="matiere-tab-btn gps-main-tab active"
+                                class="matiere-tab-btn gps-main-tab {% if gps_main_section == 'annees' %}active{% endif %}"
                                 data-main-tab="annees"
-                                aria-selected="true">
+                                aria-selected="{% if gps_main_section == 'annees' %}true{% else %}false{% endif %}">
                             <i class="fas fa-calendar-alt"></i>
                             <span>{% trans "Années scolaires" %}</span>
                             <span class="tab-count">{{ stats_generales.total_annees }}</span>
                         </button>
                         <button type="button" role="tab"
-                                class="matiere-tab-btn gps-main-tab"
+                                class="matiere-tab-btn gps-main-tab {% if gps_main_section == 'periodes' %}active{% endif %}"
                                 data-main-tab="periodes"
-                                aria-selected="false">
+                                aria-selected="{% if gps_main_section == 'periodes' %}true{% else %}false{% endif %}">
                             <i class="fas fa-list"></i>
                             <span>{% trans "Périodes définies" %}</span>
                             <span class="tab-count">{{ stats_generales.total_periodes }}</span>
@@ -91,7 +91,7 @@
             </div>
 
             <!-- Années scolaires -->
-            <div class="gps-tab-panel active" data-main-panel="annees" role="tabpanel">
+            <div class="gps-tab-panel {% if gps_main_section == 'annees' %}active{% endif %}" data-main-panel="annees" role="tabpanel"{% if gps_main_section != 'annees' %} hidden{% endif %}>
                 {% if annees_scolaires %}
                 <div class="gps-list-scroll table-responsive">
                     <div class="gps-list gps-list--annees">
@@ -146,7 +146,7 @@
             </div>
 
             <!-- Périodes définies -->
-            <div class="gps-tab-panel" data-main-panel="periodes" role="tabpanel" hidden>
+            <div class="gps-tab-panel {% if gps_main_section == 'periodes' %}active{% endif %}" data-main-panel="periodes" role="tabpanel"{% if gps_main_section != 'periodes' %} hidden{% endif %}>
                 {% if est_superieur and periodes_tabs %}
                 <div class="gps-niveau-zone" data-gps-niveau-tabs>
                 <div class="gps-niveau-nav">
@@ -154,9 +154,9 @@
                         <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Niveaux LMD' %}">
                             {% for tab in periodes_tabs %}
                             <button type="button" role="tab"
-                                    class="matiere-tab-btn gps-niveau-tab {% if forloop.first %}active{% endif %}"
+                                    class="matiere-tab-btn gps-niveau-tab {% if tab.code == gps_initial_niveau_tab %}active{% endif %}"
                                     data-tab-target="{{ tab.code }}"
-                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                                    aria-selected="{% if tab.code == gps_initial_niveau_tab %}true{% else %}false{% endif %}">
                                 <i class="fas fa-layer-group"></i>
                                 <span>{{ tab.label|truncatechars:22 }}</span>
                                 <span class="tab-count">{{ tab.periodes|length }}</span>
@@ -174,7 +174,7 @@
                 </div>
 
                 {% for tab in periodes_tabs %}
-                <div class="gps-niveau-panel {% if forloop.first %}active{% endif %}" data-tab-panel="{{ tab.code }}" role="tabpanel" {% if not forloop.first %}hidden{% endif %}>
+                <div class="gps-niveau-panel {% if tab.code == gps_initial_niveau_tab %}active{% endif %}" data-tab-panel="{{ tab.code }}" role="tabpanel" {% if tab.code != gps_initial_niveau_tab %}hidden{% endif %}>
                     {% if tab.periodes %}
                     <div class="gps-list-scroll table-responsive">
                         <div class="gps-list">

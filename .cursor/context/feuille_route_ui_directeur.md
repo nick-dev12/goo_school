@@ -1,10 +1,26 @@
-# Feuille de route UI directeur
+# Feuille de route UI — espace directeur (copie repo)
 
-**Vague 0** : liste élèves — done.  
-**Vague 1** : certificats, attestations, fiches, convocations, cartes identité, hub gestion élèves, réinscription, préinscriptions — **done** (2026-09-26).
+Référence store : `docs/feuille-route-ui-directeur.md` (agent store).
 
-Détail : `C:\Users\jomas\AppData\Local\Cursor\AgentStores\cursor_agent_stores\bc-451181e0-6549-474d-99e2-eb6302769440\files\docs\feuille-route-ui-directeur.md`
+| Vague | Statut |
+|-------|--------|
+| 0 — Liste élèves | Livrée |
+| 1 — Hub élèves, certificats, attestations, fiches, convocations, cartes, réinscription | Livrée |
+| **2 — Matières, classes, examens, périodes, EDT, notes/bulletins** | **Livrée (2026-09-26)** |
+| 3+ | Hors scope session |
 
-Stack : `tabs_nav_overflow.js`, `directeur_niveau_classe_persist.js`, `directeur_ui_tabs.py`.
+## Recette Vague 2 (`http://127.0.0.1:8047`)
 
-**Vague 2+** : non démarré (matières, classes, examens, notes…).
+- `/matieres/` — liste matières / modules (supérieur)
+- `/classes/` — gestion classes (+ spécialités supérieur)
+- `/classes/specialite/<id>/` — classes par spécialité
+- `/gestion-examens/` — sessions par période / groupe
+- `/emploi-du-temps-examens/` — planning par session
+- `/periodes-scolaires/` — années / périodes (+ niveaux LMD)
+- `/emplois-du-temps/` — liste EDT par niveau
+- `/emplois-du-temps/classe/<id>/` — détail EDT (cours / examens)
+- `/notes-et-resultats/` — relevés
+- `/notes-et-resultats/justifications/` — justifications
+- `/bulletins/` — bulletins par classe
+
+Ctrl+F5, fenêtre étroite → « Autres … », F5 = même onglet, smoke métier.

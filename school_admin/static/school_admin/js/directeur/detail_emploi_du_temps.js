@@ -5,7 +5,16 @@
 (function () {
   'use strict';
 
-  function switchEdtdMainTab(tabId, btn) {
+  var EDTD_STORAGE = 'directeur:detail-emploi-du-temps';
+
+  function edtdPersistVue(tabId) {
+    if (!window.directeurTabStorage) return;
+    var vue = tabId === 'edtd-panel-examens' ? 'examens' : 'cours';
+    window.directeurTabStorage.syncUrlAndStore(EDTD_STORAGE, { vue: vue });
+  }
+
+  function switchEdtdMainTab(tabId, btn, opts) {
+    opts = opts || {};
     document.querySelectorAll('.edtd-main-panel').forEach(function (panel) {
       panel.classList.remove('active');
     });
@@ -20,9 +29,18 @@
       targetBtn.classList.add('active');
       targetBtn.setAttribute('aria-selected', 'true');
     }
+    if (!opts.skipPersist) {
+      edtdPersistVue(tabId);
+    }
   }
 
   function initEdtdMainTabs() {
+    if (window.directeurTabStorage) {
+      var sel = window.directeurTabStorage.mergeUrlFromStore(EDTD_STORAGE, ['vue']);
+      var tabId = sel.vue === 'examens' ? 'edtd-panel-examens' : 'edtd-panel-cours';
+      switchEdtdMainTab(tabId, null, { skipPersist: true });
+      edtdPersistVue(tabId);
+    }
     document.addEventListener('click', function (event) {
       var tabBtn = event.target.closest('.edtd-main-tab[data-edtd-tab]');
       if (tabBtn) {

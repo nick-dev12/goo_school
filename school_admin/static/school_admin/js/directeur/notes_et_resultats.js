@@ -33,11 +33,20 @@
     return '';
   }
 
+  var NR_STORAGE_KEY = 'directeur:notes-et-resultats';
+
   window.updateNotesNavUrl = function (tabId, classeId) {
     var params = new URLSearchParams(window.location.search);
     params.set('tab', tabId);
     if (classeId) {
       params.set('classe', classeId.replace('classe-', ''));
+    }
+    if (window.directeurTabStorage) {
+      window.directeurTabStorage.writeStore(NR_STORAGE_KEY, {
+        tab: tabId,
+        classe: classeId ? classeId.replace('classe-', '') : params.get('classe') || '',
+        periode: params.get('periode') || '',
+      });
     }
     document.querySelectorAll('.nr-periodes-bar .periode-tab').forEach(function (link) {
       var url = new URL(link.href, window.location.origin);
@@ -458,11 +467,23 @@
   });
 
   document.addEventListener('DOMContentLoaded', function () {
+    if (window.directeurTabStorage) {
+      window.directeurTabStorage.mergeUrlFromStore(NR_STORAGE_KEY, ['tab', 'classe', 'periode']);
+    }
     var params = new URLSearchParams(window.location.search);
     var tabId = params.get('tab');
     var classeParam = params.get('classe');
     if (tabId) {
-      window.updateNotesNavUrl(tabId, classeParam ? 'classe-' + classeParam : null);
+      window.switchMainTab(tabId);
+    }
+    if (classeParam) {
+      window.switchClasseTab(
+        { stopPropagation: function () {}, target: document.querySelector('[data-subtab="classe-' + classeParam + '"]') },
+        'classe-' + classeParam
+      );
+    }
+    if (tabId || classeParam) {
+      window.updateNotesNavUrl(tabId || params.get('tab'), classeParam ? 'classe-' + classeParam : null);
     }
     if (typeof window.layoutTabsOverflowNav === 'function') {
       window.layoutTabsOverflowNav();

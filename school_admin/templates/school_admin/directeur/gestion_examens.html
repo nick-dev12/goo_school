@@ -71,9 +71,10 @@
                     <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Périodes scolaires' %}">
                         {% for item in periodes_avec_stats %}
                             <button type="button" role="tab"
-                                    class="matiere-tab-btn gex-periode-tab {% if forloop.first %}active{% endif %}"
+                                    class="matiere-tab-btn gex-periode-tab {% if item.periode.id == initial_periode_id %}active{% endif %}"
                                     data-tab="periode-{{ item.periode.id }}"
-                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                                    data-periode-id="{{ item.periode.id }}"
+                                    aria-selected="{% if item.periode.id == initial_periode_id %}true{% else %}false{% endif %}"
                                     onclick="switchPeriodeTab('periode-{{ item.periode.id }}', this)">
                                 <i class="fas fa-calendar-alt"></i>
                                 <span>{{ item.periode.nom_periode }}</span>
@@ -94,16 +95,17 @@
             <div class="gex-tabs-content">
                 {% for item in periodes_avec_stats %}
                     {% with periode=item.periode %}
-                    <div id="periode-{{ periode.id }}" class="gex-periode-panel {% if forloop.first %}active{% endif %}">
+                    <div id="periode-{{ periode.id }}" class="gex-periode-panel {% if periode.id == initial_periode_id %}active{% endif %}"{% if periode.id != initial_periode_id %} hidden{% endif %}>
 
                         <div class="gex-groupe-nav">
                             <div class="matiere-tabs-bar" data-overflow-item-label="{% if est_superieur %}{% trans 'filière' %}{% else %}{% trans 'niveau' %}{% endif %}" data-overflow-items-label="{% if est_superieur %}{% trans 'filières' %}{% else %}{% trans 'niveaux' %}{% endif %}">
                                 <div class="matiere-tabs-track" role="tablist" aria-label="{% if est_superieur %}{% trans 'Filières' %}{% else %}{% trans 'Niveaux' %}{% endif %}">
                                     {% for cle, groupe in groupes_classes.items %}
                                         <button type="button" role="tab"
-                                                class="matiere-tab-btn gex-groupe-tab {% if forloop.first %}active{% endif %}"
+                                                class="matiere-tab-btn gex-groupe-tab {% if periode.id == initial_periode_id and cle == initial_groupe_key %}active{% endif %}"
                                                 data-subtab="pt{{ periode.id }}-sg{{ forloop.counter0 }}"
-                                                aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                                                data-groupe-key="{{ cle }}"
+                                                aria-selected="{% if periode.id == initial_periode_id and cle == initial_groupe_key %}true{% else %}false{% endif %}"
                                                 onclick="switchGroupeTab(event, 'pt{{ periode.id }}-sg{{ forloop.counter0 }}')">
                                             <i class="fas fa-layer-group"></i>
                                             <span>{{ groupe.label }}</span>
@@ -122,7 +124,7 @@
                         </div>
 
                         {% for cle, groupe in groupes_classes.items %}
-                            <div id="pt{{ periode.id }}-sg{{ forloop.counter0 }}" class="gex-groupe-panel {% if forloop.first %}active{% endif %}">
+                            <div id="pt{{ periode.id }}-sg{{ forloop.counter0 }}" class="gex-groupe-panel {% if periode.id == initial_periode_id and cle == initial_groupe_key %}active{% endif %}"{% if periode.id != initial_periode_id or cle != initial_groupe_key %} hidden{% endif %}>
                                 {% with sessions_list=sessions_par_periode|get_item:periode.id %}
                                 {% with groupe_count=item.groupe_counts|get_item:cle|default:0 %}
                                 {% if groupe_count > 0 and sessions_list %}
@@ -581,6 +583,6 @@
 
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
-    <script src="{% static 'school_admin/js/directeur/gestion_examens.js' %}?v=7.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/gestion_examens.js' %}?v=7.1.0"></script>
 </body>
 </html>

@@ -40,7 +40,11 @@
                 window.requestAnimationFrame(layoutOverflow);
             }
 
-            if (window.history && window.history.replaceState) {
+            if (window.directeurTabStorage) {
+                window.directeurTabStorage.syncUrlAndStore('directeur:liste-classes', {
+                    tab: target === 'classes' ? '' : target,
+                });
+            } else if (window.history && window.history.replaceState) {
                 var url = new URL(window.location.href);
                 if (target === 'specialites') {
                     url.searchParams.set('tab', 'specialites');
@@ -59,8 +63,18 @@
             activateTab(btn.getAttribute('data-main-tab'));
         });
 
-        var initial = root.getAttribute('data-initial-tab') || 'classes';
-        activateTab(initial);
+        if (window.directeurTabStorage) {
+            var sel = window.directeurTabStorage.mergeUrlFromStore('directeur:liste-classes', ['tab']);
+            var initial = sel.tab || root.getAttribute('data-initial-tab') || 'classes';
+            if (initial === '') initial = 'classes';
+            activateTab(initial);
+            window.directeurTabStorage.syncUrlAndStore('directeur:liste-classes', {
+                tab: initial === 'classes' ? '' : initial,
+            });
+        } else {
+            var initial = root.getAttribute('data-initial-tab') || 'classes';
+            activateTab(initial);
+        }
     }
 
     function initSpecialitesModals() {

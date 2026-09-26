@@ -461,11 +461,21 @@ def gestion_examens(request):
         'total_groupes': len(groupes_classes),
     }
 
+    from ..utils.directeur_ui_tabs import resolve_examens_tab_selection
+
+    groupe_keys = list(groupes_classes.keys())
+    initial_periode_id, initial_groupe_key, initial_groupe_index = resolve_examens_tab_selection(
+        request, periodes_avec_stats, groupe_keys
+    )
+
     context = {
         'etablissement': etablissement,
         'periodes': periodes,
         'periodes_avec_stats': periodes_avec_stats,
         'groupes_classes': groupes_classes,
+        'initial_periode_id': initial_periode_id,
+        'initial_groupe_key': initial_groupe_key,
+        'initial_groupe_index': initial_groupe_index,
         'matieres': matieres,
         'sessions_par_periode': sessions_par_periode,
         'stats_generales': stats_generales,
@@ -598,6 +608,11 @@ def emploi_du_temps_examens(request):
         'total_creneaux': creneaux.count(),
     }
 
+    from ..utils.directeur_ui_tabs import resolve_session_tab_selection
+
+    session_ids = [item['session'].id for item in sessions_avec_grille]
+    initial_session_id = resolve_session_tab_selection(request, session_ids)
+
     # Récupérer les matières, professeurs et salles
     matieres = Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
     professeurs = Professeur.objects.filter(etablissement=etablissement, actif=True).order_by('nom', 'prenom')
@@ -607,6 +622,7 @@ def emploi_du_temps_examens(request):
     context = {
         'etablissement': etablissement,
         'sessions_avec_grille': sessions_avec_grille,
+        'initial_session_id': initial_session_id,
         'stats_generales': stats_generales,
         'sessions_examens': sessions_examens,
         'matieres': matieres,

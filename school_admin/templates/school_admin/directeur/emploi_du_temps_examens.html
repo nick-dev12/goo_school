@@ -64,9 +64,10 @@
                     <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Sessions d\'examen' %}">
                         {% for item in sessions_avec_grille %}
                             <button type="button" role="tab"
-                                    class="matiere-tab-btn edtex-session-tab {% if forloop.first %}active{% endif %}"
+                                    class="matiere-tab-btn edtex-session-tab {% if item.session.id == initial_session_id %}active{% endif %}"
                                     data-tab="session-{{ item.session.id }}"
-                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                                    data-session-id="{{ item.session.id }}"
+                                    aria-selected="{% if item.session.id == initial_session_id %}true{% else %}false{% endif %}"
                                     onclick="switchSessionTab('session-{{ item.session.id }}', this)">
                                 <i class="fas fa-file-alt"></i>
                                 <span>{{ item.session.nom_examen|truncatechars:28 }}</span>
@@ -87,7 +88,7 @@
             <div class="edtex-tabs-content">
                 {% for item in sessions_avec_grille %}
                     {% with session=item.session %}
-                    <div id="session-{{ session.id }}" class="edtex-session-panel {% if forloop.first %}active{% endif %}">
+                    <div id="session-{{ session.id }}" class="edtex-session-panel {% if session.id == initial_session_id %}active{% endif %}"{% if session.id != initial_session_id %} hidden{% endif %}>
 
                         <div class="edtex-session-header">
                             <div class="edtex-session-info">

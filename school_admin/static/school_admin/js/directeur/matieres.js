@@ -240,6 +240,42 @@ window.confirmDelete = function (matiereId) {
             applyFilters();
         }
 
+        var MAT_TABS_STORAGE = 'directeur:liste-matieres:tabs';
+
+        function matPersistTabs() {
+            if (!window.directeurTabStorage) return;
+            var depBtn = document.querySelector('.main-tab-btn.active[data-dep-id]');
+            var nivBtn = document.querySelector('.department-panel.active .niveau-tab-btn.active[data-niveau-idx]');
+            var modBtn = document.querySelector('.niveau-panel.active .sub-tab-btn.active[data-module-id]');
+            window.directeurTabStorage.syncUrlAndStore(MAT_TABS_STORAGE, {
+                dep: depBtn ? depBtn.getAttribute('data-dep-id') : '',
+                niveau: nivBtn ? nivBtn.getAttribute('data-niveau-idx') : '',
+                module: modBtn ? modBtn.getAttribute('data-module-id') : '',
+            });
+        }
+
+        function matRestoreTabs() {
+            if (!window.directeurTabStorage) return;
+            var sel = window.directeurTabStorage.mergeUrlFromStore(MAT_TABS_STORAGE, ['dep', 'niveau', 'module']);
+            if (sel.dep) {
+                var depBtn = document.querySelector('.main-tab-btn[data-dep-id="' + CSS.escape(sel.dep) + '"]');
+                if (depBtn) depBtn.click();
+            }
+            if (sel.niveau) {
+                var nivBtn = document.querySelector(
+                    '.department-panel.active .niveau-tab-btn[data-niveau-idx="' + CSS.escape(sel.niveau) + '"]'
+                );
+                if (nivBtn) nivBtn.click();
+            }
+            if (sel.module) {
+                var modBtn = document.querySelector(
+                    '.niveau-panel.active .sub-tab-btn[data-module-id="' + CSS.escape(sel.module) + '"]'
+                );
+                if (modBtn) modBtn.click();
+            }
+            matPersistTabs();
+        }
+
         document.querySelectorAll('.main-tab-btn').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var depId = btn.getAttribute('data-dep-id');
@@ -254,6 +290,7 @@ window.confirmDelete = function (matiereId) {
                 });
                 resetNiveauTabs(document.querySelector('.department-panel[data-dep-id="' + depId + '"]'));
                 relayout();
+                matPersistTabs();
             });
         });
 
@@ -268,6 +305,7 @@ window.confirmDelete = function (matiereId) {
                     });
                     activateFirstModuleInNiveau(panel.querySelector('.niveau-panel[data-niveau-idx="' + idx + '"]'));
                     relayout();
+                    matPersistTabs();
                 });
             });
             panel.querySelectorAll('.niveau-panel').forEach(function (niveauPanel) {
@@ -280,9 +318,11 @@ window.confirmDelete = function (matiereId) {
                             p.classList.toggle('active', p.getAttribute('data-module-id') === modId);
                         });
                         relayout();
+                        matPersistTabs();
                     });
                 });
             });
         });
+        matRestoreTabs();
     }
 })();

@@ -1457,8 +1457,10 @@ def gestion_eleves(request):
     context = {
         'etablissement': etablissement,
         'annee_scolaire_active': annee_scolaire_active,
+        'is_directeur': is_directeur,
+        'personnel': personnel,
     }
-  
+
     return render(request, 'school_admin/directeur/gestion_eleves.html', context)
 
 
@@ -3271,6 +3273,7 @@ def bulletins_notes(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur,
     }
+    context = _attach_directeur_niveau_classe_tabs(request, context, classes_grouped)
 
     return render(request, 'school_admin/directeur/bulletins_notes.html', context)
 
@@ -7107,6 +7110,8 @@ def gestion_periodes_scolaires(request):
         'total_periodes': periodes.count(),
     }
 
+    from ..utils.directeur_ui_tabs import attach_gestion_periodes_tab_context
+
     context = {
         'user': etablissement,
         'etablissement': etablissement,
@@ -7121,7 +7126,8 @@ def gestion_periodes_scolaires(request):
         'semestres_par_niveau_json': semestres_par_niveau_json,
         'niveaux_lmd_periode_choices': NIVEAUX_PERIODE_SUPERIEUR,
     }
-    
+    attach_gestion_periodes_tab_context(request, context, periodes_tabs)
+
     return render(request, 'school_admin/directeur/gestion_periodes_scolaires.html', context)
 
 

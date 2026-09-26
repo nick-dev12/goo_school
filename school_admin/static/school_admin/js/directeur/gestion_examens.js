@@ -295,10 +295,24 @@ function closeEditModal() {
     }
 }
 
+var GEX_STORAGE_KEY = 'directeur:gestion-examens';
+
+function gexPersistSelection() {
+    if (!window.directeurTabStorage) return;
+    var periodeBtn = document.querySelector('.gex-periode-tab.active[data-periode-id]');
+    var groupeBtn = document.querySelector('.gex-periode-panel:not([hidden]) .gex-groupe-tab.active[data-groupe-key]');
+    window.directeurTabStorage.syncUrlAndStore(GEX_STORAGE_KEY, {
+        periode: periodeBtn ? periodeBtn.getAttribute('data-periode-id') : '',
+        groupe: groupeBtn ? groupeBtn.getAttribute('data-groupe-key') : '',
+    });
+}
+
 // Onglets période / groupe (UX v2 + overflow)
-window.switchPeriodeTab = function (tabId, btn) {
+window.switchPeriodeTab = function (tabId, btn, opts) {
+    opts = opts || {};
     document.querySelectorAll('.gex-periode-panel').forEach(function (panel) {
         panel.classList.remove('active');
+        panel.hidden = true;
     });
     document.querySelectorAll('.gex-periode-tab').forEach(function (button) {
         button.classList.remove('active');
@@ -306,7 +320,10 @@ window.switchPeriodeTab = function (tabId, btn) {
     });
 
     var panel = document.getElementById(tabId);
-    if (panel) panel.classList.add('active');
+    if (panel) {
+        panel.classList.add('active');
+        panel.hidden = false;
+    }
 
     var targetBtn = btn || document.querySelector('.gex-periode-tab[data-tab="' + tabId + '"]');
     if (targetBtn) {
@@ -314,9 +331,10 @@ window.switchPeriodeTab = function (tabId, btn) {
         targetBtn.setAttribute('aria-selected', 'true');
     }
 
-    if (panel) {
+    if (panel && !opts.skipResetGroupe) {
         panel.querySelectorAll('.gex-groupe-panel').forEach(function (p) {
             p.classList.remove('active');
+            p.hidden = true;
         });
         panel.querySelectorAll('.gex-groupe-tab').forEach(function (b) {
             b.classList.remove('active');
@@ -324,11 +342,18 @@ window.switchPeriodeTab = function (tabId, btn) {
         });
         var firstGroupePanel = panel.querySelector('.gex-groupe-panel');
         var firstGroupeBtn = panel.querySelector('.gex-groupe-tab');
-        if (firstGroupePanel) firstGroupePanel.classList.add('active');
+        if (firstGroupePanel) {
+            firstGroupePanel.classList.add('active');
+            firstGroupePanel.hidden = false;
+        }
         if (firstGroupeBtn) {
             firstGroupeBtn.classList.add('active');
             firstGroupeBtn.setAttribute('aria-selected', 'true');
         }
+    }
+
+    if (!opts.skipPersist) {
+        gexPersistSelection();
     }
 
     if (typeof window.layoutTabsOverflowNav === 'function') {
@@ -336,8 +361,9 @@ window.switchPeriodeTab = function (tabId, btn) {
     }
 };
 
-window.switchGroupeTab = function (event, subTabId) {
-    if (event) event.stopPropagation();
+window.switchGroupeTab = function (event, subTabId, opts) {
+    opts = opts || {};
+    if (event && event.stopPropagation) event.stopPropagation();
     var parentPanel = event && event.target ? event.target.closest('.gex-periode-panel') : null;
     if (!parentPanel) {
         var content = document.getElementById(subTabId);
@@ -347,6 +373,7 @@ window.switchGroupeTab = function (event, subTabId) {
 
     parentPanel.querySelectorAll('.gex-groupe-panel').forEach(function (panel) {
         panel.classList.remove('active');
+        panel.hidden = true;
     });
     parentPanel.querySelectorAll('.gex-groupe-tab').forEach(function (button) {
         button.classList.remove('active');
@@ -354,7 +381,10 @@ window.switchGroupeTab = function (event, subTabId) {
     });
 
     var target = document.getElementById(subTabId);
-    if (target) target.classList.add('active');
+    if (target) {
+        target.classList.add('active');
+        target.hidden = false;
+    }
 
     var subBtn = parentPanel.querySelector('.gex-groupe-tab[data-subtab="' + subTabId + '"]');
     if (subBtn) {
@@ -362,10 +392,32 @@ window.switchGroupeTab = function (event, subTabId) {
         subBtn.setAttribute('aria-selected', 'true');
     }
 
+    if (!opts.skipPersist) {
+        gexPersistSelection();
+    }
+
     if (typeof window.layoutTabsOverflowNav === 'function') {
         window.layoutTabsOverflowNav();
     }
 };
+
+function gexRestoreTabsFromUrl() {
+    if (!window.directeurTabStorage) return;
+    var sel = window.directeurTabStorage.mergeUrlFromStore(GEX_STORAGE_KEY, ['periode', 'groupe']);
+    if (sel.periode) {
+        window.switchPeriodeTab('periode-' + sel.periode, null, { skipResetGroupe: true, skipPersist: true });
+    }
+    if (sel.groupe) {
+        var groupeBtn = document.querySelector('.gex-groupe-tab[data-groupe-key="' + CSS.escape(sel.groupe) + '"]');
+        if (groupeBtn) {
+            var subTabId = groupeBtn.getAttribute('data-subtab');
+            window.switchGroupeTab({ target: groupeBtn, stopPropagation: function () {} }, subTabId, {
+                skipPersist: true,
+            });
+        }
+    }
+    gexPersistSelection();
+}
 
 function toggleCheckboxGroup(groupName, maxSelections) {
     const checkboxes = document.querySelectorAll('#sessionModal input[name="' + groupName + '"]');
@@ -424,6 +476,7 @@ function animateCards() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    gexRestoreTabsFromUrl();
     initFiliereExamModal('sessionModal');
     initFiliereExamModal('editSessionModal');
     initSuperieurMatieresListeners('sessionModal');

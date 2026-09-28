@@ -1,0 +1,52 @@
+<article class="sanction-card sanction-{{ sanction.gravite }}">
+  <div class="sanction-header">
+    <div class="sanction-date-box" aria-hidden="true">
+      <div class="date-jour">{{ sanction.date_sanction|date:"d" }}</div>
+      <div class="date-mois">{{ sanction.date_sanction|date:"M"|upper }}</div>
+      <div class="date-annee">{{ sanction.date_sanction|date:"Y" }}</div>
+    </div>
+    <div class="sanction-main">
+      <div class="sanction-title-row">
+        <span class="sanction-type-badge badge-{{ sanction.gravite }}">
+          <i class="fas fa-{% if sanction.type_sanction == 'avertissement' %}exclamation-triangle{% elif sanction.type_sanction == 'blame' %}gavel{% elif sanction.type_sanction == 'exclusion_temporaire' %}ban{% elif sanction.type_sanction == 'exclusion_cours' %}door-open{% elif sanction.type_sanction == 'retenue' %}clock{% elif sanction.type_sanction == 'convocation_parents' %}phone{% else %}clipboard-list{% endif %}" aria-hidden="true"></i>
+          {{ sanction.get_type_sanction_display }}
+        </span>
+        <span class="gravite-badge gravite-{{ sanction.gravite }}">
+          {{ sanction.get_gravite_display }}
+        </span>
+      </div>
+      <div class="sanction-raison">
+        <i class="fas fa-info-circle" aria-hidden="true"></i>
+        <strong>Raison :</strong> {{ sanction.get_raison_display }}
+      </div>
+      {% if sanction.description %}
+        <div class="sanction-description">
+          <i class="fas fa-comment-alt" aria-hidden="true"></i>
+          <p>{{ sanction.description }}</p>
+        </div>
+      {% endif %}
+      <div class="sanction-meta">
+        <span class="meta-item">
+          <i class="fas fa-user" aria-hidden="true"></i>
+          Attribué par : {{ sanction.attribue_par_nom }}
+        </span>
+        <span class="meta-item">
+          <i class="fas fa-school" aria-hidden="true"></i>
+          Classe : {{ sanction.classe.nom }}
+        </span>
+        {% if sanction.duree_jours %}
+          <span class="meta-item">
+            <i class="fas fa-calendar-day" aria-hidden="true"></i>
+            Durée : {{ sanction.duree_jours }} jour{{ sanction.duree_jours|pluralize }}
+          </span>
+        {% endif %}
+        {% if sanction.executee %}
+          <span class="meta-item executed">
+            <i class="fas fa-check-circle" aria-hidden="true"></i>
+            Sanction exécutée
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</article>

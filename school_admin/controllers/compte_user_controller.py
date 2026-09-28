@@ -325,7 +325,15 @@ class CompteUserController:
                             user.save(update_fields=['conditions_acceptees'])
                             logger.info(f"Conditions acceptées mises à jour pour l'utilisateur: {type(user).__name__} - {getattr(user, 'email', getattr(user, 'username', 'N/A'))}")
                         
-                        login(request, user)
+                        from school_admin.authentication_backends import persist_auth_user_type
+
+                        # Type AVANT login : évite get_user() collision PK sans _auth_user_type.
+                        persist_auth_user_type(request, user)
+                        login(
+                            request,
+                            user,
+                            backend='school_admin.authentication_backends.MultiUserBackend',
+                        )
                         clear_on_success(request, form_data['username'])
 
                         # Configuration de la session persistante "à vie"
@@ -333,9 +341,9 @@ class CompteUserController:
                         # La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST
                         from datetime import timedelta
                         request.session.set_expiry(timedelta(days=365 * 10))  # 10 ans
-                        
-                        from school_admin.authentication_backends import persist_auth_user_type
+
                         user_type = persist_auth_user_type(request, user)
+                        request.session.modified = True
                         logger.info(f"Login réussi pour {getattr(user, 'email', 'N/A')}, Type: {type(user).__name__}, Session type: {user_type}, Session persistante activée")
                         
                         # Sauvegarder l'année scolaire active dans la session pour les élèves

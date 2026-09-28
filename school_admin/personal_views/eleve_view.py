@@ -833,7 +833,7 @@ def emploi_du_temps_eleve(request):
     # Vérifier que l'élève a une classe pour l'année scolaire active
     if not classe:
         messages.warning(request, "Vous n'êtes pas encore affecté à une classe pour l'année scolaire active.")
-        return redirect('eleve:dashboard')
+        return redirect('eleve:dashboard_eleve')
     
     # Récupérer l'emploi du temps actif de la classe
     from ..model.emploi_du_temps_model import EmploiDuTemps
@@ -855,7 +855,9 @@ def emploi_du_temps_eleve(request):
             'plages_horaires': [],
             'cellules_masquees': {},
             'jours_semaine': [],
+            'creneaux_par_jour': {},
             'emploi_non_publie': emplois_actifs.exists(),
+            'page_title': 'Emploi du temps',
         }
         return render(request, 'school_admin/eleve/emploi_du_temps_eleve.html', context)
     
@@ -866,7 +868,21 @@ def emploi_du_temps_eleve(request):
     jours_semaine = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
     
     # Récupérer tous les créneaux
-    tous_creneaux = emploi_du_temps.creneaux.all().order_by('jour', 'heure_debut')
+    tous_creneaux = list(
+        emploi_du_temps.creneaux.all().select_related(
+            'matiere', 'professeur', 'salle', 'periode_etablissement'
+        ).order_by('jour', 'heure_debut')
+    )
+    for creneau in tous_creneaux:
+        matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
+        icone, couleur = get_matiere_config(matiere_nom)
+        creneau.matiere_icone = icone
+        creneau.matiere_couleur = couleur
+
+    creneaux_par_jour = {jour: [] for jour in jours_semaine}
+    for creneau in tous_creneaux:
+        if creneau.jour in creneaux_par_jour:
+            creneaux_par_jour[creneau.jour].append(creneau)
     
     # Créer une plage horaire pour chaque heure de début unique des créneaux
     heures_debut_uniques = sorted(list(set(creneau.heure_debut for creneau in tous_creneaux)))
@@ -925,12 +941,6 @@ def emploi_du_temps_eleve(request):
                             break
                 
                 if jour in grille_emploi:
-                    # Ajouter icône et couleur au créneau
-                    matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
-                    icone, couleur = get_matiere_config(matiere_nom)
-                    creneau.matiere_icone = icone
-                    creneau.matiere_couleur = couleur
-                    
                     grille_emploi[jour]['plages'][plage['label']].append({
                         'creneau': creneau,
                         'rowspan': rowspan
@@ -995,6 +1005,8 @@ def emploi_du_temps_eleve(request):
         'creneaux_examens': creneaux_examens,
         'dates_examens_triees': dates_examens_triees,
         'annee_scolaire_active': annee_scolaire_active,
+        'creneaux_par_jour': creneaux_par_jour,
+        'page_title': 'Emploi du temps',
     }
     
     return render(request, 'school_admin/eleve/emploi_du_temps_eleve.html', context)
@@ -1870,6 +1882,14 @@ def notes_evaluations_eleve(request):
     if bulletin_record and bulletin_record.periode_id:
         bulletin_url = f"{bulletin_url}?periode={bulletin_record.periode_id}"
 
+    moyenne_periode_active = None
+    for periode_data in periodes_data:
+        if periode_data.get('est_active'):
+            moyenne_periode_active = periode_data.get('moyenne_generale')
+            break
+    if moyenne_periode_active is None and periodes_data:
+        moyenne_periode_active = periodes_data[0].get('moyenne_generale')
+
     context = {
         'eleve': eleve,
         'est_parent': est_parent,
@@ -1886,8 +1906,11 @@ def notes_evaluations_eleve(request):
         'today': timezone.now().date(),
         'annee_scolaire_active': annee_scolaire_active,
         'classe': classe_active,
+        'page_title': 'Notes & évaluations',
+        'moyenne_periode_active': moyenne_periode_active,
+        'nombre_matieres_suivies': len(matieres_avec_notes) if matieres_avec_notes else 0,
     }
-    
+
     return render(request, 'school_admin/eleve/notes_evaluations_eleve.html', context)
 
 
@@ -2212,8 +2235,9 @@ def absences_retards_eleve(request):
     periodes = periodes_query.order_by('date_debut')
     
     from collections import defaultdict
-    import calendar
-    
+    from datetime import date as date_cls
+    from django.utils.formats import date_format
+
     periodes_data = []
     for periode in periodes:
         presences_periode_query = Presence.objects.filter(
@@ -2233,16 +2257,21 @@ def absences_retards_eleve(request):
         
         for absence in absences_periode:
             mois_key = absence.date.strftime('%Y-%m')
-            mois_nom = f"{calendar.month_name[absence.date.month]} {absence.date.year}"
-            mois_data[mois_key]['mois_nom'] = mois_nom
+            mois_data[mois_key]['mois_nom'] = date_format(
+                date_cls(absence.date.year, absence.date.month, 1),
+                'F Y',
+            )
             mois_data[mois_key]['mois_numero'] = absence.date.month
             mois_data[mois_key]['annee'] = absence.date.year
             mois_data[mois_key]['absences'].append(absence)
         
         for retard in retards_periode:
             mois_key = retard.date.strftime('%Y-%m')
-            mois_nom = f"{calendar.month_name[retard.date.month]} {retard.date.year}"
-            mois_data[mois_key]['mois_nom'] = mois_nom
+            if not mois_data[mois_key].get('mois_nom'):
+                mois_data[mois_key]['mois_nom'] = date_format(
+                    date_cls(retard.date.year, retard.date.month, 1),
+                    'F Y',
+                )
             mois_data[mois_key]['mois_numero'] = retard.date.month
             mois_data[mois_key]['annee'] = retard.date.year
             mois_data[mois_key]['retards'].append(retard)
@@ -2311,8 +2340,9 @@ def absences_retards_eleve(request):
         'today': timezone.now().date(),
         'annee_scolaire_active': annee_scolaire_active,
         'classe': classe_active,
+        'page_title': 'Absences & retards',
     }
-    
+
     return render(request, 'school_admin/eleve/absences_retards_eleve.html', context)
 
 
@@ -2693,27 +2723,34 @@ def sanctions_eleve(request):
     )
     if annee_scolaire_active:
         periodes_query = periodes_query.filter(annee_scolaire_fk=annee_scolaire_active)
-    periodes = periodes_query.order_by('-date_debut')
-    
-    sanctions_par_periode = []
+    periodes = periodes_query.order_by('date_debut')
+
+    periode_active = None
+    for periode in periodes:
+        if periode.est_en_cours:
+            periode_active = periode
+            break
+    if not periode_active:
+        periode_active = periodes.order_by('-date_debut').first()
+
+    periodes_sanctions_data = []
     for periode in periodes:
         sanctions_periode = sanctions.filter(
             date_sanction__gte=periode.date_debut,
-            date_sanction__lte=periode.date_fin
+            date_sanction__lte=periode.date_fin,
         ).order_by('-date_sanction')
-        
-        if sanctions_periode.exists():
-            sanctions_par_periode.append({
-                'periode': periode,
-                'sanctions': sanctions_periode,
-                'nb_sanctions': sanctions_periode.count(),
-                'nb_graves': sanctions_periode.filter(gravite__in=['grave', 'tres_grave']).count(),
-            })
-    
+        periodes_sanctions_data.append({
+            'periode': periode,
+            'est_active': periode.est_en_cours,
+            'sanctions': sanctions_periode,
+            'nb_sanctions': sanctions_periode.count(),
+            'nb_graves': sanctions_periode.filter(gravite__in=['grave', 'tres_grave']).count(),
+        })
+
     # Sanctions récentes (30 derniers jours)
     date_limite = timezone.now().date() - timedelta(days=30)
     sanctions_recentes = sanctions.filter(date_sanction__gte=date_limite).order_by('-date_sanction')[:10]
-    
+
     context = {
         'eleve': eleve,
         'est_parent': est_parent,
@@ -2726,13 +2763,15 @@ def sanctions_eleve(request):
         'sanctions_graves': sanctions_graves,
         'sanctions_tres_graves': sanctions_tres_graves,
         'sanctions_par_type': sanctions_par_type,
-        'sanctions_par_periode': sanctions_par_periode,
+        'periodes_sanctions_data': periodes_sanctions_data,
         'periodes': periodes,
+        'periode_active': periode_active,
         'today': timezone.now().date(),
         'annee_scolaire_active': annee_scolaire_active,
         'classe': classe_active,
+        'page_title': 'Sanctions disciplinaires',
     }
-    
+
     return render(request, 'school_admin/eleve/sanctions_eleve.html', context)
 
 
@@ -2850,7 +2889,28 @@ def convocations_eleve(request):
     convocations_passees = convocations.filter(
         date_convocation__lt=timezone.now().date()
     ).count()
-    
+
+    today = timezone.now().date()
+    convocations_prochaines = convocations.filter(
+        date_convocation__gte=today,
+    ).order_by('date_convocation', 'heure_convocation')[:8]
+
+    from ..model.periode_model import PeriodeScolaire
+    periodes_query = PeriodeScolaire.objects.filter(
+        etablissement=etablissement,
+        est_active=True,
+    )
+    if annee_scolaire_active:
+        periodes_query = periodes_query.filter(annee_scolaire_fk=annee_scolaire_active)
+    periodes = periodes_query.order_by('date_debut')
+    periode_active = None
+    for periode in periodes:
+        if periode.est_en_cours:
+            periode_active = periode
+            break
+    if not periode_active:
+        periode_active = periodes.order_by('-date_debut').first()
+
     context = {
         'eleve': eleve,
         'est_parent': est_parent,
@@ -2863,10 +2923,17 @@ def convocations_eleve(request):
         'total_convocations': total_convocations,
         'convocations_a_venir': convocations_a_venir,
         'convocations_passees': convocations_passees,
+        'convocations_prochaines': convocations_prochaines,
+        'nb_en_attente': convocations_en_attente.count(),
+        'nb_vues': convocations_vues.count(),
+        'nb_honorees': convocations_honorees.count(),
+        'nb_non_honorees': convocations_non_honorees.count(),
         'annee_scolaire_active': annee_scolaire_active,
         'classe': classe_active,
+        'periode_active': periode_active,
+        'page_title': 'Convocations',
     }
-    
+
     return render(request, 'school_admin/eleve/convocations_eleve.html', context)
 
 

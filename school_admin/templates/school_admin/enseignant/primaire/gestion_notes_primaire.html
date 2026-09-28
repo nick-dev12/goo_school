@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}?v=1.0.4">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}?v=1.1.2">
     {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/creer_evaluation.css' %}?v=1.0.4">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1">
@@ -27,31 +27,7 @@
 
     <div class="main-content-container">
         {% csrf_token %}
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-graduation-cap"></i>
-                    Gestion des Notes Multi-Matières
-                </h1>
-                <p class="page-subtitle">
-                    {{ total_classes }} classe{{ total_classes|pluralize }} - {{ total_eleves }} élève{{ total_eleves|pluralize }}
-                </p>
-            </div>
-            <div class="header-actions">
-                <a href="{% url 'enseignant_primaire:eleves_en_difficulte' %}?periode={{ periode_selectionnee.id }}" class="btn-action" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Élèves en difficulté</span>
-                </a>
-            </div>
-        </div>
-
-        <div id="prof-hub-chrome">
-            {% include 'school_admin/enseignant/primaire/partials/gestion_notes_primaire_hub_chrome.html' %}
-        </div>
-        <div id="prof-hub-panel">
-            {% include 'school_admin/enseignant/primaire/partials/gestion_notes_primaire_hub_panel.html' %}
-        </div>
+        {% include 'school_admin/enseignant/partials/prof_notes_hub_swap_root.html' with prof_notes_hub_chrome_template='school_admin/enseignant/primaire/partials/gestion_notes_primaire_hub_chrome.html' prof_notes_hub_panel_template='school_admin/enseignant/primaire/partials/gestion_notes_primaire_hub_panel.html' %}
     </div>
 
     <div id="modalCreerEvaluation" class="modal-creneau-fullscreen enseignant-form-modal">
@@ -74,7 +50,8 @@
     <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
     <script src="{% static 'school_admin/js/directeur/tabs_nav_overflow.js' %}?v=1.0.2"></script>
     <script src="{% static 'school_admin/js/enseignant/professeur_tab_storage.js' %}?v=1.0.0"></script>
-    <script src="{% static 'school_admin/js/enseignant/prof_hub_nav_live.js' %}?v=1.0.1"></script>
+    <script src="{% static 'school_admin/js/enseignant/prof_hub_nav_live.js' %}?v=1.0.7"></script>
+    <script src="{% static 'school_admin/js/enseignant/prof_primaire_hub.js' %}?v=1.0.6"></script>
     <script src="{% static 'school_admin/js/enseignant/primaire/gestion_notes_primaire.js' %}?v=1.0.5"></script>
     <script>
       window.ouvrirModalModificationEvalHub = function (evaluationId) {

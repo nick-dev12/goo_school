@@ -1,0 +1,62 @@
+<div class="prof-exercices-hub-filters" aria-label="Filtres exercices">
+    {% if not est_superieur %}
+    <section class="prof-exercices-filter-block">
+        <h2 class="prof-exercices-filter-label"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Période</h2>
+        {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
+    </section>
+    {% endif %}
+
+    <section class="prof-exercices-filter-block">
+        <h2 class="prof-exercices-filter-label"><i class="fas fa-users" aria-hidden="true"></i> Classe</h2>
+        <nav class="prof-primaire-hub-nav" aria-label="Classes">
+            <div class="matiere-tabs-bar prof-primaire-classes-bar" data-overflow-item-label="Classe" data-overflow-items-label="classes">
+                <div class="matiere-tabs-track" role="tablist">
+                    {% for item in classes_flat %}
+                        <a role="tab"
+                           class="matiere-tab-btn prof-primaire-tab-link prof-hub-nav-link {% if classe_selectionnee and classe_selectionnee.id == item.classe.id %}active{% elif initial_classe_id == item.classe.id|stringformat:'s' %}active{% endif %}"
+                           aria-selected="{% if classe_selectionnee and classe_selectionnee.id == item.classe.id %}true{% elif initial_classe_id == item.classe.id|stringformat:'s' %}true{% else %}false{% endif %}"
+                           href="{{ request.path }}?{% if periode_selectionnee %}periode={{ periode_selectionnee.id }}&{% endif %}classe={{ item.classe.id }}">
+                            <i class="fas fa-chalkboard" aria-hidden="true"></i>
+                            <span>{{ item.classe.nom }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+                <div class="matiere-tabs-more-wrap" hidden>
+                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres classes">
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        <span class="matiere-tabs-more-label">Autres classes</span>
+                    </button>
+                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                </div>
+            </div>
+        </nav>
+    </section>
+
+    {% if classe_selectionnee and matieres_data %}
+    <section class="prof-exercices-filter-block">
+        <h2 class="prof-exercices-filter-label"><i class="fas fa-book-open" aria-hidden="true"></i> Matière</h2>
+        <nav class="prof-primaire-hub-nav" aria-label="Matières">
+            <div class="matiere-tabs-bar prof-exercices-matieres-bar" data-overflow-item-label="Matière" data-overflow-items-label="matières">
+                <div class="matiere-tabs-track" role="tablist">
+                    {% for row in matieres_data %}
+                        <a role="tab"
+                           class="matiere-tab-btn prof-hub-nav-link {% if matiere_selectionnee and matiere_selectionnee.id == row.matiere.id %}active{% endif %}"
+                           aria-selected="{% if matiere_selectionnee and matiere_selectionnee.id == row.matiere.id %}true{% else %}false{% endif %}"
+                           href="{{ request.path }}?{% if periode_selectionnee %}periode={{ periode_selectionnee.id }}&{% endif %}classe={{ classe_selectionnee.id }}&matiere={{ row.matiere.id }}">
+                            <span>{{ row.matiere.nom }}</span>
+                            <span class="tab-count">{{ row.nombre_exercices }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+                <div class="matiere-tabs-more-wrap" hidden>
+                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres matières">
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        <span class="matiere-tabs-more-label">Autres matières</span>
+                    </button>
+                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                </div>
+            </div>
+        </nav>
+    </section>
+    {% endif %}
+</div>

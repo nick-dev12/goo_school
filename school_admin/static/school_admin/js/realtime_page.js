@@ -4,6 +4,10 @@
 (function () {
   'use strict';
 
+  if (window.AriaLive) {
+    return;
+  }
+
   var skipRealtimeUntil = 0;
   var localItemIds = {};
 

@@ -230,7 +230,8 @@ Assistante :
 - Bonjour, merci, comment ça va : réponds comme un humain, sans outil.
 
 Voix :
-- Tes réponses seront lues à voix haute, en français naturel.
+- Tes réponses seront lues à voix haute, en français naturel ou en wolof dakarois
+  si l'utilisateur s'exprime en wolof (voir consignes wolof en fin de prompt).
 - Phrases fluides. Pas de virgules artificielles.
 - Noms d'élèves, de professeurs et de lieux avec leur casse naturelle
   (Clé Jason, pas CLÉ JASON). Jamais de capitales intégrales.
@@ -293,7 +294,8 @@ SYSTEM_PROMPT_ENSEIGNANT_PRIMAIRE = """Tu es Aria, l'assistante vocale des ensei
 Tu aides pour les classes affectées, les notes, les présences, les exercices,
 les élèves en difficulté et la navigation dans l'espace enseignant.
 
-Réponds directement, chaleureusement, en français oral naturel.
+Réponds directement, chaleureusement, en français oral naturel (ou wolof dakarois
+si le professeur s'exprime en wolof — consignes wolof en fin de prompt).
 Pas de markdown, pas d'URL, pas de listes à puces lues à voix haute.
 Après une lecture utile, propose 2 ou 3 suites via proposer_actions (chips).
 
@@ -329,7 +331,8 @@ SYSTEM_PROMPT_ENSEIGNANT = """Tu es Aria, l'assistante vocale des enseignants (c
 Tu aides pour les classes et matières affectées, les notes, présences, exercices,
 élèves en difficulté et la navigation dans l'espace enseignant.
 
-Réponds directement, chaleureusement, en français oral naturel.
+Réponds directement, chaleureusement, en français oral naturel (ou wolof dakarois
+si le professeur s'exprime en wolof — consignes wolof en fin de prompt).
 Pas de markdown, pas d'URL, pas de listes à puces lues à voix haute.
 Après une lecture utile, propose 2 ou 3 suites via proposer_actions (chips).
 
@@ -354,11 +357,8 @@ SYSTEM_PROMPT_PARENT = """Tu es Aria, l'assistante des parents dans Aria gestion
 Tu accompagnes les familles : conseils, organisation, compréhension de la scolarité
 (notes, absences, devoirs, convocations, paiements) — sans piloter l'établissement.
 
-Langues (priorité au dernier message parent) :
-- Wolof : réponds principalement en wolof (alphabet latin), ton simple et respectueux, jamais condescendant.
-- Français : réponds en français.
-- Code-switch wolof-français (Wolof français) : accepte le mélange, ne force pas un wolof « pur ».
-- Ne traduis pas mot à mot : reste claire, chaleureuse et bienveillante.
+Langues : priorité au dernier message du parent (français ou wolof / mélange).
+Applique les consignes wolof dakarois en fin de prompt quand il parle wolof.
 
 Réponds directement, chaleureusement, en oral naturel. Pas de markdown ni d'URL lues à voix haute.
 Utilise les outils pour : enfants, navigation, annonces, notifications, puis suivi scolaire
@@ -391,9 +391,8 @@ Tu disposes d’outils de navigation (résumé, lister_pages, ouvrir_page) et de
 lorsqu’ils sont activés : appelle-les avant de citer des notes, moyennes, dates ou montants.
 N’invente jamais de chiffres scolaires.
 
-Langues : si l’élève écrit ou parle en wolof, réponds surtout en wolof (alphabet latin,
-ton jeune et clair) ; s’il repasse en français, réponds en français. Exemples wolof :
-« Na nga def ? », « Wax ma ci devoir yi. »
+Langues : priorité au dernier message de l’élève (français ou wolof / mélange).
+Applique les consignes wolof dakarois en fin de prompt quand il parle wolof.
 
 Interdit : effectifs, caisse, RH, outils directeur ou professeur, scolarité/paiements,
 données d’autres élèves, modification de mot de passe ou photo par la voix.
@@ -407,17 +406,17 @@ ELEVE_WELCOME = (
 )
 
 ELEVE_WELCOME_BILINGUAL = (
-    "Nanga def ! Man degg Wolof ak Français. "
-    "Dama la dimbali ngir nga organize sa école — notes, devoirs, absences. "
-    "Wax ma ci Wolof walla ci Français. "
-    "Salut ! Je suis Aria, ton assistante : pose-moi tes questions en wolof ou en français."
+    "Nanga def ! Man degg na wolof ak français. "
+    "Dama la dimbali ngir organize sa école — notes, devoirs, absences. Neex na ? "
+    "Wax ma ci wolof walla ci français. "
+    "Salut, c'est Aria : pose-moi tes questions comme tu veux."
 )
 
 PARENT_WELCOME_BILINGUAL = (
-    "Bonjour ! Man degg Wolof ak Français. "
-    "Dama la dimbali ci sa xale yi — notes, absences, devoirs ak scolarité. "
-    "Wax ma ci Wolof walla ci Français. "
-    "Je suis Aria, votre assistante famille : posez-moi vos questions en wolof ou en français."
+    "Nanga def ! Man degg na wolof ak français. "
+    "Dama la dimbali ci sa xale yi — notes, absences, devoirs, scolarité. "
+    "Wax ma ci wolof walla ci français. "
+    "Bonjour, je suis Aria, votre assistante famille."
 )
 
 SYSTEM_PROMPT_STATIC = SYSTEM_PROMPT
@@ -499,13 +498,15 @@ def strip_tool_markup(text):
 
 
 def system_prompt_static_for(ctx):
+    from school_admin.services.assistant_wolof_language import append_wolof_language_rules
+
     persona = getattr(ctx, 'persona', 'directeur')
     if persona == 'parent':
-        return SYSTEM_PROMPT_PARENT
+        return append_wolof_language_rules(SYSTEM_PROMPT_PARENT)
     if persona == 'eleve':
-        return SYSTEM_PROMPT_ELEVE
+        return append_wolof_language_rules(SYSTEM_PROMPT_ELEVE)
     if persona == 'enseignant_primaire':
-        return SYSTEM_PROMPT_ENSEIGNANT_PRIMAIRE
+        return append_wolof_language_rules(SYSTEM_PROMPT_ENSEIGNANT_PRIMAIRE)
     if persona == 'enseignant':
         base = SYSTEM_PROMPT_ENSEIGNANT
         if getattr(ctx, 'est_superieur', False):
@@ -516,10 +517,10 @@ def system_prompt_static_for(ctx):
                 'creer_evaluation : préciser le semestre LMD (ex. Semestre 1) et le niveau si besoin. '
                 'Pas de tools direction (scolarité globale, caisse, structure établissement).'
             )
-        return base
+        return append_wolof_language_rules(base)
     from school_admin.services.assistant_schema import prompt_addendum_for
 
-    return SYSTEM_PROMPT_STATIC + prompt_addendum_for(ctx)
+    return append_wolof_language_rules(SYSTEM_PROMPT_STATIC + prompt_addendum_for(ctx))
 
 
 def tools_schema_for(ctx):
@@ -1117,7 +1118,7 @@ async def _stream_cached_round(
             and getattr(part.function_call, 'name', None)
         ]
         spoken = strip_tool_markup(_gemini_text(response) or '')
-        if not function_calls and spoken and on_text_delta:
+        if not function_calls and spoken and on_text_delta and not spoken_parts:
             await on_text_delta(spoken)
         return response, function_calls, spoken, parts
 

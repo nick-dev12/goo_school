@@ -1,0 +1,40 @@
+{# En-tête hub Notes — swap XHR #}
+<div class="page-header prof-notes-hub-page-header">
+    <div class="page-title-section">
+        <h1 class="page-title">
+            <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+            Notes
+            {% if classe_selectionnee %} — {{ classe_selectionnee.nom }}{% endif %}
+        </h1>
+        <p class="page-subtitle">
+            {% if notes_vue == 'saisie' %}Saisie des notes
+            {% elif notes_vue == 'evaluations' %}Évaluations
+            {% else %}Relevé de notes{% endif %}
+            {% if periode_selectionnee %} · {{ periode_selectionnee.nom_periode }}{% elif periode_active %} · {{ periode_active.libelle_affichage_superieur|default:periode_active.nom_periode }}{% endif %}
+            {% if matiere_selectionnee %} · {{ matiere_selectionnee.nom }}{% elif matiere_principale and not matiere_selectionnee %} · {{ matiere_principale.nom }}{% endif %}
+        </p>
+    </div>
+    <div class="prof-notes-hub-header-actions">
+        {% if stats %}
+        <a href="{% url 'enseignant:liste_evaluations' %}" class="prof-notes-quick-link">
+            <i class="fas fa-calendar-alt" aria-hidden="true"></i> Mes évaluations
+        </a>
+        {% endif %}
+        <a href="{% if stats %}{% url 'enseignant:eleves_en_difficulte' %}{% else %}{% url 'enseignant_primaire:eleves_en_difficulte' %}{% endif %}?{% if periode_selectionnee %}periode={{ periode_selectionnee.id }}{% elif periode_active %}periode={{ periode_active.id }}{% endif %}{% if classe_selectionnee %}&classe={{ classe_selectionnee.id }}{% endif %}"
+           class="prof-notes-quick-link prof-notes-quick-link-warn">
+            <i class="fas fa-hand-holding-heart" aria-hidden="true"></i> Élèves en difficulté
+        </a>
+    </div>
+</div>
+<p class="prof-notes-context-summary" role="status">
+    {% if stats %}
+        <span><i class="fas fa-chalkboard" aria-hidden="true"></i> {{ stats.total_classes }} classe{{ stats.total_classes|pluralize }}</span>
+        <span><i class="fas fa-users" aria-hidden="true"></i> {{ stats.total_eleves }} élève{{ stats.total_eleves|pluralize }}</span>
+    {% else %}
+        <span><i class="fas fa-chalkboard" aria-hidden="true"></i> {{ total_classes }} classe{{ total_classes|pluralize }}</span>
+        <span><i class="fas fa-users" aria-hidden="true"></i> {{ total_eleves }} élève{{ total_eleves|pluralize }}</span>
+    {% endif %}
+    {% if classe_selectionnee %}
+        <span><i class="fas fa-filter" aria-hidden="true"></i> Classe active : <strong>{{ classe_selectionnee.nom }}</strong></span>
+    {% endif %}
+</p>

@@ -10,7 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}?v=1.0.5">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}?v=1.1.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}?v=1.1.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/creer_evaluation.css' %}?v=1.0.4">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.3">
@@ -45,46 +46,16 @@
         </div>
         {% endif %}
 
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-clipboard-list"></i>
-                    Gestion des Notes & Évaluations
-                </h1>
-                <p class="page-subtitle">
-                    Matière : {{ matiere_principale.nom }}
-                </p>
-            </div>
-            <div class="header-actions">
-                <a href="{% url 'enseignant:liste_evaluations' %}" class="btn-action">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Mes évaluations</span>
-                </a>
-                <a href="{% url 'enseignant:eleves_en_difficulte' %}{% if periode_active %}?periode={{ periode_active.id }}{% endif %}" class="btn-action" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Élèves en difficulté</span>
-                </a>
-            </div>
-        </div>
-
         {% if stats.total_classes > 0 %}
             {% if hub_prof_ui %}
-            <div id="prof-hub-chrome">
-                {% if hub_v3 %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-                {% elif hub_v4 %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un étudiant?" %}
-                {% endif %}
-            </div>
-            <div id="prof-hub-panel">
-                <div id="gestion-notes-live-root">
-                {% include 'school_admin/enseignant/partials/gestion_notes_live_inner.html' %}
+            {% include 'school_admin/enseignant/partials/prof_notes_hub_swap_root.html' with prof_notes_hub_chrome_template='school_admin/enseignant/partials/gestion_notes_enseignant_hub_chrome.html' prof_notes_hub_panel_template='school_admin/enseignant/partials/gestion_notes_enseignant_hub_panel.html' %}
+            {% else %}
+            <div class="page-header">
+                <div class="page-title-section">
+                    <h1 class="page-title"><i class="fas fa-clipboard-list"></i> Gestion des Notes & Évaluations</h1>
+                    <p class="page-subtitle">Matière : {{ matiere_principale.nom }}</p>
                 </div>
             </div>
-            {% else %}
             <div id="gestion-notes-live-root">
             {% include 'school_admin/enseignant/partials/gestion_notes_live_inner.html' %}
             </div>

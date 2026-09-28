@@ -1,0 +1,17 @@
+<div class="prof-notes-hub-filters" aria-label="Filtres notes">
+    {% if hub_v3 and not est_superieur %}
+    <section class="prof-notes-filter-block">
+        <h2 class="prof-notes-filter-label"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Période</h2>
+        {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
+    </section>
+    {% endif %}
+    <section class="prof-notes-filter-block">
+        <h2 class="prof-notes-filter-label"><i class="fas fa-users" aria-hidden="true"></i> Classe</h2>
+        {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+    </section>
+    {% if hub_v4 %}
+    <section class="prof-notes-filter-block">
+        {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
+    </section>
+    {% endif %}
+</div>

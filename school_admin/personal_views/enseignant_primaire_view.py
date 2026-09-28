@@ -256,7 +256,7 @@ def dashboard_enseignant_primaire(request):
     
     # Préparer les données des classes
     classes_data = []
-    for affectation in affectations[:3]:  # Limiter à 3 pour le dashboard
+    for affectation in affectations[:8]:
         classe = affectation.classe
         matieres_classe = list(affectation.matieres.all())
         
@@ -481,6 +481,9 @@ def gestion_classes_primaire(request):
     classes_flat, initial_classe_id, classe_selectionnee, _ = _primaire_classe_hub_bundle(
         request, affectations, pick_first=True
     )
+    from ..utils.prof_classe_hub import classe_hub_entries
+
+    classe_entries, classe_categorie = classe_hub_entries(classes_grouped, initial_classe_id)
 
     context = {
         'professeur': professeur,
@@ -488,6 +491,8 @@ def gestion_classes_primaire(request):
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
         'classe_selectionnee': classe_selectionnee,
+        'classe_entries': classe_entries,
+        'classe_categorie': classe_categorie,
         'total_classes': total_classes,
         'total_eleves': total_eleves,
         'total_matieres': total_matieres,
@@ -638,17 +643,32 @@ def gestion_eleves_primaire(request):
     classes_flat, initial_classe_id, classe_selectionnee, _ = _primaire_classe_hub_bundle(
         request, affectations, pick_first=True
     )
+    classe_selectionnee = classe_selectionnee or (
+        classes_flat[0]['classe'] if classes_flat else None
+    )
+
+    from ..utils.prof_eleves_hub import find_eleves_classe_primaire
+
+    eleves_categorie, eleves_classe_entry = find_eleves_classe_primaire(
+        eleves_par_categorie_ordered,
+        initial_classe_id or (classe_selectionnee.id if classe_selectionnee else None),
+    )
 
     context = {
         'professeur': professeur,
         'eleves_par_categorie': eleves_par_categorie_ordered,
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
-        'classe_selectionnee': classe_selectionnee or (classes_flat[0]['classe'] if classes_flat else None),
+        'classe_selectionnee': classe_selectionnee,
+        'eleves_categorie': eleves_categorie,
+        'eleves_classe_entry': eleves_classe_entry,
+        'prof_eleves_hub_mode': 'primaire',
         'total_classes': total_classes,
         'total_eleves': total_eleves,
         'today': datetime.now().date(),
         'annee_scolaire_active': annee_scolaire_active,
+        'prof_eleves_hub_chrome_template': 'school_admin/enseignant/partials/prof_eleves_hub_chrome.html',
+        'prof_eleves_hub_panel_template': 'school_admin/enseignant/partials/prof_eleves_hub_panel.html',
     }
 
     from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
@@ -716,13 +736,16 @@ def gestion_notes_primaire(request):
         })
     classes_flat.sort(key=lambda item: item['classe'].nom)
 
-    matieres_ids_for_tabs = []
-    raw_cls_get = (request.GET.get('classe') or '').strip()
-    if raw_cls_get.isdigit():
+    def _matieres_ids_for_classe_key(classe_key):
+        if not classe_key:
+            return []
         for item in classes_flat:
-            if str(item['classe'].id) == raw_cls_get:
-                matieres_ids_for_tabs = [m.id for m in item['affectation'].matieres.all()]
-                break
+            if str(item['classe'].id) == str(classe_key):
+                return [m.id for m in item['affectation'].matieres.all()]
+        return []
+
+    raw_cls_get = (request.GET.get('classe') or '').strip()
+    matieres_ids_for_tabs = _matieres_ids_for_classe_key(raw_cls_get)
 
     from ..utils.professeur_ui_tabs import attach_notes_primaire_tab_context
 
@@ -734,6 +757,15 @@ def gestion_notes_primaire(request):
     classe_id = tab_ctx.get('initial_notes_classe_id') or ''
     matiere_id = tab_ctx.get('initial_notes_matiere_id') or ''
     notes_vue = tab_ctx.get('initial_notes_vue') or 'releve'
+
+    if classe_id and not matiere_id:
+        matieres_ids_for_tabs = _matieres_ids_for_classe_key(classe_id)
+        tab_ctx = {}
+        attach_notes_primaire_tab_context(
+            request, tab_ctx, list(periodes), classes_flat, matieres_ids_for_tabs
+        )
+        matiere_id = tab_ctx.get('initial_notes_matiere_id') or ''
+        notes_vue = tab_ctx.get('initial_notes_vue') or notes_vue
 
     # Période active
     if periode_id:
@@ -1100,17 +1132,17 @@ def gestion_notes_primaire(request):
     if not wants_prof_hub_partial(request):
         if not request.GET.get('releve_complet') and not request.GET.get('open_evaluation'):
             from django.http import HttpResponseRedirect
+            from urllib.parse import urlencode
 
-            q = request.GET.copy()
-            needs_redirect = False
-            if periode_selectionnee and not request.GET.get('periode'):
-                q['periode'] = str(periode_selectionnee.id)
-                needs_redirect = True
-            if not request.GET.get('vue'):
-                q['vue'] = notes_vue
-                needs_redirect = True
-            if needs_redirect:
-                return HttpResponseRedirect(request.path + '?' + q.urlencode())
+            desired = {'vue': notes_vue}
+            if periode_selectionnee:
+                desired['periode'] = str(periode_selectionnee.id)
+            if classe_id:
+                desired['classe'] = str(classe_id)
+            if matiere_id:
+                desired['matiere'] = str(matiere_id)
+            if any(request.GET.get(k) != v for k, v in desired.items()):
+                return HttpResponseRedirect(request.path + '?' + urlencode(desired))
 
     partial_mode = wants_prof_hub_partial(request)
     if partial_mode == 'panel':
@@ -1780,6 +1812,14 @@ def exercices_maison_primaire(request):
                 'matiere_selectionnee': None,
                 'matieres_disponibles': [],
                 'exercices': [],
+                'exercices_cards': [],
+                'exercices_json': [],
+                'stats': {'total_classes': 0, 'total_exercices': 0},
+                'classes_flat': [],
+                'initial_classe_id': '',
+                'matieres_data': [],
+                'prof_exercices_hub_chrome_template': 'school_admin/enseignant/partials/prof_exercices_hub_chrome.html',
+                'prof_exercices_hub_panel_template': 'school_admin/enseignant/partials/prof_exercices_hub_panel.html',
                 'aujourdhui': date.today(),
             }
         )
@@ -2105,7 +2145,28 @@ def exercices_maison_primaire(request):
         for aff in affectations:
             if str(aff.classe_id) == initial_classe_id:
                 classe_selectionnee = aff.classe
+                affectation_selectionnee = aff
+                matieres_disponibles = list(aff.matieres.all().order_by('nom'))
+                if not matiere_selectionnee and matieres_disponibles:
+                    matiere_selectionnee = matieres_disponibles[0]
                 break
+
+    from ..utils.prof_exercices_hub import (
+        build_matieres_data_exercices,
+        exercices_categorie_for_classe,
+    )
+
+    matieres_data = build_matieres_data_exercices(
+        professeur,
+        classe_selectionnee,
+        matieres_disponibles,
+        periode_selectionnee,
+        annee_scolaire_active,
+    )
+    exercices_categorie = exercices_categorie_for_classe(
+        classes_options,
+        classe_selectionnee.id if classe_selectionnee else None,
+    )
 
     context = {
         'professeur': professeur,
@@ -2128,17 +2189,28 @@ def exercices_maison_primaire(request):
         'aujourdhui': today,
         'stats': stats,
         'annee_scolaire_active': annee_scolaire_active,
+        'matieres_data': matieres_data,
+        'exercices_categorie': exercices_categorie,
+        'initial_matiere_id': str(matiere_selectionnee.id) if matiere_selectionnee else '',
+        'prof_exercices_hub_chrome_template': 'school_admin/enseignant/partials/prof_exercices_hub_chrome.html',
+        'prof_exercices_hub_panel_template': 'school_admin/enseignant/partials/prof_exercices_hub_panel.html',
     }
 
     from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
 
     if not wants_prof_hub_partial(request):
-        if periode_selectionnee and not request.GET.get('periode'):
-            from django.http import HttpResponseRedirect
-            q = 'periode=' + str(periode_selectionnee.id)
-            if initial_classe_id:
-                q += '&classe=' + initial_classe_id
-            return HttpResponseRedirect(request.path + '?' + q)
+        desired = {}
+        if periode_selectionnee:
+            desired['periode'] = str(periode_selectionnee.id)
+        if classe_selectionnee:
+            desired['classe'] = str(classe_selectionnee.id)
+        if matiere_selectionnee:
+            desired['matiere'] = str(matiere_selectionnee.id)
+        if desired:
+            mismatch = any(request.GET.get(k) != v for k, v in desired.items())
+            if mismatch:
+                from django.http import HttpResponseRedirect
+                return HttpResponseRedirect(request.path + '?' + urlencode(desired))
 
     partial_resp = render_prof_hub_partial(
         request,
@@ -2689,6 +2761,18 @@ def noter_eleves_primaire(request, classe_id):
                 if ponderation in ponderation_messages:
                     message_calcul += f" {ponderation_messages[ponderation]}"
                 message_calcul += f" pour {moyennes_calculees} élève(s) en {matiere.nom} !"
+
+                if moyennes_calculees > 0:
+                    _emit_enseignant_live(
+                        professeur,
+                        'notes.mise_a_jour',
+                        action='calcul_moyennes',
+                        classe_id=classe.id,
+                        matiere_id=matiere.id,
+                        periode_id=periode_selectionnee.id if periode_selectionnee else None,
+                        count=moyennes_calculees,
+                        est_primaire=True,
+                    )
                 
                 # Envoyer des notifications push personnalisées aux élèves
                 if moyennes_calculees > 0:
@@ -2807,6 +2891,18 @@ def noter_eleves_primaire(request, classe_id):
                     success_msg = f"✓ {moyennes_arrondies} moyenne(s) arrondie(s) avec succès pour {matiere.nom} !"
                 else:
                     success_msg = "Aucune moyenne n'a été modifiée (déjà arrondies ou aucune moyenne enregistrée)."
+
+                if moyennes_arrondies > 0:
+                    _emit_enseignant_live(
+                        professeur,
+                        'notes.mise_a_jour',
+                        action='arrondi_moyennes',
+                        classe_id=classe.id,
+                        matiere_id=matiere.id,
+                        periode_id=periode_selectionnee.id if periode_selectionnee else None,
+                        count=moyennes_arrondies,
+                        est_primaire=True,
+                    )
                 
                 # Répondre en JSON si c'est une requête AJAX
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.headers.get('X-CSRFToken'):
@@ -2989,6 +3085,16 @@ def noter_eleves_primaire(request, classe_id):
                             notes_publiees_total += 1
 
                 if notes_publiees_total > 0:
+                    _emit_enseignant_live(
+                        professeur,
+                        'notes.mise_a_jour',
+                        action='publication',
+                        classe_id=classe.id,
+                        matiere_id=matiere.id,
+                        periode_id=periode_selectionnee.id if periode_selectionnee else None,
+                        count=notes_publiees_total,
+                        est_primaire=True,
+                    )
                     messages.success(
                         request,
                         f"✓ {notes_publiees_total} note(s) publiée(s). Notifications envoyées à {eleves_notifies} élève(s).",
@@ -3094,6 +3200,16 @@ def noter_eleves_primaire(request, classe_id):
             
             if notes_enregistrees > 0:
                 success_msg = f"{notes_enregistrees} note(s) enregistrée(s) avec succès pour {matiere.nom} !"
+                _emit_enseignant_live(
+                    professeur,
+                    'notes.mise_a_jour',
+                    action='saisie',
+                    classe_id=classe.id,
+                    matiere_id=matiere.id,
+                    periode_id=periode_selectionnee.id if periode_selectionnee else None,
+                    count=notes_enregistrees,
+                    est_primaire=True,
+                )
             else:
                 success_msg = "Aucune note n'a été modifiée."
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.headers.get('X-CSRFToken'):
@@ -3116,6 +3232,29 @@ def noter_eleves_primaire(request, classe_id):
     if releve_global_soumis:
         for matiere_data in matieres_data:
             matiere_data['soumise'] = True
+
+    matiere_id_param = request.GET.get('matiere')
+    matiere_selectionnee = None
+    matiere_notation_data = None
+    for md in matieres_data:
+        if matiere_id_param and str(md['matiere'].id) == str(matiere_id_param):
+            matiere_selectionnee = md['matiere']
+            matiere_notation_data = md
+            break
+    if not matiere_notation_data and matieres_data:
+        matiere_notation_data = matieres_data[0]
+        matiere_selectionnee = matiere_notation_data['matiere']
+
+    if request.method == 'GET' and periode_selectionnee and matiere_selectionnee:
+        q_per = request.GET.get('periode', '')
+        q_mat = request.GET.get('matiere', '')
+        if q_per != str(periode_selectionnee.id) or q_mat != str(matiere_selectionnee.id):
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(
+                f'{request.path}?periode={periode_selectionnee.id}&matiere={matiere_selectionnee.id}'
+            )
+
+    prof_noter_locked = bool(matiere_notation_data and matiere_notation_data.get('soumise'))
     
     context = {
         'professeur': professeur,
@@ -3124,9 +3263,15 @@ def noter_eleves_primaire(request, classe_id):
         'periodes': periodes,
         'periode_selectionnee': periode_selectionnee,
         'matieres_data': matieres_data,
+        'matiere_selectionnee': matiere_selectionnee,
+        'matiere_notation_data': matiere_notation_data,
         'eleves': eleves,
         'releve_global_soumis': releve_global_soumis,
         'annee_scolaire_active': annee_scolaire_active,
+        'prof_noter_mode': 'primaire',
+        'prof_noter_effectif': len(eleves),
+        'prof_noter_locked': prof_noter_locked,
+        'prof_noter_status_hint': 'Les notes de cette matière ont été soumises — modification impossible.',
     }
     
     return render(request, 'school_admin/enseignant/primaire/noter_eleves_primaire.html', context)
@@ -3216,18 +3361,15 @@ def soumettre_releve_primaire(request, classe_id):
                     date_soumission=timezone.now()
                 )
 
-                from ..services.realtime_helpers import emit_live
-                emit_live(
-                    professeur.etablissement.id,
+                _emit_enseignant_live(
+                    professeur,
                     'notes.mise_a_jour',
-                    {
-                        'event': 'notes.mise_a_jour',
-                        'classe_id': classe.id,
-                        'classe_nom': classe.nom,
-                        'periode_id': periode.id,
-                        'est_primaire': True,
-                        'count': nb_soumises,
-                    },
+                    action='soumission_releve',
+                    classe_id=classe.id,
+                    classe_nom=classe.nom,
+                    periode_id=periode.id,
+                    est_primaire=True,
+                    count=nb_soumises,
                 )
                 
                 try:
@@ -4450,13 +4592,15 @@ def detail_eleve_primaire(request, eleve_id):
         taux_presence_mois = 0
     
     # Données pour l'onglet sanctions
+    sanctions_qs = Sanction.objects.filter(eleve=eleve)
+    if annee_scolaire_active:
+        sanctions_qs = sanctions_qs.filter(annee_scolaire=annee_scolaire_active)
     if onglet == 'sanctions':
-        sanctions_qs = Sanction.objects.filter(eleve=eleve)
-        if annee_scolaire_active:
-            sanctions_qs = sanctions_qs.filter(annee_scolaire=annee_scolaire_active)
         sanctions = sanctions_qs.order_by('-date_sanction')[:20]
     else:
         sanctions = []
+    nombre_sanctions = sanctions_qs.count()
+    nombre_sanctions_graves = sanctions_qs.filter(gravite__in=['grave', 'tres_grave']).count()
     
     context = {
         'professeur': professeur,
@@ -4471,6 +4615,9 @@ def detail_eleve_primaire(request, eleve_id):
         'moyenne_generale_data': moyenne_generale_data,
         'presences': presences,
         'sanctions': sanctions,
+        'nombre_sanctions': nombre_sanctions,
+        'nombre_sanctions_graves': nombre_sanctions_graves,
+        'prof_eleve_fiche_mode': 'primaire',
         'nombre_notes': sum(len(data['notes']) for data in notes_par_matiere),
         'nombre_absences': nombre_absences,
         'nombre_retards': nombre_retards,
@@ -4797,6 +4944,7 @@ def detail_classe_primaire(request, classe_id):
         'matieres_enseignees': matieres_enseignees,
         'matiere_eval_active': matiere_eval_active,
         'annee_scolaire_active': annee_scolaire_active,
+        'prof_classe_detail_mode': 'primaire',
     }
     
     from ..utils.prof_nav_trail import set_prof_breadcrumb_current_label
@@ -5311,12 +5459,24 @@ def gestion_presence_primaire(request):
         request, affectations, pick_first=True
     )
 
+    from ..utils.prof_presence_hub import find_presence_classe_entry
+
+    presence_categorie, presence_classe_entry = find_presence_classe_entry(
+        classes_grouped,
+        initial_classe_id or (classe_selectionnee.id if classe_selectionnee else None),
+    )
+
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
         'classe_selectionnee': classe_selectionnee,
+        'presence_categorie': presence_categorie,
+        'presence_classe_entry': presence_classe_entry,
+        'prof_presence_hub_mode': 'primaire',
+        'prof_presence_hub_chrome_template': 'school_admin/enseignant/partials/prof_presence_hub_chrome.html',
+        'prof_presence_hub_panel_template': 'school_admin/enseignant/partials/prof_presence_hub_panel.html',
         'stats': stats,
         'annee_scolaire_active': annee_scolaire_active,
     }

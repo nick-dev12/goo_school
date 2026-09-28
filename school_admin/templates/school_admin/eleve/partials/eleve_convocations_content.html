@@ -1,0 +1,162 @@
+<div class="ele-conv">
+  <div class="ele-conv-context">
+    <div class="ele-conv-context-col">
+      {% if classe %}
+        <div class="ele-conv-context-item">
+          <i class="fas fa-chalkboard-user" aria-hidden="true"></i>
+          <span>Classe <strong>{{ classe.nom }}</strong></span>
+        </div>
+      {% endif %}
+      {% if annee_scolaire_active %}
+        <div class="ele-conv-context-item">
+          <i class="fas fa-calendar-check" aria-hidden="true"></i>
+          <span>Année <strong>{{ annee_scolaire_active.libelle }}</strong></span>
+        </div>
+      {% endif %}
+      {% if periode_active %}
+        <div class="ele-conv-context-item">
+          <i class="fas fa-clock" aria-hidden="true"></i>
+          <span>Période en cours : <strong>{{ periode_active.nom_periode }}</strong></span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="ele-conv-toolbar">
+    <a href="{% url 'eleve:sanctions_eleve' %}" class="ele-conv-btn ele-conv-btn--ghost">
+      <i class="fas fa-gavel" aria-hidden="true"></i>
+      Sanctions
+    </a>
+    <a href="{% url 'eleve:absences_retards' %}" class="ele-conv-btn ele-conv-btn--ghost">
+      <i class="fas fa-user-clock" aria-hidden="true"></i>
+      Absences &amp; retards
+    </a>
+    <a href="{% url 'eleve:dashboard_eleve' %}" class="ele-conv-btn ele-conv-btn--ghost">
+      <i class="fas fa-home" aria-hidden="true"></i>
+      Accueil
+    </a>
+  </div>
+
+  <div class="ele-conv-indicators" aria-label="Convocations — résumé">
+    <div class="ele-conv-indicator">
+      <div class="ele-conv-indicator-icon" style="background-color: #6366f1;">
+        <i class="fas fa-bell" aria-hidden="true"></i>
+      </div>
+      <div class="ele-conv-indicator-body">
+        <span class="ele-conv-indicator-label">Total</span>
+        <span class="ele-conv-indicator-value">{{ total_convocations }}</span>
+        <span class="ele-conv-indicator-hint">Toutes les convocations</span>
+      </div>
+    </div>
+    <div class="ele-conv-indicator">
+      <div class="ele-conv-indicator-icon" style="background-color: #f59e0b;">
+        <i class="fas fa-calendar-check" aria-hidden="true"></i>
+      </div>
+      <div class="ele-conv-indicator-body">
+        <span class="ele-conv-indicator-label">À venir</span>
+        <span class="ele-conv-indicator-value">{{ convocations_a_venir }}</span>
+        <span class="ele-conv-indicator-hint">Dates futures</span>
+      </div>
+    </div>
+    <div class="ele-conv-indicator">
+      <div class="ele-conv-indicator-icon" style="background-color: #94a3b8;">
+        <i class="fas fa-calendar-times" aria-hidden="true"></i>
+      </div>
+      <div class="ele-conv-indicator-body">
+        <span class="ele-conv-indicator-label">Passées</span>
+        <span class="ele-conv-indicator-value">{{ convocations_passees }}</span>
+        <span class="ele-conv-indicator-hint">Rendez-vous terminés</span>
+      </div>
+    </div>
+    <div class="ele-conv-indicator">
+      <div class="ele-conv-indicator-icon" style="background-color: #10b981;">
+        <i class="fas fa-check-circle" aria-hidden="true"></i>
+      </div>
+      <div class="ele-conv-indicator-body">
+        <span class="ele-conv-indicator-label">Honorées</span>
+        <span class="ele-conv-indicator-value">{{ nb_honorees }}</span>
+        <span class="ele-conv-indicator-hint">Présence confirmée</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ele-conv-legend" role="note">
+    <span class="ele-conv-legend-item"><i class="fas fa-circle ele-conv-dot ele-conv-dot--wait" aria-hidden="true"></i> En attente</span>
+    <span class="ele-conv-legend-item"><i class="fas fa-circle ele-conv-dot ele-conv-dot--vue" aria-hidden="true"></i> Vue</span>
+    <span class="ele-conv-legend-item"><i class="fas fa-circle ele-conv-dot ele-conv-dot--ok" aria-hidden="true"></i> Honorée</span>
+    <span class="ele-conv-legend-item"><i class="fas fa-circle ele-conv-dot ele-conv-dot--ko" aria-hidden="true"></i> Non honorée</span>
+  </div>
+
+  <section class="ele-conv-block" aria-labelledby="ele-conv-upcoming-title">
+    <h2 class="ele-conv-block-title" id="ele-conv-upcoming-title">
+      <i class="fas fa-bolt" aria-hidden="true"></i>
+      Prochains rendez-vous
+    </h2>
+    <p class="ele-conv-block-sub">Les convocations à venir, classées par date — pensez à vérifier l’heure et le lieu.</p>
+    {% if convocations_prochaines %}
+      <ul class="ele-conv-upcoming-list">
+        {% for convocation in convocations_prochaines %}
+          <li class="ele-conv-upcoming-item {% if convocation.statut == 'en_attente' %}is-urgent{% endif %}">
+            <div class="ele-conv-upcoming-main">
+              <span class="ele-conv-upcoming-objet">{{ convocation.objet|truncatechars:48 }}</span>
+              <span class="ele-conv-upcoming-when">
+                {{ convocation.date_convocation|date:"l d F Y"|capfirst }} · {{ convocation.heure_convocation|date:"H:i" }}
+              </span>
+              <span class="ele-conv-upcoming-lieu">{{ convocation.lieu }}</span>
+            </div>
+            <span class="ele-conv-upcoming-badge">{{ convocation.get_statut_display }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="ele-conv-panel-empty">Aucune convocation à venir pour le moment.</p>
+    {% endif %}
+  </section>
+
+  <section class="ele-conv-block" aria-labelledby="ele-conv-list-title">
+    <h2 class="ele-conv-block-title" id="ele-conv-list-title">
+      <i class="fas fa-list-ul" aria-hidden="true"></i>
+      Toutes mes convocations
+    </h2>
+    <p class="ele-conv-block-sub">Filtrez par statut pour retrouver rapidement une convocation.</p>
+
+    <div class="filter-tabs" role="tablist" aria-label="Filtrer par statut">
+      <button type="button" class="filter-tab active" data-filter="toutes" role="tab" aria-selected="true">
+        <i class="fas fa-list" aria-hidden="true"></i> Toutes ({{ total_convocations }})
+      </button>
+      <button type="button" class="filter-tab" data-filter="en_attente" role="tab" aria-selected="false">
+        <i class="fas fa-clock" aria-hidden="true"></i> En attente ({{ nb_en_attente }})
+      </button>
+      <button type="button" class="filter-tab" data-filter="vue" role="tab" aria-selected="false">
+        <i class="fas fa-eye" aria-hidden="true"></i> Vues ({{ nb_vues }})
+      </button>
+      <button type="button" class="filter-tab" data-filter="honoree" role="tab" aria-selected="false">
+        <i class="fas fa-check" aria-hidden="true"></i> Honorées ({{ nb_honorees }})
+      </button>
+      <button type="button" class="filter-tab" data-filter="non_honoree" role="tab" aria-selected="false">
+        <i class="fas fa-times" aria-hidden="true"></i> Non honorées ({{ nb_non_honorees }})
+      </button>
+    </div>
+
+    <div class="convocations-list" id="ele-conv-list">
+      {% for convocation in convocations %}
+        {% include 'school_admin/eleve/partials/eleve_convocation_card.html' %}
+      {% empty %}
+        <div class="empty-state">
+          <i class="fas fa-bell-slash" aria-hidden="true"></i>
+          <h3>Aucune convocation</h3>
+          <p>
+            {% if est_parent %}
+              Votre enfant n’a aucune convocation pour le moment.
+            {% else %}
+              Vous n’avez aucune convocation pour le moment.
+            {% endif %}
+          </p>
+          <a href="{% url 'eleve:dashboard_eleve' %}" class="ele-conv-btn ele-conv-btn--primary" style="margin-top: 1rem;">
+            <i class="fas fa-home" aria-hidden="true"></i> Retour à l’accueil
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>

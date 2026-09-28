@@ -1,0 +1,31 @@
+---
+description: UX hub « Mes classes » professeur — conteneur blanc unique et swap XHR complet
+globs: school_admin/templates/school_admin/enseignant/**/gestion_classes*.html,school_admin/templates/school_admin/enseignant/partials/prof_classe_hub*.html,school_admin/static/school_admin/js/enseignant/prof_hub_nav_live.js,school_admin/static/school_admin/js/enseignant/prof_primaire_hub.js
+alwaysApply: false
+---
+
+# Hub professeur — page « Mes classes »
+
+## Structure obligatoire (primaire + secondaire hub)
+
+Titre, résumé global, onglets classe et fiche **doivent** vivre dans **un seul** bloc :
+
+- `#prof-hub-swap-root.prof-classe-hub-shell` (fond blanc, bordure, padding)
+  - `#prof-hub-header` → `prof_classe_hub_header.html`
+  - `#prof-hub-chrome` → `prof_primaire_classe_tabs.html`
+  - `#prof-hub-panel` → panel hub classes
+
+Template racine : `partials/prof_classe_hub_swap_root.html`.  
+Réponse `hub_partial=hub` : même arbre via `*_hub_swap.html`.
+
+## Navigation sans reload
+
+`prof_hub_nav_live.js` doit mettre à jour **header + chrome + panel** (pas seulement chrome/panel).
+
+## Ne pas masquer la fiche côté client
+
+Sur `.prof-classe-hub-panel`, **ne pas** appliquer `activateClassePanels` / `data-classe-panel` pour cacher le contenu : une seule fiche est rendue par le serveur selon `?classe=`. Voir `isProfClasseHubFichePage()` dans `prof_primaire_hub.js`.
+
+## Contenu fiche
+
+Une classe à la fois ; raccourcis regroupés (Classe & élèves, Notes, Suivi) dans `prof_classe_hub_fiche.html`.

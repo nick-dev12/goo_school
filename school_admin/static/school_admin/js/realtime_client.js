@@ -278,6 +278,27 @@
       },
       tone: 'info',
     },
+    'caisse.mise_a_jour': {
+      title: 'Caisse',
+      body: function () {
+        return 'La caisse du mois a été mise à jour.';
+      },
+      tone: 'info',
+    },
+    'paie.mise_a_jour': {
+      title: 'Paie',
+      body: function () {
+        return 'Une paie professeur a été enregistrée.';
+      },
+      tone: 'success',
+    },
+    'filiere.mise_a_jour': {
+      title: 'Spécialité',
+      body: function (p) {
+        return p.nom || 'La liste des spécialités a été mise à jour.';
+      },
+      tone: 'info',
+    },
   };
 
   function getWebSocketUrl() {
@@ -338,17 +359,7 @@
       );
     }
 
-    var directeurEvents = [
-      'salle.creee', 'salle.modifiee',
-      'matiere.creee', 'matiere.modifiee', 'matiere.supprimee',
-      'periode.creee', 'periode.modifiee', 'periode.supprimee', 'annee_scolaire.creee',
-      'comptabilite.parametres', 'comptabilite.mise_a_jour',
-      'professeur.cree', 'personnel.cree', 'affectation.mise_a_jour', 'emploi.mise_a_jour',
-      'annonce.mise_a_jour', 'liaison.mise_a_jour', 'preinscription.mise_a_jour',
-      'examen.mise_a_jour', 'presence.mise_a_jour', 'bulletin.mise_a_jour',
-      'annee_scolaire.modifiee',
-    ];
-    if (directeurEvents.indexOf(eventType) !== -1) {
+    if (eventType && String(eventType).indexOf('.') !== -1) {
       document.dispatchEvent(
         new CustomEvent('aria:live-directeur', {
           detail: Object.assign({ event: eventType }, payload || {}),

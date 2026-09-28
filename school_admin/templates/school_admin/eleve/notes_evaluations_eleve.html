@@ -5,287 +5,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notes & Résultats - Acadeflex | Espace Élève</title>
-    <!-- Intégration de Font Awesome -->
+    {% include 'school_admin/partials/seo_head.html' %}
+    <title>{{ page_title|default:"Notes & évaluations" }} – ARIA</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Intégration de Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Style CSS personnalisé -->
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/notes_evaluations_eleve.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/notes_evaluations_eleve.css' %}?v=1.0.3">
+    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/eleve_notes_home.css' %}?v=1.0.2">
 </head>
 
 <body>
 {% include 'school_admin/eleve/partials/header.html' %}
 
-<!-- Contenu principal -->
-<div class="content-container">
-    <div class="notes-container">
-        <!-- Titre de la page -->
-        <div class="page-header">
-            <div class="page-header-info">
-                <h2 class="page-title">
-                    <i class="fas fa-star"></i>
-                    Notes & Résultats
-                </h2>
-                <p class="page-subtitle">Suivi de vos performances scolaires</p>
-            </div>
-            <div class="page-actions">
-                {% if bulletin_disponible %}
-                    <a href="{{ bulletin_url }}" class="btn-bulletin" title="Bulletin {% if bulletin_periode_label %}{{ bulletin_periode_label }}{% else %}disponible{% endif %}">
-                        <i class="fas fa-file-signature"></i>
-                        <span>
-                            Voir mon bulletin
-                            {% if bulletin_periode_label %}
-                                <small>{{ bulletin_periode_label }}</small>
-                            {% endif %}
-                        </span>
-                    </a>
-                {% else %}
-                    <button type="button" class="btn-bulletin disabled" disabled title="Bulletin en cours de préparation">
-                        <i class="fas fa-clock"></i>
-                        <span>
-                            Bulletin indisponible
-                            <small>Bientôt publié</small>
-                        </span>
-                    </button>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Système d'onglets pour les périodes -->
-        <div class="trimester-tabs-container">
-            <div class="trimester-tabs" role="tablist">
-                {% for periode_data in periodes_data %}
-                    <div class="trimester-tab {% if periode_data.est_active %}active{% endif %}"
-                        data-trimester="{{ periode_data.periode.nom_periode }}">
-                        <div class="tab-icon">
-                            <i class="fas fa-calendar-alt"></i>
-                            {% if periode_data.est_active %}
-                                <span class="tab-badge current">En cours</span>
-                            {% else %}
-                                <span class="tab-badge">{% if periode_data.periode.date_fin < today %}Passé{% else %}À venir{% endif %}</span>
-                            {% endif %}
-                        </div>
-                        <div class="tab-info">
-                            <div class="tab-title">{{ periode_data.periode.nom_periode }}</div>
-                            <div class="tab-period">{{ periode_data.periode.date_debut|date:"d/m/Y" }} - {{ periode_data.periode.date_fin|date:"d/m/Y" }}</div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Contenu par période -->
-        <div class="trimester-content">
-            {% for periode_data in periodes_data %}
-                <div class="trimester-section {% if periode_data.est_active %}active{% endif %}"
-                    data-trimester="{{ periode_data.periode.nom_periode }}">
-                    
-                    <!-- Résumé des performances -->
-                    <div class="performance-summary">
-                        <div class="summary-card">
-                            <div class="summary-header">
-                                <h3>Moyenne générale - {{ periode_data.periode.nom_periode }}</h3>
-                                <div class="trimester-status">
-                                    {% if periode_data.est_active %}
-                                        <span class="status-badge in-progress">
-                                            <i class="fas fa-clock"></i> En cours
-                                        </span>
-                                    {% else %}
-                                        <span class="status-badge completed">
-                                            <i class="fas fa-check-circle"></i> Terminé
-                                        </span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="summary-body">
-                                <div class="grade-circle">
-                                    <div class="grade-value">{{ periode_data.moyenne_generale|default:"N/A" }}</div>
-                                    <div class="grade-label">/ 20</div>
-                                </div>
-                                <div class="summary-details">
-                                    <div class="points-section">
-                                        <h4>Points forts</h4>
-                                        <ul class="points-list">
-                                            {% for point in periode_data.points_forts %}
-                                                <li><i class="fas fa-check-circle"></i> {{ point }}</li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                    <div class="points-section">
-                                        <h4>Points à améliorer</h4>
-                                        <ul class="points-list">
-                                            {% for point in periode_data.points_ameliorer %}
-                                                <li><i class="fas fa-exclamation-circle"></i> {{ point }}</li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-        <!-- Moyennes par matière pour cette période -->
-        <div class="section-container">
-            <div class="section-header">
-                <h3 class="section-title">Moyennes par matière - {{ periode_data.periode.nom_periode }}</h3>
-            </div>
-            <div class="subjects-grid">
-                {% for matiere_data in periode_data.matieres_moyennes %}
-                    <div class="subject-card">
-                        <div class="subject-header {{ matiere_data.color }}">
-                            <div class="subject-icon">
-                                <i class="{{ matiere_data.icon }}"></i>
-                            </div>
-                            <h4 class="subject-name">{{ matiere_data.matiere.nom }}</h4>
-                        </div>
-                        <div class="subject-body">
-                            <div class="subject-average">
-                                <div class="average-value {% if matiere_data.moyenne_eleve >= 16 %}excellent{% elif matiere_data.moyenne_eleve >= 14 %}good{% elif matiere_data.moyenne_eleve >= 12 %}average{% elif matiere_data.moyenne_eleve >= 10 %}below-average{% else %}poor{% endif %}">
-                                    {{ matiere_data.moyenne_eleve }}
-                                </div>
-                                <div class="average-label">/20</div>
-                            </div>
-                            <div class="subject-info">
-                                <div class="info-item">
-                                    <div class="info-label">Prof:</div>
-                                    <div class="info-value">{{ matiere_data.enseignant }}</div>
-                                </div>
-                                <div class="info-item">
-                                    <div class="info-label">Coef:</div>
-                                    <div class="info-value">{{ matiere_data.coefficient }}</div>
-                                </div>
-                                <div class="info-item">
-                                    <div class="info-label">Moy. classe:</div>
-                                    <div class="info-value">{% if matiere_data.moyenne_classe %}{{ matiere_data.moyenne_classe|floatformat:2 }}{% else %}N/A{% endif %}</div>
-                                </div>
-                                {% if matiere_data.position %}
-                                    <div class="info-item">
-                                        <div class="info-label">Position:</div>
-                                        <div class="info-value">{{ matiere_data.position }}/{{ matiere_data.total_eleves }}</div>
-                                    </div>
-                                {% endif %}
-                            </div>
-                            {% if matiere_data.appreciation %}
-                                <div class="subject-appreciation-container">
-                                    <div class="subject-appreciation" data-full-text="{{ matiere_data.appreciation }}">
-                                        {{ matiere_data.appreciation }}
-                                    </div>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% empty %}
-                    <div class="empty-state">
-                        <i class="fas fa-inbox"></i>
-                        <p>Aucune moyenne disponible pour cette période</p>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Tableau de notes par matière pour cette période -->
-        {% if periode_data.tableau_notes %}
-        <div class="section-container">
-            <div class="section-header">
-                <h3 class="section-title">
-                    <i class="fas fa-table"></i>
-                    Relevé de notes - {{ periode_data.periode.nom_periode }}
-                </h3>
-            </div>
-            <div class="releve-table-wrapper">
-                <table class="releve-table">
-                    <thead>
-                        <tr>
-                            <th class="th-matiere">MATIÈRE</th>
-                            {% for idx in periode_data.notes_indices %}
-                                <th class="th-note">NOTE {{ forloop.counter }}</th>
-                            {% endfor %}
-                            <th class="th-examen">EXAMEN</th>
-                            <th class="th-moyenne">MOYENNE</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for ligne in periode_data.tableau_notes %}
-                            <tr>
-                                <td class="td-matiere" data-label="Matière">
-                                    <div class="matiere-info-releve">
-                                        <div class="matiere-icon-releve {{ ligne.color }}">
-                                            <i class="{{ ligne.icon }}"></i>
-                                        </div>
-                                        <span class="matiere-name-releve">{{ ligne.matiere.nom }}</span>
-                                    </div>
-                                </td>
-                                {% for note in ligne.notes %}
-                                    <td class="td-note" data-label="Note {{ forloop.counter }}">
-                                        <span class="note-value {% if note.note_sur_20 >= 16 %}excellent{% elif note.note_sur_20 >= 14 %}good{% elif note.note_sur_20 >= 12 %}average{% elif note.note_sur_20 >= 10 %}below-average{% else %}poor{% endif %}">
-                                            {{ note.note_sur_20 }}
-                                        </span>
-                                    </td>
-                                {% endfor %}
-                                {% for idx in periode_data.notes_indices %}
-                                    {% if idx >= ligne.notes|length %}
-                                        <td class="td-note empty" data-label="Note {{ idx|add:1 }}">-</td>
-                                    {% endif %}
-                                {% endfor %}
-                                <!-- Note d'examen -->
-                                <td class="td-examen" data-label="Examen">
-                                    {% if ligne.note_examen is not None %}
-                                        <span class="note-value {% if ligne.note_examen >= 16 %}excellent{% elif ligne.note_examen >= 14 %}good{% elif ligne.note_examen >= 12 %}average{% elif ligne.note_examen >= 10 %}below-average{% else %}poor{% endif %}">
-                                            {{ ligne.note_examen|floatformat:2 }}
-                                        </span>
-                                    {% else %}
-                                        <span class="note-empty">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="td-moyenne" data-label="Moyenne">
-                                    <span class="moyenne-value {% if ligne.moyenne >= 16 %}excellent{% elif ligne.moyenne >= 14 %}good{% elif ligne.moyenne >= 12 %}average{% elif ligne.moyenne >= 10 %}below-average{% else %}poor{% endif %}">
-                                        {{ ligne.moyenne }}
-                                    </span>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-
-        <!-- Notes détaillées par matière -->
-        {% if matieres_avec_notes %}
-        <div class="section-container">
-            <div class="section-header">
-                <h3 class="section-title">Notes détaillées par matière</h3>
-                <p class="section-subtitle">Cliquez sur une matière pour voir toutes vos notes</p>
-            </div>
-            <div class="matieres-tabs-grid">
-                {% for matiere_id, matiere_data in matieres_avec_notes.items %}
-                    <div class="matiere-tab-card {{ matiere_data.color }}" 
-                         onclick="openMatiereModal({{ matiere_id }})">
-                        <div class="matiere-tab-icon">
-                            <i class="{{ matiere_data.icon }}"></i>
-                        </div>
-                        <div class="matiere-tab-content">
-                            <h4 class="matiere-tab-name">{{ matiere_data.matiere.nom }}</h4>
-                            <span class="matiere-tab-count">
-                                <i class="fas fa-file-alt"></i>
-                                {{ matiere_data.total_notes }} note{{ matiere_data.total_notes|pluralize }}
-                            </span>
-                        </div>
-                        <div class="matiere-tab-arrow">
-                            <i class="fas fa-chevron-right"></i>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-    </div>
-</div>
+{% include 'school_admin/eleve/partials/eleve_notes_content.html' %}
 
 <!-- Modal plein écran pour les notes par matière -->
 {% for matiere_id, matiere_data in matieres_avec_notes.items %}
@@ -301,16 +32,15 @@
                     <p>Notes détaillées par période</p>
                 </div>
             </div>
-            <button class="fullscreen-close-btn" onclick="closeMatiereModal({{ matiere_id }})">
+            <button type="button" class="fullscreen-close-btn" onclick="closeMatiereModal({{ matiere_id }})">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        
+
         <div class="fullscreen-modal-body">
-            <!-- Onglets des périodes dans la modal -->
             <div class="modal-periodes-tabs">
                 {% for periode_nom in matiere_data.notes_par_periode.keys %}
-                    <button class="modal-periode-tab {% if forloop.first %}active{% endif %}" 
+                    <button type="button" class="modal-periode-tab {% if forloop.first %}active{% endif %}"
                             data-modal-id="{{ matiere_id }}"
                             data-periode="{{ periode_nom }}"
                             onclick="switchPeriodeInModal({{ matiere_id }}, '{{ periode_nom }}')">
@@ -319,16 +49,14 @@
                     </button>
                 {% endfor %}
             </div>
-            
-            <!-- Contenu par période dans la modal -->
+
             {% for periode_nom, notes in matiere_data.notes_par_periode.items %}
                 <div class="modal-periode-content {% if forloop.first %}active{% endif %}"
                      id="modal-periode-{{ matiere_id }}-{{ periode_nom|slugify }}"
                      data-modal-id="{{ matiere_id }}"
                      data-periode="{{ periode_nom }}">
-                    
+
                     {% if notes %}
-                        <!-- Statistiques -->
                         {% with total_notes=notes|length %}
                         {% with moyenne=notes|sum_notes_sur_20|divide:total_notes %}
                         {% with meilleure=notes|max_note_sur_20 %}
@@ -375,18 +103,17 @@
                         {% endwith %}
                         {% endwith %}
                         {% endwith %}
-                        
-                        <!-- Tableau des notes -->
+
                         <div class="modal-notes-content">
-                            <div class="modal-notes-table-container">
+                            <div class="modal-notes-table-container table-responsive">
                                 <table class="modal-notes-table">
                                     <thead>
                                         <tr>
                                             <th class="date-col">Date</th>
-                                            <th class="titre-col">Titre de l'évaluation</th>
+                                            <th class="titre-col">Évaluation</th>
                                             <th class="type-col">Type</th>
                                             <th class="note-col">Note</th>
-                                            <th class="note-sur-20-col">Note /20</th>
+                                            <th class="note-sur-20-col">/20</th>
                                             <th class="appreciation-col">Appréciation</th>
                                         </tr>
                                     </thead>
@@ -443,9 +170,8 @@
 </div>
 {% endfor %}
 
-<!-- Scripts JavaScript -->
-<script src="{% static 'school_admin/js/eleve/notes_evaluations_eleve.js' %}"></script>
+<script src="{% static 'school_admin/js/eleve/notes_evaluations_eleve.js' %}?v=1.0.1"></script>
 
-    {% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
+{% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
 </body>
 </html>

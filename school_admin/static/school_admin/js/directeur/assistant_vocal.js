@@ -5,6 +5,10 @@
   if (!root) {
     return;
   }
+  if (root.getAttribute('data-assistant-vocal-bound') === '1') {
+    return;
+  }
+  root.setAttribute('data-assistant-vocal-bound', '1');
 
   var fab = document.getElementById('assistant-vocal-fab');
   var panel = document.getElementById('assistant-vocal-panel');
@@ -76,6 +80,9 @@
   var voiceStartedMs = 0;
   var voiceTimer = null;
   var pendingDelta = '';
+  var streamAccumulated = '';
+  var turnSpeechFingerprint = '';
+  var voiceWaitScheduled = false;
   var receivedVoiceSentence = false;
   var voiceSendAfterStop = false;
   var currentActionCard = null;
@@ -270,7 +277,8 @@
     if (!currentAssistantBubble) {
       return;
     }
-    var html = highlightData(text);
+    var display = withCaret ? text : collapseRepeatedReply(text);
+    var html = highlightData(display);
     if (withCaret) {
       html += '<span class="assistant-vocal-caret" aria-hidden="true"></span>';
     }
@@ -334,8 +342,165 @@
     return (root.getAttribute('data-persona') || '').trim() === 'eleve';
   }
 
+  function getPersonaKey() {
+    var p = (root.getAttribute('data-persona') || '').trim();
+    return p || 'directeur';
+  }
+
+  function isEnseignantPersona() {
+    var p = getPersonaKey();
+    return p === 'enseignant' || p === 'enseignant_primaire';
+  }
+
+  function usesRichWelcome() {
+    var p = getPersonaKey();
+    return (
+      p === 'directeur' ||
+      p === 'eleve' ||
+      p === 'parent' ||
+      p === 'enseignant' ||
+      p === 'enseignant_primaire'
+    );
+  }
+
   function hasLangPrefPersona() {
     return isParentPersona() || isElevePersona();
+  }
+
+  function timeHelloFr() {
+    var hour = new Date().getHours();
+    return hour >= 5 && hour < 18 ? 'Bonjour' : 'Bonsoir';
+  }
+
+  function firstNameFromRoot() {
+    var raw = (root.getAttribute('data-user-name') || '').replace(/\s+/g, ' ').trim();
+    if (!raw) {
+      return '';
+    }
+    return raw.split(' ')[0];
+  }
+
+  function parentEnfantHubUrl() {
+    var match = window.location.pathname.match(/\/parent\/enfant\/(\d+)\/?/);
+    if (match) {
+      return '/parent/enfant/' + match[1] + '/';
+    }
+    return '/parent/dashboard/';
+  }
+
+  function enseignantHubPaths() {
+    if (getPersonaKey() === 'enseignant_primaire') {
+      return {
+        classes: '/enseignant/primaire/classes/',
+        notes: '/enseignant/primaire/notes/',
+        presence: '/enseignant/primaire/presence/',
+        exercices: '/enseignant/primaire/exercices/',
+      };
+    }
+    return {
+      classes: '/enseignant/classes/',
+      notes: '/enseignant/notes/',
+      presence: '/enseignant/presence/',
+      exercices: '/enseignant/exercices/',
+    };
+  }
+
+  function buildPersonaWelcomePack() {
+    var persona = getPersonaKey();
+    var first = firstNameFromRoot();
+    var hello = timeHelloFr();
+    var nameBit = first ? ' ' + first : '';
+    var smile = ' 😊';
+    var lead =
+      hello +
+      nameBit +
+      ' !' +
+      smile +
+      '\n\nJe suis ravie de t’accompagner. Comment puis-je t’aider ? Voici quelques idées :';
+    var suggestions = [];
+
+    if (persona === 'eleve') {
+      lead =
+        hello +
+        nameBit +
+        ' !' +
+        smile +
+        '\n\nContente de te revoir ! Clique une suggestion pour ouvrir une page, ou pose-moi une question :';
+      suggestions = [
+        { label: '📚 Mes devoirs', url: '/eleve/devoirs/', intent: 'open' },
+        { label: '📊 Mes notes', url: '/eleve/notes-evaluations/', intent: 'open' },
+        { label: '📅 Mon emploi du temps', url: '/eleve/emploi-du-temps/', intent: 'open' },
+        { label: '📝 Mes absences', url: '/eleve/absences-retards/', intent: 'open' },
+      ];
+    } else if (persona === 'parent') {
+      var enfantHub = parentEnfantHubUrl();
+      lead =
+        hello +
+        nameBit +
+        ' !' +
+        smile +
+        '\n\nBienvenue dans votre espace famille. Ouvrez une page ci-dessous ou posez votre question :';
+      suggestions = [
+        { label: '📊 Suivi de mon enfant', url: enfantHub, intent: 'open' },
+        { label: '📢 Convocations', url: '/parent/convocations/', intent: 'open' },
+        { label: '💳 Scolarité', url: '/parent/scolarite/', intent: 'open' },
+        { label: '🏠 Mes enfants', url: '/parent/dashboard/', intent: 'open' },
+      ];
+    } else if (isEnseignantPersona()) {
+      var paths = enseignantHubPaths();
+      lead =
+        hello +
+        nameBit +
+        ' !' +
+        smile +
+        '\n\nAccédez rapidement à vos outils ou posez-moi une question :';
+      suggestions = [
+        { label: '🏫 Mes classes', url: paths.classes, intent: 'open' },
+        { label: '✏️ Notes', url: paths.notes, intent: 'open' },
+        { label: '✅ Présence', url: paths.presence, intent: 'open' },
+        { label: '📋 Exercices maison', url: paths.exercices, intent: 'open' },
+      ];
+    } else if (persona === 'directeur') {
+      lead =
+        hello +
+        nameBit +
+        ' !' +
+        smile +
+        '\n\nRaccourcis utiles ou question libre :';
+      suggestions = [
+        { label: '📢 Créer une annonce', url: '/directeur/annonces/creer/', intent: 'open' },
+        { label: '📅 Emplois du temps', url: '/emplois-du-temps/', intent: 'open' },
+        { label: '👥 Élèves', url: '/gestion-eleves/', intent: 'open' },
+        { label: '📊 Bulletins', url: '/bulletins/', intent: 'open' },
+      ];
+    } else {
+      return null;
+    }
+    return { text: lead, suggestions: suggestions };
+  }
+
+  function showPersonaWelcome() {
+    if (chatLog.length) {
+      return;
+    }
+    var pack = buildPersonaWelcomePack();
+    if (!pack) {
+      showWelcomeIfNeeded();
+      return;
+    }
+    hideEmpty();
+    appendBubble('assistant', pack.text);
+    var bubbles = messages.querySelectorAll('.assistant-vocal-bubble.is-assistant');
+    if (bubbles.length) {
+      lastSuggestionHost = bubbles[bubbles.length - 1];
+    }
+    if (pack.suggestions && pack.suggestions.length) {
+      renderSuggestions(pack.suggestions);
+    }
+    if (chatLog.length) {
+      chatLog[chatLog.length - 1].local = true;
+      persistCache();
+    }
   }
 
   function langPrefStorageKey() {
@@ -351,14 +516,6 @@
   function getLangPref() {
     if (!hasLangPrefPersona()) {
       return 'auto';
-    }
-    try {
-      var stored = sessionStorage.getItem(langPrefStorageKey());
-      if (stored === 'fr' || stored === 'wo' || stored === 'auto') {
-        return stored;
-      }
-    } catch (err) {
-      /* quota */
     }
     return 'auto';
   }
@@ -388,11 +545,16 @@
     if (!hasLangPrefPersona()) {
       return;
     }
+    try {
+      sessionStorage.setItem(langPrefStorageKey(), 'auto');
+    } catch (err) {
+      /* quota */
+    }
     var chips = root.querySelectorAll('[data-lang-pref]');
     if (!chips.length) {
       return;
     }
-    setLangPref(getLangPref(), false);
+    setLangPref('auto', false);
     chips.forEach(function (chip) {
       chip.addEventListener('click', function () {
         setLangPref(chip.getAttribute('data-lang-pref') || 'auto', true);
@@ -407,14 +569,14 @@
     var persona = (root.getAttribute('data-persona') || '').trim();
     if (persona === 'parent') {
       return (
-        'Bonjour ! Man degg Wolof ak Français. Dama la dimbali ci sa xale yi. ' +
-        'Wax ma ci Wolof walla ci Français — je suis Aria, votre assistante famille.'
+        'Nanga def ! Man degg na wolof ak français. Dama la dimbali ci sa xale yi. ' +
+        'Wax ma ci wolof walla ci français — je suis Aria, votre assistante famille.'
       );
     }
     if (persona === 'eleve') {
       return (
-        'Nanga def ! Man degg Wolof ak Français. Dama la dimbali ngir nga organize sa école. ' +
-        'Wax ma ci Wolof walla ci Français — Salut, je suis Aria, ton assistante.'
+        'Nanga def ! Man degg na wolof ak français. Dama la dimbali ngir organize sa école. ' +
+        'Wax ma ci wolof walla ci français — Salut, c\'est Aria, ton assistante.'
       );
     }
     var hour = new Date().getHours();
@@ -556,6 +718,10 @@
   function handleChoice(item) {
     var intent = (item && item.intent) || 'chat';
     var value = (item && (item.value || item.label)) || '';
+    if (intent === 'open' && item && item.url) {
+      goToPage(item.url);
+      return;
+    }
     if (busy) {
       interruptAssistant();
     }
@@ -564,10 +730,6 @@
     receivedVoiceSentence = false;
     connect();
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      if (intent === 'open' && item.url) {
-        goToPage(item.url);
-        return;
-      }
       sendQuestion(value);
       return;
     }
@@ -576,6 +738,9 @@
     spokenPlain = '';
     pendingDone = false;
     pendingDelta = '';
+    streamAccumulated = '';
+    turnSpeechFingerprint = '';
+    voiceWaitScheduled = false;
     pendingActionResult = null;
     ignoreIncoming = false;
     setBusy(true);
@@ -785,13 +950,18 @@
       /* ignore */
     }
     updateMuteButton();
-    if (voiceMuted && currentAudio) {
-      currentAudio.onended = null;
-      currentAudio.pause();
-      currentAudio = null;
-      clearTypewriter();
-      isPlaying = false;
-      playNext();
+    if (voiceMuted) {
+      audioQueue.forEach(function (entry) {
+        if (entry) {
+          entry.src = '';
+        }
+      });
+      if (currentAudio || isPlaying || audioQueue.length) {
+        releaseCurrentAudio();
+        clearTypewriter();
+        isPlaying = false;
+        playNext();
+      }
     }
   }
 
@@ -865,6 +1035,9 @@
     socket = new WebSocket(getWebSocketUrl());
     socket.onopen = function () {
       refreshStatus();
+      if (hasLangPrefPersona()) {
+        setLangPref('auto', true);
+      }
       var history = historyForServer();
       if (history.length && socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'restore_history', messages: history }));
@@ -898,8 +1071,17 @@
     }
     if (data.type === 'assistant.welcome') {
       serverWelcomeText = (data.text || '').trim() || serverWelcomeText;
-      if (root.classList.contains('is-open') && !chatLog.length) {
-        showWelcomeIfNeeded();
+      if (usesRichWelcome()) {
+        return;
+      }
+      if (root.classList.contains('is-open') && !chatLog.length && serverWelcomeText) {
+        hideEmpty();
+        appendBubble('assistant', serverWelcomeText);
+        spokenPlain = serverWelcomeText;
+        if (chatLog.length) {
+          chatLog[chatLog.length - 1].local = true;
+          persistCache();
+        }
       }
       return;
     }
@@ -924,14 +1106,28 @@
     if (data.type === 'text_delta') {
       var piece = stripToolMarkup(data.text || '');
       if (piece) {
-        pendingDelta += piece;
+        var merged = mergeStreamDelta(streamAccumulated, piece);
+        streamAccumulated = merged.accumulated;
+        if (voiceMuted && merged.emit) {
+          pendingDelta += merged.emit;
+        }
       }
       return;
     }
     if (data.type === 'audio_sentence') {
+      var sentenceText = collapseRepeatedReply(stripToolMarkup(data.text || ''));
+      var fp = speechFingerprint(sentenceText);
+      if (fp && turnSpeechFingerprint && fp === turnSpeechFingerprint) {
+        pendingDone = true;
+        finishIfIdle();
+        return;
+      }
+      if (fp) {
+        turnSpeechFingerprint = fp;
+      }
       receivedVoiceSentence = true;
       enqueueSentence(
-        data.text || '',
+        sentenceText,
         data.audio_base64 || '',
         data.audio_mime || 'audio/wav'
       );
@@ -1212,8 +1408,12 @@
   function enqueueSentence(text, audioBase64, audioMime) {
     ensureAssistantBubble();
     var mime = audioMime || 'audio/wav';
+    var line = collapseRepeatedReply(stripToolMarkup(text || ''));
+    if (line && textAlreadyShown(line)) {
+      return;
+    }
     audioQueue.push({
-      text: text,
+      text: line,
       src: !voiceMuted && audioBase64 ? 'data:' + mime + ';base64,' + audioBase64 : '',
     });
     playNext();
@@ -1234,6 +1434,70 @@
       .replace(/invoke\s+name=["'][^"']+["']/gi, '')
       .replace(/\s+/g, ' ');
   }
+
+  function foldAssistantText(text) {
+    return String(text || '').replace(/\s+/g, '').toLowerCase();
+  }
+
+  function mergeStreamDelta(accumulated, delta) {
+    var piece = delta || '';
+    var prev = accumulated || '';
+    if (!piece) {
+      return { accumulated: prev, emit: '' };
+    }
+    if (!prev) {
+      return { accumulated: piece, emit: piece };
+    }
+    if (piece === prev || prev.slice(-piece.length) === piece) {
+      return { accumulated: prev, emit: '' };
+    }
+    if (piece.indexOf(prev) === 0) {
+      var extra = piece.slice(prev.length);
+      if (!extra.trim()) {
+        return { accumulated: prev, emit: '' };
+      }
+      return { accumulated: prev + extra, emit: extra };
+    }
+    var fp = foldAssistantText(piece);
+    var fprev = foldAssistantText(prev);
+    if (fp === fprev || (fp.length >= fprev.length * 2 && fp.indexOf(fprev + fprev) === 0)) {
+      return { accumulated: prev, emit: '' };
+    }
+    return { accumulated: prev + piece, emit: piece };
+  }
+
+  function collapseRepeatedReply(text) {
+    var raw = String(text || '').trim();
+    if (raw.length < 40) {
+      return raw;
+    }
+    var norm = raw.replace(/\s+/g, ' ').trim();
+    var minLen = Math.max(30, Math.floor(norm.length * 0.28));
+    var maxLen = Math.min(norm.length - 30, Math.floor(norm.length * 0.72));
+    var cut;
+    for (cut = minLen; cut <= maxLen; cut += 1) {
+      var left = norm.slice(0, cut).trim();
+      var right = norm.slice(cut).trim();
+      if (!left || !right) {
+        continue;
+      }
+      var a = foldAssistantText(left);
+      var b = foldAssistantText(right);
+      if (a === b) {
+        return left;
+      }
+      if (a.length >= 24 && b.indexOf(a.slice(0, Math.max(20, Math.floor(a.length * 0.82)))) === 0) {
+        return left;
+      }
+    }
+    return raw;
+  }
+
+  function speechFingerprint(text) {
+    return foldAssistantText(collapseRepeatedReply(stripToolMarkup(text || ''))).slice(0, 160);
+  }
+
+  var streamAccumulated = '';
 
   function textAlreadyShown(sentence) {
     var clean = stripToolMarkup(sentence).trim();
@@ -1307,6 +1571,13 @@
       var progress;
       if (duration && isFinite(duration) && duration > 0) {
         progress = Math.min(1, audio.currentTime / duration);
+        var tail = 0.045;
+        if (duration > 0.25 && audio.currentTime >= duration - tail) {
+          audio.volume = 0;
+          audio.pause();
+          complete();
+          return;
+        }
       } else {
         progress = Math.min(0.92, ((Date.now() - startedAt) / 1000) * CHARS_PER_SECOND / length);
       }
@@ -1320,6 +1591,12 @@
   }
 
   function playAudioSafely(audio, onFail) {
+    if (voiceMuted) {
+      if (onFail) {
+        onFail();
+      }
+      return;
+    }
     unlockAudio(true);
     if (audioContext && audioContext.state === 'suspended') {
       audioContext.resume();
@@ -1377,6 +1654,7 @@
 
     currentAudio = new Audio(item.src);
     currentAudio.preload = 'auto';
+    currentAudio.volume = 1;
     var started = false;
     var fallbackType = function () {
       if (started) {
@@ -1422,10 +1700,8 @@
       currentAudio.onplaying = null;
       currentAudio.oncanplay = null;
       currentAudio.ontimeupdate = null;
+      currentAudio.volume = 0;
       currentAudio.pause();
-      currentAudio.currentTime = 0;
-      currentAudio.removeAttribute('src');
-      currentAudio.load();
     } catch (err) {
       /* ignore */
     }
@@ -1443,22 +1719,42 @@
     if (!pendingDone || isPlaying || audioQueue.length) {
       return;
     }
-    if (!spokenPlain && pendingDelta && !receivedVoiceSentence) {
-      isPlaying = true;
-      ensureAssistantBubble();
-      var leftoverText = stripToolMarkup(pendingDelta);
-      pendingDelta = '';
-      typeAlongDuration(leftoverText, 0, function () {
-        isPlaying = false;
+    if (
+      !spokenPlain &&
+      !receivedVoiceSentence &&
+      !voiceMuted &&
+      streamAccumulated &&
+      !voiceWaitScheduled
+    ) {
+      voiceWaitScheduled = true;
+      window.setTimeout(function () {
+        voiceWaitScheduled = false;
         finishIfIdle();
-      });
+      }, 520);
       return;
+    }
+    if (!spokenPlain && !receivedVoiceSentence) {
+      var textSource = voiceMuted ? pendingDelta : streamAccumulated || pendingDelta;
+      var textOnly = collapseRepeatedReply(stripToolMarkup(textSource || ''));
+      if (textOnly) {
+        isPlaying = true;
+        ensureAssistantBubble();
+        pendingDelta = '';
+        streamAccumulated = '';
+        typeAlongDuration(textOnly, 0, function () {
+          isPlaying = false;
+          finishIfIdle();
+        });
+        return;
+      }
     }
     pendingDone = false;
     pendingDelta = '';
+    streamAccumulated = '';
     receivedVoiceSentence = false;
     hideThinking();
     if (currentAssistantBubble && spokenPlain) {
+      spokenPlain = collapseRepeatedReply(spokenPlain);
       paintAssistant(spokenPlain, false);
       if (chatLog.length && chatLog[chatLog.length - 1].role === 'assistant') {
         chatLog[chatLog.length - 1].text = spokenPlain;
@@ -1527,8 +1823,10 @@
     stopAudio();
     pendingDone = false;
     pendingDelta = '';
+    streamAccumulated = '';
     hideThinking();
     if (currentAssistantBubble && spokenPlain) {
+      spokenPlain = collapseRepeatedReply(spokenPlain);
       paintAssistant(spokenPlain, false);
       if (chatLog.length && chatLog[chatLog.length - 1].role === 'assistant') {
         chatLog[chatLog.length - 1].text = spokenPlain;
@@ -1600,6 +1898,9 @@
     committedFinals = '';
     lastLiveText = '';
     pendingDelta = '';
+    streamAccumulated = '';
+    turnSpeechFingerprint = '';
+    voiceWaitScheduled = false;
     if (opts.skipUserBubble) {
       if (chatLog.length && chatLog[chatLog.length - 1].kind === 'voice') {
         chatLog[chatLog.length - 1].text = question;
@@ -1669,7 +1970,13 @@
     fab.setAttribute('aria-expanded', 'true');
     panel.setAttribute('aria-hidden', 'false');
     placePanel();
-    showWelcomeIfNeeded();
+    if (usesRichWelcome()) {
+      showPersonaWelcome();
+    } else if (!hasLangPrefPersona()) {
+      showWelcomeIfNeeded();
+    } else if (!chatLog.length) {
+      hideEmpty();
+    }
     persistCache();
     unlockAudio(true);
     connect();

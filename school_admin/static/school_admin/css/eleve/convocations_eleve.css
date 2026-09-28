@@ -1,0 +1,265 @@
+/* Cartes convocations — espace élève */
+:root {
+  --conv-primary: #3b82f6;
+  --conv-accent: #ef4444;
+  --conv-success: #10b981;
+  --conv-gray-50: #f9fafb;
+  --conv-gray-200: #e5e7eb;
+  --conv-gray-500: #6b7280;
+  --conv-gray-700: #374151;
+  --conv-gray-900: #111827;
+  --conv-shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --conv-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.ele-conv .convocations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ele-conv .convocation-card {
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1rem;
+  box-shadow: var(--conv-shadow-card);
+  border-left: 0.25rem solid var(--conv-primary);
+  transition: box-shadow 0.2s, transform 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.ele-conv .convocation-card:hover {
+  box-shadow: var(--conv-shadow-lg);
+}
+
+.ele-conv .convocation-card.urgent {
+  border-left-color: var(--conv-accent);
+  background: linear-gradient(to right, rgba(239, 68, 68, 0.05), #fff);
+}
+
+.ele-conv .convocation-card.passee {
+  border-left-color: #9ca3af;
+  opacity: 0.88;
+}
+
+.ele-conv .convocation-card.honoree {
+  border-left-color: var(--conv-success);
+}
+
+.ele-conv .convocation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.ele-conv .convocation-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.ele-conv .convocation-title h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--conv-gray-900);
+  margin: 0;
+  line-height: 1.4;
+}
+
+@media (min-width: 768px) {
+  .ele-conv .convocation-title h3 {
+    font-size: 1.125rem;
+  }
+}
+
+.ele-conv .convocation-status {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.ele-conv .status-en_attente {
+  background: rgba(251, 191, 36, 0.12);
+  color: #d97706;
+}
+
+.ele-conv .status-vue {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+.ele-conv .status-honoree {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.ele-conv .status-non_honoree {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.ele-conv .convocation-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .ele-conv .convocation-body {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ele-conv .convocation-info {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+}
+
+.ele-conv .info-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  background: var(--conv-gray-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--conv-primary);
+  font-size: 0.9375rem;
+  flex-shrink: 0;
+}
+
+.ele-conv .info-label {
+  font-size: 0.6875rem;
+  color: var(--conv-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.15rem;
+}
+
+.ele-conv .info-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--conv-gray-900);
+  line-height: 1.4;
+}
+
+@media (min-width: 768px) {
+  .ele-conv .info-value {
+    font-size: 0.9375rem;
+  }
+}
+
+.ele-conv .convocation-motif {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  background: var(--conv-gray-50);
+  border-radius: 0.5rem;
+  border-left: 3px solid var(--conv-primary);
+}
+
+.ele-conv .motif-label {
+  font-size: 0.6875rem;
+  color: var(--conv-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.ele-conv .motif-text {
+  font-size: 0.8125rem;
+  color: var(--conv-gray-700);
+  line-height: 1.55;
+}
+
+.ele-conv .urgent-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.ele-conv .filter-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  padding-bottom: 0.35rem;
+}
+
+.ele-conv .filter-tab {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  border: 1px solid #e5e7eb;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.ele-conv .filter-tab:hover {
+  background: #e5e7eb;
+}
+
+.ele-conv .filter-tab.active {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  border-color: transparent;
+}
+
+.ele-conv .empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--conv-gray-500);
+}
+
+.ele-conv .empty-state i {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+  color: #d1d5db;
+  display: block;
+}
+
+.ele-conv .empty-state h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--conv-gray-700);
+  margin: 0 0 0.5rem;
+}
+
+.ele-conv .empty-state p {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.ele-conv .convocation-card.is-hidden {
+  display: none !important;
+}

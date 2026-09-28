@@ -23,6 +23,7 @@
 
             <!-- Onglets par catégorie -->
             <div class="tabs-container">
+                {% if not hub_prof_ui %}{# legacy category tabs #}
                 <div class="tabs-nav">
                     {% for categorie, data in classes_grouped.items %}
                         <button class="tab-btn {% if forloop.first %}active{% endif %}" 
@@ -38,6 +39,7 @@
                         </button>
                     {% endfor %}
                 </div>
+                {% endif %}
 
                 <!-- Contenu des onglets -->
                 {% for categorie, data in classes_grouped.items %}

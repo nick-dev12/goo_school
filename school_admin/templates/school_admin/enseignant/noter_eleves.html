@@ -8,9 +8,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/noter_eleves.css' %}?v=1.0.4">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/noter_eleves.css' %}?v=1.0.5">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/prof_noter.css' %}?v=1.1.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/creer_evaluation.css' %}?v=1.0.4">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.3">
 </head>
-<body data-live-page="notes-noter">
+<body data-live-page="notes-noter" data-enseignant-space="secondaire">
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <!-- Main Content -->
@@ -31,288 +35,132 @@
         </div> {% endcomment %}
         {% endif %}
 
-        <!-- Statut du relevé -->
-        {% if releve_notes.soumis %}
-            <div class="releve-status-banner soumis">
-                <div class="status-icon">
-                    <i class="fas fa-lock"></i>
-                </div>
-                <div class="status-text">
-                    <strong>Relevé de notes soumis</strong>
-                    <p>Ce relevé a été soumis le {{ releve_notes.date_soumission|date:"d/m/Y à H:i" }}. Les modifications sont désormais verrouillées.</p>
-                </div>
-            </div>
-        {% else %}
-            <div class="releve-status-banner en-cours">
-                <div class="status-icon">
-                    <i class="fas fa-edit"></i>
-                </div>
-                <div class="status-text">
-                    <strong>Relevé de notes en cours</strong>
-                    <p>Vous pouvez encore modifier les notes et les évaluations. N'oubliez pas de soumettre le relevé une fois terminé.</p>
-                </div>
-            </div>
-        {% endif %}
-
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-edit"></i>
-                    Notation des élèves
-                </h1>
-                <p class="page-subtitle">
-                    {{ classe.nom }} - {{ matiere.nom }} - {{ eleves.count }} élève{{ eleves.count|pluralize }}
-                </p>
-                <p class="enseignant-classe-niveau noter-eleves-niveau"><i class="fas fa-layer-group" aria-hidden="true"></i>{% include 'school_admin/enseignant/partials/classe_niveau_libelle.html' with classe=classe only %}</p>
-            </div>
-        </div>
-
-        <!-- Onglets de périodes -->
-        <div class="periodes-tabs">
-            <div class="tabs-container">
-                {% if periodes_scolaires %}
-                    {% for periode in periodes_scolaires %}
-                        <a href="?periode={{ periode.id }}" 
-                           class="periode-tab {% if periode_active and periode_active.id == periode.id %}active{% endif %}">
-                            <i class="fas fa-calendar-check"></i>
-                            <span>{{ periode.libelle_affichage_superieur }}</span>
-                            {% if periode.est_en_cours %}
-                                <span class="tab-badge en-cours" style="background: #28a745;">
-                                    <i class="fas fa-circle"></i>
-                                </span>
-                            {% endif %}
-                            {% if releve_notes and releve_notes.periode_scolaire.id == periode.id %}
-                                {% if releve_notes.soumis %}
-                                    <span class="tab-badge soumis">
-                                        <i class="fas fa-lock"></i>
-                                    </span>
-                                {% else %}
-                                    <span class="tab-badge en-cours">
-                                        <i class="fas fa-edit"></i>
-                                    </span>
-                                {% endif %}
-                            {% endif %}
-                        </a>
-                    {% endfor %}
-                {% else %}
-                    <div style="padding: 1rem; text-align: center; color: #999;">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Aucune période scolaire définie. Contactez l'administration.
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Information de la classe -->
-        <div class="classe-info-card">
-            <div class="info-item">
-                <i class="fas fa-chalkboard"></i>
-                <span><strong>Classe :</strong> {{ classe.nom }}</span>
-            </div>
-            <div class="info-item">
-                <i class="fas fa-book"></i>
-                <span><strong>Matière :</strong> {{ matiere.nom }}</span>
-            </div>
-            <div class="info-item">
-                <i class="fas fa-users"></i>
-                <span><strong>Effectif :</strong> {{ eleves.count }} élève{{ eleves.count|pluralize }}</span>
-            </div>
-            {% if affectation.est_principal %}
-                <div class="info-item">
-                    <i class="fas fa-crown"></i>
-                    <span><strong>Statut :</strong> Professeur Principal</span>
-                </div>
-            {% endif %}
-        </div>
+        {% include 'school_admin/enseignant/partials/prof_noter_shell_head.html' with prof_noter_mode='secondaire' %}
 
         {% if eleves %}
             <!-- Formulaire de notation -->
             <form method="post" id="notationForm" class="notation-form">
                 {% csrf_token %}
                 
-                <!-- Section de sélection des notes -->
-                <div class="notes-selection-container">
-                    <div class="selection-header">
-                        <div class="selection-header-left">
-                            <div class="selection-icon">
-                                <i class="fas fa-tasks"></i>
-                            </div>
-                            <div class="selection-header-text">
-                                <h3>Sélection des évaluations</h3>
-                                <p>Cochez les colonnes à inclure dans le calcul</p>
-                            </div>
+                <div class="prof-noter-workspace">
+                <section class="prof-noter-card prof-noter-config-card" aria-labelledby="prof-noter-calc-title-sec">
+                    <div class="prof-noter-card-head">
+                        <span class="prof-noter-step-badge" aria-hidden="true">1</span>
+                        <div class="prof-noter-card-head-text">
+                            <h2 id="prof-noter-calc-title-sec">Calcul de la moyenne</h2>
+                            <p>Cochez les colonnes à inclure, choisissez le mode, puis calculez.</p>
                         </div>
-                        <div class="selection-counter">
-                            <span class="counter-number" id="selectedCount">0</span>
-                            <span class="counter-label">sélectionnée(s)</span>
+                        <div class="prof-noter-head-tools">
+                            <span class="prof-noter-counter-pill"><strong id="selectedCount">0</strong> cochée(s)</span>
+                            <button type="button" class="prof-noter-btn-ghost js-prof-noter-select-all" {% if releve_notes.soumis %}disabled{% endif %}>Tout cocher</button>
+                            <button type="button" class="prof-noter-btn-ghost js-prof-noter-select-none" {% if releve_notes.soumis %}disabled{% endif %}>Tout décocher</button>
                         </div>
                     </div>
-                    
-                    {% if not has_evaluations %}
-                        <div class="alert-warning-compact">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <span>Aucune évaluation programmée</span>
-                            <a href="{% url 'enseignant:creer_evaluation' classe.id %}" class="btn-create-mini">
-                                <i class="fas fa-plus"></i> Créer
-                            </a>
-                        </div>
-                    {% endif %}
-
-                    <div class="evaluations-grid">
-                        {% for item in evaluations_liste %}
-                            <div class="eval-card" data-type="{{ item.type }}">
-                                <input type="checkbox" 
-                                       id="select_{{ item.key }}" 
-                                       name="select_{{ item.key }}"
-                                       class="eval-checkbox global-note-select" 
-                                       data-note-key="{{ item.key }}" 
-                                       data-type="{{ item.type }}"
-                                       {% if releve_notes.soumis %}disabled{% endif %}>
-                                <label for="select_{{ item.key }}" class="eval-card-label">
-                                    <div class="eval-card-header">
-                                        <div class="eval-icon {% if item.type == 'interrogation' %}eval-icon-interro{% else %}eval-icon-devoir{% endif %}">
-                                            {% if item.type == 'interrogation' %}
-                                                <i class="fas fa-question-circle"></i>
-                                            {% else %}
-                                                <i class="fas fa-file-alt"></i>
-                                            {% endif %}
-                                        </div>
-                                        <div class="eval-bareme">/{{ item.evaluation.bareme|floatformat:0 }}</div>
-                                    </div>
-                                    <div class="eval-card-body">
-                                        <div class="eval-title">{{ item.evaluation.titre|truncatewords:4 }}</div>
-                                        <div class="eval-type-badge">
-                                            {{ item.titre_court }}
-                                        </div>
-                                    </div>
-                                    <div class="eval-check-overlay">
-                                        <i class="fas fa-check-circle"></i>
-                                    </div>
-                                </label>
+                    <div class="prof-noter-card-body">
+                        {% if not has_evaluations %}
+                            <div class="alert-warning-compact">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Aucune évaluation programmée</span>
+                                <a href="{% url 'enseignant:creer_evaluation' classe.id %}" class="btn-create-mini">
+                                    <i class="fas fa-plus"></i> Créer
+                                </a>
                             </div>
-                        {% endfor %}
+                        {% endif %}
+                        <div class="notes-selection-container">
+                            <div class="evaluations-grid">
+                                {% for item in evaluations_liste %}
+                                    <div class="eval-card" data-type="{{ item.type }}">
+                                        <input type="checkbox"
+                                               id="select_{{ item.key }}"
+                                               name="select_{{ item.key }}"
+                                               class="eval-checkbox global-note-select"
+                                               data-note-key="{{ item.key }}"
+                                               data-type="{{ item.type }}"
+                                               {% if releve_notes.soumis %}disabled{% endif %}>
+                                        <label for="select_{{ item.key }}" class="eval-card-label">
+                                            <div class="eval-card-header">
+                                                <div class="eval-icon {% if item.type == 'interrogation' %}eval-icon-interro{% else %}eval-icon-devoir{% endif %}">
+                                                    {% if item.type == 'interrogation' %}
+                                                        <i class="fas fa-question-circle"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-file-alt"></i>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="eval-bareme">/{{ item.evaluation.bareme|floatformat:0 }}</div>
+                                            </div>
+                                            <div class="eval-card-body">
+                                                <div class="eval-title">{{ item.evaluation.titre|truncatewords:4 }}</div>
+                                                <div class="eval-type-badge">{{ item.titre_court }}</div>
+                                            </div>
+                                            <div class="eval-check-overlay">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="prof-noter-calc-bar">
+                            <div class="moyenne-mode-selector">
+                                <label for="modeCalculMoyenne"><i class="fas fa-cogs"></i> Mode</label>
+                                <select id="modeCalculMoyenne" class="form-select-inline">
+                                    <option value="toutes">Toutes les notes</option>
+                                    <option value="1">1 meilleure note</option>
+                                    <option value="2">2 meilleures notes (composées)</option>
+                                    <option value="3">3 meilleures notes (composées)</option>
+                                    <option value="4">4 meilleures notes (composées)</option>
+                                    <option value="interro_x2">1 Meilleure interro × 2</option>
+                                </select>
+                            </div>
+                            <div class="prof-noter-calc-actions">
+                                <button type="button"
+                                        onclick="calculerToutesMoyennes()"
+                                        class="btn btn-secondary prof-noter-btn-calc"
+                                        {% if releve_notes.soumis %}disabled{% endif %}>
+                                    <i class="fas fa-calculator"></i> Calculer les moyennes
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </section>
 
-                <!-- Actions formulaire -->
-                <div class="notation-actions">
-                    <!-- Sélecteur du mode de calcul -->
-                    <div class="moyenne-mode-selector">
-                        <label for="modeCalculMoyenne">
-                            <i class="fas fa-cogs"></i> Mode de calcul :
-                        </label>
-                        <select id="modeCalculMoyenne" class="form-select-inline">
-                            <option value="toutes">Toutes les notes</option>
-                            <option value="1">1 meilleure note</option>
-                            <option value="2">2 meilleures notes (composées)</option>
-                            <option value="3">3 meilleures notes (composées)</option>
-                            <option value="4">4 meilleures notes (composées)</option>
-                            <option value="interro_x2">1 Meilleure interro × 2</option>
-                        </select>
+                <section class="prof-noter-card prof-noter-table-section" aria-labelledby="prof-noter-table-title-sec">
+                    <div class="prof-noter-card-head">
+                        <span class="prof-noter-step-badge" aria-hidden="true">2</span>
+                        <div class="prof-noter-card-head-text">
+                            <h2 id="prof-noter-table-title-sec">Saisie des notes par élève</h2>
+                            <p>Une colonne par évaluation · moyenne à droite.</p>
+                        </div>
                     </div>
-                    
-                    <button type="button" 
-                            onclick="calculerToutesMoyennes()" 
-                            class="btn btn-secondary"
-                            {% if releve_notes.soumis %}disabled{% endif %}>
-                        <i class="fas fa-calculator"></i> Calculer les moyennes
-                    </button>
-                    <button type="submit" 
-                            name="action"
-                            value="enregistrer"
-                            class="btn btn-primary"
-                            {% if releve_notes.soumis %}disabled{% endif %}>
-                        <i class="fas fa-save"></i> Enregistrer les notes
-                    </button>
-                    <button type="submit" 
-                            name="action"
-                            value="publier"
-                            class="btn btn-success"
-                            {% if releve_notes.soumis %}disabled{% endif %}>
-                        <i class="fas fa-bullhorn"></i> Publier les notes
-                    </button>
-                </div>
-
-                <!-- Tableau de notation -->
+                    <p class="prof-noter-table-hint"><i class="fas fa-arrows-left-right"></i> Défilement horizontal sur petit écran.</p>
                 <div class="notation-table-container">
                     <table class="notation-table">
                         <thead>
-                            <!-- Ligne 1: En-têtes principaux -->
                             <tr>
-                                <th rowspan="3" class="eleve-col">Élève</th>
-                                
-                                <!-- Regroupement des évaluations (incluant l'examen si présent) -->
-                                <th colspan="{{ total_evaluations_count }}" class="notes-header">Évaluations</th>
-                                
-                                <!-- Colonne Moyenne -->
-                                <th rowspan="3" class="moyenne-col">Moyenne<br>(/20)</th>
-                            </tr>
-                            
-                            <!-- Ligne 2: Titres des évaluations individuelles (incluant l'examen) -->
-                            <tr>
-                                {% for item in evaluations_liste %}
-                                    <th class="note-col has-evaluation">
-                                        <div class="eval-title-header">
-                                            {{ item.evaluation.titre|truncatewords:2 }}
-                                            <small>/{{ item.evaluation.bareme|floatformat:0 }}</small>
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                    </th>
-                                {% endfor %}
-                                
-                                <!-- Titre de l'examen (dans le regroupement Évaluations) -->
-                                {% if session_examen %}
-                                    <th class="note-col has-evaluation examen-header">
-                                        <div class="eval-title-header">
-                                            Examen
-                                            <small>/20</small>
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                    </th>
-                                {% endif %}
-                            </tr>
-                            
-                            <!-- Ligne 3: Statut Retenue/Non retenue (incluant l'examen) -->
-                            <tr class="retenue-row">
+                                <th class="eleve-col">Élève</th>
                                 {% for item in evaluations_liste %}
                                     {% with eval=item.evaluation nb_retenues=notes_retenues_par_eval|get_item:item.key|default:0 %}
-                                    <th class="retenue-header">
-                                        <span class="retenue-label">
-                                            {% if nb_retenues > 0 %}
-                                                <span class="retenue-status retenue-active" data-eval-id="{{ eval.id }}" data-note-key="{{ item.key }}" title="{{ nb_retenues }} note(s) retenue(s) pour le calcul">
-                                                    <i class="fas fa-check-circle"></i>
-                                                    {{ nb_retenues }} Retenue{{ nb_retenues|pluralize }}
-                                                </span>
-                                            {% else %}
-                                                <span class="retenue-status retenue-inactive" data-eval-id="{{ eval.id }}" data-note-key="{{ item.key }}" title="Aucune note retenue">
-                                                    <i class="fas fa-minus-circle"></i>
-                                                    Non retenue
-                                                </span>
-                                            {% endif %}
+                                    <th class="note-col has-evaluation">
+                                        <span class="prof-noter-col-title">{{ item.evaluation.titre|truncatewords:3 }}</span>
+                                        <span class="prof-noter-col-bareme">/{{ item.evaluation.bareme|floatformat:0 }}</span>
+                                        <span class="prof-noter-col-retenue retenue-status {% if nb_retenues > 0 %}is-active retenue-active{% else %}is-inactive retenue-inactive{% endif %}" data-eval-id="{{ eval.id }}" data-note-key="{{ item.key }}" title="{% if nb_retenues > 0 %}{{ nb_retenues }} retenue(s){% else %}Non retenue au dernier calcul{% endif %}">
+                                            <i class="fas {% if nb_retenues > 0 %}fa-check-circle{% else %}fa-minus-circle{% endif %}"></i>
+                                            {% if nb_retenues > 0 %}{{ nb_retenues }} ret.{% else %}—{% endif %}
                                         </span>
                                     </th>
                                     {% endwith %}
                                 {% endfor %}
-                                
-                                <!-- Statut Retenue pour l'examen (dans le regroupement Évaluations) -->
                                 {% if session_examen %}
-                                    <th class="retenue-header examen-retenue-header">
-                                        <span class="retenue-label">
-                                            {% if est_superieur %}
-                                            <span class="retenue-status retenue-inactive" data-eval-id="examen_{{ session_examen.id }}" data-note-key="examen_{{ session_examen.id }}" title="Examen saisi à part : non inclus dans la moyenne affichée (contrôle continu uniquement) ; la combinaison CC / examen est gérée côté direction pour le bulletin.">
-                                                <i class="fas fa-info-circle"></i>
-                                                Hors moy. CC
-                                            </span>
-                                            {% else %}
-                                            <span class="retenue-status retenue-active" data-eval-id="examen_{{ session_examen.id }}" data-note-key="examen_{{ session_examen.id }}" title="Note d'examen toujours retenue">
-                                                <i class="fas fa-check-circle"></i>
-                                                Retenue
-                                            </span>
-                                            {% endif %}
+                                    <th class="note-col has-evaluation examen-header">
+                                        <span class="prof-noter-col-title">Examen</span>
+                                        <span class="prof-noter-col-bareme">/20</span>
+                                        <span class="prof-noter-col-retenue {% if est_superieur %}is-inactive{% else %}is-active{% endif %}" data-note-key="examen_{{ session_examen.id }}">
+                                            <i class="fas {% if est_superieur %}fa-info-circle{% else %}fa-check-circle{% endif %}"></i>
+                                            {% if est_superieur %}CC{% else %}Ret.{% endif %}
                                         </span>
                                     </th>
                                 {% endif %}
+                                <th class="moyenne-col">Moy.<br>/20</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -349,14 +197,16 @@
                                             {% if note_obj %}
                                                 <div class="retenue-badge-wrapper">
                                                     {% if note_obj.retenue %}
-                                                        <span class="retenue-badge retenue-active" title="Note retenue pour le calcul">
+                                                        <span class="retenue-badge retenue-active retenue-status" title="Retenue pour la moyenne">
                                                             <i class="fas fa-check-circle"></i>
-                                                            Retenue
+                                                            <span class="retenue-text-short">OK</span>
+                                                            <span class="retenue-text-long">Retenue</span>
                                                         </span>
                                                     {% else %}
-                                                        <span class="retenue-badge retenue-inactive" title="Note non retenue pour le calcul">
+                                                        <span class="retenue-badge retenue-inactive retenue-status" title="Non retenue">
                                                             <i class="fas fa-minus-circle"></i>
-                                                            Non retenue
+                                                            <span class="retenue-text-short">—</span>
+                                                            <span class="retenue-text-long">Non retenue</span>
                                                         </span>
                                                     {% endif %}
                                                 </div>
@@ -428,6 +278,32 @@
                         </tbody>
                     </table>
                 </div>
+                </section>
+
+                <footer class="prof-noter-save-bar">
+                    <span class="prof-noter-step-badge" aria-hidden="true">3</span>
+                    <p class="prof-noter-save-bar-text">
+                        <strong>Enregistrement</strong>
+                        Sauvegardez vos saisies, puis publiez pour les élèves et parents.
+                    </p>
+                    <div class="prof-noter-save-actions">
+                        <button type="submit"
+                                name="action"
+                                value="enregistrer"
+                                class="btn btn-primary"
+                                {% if releve_notes.soumis %}disabled{% endif %}>
+                            <i class="fas fa-save"></i> Enregistrer
+                        </button>
+                        <button type="submit"
+                                name="action"
+                                value="publier"
+                                class="btn btn-success"
+                                {% if releve_notes.soumis %}disabled{% endif %}>
+                            <i class="fas fa-bullhorn"></i> Publier
+                        </button>
+                    </div>
+                </footer>
+                </div>
 
             </form>
         {% else %}
@@ -440,9 +316,14 @@
                 <p>Cette classe ne contient actuellement aucun élève actif.</p>
             </div>
         {% endif %}
+
+        {% include 'school_admin/enseignant/partials/prof_noter_shell_foot.html' %}
     </div>
 
+    {% include 'school_admin/enseignant/partials/prof_modal_creer_evaluation.html' %}
+
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+    <script src="{% static 'school_admin/js/enseignant/prof_noter_workspace.js' %}?v=1.0.1"></script>
     <script>
         // Fonction pour activer/désactiver la sélection des notes pour tous les élèves
         function toggleNoteSelectionForAll(checkbox) {
@@ -620,21 +501,24 @@
                         }
                     });
                     
-                    // Mettre à jour la ligne "retenue/non retenue"
                     if (data.notes_retenues) {
-                        // Réinitialiser toutes les lignes à "Non retenue"
-                        document.querySelectorAll('.retenue-status').forEach(status => {
-                            status.innerHTML = '<i class="fas fa-minus-circle"></i> Non retenue';
-                            status.className = 'retenue-status retenue-inactive';
+                        document.querySelectorAll('.prof-noter-col-retenue[data-note-key]').forEach(function (pill) {
+                            pill.className = 'prof-noter-col-retenue retenue-status is-inactive retenue-inactive';
+                            pill.innerHTML = '<i class="fas fa-minus-circle"></i> —';
+                            pill.setAttribute('data-note-key', pill.getAttribute('data-note-key'));
                         });
-                        
-                        // Mettre à jour celles qui sont retenues
-                        Object.entries(data.notes_retenues).forEach(([noteKey, count]) => {
-                            const retenueStatus = document.querySelector(`.retenue-status[data-note-key="${noteKey}"]`);
-                            if (retenueStatus && count > 0) {
-                                retenueStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${count} Retenue${count > 1 ? 's' : ''}`;
-                                retenueStatus.className = 'retenue-status retenue-active';
+                        Object.entries(data.notes_retenues).forEach(function (entry) {
+                            var noteKey = entry[0];
+                            var count = entry[1];
+                            var pill = document.querySelector('.prof-noter-col-retenue[data-note-key="' + noteKey + '"]');
+                            if (pill && count > 0) {
+                                pill.className = 'prof-noter-col-retenue retenue-status is-active retenue-active';
+                                pill.innerHTML = '<i class="fas fa-check-circle"></i> ' + count + ' ret.';
                             }
+                        });
+                        document.querySelectorAll('tbody .retenue-status[data-note-key]').forEach(function (badge) {
+                            badge.className = 'retenue-badge retenue-inactive retenue-status';
+                            badge.innerHTML = '<i class="fas fa-minus-circle"></i><span class="retenue-text-short">—</span><span class="retenue-text-long">Non retenue</span>';
                         });
                     }
                     

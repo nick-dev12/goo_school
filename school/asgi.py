@@ -13,13 +13,18 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'school.settings')
 
 django_asgi_app = get_asgi_application()
 
+from school_admin.consumers.websocket_auth_middleware import (  # noqa: E402
+    WebSocketMultiUserMiddleware,
+)
 from school_admin.routing import websocket_urlpatterns  # noqa: E402
 
 application = ProtocolTypeRouter(
     {
         'http': django_asgi_app,
         'websocket': SessionMiddlewareStack(
-            AuthMiddlewareStack(URLRouter(websocket_urlpatterns))
+            AuthMiddlewareStack(
+                WebSocketMultiUserMiddleware(URLRouter(websocket_urlpatterns))
+            )
         ),
     }
 )

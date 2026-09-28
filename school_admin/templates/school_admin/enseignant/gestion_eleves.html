@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_eleves.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_eleves.css' %}?v=1.1.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
     {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
@@ -41,51 +41,9 @@
         </div>
         {% endif %}
 
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-user-graduate"></i>
-                    Gestion de Mes Élèves
-                </h1>
-                <p class="page-subtitle">
-                    {{ stats.total_eleves }} élève{{ stats.total_eleves|pluralize }} dans {{ stats.total_classes }} classe{{ stats.total_classes|pluralize }}
-                </p>
-            </div>
-        </div>
-
         {% if stats.total_classes > 0 %}
-            <!-- Statistiques globales -->
-            <div class="stats-container">
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #667eea;">
-                        <i class="fas fa-chalkboard"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value">{{ stats.total_classes }}</span>
-                        <span class="stat-label">Classe{{ stats.total_classes|pluralize }}</span>
-                    </div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #8b5cf6;">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value">{{ stats.total_eleves }}</span>
-                        <span class="stat-label">Élève{{ stats.total_eleves|pluralize }}</span>
-                    </div>
-                </div>
-            </div>
-
             {% if hub_prof_ui %}
-            <div id="prof-hub-chrome">
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" search_target=".prof-primaire-searchable .presence-row" %}
-            </div>
-            <div id="prof-hub-panel">
-                {% include 'school_admin/enseignant/partials/gestion_eleves_enseignant_hub_panel.html' %}
-            </div>
+            {% include 'school_admin/enseignant/partials/prof_eleves_hub_swap_root.html' %}
             {% else %}
             <!-- Onglets par catégorie -->
             <div class="tabs-container">

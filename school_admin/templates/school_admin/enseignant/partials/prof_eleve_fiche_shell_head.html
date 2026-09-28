@@ -1,0 +1,96 @@
+<div class="prof-eleve-fiche-shell">
+    <nav class="prof-eleve-fiche-breadcrumb" aria-label="Fil d'Ariane">
+        {% if prof_eleve_fiche_mode == 'primaire' %}
+            <a href="{% url 'enseignant_primaire:gestion_eleves' %}?classe={{ classe.id }}" class="prof-eleve-fiche-back">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                <span>Mes élèves · {{ classe.nom }}</span>
+            </a>
+        {% else %}
+            <a href="{% url 'enseignant:gestion_eleves' %}?classe={{ classe.id }}" class="prof-eleve-fiche-back">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                <span>Mes élèves · {{ classe.nom }}</span>
+            </a>
+        {% endif %}
+    </nav>
+
+    <header class="prof-eleve-fiche-hero">
+        <div class="prof-eleve-fiche-identity">
+            <div class="eleve-avatar-large prof-eleve-fiche-avatar">{{ eleve.nom.0 }}{{ eleve.prenom.0 }}</div>
+            <div class="prof-eleve-fiche-identity-text">
+                <p class="prof-eleve-fiche-kicker"><i class="fas fa-user-graduate" aria-hidden="true"></i> Fiche élève</p>
+                <h1 class="prof-eleve-fiche-title">{{ eleve.nom_complet }}</h1>
+                <div class="prof-eleve-fiche-chips">
+                    <span class="prof-eleve-chip"><i class="fas fa-chalkboard" aria-hidden="true"></i> {{ classe.nom }}</span>
+                    <span class="prof-eleve-chip"><i class="fas fa-id-card" aria-hidden="true"></i> {{ eleve.numero_matricule_complet }}</span>
+                    <span class="prof-eleve-chip"><i class="fas fa-{% if eleve.sexe == 'M' %}mars{% else %}venus{% endif %}" aria-hidden="true"></i> {{ eleve.get_sexe_display }}</span>
+                    {% if annee_scolaire_active %}
+                        <span class="prof-eleve-chip muted"><i class="fas fa-calendar-check" aria-hidden="true"></i> {{ annee_scolaire_active.libelle }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="prof-eleve-fiche-stats" role="group" aria-label="Indicateurs rapides">
+            <div class="prof-eleve-stat-card">
+                <span class="prof-eleve-stat-value">{{ nombre_notes }}</span>
+                <span class="prof-eleve-stat-label">Notes saisies</span>
+            </div>
+            <div class="prof-eleve-stat-card warn">
+                <span class="prof-eleve-stat-value">{{ nombre_absences }}</span>
+                <span class="prof-eleve-stat-label">Absences</span>
+            </div>
+            <div class="prof-eleve-stat-card ok">
+                <span class="prof-eleve-stat-value">{{ taux_presence }}%</span>
+                <span class="prof-eleve-stat-label">Assiduité</span>
+            </div>
+        </div>
+    </header>
+
+    <section class="prof-eleve-fiche-section" aria-labelledby="prof-eleve-actions-title">
+        <h2 id="prof-eleve-actions-title" class="prof-eleve-fiche-section-title"><i class="fas fa-bolt" aria-hidden="true"></i> Raccourcis</h2>
+        <div class="prof-eleve-fiche-link-grid">
+            {% if prof_eleve_fiche_mode == 'primaire' %}
+                <a href="{% url 'enseignant_primaire:noter_eleves' classe.id %}" class="prof-eleve-fiche-link-card primary">
+                    <span class="prof-eleve-fiche-link-icon info"><i class="fas fa-pen" aria-hidden="true"></i></span>
+                    <span class="prof-eleve-fiche-link-text"><strong>Noter</strong><small>Saisie des notes</small></span>
+                </a>
+                <a href="{% url 'enseignant_primaire:gestion_presence' %}?classe={{ classe.id }}" class="prof-eleve-fiche-link-card">
+                    <span class="prof-eleve-fiche-link-icon success"><i class="fas fa-calendar-check" aria-hidden="true"></i></span>
+                    <span class="prof-eleve-fiche-link-text"><strong>Présence classe</strong><small>Synthèse et appel</small></span>
+                </a>
+                <a href="?onglet=presences" class="prof-eleve-fiche-link-card">
+                    <span class="prof-eleve-fiche-link-icon secondary"><i class="fas fa-history" aria-hidden="true"></i></span>
+                    <span class="prof-eleve-fiche-link-text"><strong>Historique présence</strong><small>Calendrier mensuel</small></span>
+                </a>
+            {% else %}
+                <a href="{% url 'enseignant:noter_eleves' classe.id %}" class="prof-eleve-fiche-link-card primary">
+                    <span class="prof-eleve-fiche-link-icon info"><i class="fas fa-pen" aria-hidden="true"></i></span>
+                    <span class="prof-eleve-fiche-link-text"><strong>Noter</strong><small>Saisie des notes</small></span>
+                </a>
+                <a href="{% url 'enseignant:gestion_presence' %}?classe={{ classe.id }}" class="prof-eleve-fiche-link-card">
+                    <span class="prof-eleve-fiche-link-icon success"><i class="fas fa-calendar-check" aria-hidden="true"></i></span>
+                    <span class="prof-eleve-fiche-link-text"><strong>Présence classe</strong><small>Synthèse et appel</small></span>
+                </a>
+                <a href="?onglet=sanctions" class="prof-eleve-fiche-link-card">
+                    <span class="prof-eleve-fiche-link-icon accent"><i class="fas fa-gavel" aria-hidden="true"></i></span>
+                    <span class="prof-eleve-fiche-link-text"><strong>Sanctions</strong><small>Discipline</small></span>
+                </a>
+            {% endif %}
+        </div>
+    </section>
+
+    <nav class="prof-eleve-fiche-tabs" aria-label="Sections de la fiche">
+        <a href="?onglet=informations" class="prof-eleve-fiche-tab {% if onglet_actif == 'informations' %}active{% endif %}">
+            <i class="fas fa-id-card" aria-hidden="true"></i><span>Profil</span>
+        </a>
+        <a href="?onglet=notes{% if prof_eleve_fiche_mode != 'primaire' and matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}" class="prof-eleve-fiche-tab {% if onglet_actif == 'notes' %}active{% endif %}">
+            <i class="fas fa-clipboard-check" aria-hidden="true"></i><span>Notes</span>
+        </a>
+        <a href="?onglet=presences{% if prof_eleve_fiche_mode != 'primaire' and matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}" class="prof-eleve-fiche-tab {% if onglet_actif == 'presences' %}active{% endif %}">
+            <i class="fas fa-calendar-check" aria-hidden="true"></i><span>Présence</span>
+        </a>
+        <a href="?onglet=sanctions" class="prof-eleve-fiche-tab {% if onglet_actif == 'sanctions' %}active{% endif %}">
+            <i class="fas fa-gavel" aria-hidden="true"></i><span>Sanctions</span>
+        </a>
+    </nav>
+
+    <div class="prof-eleve-fiche-panel">

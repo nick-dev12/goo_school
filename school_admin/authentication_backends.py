@@ -297,16 +297,23 @@ class MultiUserBackend(BaseBackend):
             else:
                 logger.warning(f"Utilisateur de type {user_type} avec ID {user_id} non trouvé, recherche dans toutes les tables")
         
-        # Fallback sans type : ne renvoyer un user QUE s'il n'y a qu'un seul
-        # match. Plusieurs tables peuvent partager le même PK — renvoyer le
-        # premier (établissement / CompteUser) invalide le hash de session et
-        # Django flush la session → 302 /connexion/?next=… pour un prof connecté.
+        # Fallback sans type : un seul match = OK. Plusieurs tables peuvent
+        # partager le même PK — ne jamais renvoyer le premier au hasard
+        # (sinon hash de session invalide → flush → /connexion/?next=…).
+        # Si la session est dispo, reconstruire via le hash d’auth Django.
         candidates = self._collect_users_by_id(user_id, logger)
         if len(candidates) == 1:
             user = candidates[0]
             print(f"[GET_USER] [OK] unique match {type(user).__name__} ID {user_id}")
             return user
         if len(candidates) > 1:
+            matched = self._match_candidate_by_session_hash(candidates, logger)
+            if matched is not None:
+                print(
+                    f"[GET_USER] [OK] collision resolue via hash -> "
+                    f"{type(matched).__name__} ID {user_id}"
+                )
+                return matched
             logger.warning(
                 "get_user(%s): %s candidats sans _auth_user_type — refus pour éviter un flush de session",
                 user_id,
@@ -317,6 +324,37 @@ class MultiUserBackend(BaseBackend):
 
         logger.warning(f"[ERREUR] Aucun utilisateur trouve avec l'ID: {user_id} dans AUCUNE table")
         print(f"[GET_USER] [ERREUR] Aucun utilisateur avec ID {user_id} dans aucune des 6 tables")
+        return None
+
+    def _match_candidate_by_session_hash(self, candidates, logger):
+        """Choisit le bon modèle lors d’une collision PK grâce au hash de session."""
+        from django.contrib.auth import HASH_SESSION_KEY
+        from django.utils.crypto import constant_time_compare
+
+        session = getattr(_user_type_context, 'session', None)
+        if session is None:
+            return None
+        session_hash = session.get(HASH_SESSION_KEY)
+        if not session_hash:
+            return None
+        for user in candidates:
+            try:
+                if not hasattr(user, 'get_session_auth_hash'):
+                    continue
+                if constant_time_compare(session_hash, user.get_session_auth_hash()):
+                    # Ré-ancrer le type pour les prochaines requêtes.
+                    user_type = AUTH_USER_TYPE_MAP.get(type(user).__name__)
+                    if user_type:
+                        try:
+                            session['_auth_user_type'] = user_type
+                            session.modified = True
+                        except Exception:
+                            pass
+                        _user_type_context.user_type = user_type
+                        user._auth_user_type = user_type
+                    return user
+            except Exception as exc:
+                logger.debug("Hash match skip %s: %s", type(user).__name__, exc)
         return None
 
     def _collect_users_by_id(self, user_id, logger):

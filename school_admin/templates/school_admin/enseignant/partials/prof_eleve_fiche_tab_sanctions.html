@@ -1,0 +1,69 @@
+<div class="tab-content active prof-eleve-tab prof-eleve-tab-sanctions" id="tab-sanctions">
+    <div class="prof-eleve-tab-intro">
+        <h2 class="prof-eleve-tab-title"><i class="fas fa-gavel" aria-hidden="true"></i> Sanctions disciplinaires</h2>
+        <p class="prof-eleve-tab-hint">Historique des mesures disciplinaires pour l’année scolaire en cours.</p>
+    </div>
+
+    {% if sanctions %}
+        <div class="sanctions-container">
+            <div class="sanctions-stats prof-eleve-sanctions-stats">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-number">{{ nombre_sanctions|default:sanctions|length }}</div>
+                        <div class="stat-text">Total sanctions</div>
+                    </div>
+                </div>
+                {% if nombre_sanctions_graves %}
+                <div class="stat-card warning">
+                    <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-number">{{ nombre_sanctions_graves }}</div>
+                        <div class="stat-text">Sanctions graves</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="sanctions-list">
+                <h3 class="prof-eleve-subtitle"><i class="fas fa-list"></i> Chronologie</h3>
+                <div class="sanctions-timeline">
+                    {% for sanction in sanctions %}
+                        <div class="sanction-item sanction-{{ sanction.gravite }}">
+                            <div class="sanction-date">
+                                <div class="date-jour">{{ sanction.date_sanction|date:"d" }}</div>
+                                <div class="date-mois">{{ sanction.date_sanction|date:"M" }}</div>
+                            </div>
+                            <div class="sanction-details">
+                                <div class="sanction-header">
+                                    <h4>
+                                        <i class="fas fa-{% if sanction.type_sanction == 'avertissement' %}exclamation-triangle{% elif sanction.type_sanction == 'blame' %}gavel{% elif sanction.type_sanction == 'exclusion_temporaire' %}ban{% else %}clipboard-list{% endif %}"></i>
+                                        {{ sanction.get_type_sanction_display }}
+                                    </h4>
+                                    <span class="sanction-badge gravite-{{ sanction.gravite }}">{{ sanction.get_gravite_display }}</span>
+                                </div>
+                                <div class="sanction-info">
+                                    <p><strong>Raison :</strong> {{ sanction.get_raison_sanction_display }}</p>
+                                    {% if sanction.description %}
+                                        <p><strong>Description :</strong> {{ sanction.description }}</p>
+                                    {% endif %}
+                                    <div class="sanction-meta">
+                                        <span><i class="fas fa-user"></i> {{ sanction.sanctionne_par.nom_complet }}</span>
+                                        <span><i class="fas fa-calendar"></i> {{ sanction.date_sanction|date:"d/m/Y" }}</span>
+                                        {% if sanction.executee %}<span class="badge-executee"><i class="fas fa-check"></i> Exécutée</span>{% endif %}
+                                        {% if sanction.parents_informes %}<span class="badge-parents"><i class="fas fa-users"></i> Parents informés</span>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-check-circle"></i>
+            <p>Aucune sanction enregistrée pour cet élève.</p>
+        </div>
+    {% endif %}
+</div>

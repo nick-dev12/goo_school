@@ -1,0 +1,223 @@
+<div class="ele-sanc">
+  <div class="ele-sanc-context">
+    <div class="ele-sanc-context-col">
+      {% if classe %}
+        <div class="ele-sanc-context-item">
+          <i class="fas fa-chalkboard-user" aria-hidden="true"></i>
+          <span>Classe <strong>{{ classe.nom }}</strong></span>
+        </div>
+      {% endif %}
+      {% if annee_scolaire_active %}
+        <div class="ele-sanc-context-item">
+          <i class="fas fa-calendar-check" aria-hidden="true"></i>
+          <span>Année <strong>{{ annee_scolaire_active.libelle }}</strong></span>
+        </div>
+      {% endif %}
+      {% if periode_active %}
+        <div class="ele-sanc-context-item">
+          <i class="fas fa-clock" aria-hidden="true"></i>
+          <span>Période en cours : <strong>{{ periode_active.nom_periode }}</strong></span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="ele-sanc-toolbar">
+    <a href="{% url 'eleve:absences_retards' %}" class="ele-sanc-btn ele-sanc-btn--ghost">
+      <i class="fas fa-user-clock" aria-hidden="true"></i>
+      Absences &amp; retards
+    </a>
+    <a href="{% url 'eleve:convocations_eleve' %}" class="ele-sanc-btn ele-sanc-btn--ghost">
+      <i class="fas fa-bell" aria-hidden="true"></i>
+      Convocations
+    </a>
+    <a href="{% url 'eleve:dashboard_eleve' %}" class="ele-sanc-btn ele-sanc-btn--ghost">
+      <i class="fas fa-home" aria-hidden="true"></i>
+      Accueil
+    </a>
+  </div>
+
+  <div class="ele-sanc-indicators" aria-label="Sanctions — résumé annuel">
+    <div class="ele-sanc-indicator">
+      <div class="ele-sanc-indicator-icon" style="background-color: #6366f1;">
+        <i class="fas fa-gavel" aria-hidden="true"></i>
+      </div>
+      <div class="ele-sanc-indicator-body">
+        <span class="ele-sanc-indicator-label">Total</span>
+        <span class="ele-sanc-indicator-value">{{ total_sanctions }}</span>
+        <span class="ele-sanc-indicator-hint">Sur l’année scolaire</span>
+      </div>
+    </div>
+    <div class="ele-sanc-indicator">
+      <div class="ele-sanc-indicator-icon" style="background-color: #10b981;">
+        <i class="fas fa-info-circle" aria-hidden="true"></i>
+      </div>
+      <div class="ele-sanc-indicator-body">
+        <span class="ele-sanc-indicator-label">Légères</span>
+        <span class="ele-sanc-indicator-value">{{ sanctions_legeres }}</span>
+        <span class="ele-sanc-indicator-hint">Sanctions mineures</span>
+      </div>
+    </div>
+    <div class="ele-sanc-indicator">
+      <div class="ele-sanc-indicator-icon" style="background-color: #f59e0b;">
+        <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+      </div>
+      <div class="ele-sanc-indicator-body">
+        <span class="ele-sanc-indicator-label">Moyennes</span>
+        <span class="ele-sanc-indicator-value">{{ sanctions_moyennes }}</span>
+        <span class="ele-sanc-indicator-hint">Sanctions modérées</span>
+      </div>
+    </div>
+    <div class="ele-sanc-indicator">
+      <div class="ele-sanc-indicator-icon" style="background-color: #ef4444;">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+      </div>
+      <div class="ele-sanc-indicator-body">
+        <span class="ele-sanc-indicator-label">Graves</span>
+        <span class="ele-sanc-indicator-value">{{ sanctions_graves|add:sanctions_tres_graves }}</span>
+        <span class="ele-sanc-indicator-hint">Dont {{ sanctions_tres_graves }} très grave{{ sanctions_tres_graves|pluralize }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ele-sanc-legend" role="note">
+    <span class="ele-sanc-legend-item"><i class="fas fa-circle ele-sanc-dot ele-sanc-dot--legere" aria-hidden="true"></i> Légère</span>
+    <span class="ele-sanc-legend-item"><i class="fas fa-circle ele-sanc-dot ele-sanc-dot--moyenne" aria-hidden="true"></i> Moyenne</span>
+    <span class="ele-sanc-legend-item"><i class="fas fa-circle ele-sanc-dot ele-sanc-dot--grave" aria-hidden="true"></i> Grave / très grave</span>
+  </div>
+
+  {% if sanctions_recentes %}
+  <section class="ele-sanc-block ele-sanc-recent" aria-labelledby="ele-sanc-recent-title">
+    <h2 class="ele-sanc-block-title" id="ele-sanc-recent-title">
+      <i class="fas fa-bolt" aria-hidden="true"></i>
+      Les 30 derniers jours
+    </h2>
+    <p class="ele-sanc-block-sub">Sanctions les plus récentes, pour repérer rapidement l’activité disciplinaire.</p>
+    <ul class="ele-sanc-recent-list">
+      {% for sanction in sanctions_recentes|slice:":8" %}
+        <li class="ele-sanc-recent-item gravite-{{ sanction.gravite }}">
+          <div class="ele-sanc-recent-main">
+            <time datetime="{{ sanction.date_sanction|date:'Y-m-d' }}">{{ sanction.date_sanction|date:"d/m/Y" }}</time>
+            <span class="ele-sanc-recent-type">{{ sanction.get_type_sanction_display }}</span>
+            <span class="ele-sanc-recent-raison">{{ sanction.get_raison_display|truncatechars:40 }}</span>
+          </div>
+          <span class="ele-sanc-recent-badge">{{ sanction.get_gravite_display }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <section class="ele-sanc-block" aria-labelledby="ele-sanc-list-title">
+    <h2 class="ele-sanc-block-title" id="ele-sanc-list-title">
+      <i class="fas fa-layer-group" aria-hidden="true"></i>
+      Historique des sanctions
+    </h2>
+    <p class="ele-sanc-block-sub">Filtrez par période ou consultez la liste complète de l’année.</p>
+
+    {% if periodes_sanctions_data %}
+    <div class="periodes-tabs-container">
+      <div class="periodes-tabs" role="tablist" aria-label="Filtrer les sanctions">
+        <div class="periode-tab active"
+             role="tab"
+             aria-selected="true"
+             tabindex="0"
+             data-periode="toutes">
+          <div class="tab-icon">
+            <i class="fas fa-list" aria-hidden="true"></i>
+          </div>
+          <div class="tab-info">
+            <div class="tab-title">Toute l’année</div>
+            <div class="tab-period">{{ total_sanctions }} sanction{{ total_sanctions|pluralize }}</div>
+          </div>
+        </div>
+        {% for periode_data in periodes_sanctions_data %}
+          <div class="periode-tab"
+               role="tab"
+               aria-selected="false"
+               tabindex="0"
+               data-periode="{{ periode_data.periode.id }}">
+            <div class="tab-icon">
+              <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+              {% if periode_data.est_active %}
+                <span class="tab-badge current">En cours</span>
+              {% elif periode_data.periode.date_fin < today %}
+                <span class="tab-badge">Passé</span>
+              {% else %}
+                <span class="tab-badge">À venir</span>
+              {% endif %}
+            </div>
+            <div class="tab-info">
+              <div class="tab-title">{{ periode_data.periode.nom_periode }}</div>
+              <div class="tab-period">{{ periode_data.periode.date_debut|date:"d/m/Y" }} – {{ periode_data.periode.date_fin|date:"d/m/Y" }}</div>
+            </div>
+            <div class="tab-stats">
+              <span class="tab-stat total">{{ periode_data.nb_sanctions }} sanc.</span>
+              {% if periode_data.nb_graves > 0 %}
+                <span class="tab-stat graves">{{ periode_data.nb_graves }} grave{{ periode_data.nb_graves|pluralize }}</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="periodes-content">
+      <div class="periode-section active" data-periode="toutes" role="tabpanel">
+        {% if sanctions %}
+          <div class="sanctions-list">
+            {% for sanction in sanctions %}
+              {% include 'school_admin/eleve/partials/eleve_sanction_card.html' %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <div class="empty-icon">
+              <i class="fas fa-smile" aria-hidden="true"></i>
+            </div>
+            <h3>Aucune sanction enregistrée</h3>
+            <p>
+              {% if est_parent %}
+                Votre enfant n’a reçu aucune sanction disciplinaire cette année.
+              {% else %}
+                Vous n’avez reçu aucune sanction disciplinaire cette année.
+              {% endif %}
+            </p>
+            <a href="{% url 'eleve:dashboard_eleve' %}" class="ele-sanc-btn ele-sanc-btn--primary" style="margin-top: 1rem;">
+              <i class="fas fa-home" aria-hidden="true"></i> Retour à l’accueil
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+      {% for periode_data in periodes_sanctions_data %}
+        <div class="periode-section"
+             data-periode="{{ periode_data.periode.id }}"
+             role="tabpanel">
+          {% if periode_data.sanctions %}
+            <div class="sanctions-list">
+              {% for sanction in periode_data.sanctions %}
+                {% include 'school_admin/eleve/partials/eleve_sanction_card.html' %}
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="fas fa-smile" aria-hidden="true"></i>
+              </div>
+              <h3>Aucune sanction pour cette période</h3>
+              <p>
+                {% if est_parent %}
+                  Aucune sanction durant {{ periode_data.periode.nom_periode }}.
+                {% else %}
+                  Rien à signaler pour {{ periode_data.periode.nom_periode }}.
+                {% endif %}
+              </p>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>

@@ -11,6 +11,7 @@ from school_admin.services.tts_service import (
     parse_pcm_sample_rate,
     pcm16_to_wav,
     smooth_pcm16_edges,
+    strip_pcm16_end_squelch,
     prepare_spoken_text,
     strip_assistant_markup,
     trim_pcm16_trailing_artifacts,
@@ -114,6 +115,19 @@ class CharlineSpokenTextTests(SimpleTestCase):
         out = array.array('h')
         out.frombytes(trimmed)
         self.assertLess(len(out), len(samples))
+
+    def test_strip_squelch_apres_silence(self):
+        import array
+
+        speech = [4000] * 2400
+        quiet = [15] * 400
+        burst = [7000 if index % 2 == 0 else -7000 for index in range(360)]
+        samples = array.array('h', speech + quiet + burst)
+        cleaned = strip_pcm16_end_squelch(samples.tobytes(), sample_rate=24000)
+        out = array.array('h')
+        out.frombytes(cleaned)
+        self.assertLess(len(out), len(samples) - 80)
+        self.assertLess(max(abs(sample) for sample in out[-20:]), 2000)
 
     def test_finalize_pcm16_ends_silent(self):
         import array

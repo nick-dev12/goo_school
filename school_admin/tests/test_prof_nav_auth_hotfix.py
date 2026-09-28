@@ -97,6 +97,23 @@ class ProfAuthCollisionTests(TestCase):
         user = backend.get_user(self.prof.pk)
         self.assertIsNone(user)
 
+    def test_get_user_collision_resolved_via_session_hash(self):
+        from django.contrib.auth import HASH_SESSION_KEY
+
+        backend = MultiUserBackend()
+        _clear_user_type_context()
+        session = {HASH_SESSION_KEY: self.prof.get_session_auth_hash()}
+        _user_type_context.session = session
+        try:
+            user = backend.get_user(self.prof.pk)
+            self.assertIsInstance(user, Professeur)
+            self.assertEqual(user.pk, self.prof.pk)
+            self.assertEqual(session.get('_auth_user_type'), 'professeur')
+        finally:
+            if hasattr(_user_type_context, 'session'):
+                delattr(_user_type_context, 'session')
+            _clear_user_type_context()
+
     def test_login_persists_type_and_survives_collision(self):
         client = Client()
         ok = client.login(username=self.prof.username, password='Prof@Test1!')
@@ -335,3 +352,43 @@ class ProfHubCssHideLegacyTabsTests(TestCase):
         self.assertIn('body[data-prof-hub-nav-live="1"] .tabs-container > .tabs-nav', text)
         self.assertIn('display: none !important', text)
         self.assertIn('.classes-tabs', text)
+
+    def test_hub_nav_live_resolves_query_against_current_path(self):
+        from pathlib import Path
+        from django.conf import settings
+
+        js = (
+            Path(settings.BASE_DIR)
+            / 'school_admin'
+            / 'static'
+            / 'school_admin'
+            / 'js'
+            / 'enseignant'
+            / 'prof_hub_nav_live.js'
+        )
+        text = js.read_text(encoding='utf-8')
+        self.assertIn('window.location.href', text)
+        self.assertIn("document.addEventListener('click', onLinkClick)", text)
+        self.assertNotIn(
+            "new URL(link.getAttribute('href'), window.location.origin)",
+            text,
+        )
+
+    def test_presence_panel_hides_legacy_tabs_nav(self):
+        from pathlib import Path
+        from django.conf import settings
+
+        panel = (
+            Path(settings.BASE_DIR)
+            / 'school_admin'
+            / 'templates'
+            / 'school_admin'
+            / 'enseignant'
+            / 'primaire'
+            / 'partials'
+            / 'gestion_presence_primaire_hub_panel.html'
+        )
+        text = panel.read_text(encoding='utf-8')
+        self.assertNotIn('class="tabs-nav"', text)
+        self.assertNotIn('classes-tabs', text)
+        self.assertIn('data-classe-panel', text)

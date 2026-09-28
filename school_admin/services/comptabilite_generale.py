@@ -101,6 +101,46 @@ MOIS_FR = (
 
 PLAN_PAR_NUMERO = {row[0]: row for row in PLAN_SYSCOHADA_EDUCATION}
 
+# Préfixes classe 4 → passif (fournisseurs, dettes) vs actif (clients, créances).
+_CLASSE4_PASSIF_PREFIXES = ('40', '42', '44', '45', '46', '47', '48', '49')
+
+
+def infer_classe_nature_compte(numero):
+    """
+    Déduit classe et nature SYSCOHADA à partir du numéro de compte.
+    Retourne (classe, nature, message_erreur).
+    """
+    raw = (numero or '').strip()
+    if not raw:
+        return None, None, 'Numéro de compte requis.'
+    if not raw[0].isdigit():
+        return None, None, 'Le numéro doit commencer par un chiffre (classe SYSCOHADA 1 à 8).'
+
+    plan_row = PLAN_PAR_NUMERO.get(raw)
+    if plan_row:
+        _num, _lib, classe, nature = plan_row
+        return classe, nature, None
+
+    lead = raw[0]
+    if lead not in '12345678':
+        return None, None, 'Classe SYSCOHADA inconnue pour ce numéro.'
+
+    classe = lead
+    if lead == '1':
+        nature = 'passif'
+    elif lead in ('2', '3', '5'):
+        nature = 'actif'
+    elif lead == '4':
+        nature = 'passif' if raw.startswith(_CLASSE4_PASSIF_PREFIXES) else 'actif'
+    elif lead == '6':
+        nature = 'charge'
+    elif lead == '7':
+        nature = 'produit'
+    else:
+        nature = 'hors'
+    return classe, nature, None
+
+
 REGIME_ENGAGEMENT = 'engagement'
 REGIME_TRESORERIE = 'tresorerie'
 

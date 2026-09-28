@@ -1206,7 +1206,10 @@ def recu_paiement_parent(request, paiement_id):
         annee_scolaire=paiement.annee_scolaire,
     ).select_related('classe').first()
 
-    return render(request, 'school_admin/directeur/comptabilite/recu_paiement.html', {
+    from school_admin.services.recouvrement import build_recu_paiement_extra_context
+
+    extra = build_recu_paiement_extra_context(paiement)
+    context = {
         'paiement': paiement,
         'eleve': paiement.eleve,
         'etablissement': paiement.etablissement,
@@ -1214,6 +1217,9 @@ def recu_paiement_parent(request, paiement_id):
         'inscription': inscription,
         'devise_monnaie': devise_etablissement(paiement.etablissement),
         'is_parent': True,
+        'auto_print': False,
         'retour_url': 'school_admin:scolarite_parent',
-    })
+    }
+    context.update(extra)
+    return render(request, 'school_admin/directeur/comptabilite/recu_paiement.html', context)
 

@@ -11,6 +11,16 @@ from django.shortcuts import render
 HUB_PARTIAL_VALUES = frozenset({'hub', 'chrome', 'panel'})
 
 
+def merge_hub_template_context(context: dict) -> dict:
+    """Normalise periodes / periodes_scolaires pour les partials hub partagés."""
+    ctx = dict(context)
+    if ctx.get('periodes') and not ctx.get('periodes_scolaires'):
+        ctx['periodes_scolaires'] = ctx['periodes']
+    elif ctx.get('periodes_scolaires') and not ctx.get('periodes'):
+        ctx['periodes'] = ctx['periodes_scolaires']
+    return ctx
+
+
 def wants_prof_hub_partial(request) -> str | None:
     """Retourne hub_partial si requête XHR fragment, sinon None."""
     partial = (request.GET.get('hub_partial') or '').strip()
@@ -29,6 +39,6 @@ def render_prof_hub_partial(request, context, swap_template: str):
     partial = wants_prof_hub_partial(request)
     if not partial:
         return None
-    ctx = dict(context)
+    ctx = merge_hub_template_context(context)
     ctx['hub_partial_mode'] = partial
     return render(request, swap_template, ctx)

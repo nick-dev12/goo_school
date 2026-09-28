@@ -1,0 +1,204 @@
+<div class="ele-dash">
+  <div class="ele-dash-fcm-wrap">
+    <button id="fcm-enable-btn" class="btn-activate-notifications" type="button" style="display: none;" onclick="activerNotifications()">
+      <i class="fas fa-bell"></i>
+      Activer les notifications
+    </button>
+  </div>
+  <div id="fcm-success-message" class="fcm-success-banner">
+    <i class="fas fa-check-circle"></i>
+    <div><strong>Notifications activées !</strong></div>
+  </div>
+
+  <div class="ele-dash-context">
+    <div class="ele-dash-context-item">
+      <i class="fas fa-calendar-check" aria-hidden="true"></i>
+      {% if annee_scolaire_active %}
+        <span>Année <strong>{{ annee_scolaire_active.libelle }}</strong></span>
+      {% elif periode_active %}
+        <span>Année <strong>{{ periode_active.annee_scolaire }}</strong></span>
+      {% else %}
+        <span>Année scolaire en cours</span>
+      {% endif %}
+    </div>
+    {% if classe %}
+    <div class="ele-dash-context-item">
+      <i class="fas fa-users" aria-hidden="true"></i>
+      <span>Classe <strong>{{ classe.nom }}</strong></span>
+    </div>
+    {% endif %}
+    <div class="ele-dash-context-item">
+      <i class="fas fa-clock" aria-hidden="true"></i>
+      <span><strong>{{ date_aujourdhui|date:"l"|capfirst }}</strong> {{ date_aujourdhui|date:"d F Y" }}</span>
+    </div>
+  </div>
+
+  <div class="key-indicators" aria-label="Indicateurs">
+    <div class="indicator-card">
+      <div class="indicator-icon" style="background-color: #0ea5e9;">
+        <i class="fas fa-chart-line" aria-hidden="true"></i>
+      </div>
+      <div class="indicator-content">
+        <h3>Moyenne générale</h3>
+        <p class="indicator-value">{{ moyenne_generale|default:"—" }}</p>
+        <span class="indicator-trend">{% if periode_active %}{{ periode_active.nom_periode }}{% else %}Période en cours{% endif %}</span>
+      </div>
+      <a href="{% url 'eleve:notes_evaluations' %}" class="indicator-link" aria-label="Voir mes notes">
+        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
+
+    <div class="indicator-card">
+      <div class="indicator-icon" style="background-color: #f59e0b;">
+        <i class="fas fa-tasks" aria-hidden="true"></i>
+      </div>
+      <div class="indicator-content">
+        <h3>Devoirs à rendre</h3>
+        <p class="indicator-value">{{ total_devoirs|default:"0" }}</p>
+        <span class="indicator-trend">Cette semaine</span>
+      </div>
+      <a href="{% url 'eleve:devoirs_eleve' %}" class="indicator-link" aria-label="Voir mes devoirs">
+        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
+
+  </div>
+
+  <div class="ele-dash-split">
+    <section class="ele-dash-block" aria-labelledby="ele-dash-today-title">
+      <div class="ele-dash-block-head">
+        <div>
+          <h2 class="ele-dash-block-title" id="ele-dash-today-title">Aujourd’hui</h2>
+          <p class="ele-dash-block-sub">Tes cours du jour.</p>
+        </div>
+        <a class="ele-dash-link" href="{% url 'eleve:emploi_du_temps' %}">Semaine <i class="fas fa-angle-right"></i></a>
+      </div>
+      <div class="ele-dash-panel">
+        {% if emploi_non_publie %}
+          <div class="ele-dash-empty">
+            <i class="fas fa-eye-slash"></i>
+            L’emploi du temps n’est pas encore publié.
+          </div>
+        {% elif prochains_cours %}
+          <div class="ele-dash-slot-list">
+            {% for cours in prochains_cours %}
+              <article class="ele-dash-slot">
+                <div class="ele-dash-slot-time">
+                  {{ cours.heure_debut }}<br>{{ cours.heure_fin }}
+                </div>
+                <div class="ele-dash-slot-body">
+                  <h4>{{ cours.matiere }}</h4>
+                  <div class="ele-dash-slot-meta">
+                    <span><i class="fas fa-door-open"></i> {% if cours.salle %}Salle {{ cours.salle }}{% else %}Salle —{% endif %}</span>
+                    <span><i class="fas fa-chalkboard-teacher"></i> {{ cours.enseignant|default:"—" }}</span>
+                  </div>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="ele-dash-empty">
+            <i class="fas fa-mug-hot"></i>
+            Aucun cours prévu aujourd’hui.
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <div class="ele-dash-subpanels">
+      <section class="ele-dash-block" aria-labelledby="ele-dash-devoirs-title">
+        <div class="ele-dash-block-head">
+          <div>
+            <h2 class="ele-dash-block-title" id="ele-dash-devoirs-title">Devoirs à faire</h2>
+            <p class="ele-dash-block-sub">Prochaines échéances.</p>
+          </div>
+          <a class="ele-dash-link" href="{% url 'eleve:devoirs_eleve' %}">Tous <i class="fas fa-angle-right"></i></a>
+        </div>
+        <div class="ele-dash-panel">
+          {% if devoirs %}
+            <ul class="ele-dash-list">
+              {% for devoir in devoirs %}
+                <li class="ele-dash-homework-item homework-item" data-id="devoir-{{ forloop.counter }}">
+                  <input type="checkbox" class="ele-dash-homework-check homework-checkbox" aria-label="Marquer comme fait">
+                  <div>
+                    <p class="ele-dash-homework-matiere">{{ devoir.matiere }}</p>
+                    <p class="ele-dash-homework-title homework-title">{{ devoir.titre }}</p>
+                    <div class="ele-dash-homework-meta">
+                      <span><i class="fas fa-calendar-alt"></i> {{ devoir.date_limite|date:"d/m/Y" }}</span>
+                      <span class="ele-dash-priority {{ devoir.priorite }}">Priorité {{ devoir.priorite_label }}</span>
+                    </div>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="ele-dash-empty">
+              <i class="fas fa-check-circle"></i>
+              Aucun devoir en cours — bravo !
+            </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="ele-dash-block" aria-labelledby="ele-dash-notes-title">
+        <div class="ele-dash-block-head">
+          <div>
+            <h2 class="ele-dash-block-title" id="ele-dash-notes-title">Dernières notes</h2>
+            <p class="ele-dash-block-sub">Les plus récentes.</p>
+          </div>
+          <a class="ele-dash-link" href="{% url 'eleve:notes_evaluations' %}">Toutes <i class="fas fa-angle-right"></i></a>
+        </div>
+        <div class="ele-dash-panel">
+          {% if dernieres_notes %}
+            <ul class="ele-dash-list">
+              {% for note in dernieres_notes %}
+                <li class="ele-dash-grade-row">
+                  <div>
+                    <p class="ele-dash-grade-subject">{{ note.matiere }}</p>
+                    <p class="ele-dash-grade-title">{{ note.titre|truncatewords:10 }}</p>
+                  </div>
+                  <span class="ele-dash-grade-badge {{ note.classe_css }}">{{ note.note }}/20</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="ele-dash-empty">
+              <i class="fas fa-star"></i>
+              Aucune note publiée pour le moment.
+            </div>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="ele-dash-block" aria-labelledby="ele-dash-assid-title">
+    <div class="ele-dash-block-head">
+      <div>
+        <h2 class="ele-dash-block-title" id="ele-dash-assid-title">Assiduité</h2>
+        <p class="ele-dash-block-sub">Présence, absences et retards.</p>
+      </div>
+      <a class="ele-dash-link" href="{% url 'eleve:absences_retards' %}">Détail <i class="fas fa-angle-right"></i></a>
+    </div>
+    <div class="ele-dash-panel">
+      <div class="ele-dash-attendance">
+        <div class="ele-dash-att-stat">
+          <strong>{{ jours_present }}</strong>
+          <span>Jours présents</span>
+        </div>
+        <div class="ele-dash-att-stat">
+          <strong>{{ total_absences }}</strong>
+          <span>Absences</span>
+        </div>
+        <div class="ele-dash-att-stat">
+          <strong>{{ total_retards }}</strong>
+          <span>Retards</span>
+        </div>
+      </div>
+      <div class="ele-dash-progress" aria-hidden="true">
+        <span style="width: {{ taux_presence }}%;"></span>
+      </div>
+      <p class="ele-dash-progress-label">Taux de présence : {{ taux_presence }}%</p>
+    </div>
+  </section>
+</div>

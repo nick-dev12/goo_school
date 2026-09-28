@@ -374,6 +374,12 @@ PERMISSIONS_PAR_FONCTION = {
         'classes_liste', 'classes_detail',
     ],
     
+    # Caissier : accueil, établissement (scolarité) et encaissements uniquement
+    'caissier': [
+        'comptabilite_voir',
+        'comptabilite_paiements',
+    ],
+    
     # Intendant
     'intendant': [
         'eleves_liste', 'eleves_detail',
@@ -400,6 +406,13 @@ PERMISSIONS_PAR_FONCTION = {
         'config_voir', 'config_modifier',
     ],
 }
+
+
+def is_caissier(user):
+    """True si l'utilisateur est un personnel avec la fonction caissier."""
+    from ..model.personnel_administratif_model import PersonnelAdministratif
+
+    return isinstance(user, PersonnelAdministratif) and getattr(user, 'fonction', '') == 'caissier'
 
 
 def get_permissions_par_fonction(fonction):

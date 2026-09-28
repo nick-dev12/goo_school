@@ -23,6 +23,11 @@ from school_admin.services.assistant_intents import (
     is_obvious_pending_continue,
     looks_like_new_topic,
 )
+from school_admin.services.assistant_stream_text import (
+    collapse_near_duplicate_reply,
+    finalize_assistant_spoken,
+    merge_stream_delta,
+)
 from school_admin.services.gemini_assistant_service import (
     CONVERSATION_TEMPERATURE,
     MAX_TOOL_ROUNDS,
@@ -52,6 +57,32 @@ def _pending_edt():
             'manquants': ['jour', 'heure'],
         },
     }
+
+
+class AssistantStreamTextTests(SimpleTestCase):
+    def test_merge_stream_delta_skips_full_resend(self):
+        first = 'Bonjour! Comment puis-je vous aider?'
+        acc, emit = merge_stream_delta('', first)
+        self.assertEqual(acc, first)
+        self.assertEqual(emit, first)
+        acc2, emit2 = merge_stream_delta(acc, first)
+        self.assertEqual(acc2, first)
+        self.assertEqual(emit2, '')
+
+    def test_collapse_near_duplicate_reply(self):
+        dup = (
+            'Bonjour! Comment puis-je vous aider aujourd’hui? '
+            'Bonjour! Comment puis-je vous aider aujourd’hui?'
+        )
+        collapsed = collapse_near_duplicate_reply(dup)
+        self.assertLess(len(collapsed), len(dup))
+        self.assertIn('Bonjour', collapsed)
+
+    def test_finalize_assistant_spoken_prefers_single_utterance(self):
+        a = 'Bonjour Julie! Comment puis-je vous aider?'
+        b = a + ' ' + a.replace('les présences', 'lesprésences')
+        out = finalize_assistant_spoken(b)
+        self.assertLess(len(out), len(b))
 
 
 class SentenceAssemblerTests(SimpleTestCase):
@@ -194,7 +225,7 @@ class TtsFallbackQualiteTests(SimpleTestCase):
 
 class QualiteCGeminiTests(SimpleTestCase):
     def test_cache_prompt_v10(self):
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v14')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v15')
 
     def test_navigation_explicite_seulement(self):
         self.assertTrue(is_explicit_navigation('Ouvre le tableau de bord'))
@@ -828,7 +859,7 @@ class GeminiG5MultiToolTests(SimpleTestCase):
 
     def test_plafond_huit_rounds_et_prompt_enchainement(self):
         self.assertEqual(MAX_TOOL_ROUNDS, 8)
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v14')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v15')
         folded = ' '.join(SYSTEM_PROMPT_STATIC.split())
         self.assertIn('tools puis UNE', folded)
         self.assertIn('classe_id', folded)
@@ -1074,7 +1105,7 @@ class GeminiG6PromptTests(SimpleTestCase):
     """G6 : prompt d’autonomie, catalogue raccourci, pièges conservés."""
 
     def test_cache_et_temperatures(self):
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v14')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v15')
         self.assertEqual(TOOL_TEMPERATURE, 0.5)
         self.assertEqual(CONVERSATION_TEMPERATURE, 0.7)
 

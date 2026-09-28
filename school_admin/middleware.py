@@ -21,13 +21,18 @@ class UserTypeMiddleware:
             # Nettoyer le thread-local si pas de type
             if hasattr(_user_type_context, 'user_type'):
                 delattr(_user_type_context, 'user_type')
-        
+        # Session exposée à get_user() pour résoudre les collisions de PK
+        # via le hash d’auth (même ID dans plusieurs tables).
+        _user_type_context.session = request.session
+
         response = self.get_response(request)
-        
+
         # Nettoyer le thread-local après la requête
         if hasattr(_user_type_context, 'user_type'):
             delattr(_user_type_context, 'user_type')
-        
+        if hasattr(_user_type_context, 'session'):
+            delattr(_user_type_context, 'session')
+
         return response
 
 class AuthenticationMiddleware:
@@ -278,6 +283,47 @@ class SessionActiveMiddleware:
         
         response = self.get_response(request)
         return response
+
+
+class CaissierAccessMiddleware:
+    """Restreint le caissier à l'accueil, l'établissement et la scolarité."""
+
+    ALLOWED_PREFIXES = (
+        '/dashboard/directeur/',
+        '/gestion-etablissement/',
+        '/comptabilite/',
+        '/notifications/',
+        '/changer-session/',
+        '/session/',
+        '/deconnexion/',
+        '/static/',
+        '/media/',
+        '/i18n/',
+        '/ws/',
+        '/connexion/',
+        '/service-worker.js',
+        '/firebase',
+        '/api/',
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from school_admin.utils.permissions_personnel import is_caissier
+
+        user = getattr(request, 'user', None)
+        if user and getattr(user, 'is_authenticated', False) and is_caissier(user):
+            path = request.path or '/'
+            if not any(path.startswith(prefix) for prefix in self.ALLOWED_PREFIXES):
+                from django.contrib import messages
+
+                messages.error(
+                    request,
+                    "Votre rôle caissier donne accès uniquement à l'accueil, l'établissement et la scolarité.",
+                )
+                return redirect('directeur:dashboard_directeur')
+        return self.get_response(request)
 
 
 class SeoMiddleware:

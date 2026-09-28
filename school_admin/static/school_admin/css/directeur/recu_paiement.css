@@ -1,9 +1,12 @@
 :root {
   --primary: #3b82f6;
+  --secondary: #1d4ed8;
   --gray-800: #1f2937;
   --gray-600: #4b5563;
   --gray-200: #e5e7eb;
   --white: #ffffff;
+  --success: #10b981;
+  --warning: #fbbf24;
 }
 
 @page {
@@ -13,13 +16,14 @@
 
 body.recu-body {
   margin: 0;
-  background: #f3f4f6;
+  background: linear-gradient(160deg, #eef2ff 0%, #f9fafb 45%, #f3f4f6 100%);
   font-family: "Poppins", Arial, sans-serif;
   color: var(--gray-800);
 }
 
 .print-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: center;
   padding: 1rem;
@@ -31,16 +35,18 @@ body.recu-body {
   align-items: center;
   gap: 0.4rem;
   padding: 0.55rem 1rem;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 600;
   text-decoration: none;
   border: none;
   cursor: pointer;
+  font-size: 0.9375rem;
 }
 
 .btn-print {
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: #fff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
 }
 
 .btn-back {
@@ -49,53 +55,143 @@ body.recu-body {
 }
 
 .recu-sheet {
-  width: 148mm;
+  width: min(148mm, 100%);
   min-height: 210mm;
   margin: 0 auto 2rem;
   background: var(--white);
   border: 1px solid var(--gray-200);
-  padding: 16mm 14mm;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  padding: 14mm 12mm;
+  box-shadow: 0 20px 40px rgba(17, 24, 39, 0.12);
+  overflow: hidden;
 }
 
-.recu-head {
+.recu-banner {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 1rem;
-  border-bottom: 2px solid #3b82f6;
-  padding-bottom: 0.75rem;
-  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, #3b82f6, #8b5cf6) 1;
+  margin-bottom: 0.75rem;
+}
+
+.recu-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.recu-logo {
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.recu-logo--default {
+  padding: 4px;
 }
 
 .recu-school-name {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 800;
   text-transform: uppercase;
-  margin: 0 0 0.25rem;
+  margin: 0 0 0.2rem;
+  line-height: 1.25;
+  color: var(--gray-800);
 }
 
 .recu-school-meta {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   color: var(--gray-600);
   line-height: 1.45;
+  margin: 0;
 }
 
 .recu-title-block {
   text-align: right;
+  flex-shrink: 0;
+}
+
+.recu-kicker {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #8b5cf6;
+  margin: 0 0 0.15rem;
+  font-weight: 600;
 }
 
 .recu-title {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  color: #1d4ed8;
+  letter-spacing: 0.06em;
+  color: var(--secondary);
   margin: 0;
 }
 
 .recu-number {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  margin-top: 0.2rem;
+  margin-top: 0.25rem;
+  color: var(--gray-800);
+}
+
+.recu-contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.72rem;
+  color: var(--gray-600);
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.65rem;
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 8px;
+}
+
+.recu-contact-row i {
+  color: var(--primary);
+  margin-right: 0.25rem;
+}
+
+.recu-objet {
+  position: relative;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(139, 92, 246, 0.06));
+  border-radius: 10px;
+  border-left: 4px solid var(--primary);
+}
+
+.recu-objet-text {
+  margin: 0.25rem 0 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.recu-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.recu-badge--ok {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+}
+
+.recu-badge--warn {
+  background: rgba(251, 191, 36, 0.2);
+  color: #92400e;
 }
 
 .recu-grid {
@@ -103,52 +199,90 @@ body.recu-body {
   grid-template-columns: 1fr 1fr;
   gap: 0.45rem 1rem;
   margin: 1rem 0;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .recu-label {
   color: var(--gray-600);
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  font-weight: 600;
 }
 
 .recu-value {
   font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.recu-value--reste {
+  color: #dc2626;
 }
 
 .recu-amount {
-  margin: 1.25rem 0;
-  padding: 0.85rem 1rem;
-  background: rgba(59, 130, 246, 0.08);
-  border-radius: 8px;
+  margin: 1.1rem 0;
+  padding: 1rem 1.1rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(29, 78, 216, 0.08));
+  border-radius: 12px;
   text-align: center;
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .recu-amount strong {
-  font-size: 1.5rem;
-  color: #1d4ed8;
+  display: block;
+  font-size: 1.75rem;
+  color: var(--secondary);
+  margin-top: 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+.recu-soldes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.75rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px dashed var(--gray-200);
+}
+
+.recu-solde-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .recu-mentions {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--gray-600);
-  line-height: 1.5;
-  margin-top: 1.5rem;
+  line-height: 1.55;
+  margin-top: 1rem;
 }
 
 .recu-stamp {
   display: flex;
   justify-content: space-between;
   margin-top: 2rem;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  color: var(--gray-600);
 }
 
 .recu-stamp-box {
   width: 42%;
   text-align: center;
   border-top: 1px dashed var(--gray-200);
-  padding-top: 0.5rem;
+  padding-top: 0.65rem;
+  min-height: 3rem;
+}
+
+.recu-footer {
+  margin-top: 1.5rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--gray-200);
+  text-align: center;
+  font-size: 0.65rem;
+  color: var(--gray-600);
 }
 
 @media print {
@@ -161,8 +295,21 @@ body.recu-body {
   .recu-sheet {
     box-shadow: none;
     border: none;
+    border-radius: 0;
     margin: 0;
     width: auto;
     min-height: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .recu-banner {
+    flex-direction: column;
+  }
+  .recu-title-block {
+    text-align: left;
+  }
+  .recu-soldes {
+    grid-template-columns: 1fr;
   }
 }

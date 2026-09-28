@@ -1,0 +1,415 @@
+/* Absences & retards élève — structure simplifiée */
+.ele-abs {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem 6.5rem;
+  color: #1f2937;
+}
+
+.ele-abs-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0.85rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.ele-abs-context-col {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.25rem;
+  width: 100%;
+}
+
+.ele-abs-context-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #6b7280;
+}
+
+.ele-abs-context-item i {
+  color: #3b82f6;
+}
+
+.ele-abs-context-item strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.ele-abs-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.ele-abs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.ele-abs-btn--ghost:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.ele-abs-btn--primary {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-color: transparent;
+  color: #fff;
+}
+
+.ele-abs-indicators {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 640px) {
+  .ele-abs-indicators {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ele-abs-indicator {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  min-height: 5.5rem;
+}
+
+.ele-abs-indicator-icon {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.ele-abs-indicator-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ele-abs-indicator-label {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.ele-abs-indicator-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.ele-abs-indicator-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  line-height: 1.35;
+}
+
+.ele-abs-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0.55rem 0.85rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  color: #4b5563;
+}
+
+.ele-abs-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ele-abs-dot {
+  font-size: 0.5rem;
+}
+
+.ele-abs-dot--ok {
+  color: #10b981;
+}
+
+.ele-abs-dot--warn {
+  color: #ef4444;
+}
+
+.ele-abs-dot--late {
+  color: #f59e0b;
+}
+
+.ele-abs-block {
+  margin-bottom: 1.75rem;
+}
+
+.ele-abs-block-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  color: #1f2937;
+}
+
+@media (min-width: 768px) {
+  .ele-abs-block-title {
+    font-size: 1.25rem;
+  }
+}
+
+.ele-abs-block-title i {
+  color: #3b82f6;
+  font-size: 1rem;
+}
+
+.ele-abs-block-sub {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+.ele-abs-activity-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .ele-abs-activity-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ele-abs-panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0.85rem 1rem 1rem;
+}
+
+.ele-abs-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.ele-abs-panel-title i {
+  color: #3b82f6;
+}
+
+.ele-abs-panel-empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #9ca3af;
+}
+
+.ele-abs-event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ele-abs-event {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  min-height: 44px;
+}
+
+.ele-abs-event-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.ele-abs-event-main time {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.ele-abs-event-day {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.ele-abs-event-note {
+  font-size: 0.6875rem;
+  color: #9ca3af;
+}
+
+.ele-abs-event-badge {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ele-abs-event.is-justified .ele-abs-event-badge {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.ele-abs-event.is-unjustified .ele-abs-event-badge {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.ele-abs-event.is-late .ele-abs-event-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.ele-abs-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  background: #fff;
+  border: 1px dashed #d1d5db;
+  border-radius: 14px;
+  color: #6b7280;
+}
+
+.ele-abs-empty .main-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+  display: block;
+  color: #9ca3af;
+}
+
+.ele-abs-empty-title {
+  font-size: 1.125rem;
+  margin: 0 0 0.5rem;
+  color: #374151;
+}
+
+.ele-abs-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.ele-abs-jump a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  min-height: 44px;
+}
+
+.ele-abs-jump a:hover {
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.ele-abs-jump a i {
+  color: #3b82f6;
+  font-size: 0.75rem;
+}
+
+.ele-abs-mois-label {
+  margin: 0 0 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ele-abs .periodes-tabs {
+  flex-wrap: nowrap;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.35rem;
+}
+
+.ele-abs .periode-tab {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  min-width: 11.5rem;
+}
+
+.ele-abs .mois-tabs {
+  flex-wrap: nowrap;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ele-abs .mois-tab {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  min-height: 44px;
+}
+
+.ele-abs .section-container {
+  margin-bottom: 1.25rem;
+}

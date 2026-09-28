@@ -1,0 +1,133 @@
+<div class="prof-noter-shell">
+    <nav class="prof-noter-breadcrumb" aria-label="Fil d'Ariane">
+        {% if prof_noter_mode == 'primaire' %}
+            <a href="{% url 'enseignant_primaire:gestion_notes' %}?classe={{ classe.id }}{% if periode_selectionnee %}&periode={{ periode_selectionnee.id }}{% endif %}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}&vue=saisie" class="prof-noter-back">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                <span>Notes · {{ classe.nom }}</span>
+            </a>
+        {% else %}
+            <a href="{% url 'enseignant:gestion_notes' %}?classe={{ classe.id }}{% if periode_active %}&periode={{ periode_active.id }}{% endif %}{% if matiere %}&matiere={{ matiere.id }}{% endif %}&vue=saisie" class="prof-noter-back">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                <span>Notes · {{ classe.nom }}{% if matiere %} · {{ matiere.nom }}{% endif %}</span>
+            </a>
+        {% endif %}
+    </nav>
+
+    <header class="prof-noter-hero">
+        <div class="prof-noter-hero-text">
+            <p class="prof-noter-kicker"><i class="fas fa-pen-to-square" aria-hidden="true"></i> Saisie des notes</p>
+            <h1 class="prof-noter-title">{{ classe.nom }}</h1>
+            <div class="prof-noter-chips">
+                {% if prof_noter_mode == 'primaire' and matiere_selectionnee %}
+                    <span class="prof-noter-chip matiere"><i class="fas fa-book"></i> {{ matiere_selectionnee.nom }}</span>
+                {% elif matiere %}
+                    <span class="prof-noter-chip matiere"><i class="fas fa-book"></i> {{ matiere.nom }}</span>
+                {% endif %}
+                {% if prof_noter_mode == 'primaire' and periode_selectionnee %}
+                    <span class="prof-noter-chip"><i class="fas fa-calendar-alt"></i> {{ periode_selectionnee.nom_periode }}</span>
+                {% elif periode_active %}
+                    <span class="prof-noter-chip"><i class="fas fa-calendar-alt"></i> {{ periode_active.libelle_affichage_superieur|default:periode_active.nom_periode }}</span>
+                {% endif %}
+                <span class="prof-noter-chip"><i class="fas fa-users"></i> {{ prof_noter_effectif }} élève{{ prof_noter_effectif|pluralize }}</span>
+                {% if annee_scolaire_active %}
+                    <span class="prof-noter-chip muted"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="prof-noter-status {% if prof_noter_locked %}locked{% else %}open{% endif %}" role="status">
+            {% if prof_noter_locked %}
+                <i class="fas fa-lock" aria-hidden="true"></i>
+                <div>
+                    <strong>Relevé verrouillé</strong>
+                    <p>{{ prof_noter_status_hint }}</p>
+                </div>
+            {% else %}
+                <i class="fas fa-edit" aria-hidden="true"></i>
+                <div>
+                    <strong>Saisie ouverte</strong>
+                    <p>Enregistrez, calculez les moyennes puis publiez ou soumettez le relevé.</p>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <section class="prof-noter-section" aria-labelledby="prof-noter-shortcuts-title">
+        <h2 id="prof-noter-shortcuts-title" class="prof-noter-section-title"><i class="fas fa-bolt"></i> Raccourcis</h2>
+        <div class="prof-noter-link-grid">
+            {% if prof_noter_mode == 'primaire' %}
+                <a href="{% url 'enseignant_primaire:gestion_notes' %}?classe={{ classe.id }}{% if periode_selectionnee %}&periode={{ periode_selectionnee.id }}{% endif %}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}" class="prof-noter-link-card">
+                    <span class="prof-noter-link-icon info"><i class="fas fa-table"></i></span>
+                    <span class="prof-noter-link-text"><strong>Relevé</strong><small>Vue hub notes</small></span>
+                </a>
+                <a href="{% url 'enseignant_primaire:creer_evaluation' classe.id %}{% if matiere_selectionnee %}?matiere={{ matiere_selectionnee.id }}{% endif %}{% if periode_selectionnee %}{% if matiere_selectionnee %}&{% else %}?{% endif %}periode={{ periode_selectionnee.id }}{% endif %}"
+                   class="prof-noter-link-card js-prof-noter-open-eval-modal"
+                   data-classe-id="{{ classe.id }}"
+                   {% if matiere_selectionnee %}data-matiere-id="{{ matiere_selectionnee.id }}"{% endif %}
+                   {% if periode_selectionnee %}data-periode-id="{{ periode_selectionnee.id }}"{% endif %}>
+                    <span class="prof-noter-link-icon success"><i class="fas fa-plus"></i></span>
+                    <span class="prof-noter-link-text"><strong>Nouvelle évaluation</strong><small>Devoir ou contrôle</small></span>
+                </a>
+                <a href="{% url 'enseignant_primaire:gestion_eleves' %}?classe={{ classe.id }}" class="prof-noter-link-card">
+                    <span class="prof-noter-link-icon secondary"><i class="fas fa-user-graduate"></i></span>
+                    <span class="prof-noter-link-text"><strong>Élèves</strong><small>Fiches individuelles</small></span>
+                </a>
+            {% else %}
+                <a href="{% url 'enseignant:gestion_notes' %}?classe={{ classe.id }}{% if periode_active %}&periode={{ periode_active.id }}{% endif %}{% if matiere %}&matiere={{ matiere.id }}{% endif %}" class="prof-noter-link-card">
+                    <span class="prof-noter-link-icon info"><i class="fas fa-table"></i></span>
+                    <span class="prof-noter-link-text"><strong>Relevé</strong><small>Vue hub notes</small></span>
+                </a>
+                <a href="{% url 'enseignant:creer_evaluation' classe.id %}{% if matiere %}?matiere={{ matiere.id }}{% endif %}{% if periode_active %}{% if matiere %}&{% else %}?{% endif %}periode={{ periode_active.id }}{% endif %}"
+                   class="prof-noter-link-card js-prof-noter-open-eval-modal"
+                   data-classe-id="{{ classe.id }}"
+                   {% if matiere %}data-matiere-id="{{ matiere.id }}"{% endif %}
+                   {% if periode_active %}data-periode-id="{{ periode_active.id }}"{% endif %}>
+                    <span class="prof-noter-link-icon success"><i class="fas fa-plus"></i></span>
+                    <span class="prof-noter-link-text"><strong>Nouvelle évaluation</strong><small>Programmer un devoir</small></span>
+                </a>
+                <a href="{% url 'enseignant:gestion_eleves' %}?classe={{ classe.id }}" class="prof-noter-link-card">
+                    <span class="prof-noter-link-icon secondary"><i class="fas fa-user-graduate"></i></span>
+                    <span class="prof-noter-link-text"><strong>Élèves</strong><small>Liste de la classe</small></span>
+                </a>
+            {% endif %}
+        </div>
+    </section>
+
+    <nav class="prof-noter-filters" aria-label="Filtres période et matière">
+        <div class="prof-noter-filter-group">
+            <span class="prof-noter-filter-label"><i class="fas fa-calendar-alt"></i> Période</span>
+            <div class="prof-noter-filter-tabs">
+                {% if prof_noter_mode == 'primaire' %}
+                    {% for periode in periodes %}
+                        <a href="?periode={{ periode.id }}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}"
+                           class="prof-noter-filter-tab {% if periode_selectionnee and periode_selectionnee.id == periode.id %}active{% endif %}">
+                            {{ periode.nom_periode }}
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    {% for periode in periodes_scolaires %}
+                        <a href="?periode={{ periode.id }}{% if matiere %}&matiere={{ matiere.id }}{% endif %}"
+                           class="prof-noter-filter-tab {% if periode_active and periode_active.id == periode.id %}active{% endif %}">
+                            {{ periode.libelle_affichage_superieur|default:periode.nom_periode }}
+                        </a>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        {% if prof_noter_mode == 'primaire' and matieres_data %}
+        <div class="prof-noter-filter-group">
+            <span class="prof-noter-filter-label"><i class="fas fa-book"></i> Matière</span>
+            <div class="prof-noter-filter-tabs matiere">
+                {% for matiere_data in matieres_data %}
+                    <a href="?periode={{ periode_selectionnee.id }}&matiere={{ matiere_data.matiere.id }}"
+                       class="prof-noter-filter-tab {% if matiere_selectionnee and matiere_selectionnee.id == matiere_data.matiere.id %}active{% endif %}"
+                       title="{{ matiere_data.matiere.nom }}">
+                        {{ matiere_data.matiere.code|default:matiere_data.matiere.nom }}
+                        <span class="prof-noter-eval-count">{{ matiere_data.evaluations|length }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </nav>
+
+    <div class="prof-noter-panel">

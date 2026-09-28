@@ -1,0 +1,348 @@
+{% load i18n %}
+
+<div class="ele-abs">
+  <div class="ele-abs-context">
+    <div class="ele-abs-context-col">
+      {% if classe %}
+        <div class="ele-abs-context-item">
+          <i class="fas fa-chalkboard-user" aria-hidden="true"></i>
+          <span>Classe <strong>{{ classe.nom }}</strong></span>
+        </div>
+      {% endif %}
+      {% if annee_scolaire_active %}
+        <div class="ele-abs-context-item">
+          <i class="fas fa-calendar-check" aria-hidden="true"></i>
+          <span>Année <strong>{{ annee_scolaire_active.libelle }}</strong></span>
+        </div>
+      {% endif %}
+      {% if periode_active %}
+        <div class="ele-abs-context-item">
+          <i class="fas fa-clock" aria-hidden="true"></i>
+          <span>Période en cours : <strong>{{ periode_active.nom_periode }}</strong></span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="ele-abs-toolbar">
+    <a href="{% url 'eleve:emploi_du_temps' %}" class="ele-abs-btn ele-abs-btn--ghost">
+      <i class="fas fa-calendar-week" aria-hidden="true"></i>
+      Emploi du temps
+    </a>
+    <a href="{% url 'eleve:dashboard_eleve' %}" class="ele-abs-btn ele-abs-btn--ghost">
+      <i class="fas fa-home" aria-hidden="true"></i>
+      Accueil
+    </a>
+  </div>
+
+  <div class="ele-abs-indicators" aria-label="Assiduité — résumé annuel">
+    <div class="ele-abs-indicator">
+      <div class="ele-abs-indicator-icon" style="background-color: #10b981;">
+        <i class="fas fa-check-circle" aria-hidden="true"></i>
+      </div>
+      <div class="ele-abs-indicator-body">
+        <span class="ele-abs-indicator-label">Taux de présence</span>
+        <span class="ele-abs-indicator-value">{{ taux_presence }}%</span>
+        <span class="ele-abs-indicator-hint">{{ total_presences }}/{{ total_jours }} jours comptabilisés</span>
+      </div>
+    </div>
+    <div class="ele-abs-indicator">
+      <div class="ele-abs-indicator-icon" style="background-color: #ef4444;">
+        <i class="fas fa-user-times" aria-hidden="true"></i>
+      </div>
+      <div class="ele-abs-indicator-body">
+        <span class="ele-abs-indicator-label">Absences</span>
+        <span class="ele-abs-indicator-value">{{ total_absences }}</span>
+        <span class="ele-abs-indicator-hint">{{ absences_justifiees }} justifiée{{ absences_justifiees|pluralize }} · {{ absences_non_justifiees }} non justifiée{{ absences_non_justifiees|pluralize }}</span>
+      </div>
+    </div>
+    <div class="ele-abs-indicator">
+      <div class="ele-abs-indicator-icon" style="background-color: #f59e0b;">
+        <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+      </div>
+      <div class="ele-abs-indicator-body">
+        <span class="ele-abs-indicator-label">Retards</span>
+        <span class="ele-abs-indicator-value">{{ total_retards }}</span>
+        <span class="ele-abs-indicator-hint">Sur l’année scolaire en cours</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ele-abs-legend" role="note">
+    <span class="ele-abs-legend-item"><i class="fas fa-circle ele-abs-dot ele-abs-dot--ok" aria-hidden="true"></i> Justifiée</span>
+    <span class="ele-abs-legend-item"><i class="fas fa-circle ele-abs-dot ele-abs-dot--warn" aria-hidden="true"></i> Non justifiée</span>
+    <span class="ele-abs-legend-item"><i class="fas fa-circle ele-abs-dot ele-abs-dot--late" aria-hidden="true"></i> Retard</span>
+  </div>
+
+  {% if absences_recentes or retards_recents %}
+  <section class="ele-abs-block ele-abs-activity" aria-labelledby="ele-abs-recent-title">
+    <h2 class="ele-abs-block-title" id="ele-abs-recent-title">
+      <i class="fas fa-bolt" aria-hidden="true"></i>
+      Les 30 derniers jours
+    </h2>
+    <p class="ele-abs-block-sub">Événements récents regroupés pour repérer rapidement absences et retards.</p>
+
+    <div class="ele-abs-activity-grid">
+      <div class="ele-abs-panel">
+        <h3 class="ele-abs-panel-title">
+          <i class="fas fa-user-times" aria-hidden="true"></i>
+          Absences récentes
+        </h3>
+        {% if absences_recentes %}
+          <ul class="ele-abs-event-list">
+            {% for absence in absences_recentes|slice:":8" %}
+              <li class="ele-abs-event {% if absence.statut == 'absent_justifie' %}is-justified{% else %}is-unjustified{% endif %}">
+                <div class="ele-abs-event-main">
+                  <time datetime="{{ absence.date|date:'Y-m-d' }}">{{ absence.date|date:"d/m/Y" }}</time>
+                  <span class="ele-abs-event-day">{{ absence.date|date:"l"|capfirst }}</span>
+                </div>
+                <span class="ele-abs-event-badge">
+                  {% if absence.statut == 'absent_justifie' %}Justifiée{% else %}Non justifiée{% endif %}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="ele-abs-panel-empty">Aucune absence sur les 30 derniers jours.</p>
+        {% endif %}
+      </div>
+
+      <div class="ele-abs-panel">
+        <h3 class="ele-abs-panel-title">
+          <i class="fas fa-clock" aria-hidden="true"></i>
+          Retards récents
+        </h3>
+        {% if retards_recents %}
+          <ul class="ele-abs-event-list">
+            {% for retard in retards_recents|slice:":8" %}
+              <li class="ele-abs-event is-late">
+                <div class="ele-abs-event-main">
+                  <time datetime="{{ retard.date|date:'Y-m-d' }}">{{ retard.date|date:"d/m/Y" }}</time>
+                  <span class="ele-abs-event-day">{{ retard.date|date:"l"|capfirst }}</span>
+                  {% if retard.remarque %}
+                    <span class="ele-abs-event-note">{{ retard.remarque|truncatechars:48 }}</span>
+                  {% endif %}
+                </div>
+                <span class="ele-abs-event-badge">Retard</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="ele-abs-panel-empty">Aucun retard sur les 30 derniers jours.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if not periodes_data %}
+    <div class="ele-abs-empty">
+      <i class="fas fa-smile main-icon" aria-hidden="true"></i>
+      <h2 class="ele-abs-empty-title">Aucune période scolaire</h2>
+      <p>L’historique détaillé s’affichera lorsque les périodes seront ouvertes par l’établissement.</p>
+      <a href="{% url 'eleve:dashboard_eleve' %}" class="ele-abs-btn ele-abs-btn--primary" style="margin-top: 1rem;">
+        <i class="fas fa-home" aria-hidden="true"></i> Retour à l’accueil
+      </a>
+    </div>
+  {% else %}
+
+  <section class="ele-abs-block" aria-labelledby="ele-abs-periodes-title">
+    <h2 class="ele-abs-block-title" id="ele-abs-periodes-title">
+      <i class="fas fa-layer-group" aria-hidden="true"></i>
+      Historique par période
+    </h2>
+    <p class="ele-abs-block-sub">Choisissez une période, puis un mois : absences et retards du mois sont regroupés ci-dessous.</p>
+
+    <div class="periodes-tabs-container">
+      <div class="periodes-tabs" role="tablist" aria-label="Périodes scolaires">
+        {% for periode_data in periodes_data %}
+          <div class="periode-tab {% if periode_data.est_active %}active{% endif %}"
+               role="tab"
+               aria-selected="{% if periode_data.est_active %}true{% else %}false{% endif %}"
+               tabindex="0"
+               data-periode="{{ periode_data.periode.nom_periode }}">
+            <div class="tab-icon">
+              <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+              {% if periode_data.est_active %}
+                <span class="tab-badge current">En cours</span>
+              {% else %}
+                <span class="tab-badge">{% if periode_data.periode.date_fin < today %}Passé{% else %}À venir{% endif %}</span>
+              {% endif %}
+            </div>
+            <div class="tab-info">
+              <div class="tab-title">{{ periode_data.periode.nom_periode }}</div>
+              <div class="tab-period">{{ periode_data.periode.date_debut|date:"d/m/Y" }} – {{ periode_data.periode.date_fin|date:"d/m/Y" }}</div>
+            </div>
+            <div class="tab-stats">
+              <span class="tab-stat absences">{{ periode_data.nb_absences }} abs.</span>
+              <span class="tab-stat retards">{{ periode_data.nb_retards }} ret.</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <div class="periodes-content">
+    {% for periode_data in periodes_data %}
+      <div class="periode-section {% if periode_data.est_active %}active{% endif %}"
+           role="tabpanel"
+           data-periode="{{ periode_data.periode.nom_periode }}">
+
+        {% if periode_data.mois_liste %}
+          <div class="mois-tabs-container">
+            <p class="ele-abs-mois-label"><i class="fas fa-calendar-day" aria-hidden="true"></i> Mois</p>
+            <div class="mois-tabs" role="tablist" aria-label="Mois — {{ periode_data.periode.nom_periode }}">
+              {% for mois in periode_data.mois_liste %}
+                <button type="button" class="mois-tab {% if forloop.first %}active{% endif %}"
+                        data-periode="{{ periode_data.periode.nom_periode }}"
+                        data-mois="{{ mois.mois_key }}"
+                        onclick="switchMois('{{ periode_data.periode.nom_periode|escapejs }}', '{{ mois.mois_key }}')">
+                  <i class="fas fa-calendar-day" aria-hidden="true"></i>
+                  <span>{{ mois.mois_nom }}</span>
+                  <div class="mois-badges">
+                    {% if mois.nb_absences > 0 %}
+                      <span class="mois-badge absences">{{ mois.nb_absences }}</span>
+                    {% endif %}
+                    {% if mois.nb_retards > 0 %}
+                      <span class="mois-badge retards">{{ mois.nb_retards }}</span>
+                    {% endif %}
+                  </div>
+                </button>
+              {% endfor %}
+            </div>
+          </div>
+
+          {% for mois in periode_data.mois_liste %}
+            <div class="mois-content {% if forloop.first %}active{% endif %}"
+                 data-periode="{{ periode_data.periode.nom_periode }}"
+                 data-mois="{{ mois.mois_key }}">
+
+              <nav class="ele-abs-jump" aria-label="Raccourcis — {{ mois.mois_nom }}">
+                <a href="#ele-abs-absences-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                  <i class="fas fa-user-times" aria-hidden="true"></i> Absences ({{ mois.nb_absences }})
+                </a>
+                <a href="#ele-abs-retards-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                  <i class="fas fa-clock" aria-hidden="true"></i> Retards ({{ mois.nb_retards }})
+                </a>
+              </nav>
+
+              <section class="section-container" id="ele-abs-absences-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" aria-labelledby="ele-abs-abs-title-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                <div class="section-header">
+                  <h3 class="section-title" id="ele-abs-abs-title-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                    <i class="fas fa-user-times" aria-hidden="true"></i>
+                    Absences — {{ mois.mois_nom }}
+                    <span class="count-badge absences">{{ mois.nb_absences }}</span>
+                  </h3>
+                </div>
+
+                {% if mois.absences %}
+                  <div class="absences-list">
+                    {% for absence in mois.absences %}
+                      <article class="absence-card {% if absence.statut == 'absent_justifie' %}justified{% else %}unjustified{% endif %}">
+                        <div class="absence-header">
+                          <div class="absence-date">
+                            <i class="fas fa-calendar" aria-hidden="true"></i>
+                            <span>{{ absence.date|date:"l d F Y" }}</span>
+                          </div>
+                          <div class="absence-status">
+                            {% if absence.statut == 'absent_justifie' %}
+                              <span class="badge badge-justified">
+                                <i class="fas fa-check" aria-hidden="true"></i>
+                                Justifiée
+                              </span>
+                            {% else %}
+                              <span class="badge badge-unjustified">
+                                <i class="fas fa-exclamation" aria-hidden="true"></i>
+                                Non justifiée
+                              </span>
+                            {% endif %}
+                          </div>
+                        </div>
+
+                        {% if absence.statut == 'absent_justifie' and absence.type_justificatif %}
+                          <div class="absence-body">
+                            <div class="justificatif-info">
+                              <i class="fas fa-file-medical" aria-hidden="true"></i>
+                              <span>{{ absence.get_type_justificatif_display }}</span>
+                            </div>
+                            {% if absence.date_justification %}
+                              <div class="justificatif-date">
+                                Justifié le {{ absence.date_justification|date:"d/m/Y" }}
+                              </div>
+                            {% endif %}
+                          </div>
+                        {% endif %}
+
+                        {% if absence.remarque %}
+                          <div class="absence-remarque">
+                            <i class="fas fa-comment" aria-hidden="true"></i>
+                            <span>{{ absence.remarque }}</span>
+                          </div>
+                        {% endif %}
+                      </article>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="empty-state">
+                    <i class="fas fa-smile" aria-hidden="true"></i>
+                    <p>Aucune absence ce mois-ci</p>
+                  </div>
+                {% endif %}
+              </section>
+
+              <section class="section-container" id="ele-abs-retards-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" aria-labelledby="ele-abs-ret-title-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                <div class="section-header">
+                  <h3 class="section-title" id="ele-abs-ret-title-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                    <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+                    Retards — {{ mois.mois_nom }}
+                    <span class="count-badge retards">{{ mois.nb_retards }}</span>
+                  </h3>
+                </div>
+
+                {% if mois.retards %}
+                  <div class="retards-list">
+                    {% for retard in mois.retards %}
+                      <article class="retard-card">
+                        <div class="retard-header">
+                          <div class="retard-date">
+                            <i class="fas fa-calendar" aria-hidden="true"></i>
+                            <span>{{ retard.date|date:"l d F Y" }}</span>
+                          </div>
+                          <div class="retard-badge">
+                            <i class="fas fa-clock" aria-hidden="true"></i>
+                            Retard
+                          </div>
+                        </div>
+                        {% if retard.remarque %}
+                          <div class="retard-remarque">
+                            <i class="fas fa-comment" aria-hidden="true"></i>
+                            <span>{{ retard.remarque }}</span>
+                          </div>
+                        {% endif %}
+                      </article>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="empty-state">
+                    <i class="fas fa-smile" aria-hidden="true"></i>
+                    <p>Aucun retard ce mois-ci</p>
+                  </div>
+                {% endif %}
+              </section>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="section-container">
+            <div class="empty-state">
+              <i class="fas fa-smile" aria-hidden="true"></i>
+              <p>Aucune absence ni retard enregistré pour cette période</p>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  {% endif %}
+</div>

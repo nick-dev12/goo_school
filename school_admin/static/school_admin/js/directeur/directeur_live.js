@@ -10,11 +10,19 @@
 
 
 
+  if (window.__ARIA_DIRECTEUR_LIVE__) {
+
+    return;
+
+  }
+
   if (!window.AriaLive) {
 
     return;
 
   }
+
+  window.__ARIA_DIRECTEUR_LIVE__ = true;
 
 
 
@@ -794,6 +802,24 @@
 
 
 
+  function renderRecusCell(row) {
+    if (!row.recus || !row.recus.length) {
+      return '<td class="scd-recus-cell"><span class="scd-recus-empty">—</span></td>';
+    }
+    var html = '<td class="scd-recus-cell"><div class="scd-recus-list">';
+    row.recus.forEach(function (recu) {
+      html +=
+        '<a href="' +
+        esc(recu.url) +
+        '" class="scd-btn-recu" target="_blank" rel="noopener noreferrer" title="Reçu">' +
+        '<i class="fas fa-receipt" aria-hidden="true"></i><span class="scd-btn-recu__label">' +
+        esc(recu.label) +
+        '</span></a>';
+    });
+    html += '</div></td>';
+    return html;
+  }
+
   function renderFraisRow(row, devise) {
 
     var resteColor = row.reste_a_payer > 0 ? 'var(--accent, #ef4444)' : 'var(--success, #10b981)';
@@ -872,11 +898,15 @@
 
       '</span></td>' +
 
-      '<td>' +
+      '<td class="scd-actions-cell">' +
 
       action +
 
-      '</td></tr>'
+      '</td>' +
+
+      renderRecusCell(row) +
+
+      '</tr>'
 
     );
 
@@ -899,7 +929,9 @@
       fmtMoney(row.reste_a_payer, devise) + '</span></td>' +
       '<td>' + esc(row.date_echeance) + '</td>' +
       '<td><span class="badge badge-' + row.statut_badge + '">' + esc(row.statut_display) + '</span></td>' +
-      '<td>' + action + '</td></tr>'
+      '<td class="scd-actions-cell">' + action + '</td>' +
+      renderRecusCell(row) +
+      '</tr>'
     );
   }
 
@@ -931,6 +963,10 @@
 
       : '<span class="badge badge-success">Payé</span>';
 
+    var eleveCol = eleveNom
+      ? '<td>' + esc(eleveNom) + '</td>'
+      : '';
+
     return (
 
       '<tr data-mensualite-id="' +
@@ -939,11 +975,7 @@
 
       '">' +
 
-      '<td>' +
-
-      esc(eleveNom) +
-
-      '</td>' +
+      eleveCol +
 
       '<td>' +
 
@@ -985,11 +1017,15 @@
 
       '</td>' +
 
-      '<td>' +
+      '<td class="scd-actions-cell">' +
 
       action +
 
-      '</td></tr>'
+      '</td>' +
+
+      renderRecusCell(row) +
+
+      '</tr>'
 
     );
 
@@ -1189,7 +1225,7 @@
 
           .map(function (row) {
 
-            return renderMensualiteRow(row, devise, snapshot.eleve_nom || '');
+            return renderMensualiteRow(row, devise, '');
 
           })
 
@@ -1573,13 +1609,29 @@
 
       AriaLive.reloadUnlessSkip();
 
-    } else if (event === 'professeur.cree' && item) {
+    } else if (event === 'professeur.cree') {
 
-      appendProfesseurCard(item);
+      if (item && item.action !== 'desactive' && document.getElementById('professeurs-grid')) {
 
-    } else if (event === 'personnel.cree' && item) {
+        appendProfesseurCard(item);
 
-      appendPersonnelCard(item);
+      } else {
+
+        reloadDirecteurPageIf(event);
+
+      }
+
+    } else if (event === 'personnel.cree') {
+
+      if (item && item.action !== 'desactive' && document.querySelector('.personnel-grid, #personnel-grid, [data-personnel-id]')) {
+
+        appendPersonnelCard(item);
+
+      } else {
+
+        reloadDirecteurPageIf(event);
+
+      }
 
     } else if (event === 'affectation.mise_a_jour') {
 
@@ -1596,8 +1648,19 @@
       event === 'examen.mise_a_jour' ||
       event === 'presence.mise_a_jour' ||
       event === 'bulletin.mise_a_jour' ||
-      event === 'annee_scolaire.modifiee'
+      event === 'annee_scolaire.modifiee' ||
+      event === 'caisse.mise_a_jour' ||
+      event === 'paie.mise_a_jour' ||
+      event === 'filiere.mise_a_jour' ||
+      event === 'eleve.inscrit' ||
+      event === 'classe.creee' ||
+      event === 'classe.modifiee' ||
+      event === 'classe.supprimee'
     ) {
+
+      reloadDirecteurPageIf(event);
+
+    } else {
 
       reloadDirecteurPageIf(event);
 
@@ -1612,18 +1675,29 @@
     var page = document.body.getAttribute('data-live-page') || '';
 
     var map = {
-      'annonce.mise_a_jour': ['annonces-directeur'],
-      'liaison.mise_a_jour': ['demandes-liaison'],
-      'preinscription.mise_a_jour': ['preinscription-liens', 'preinscriptions', 'liste-eleves'],
-      'examen.mise_a_jour': ['examens'],
-      'presence.mise_a_jour': ['suivi-presence'],
-      'bulletin.mise_a_jour': ['bulletins-liste', 'bulletins-voir', 'notes-resultats'],
-      'annee_scolaire.modifiee': ['annees', 'periodes'],
+      'annonce.mise_a_jour': ['annonces-directeur', 'dashboard'],
+      'liaison.mise_a_jour': ['demandes-liaison', 'dashboard'],
+      'preinscription.mise_a_jour': ['preinscription-liens', 'preinscriptions', 'liste-eleves', 'dashboard'],
+      'examen.mise_a_jour': ['examens', 'examens-emploi', 'dashboard'],
+      'presence.mise_a_jour': ['suivi-presence', 'dashboard'],
+      'bulletin.mise_a_jour': ['bulletins-liste', 'bulletins-voir', 'notes-resultats', 'dashboard'],
+      'annee_scolaire.modifiee': ['annees', 'periodes', 'dashboard'],
+      'caisse.mise_a_jour': ['caisse', 'compta-bilan', 'dashboard'],
+      'paie.mise_a_jour': ['volume-horaire', 'volume-horaire-detail', 'caisse', 'dashboard'],
+      'filiere.mise_a_jour': ['filieres', 'classes', 'dashboard'],
+      'eleve.inscrit': ['liste-eleves', 'dashboard', 'gestion-eleves', 'compta-liste', 'eleve-detail', 'reinscription'],
+      'classe.creee': ['classes', 'dashboard'],
+      'classe.modifiee': ['classes', 'dashboard'],
+      'classe.supprimee': ['classes', 'dashboard'],
+      'professeur.cree': ['professeurs', 'dashboard', 'volume-horaire', 'personnel', 'professeur-detail'],
+      'personnel.cree': ['personnel', 'dashboard', 'personnel-detail'],
+      'comptabilite.mise_a_jour': ['compta-liste', 'compta-details', 'caisse', 'dashboard', 'compta-impayes'],
+      'justification.soumise': ['justifications', 'notifications', 'dashboard'],
     };
 
     var pages = map[event] || [];
 
-    if (!pages.length || pages.indexOf(page) !== -1) {
+    if (pages.indexOf(page) !== -1) {
 
       AriaLive.reloadUnlessSkip();
 
@@ -2329,9 +2403,52 @@
 
 
 
+  function inferLivePage() {
+
+    var body = document.body;
+
+    var current = body.getAttribute('data-live-page');
+
+    if (current) {
+
+      return current;
+
+    }
+
+    var path = (window.location.pathname || '').toLowerCase();
+
+    var rules = [
+      ['/dashboard/directeur', 'dashboard'],
+      ['/volume-horaire/', 'volume-horaire-detail'],
+      ['/volume-horaire', 'volume-horaire'],
+      ['/comptabilite/caisse', 'caisse'],
+      ['/professeurs', 'professeurs'],
+      ['/classes/filieres', 'filieres'],
+      ['emploi-du-temps-examens', 'examens-emploi'],
+      ['/notifications', 'notifications'],
+    ];
+
+    for (var i = 0; i < rules.length; i += 1) {
+
+      if (path.indexOf(rules[i][0]) !== -1) {
+
+        body.setAttribute('data-live-page', rules[i][1]);
+
+        return rules[i][1];
+
+      }
+
+    }
+
+    return '';
+
+  }
+
+
+
   document.addEventListener('DOMContentLoaded', function () {
 
-    var page = document.body.getAttribute('data-live-page');
+    var page = inferLivePage();
 
     if (page === 'salles') {
 
@@ -2365,7 +2482,7 @@
 
       initComptaListe();
 
-    } else if (page === 'personnel') {
+    } else if (page === 'personnel' || page === 'professeurs') {
 
       initPersonnel();
 
@@ -2388,14 +2505,6 @@
     document.addEventListener('aria:live-directeur', function (e) {
 
       handleLiveDetail(e.detail || {});
-
-    });
-
-    document.addEventListener('aria:realtime', function (e) {
-
-      var d = e.detail || {};
-
-      handleLiveDetail(Object.assign({ event: d.type }, d.payload || {}));
 
     });
 

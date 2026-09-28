@@ -854,3 +854,43 @@ def payer_echeance_moratoire(echeance, montant, *, user=None, mode_paiement='esp
             moratoire.comptabilite_eleve.verifier_statut_paiement()
         verifier_rupture_moratoire(moratoire)
     return echeance
+
+
+def build_recu_paiement_extra_context(paiement):
+    """
+    Contexte enrichi pour l'impression du reçu (objet du versement, soldes, type d'opération).
+    """
+    objet = paiement.get_type_paiement_display() or 'Paiement scolarité'
+    montant_ligne = None
+    reste_ligne = None
+    est_avance = False
+
+    frais_inscription = getattr(paiement, 'frais_inscription', None)
+    mensualite = getattr(paiement, 'mensualite', None)
+    frais_annexe = getattr(paiement, 'frais_annexe', None)
+
+    if frais_inscription:
+        objet = f"Frais d'inscription — {frais_inscription.get_type_frais_display()}"
+        montant_ligne = frais_inscription.montant
+        reste_ligne = frais_inscription.get_reste_a_payer()
+    elif mensualite:
+        objet = f"Mensualité — {mensualite.periode}"
+        montant_ligne = mensualite.montant
+        reste_ligne = mensualite.get_reste_a_payer()
+    elif frais_annexe:
+        objet = f"Frais annexe — {frais_annexe.libelle}"
+        montant_ligne = frais_annexe.montant
+        reste_ligne = frais_annexe.get_reste_a_payer()
+
+    if montant_ligne is not None and reste_ligne is not None and reste_ligne > ZERO:
+        est_avance = True
+
+    type_operation = "Solde complet" if not est_avance else "Acompte / versement partiel"
+
+    return {
+        'objet_paiement': objet,
+        'montant_ligne': montant_ligne,
+        'reste_ligne': reste_ligne,
+        'est_avance': est_avance,
+        'type_operation': type_operation,
+    }

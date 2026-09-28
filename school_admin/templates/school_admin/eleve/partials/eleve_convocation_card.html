@@ -1,0 +1,56 @@
+<article class="convocation-card {% if not convocation.est_passee and convocation.statut == 'en_attente' %}urgent{% elif convocation.est_passee %}passee{% elif convocation.statut == 'honoree' %}honoree{% endif %}"
+         data-statut="{{ convocation.statut }}">
+  {% if not convocation.est_passee and convocation.statut == 'en_attente' %}
+    <span class="urgent-badge">
+      <i class="fas fa-exclamation-triangle" aria-hidden="true"></i> À venir
+    </span>
+  {% endif %}
+
+  <div class="convocation-header">
+    <div class="convocation-title">
+      <h3>{{ convocation.objet }}</h3>
+    </div>
+    <div class="convocation-status status-{{ convocation.statut }}">
+      {{ convocation.get_statut_display }}
+    </div>
+  </div>
+
+  <div class="convocation-body">
+    <div class="convocation-info">
+      <div class="info-icon">
+        <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+      </div>
+      <div class="info-content">
+        <div class="info-label">Date</div>
+        <div class="info-value">{{ convocation.date_convocation|date:"d/m/Y" }}</div>
+      </div>
+    </div>
+    <div class="convocation-info">
+      <div class="info-icon">
+        <i class="fas fa-clock" aria-hidden="true"></i>
+      </div>
+      <div class="info-content">
+        <div class="info-label">Heure</div>
+        <div class="info-value">{{ convocation.heure_convocation|date:"H:i" }}</div>
+      </div>
+    </div>
+    <div class="convocation-info">
+      <div class="info-icon">
+        <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+      </div>
+      <div class="info-content">
+        <div class="info-label">Lieu</div>
+        <div class="info-value">{{ convocation.lieu }}</div>
+      </div>
+    </div>
+  </div>
+
+  {% if convocation.motif %}
+    <div class="convocation-motif">
+      <div class="motif-label">
+        <i class="fas fa-info-circle" aria-hidden="true"></i> Motif
+      </div>
+      <div class="motif-text">{{ convocation.motif }}</div>
+    </div>
+  {% endif %}
+</article>

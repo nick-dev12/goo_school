@@ -14,11 +14,11 @@ from school_admin.services.assistant_tools import TOOLS_SCHEMA
 
 logger = logging.getLogger(__name__)
 
-CACHE_DISPLAY_NAME = 'aria-directeur-tools-v14'
-CACHE_DISPLAY_NAME_ENSEIGNANT = 'aria-enseignant-primaire-tools-v4'
-CACHE_DISPLAY_NAME_ENSEIGNANT_SEC = 'aria-enseignant-tools-v5'
-CACHE_DISPLAY_NAME_PARENT = 'aria-parent-tools-v1'
-CACHE_DISPLAY_NAME_ELEVE = 'aria-eleve-tools-v1'
+CACHE_DISPLAY_NAME = 'aria-directeur-tools-v15'
+CACHE_DISPLAY_NAME_ENSEIGNANT = 'aria-enseignant-primaire-tools-v5'
+CACHE_DISPLAY_NAME_ENSEIGNANT_SEC = 'aria-enseignant-tools-v6'
+CACHE_DISPLAY_NAME_PARENT = 'aria-parent-tools-v2'
+CACHE_DISPLAY_NAME_ELEVE = 'aria-eleve-tools-v2'
 DEFAULT_TTL_SECONDS = 7200
 
 _lock = threading.Lock()

@@ -9,7 +9,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}?v=1.0.4">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_presence_primaire.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_presence_primaire.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/liste_presence_primaire.css' %}?v=1.0.3">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.1">
@@ -44,12 +44,13 @@
         </div>
         {% endif %}
 
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-calendar-check"></i>
-                    Gestion de la Présence
+        {% if stats.total_classes > 0 %}
+            {% if hub_prof_ui %}
+                {% include 'school_admin/enseignant/partials/prof_presence_hub_swap_root.html' %}
+            {% else %}
+                <div id="gestion-presence-live-root">
+                    {% include 'school_admin/enseignant/partials/gestion_presence_live_inner.html' %}
+                </div>
                 </h1>
                 <p class="page-subtitle">
                     Liste de présence par classe

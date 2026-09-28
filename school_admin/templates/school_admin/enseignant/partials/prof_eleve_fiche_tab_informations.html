@@ -1,0 +1,96 @@
+<div class="tab-content active prof-eleve-tab prof-eleve-tab-informations" id="tab-informations">
+    <div class="prof-eleve-tab-intro">
+        <h2 class="prof-eleve-tab-title"><i class="fas fa-folder-open" aria-hidden="true"></i> Dossier administratif</h2>
+        <p class="prof-eleve-tab-hint">Informations regroupées par thème — identité, scolarité, contacts et responsables légaux.</p>
+    </div>
+
+    <div class="prof-eleve-info-groups">
+        <section class="prof-eleve-info-group" aria-labelledby="prof-eleve-info-identite">
+            <header class="prof-eleve-info-group-head">
+                <h3 id="prof-eleve-info-identite"><i class="fas fa-id-card" aria-hidden="true"></i> Identité</h3>
+            </header>
+            <dl class="prof-eleve-dl">
+                <div class="prof-eleve-dl-row">
+                    <dt>Nom complet</dt>
+                    <dd>{{ eleve.nom_complet }}</dd>
+                </div>
+                <div class="prof-eleve-dl-row">
+                    <dt>Matricule</dt>
+                    <dd><code class="prof-eleve-matricule">{{ eleve.numero_matricule_complet }}</code></dd>
+                </div>
+                <div class="prof-eleve-dl-row">
+                    <dt>Date de naissance</dt>
+                    <dd>{{ eleve.date_naissance|date:"d/m/Y"|default:"—" }}</dd>
+                </div>
+                <div class="prof-eleve-dl-row">
+                    <dt>Sexe</dt>
+                    <dd>{{ eleve.get_sexe_display }}</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="prof-eleve-info-group" aria-labelledby="prof-eleve-info-scolarite">
+            <header class="prof-eleve-info-group-head">
+                <h3 id="prof-eleve-info-scolarite"><i class="fas fa-graduation-cap" aria-hidden="true"></i> Scolarité</h3>
+            </header>
+            <dl class="prof-eleve-dl">
+                <div class="prof-eleve-dl-row">
+                    <dt>Classe</dt>
+                    <dd>{{ classe.nom }}</dd>
+                </div>
+                <div class="prof-eleve-dl-row">
+                    <dt>Établissement</dt>
+                    <dd>{{ classe.etablissement.nom }}</dd>
+                </div>
+                <div class="prof-eleve-dl-row">
+                    <dt>Statut</dt>
+                    <dd>
+                        <span class="badge-statut {% if eleve.actif %}actif{% else %}inactif{% endif %}">
+                            {% if eleve.actif %}Actif{% else %}Inactif{% endif %}
+                        </span>
+                    </dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="prof-eleve-info-group" aria-labelledby="prof-eleve-info-contact">
+            <header class="prof-eleve-info-group-head">
+                <h3 id="prof-eleve-info-contact"><i class="fas fa-address-book" aria-hidden="true"></i> Coordonnées élève</h3>
+            </header>
+            <dl class="prof-eleve-dl">
+                <div class="prof-eleve-dl-row">
+                    <dt>Email</dt>
+                    <dd>{% if eleve.email %}<a href="mailto:{{ eleve.email }}">{{ eleve.email }}</a>{% else %}—{% endif %}</dd>
+                </div>
+                <div class="prof-eleve-dl-row">
+                    <dt>Téléphone</dt>
+                    <dd>{% if eleve.telephone %}<a href="tel:{{ eleve.telephone }}">{{ eleve.telephone }}</a>{% else %}—{% endif %}</dd>
+                </div>
+                <div class="prof-eleve-dl-row full">
+                    <dt>Adresse</dt>
+                    <dd>{{ eleve.adresse|default:"—" }}</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="prof-eleve-info-group" aria-labelledby="prof-eleve-info-tuteurs">
+            <header class="prof-eleve-info-group-head">
+                <h3 id="prof-eleve-info-tuteurs"><i class="fas fa-users" aria-hidden="true"></i> Parents / tuteurs</h3>
+            </header>
+            <dl class="prof-eleve-dl">
+                <div class="prof-eleve-dl-row">
+                    <dt>Responsable</dt>
+                    <dd>{{ eleve.nom_tuteur|default:"—" }}</dd>
+                </div>
+                <div class="prof-eleve-dl-row">
+                    <dt>Téléphone</dt>
+                    <dd>{% if eleve.telephone_tuteur %}<a href="tel:{{ eleve.telephone_tuteur }}">{{ eleve.telephone_tuteur }}</a>{% else %}—{% endif %}</dd>
+                </div>
+                <div class="prof-eleve-dl-row">
+                    <dt>Email</dt>
+                    <dd>{% if eleve.email_tuteur %}<a href="mailto:{{ eleve.email_tuteur }}">{{ eleve.email_tuteur }}</a>{% else %}—{% endif %}</dd>
+                </div>
+            </dl>
+        </section>
+    </div>
+</div>

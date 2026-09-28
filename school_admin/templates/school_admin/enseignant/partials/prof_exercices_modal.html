@@ -1,0 +1,64 @@
+<div id="modal-exercice" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-book-open"></i> Programmer un exercice</h3>
+            <button class="modal-close" type="button" onclick="fermerModalExercice()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form method="post" class="modal-form" action="{{ request.path }}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">
+            {% csrf_token %}
+            <input type="hidden" name="exercice_id" id="exercice_id_field">
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="classe_select"><i class="fas fa-chalkboard"></i> Classe <span class="required">*</span></label>
+                        <select id="classe_select" name="classe" required>
+                            <option value="">-- Sélectionnez une classe --</option>
+                            {% for item in classes_options %}
+                                <option value="{{ item.classe.id }}" {% if classe_selectionnee and classe_selectionnee.id == item.classe.id %}selected{% endif %}>{{ item.classe.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="matiere_select"><i class="fas fa-book"></i> Matière <span class="required">*</span></label>
+                        <select id="matiere_select" name="matiere" required>
+                            {% if matieres_disponibles %}
+                                {% for matiere in matieres_disponibles %}
+                                    <option value="{{ matiere.id }}" {% if matiere_selectionnee and matiere_selectionnee.id == matiere.id %}selected{% endif %}>{{ matiere.nom }}</option>
+                                {% endfor %}
+                            {% else %}
+                                <option value="">Sélectionnez une classe d'abord</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="periode_select"><i class="fas fa-calendar-alt"></i> Période scolaire</label>
+                        <select id="periode_select" name="periode">
+                            <option value="">-- Sans période --</option>
+                            {% for periode in periodes %}
+                                <option value="{{ periode.id }}" {% if periode_selectionnee and periode_selectionnee.id == periode.id %}selected{% endif %}>{{ periode.nom_periode }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="titre_input"><i class="fas fa-heading"></i> Titre <span class="required">*</span></label>
+                    <input type="text" id="titre_input" name="titre" placeholder="Ex: Lecture - Compréhension" required>
+                </div>
+                <div class="form-group">
+                    <label for="description_input"><i class="fas fa-align-left"></i> Consignes</label>
+                    <textarea id="description_input" name="description" rows="4" placeholder="Consignes détaillées (optionnel)"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="date_rendu_input"><i class="fas fa-calendar-check"></i> Date de rendu <span class="required">*</span></label>
+                    <input type="date" id="date_rendu_input" name="date_rendu" min="{{ aujourdhui|date:'Y-m-d' }}" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="fermerModalExercice()"><i class="fas fa-times"></i> Annuler</button>
+                <button type="submit" class="btn-save"><i class="fas fa-check"></i> Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>

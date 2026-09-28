@@ -9,99 +9,27 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_presence_primaire.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_presence_primaire.css' %}?v=1.1.0">
     {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
 </head>
-<body data-prof-hub-nav-live="1" data-prof-hub-key="professeur:primaire-presence" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}">
+<body data-live-page="presence-gestion" data-prof-hub-nav-live="1" data-prof-hub-key="professeur:primaire-presence" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}">
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
-    <!-- Main Content -->
     <div class="main-content-container">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-calendar-check"></i>
-                    Gestion de la Présence
-                </h1>
-                <p class="page-subtitle">
-                    Liste de présence par classe
-                </p>
-            </div>
-            <div class="header-actions">
-                <a href="{% url 'enseignant_primaire:gestion_eleves' %}" class="btn-action">
-                    <i class="fas fa-users"></i>
-                    <span>Mes élèves</span>
-                </a>
-            </div>
-        </div>
-
         {% if stats.total_classes > 0 %}
-            <!-- Statistiques globales -->
-            <div class="stats-container">
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #667eea;">
-                        <i class="fas fa-chalkboard"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value">{{ stats.total_classes }}</span>
-                        <span class="stat-label">Classe{{ stats.total_classes|pluralize }}</span>
-                    </div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #10b981;">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value">{{ stats.total_eleves }}</span>
-                        <span class="stat-label">Élève{{ stats.total_eleves|pluralize }}</span>
-                    </div>
-                </div>
-            </div>
-
-                        <div id="prof-hub-chrome">
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-            </div>
-            <div id="prof-hub-panel">
-                {% include 'school_admin/enseignant/primaire/partials/gestion_presence_primaire_hub_panel.html' %}
-            </div>
+            {% include 'school_admin/enseignant/partials/prof_presence_hub_swap_root.html' %}
         {% else %}
-            <!-- État vide -->
             <div class="empty-state">
-                <div class="empty-icon">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
+                <div class="empty-icon"><i class="fas fa-calendar-check"></i></div>
                 <h3>Aucune classe affectée</h3>
-                <p>Vous n'avez actuellement aucune classe affectée. Contactez l'administration de votre établissement.</p>
+                <p>Contactez l'administration de votre établissement.</p>
             </div>
         {% endif %}
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
-    <script>
-        // Fonction pour changer d'onglet principal
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-content-panel').forEach(panel => {
-                panel.classList.remove('active');
-            });
-            
-            const selectedBtn = document.querySelector(`[data-tab="${tabId}"]`);
-            const selectedPanel = document.getElementById(tabId);
-            
-            if (selectedBtn && selectedPanel) {
-                selectedBtn.classList.add('active');
-                selectedPanel.classList.add('active');
-            }
-        }
-    </script>
     {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_scripts.html' %}
-    {% include 'school_admin/partials/enseignant_live_scripts.html' %}
-
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
+    {% include 'school_admin/partials/enseignant_live_scripts.html' %}
 </body>
 </html>
-

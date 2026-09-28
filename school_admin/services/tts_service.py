@@ -31,8 +31,10 @@ GEMINI_TTS_FIXED_INSTRUCTION = (
     'Ne commente pas, n’ajoute rien, ne reformule pas, ne traduis pas.'
 )
 GEMINI_TTS_WOLOF_INSTRUCTION = (
-    'Tu es Aria. Lis le texte à voix haute en wolof sénégalais (alphabet latin), '
-    'voix féminine chaleureuse et naturelle. '
+    'Tu es Aria. Lis le texte à voix haute en wolof dakarois courant (alphabet latin), '
+    'voix féminine chaleureuse, familière et naturelle — comme à Dakar à l’école, '
+    'pas un wolof littéraire ou soutenu. '
+    'Garde les mots français déjà présents dans le texte (devoir, classe, notes, etc.). '
     'Ne commente pas, n’ajoute rien, ne reformule pas, ne traduis pas en français.'
 )
 DEFAULT_EDGE_VOICE_WOLOF = 'fr-SN-AissatouNeural'
@@ -497,12 +499,84 @@ def _pcm16_to_samples(pcm_data):
     return samples, len(samples)
 
 
+def _window_zcr(samples, start, end):
+    window = samples[start:end]
+    size = len(window)
+    if size < 2:
+        return 0.0
+    crossings = 0
+    previous = window[0]
+    for sample in window[1:]:
+        if (previous >= 0 > sample) or (previous < 0 <= sample):
+            crossings += 1
+        previous = sample
+    return crossings / size
+
+
+def strip_pcm16_end_squelch(pcm_data, sample_rate=24000, max_ms=160):
+    """
+    Coupe le crissement de fin (squelch type talkie-walkie) ajouté par Gemini TTS.
+    Le burst est bruité (beaucoup de passages par zéro), souvent après une baisse d’énergie.
+    """
+    samples, count = _pcm16_to_samples(pcm_data)
+    frame = max(8, int(sample_rate * 0.005))
+    if count < frame * 8:
+        return samples.tobytes() if count else pcm_data
+
+    max_scan = min(count // 2, max(frame * 4, int(sample_rate * max_ms / 1000)))
+    scan_start = count - max_scan
+    energies = []
+    index = scan_start
+    while index + frame <= count:
+        window = samples[index:index + frame]
+        energy = sum(abs(sample) for sample in window) / frame
+        energies.append((index, energy, _window_zcr(samples, index, index + frame)))
+        index += frame
+    if len(energies) < 4:
+        return samples.tobytes()
+
+    peak = max(item[1] for item in energies) or 1
+    quiet = max(220, peak * 0.14)
+    loud = max(700, peak * 0.32)
+    cut = None
+    for pos in range(len(energies) - 2, 0, -1):
+        if energies[pos][1] >= quiet or energies[pos - 1][1] >= quiet:
+            continue
+        if any(item[1] > loud for item in energies[pos + 1:]):
+            cut = energies[pos][0]
+            break
+    noisy_cut = None
+    for pos in range(len(energies) - 1, -1, -1):
+        energy = energies[pos][1]
+        zcr = energies[pos][2]
+        if zcr >= 0.22 and energy > 350:
+            noisy_cut = energies[pos][0]
+            continue
+        break
+    if noisy_cut is not None and 0 < count - noisy_cut <= max_scan:
+        if cut is None or noisy_cut < cut:
+            cut = noisy_cut
+    if cut is not None and frame < count - cut <= max_scan:
+        del samples[cut:]
+    return samples.tobytes()
+
+
+def append_pcm16_silence(pcm_data, sample_rate=24000, silence_ms=40):
+    """Ajoute du silence pour que le lecteur s’arrête sur des zéros (pas de pop)."""
+    samples, count = _pcm16_to_samples(pcm_data)
+    if count < 2:
+        return pcm_data
+    pad = max(1, int(sample_rate * silence_ms / 1000))
+    samples.extend([0] * pad)
+    return samples.tobytes()
+
+
 def trim_pcm16_trailing_artifacts(
     pcm_data,
     sample_rate=24000,
-    max_trim_ms=150,
-    noise_floor=96,
-    hangover_ms=12,
+    max_trim_ms=220,
+    noise_floor=160,
+    hangover_ms=8,
 ):
     """
     Retire la queue bruitée (souffle / artefact Gemini) avant le fade-out.
@@ -525,7 +599,7 @@ def trim_pcm16_trailing_artifacts(
     return samples.tobytes()
 
 
-def smooth_pcm16_edges(pcm_data, sample_rate=24000, fade_in_ms=5, fade_out_ms=35):
+def smooth_pcm16_edges(pcm_data, sample_rate=24000, fade_in_ms=6, fade_out_ms=28):
     """
     Atténue les bords du PCM (cosinus) pour éviter les clics entre phrases.
     """
@@ -554,8 +628,10 @@ def smooth_pcm16_edges(pcm_data, sample_rate=24000, fade_in_ms=5, fade_out_ms=35
 
 
 def finalize_pcm16(pcm_data, sample_rate=24000):
-    pcm = trim_pcm16_trailing_artifacts(pcm_data, sample_rate=sample_rate)
-    return smooth_pcm16_edges(pcm, sample_rate=sample_rate)
+    pcm = strip_pcm16_end_squelch(pcm_data, sample_rate=sample_rate)
+    pcm = trim_pcm16_trailing_artifacts(pcm, sample_rate=sample_rate)
+    pcm = smooth_pcm16_edges(pcm, sample_rate=sample_rate)
+    return append_pcm16_silence(pcm, sample_rate=sample_rate, silence_ms=50)
 
 
 def _join_pcm16_with_micro_crossfade(left_pcm, right_pcm, sample_rate=24000, overlap_ms=4):
@@ -814,6 +890,11 @@ async def synthesize_audio(text, voice=None, rate=None, pitch=None, language=Non
 
     audio, mime = await _synthesize_gemini(clean, language=lang)
     if audio:
+        logger.debug(
+            'TTS gemini ok model=%s bytes=%s',
+            getattr(settings, 'GEMINI_TTS_MODEL', ''),
+            len(audio),
+        )
         return audio, mime
     if not _edge_fallback_enabled():
         logger.warning(
@@ -821,7 +902,10 @@ async def synthesize_audio(text, voice=None, rate=None, pitch=None, language=Non
             'phrase sans audio (voix Gemini uniquement).'
         )
         return None, None
-    logger.warning('Gemini TTS indisponible, repli Edge pour cette phrase.')
+    logger.warning(
+        'Gemini TTS indisponible, repli Edge (%s) — voix différente d’Aoede.',
+        edge_voice or getattr(settings, 'EDGE_TTS_VOICE', DEFAULT_VOICE),
+    )
     audio, mime = await _synthesize_edge_mp3(clean, voice=edge_voice or voice)
     if audio:
         return audio, mime

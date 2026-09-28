@@ -1042,7 +1042,7 @@ class PaiementEleve(models.Model):
         blank=True,
         null=True,
         verbose_name="Référence de paiement",
-        help_text="Numéro de chèque, référence virement, etc."
+        help_text="N° Wave / Orange Money / MTN, chèque ou virement",
     )
     
     enregistre_par = models.ForeignKey(

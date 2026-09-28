@@ -6,7 +6,7 @@
                 <a role="tab"
                    class="matiere-tab-btn prof-primaire-tab-link prof-hub-lmd-periode-link {% if nav.active %}active{% endif %}"
                    aria-selected="{% if nav.active %}true{% else %}false{% endif %}"
-                   href="?{% if initial_classe_id %}classe={{ initial_classe_id }}&{% endif %}{{ nav.query }}">
+                   href="{{ request.path }}?{% if initial_classe_id %}classe={{ initial_classe_id }}&{% endif %}{{ nav.query }}">
                     <i class="fas fa-calendar-alt" aria-hidden="true"></i>
                     <span>{{ nav.periode.libelle_affichage_superieur }}</span>
                     {% if nav.periode.est_en_cours %}

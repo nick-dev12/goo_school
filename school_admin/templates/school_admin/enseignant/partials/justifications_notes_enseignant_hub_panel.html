@@ -1,5 +1,6 @@
 {% load notes_tags %}
             <div class="tabs-container">
+                {% if not hub_prof_ui %}{# legacy category tabs #}
                 <div class="tabs-nav">
                     {% for categorie, data in classes_grouped.items %}
                         <button class="tab-btn {% if forloop.first %}active{% endif %}" data-tab="tab-{{ forloop.counter }}" onclick="switchTab('tab-{{ forloop.counter }}')">
@@ -13,6 +14,7 @@
                         </button>
                     {% endfor %}
                 </div>
+                {% endif %}
 
                 {% for categorie, data in classes_grouped.items %}
                     <div class="tab-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">

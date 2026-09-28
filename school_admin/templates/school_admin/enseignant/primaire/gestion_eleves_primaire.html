@@ -8,58 +8,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_eleves_primaire.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_eleves_primaire.css' %}?v=1.1.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
     {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
 </head>
 <body data-live-page="eleves-gestion" data-prof-hub-nav-live="1" data-prof-hub-key="professeur:primaire-eleves" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}">
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
-    <!-- Main Content -->
     <div class="main-content-container">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-user-graduate"></i>
-                    Gestion de Mes Élèves
-                </h1>
-                <p class="page-subtitle">
-                    {{ total_eleves }} élève{{ total_eleves|pluralize }} dans {{ total_classes }} classe{{ total_classes|pluralize }}
-                </p>
-            </div>
-        </div>
-
         {% if total_classes > 0 %}
-            <!-- Statistiques globales -->
-            <div class="stats-container">
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #667eea;">
-                        <i class="fas fa-chalkboard"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value">{{ total_classes }}</span>
-                        <span class="stat-label">Classe{{ total_classes|pluralize }}</span>
-                    </div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #8b5cf6;">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value">{{ total_eleves }}</span>
-                        <span class="stat-label">Élève{{ total_eleves|pluralize }}</span>
-                    </div>
-                </div>
-            </div>
-
-                        <div id="prof-hub-chrome">
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-            </div>
-            <div id="prof-hub-panel">
-                {% include 'school_admin/enseignant/primaire/partials/gestion_eleves_primaire_hub_panel.html' %}
-            </div>
+            {% include 'school_admin/enseignant/partials/prof_eleves_hub_swap_root.html' %}
         {% else %}
             <!-- État vide -->
             <div class="empty-state">
@@ -74,50 +32,6 @@
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
     <script src="{% static 'school_admin/js/enseignant/primaire/gestion_eleves_primaire.js' %}"></script>
-    <script>
-        // Fonction pour changer d'onglet principal
-        function switchTab(tabId) {
-            // Désactiver tous les onglets principaux
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-content-panel').forEach(panel => {
-                panel.classList.remove('active');
-            });
-            
-            // Activer l'onglet sélectionné
-            const selectedBtn = document.querySelector(`[data-tab="${tabId}"]`);
-            const selectedPanel = document.getElementById(tabId);
-            
-            if (selectedBtn && selectedPanel) {
-                selectedBtn.classList.add('active');
-                selectedPanel.classList.add('active');
-            }
-        }
-        
-        // Fonction pour afficher une classe spécifique
-        function showClasse(classeId, tabId) {
-            // Désactiver tous les boutons de classe dans cet onglet
-            const tabPanel = document.getElementById(tabId);
-            if (tabPanel) {
-                tabPanel.querySelectorAll('.classe-tab-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                tabPanel.querySelectorAll('.classe-content').forEach(content => {
-                    content.classList.remove('active');
-                });
-                
-                // Activer la classe sélectionnée
-                const selectedBtn = tabPanel.querySelector(`[data-classe="${classeId}"]`);
-                const selectedContent = document.getElementById(classeId);
-                
-                if (selectedBtn && selectedContent) {
-                    selectedBtn.classList.add('active');
-                    selectedContent.classList.add('active');
-                }
-            }
-        }
-    </script>
 
     <!-- Modal de sanction -->
     <div id="modal-sanction" class="modal">

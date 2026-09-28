@@ -1,0 +1,151 @@
+<div class="prof-classe-detail-shell">
+    <nav class="prof-classe-detail-breadcrumb" aria-label="Fil d'Ariane">
+        {% if prof_classe_detail_mode == 'primaire' %}
+            <a href="{% url 'enseignant_primaire:gestion_classes' %}?classe={{ classe.id }}" class="prof-classe-detail-back">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                <span>Mes classes</span>
+            </a>
+        {% else %}
+            <a href="{% url 'enseignant:gestion_classes' %}?classe={{ classe.id }}" class="prof-classe-detail-back">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                <span>Mes classes</span>
+            </a>
+        {% endif %}
+    </nav>
+
+    <header class="prof-classe-detail-hero">
+        <div class="prof-classe-detail-hero-main">
+            <p class="prof-classe-detail-kicker"><i class="fas fa-chalkboard" aria-hidden="true"></i> Fiche classe</p>
+            <h1 class="prof-classe-detail-title">
+                {{ classe.nom }}
+                {% if matiere %}<span class="prof-classe-detail-matiere-tag">{{ matiere.nom }}</span>{% endif %}
+            </h1>
+            <div class="prof-classe-detail-chips">
+                <span class="prof-classe-chip"><i class="fas fa-building" aria-hidden="true"></i> {{ classe.etablissement.nom }}</span>
+                {% if prof_classe_detail_mode == 'primaire' %}
+                    <span class="prof-classe-chip accent"><i class="fas fa-star" aria-hidden="true"></i> Polyvalent</span>
+                {% else %}
+                    <span class="prof-classe-chip accent">
+                        <i class="fas fa-{% if affectation.is_principal %}crown{% else %}chalkboard-teacher{% endif %}" aria-hidden="true"></i>
+                        {% if affectation.is_principal %}Prof principal{% else %}Enseignement{% endif %}
+                    </span>
+                    {% if matiere %}
+                        <span class="prof-classe-chip matiere"><i class="fas fa-book" aria-hidden="true"></i> {{ matiere.nom }}</span>
+                    {% endif %}
+                {% endif %}
+                <span class="prof-classe-chip {% if classe.actif %}ok{% else %}muted{% endif %}">
+                    {% if classe.actif %}Classe active{% else %}Inactive{% endif %}
+                </span>
+                {% if annee_scolaire_active %}
+                    <span class="prof-classe-chip muted"><i class="fas fa-calendar-check" aria-hidden="true"></i> {{ annee_scolaire_active.libelle }}</span>
+                {% endif %}
+            </div>
+            {% if prof_classe_detail_mode == 'primaire' and matieres_enseignees %}
+                <div class="prof-classe-detail-matieres" aria-label="Matières enseignées">
+                    {% for m in matieres_enseignees %}
+                        <span class="prof-classe-matiere-pill" title="{{ m.nom }}">{{ m.code|default:m.nom }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        <div class="prof-classe-detail-stats" role="group" aria-label="Indicateurs de la classe">
+            <div class="prof-classe-stat">
+                <span class="prof-classe-stat-value">{{ nombre_eleves }}</span>
+                <span class="prof-classe-stat-label">Élèves</span>
+                <span class="prof-classe-stat-sub">{{ nombre_garcons }} G · {{ nombre_filles }} F</span>
+            </div>
+            <div class="prof-classe-stat">
+                <span class="prof-classe-stat-value">{{ taux_occupation }}%</span>
+                <span class="prof-classe-stat-label">Remplissage</span>
+                <span class="prof-classe-stat-sub">{{ nombre_eleves }}/{{ classe.capacite_max }}</span>
+            </div>
+            <div class="prof-classe-stat">
+                <span class="prof-classe-stat-value">{{ taux_presence_mois }}%</span>
+                <span class="prof-classe-stat-label">Présence (mois)</span>
+                <span class="prof-classe-stat-sub">{{ nombre_presents_mois }}/{{ total_presences_mois }}</span>
+            </div>
+            <div class="prof-classe-stat">
+                <span class="prof-classe-stat-value">{{ nombre_evaluations_total }}</span>
+                <span class="prof-classe-stat-label">Évaluations</span>
+                <span class="prof-classe-stat-sub">{{ nombre_evaluations_mois }} ce mois</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="prof-classe-detail-progress" aria-hidden="true">
+        <div class="prof-classe-detail-progress-bar">
+            <div class="prof-classe-detail-progress-fill {% if taux_occupation >= 90 %}danger{% elif taux_occupation >= 75 %}warning{% else %}ok{% endif %}"
+                 style="width: {% if taux_occupation > 100 %}100{% else %}{{ taux_occupation }}{% endif %}%;"></div>
+        </div>
+    </div>
+
+    <section class="prof-classe-detail-section" aria-labelledby="prof-classe-detail-actions-title">
+        <h2 id="prof-classe-detail-actions-title" class="prof-classe-detail-section-title"><i class="fas fa-bolt" aria-hidden="true"></i> Accès rapides</h2>
+        <div class="prof-classe-detail-link-grid">
+            {% if prof_classe_detail_mode == 'primaire' %}
+                <a href="{% url 'enseignant_primaire:gestion_eleves' %}?classe={{ classe.id }}" class="prof-classe-detail-link-card">
+                    <span class="prof-classe-detail-link-icon secondary"><i class="fas fa-users"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Mes élèves</strong><small>Liste et sanctions</small></span>
+                </a>
+                <a href="{% url 'enseignant_primaire:gestion_notes' %}?classe={{ classe.id }}" class="prof-classe-detail-link-card primary">
+                    <span class="prof-classe-detail-link-icon info"><i class="fas fa-table"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Notes (hub)</strong><small>Relevé et saisie</small></span>
+                </a>
+                <a href="{% url 'enseignant_primaire:gestion_presence' %}?classe={{ classe.id }}" class="prof-classe-detail-link-card">
+                    <span class="prof-classe-detail-link-icon success"><i class="fas fa-user-check"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Présence (hub)</strong><small>Synthèse classe</small></span>
+                </a>
+                <a href="{% url 'enseignant_primaire:liste_presence' classe.id %}" class="prof-classe-detail-link-card">
+                    <span class="prof-classe-detail-link-icon success"><i class="fas fa-clipboard-list"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Appel du jour</strong><small>Feuille d’appel</small></span>
+                </a>
+                <a href="{% url 'enseignant_primaire:exercices_maison' %}?classe={{ classe.id }}" class="prof-classe-detail-link-card">
+                    <span class="prof-classe-detail-link-icon warning"><i class="fas fa-house-chimney"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Exercices</strong><small>Devoirs maison</small></span>
+                </a>
+                <a href="{% url 'enseignant_primaire:liste_sanctions_classe' classe.id %}" class="prof-classe-detail-link-card">
+                    <span class="prof-classe-detail-link-icon accent"><i class="fas fa-gavel"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Sanctions</strong><small>Registre</small></span>
+                </a>
+            {% else %}
+                <a href="{% url 'enseignant:gestion_eleves' %}?classe={{ classe.id }}" class="prof-classe-detail-link-card">
+                    <span class="prof-classe-detail-link-icon secondary"><i class="fas fa-users"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Mes élèves</strong><small>Liste de la classe</small></span>
+                </a>
+                <a href="{% url 'enseignant:gestion_notes' %}?classe={{ classe.id }}{% if matiere %}&matiere={{ matiere.id }}{% endif %}" class="prof-classe-detail-link-card primary">
+                    <span class="prof-classe-detail-link-icon info"><i class="fas fa-table"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Notes (hub)</strong><small>Relevé et saisie</small></span>
+                </a>
+                <a href="{% url 'enseignant:gestion_presence' %}?classe={{ classe.id }}" class="prof-classe-detail-link-card">
+                    <span class="prof-classe-detail-link-icon success"><i class="fas fa-user-check"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Présence (hub)</strong><small>Synthèse</small></span>
+                </a>
+                <a href="{% url 'enseignant:noter_eleves' classe.id %}{% if matiere %}?matiere={{ matiere.id }}{% endif %}" class="prof-classe-detail-link-card">
+                    <span class="prof-classe-detail-link-icon info"><i class="fas fa-pen"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Saisie notes</strong><small>Grille rapide</small></span>
+                </a>
+                <a href="{% url 'enseignant:liste_presence' classe.id %}{% if matiere %}?matiere={{ matiere.id }}{% endif %}" class="prof-classe-detail-link-card">
+                    <span class="prof-classe-detail-link-icon success"><i class="fas fa-clipboard-list"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Appel</strong><small>Feuille du jour</small></span>
+                </a>
+                <a href="{% url 'enseignant:exercices_maison' %}?classe={{ classe.id }}" class="prof-classe-detail-link-card">
+                    <span class="prof-classe-detail-link-icon warning"><i class="fas fa-house-chimney"></i></span>
+                    <span class="prof-classe-detail-link-text"><strong>Exercices</strong><small>Devoirs</small></span>
+                </a>
+            {% endif %}
+        </div>
+    </section>
+
+    <nav class="prof-classe-detail-tabs" aria-label="Contenu de la fiche classe">
+        <a href="?onglet=eleves{% if matiere %}&matiere={{ matiere.id }}{% endif %}" class="prof-classe-detail-tab {% if onglet_actif == 'eleves' %}active{% endif %}">
+            <i class="fas fa-users" aria-hidden="true"></i><span>Élèves</span>
+        </a>
+        <a href="?onglet=presence{% if matiere %}&matiere={{ matiere.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" class="prof-classe-detail-tab {% if onglet_actif == 'presence' %}active{% endif %}">
+            <i class="fas fa-calendar-check" aria-hidden="true"></i><span>Présence</span>
+        </a>
+        <a href="?onglet=evaluations{% if matiere %}&matiere={{ matiere.id }}{% endif %}" class="prof-classe-detail-tab {% if onglet_actif == 'evaluations' %}active{% endif %}">
+            <i class="fas fa-clipboard-list" aria-hidden="true"></i><span>Évaluations</span>
+        </a>
+    </nav>
+
+    <div class="prof-classe-detail-panel">

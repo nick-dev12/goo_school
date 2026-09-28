@@ -59,8 +59,47 @@
     });
   }
 
+  function isProfClasseHubFichePage() {
+    var hubPanel = document.getElementById('prof-hub-panel');
+    return !!(hubPanel && hubPanel.querySelector('.prof-classe-hub-panel'));
+  }
+
+  function isProfNotesHubPage() {
+    var hubPanel = document.getElementById('prof-hub-panel');
+    return !!(hubPanel && hubPanel.querySelector('.prof-notes-hub-panel'));
+  }
+
+  function isProfElevesHubPage() {
+    var hubPanel = document.getElementById('prof-hub-panel');
+    return !!(hubPanel && hubPanel.querySelector('.prof-eleves-hub-panel'));
+  }
+
+  function isProfExercicesHubPage() {
+    var hubPanel = document.getElementById('prof-hub-panel');
+    return !!(hubPanel && hubPanel.querySelector('.prof-exercices-hub-panel'));
+  }
+
+  function isProfPresenceHubPage() {
+    var hubPanel = document.getElementById('prof-hub-panel');
+    return !!(hubPanel && hubPanel.querySelector('.prof-presence-hub-panel'));
+  }
+
   function activateClassePanels(classeId) {
     if (!classeId) return;
+    /* Hub serveur selon query — ne pas masquer via data-classe-panel */
+    if (
+      isProfClasseHubFichePage() ||
+      isProfNotesHubPage() ||
+      isProfElevesHubPage() ||
+      isProfExercicesHubPage() ||
+      isProfPresenceHubPage()
+    ) {
+      document.querySelectorAll('#prof-hub-panel [data-classe-panel]').forEach(function (el) {
+        el.classList.remove('prof-primaire-panel-hidden');
+        el.hidden = false;
+      });
+      return;
+    }
     document.querySelectorAll('.tab-content-panel, .tab-content').forEach(function (panel) {
       if (panel.querySelector('[data-classe-panel="' + classeId + '"]')) {
         panel.classList.add('active');

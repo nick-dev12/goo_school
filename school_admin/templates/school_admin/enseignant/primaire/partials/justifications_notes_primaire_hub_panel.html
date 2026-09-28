@@ -3,16 +3,7 @@
 
         <!-- NIVEAU 1 : Onglets des Classes (regroupÃ©es par catÃ©gorie) -->
         <div class="classes-tabs-container">
-            <div class="tabs-nav">
-                {% for categorie, data in classes_grouped.items %}
-                    <button class="tab-btn {% if forloop.first and not classe_selectionnee %}active{% elif classe_selectionnee and classe_selectionnee.nom|slice:":2" == categorie|slice:":2" or classe_selectionnee and classe_selectionnee.nom|slice:":3" == categorie %}active{% endif %}" 
-                            onclick="switchTab('categorie-{{ categorie }}')">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                        {{ categorie }}
-                        <span class="tab-badge">{{ data.classes|length }}</span>
-                    </button>
-                {% endfor %}
-            </div>
+            
 
             {% for categorie, data in classes_grouped.items %}
                 <div class="tab-content {% if forloop.first and not classe_selectionnee %}active{% elif classe_selectionnee and classe_selectionnee.nom|slice:":2" == categorie|slice:":2" or classe_selectionnee and classe_selectionnee.nom|slice:":3" == categorie %}active{% endif %}" 

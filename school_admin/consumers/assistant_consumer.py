@@ -56,6 +56,11 @@ from school_admin.services.assistant_tools import (
     spoken_from_tool_results,
     suggestions_after_read,
 )
+from school_admin.services.assistant_stream_text import (
+    collapse_near_duplicate_reply,
+    finalize_assistant_spoken,
+    merge_stream_delta,
+)
 from school_admin.services.tts_service import strip_assistant_markup, synthesize_audio
 
 logger = logging.getLogger(__name__)
@@ -211,6 +216,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         self._turn_has_output = False
         self._parent_lang_pref = 'auto'
         self._parent_user_turn_lang = 'fr'
+        self._persona_welcome_task = None
         self._turn_stats = {
             'tools': [],
             'rounds': 0,
@@ -229,13 +235,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'etablissement': getattr(self.etablissement, 'nom', ''),
             'persona': getattr(self, 'persona', 'directeur'),
         })
-        if getattr(self, 'persona', '') == 'parent':
-            await self._send_parent_welcome()
-        elif getattr(self, 'persona', '') == 'eleve':
-            await self._send_eleve_welcome()
         await self._restore_pending_ui()
 
     async def disconnect(self, close_code):
+        if self._persona_welcome_task and not self._persona_welcome_task.done():
+            self._persona_welcome_task.cancel()
+        self._persona_welcome_task = None
         await self._stop_current(notify=False)
         await self._cancel_opener()
         self.history = []
@@ -264,6 +269,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return
         if kind == 'restore_history':
             self._restore_history(payload.get('messages') or [])
+            if self._persona_welcome_task and not self._persona_welcome_task.done():
+                self._persona_welcome_task.cancel()
+            self._persona_welcome_task = None
             return
         if kind in ('stop', 'cancel_turn'):
             await self._stop_current(notify=True)
@@ -379,6 +387,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             self._cancel_notified = False
             self._busy = True
             self._turn_has_output = False
+            self._stream_accumulated = ''
             self._reset_turn_stats()
             try:
                 await handler()
@@ -747,9 +756,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             *dialog,
         ]
 
-        assembler = SentenceAssembler()
-        pending_sentences = []
-
         async def on_status(phase):
             await self._send_json({'type': 'status', 'phase': phase})
 
@@ -759,8 +765,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             clean = strip_assistant_markup(delta)
             if not clean:
                 return
-            await self._send_json({'type': 'text_delta', 'text': clean})
-            pending_sentences.extend(assembler.feed(clean))
+            acc = getattr(self, '_stream_accumulated', '') or ''
+            new_acc, emit = merge_stream_delta(acc, clean)
+            self._stream_accumulated = new_acc
+            if not emit:
+                return
+            await self._send_json({'type': 'text_delta', 'text': emit})
 
         last_tool_results = []
         turn_stats = getattr(self, '_turn_stats', None)
@@ -791,11 +801,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             )
         except Exception:
             logger.exception("Tour Gemini après outil")
-            spoken = spoken_from_tool_results(last_tool_results, ctx=ctx)
+            spoken = finalize_assistant_spoken(
+                spoken_from_tool_results(last_tool_results, ctx=ctx) or ''
+            )
             if spoken:
                 await self._send_json({'type': 'text_delta', 'text': spoken})
-                pending_sentences.append(spoken)
-                await self._flush_tts_queue(pending_sentences)
+                await self._flush_tts_queue([spoken])
                 fallback_sugg = suggestions_after_read(
                     last_tool_results,
                     getattr(self, '_working_refs', None),
@@ -818,8 +829,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                     else "J’ai les informations. Que souhaitez-vous que je fasse ?"
                 )
                 await self._send_json({'type': 'text_delta', 'text': spoken})
-                pending_sentences.append(spoken)
-                await self._flush_tts_queue(pending_sentences)
+                await self._flush_tts_queue([spoken])
                 if last_tool_results and not turn_stats.get('tools'):
                     turn_stats['tools'] = [name for name, _result in last_tool_results]
                 self._log_turn_stats()
@@ -838,10 +848,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._cancel_tts_tasks()
             return
 
-        leftover = assembler.flush()
-        if leftover:
-            pending_sentences.append(leftover)
-
         if last_tool_results:
             refs = getattr(self, '_working_refs', None)
             if refs is None:
@@ -850,27 +856,22 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 if isinstance(tool_result, dict):
                     self._working_refs.update(extract_working_refs(tool_name, tool_result))
             self._last_tool_memory = compact_tool_memory(*last_tool_results[-1])
-        if spoken and not leftover and not pending_sentences:
-            await self._send_json({'type': 'text_delta', 'text': spoken})
-            pending_sentences.append(spoken)
-        elif not spoken and not leftover and last_tool_results:
-            spoken = spoken_from_tool_results(last_tool_results, ctx=ctx)
-            if spoken:
-                await self._send_json({'type': 'text_delta', 'text': spoken})
-                pending_sentences.append(spoken)
 
-        if not spoken and not leftover and not pending_sentences and (
-            last_tool_results or turn_stats.get('pending_shown')
-        ):
+        streamed = getattr(self, '_stream_accumulated', '') or ''
+        spoken = finalize_assistant_spoken(streamed, spoken or '')
+        if not spoken and last_tool_results:
+            spoken = finalize_assistant_spoken(
+                spoken_from_tool_results(last_tool_results, ctx=ctx) or ''
+            )
+        if not spoken and (last_tool_results or turn_stats.get('pending_shown')):
             spoken = (
                 "J’ai préparé l’action. C’est bon ?"
                 if turn_stats.get('pending_shown')
                 else "J’ai les informations. Que souhaitez-vous que je fasse ?"
             )
-            await self._send_json({'type': 'text_delta', 'text': spoken})
-            pending_sentences.append(spoken)
 
-        await self._flush_tts_queue(pending_sentences)
+        pending_for_tts = [spoken] if spoken else []
+        await self._flush_tts_queue(pending_for_tts)
         if self._cancel_requested:
             return
 
@@ -900,7 +901,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 await self._send_choices(self._infer_choices(spoken))
             self._followup_choices = []
             self._followup_suggestions = []
-        elif not leftover and not pending_sentences:
+        elif not spoken:
             await self._send_json({
                 'type': 'error',
                 'message': "Je n’ai reçu aucune réponse de l’assistant.",
@@ -1005,41 +1006,48 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if self._cancel_requested:
             await self._cancel_tts_tasks()
             return
+        cleaned = [
+            str(sentence).strip()
+            for sentence in (sentences or [])
+            if sentence and str(sentence).strip()
+        ]
+        if not cleaned:
+            return
         start = self._tts_index
-        for offset, sentence in enumerate(sentences):
-            if self._cancel_requested:
-                await self._cancel_tts_tasks()
-                return
-            audio = b''
-            mime = 'audio/wav'
-            tts_lang = self._parent_tts_language(sentence)
-            if tts_lang:
-                synth = synthesize_audio(sentence, language=tts_lang)
-            else:
-                synth = synthesize_audio(sentence)
-            task = self._track_tts(asyncio.create_task(synth))
-            try:
-                audio, mime = await task
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                logger.exception("Échec TTS phrase.")
-            if self._cancel_requested:
-                return
-            if not audio:
-                logger.warning(
-                    "TTS vide après repli, phrase %s : %s",
-                    start + offset,
-                    (sentence or '')[:80],
-                )
-            # audio=None relancerait une 2e synthèse : on transmet le résultat tel quel.
-            await self._emit_sentence(
-                sentence,
-                start + offset,
-                audio=audio if audio else b'',
-                audio_mime=mime or 'audio/wav',
+        # Une synthèse par rafale = un seul « clic » en fin de réponse (pas par clause).
+        batch_text = collapse_near_duplicate_reply(' '.join(cleaned))
+        if self._cancel_requested:
+            await self._cancel_tts_tasks()
+            return
+        audio = b''
+        mime = 'audio/wav'
+        tts_lang = self._parent_tts_language(batch_text)
+        if tts_lang:
+            synth = synthesize_audio(batch_text, language=tts_lang)
+        else:
+            synth = synthesize_audio(batch_text)
+        task = self._track_tts(asyncio.create_task(synth))
+        try:
+            audio, mime = await task
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Échec TTS phrase.")
+        if self._cancel_requested:
+            return
+        if not audio:
+            logger.warning(
+                "TTS vide après repli, index %s : %s",
+                start,
+                batch_text[:80],
             )
-        self._tts_index = start + len(sentences)
+        await self._emit_sentence(
+            batch_text,
+            start,
+            audio=audio if audio else b'',
+            audio_mime=mime or 'audio/wav',
+        )
+        self._tts_index = start + 1
 
     async def _send_json(self, payload):
         if self._cancel_requested and payload.get('type') not in _ALLOWED_WHEN_CANCELLED:
@@ -1124,6 +1132,19 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return bool(self.etablissement)
 
         return False
+
+    async def _delayed_persona_welcome(self):
+        try:
+            await asyncio.sleep(0.45)
+        except asyncio.CancelledError:
+            return
+        if self.history:
+            return
+        persona = getattr(self, 'persona', '')
+        if persona == 'parent':
+            await self._send_parent_welcome()
+        elif persona == 'eleve':
+            await self._send_eleve_welcome()
 
     async def _send_eleve_welcome(self):
         from school_admin.services.gemini_assistant_service import ELEVE_WELCOME_BILINGUAL
@@ -1863,17 +1884,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
     async def _speak_and_finish(self, user_text, spoken, choices=None, suggestions=None):
         if self._cancel_requested:
             return
-        spoken = strip_assistant_markup(spoken or '')
+        spoken = finalize_assistant_spoken(spoken or '')
         await self._send_json({'type': 'status', 'phase': 'speaking'})
         if spoken:
             await self._send_json({'type': 'text_delta', 'text': spoken})
-        assembler = SentenceAssembler()
-        sentences = list(assembler.feed(spoken or ''))
-        leftover = assembler.flush()
-        if leftover:
-            sentences.append(leftover)
         try:
-            await self._flush_tts_queue(sentences)
+            await self._flush_tts_queue([spoken] if spoken else [])
         except Exception:
             logger.exception("TTS après action — le texte a déjà été envoyé")
         if self._cancel_requested:

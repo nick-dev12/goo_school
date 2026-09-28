@@ -42,8 +42,11 @@
   }
 
   function buildFetchUrl(link) {
-    var url = new URL(link.getAttribute('href'), window.location.origin);
-    if (!url.pathname) {
+    // Base = URL courante (pas seulement origin) : href "?classe=…" doit
+    // garder /enseignant/classes/ sinon pathname devient "/" et le clic est
+    // avalé par preventDefault sans navigation.
+    var url = new URL(link.getAttribute('href'), window.location.href);
+    if (!url.pathname || url.pathname === '/') {
       url.pathname = window.location.pathname;
     }
     if (url.pathname !== window.location.pathname) {
@@ -53,18 +56,19 @@
     return url;
   }
 
+  function swapHubFragment(doc, id) {
+    var fresh = doc.getElementById(id);
+    var el = document.getElementById(id);
+    if (fresh && el) {
+      el.innerHTML = fresh.innerHTML;
+    }
+  }
+
   function applySwap(html) {
     var doc = new DOMParser().parseFromString(html, 'text/html');
-    var freshChrome = doc.getElementById('prof-hub-chrome');
-    var freshPanel = doc.getElementById('prof-hub-panel');
-    var chrome = document.getElementById('prof-hub-chrome');
-    var panel = document.getElementById('prof-hub-panel');
-    if (freshChrome && chrome) {
-      chrome.innerHTML = freshChrome.innerHTML;
-    }
-    if (freshPanel && panel) {
-      panel.innerHTML = freshPanel.innerHTML;
-    }
+    swapHubFragment(doc, 'prof-hub-header');
+    swapHubFragment(doc, 'prof-hub-chrome');
+    swapHubFragment(doc, 'prof-hub-panel');
     layoutOverflow();
     document.dispatchEvent(new CustomEvent('prof-hub-panel-loaded'));
   }
@@ -114,7 +118,8 @@
       })
       .catch(function (err) {
         console.warn('[ProfHubNavLive] fallback navigation:', err);
-        window.location.assign(link.href);
+        var href = link.getAttribute('href') || link.href;
+        window.location.assign(new URL(href, window.location.href).toString());
       })
       .finally(function () {
         setLoading(false);
@@ -134,12 +139,15 @@
       return;
     }
     var href = link.getAttribute('href') || '';
-    if (!href.startsWith('?')) {
+    if (!href || href === '#') {
       return;
     }
-    event.preventDefault();
-    navigateHub(link);
+    if (navigateHub(link)) {
+      event.preventDefault();
+    }
   }
+
+  document.addEventListener('click', onLinkClick);
 
   function onPopState() {
     if (!hubEnabled()) {
@@ -151,22 +159,36 @@
     fetch(url.toString(), {
       method: 'GET',
       credentials: 'same-origin',
+      redirect: 'follow',
       headers: {
         'X-Requested-With': 'XMLHttpRequest',
         Accept: 'text/html',
+        'Cache-Control': 'no-cache',
       },
     })
-      .then(function (r) {
-        return r.text();
+      .then(function (response) {
+        if (response.redirected && /\/connexion\/?(\?|$)/.test(response.url)) {
+          throw new Error('auth-redirect');
+        }
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+        return response.text();
       })
-      .then(applySwap)
-      .catch(function () {})
+      .then(function (html) {
+        if (!html || html.indexOf('id="prof-hub-chrome"') === -1) {
+          throw new Error('invalid-hub-partial');
+        }
+        applySwap(html);
+      })
+      .catch(function () {
+        window.location.reload();
+      })
       .finally(function () {
         setLoading(false);
       });
   }
 
-  document.addEventListener('click', onLinkClick);
   window.addEventListener('popstate', onPopState);
 
   window.ProfHubNavLive = {

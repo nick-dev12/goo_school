@@ -149,14 +149,36 @@ def serialize_parametres_groupe_deleted(parametre_id, etablissement):
     }
 
 
-def serialize_comptabilite_paiement_result(eleve_id, message, snapshot=None):
+def serialize_comptabilite_paiement_result(
+    eleve_id,
+    message,
+    snapshot=None,
+    paiement_id=None,
+    recu_url=None,
+):
     item = {
         'eleve_id': eleve_id,
         'message': message,
     }
     if snapshot is not None:
         item['snapshot'] = snapshot
+    if paiement_id is not None:
+        item['paiement_id'] = paiement_id
+    if recu_url:
+        item['recu_url'] = recu_url
     return item
+
+
+def _recu_links_for_paiements(paiements):
+    links = []
+    for paiement in paiements:
+        label = paiement.numero_recu or paiement.date_paiement.strftime('%d/%m/%Y')
+        links.append({
+            'id': paiement.id,
+            'url': reverse('directeur:recu_paiement_directeur', args=[paiement.id]),
+            'label': label,
+        })
+    return links
 
 
 def _fmt_amount(value):
@@ -238,12 +260,15 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
     frais_rows = []
     for frais in FraisInscription.objects.filter(comptabilite_eleve=comptabilite).order_by('-date_creation'):
         montant_paye = Decimal('0.00')
-        for paiement in PaiementEleve.objects.filter(
-            frais_inscription=frais,
-            eleve=eleve,
-            annee_scolaire=annee_scolaire,
-            type_paiement='frais_inscription',
-        ):
+        paiements_ligne = list(
+            PaiementEleve.objects.filter(
+                frais_inscription=frais,
+                eleve=eleve,
+                annee_scolaire=annee_scolaire,
+                type_paiement='frais_inscription',
+            ).order_by('-date_paiement')
+        )
+        for paiement in paiements_ligne:
             montant_paye += Decimal(str(paiement.montant))
         reste = Decimal(str(frais.montant)) - montant_paye
         if reste < Decimal('0.00'):
@@ -259,6 +284,7 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
             'statut_display': frais.get_statut_display(),
             'statut_badge': _frais_statut_badge(frais.statut),
             'can_pay': float(reste) > 0,
+            'recus': _recu_links_for_paiements(paiements_ligne),
         })
 
     mensualite_rows = []
@@ -268,12 +294,15 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
             mensualite.mettre_a_jour_statut(parametres)
     for mensualite in mensualites:
         montant_paye = Decimal('0.00')
-        for paiement in PaiementEleve.objects.filter(
-            mensualite=mensualite,
-            eleve=eleve,
-            annee_scolaire=annee_scolaire,
-            type_paiement='mensualite',
-        ):
+        paiements_ligne = list(
+            PaiementEleve.objects.filter(
+                mensualite=mensualite,
+                eleve=eleve,
+                annee_scolaire=annee_scolaire,
+                type_paiement='mensualite',
+            ).order_by('-date_paiement')
+        )
+        for paiement in paiements_ligne:
             montant_paye += Decimal(str(paiement.montant))
         reste = Decimal(str(mensualite.montant)) - montant_paye
         if reste < Decimal('0.00'):
@@ -290,17 +319,21 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
             'statut_display': label,
             'statut_badge': badge,
             'can_pay': float(reste) > 0,
+            'recus': _recu_links_for_paiements(paiements_ligne),
         })
 
     annexes_rows = []
     for frais in FraisAnnexe.objects.filter(comptabilite_eleve=comptabilite).order_by('libelle'):
         montant_paye = Decimal('0.00')
-        for paiement in PaiementEleve.objects.filter(
-            frais_annexe=frais,
-            eleve=eleve,
-            annee_scolaire=annee_scolaire,
-            type_paiement='frais_annexe',
-        ):
+        paiements_ligne = list(
+            PaiementEleve.objects.filter(
+                frais_annexe=frais,
+                eleve=eleve,
+                annee_scolaire=annee_scolaire,
+                type_paiement='frais_annexe',
+            ).order_by('-date_paiement')
+        )
+        for paiement in paiements_ligne:
             montant_paye += Decimal(str(paiement.montant))
         reste = Decimal(str(frais.montant)) - montant_paye
         if reste < Decimal('0.00'):
@@ -317,6 +350,7 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
             'statut_display': frais.get_statut_display(),
             'statut_badge': _frais_statut_badge(frais.statut),
             'can_pay': float(reste) > 0,
+            'recus': _recu_links_for_paiements(paiements_ligne),
         })
 
     paiement_rows = []

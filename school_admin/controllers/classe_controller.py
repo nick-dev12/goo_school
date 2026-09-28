@@ -1025,6 +1025,13 @@ class ClasseController:
                 domaine=domaine,
                 mention=mention,
             )
+            from school_admin.services.realtime_helpers import emit_live
+
+            emit_live(
+                etablissement.id,
+                'filiere.mise_a_jour',
+                {'event': 'filiere.mise_a_jour', 'nom': nom, 'action': 'creee'},
+            )
             messages.success(request, f"La spécialité « {nom} » ({sigle}) a été créée.")
         except Exception as e:
             logger.error(f"Erreur création spécialité: {e}")
@@ -1074,6 +1081,13 @@ class ClasseController:
             department.domaine = domaine
             department.mention = mention
             department.save()
+            from school_admin.services.realtime_helpers import emit_live
+
+            emit_live(
+                etablissement.id,
+                'filiere.mise_a_jour',
+                {'event': 'filiere.mise_a_jour', 'id': department.id, 'action': 'modifiee'},
+            )
             messages.success(request, f"La spécialité a été modifiée en « {nom} » ({sigle}).")
         except Exception as e:
             logger.error(f"Erreur modification spécialité: {e}")
@@ -1112,6 +1126,13 @@ class ClasseController:
         nom = department.nom
         try:
             department.delete()
+            from school_admin.services.realtime_helpers import emit_live
+
+            emit_live(
+                etablissement.id,
+                'filiere.mise_a_jour',
+                {'event': 'filiere.mise_a_jour', 'nom': nom, 'action': 'supprimee'},
+            )
             messages.success(request, f"La spécialité « {nom} » a été supprimée.")
         except Exception as e:
             logger.error(f"Erreur suppression spécialité: {e}")

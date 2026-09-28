@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Fiche de paie" %} — {{ professeur.nom_complet }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/recu_paiement.css' %}?v=1.0.0" />
+</head>
+<body class="recu-body">
+    <div class="print-actions">
+        <button type="button" class="btn-print" onclick="window.print()">{% trans "Imprimer" %}</button>
+        <a href="{% url 'directeur:detail_volume_horaire' professeur.id %}{{ query_periode }}" class="btn-back">{% trans "Retour" %}</a>
+    </div>
+
+    <article class="recu-sheet">
+        <header class="recu-head">
+            <div>
+                <p class="recu-school-name">{{ etablissement.nom }}</p>
+                <p class="recu-school-meta">
+                    {{ etablissement.adresse }} — {{ etablissement.ville }}<br />
+                    {% trans "Tél." %} {{ etablissement.telephone|default:"—" }}
+                </p>
+            </div>
+            <div class="recu-title-block">
+                <p class="recu-title">{% trans "FICHE DE PAIE" %}</p>
+                <p class="recu-number">{{ periode.label }}</p>
+            </div>
+        </header>
+
+        <div class="recu-grid">
+            <div>
+                <div class="recu-label">{% trans "Professeur" %}</div>
+                <div class="recu-value">{{ professeur.nom }} {{ professeur.prenom }}</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Période" %}</div>
+                <div class="recu-value">{{ paie.date_debut|date:"d/m/Y" }} → {{ paie.date_fin|date:"d/m/Y" }}</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Heures" %}</div>
+                <div class="recu-value">{{ paie.heures|floatformat:2 }}</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Brut" %}</div>
+                <div class="recu-value">{{ paie.montant_brut|floatformat:0 }} {{ devise_monnaie }}</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Charges" %}</div>
+                <div class="recu-value">{{ paie.retenue_pct|floatformat:0 }} %</div>
+            </div>
+            <div>
+                <div class="recu-label">{% trans "Payé le" %}</div>
+                <div class="recu-value">{{ paie.date_paiement|date:"d/m/Y" }}</div>
+            </div>
+        </div>
+
+        <div class="recu-amount">
+            <div class="recu-label">{% trans "Net versé" %}</div>
+            <strong>{{ paie.montant_net|floatformat:0 }} {{ devise_monnaie }}</strong>
+        </div>
+    </article>
+</body>
+</html>

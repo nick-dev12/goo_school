@@ -17,6 +17,7 @@
     'eleve-detail': ['.main-content-container'],
     'exercices': ['.main-content-container'],
     'justifications': ['.main-content-container'],
+    'eleves-difficulte': ['.main-content-container'],
     'profil': ['.main-content-container'],
   };
 
@@ -71,6 +72,15 @@
   function hubNavLiveOn() {
     return document.body.getAttribute('data-prof-hub-nav-live') === '1';
   }
+
+  var HUB_PANEL_LIVE_PAGES = [
+    'notes-gestion',
+    'presence-gestion',
+    'justifications',
+    'exercices',
+    'eleves-gestion',
+    'eleves-difficulte',
+  ];
 
   function buildHubPanelRefreshUrl(extraParams) {
     var params = { hub_partial: 'panel' };
@@ -348,12 +358,12 @@
     if (!selectors) {
       return;
     }
-    var fetchUrl =
-      page === 'notes-gestion'
-        ? buildNotesRefreshUrl(payload && payload.item ? payload.item : payload)
-        : page === 'presence-gestion'
-          ? buildLiveRefreshUrl('presence-gestion')
-          : null;
+    var fetchUrl = null;
+    if (page === 'notes-gestion') {
+      fetchUrl = buildNotesRefreshUrl(payload && payload.item ? payload.item : payload);
+    } else if (HUB_PANEL_LIVE_PAGES.indexOf(page) !== -1) {
+      fetchUrl = hubNavLiveOn() ? buildHubPanelRefreshUrl() : buildLiveRefreshUrl(page);
+    }
     scheduleRefresh(selectors, message || 'Données mises à jour.', true, fetchUrl);
   }
 
@@ -438,7 +448,11 @@
   function loadEvaluationForm(classeId, matiereId, periodeId) {
     var body = document.getElementById('modalCreerEvaluationBody');
     if (!body) {
-      return;
+      return false;
+    }
+    if (!classeId || classeId === 'null' || classeId === 'undefined') {
+      console.warn('[enseignant_live] création évaluation : classe manquante');
+      return false;
     }
     body.innerHTML =
       '<div class="modal-loading"><i class="fas fa-spinner fa-spin"></i> Chargement…</div>';
@@ -496,6 +510,7 @@
       .catch(function () {
         body.innerHTML = '<p class="alert alert-danger">Impossible de charger le formulaire.</p>';
       });
+    return true;
   }
 
   function initEvaluationModalTriggers() {
@@ -509,8 +524,12 @@
         return;
       }
       e.preventDefault();
+      var classeId = btn.getAttribute('data-classe-id');
+      if (!classeId) {
+        return;
+      }
       loadEvaluationForm(
-        btn.getAttribute('data-classe-id'),
+        classeId,
         btn.getAttribute('data-matiere-id'),
         btn.getAttribute('data-periode-id')
       );

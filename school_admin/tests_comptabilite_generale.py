@@ -19,6 +19,7 @@ from school_admin.services.comptabilite_generale import (
     enregistrer_regime_comptable,
     ensure_exercice,
     ensure_plan_comptable,
+    infer_classe_nature_compte,
     migrer_plan_syscohada,
     pont_paiement_eleve,
     regime_est_verrouille,
@@ -27,6 +28,24 @@ from school_admin.services.comptabilite_generale import (
 
 
 class PlanPceConstantesTests(SimpleTestCase):
+    def test_infer_7061_cantine_produit_classe_7(self):
+        classe, nature, err = infer_classe_nature_compte('7061')
+        self.assertIsNone(err)
+        self.assertEqual(classe, '7')
+        self.assertEqual(nature, 'produit')
+
+    def test_infer_602_charge_classe_6(self):
+        classe, nature, err = infer_classe_nature_compte('602')
+        self.assertIsNone(err)
+        self.assertEqual(classe, '6')
+        self.assertEqual(nature, 'charge')
+
+    def test_infer_411_actif_classe_4(self):
+        classe, nature, err = infer_classe_nature_compte('411')
+        self.assertIsNone(err)
+        self.assertEqual(classe, '4')
+        self.assertEqual(nature, 'actif')
+
     def test_pce_contient_les_comptes_valides(self):
         numeros = {row[0] for row in PLAN_SYSCOHADA_EDUCATION}
         for attendu in ('571', '521', '585', '7051', '7052', '7061', '411', '637', '6611'):

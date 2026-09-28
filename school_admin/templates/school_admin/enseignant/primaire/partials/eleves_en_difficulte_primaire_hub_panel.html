@@ -24,21 +24,7 @@
 
             <!-- Onglets par catÃ©gorie -->
             <div class="tabs-container">
-                <div class="tabs-nav">
-                    {% for categorie, data in classes_grouped.items %}
-                        <button class="tab-btn {% if forloop.first %}active{% endif %}" 
-                                data-tab="tab-{{ forloop.counter }}"
-                                onclick="switchTab('tab-{{ forloop.counter }}')">
-                            <div class="tab-content">
-                                <span class="tab-title">{{ categorie }}</span>
-                                <span class="tab-badge" style="background: #ef4444;">{{ data.classes|length }}</span>
-                            </div>
-                            <div class="tab-info">
-                                <span class="tab-students">{{ data.total_eleves }} Ã©lÃ¨ve{{ data.total_eleves|pluralize }} en difficultÃ©</span>
-                            </div>
-                        </button>
-                    {% endfor %}
-                </div>
+                
 
                 <!-- Contenu des onglets -->
                 {% for categorie, data in classes_grouped.items %}
@@ -55,27 +41,7 @@
                         </div>
 
                         <!-- Sous-onglets par classe -->
-                        <div class="classes-tabs">
-                            {% for classe_data in data.classes %}
-                                <button class="classe-tab-btn {% if forloop.first %}active{% endif %}"
-                                        data-classe="classe-{{ categorie }}-{{ forloop.counter }}"
-                                        onclick="showClasse('classe-{{ categorie }}-{{ forloop.counter }}', 'tab-{{ forloop.parentloop.counter }}')">
-                                    <div class="classe-tab-icon">
-                                        <i class="fas fa-users"></i>
-                                    </div>
-                                    <div class="classe-tab-content">
-                                        <span class="classe-tab-name">
-                                            {{ classe_data.classe.nom }}
-                                            {% if classe_data.matiere %}
-                                                <span class="matiere-badge-small">{{ classe_data.matiere.nom }}</span>
-                                            {% endif %}
-                                        </span>
-                                        <span class="classe-tab-badge warning" style="background: #ef4444;">{{ classe_data.nombre_eleves }}/{{ classe_data.nombre_total_eleves }}</span>
-                                    </div>
-                                    <span class="classe-tab-count" style="background: #ef4444;">{{ classe_data.nombre_eleves }}</span>
-                                </button>
-                            {% endfor %}
-                        </div>
+                        
 
                         <!-- Contenu de chaque classe -->
                         {% for classe_data in data.classes %}

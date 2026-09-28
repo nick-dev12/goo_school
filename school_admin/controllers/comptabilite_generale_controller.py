@@ -34,6 +34,7 @@ from school_admin.services.comptabilite_generale import (
     ensure_journaux,
     ensure_plan_comptable,
     get_or_create_parametres_comptabilite,
+    infer_classe_nature_compte,
     kpi_cg,
     pont_amortissement,
     pont_virement_interne,
@@ -96,15 +97,38 @@ class ComptabiliteGeneraleController:
         if request.method == 'POST' and request.POST.get('action') == 'ajouter_compte':
             numero = (request.POST.get('numero') or '').strip()
             libelle = (request.POST.get('libelle') or '').strip()
-            classe = (request.POST.get('classe') or (numero[:1] if numero else '6')).strip()[:1]
-            nature = (request.POST.get('nature') or 'charge').strip()
-            if numero and libelle:
-                CompteComptable.objects.get_or_create(
-                    etablissement=etablissement,
-                    numero=numero,
-                    defaults={'libelle': libelle, 'classe': classe, 'nature': nature},
+            if not numero or not libelle:
+                messages.error(request, 'Numéro et libellé sont obligatoires.')
+                return redirect('directeur:cg_plan_comptable')
+
+            classe_inf, nature_inf, err = infer_classe_nature_compte(numero)
+            if err:
+                messages.error(request, err)
+                return redirect('directeur:cg_plan_comptable')
+
+            classe_post = (request.POST.get('classe') or '').strip()[:1]
+            nature_post = (request.POST.get('nature') or '').strip()
+            if classe_post != classe_inf or nature_post != nature_inf:
+                messages.info(
+                    request,
+                    f'Classe et nature ajustées selon le numéro {numero} '
+                    f'(classe {classe_inf}, nature {nature_inf}).',
                 )
-                messages.success(request, f"Compte {numero} ajouté.")
+
+            _obj, created = CompteComptable.objects.update_or_create(
+                etablissement=etablissement,
+                numero=numero,
+                defaults={
+                    'libelle': libelle,
+                    'classe': classe_inf,
+                    'nature': nature_inf,
+                    'actif': True,
+                },
+            )
+            if created:
+                messages.success(request, f'Compte {numero} ajouté.')
+            else:
+                messages.success(request, f'Compte {numero} mis à jour.')
             return redirect('directeur:cg_plan_comptable')
 
         comptes = CompteComptable.objects.filter(etablissement=etablissement, actif=True)

@@ -1,0 +1,183 @@
+{# Hub élèves — une classe à la fois #}
+<div class="prof-eleves-hub-panel">
+    {% if eleves_classe_entry %}
+        {% with cd=eleves_classe_entry %}
+        <article class="prof-eleves-fiche" data-classe-panel="{{ cd.classe.id }}">
+            <header class="prof-eleves-fiche-hero">
+                <div class="prof-eleves-fiche-hero-main">
+                    <p class="prof-eleves-fiche-kicker">
+                        {% if eleves_categorie %}
+                            <i class="fas fa-layer-group" aria-hidden="true"></i> {{ eleves_categorie }}
+                        {% else %}
+                            <i class="fas fa-chalkboard" aria-hidden="true"></i> Classe
+                        {% endif %}
+                    </p>
+                    <h2 class="prof-eleves-fiche-title">{{ cd.classe.nom }}</h2>
+                    <div class="prof-eleves-fiche-badges">
+                        <span class="badge effectif"><i class="fas fa-users"></i> {{ cd.nombre_eleves }} élève{{ cd.nombre_eleves|pluralize }}</span>
+                        {% if prof_eleves_hub_mode == 'secondaire' %}
+                            {% if cd.est_principal %}
+                                <span class="badge principal"><i class="fas fa-crown"></i> Prof principal</span>
+                            {% endif %}
+                            {% if cd.matiere %}
+                                <span class="badge matiere"><i class="fas fa-book"></i> {{ cd.matiere.nom }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge polyvalent"><i class="fas fa-star"></i> Polyvalent</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </header>
+
+            <section class="prof-eleves-section" aria-labelledby="prof-eleves-actions-title">
+                <h3 id="prof-eleves-actions-title" class="prof-eleves-section-title">
+                    <i class="fas fa-bolt" aria-hidden="true"></i> Actions rapides
+                </h3>
+                <div class="prof-eleves-link-grid">
+                    {% if prof_eleves_hub_mode == 'primaire' %}
+                        <a href="{% url 'enseignant_primaire:liste_presence' cd.classe.id %}" class="prof-eleves-link-card">
+                            <span class="prof-eleves-link-icon info"><i class="fas fa-clipboard-list"></i></span>
+                            <span class="prof-eleves-link-text">
+                                <strong>Présence</strong>
+                                <small>Feuille d’appel du jour</small>
+                            </span>
+                        </a>
+                        <a href="{% url 'enseignant_primaire:liste_sanctions_classe' cd.classe.id %}" class="prof-eleves-link-card">
+                            <span class="prof-eleves-link-icon warn"><i class="fas fa-gavel"></i></span>
+                            <span class="prof-eleves-link-text">
+                                <strong>Sanctions</strong>
+                                <small>Historique de la classe</small>
+                            </span>
+                        </a>
+                        <a href="{% url 'enseignant_primaire:detail_classe' cd.classe.id %}" class="prof-eleves-link-card">
+                            <span class="prof-eleves-link-icon primary"><i class="fas fa-circle-info"></i></span>
+                            <span class="prof-eleves-link-text">
+                                <strong>Fiche classe</strong>
+                                <small>Effectif et informations</small>
+                            </span>
+                        </a>
+                    {% else %}
+                        <a href="{% url 'enseignant:liste_presence' cd.classe.id %}{% if cd.matiere %}?matiere={{ cd.matiere.id }}{% endif %}" class="prof-eleves-link-card">
+                            <span class="prof-eleves-link-icon info"><i class="fas fa-clipboard-list"></i></span>
+                            <span class="prof-eleves-link-text">
+                                <strong>Présence</strong>
+                                <small>Appel et suivi</small>
+                            </span>
+                        </a>
+                        <a href="{% url 'enseignant:liste_sanctions_classe' cd.classe.id %}" class="prof-eleves-link-card">
+                            <span class="prof-eleves-link-icon warn"><i class="fas fa-gavel"></i></span>
+                            <span class="prof-eleves-link-text">
+                                <strong>Sanctions</strong>
+                                <small>Historique de la classe</small>
+                            </span>
+                        </a>
+                        <a href="{% url 'enseignant:detail_classe' cd.classe.id %}{% if cd.matiere %}?matiere={{ cd.matiere.id }}{% endif %}" class="prof-eleves-link-card">
+                            <span class="prof-eleves-link-icon primary"><i class="fas fa-circle-info"></i></span>
+                            <span class="prof-eleves-link-text">
+                                <strong>Fiche classe</strong>
+                                <small>Infos et effectif</small>
+                            </span>
+                        </a>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="prof-eleves-section prof-eleves-list-section" aria-labelledby="prof-eleves-list-title">
+                <div class="prof-eleves-list-head">
+                    <h3 id="prof-eleves-list-title" class="prof-eleves-section-title">
+                        <i class="fas fa-list" aria-hidden="true"></i> Liste des élèves
+                    </h3>
+                    <p class="prof-eleves-list-hint">
+                        Absences : 30 derniers jours{% if prof_eleves_hub_mode == 'secondaire' and not cd.est_principal %} (votre matière){% endif %}
+                        · Sanctions : année en cours
+                    </p>
+                </div>
+
+                {% if cd.eleves %}
+                    <div class="table-responsive prof-primaire-searchable">
+                        <div class="presence-list prof-eleves-presence-list">
+                            <div class="presence-header">
+                                <div class="col-numero">#</div>
+                                <div class="col-nom">Élève</div>
+                                <div class="col-sexe">Sexe</div>
+                                <div class="col-absences">Absences</div>
+                                <div class="col-sanctions">Sanctions</div>
+                                <div class="col-actions">Actions</div>
+                            </div>
+                            {% for eleve_data in cd.eleves %}
+                                <div class="presence-row">
+                                    <div class="col-numero">{{ forloop.counter }}</div>
+                                    <div class="col-nom">
+                                        <div class="eleve-avatar-small">{{ eleve_data.eleve.nom.0 }}{{ eleve_data.eleve.prenom.0 }}</div>
+                                        <div class="eleve-info">
+                                            <span class="eleve-nom-complet">{{ eleve_data.eleve.nom_complet }}</span>
+                                            <span class="eleve-matricule">{{ eleve_data.eleve.numero_matricule_complet }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-sexe">
+                                        <span class="badge-sexe {% if eleve_data.eleve.sexe == 'M' %}masculin{% else %}feminin{% endif %}">
+                                            {{ eleve_data.eleve.get_sexe_display }}
+                                        </span>
+                                    </div>
+                                    <div class="col-absences">
+                                        {% if eleve_data.nombre_absences > 0 %}
+                                            <span class="badge-absences {% if eleve_data.nombre_absences >= 5 %}danger{% elif eleve_data.nombre_absences >= 3 %}warning{% else %}info{% endif %}">
+                                                {{ eleve_data.nombre_absences }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge-absences success">0</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-sanctions">
+                                        {% if eleve_data.nombre_sanctions > 0 %}
+                                            <span class="badge-sanctions {% if eleve_data.nombre_sanctions >= 3 %}danger{% elif eleve_data.nombre_sanctions >= 2 %}warning{% else %}info{% endif %}">
+                                                {{ eleve_data.nombre_sanctions }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge-sanctions success">0</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-actions prof-eleves-row-actions">
+                                        {% if prof_eleves_hub_mode == 'primaire' %}
+                                            <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=informations" class="action-btn-small primary" title="Voir le profil">
+                                                <i class="fas fa-user"></i><span class="prof-eleves-action-label">Profil</span>
+                                            </a>
+                                            <button type="button" class="action-btn-small warning" title="Ajouter une sanction"
+                                                    onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom_complet|escapejs }}', {{ cd.classe.id }})">
+                                                <i class="fas fa-gavel"></i><span class="prof-eleves-action-label">Sanction</span>
+                                            </button>
+                                        {% else %}
+                                            <a href="{% url 'enseignant:detail_eleve' eleve_data.eleve.id %}?onglet=informations" class="action-btn-small primary" title="Voir le profil">
+                                                <i class="fas fa-user"></i><span class="prof-eleves-action-label">Profil</span>
+                                            </a>
+                                            <button type="button" class="action-btn-small warning" title="Ajouter une sanction"
+                                                    onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom_complet|escapejs }}', {{ cd.classe.id }})">
+                                                <i class="fas fa-gavel"></i><span class="prof-eleves-action-label">Sanction</span>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="empty-class-state">
+                        <i class="fas fa-users-slash"></i>
+                        <p>Aucun élève inscrit dans cette classe pour l’année active.</p>
+                    </div>
+                {% endif %}
+            </section>
+        </article>
+        {% endwith %}
+    {% elif classe_selectionnee %}
+        <div class="empty-class-state">
+            <i class="fas fa-spinner"></i>
+            <p>Chargement des données de la classe…</p>
+        </div>
+    {% else %}
+        <div class="empty-class-state">
+            <i class="fas fa-hand-pointer"></i>
+            <p>Choisissez une classe dans la barre ci-dessus pour afficher les élèves.</p>
+        </div>
+    {% endif %}
+</div>

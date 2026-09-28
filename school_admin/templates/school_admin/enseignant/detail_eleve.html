@@ -10,6 +10,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/detail_eleve.css' %}?v=1.0.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/prof_eleve_fiche.css' %}?v=1.0.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/historique_presence.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
     {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
@@ -35,67 +36,8 @@
         </div> {% endcomment %}
         {% endif %}
 
-        <!-- Header Élève -->
-        <div class="eleve-header-card">
-            <div class="eleve-avatar-large">
-                {{ eleve.nom.0 }}{{ eleve.prenom.0 }}
-            </div>
-            <div class="eleve-header-info">
-                <h1 class="eleve-nom">{{ eleve.nom_complet }}</h1>
-                <div class="eleve-meta">
-                    <span class="meta-item">
-                        <i class="fas fa-chalkboard"></i>
-                        {{ classe.nom }}
-                    </span>
-                    <span class="meta-item">
-                        <i class="fas fa-id-card"></i>
-                        {{ eleve.numero_matricule_complet }}
-                    </span>
-                    <span class="meta-item">
-                        <i class="fas fa-{% if eleve.sexe == 'M' %}mars{% else %}venus{% endif %}"></i>
-                        {{ eleve.get_sexe_display }}
-                    </span>
-                </div>
-            </div>
-            <div class="quick-stats">
-                <div class="quick-stat">
-                    <div class="stat-value">{{ nombre_notes }}</div>
-                    <div class="stat-label">Notes</div>
-                </div>
-                <div class="quick-stat">
-                    <div class="stat-value">{{ nombre_absences }}</div>
-                    <div class="stat-label">Absences</div>
-                </div>
-                <div class="quick-stat">
-                    <div class="stat-value">{{ taux_presence }}%</div>
-                    <div class="stat-label">Assiduité</div>
-                </div>
-            </div>
-        </div>
+        {% include 'school_admin/enseignant/partials/prof_eleve_fiche_shell_head.html' with prof_eleve_fiche_mode='secondaire' %}
 
-        <!-- Onglets -->
-        <div class="tabs-navigation">
-            <a href="?onglet=notes{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}" class="tab-link {% if onglet_actif == 'notes' %}active{% endif %}">
-                <i class="fas fa-clipboard-check"></i>
-                <span>Notes & Moyennes</span>
-            </a>
-            <a href="?onglet=presences{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}" class="tab-link {% if onglet_actif == 'presences' %}active{% endif %}">
-                <i class="fas fa-calendar-check"></i>
-                <span>Présences & Absences</span>
-            </a>
-            <a href="?onglet=sanctions" class="tab-link {% if onglet_actif == 'sanctions' %}active{% endif %}">
-                <i class="fas fa-gavel"></i>
-                <span>Sanctions</span>
-            </a>
-            <a href="?onglet=informations" class="tab-link {% if onglet_actif == 'informations' %}active{% endif %}">
-                <i class="fas fa-user"></i>
-                <span>Informations personnelles</span>
-            </a>
-        </div>
-
-        <!-- Contenu des onglets -->
-        <div class="tab-content-wrapper">
-            
             <!-- ONGLET NOTES -->
             {% if onglet_actif == 'notes' %}
                 <div class="tab-content active" id="tab-notes">
@@ -402,200 +344,15 @@
                 </div>
             {% endif %}
 
-            <!-- ONGLET SANCTIONS -->
             {% if onglet_actif == 'sanctions' %}
-                <div class="tab-content active" id="tab-sanctions">
-                    <div class="content-header">
-                        <h2><i class="fas fa-gavel"></i> Sanctions disciplinaires</h2>
-                        <p>Historique des sanctions de l'élève</p>
-                    </div>
-
-                    {% if sanctions %}
-                        <div class="sanctions-container">
-                            <div class="sanctions-stats">
-                                <div class="stat-card">
-                                    <div class="stat-icon">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                    </div>
-                                    <div class="stat-info">
-                                        <div class="stat-number">{{ nombre_sanctions }}</div>
-                                        <div class="stat-text">Total sanctions</div>
-                                    </div>
-                                </div>
-                                {% if nombre_sanctions_graves > 0 %}
-                                    <div class="stat-card warning">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-exclamation-circle"></i>
-                                        </div>
-                                        <div class="stat-info">
-                                            <div class="stat-number">{{ nombre_sanctions_graves }}</div>
-                                            <div class="stat-text">Sanctions graves</div>
-                                        </div>
-                                    </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="sanctions-list">
-                                <h3><i class="fas fa-list"></i> Liste des sanctions</h3>
-                                <div class="sanctions-timeline">
-                                    {% for sanction in sanctions %}
-                                        <div class="sanction-item sanction-{{ sanction.gravite }}">
-                                            <div class="sanction-date">
-                                                <div class="date-jour">{{ sanction.date_sanction|date:"d" }}</div>
-                                                <div class="date-mois">{{ sanction.date_sanction|date:"M" }}</div>
-                                            </div>
-                                            <div class="sanction-details">
-                                                <div class="sanction-header">
-                                                    <h4>
-                                                        <i class="fas fa-{% if sanction.type_sanction == 'avertissement' %}exclamation-triangle{% elif sanction.type_sanction == 'blame' %}gavel{% elif sanction.type_sanction == 'exclusion_temporaire' %}ban{% else %}clipboard-list{% endif %}"></i>
-                                                        {{ sanction.get_type_sanction_display }}
-                                                    </h4>
-                                                    <span class="sanction-badge gravite-{{ sanction.gravite }}">
-                                                        {{ sanction.get_gravite_display }}
-                                                    </span>
-                                                </div>
-                                                <div class="sanction-info">
-                                                    <p><strong>Raison :</strong> {{ sanction.get_raison_sanction_display }}</p>
-                                                    {% if sanction.description %}
-                                                        <p><strong>Description :</strong> {{ sanction.description }}</p>
-                                                    {% endif %}
-                                                    <div class="sanction-meta">
-                                                        <span><i class="fas fa-user"></i> Sanctionné par : {{ sanction.sanctionne_par.nom_complet }}</span>
-                                                        <span><i class="fas fa-calendar"></i> {{ sanction.date_sanction|date:"d/m/Y" }}</span>
-                                                        {% if sanction.executee %}
-                                                            <span class="badge-executee"><i class="fas fa-check"></i> Exécutée</span>
-                                                        {% endif %}
-                                                        {% if sanction.parents_informes %}
-                                                            <span class="badge-parents"><i class="fas fa-users"></i> Parents informés</span>
-                                                        {% endif %}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="empty-state">
-                            <i class="fas fa-check-circle"></i>
-                            <p>Aucune sanction enregistrée pour cet élève</p>
-                        </div>
-                    {% endif %}
-                </div>
+                {% include 'school_admin/enseignant/partials/prof_eleve_fiche_tab_sanctions.html' %}
             {% endif %}
 
-            <!-- ONGLET INFORMATIONS -->
             {% if onglet_actif == 'informations' %}
-                <div class="tab-content active" id="tab-informations">
-                    <div class="content-header">
-                        <h2><i class="fas fa-user-circle"></i> Informations personnelles</h2>
-                        <p>Profil de l'élève</p>
-                    </div>
-
-                    <div class="info-sections">
-                        <!-- Identité -->
-                        <div class="info-section">
-                            <h3><i class="fas fa-id-card"></i> Identité</h3>
-                            <div class="info-grid">
-                                <div class="info-item">
-                                    <span class="info-label">Nom complet</span>
-                                    <span class="info-value">{{ eleve.nom_complet }}</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Matricule</span>
-                                    <span class="info-value">{{ eleve.numero_matricule_complet }}</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Date de naissance</span>
-                                    <span class="info-value">{{ eleve.date_naissance|date:"d/m/Y"|default:"-" }}</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Sexe</span>
-                                    <span class="info-value">{{ eleve.get_sexe_display }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Scolarité -->
-                        <div class="info-section">
-                            <h3><i class="fas fa-graduation-cap"></i> Scolarité</h3>
-                            <div class="info-grid">
-                                <div class="info-item">
-                                    <span class="info-label">Classe</span>
-                                    <span class="info-value">{{ classe.nom }}</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Établissement</span>
-                                    <span class="info-value">{{ classe.etablissement.nom }}</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Statut</span>
-                                    <span class="info-value">
-                                        <span class="badge-statut {% if eleve.actif %}actif{% else %}inactif{% endif %}">
-                                            {% if eleve.actif %}Actif{% else %}Inactif{% endif %}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Contact -->
-                        <div class="info-section">
-                            <h3><i class="fas fa-envelope"></i> Contact</h3>
-                            <div class="info-grid">
-                                <div class="info-item">
-                                    <span class="info-label">Email</span>
-                                    <span class="info-value">{{ eleve.email|default:"-" }}</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Téléphone</span>
-                                    <span class="info-value">{{ eleve.telephone|default:"-" }}</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Adresse</span>
-                                    <span class="info-value">{{ eleve.adresse|default:"-" }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Parents/Tuteurs -->
-                        <div class="info-section">
-                            <h3><i class="fas fa-users"></i> Parents / Tuteurs</h3>
-                            <div class="info-grid">
-                                <div class="info-item">
-                                    <span class="info-label">Nom du tuteur</span>
-                                    <span class="info-value">{{ eleve.nom_tuteur|default:"-" }}</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Téléphone tuteur</span>
-                                    <span class="info-value">{{ eleve.telephone_tuteur|default:"-" }}</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Email tuteur</span>
-                                    <span class="info-value">{{ eleve.email_tuteur|default:"-" }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {% include 'school_admin/enseignant/partials/prof_eleve_fiche_tab_informations.html' %}
             {% endif %}
 
-        </div>
-
-        <!-- Actions Footer -->
-        <div class="actions-footer">
-            {% if onglet_actif == 'presences' %}
-                <a href="{% url 'enseignant:historique_presence' eleve.id %}" class="btn-primary">
-                    <i class="fas fa-history"></i>
-                    Voir l'historique complet
-                </a>
-            {% endif %}
-            <a href="{% url 'enseignant:noter_eleves' classe.id %}" class="btn-primary">
-                <i class="fas fa-edit"></i>
-                Noter cet élève
-            </a>
-        </div>
+        {% include 'school_admin/enseignant/partials/prof_eleve_fiche_shell_foot.html' %}
     </div>
 
     <!-- Modal de modification de présence -->

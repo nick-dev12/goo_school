@@ -9,12 +9,12 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_eleves.css' %}?v=1.0.1">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/exercices_maison_primaire.css' %}?v=1.0.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/exercices_maison_primaire.css' %}?v=1.1.0">
 
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
     {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
-<body data-live-page="exercices"{% if hub_prof_ui %} data-prof-hub-nav-live="1"{% endif %}{% if hub_v4 %} data-prof-hub-key="professeur:lmd-exercices" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-exercices" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
+<body data-live-page="exercices"{% if hub_prof_ui %} data-prof-hub-nav-live="1"{% endif %}{% if hub_v4 %} data-prof-hub-key="professeur:lmd-exercices" data-prof-hub-fields="classe,matiere" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-exercices" data-prof-hub-fields="periode,classe,matiere" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <div class="main-content-container">
@@ -42,6 +42,10 @@
         </div>
         {% endif %}
 
+        {% if hub_prof_ui %}
+            {% include 'school_admin/enseignant/partials/prof_exercices_hub_swap_root.html' %}
+        {% else %}
+
         <div class="page-header">
             <div class="page-title-section">
                 <h1 class="page-title">
@@ -55,19 +59,6 @@
                         Programmez vos devoirs maison pour vos classes affectées
                     {% endif %}
                 </p>
-            </div>
-        </div>
-
-        <div class="page-actions info-only">
-            <div class="info-selected">
-                {% if classe_selectionnee %}
-                    Classe sélectionnée : <strong>{{ classe_selectionnee.nom }}</strong>
-                    {% if matiere_selectionnee %}
-                        — Matière : <strong>{{ matiere_selectionnee.nom }}</strong>
-                    {% endif %}
-                {% else %}
-                    Sélectionnez une classe pour commencer
-                {% endif %}
             </div>
         </div>
 
@@ -93,22 +84,6 @@
                     </div>
                 </div>
             </div>
-
-            {% if hub_prof_ui %}
-            <div id="prof-hub-chrome">
-                {% if hub_v3 %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un exercice…" search_target=".prof-primaire-searchable .exercice-card" %}
-                {% elif hub_v4 %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un exercice…" search_target=".prof-primaire-searchable .exercice-card" %}
-                {% endif %}
-            </div>
-            <div id="prof-hub-panel">
-                {% include 'school_admin/enseignant/partials/exercices_maison_enseignant_hub_panel.html' %}
-            </div>
-            {% else %}
             <div class="tabs-container">
                 <div class="tabs-nav">
                     {% for categorie in categories_data %}
@@ -264,7 +239,6 @@
                     </div>
                 {% endfor %}
             </div>
-            {% endif %}
         {% else %}
             <div class="empty-state">
                 <div class="empty-icon">
@@ -274,8 +248,12 @@
                 <p>Vous n'avez actuellement aucune classe affectée. Contactez l'administration.</p>
             </div>
         {% endif %}
+        {% endif %}
     </div>
 
+    {% if hub_prof_ui %}
+    {% include 'school_admin/enseignant/partials/prof_exercices_modal.html' %}
+    {% else %}
     <div id="modal-exercice" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -378,17 +356,20 @@
             </form>
         </div>
     </div>
+    {% endif %}
 
     {{ classes_options_json|json_script:"classes-data" }}
-    {{ exercices_json|json_script:"exercices-data" }}
+    {% if not hub_prof_ui %}{{ exercices_json|json_script:"exercices-data" }}{% endif %}
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
     {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_scripts.html' %}{% endif %}
     <script src="{% static 'school_admin/js/enseignant/gestion_eleves.js' %}"></script>
     <script>
         const classesData = JSON.parse(document.getElementById('classes-data').textContent || '[]');
-        const exercicesDataElement = document.getElementById('exercices-data');
-        const exercicesData = exercicesDataElement ? JSON.parse(exercicesDataElement.textContent || '[]') : [];
+        function lireExercicesData() {
+            const el = document.getElementById('exercices-data');
+            return el ? JSON.parse(el.textContent || '[]') : [];
+        }
         const modal = document.getElementById('modal-exercice');
         const classeSelect = document.getElementById('classe_select');
         const matiereSelect = document.getElementById('matiere_select');
@@ -515,30 +496,43 @@
             mettreAJourMatieres(event.target.value);
         });
 
-        document.querySelectorAll('.btn-programmer-exercice').forEach(btn => {
-            btn.addEventListener('click', () => {
-                ouvrirModalExercice({
-                    classeId: btn.dataset.classe || null,
-                    matiereId: btn.dataset.matiere || null,
-                    periodeId: btn.dataset.periode || null,
+        function lierBoutonsExercices() {
+            document.querySelectorAll('.btn-programmer-exercice').forEach(function (btn) {
+                if (btn.dataset.exercicesBound === '1') return;
+                btn.dataset.exercicesBound = '1';
+                btn.addEventListener('click', function () {
+                    ouvrirModalExercice({
+                        classeId: btn.dataset.classe || null,
+                        matiereId: btn.dataset.matiere || null,
+                        periodeId: btn.dataset.periode || null,
+                    });
                 });
             });
-        });
-
-        document.querySelectorAll('.btn-edit-exercice').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const exerciceId = Number(btn.dataset.exerciceId);
-                const exerciceData = exercicesData.find(item => item.id === exerciceId);
-                if (exerciceData) {
-                    ouvrirModalExercice({
-                        classeId: exerciceData.classe_id,
-                        matiereId: exerciceData.matiere_id,
-                        periodeId: exerciceData.periode_id,
-                        exercice: exerciceData,
-                    });
-                }
+            const exercicesData = lireExercicesData();
+            document.querySelectorAll('.btn-edit-exercice').forEach(function (btn) {
+                if (btn.dataset.exercicesBound === '1') return;
+                btn.dataset.exercicesBound = '1';
+                btn.addEventListener('click', function () {
+                    const exerciceId = Number(btn.dataset.exerciceId);
+                    const exerciceData = exercicesData.find(function (item) { return item.id === exerciceId; });
+                    if (exerciceData) {
+                        ouvrirModalExercice({
+                            classeId: exerciceData.classe_id,
+                            matiereId: exerciceData.matiere_id,
+                            periodeId: exerciceData.periode_id,
+                            exercice: exerciceData,
+                        });
+                    }
+                });
             });
+        }
+        window.fermerModalExercice = fermerModalExercice;
+        window.ouvrirModalExercice = ouvrirModalExercice;
+        document.addEventListener('DOMContentLoaded', function () {
+            mettreAJourMatieres(classeSelect?.value || currentClasseId, currentMatiereId);
+            lierBoutonsExercices();
         });
+        document.addEventListener('prof-hub-panel-loaded', lierBoutonsExercices);
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -573,10 +567,6 @@
             if (selectedContent) selectedContent.classList.add('active');
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const initialClasse = classeSelect?.value || currentClasseId;
-            mettreAJourMatieres(initialClasse, currentMatiereId);
-        });
     </script>
 
     {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}

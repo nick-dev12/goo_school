@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_classes.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_classes.css' %}?v=1.1.1">
     {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
 <body{% if hub_prof_ui %} data-prof-hub-nav-live="1"{% endif %}{% if hub_v4 %} data-prof-hub-key="professeur:lmd-classes" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-classes" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
@@ -40,21 +40,16 @@
         </div>
         {% endif %}
 
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-chalkboard"></i>
-                    Gestion de Mes Classes
-                </h1>
-                <p class="page-subtitle">
-                    {{ stats.total_classes }} classe{{ stats.total_classes|pluralize }} affectée{{ stats.total_classes|pluralize }}
-                </p>
-            </div>
-        </div>
-
         {% if stats.total_classes > 0 %}
-            <!-- Statistiques globales -->
+            {% if hub_prof_ui and classe_selectionnee %}
+            {% include 'school_admin/enseignant/partials/prof_classe_hub_swap_root.html' with prof_classe_hub_panel_template='school_admin/enseignant/partials/gestion_classes_enseignant_hub_panel.html' %}
+            {% elif not hub_prof_ui %}
+            <div class="page-header">
+                <div class="page-title-section">
+                    <h1 class="page-title"><i class="fas fa-chalkboard"></i> Mes classes</h1>
+                    <p class="page-subtitle">{{ stats.total_classes }} classe{{ stats.total_classes|pluralize }} affectée{{ stats.total_classes|pluralize }}</p>
+                </div>
+            </div>
             <div class="stats-container">
                 <div class="stat-card">
                     <div class="stat-icon" style="background: #667eea;">
@@ -96,15 +91,6 @@
                     </div>
                 </div>
             </div>
-
-            {% if hub_prof_ui %}
-            <div id="prof-hub-chrome">
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-            </div>
-            <div id="prof-hub-panel">
-                {% include 'school_admin/enseignant/partials/gestion_classes_enseignant_hub_panel.html' %}
-            </div>
-            {% else %}
             {% include 'school_admin/enseignant/partials/gestion_classes_enseignant_hub_panel.html' %}
             {% endif %}
         {% else %}

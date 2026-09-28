@@ -32,6 +32,7 @@ class PersonnelAdministratif(AbstractUser):
         ('secretaire', 'Secrétaire'),
         ('gestionnaire', 'Gestionnaire'),
         ('comptable', 'Comptable'),
+        ('caissier', 'Caissier'),
         ('intendant', 'Intendant'),
         
         # Vie Scolaire

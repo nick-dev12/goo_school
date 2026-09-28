@@ -1,0 +1,30 @@
+---
+description: UX hub Notes professeur — conteneur blanc, filtres regroupés, swap XHR header+chrome+panel
+globs: school_admin/templates/school_admin/enseignant/**/gestion_notes*.html,school_admin/templates/school_admin/enseignant/partials/*notes*hub*,school_admin/templates/school_admin/enseignant/partials/prof_notes_hub*.html
+alwaysApply: false
+---
+
+# Hub professeur — page Notes
+
+## Conteneur unique
+
+Utiliser `#prof-hub-swap-root.prof-notes-hub-shell` via `prof_notes_hub_swap_root.html` :
+
+1. `#prof-hub-header` → `prof_notes_hub_header.html` (titre contextuel + liens difficulté / évaluations)
+2. `#prof-hub-chrome` → filtres regroupés (`prof-notes-hub-filters`) : Période, Classe, Matière (primaire), Affichage (Relevé / Saisie / Évaluations)
+3. `#prof-hub-panel` → `.prof-notes-hub-panel` (toolbar actions + contenu relevé)
+
+Réponse `hub_partial=hub` : même arbre (`*_hub_swap.html`).
+
+## Navigation XHR
+
+`prof_hub_nav_live.js` met à jour **header, chrome et panel** ensemble.
+
+## Pas de masquage client par classe
+
+Sur `.prof-notes-hub-panel`, ne pas appliquer `activateClassePanels` pour cacher `[data-classe-panel]` — le serveur ne rend que la classe `?classe=` (secondaire : filtre dans `gestion_notes_live_inner.html`).
+
+## Primaire vs secondaire
+
+- Primaire : chrome `gestion_notes_primaire_hub_chrome.html`, panel dédié relevé multi-matières.
+- Secondaire hub V3 : chrome `gestion_notes_enseignant_hub_chrome.html`, panel via `gestion_notes_live_inner.html` filtré.

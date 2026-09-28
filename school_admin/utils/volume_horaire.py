@@ -197,6 +197,19 @@ def minutes_semaine_planifiees(creneaux: Iterable) -> int:
     return total
 
 
+def minutes_creneaux_pour_date(creneaux: Iterable, jour: date) -> int:
+    """Minutes EDT du jour de semaine correspondant à `jour`."""
+    nom_jour = JOURS_SEMAINE[jour.weekday()]
+    total = 0
+    for creneau in creneaux:
+        if _est_pause(creneau):
+            continue
+        if getattr(creneau, 'jour', None) != nom_jour:
+            continue
+        total += _duree_minutes_creneau(creneau)
+    return total
+
+
 def minutes_vers_heures(minutes: int) -> Decimal:
     return (Decimal(max(0, int(minutes))) / Decimal(60)).quantize(
         _HEURES_QUANTUM, rounding=ROUND_HALF_UP

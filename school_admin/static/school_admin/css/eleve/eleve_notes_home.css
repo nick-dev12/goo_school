@@ -1,0 +1,500 @@
+/* Notes & évaluations élève — structure simplifiée */
+.ele-notes {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem 6.5rem;
+  color: #1f2937;
+}
+
+.ele-notes-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0.85rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.ele-notes-context-col {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.25rem;
+  width: 100%;
+}
+
+.ele-notes-context-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #6b7280;
+}
+
+.ele-notes-context-item i {
+  color: #3b82f6;
+}
+
+.ele-notes-context-item strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.ele-notes-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.ele-notes-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.ele-notes-btn--ghost:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.ele-notes-btn--primary {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 8px 18px -10px rgba(59, 130, 246, 0.85);
+}
+
+.ele-notes-btn--primary:hover {
+  filter: brightness(1.03);
+}
+
+.ele-notes-btn-hint {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  opacity: 0.9;
+  margin-left: 0.15rem;
+}
+
+.ele-notes-btn--muted {
+  cursor: default;
+  background: #f3f4f6;
+  color: #6b7280;
+  border-color: #e5e7eb;
+}
+
+.ele-notes-indicators {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  margin-bottom: 1.75rem;
+}
+
+@media (min-width: 640px) {
+  .ele-notes-indicators {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ele-notes-indicator {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  min-height: 5.5rem;
+}
+
+.ele-notes-indicator-icon {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.ele-notes-indicator-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ele-notes-indicator-label {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.ele-notes-indicator-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.ele-notes-indicator-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.ele-notes-activity-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .ele-notes-activity-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ele-notes-panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0.85rem 1rem 1rem;
+}
+
+.ele-notes-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.ele-notes-panel-title i {
+  color: #3b82f6;
+  font-size: 0.875rem;
+}
+
+.ele-notes-panel-empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  padding: 0.5rem 0;
+}
+
+.ele-notes-activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ele-notes-activity-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  min-height: 44px;
+}
+
+.ele-notes-activity-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.ele-notes-activity-matiere {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.ele-notes-activity-titre {
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.ele-notes-activity-date {
+  font-size: 0.6875rem;
+  color: #9ca3af;
+}
+
+.ele-notes-activity-note {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+}
+
+.ele-notes-activity-note.excellent { color: #059669; }
+.ele-notes-activity-note.good { color: #3b82f6; }
+.ele-notes-activity-note.average { color: #d97706; }
+.ele-notes-activity-note.below-average { color: #ea580c; }
+.ele-notes-activity-note.poor { color: #dc2626; }
+
+.ele-notes-activity-badge {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+}
+
+.ele-notes-empty-title {
+  font-size: 1.125rem;
+  margin: 0 0 0.5rem;
+  color: #374151;
+}
+
+.ele-notes-block {
+  margin-bottom: 1.75rem;
+}
+
+.ele-notes-block-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  color: #1f2937;
+}
+
+@media (min-width: 768px) {
+  .ele-notes-block-title {
+    font-size: 1.25rem;
+  }
+}
+
+.ele-notes-block-title i {
+  color: #3b82f6;
+  font-size: 1rem;
+}
+
+.ele-notes-block-sub {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+@media (max-width: 768px) {
+  .ele-notes-block-sub {
+    font-size: 0.8125rem;
+  }
+}
+
+.ele-notes-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  background: #fff;
+  border: 1px dashed #d1d5db;
+  border-radius: 14px;
+  color: #6b7280;
+}
+
+.ele-notes-empty .main-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+  display: block;
+  color: #9ca3af;
+}
+
+.ele-notes-empty p {
+  margin: 0;
+}
+
+.ele-notes-empty p + p {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+/* Onglets période — défilement horizontal sur mobile */
+.ele-notes .trimester-tabs-container {
+  margin-bottom: 1rem;
+}
+
+.ele-notes .trimester-tabs {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem;
+  gap: 0.65rem;
+  scroll-snap-type: x proximity;
+}
+
+.ele-notes .trimester-tab {
+  flex: 0 0 auto;
+  min-width: 11.5rem;
+  max-width: 14rem;
+  padding: 0.85rem 1rem;
+  scroll-snap-align: start;
+}
+
+.ele-notes .tab-title {
+  font-size: 0.9375rem;
+}
+
+.ele-notes .tab-period {
+  font-size: 0.75rem;
+}
+
+.ele-notes-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.ele-notes-jump a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  min-height: 44px;
+}
+
+.ele-notes-jump a:hover {
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.ele-notes-jump a i {
+  color: #3b82f6;
+  font-size: 0.75rem;
+}
+
+.ele-notes-global-section {
+  margin-top: 2rem;
+  padding-top: 1.75rem;
+  border-top: 2px solid #e5e7eb;
+}
+
+.ele-notes .performance-summary {
+  margin-bottom: 1.75rem;
+}
+
+.ele-notes .summary-card {
+  padding: 1.25rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .ele-notes .summary-card {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+.ele-notes .summary-header h3,
+.ele-notes .summary-header-title {
+  font-size: 1.125rem;
+}
+
+/* Tableau relevé — responsive */
+.ele-notes .releve-table-wrapper.table-responsive {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ele-notes .releve-table-wrapper.table-responsive::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 30px;
+  height: 100%;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.08), transparent);
+  pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+  .ele-notes .releve-table-wrapper.table-responsive::after {
+    display: none;
+  }
+}
+
+.ele-notes .releve-table td,
+.ele-notes .releve-table th {
+  font-size: 1rem;
+  min-width: 120px;
+  white-space: nowrap;
+}
+
+.ele-notes .releve-table thead th.th-matiere,
+.ele-notes .releve-table .td-matiere {
+  min-width: 140px;
+}
+
+@media (max-width: 1024px) {
+  .ele-notes .releve-table td,
+  .ele-notes .releve-table th {
+    font-size: 0.9375rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .ele-notes .releve-table td,
+  .ele-notes .releve-table th {
+    font-size: 0.8125rem;
+  }
+}
+
+.ele-notes .subjects-grid {
+  gap: 0.75rem;
+  padding: 0;
+}
+
+.ele-notes .section-header {
+  margin-bottom: 0.25rem;
+}

@@ -142,8 +142,9 @@ def attach_notes_primaire_tab_context(request, context, periodes, classes_flat, 
     raw_mat = (request.GET.get('matiere') or '').strip()
     if raw_mat.isdigit() and raw_mat in matiere_ids:
         matiere_key = raw_mat
-    elif raw_mat.isdigit() and classe_key and raw_mat not in matiere_ids:
-        matiere_key = ''
+    elif matiere_ids and classe_key:
+        # Classe choisie : première matière par défaut (relevé visible sans clic matière)
+        matiere_key = matiere_ids[0]
     else:
         matiere_key = ''
 

@@ -12,7 +12,7 @@ from school_admin.model.classe_model import Classe
 from school_admin.model.etablissement_model import Etablissement
 from school_admin.model.matiere_model import Matiere
 from school_admin.model.professeur_model import Professeur
-from school_admin.utils.prof_hub_partial import wants_prof_hub_partial
+from school_admin.utils.prof_hub_partial import merge_hub_template_context, wants_prof_hub_partial
 
 
 def _make_etablissement_primaire():
@@ -328,7 +328,8 @@ class ProfHubSecondaryIntegrationTests(TestCase):
         if extra:
             params.update(extra)
         return self.client.get(
-            reverse(url_name),
+        self.assertIn('id="prof-hub-header"', body)
+        self.assertIn('prof-presence-hub-panel', body)
             params,
             HTTP_X_REQUESTED_WITH='XMLHttpRequest',
         )

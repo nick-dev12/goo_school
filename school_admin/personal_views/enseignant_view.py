@@ -475,7 +475,7 @@ def dashboard_enseignant(request):
     
     # ===== LISTE DES CLASSES AVEC DÉTAILS =====
     classes_data = []
-    for affectation in affectations[:3]:  # Limiter à 3 pour le dashboard
+    for affectation in affectations[:8]:
         classe = affectation.classe
         
         # Calculer les heures par semaine (filtrées par année scolaire active)
@@ -787,6 +787,15 @@ def gestion_classes_enseignant(request):
         request, professeur, affectations, etablissement, annee_scolaire_active, pick_first=True
     )
     from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
+    from ..utils.prof_classe_hub import classe_hub_entries
+
+    classe_selectionnee = None
+    if initial_classe_id:
+        for item in classes_flat:
+            if str(item['classe'].id) == str(initial_classe_id):
+                classe_selectionnee = item['classe']
+                break
+    classe_entries, classe_categorie = classe_hub_entries(classes_grouped, initial_classe_id)
 
     if not wants_prof_hub_partial(request):
         if hub_redir:
@@ -797,6 +806,9 @@ def gestion_classes_enseignant(request):
         'classes_grouped': classes_grouped,
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
+        'classe_selectionnee': classe_selectionnee,
+        'classe_entries': classe_entries,
+        'classe_categorie': classe_categorie,
         'hub_v3': hub_v3,
         'hub_v4': hub_v4,
         'hub_prof_ui': hub_prof_ui,
@@ -966,11 +978,20 @@ def gestion_eleves_enseignant(request):
             if str(item['classe'].id) == initial_classe_id:
                 classe_selectionnee = item['classe']
                 break
+    from ..utils.prof_eleves_hub import find_eleves_classe_secondaire
     from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
 
     if not wants_prof_hub_partial(request):
         if hub_redir:
             return hub_redir
+
+    eleves_categorie = None
+    eleves_classe_entry = None
+    if hub_prof_ui:
+        eleves_categorie, eleves_classe_entry = find_eleves_classe_secondaire(
+            classes_grouped,
+            initial_classe_id or (classe_selectionnee.id if classe_selectionnee else None),
+        )
 
     context = {
         'professeur': professeur,
@@ -978,6 +999,11 @@ def gestion_eleves_enseignant(request):
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
         'classe_selectionnee': classe_selectionnee,
+        'eleves_categorie': eleves_categorie,
+        'eleves_classe_entry': eleves_classe_entry,
+        'prof_eleves_hub_mode': 'secondaire' if hub_prof_ui else '',
+        'prof_eleves_hub_chrome_template': 'school_admin/enseignant/partials/prof_eleves_hub_chrome.html',
+        'prof_eleves_hub_panel_template': 'school_admin/enseignant/partials/prof_eleves_hub_panel.html',
         'hub_v3': hub_v3,
         'hub_v4': hub_v4,
         'hub_prof_ui': hub_prof_ui,
@@ -1303,11 +1329,30 @@ def gestion_notes_enseignant(request):
         if hub_redir:
             return hub_redir
 
+    classe_selectionnee = None
+    if initial_classe_id:
+        for item in classes_flat:
+            if str(item['classe'].id) == str(initial_classe_id):
+                classe_selectionnee = item['classe']
+                break
+
+    hub_notes_active_tab_index = 0
+    if hub_prof_ui and initial_classe_id:
+        for tab_index, (_cat, data) in enumerate(classes_grouped.items(), start=1):
+            for cd in data['classes']:
+                if str(cd['classe'].id) == str(initial_classe_id):
+                    hub_notes_active_tab_index = tab_index
+                    break
+            if hub_notes_active_tab_index:
+                break
+
     context = {
         'professeur': professeur,
         'classes_grouped': classes_grouped,
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
+        'classe_selectionnee': classe_selectionnee,
+        'hub_notes_active_tab_index': hub_notes_active_tab_index,
         'hub_v3': hub_v3,
         'hub_v4': hub_v4,
         'hub_prof_ui': hub_prof_ui,
@@ -2245,9 +2290,39 @@ def exercices_maison_enseignant(request):
     )
     from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
 
+    from ..utils.prof_exercices_hub import (
+        build_matieres_data_exercices,
+        exercices_categorie_for_classe,
+    )
+
+    matieres_data = build_matieres_data_exercices(
+        professeur,
+        classe_selectionnee,
+        matieres_disponibles,
+        periode_selectionnee,
+        annee_scolaire_active,
+    )
+    exercices_categorie = exercices_categorie_for_classe(
+        classes_options,
+        classe_selectionnee.id if classe_selectionnee else None,
+    )
+
     if not wants_prof_hub_partial(request):
         if hub_redir:
             return hub_redir
+        if hub_prof_ui:
+            desired = {}
+            if periode_selectionnee and not est_superieur_exo:
+                desired['periode'] = str(periode_selectionnee.id)
+            if classe_selectionnee:
+                desired['classe'] = str(classe_selectionnee.id)
+            if matiere_selectionnee:
+                desired['matiere'] = str(matiere_selectionnee.id)
+            if desired:
+                mismatch = any(request.GET.get(k) != v for k, v in desired.items())
+                if mismatch:
+                    from django.http import HttpResponseRedirect
+                    return HttpResponseRedirect(request.path + '?' + urlencode(desired))
 
     context = {
         'professeur': professeur,
@@ -2268,6 +2343,11 @@ def exercices_maison_enseignant(request):
         'classe_selectionnee': classe_selectionnee,
         'matieres_disponibles': matieres_disponibles,
         'matiere_selectionnee': matiere_selectionnee,
+        'matieres_data': matieres_data,
+        'exercices_categorie': exercices_categorie,
+        'initial_matiere_id': str(matiere_selectionnee.id) if matiere_selectionnee else '',
+        'prof_exercices_hub_chrome_template': 'school_admin/enseignant/partials/prof_exercices_hub_chrome.html',
+        'prof_exercices_hub_panel_template': 'school_admin/enseignant/partials/prof_exercices_hub_panel.html',
         'exercices': exercices,
         'exercices_cards': exercices_cards,
         'exercices_json': exercices_json,
@@ -2443,6 +2523,20 @@ def gestion_presence_enseignant(request):
     )
     from ..utils.prof_hub_partial import render_prof_hub_partial, wants_prof_hub_partial
 
+    from ..utils.prof_presence_hub import find_presence_classe_entry
+
+    classe_selectionnee = None
+    if initial_classe_id:
+        for item in classes_flat:
+            if str(item['classe'].id) == initial_classe_id:
+                classe_selectionnee = item['classe']
+                break
+
+    presence_categorie, presence_classe_entry = find_presence_classe_entry(
+        classes_grouped,
+        initial_classe_id or (classe_selectionnee.id if classe_selectionnee else None),
+    )
+
     if not wants_prof_hub_partial(request):
         if hub_redir:
             return hub_redir
@@ -2452,6 +2546,12 @@ def gestion_presence_enseignant(request):
         'classes_grouped': classes_grouped,
         'classes_flat': classes_flat,
         'initial_classe_id': initial_classe_id,
+        'classe_selectionnee': classe_selectionnee,
+        'presence_categorie': presence_categorie,
+        'presence_classe_entry': presence_classe_entry,
+        'prof_presence_hub_mode': 'secondaire' if hub_prof_ui else '',
+        'prof_presence_hub_chrome_template': 'school_admin/enseignant/partials/prof_presence_hub_chrome.html',
+        'prof_presence_hub_panel_template': 'school_admin/enseignant/partials/prof_presence_hub_panel.html',
         'hub_v3': hub_v3,
         'hub_v4': hub_v4,
         'hub_prof_ui': hub_prof_ui,
@@ -3739,6 +3839,14 @@ def noter_eleves_enseignant(request, classe_id):
         'total_evaluations_count': total_evaluations_count,
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur_noter,
+        'prof_noter_mode': 'secondaire',
+        'prof_noter_effectif': eleves.count(),
+        'prof_noter_locked': bool(releve_notes and releve_notes.soumis),
+        'prof_noter_status_hint': (
+            f'Relevé soumis le {releve_notes.date_soumission:%d/%m/%Y à %H:%M}.'
+            if releve_notes and releve_notes.soumis and releve_notes.date_soumission
+            else 'Relevé soumis — modifications verrouillées.'
+        ),
     }
     
     return render(request, 'school_admin/enseignant/noter_eleves.html', context)
@@ -6579,6 +6687,7 @@ def detail_eleve_enseignant(request, eleve_id):
         'sanctions': sanctions,
         'nombre_sanctions': nombre_sanctions,
         'nombre_sanctions_graves': nombre_sanctions_graves,
+        'prof_eleve_fiche_mode': 'secondaire',
         'annee_scolaire_active': annee_scolaire_active,
     }
     
@@ -7173,6 +7282,7 @@ def detail_classe_enseignant(request, classe_id):
         'periodes_scolaires_eval': periodes_scolaires,
         'periode_eval_active': periode_eval_active,
         'evaluations_periode_module_verrouillee': evaluations_periode_module_verrouillee,
+        'prof_classe_detail_mode': 'secondaire',
     }
     
     from ..utils.prof_nav_trail import set_prof_breadcrumb_current_label

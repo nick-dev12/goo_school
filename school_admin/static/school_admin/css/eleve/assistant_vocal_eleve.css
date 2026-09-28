@@ -10,34 +10,47 @@
   border-top: 3px solid #3b82f6;
 }
 
+/* Bulles utilisateur — variables directeur absentes sur l’espace élève */
+.assistant-vocal-root--eleve .assistant-vocal-bubble.is-user {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #ffffff;
+  border: none;
+}
+
+.assistant-vocal-root--eleve .assistant-vocal-bubble.is-user.is-voice {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+}
+
+.assistant-vocal-root--eleve .assistant-vocal-bubble.is-user .assistant-vocal-voice-play {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.assistant-vocal-root--eleve .assistant-vocal-bubble.is-assistant {
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+}
+
+.assistant-vocal-root--eleve .assistant-vocal-messages {
+  background: #f8fafc;
+}
+
+.assistant-vocal-root--eleve #assistant-vocal-lang,
 .assistant-vocal-root--eleve .assistant-vocal-lang {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.5rem;
-  padding: 0.35rem 0.75rem 0;
-  font-size: 0.8125rem;
+  display: none !important;
 }
 
-.assistant-vocal-root--eleve .assistant-vocal-lang-label {
-  color: var(--gray-500, #6b7280);
-  margin-right: 0.15rem;
+.assistant-vocal-root--eleve .assistant-vocal-thinking span {
+  background: #3b82f6;
 }
 
-.assistant-vocal-root--eleve .assistant-vocal-lang-chip {
-  border: 1px solid var(--gray-200, #e5e7eb);
-  background: var(--white, #fff);
-  color: var(--gray-700, #374151);
-  border-radius: 999px;
-  padding: 0.2rem 0.65rem;
-  cursor: pointer;
-  min-height: 2rem;
-  font-size: 0.8125rem;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.assistant-vocal-root--eleve .assistant-vocal-lang-chip.is-active {
-  border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
+.assistant-vocal-root--eleve .assistant-vocal-choices .assistant-vocal-choice {
+  border-color: rgba(59, 130, 246, 0.35);
   color: #1d4ed8;
+}
+
+.assistant-vocal-root--eleve .assistant-vocal-choices .assistant-vocal-choice:hover {
+  background: rgba(59, 130, 246, 0.1);
 }

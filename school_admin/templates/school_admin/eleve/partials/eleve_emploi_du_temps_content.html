@@ -1,0 +1,227 @@
+{% load notes_tags exam_filters pagination_tags %}
+{% now "l" as today_weekday %}
+
+{% if emploi_non_publie %}
+  <div class="ele-edt-empty">
+    <i class="fas fa-eye-slash main-icon" aria-hidden="true"></i>
+    <h2>Emploi du temps non publié</h2>
+    <p>L’établissement n’a pas encore publié l’emploi du temps de votre classe.</p>
+    <p>Revenez plus tard ou contactez l’administration.</p>
+    <a href="{% url 'eleve:dashboard_eleve' %}" class="ele-edt-btn ele-edt-btn--primary" style="margin-top: 1rem;">
+      <i class="fas fa-home"></i> Accueil
+    </a>
+  </div>
+{% elif not emploi_du_temps %}
+  <div class="ele-edt-empty">
+    <i class="fas fa-calendar-times main-icon" aria-hidden="true"></i>
+    <h2>Aucun emploi du temps</h2>
+    <p>Il n’y a pas encore d’emploi du temps pour votre classe.</p>
+    <a href="{% url 'eleve:dashboard_eleve' %}" class="ele-edt-btn ele-edt-btn--primary" style="margin-top: 1rem;">
+      <i class="fas fa-home"></i> Accueil
+    </a>
+  </div>
+{% else %}
+<div class="ele-edt">
+  <div class="ele-edt-context">
+    <div>
+      <div class="ele-edt-context-item">
+        <i class="fas fa-calendar-week" aria-hidden="true"></i>
+        <span>Classe <strong>{{ classe.nom }}</strong></span>
+      </div>
+      <div class="ele-edt-badges">
+        <span class="ele-edt-badge"><i class="fas fa-users"></i> {{ classe.nombre_eleves }} élève{{ classe.nombre_eleves|pluralize }}</span>
+        <span class="ele-edt-badge"><i class="fas fa-clock"></i> {{ emploi_du_temps.nombre_creneaux }} créneau{{ emploi_du_temps.nombre_creneaux|pluralize }}</span>
+        <span class="ele-edt-badge is-ok"><i class="fas fa-check-circle"></i> Publié</span>
+      </div>
+    </div>
+    {% if annee_scolaire_active or emploi_du_temps.annee_scolaire %}
+    <div class="ele-edt-context-item">
+      <i class="fas fa-calendar-check" aria-hidden="true"></i>
+      <span>Année <strong>{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ emploi_du_temps.annee_scolaire }}{% endif %}</strong></span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="ele-edt-toolbar">
+    <button type="button" class="ele-edt-btn" onclick="window.print()">
+      <i class="fas fa-print"></i> Imprimer
+    </button>
+    <a href="{% url 'eleve:dashboard_eleve' %}" class="ele-edt-btn ele-edt-btn--primary">
+      <i class="fas fa-home"></i> Accueil
+    </a>
+  </div>
+
+  <section class="ele-edt-block" aria-labelledby="ele-edt-week-title">
+    <div class="ele-edt-block-head">
+      <div>
+        <h2 class="ele-edt-block-title" id="ele-edt-week-title">Ma semaine</h2>
+        <p class="ele-edt-block-sub">Un jour à la fois sur mobile ; vue complète sur grand écran.</p>
+      </div>
+    </div>
+
+    {% if not grille_emploi or not plages_horaires %}
+      <div class="ele-edt-panel">
+        <div class="ele-edt-day-empty">Aucun créneau programmé pour le moment.</div>
+      </div>
+    {% else %}
+
+    <div class="ele-edt-days" aria-label="Emploi du temps par jour">
+      {% for jour in jours_semaine %}
+        <article class="ele-edt-day{% if jour == today_weekday|lower %} is-today{% endif %}">
+          <div class="ele-edt-day-head">
+            <span>{{ jour|capfirst }}</span>
+            {% if jour == today_weekday|lower %}
+              <span class="ele-edt-day-tag">Aujourd’hui</span>
+            {% endif %}
+          </div>
+          <div class="ele-edt-day-body">
+            {% with day_creneaux=creneaux_par_jour|dict_value:jour %}
+              {% if day_creneaux %}
+                {% for creneau in day_creneaux %}
+                  {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
+                    <div class="ele-edt-slot" style="border-left-color: {{ creneau.matiere_couleur|default:'#3b82f6' }};">
+                      <div class="ele-edt-slot-time">
+                        {{ creneau.heure_debut|time:"H:i" }} – {{ creneau.heure_fin|time:"H:i" }}
+                      </div>
+                      <div class="ele-edt-slot-matiere">
+                        <i class="fas fa-{{ creneau.matiere_icone|default:'book' }}" style="color: {{ creneau.matiere_couleur|default:'#3b82f6' }};"></i>
+                        {{ matiere_nom }}
+                      </div>
+                      <div class="ele-edt-slot-meta">
+                        {% if creneau.professeur %}
+                          <span><i class="fas fa-user-tie"></i>
+                            {% with prenom_parts=creneau.professeur.prenom|split:" " nom_parts=creneau.professeur.nom|split:" " %}
+                              {{ prenom_parts.0 }} {{ nom_parts.0 }}
+                            {% endwith %}
+                          </span>
+                        {% endif %}
+                        {% if creneau.salle %}
+                          <span><i class="fas fa-door-open"></i> {{ creneau.salle.nom }}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endwith %}
+                {% endfor %}
+              {% else %}
+                <div class="ele-edt-day-empty">Pas de cours ce jour-là.</div>
+              {% endif %}
+            {% endwith %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+
+    <div class="ele-edt-grid-wrap">
+      <div class="ele-edt-panel table-responsive">
+        <table class="calendar-timetable">
+          <thead>
+            <tr>
+              {% for jour in jours_semaine %}
+                <th class="day-header">{{ jour|title }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for plage in plages_horaires %}
+              <tr class="time-row">
+                {% for jour in jours_semaine %}
+                  {% with jour_masquees=cellules_masquees|dict_value:jour plage_label=plage|dict_value:'label' %}
+                    {% if jour_masquees and jour_masquees|dict_value:plage_label %}
+                    {% else %}
+                      {% with creneaux_list=grille_emploi|dict_value:jour|dict_value:'plages'|dict_value:plage_label %}
+                        {% if creneaux_list and creneaux_list|length > 0 %}
+                          {% with max_rowspan=creneaux_list.0.rowspan %}
+                            <td class="exam-cell" rowspan="{{ max_rowspan }}">
+                              {% for creneau_data in creneaux_list %}
+                                {% with creneau=creneau_data.creneau %}
+                                  {% with matiere_nom=creneau.matiere.nom|default:"Sans matière" %}
+                                    <div class="exam-block" style="border-top: 4px solid {{ creneau.matiere_couleur|default:'#3b82f6' }};">
+                                      <div class="exam-time">
+                                        {{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}
+                                      </div>
+                                      <div class="exam-subject">
+                                        <i class="fas fa-{{ creneau.matiere_icone|default:'book' }}" style="color: {{ creneau.matiere_couleur|default:'#3b82f6' }};"></i>
+                                        {{ matiere_nom }}
+                                      </div>
+                                      {% if creneau.professeur %}
+                                        <div class="exam-teacher">
+                                          <i class="fas fa-user-tie"></i>
+                                          {% with prenom_parts=creneau.professeur.prenom|split:" " nom_parts=creneau.professeur.nom|split:" " %}
+                                            {{ prenom_parts.0 }} {{ nom_parts.0 }}
+                                          {% endwith %}
+                                        </div>
+                                      {% endif %}
+                                      {% if creneau.salle %}
+                                        <div class="exam-room">
+                                          <i class="fas fa-building"></i>
+                                          {{ creneau.salle.nom }}
+                                        </div>
+                                      {% endif %}
+                                    </div>
+                                    {% if not forloop.last %}
+                                      <hr style="margin: 6px 0; border: none; border-top: 1px solid #e5e7eb;">
+                                    {% endif %}
+                                  {% endwith %}
+                                {% endwith %}
+                              {% endfor %}
+                            </td>
+                          {% endwith %}
+                        {% else %}
+                          <td class="empty-cell"></td>
+                        {% endif %}
+                      {% endwith %}
+                    {% endif %}
+                  {% endwith %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  {% if sessions_examens %}
+  <section class="ele-edt-block" aria-labelledby="ele-edt-exam-title">
+    <div class="ele-edt-block-head">
+      <div>
+        <h2 class="ele-edt-block-title" id="ele-edt-exam-title">Examens</h2>
+        <p class="ele-edt-block-sub">Dates et matières concernées.</p>
+      </div>
+    </div>
+    {% for session in sessions_examens %}
+      <div class="ele-edt-exam-block">
+        <div class="ele-edt-exam-head">
+          <h3><i class="fas fa-clipboard-check" style="color:#ef4444;"></i> {{ session.nom }}</h3>
+          <p>{{ session.date_debut|date:"d/m/Y" }} – {{ session.date_fin|date:"d/m/Y" }}</p>
+        </div>
+        <div class="ele-edt-exam-panel table-responsive">
+          {% if dates_examens_triees %}
+            {% for date in dates_examens_triees %}
+              {% for creneau in creneaux_examens %}
+                {% if creneau.date_examen == date %}
+                  <div class="ele-edt-exam-card">
+                    <div class="ele-edt-exam-time">
+                      {{ date|date:"l d/m"|capfirst }} · {{ creneau.heure_debut|time:"H:i" }} – {{ creneau.heure_fin|time:"H:i" }}
+                    </div>
+                    <div class="ele-edt-exam-matiere">{{ creneau.matiere.nom }}</div>
+                    {% if creneau.salle %}
+                      <div class="ele-edt-slot-meta" style="margin-top:0.35rem;">
+                        <span><i class="fas fa-door-open"></i> Salle {{ creneau.salle.numero }}</span>
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+          {% else %}
+            <p class="ele-edt-day-empty">Aucune date d’examen planifiée.</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+</div>
+{% endif %}

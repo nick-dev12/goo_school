@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     homeworkCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
-            const homeworkItem = this.closest('.homework-item');
+            const homeworkItem = this.closest('.homework-item, .ele-dash-homework-item');
             
             if (this.checked) {
                 homeworkItem.classList.add('completed');

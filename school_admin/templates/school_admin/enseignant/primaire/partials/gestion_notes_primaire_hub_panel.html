@@ -1,17 +1,7 @@
 {% load notes_tags %}
+<div class="prof-notes-hub-panel">
 {% if classe_selectionnee %}
 <div class="notes-hub-toolbar">
-    <div class="notes-hub-vue-switch" role="tablist" aria-label="Vue">
-        <a role="tab" class="notes-hub-vue-btn prof-hub-nav-link {% if notes_vue == 'releve' %}active{% endif %}"
-           aria-selected="{% if notes_vue == 'releve' %}true{% else %}false{% endif %}"
-           href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}&vue=releve">Relevé</a>
-        <a role="tab" class="notes-hub-vue-btn prof-hub-nav-link {% if notes_vue == 'saisie' %}active{% endif %}"
-           aria-selected="{% if notes_vue == 'saisie' %}true{% else %}false{% endif %}"
-           href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}&vue=saisie">Saisie</a>
-        <a role="tab" class="notes-hub-vue-btn prof-hub-nav-link {% if notes_vue == 'evaluations' %}active{% endif %}"
-           aria-selected="{% if notes_vue == 'evaluations' %}true{% else %}false{% endif %}"
-           href="?periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}{% if matiere_selectionnee %}&matiere={{ matiere_selectionnee.id }}{% endif %}&vue=evaluations">Évaluations</a>
-    </div>
     <div class="notes-hub-toolbar-actions">
         <label class="notes-hub-search-wrap">
             <span class="visually-hidden">Rechercher un élève</span>
@@ -45,7 +35,7 @@
     </section>
 {% elif notes_vue == 'evaluations' and classe_selectionnee %}
     {% include 'school_admin/enseignant/primaire/partials/notes_primaire_evaluations_panel.html' %}
-{% elif matiere_selectionnee and releve_data %}
+{% elif notes_vue == 'releve' and matiere_selectionnee %}
     <div class="releve-section releve-section-inline">
         <div class="releve-header">
             <div>
@@ -87,6 +77,11 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% if not releve_data %}
+                        <tr>
+                            <td colspan="99" class="notes-releve-empty-row">Aucun élève inscrit dans cette classe pour cette période.</td>
+                        </tr>
+                    {% endif %}
                     {% for data in releve_data %}
                         <tr class="{% cycle 'row-even' 'row-odd' %}">
                             <td class="eleve-cell">
@@ -134,14 +129,10 @@
             </table>
         </div>
     </div>
-{% elif classe_selectionnee and matiere_selectionnee %}
+{% elif classe_selectionnee and not matiere_selectionnee %}
     <div class="empty-state">
-        <i class="fas fa-clipboard-list"></i>
-        <p>Aucune donnée disponible pour cette matière</p>
-        <a href="{% url 'enseignant_primaire:noter_eleves' classe_selectionnee.id %}?periode={{ periode_selectionnee.id }}" class="btn btn-primary" data-hub-full-nav="1">
-            <i class="fas fa-plus"></i>
-            Créer une évaluation
-        </a>
+        <i class="fas fa-book-open"></i>
+        <p>Choisissez une matière ci-dessus pour afficher le relevé.</p>
     </div>
 {% endif %}
 
@@ -234,3 +225,4 @@
         </div>
     </div>
 {% endif %}
+</div>

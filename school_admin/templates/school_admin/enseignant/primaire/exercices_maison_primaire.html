@@ -9,44 +9,29 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_eleves.css' %}?v=1.0.1">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/exercices_maison_primaire.css' %}?v=1.0.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/exercices_maison_primaire.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
     {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
 </head>
-<body data-live-page="exercices" data-prof-hub-nav-live="1" data-prof-hub-key="professeur:primaire-exercices" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}">
+<body data-live-page="exercices" data-prof-hub-nav-live="1" data-prof-hub-key="professeur:primaire-exercices" data-prof-hub-fields="periode,classe,matiere" data-initial-classe="{{ initial_classe_id }}">
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
     <div class="main-content-container">
-        <div class="page-header">
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-book-open"></i>
-                    Exercices de maison
-                </h1>
-                <p class="page-subtitle">
-                    {% if stats.total_exercices %}
-                        {{ stats.total_exercices }} exercice{{ stats.total_exercices|pluralize }} programmé{{ stats.total_exercices|pluralize }} dans {{ stats.total_classes }} classe{{ stats.total_classes|pluralize }}
-                    {% else %}
-                        Programmez vos prochains devoirs pour vos classes affectées
-                    {% endif %}
-                </p>
-            </div>
-        </div>
+        {% include 'school_admin/enseignant/partials/prof_exercices_hub_swap_root.html' %}
+    </div>
 
-                <div id="prof-hub-chrome">
-        {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
-        {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-        </div>
-        <div id="prof-hub-panel">
-        {% include 'school_admin/enseignant/primaire/partials/exercices_maison_primaire_hub_panel.html' %}
-        </div>
+    {% include 'school_admin/enseignant/partials/prof_exercices_modal.html' %}
+    {{ classes_options_json|json_script:"classes-data" }}
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
     <script src="{% static 'school_admin/js/enseignant/gestion_eleves.js' %}"></script>
     <script>
         const classesData = JSON.parse(document.getElementById('classes-data').textContent || '[]');
-        const exercicesDataElement = document.getElementById('exercices-data');
-        const exercicesData = exercicesDataElement ? JSON.parse(exercicesDataElement.textContent || '[]') : [];
+
+        function lireExercicesData() {
+            const el = document.getElementById('exercices-data');
+            return el ? JSON.parse(el.textContent || '[]') : [];
+        }
         const modal = document.getElementById('modal-exercice');
         const classeSelect = document.getElementById('classe_select');
         const matiereSelect = document.getElementById('matiere_select');
@@ -173,68 +158,45 @@
             mettreAJourMatieres(event.target.value);
         });
 
-        document.querySelectorAll('.btn-programmer-exercice').forEach(btn => {
-            btn.addEventListener('click', () => {
-                ouvrirModalExercice({
-                    classeId: btn.dataset.classe || null,
-                    matiereId: btn.dataset.matiere || null,
-                    periodeId: btn.dataset.periode || null,
+        function lierBoutonsExercices() {
+            document.querySelectorAll('.btn-programmer-exercice').forEach(function (btn) {
+                if (btn.dataset.exercicesBound === '1') return;
+                btn.dataset.exercicesBound = '1';
+                btn.addEventListener('click', function () {
+                    ouvrirModalExercice({
+                        classeId: btn.dataset.classe || null,
+                        matiereId: btn.dataset.matiere || null,
+                        periodeId: btn.dataset.periode || null,
+                    });
                 });
             });
-        });
-
-        document.querySelectorAll('.btn-edit-exercice').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const exerciceId = Number(btn.dataset.exerciceId);
-                const exerciceData = exercicesData.find(item => item.id === exerciceId);
-                if (exerciceData) {
-                    ouvrirModalExercice({
-                        classeId: exerciceData.classe_id,
-                        matiereId: exerciceData.matiere_id,
-                        periodeId: exerciceData.periode_id,
-                        exercice: exerciceData,
-                    });
-                }
+            const exercicesData = lireExercicesData();
+            document.querySelectorAll('.btn-edit-exercice').forEach(function (btn) {
+                if (btn.dataset.exercicesBound === '1') return;
+                btn.dataset.exercicesBound = '1';
+                btn.addEventListener('click', function () {
+                    const exerciceId = Number(btn.dataset.exerciceId);
+                    const exerciceData = exercicesData.find(function (item) { return item.id === exerciceId; });
+                    if (exerciceData) {
+                        ouvrirModalExercice({
+                            classeId: exerciceData.classe_id,
+                            matiereId: exerciceData.matiere_id,
+                            periodeId: exerciceData.periode_id,
+                            exercice: exerciceData,
+                        });
+                    }
+                });
             });
-        });
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
-
-            const selectedBtn = document.querySelector(`[data-tab="${tabId}"]`);
-            const selectedPanel = document.getElementById(tabId);
-
-            if (selectedBtn && selectedPanel) {
-                selectedBtn.classList.add('active');
-                selectedPanel.classList.add('active');
-
-                const firstClasseTab = selectedPanel.querySelector('.classe-tab-btn');
-                if (firstClasseTab) {
-                    const classeId = firstClasseTab.getAttribute('data-classe');
-                    showClasse(classeId, tabId);
-                }
-            }
         }
 
-        function showClasse(classeId, tabId) {
-            const tabPanel = document.getElementById(tabId);
-            if (!tabPanel) return;
+        window.fermerModalExercice = fermerModalExercice;
+        window.ouvrirModalExercice = ouvrirModalExercice;
 
-            tabPanel.querySelectorAll('.classe-tab-btn').forEach(btn => btn.classList.remove('active'));
-            tabPanel.querySelectorAll('.classe-content').forEach(content => content.classList.remove('active'));
-
-            const selectedBtn = tabPanel.querySelector(`[data-classe="${classeId}"]`);
-            const selectedContent = document.getElementById(classeId);
-
-            if (selectedBtn) selectedBtn.classList.add('active');
-            if (selectedContent) selectedContent.classList.add('active');
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const initialClasse = classeSelect?.value || currentClasseId;
-            mettreAJourMatieres(initialClasse, currentMatiereId);
+        document.addEventListener('DOMContentLoaded', function () {
+            mettreAJourMatieres(classeSelect?.value || currentClasseId, currentMatiereId);
+            lierBoutonsExercices();
         });
+        document.addEventListener('prof-hub-panel-loaded', lierBoutonsExercices);
     </script>
 
     {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_scripts.html' %}

@@ -388,10 +388,10 @@ GEMINI_API_BASE_URL = env(
 ).strip()
 GEMINI_TTS_MODEL = env(
     'GEMINI_TTS_MODEL',
-    default='gemini-2.5-pro-preview-tts',
+    default='gemini-3.8-flash-lite-tts',
 ).strip()
-# Kore = voix Studio recommandée. Alternatives : Aoede, Sulafat, Despina.
-GEMINI_TTS_VOICE = env('GEMINI_TTS_VOICE', default='Kore').strip()
+# Aoede = voix Aria (enjouée, accueillante). Alternatives : Kore, Sulafat, Despina.
+GEMINI_TTS_VOICE = env('GEMINI_TTS_VOICE', default='Aoede').strip()
 GEMINI_TTS_LANGUAGE = env('GEMINI_TTS_LANGUAGE', default='fr-FR').strip()
 GEMINI_CONTEXT_CACHE = env('GEMINI_CONTEXT_CACHE', default='true').strip().lower() in (
     '1',

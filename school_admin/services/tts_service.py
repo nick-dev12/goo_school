@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 TTS_TIMEOUT_SECONDS = 25
 DEFAULT_VOICE = 'fr-FR-EloiseNeural'
-DEFAULT_GEMINI_VOICE = 'Kore'
+DEFAULT_GEMINI_VOICE = 'Aoede'
 DEFAULT_GEMINI_LANGUAGE = 'fr-FR'
 # Voix Gemini féminines recommandées pour le français (timbe naturel).
 _GEMINI_FEMALE_VOICES = frozenset({
@@ -24,16 +24,18 @@ _GEMINI_FEMALE_VOICES = frozenset({
 })
 # Consigne identique à chaque phrase pour limiter les variations de timbre.
 GEMINI_TTS_FIXED_INSTRUCTION = (
-    'Tu es Aria, assistante vocale à voix féminine chaleureuse et naturelle. '
-    'Lis le texte en français standard, rythme conversationnel (pas robotique). '
+    'Tu es Aria, assistante vocale à voix féminine Aoede : ton très enjoué, '
+    'accueillant et bienveillant, comme si tu recevais quelqu’un avec le sourire. '
+    'Énergie douce et positive, jamais monotone ni froide. '
+    'Lis le texte en français standard, rythme conversationnel naturel (pas robotique). '
     'Prononce clairement les prénoms, noms de famille et lieux (y compris N\'Diaye, '
     'Sow, Dakar, etc.) sans les angliciser ni les épeler lettre par lettre. '
     'Ne commente pas, n’ajoute rien, ne reformule pas, ne traduis pas.'
 )
 GEMINI_TTS_WOLOF_INSTRUCTION = (
     'Tu es Aria. Lis le texte à voix haute en wolof dakarois courant (alphabet latin), '
-    'voix féminine chaleureuse, familière et naturelle — comme à Dakar à l’école, '
-    'pas un wolof littéraire ou soutenu. '
+    'voix féminine enjouée et accueillante, chaleureuse et familière — comme à Dakar '
+    'à l’école, pas un wolof littéraire ou soutenu. '
     'Garde les mots français déjà présents dans le texte (devoir, classe, notes, etc.). '
     'Ne commente pas, n’ajoute rien, ne reformule pas, ne traduis pas en français.'
 )
@@ -750,6 +752,11 @@ def _resolve_gemini_language():
     ).strip()
 
 
+def _gemini_tts_model_supports_system_instruction(model):
+    """Les modèles lite-tts n’acceptent pas system_instruction (HTTP 400)."""
+    return 'lite-tts' not in (model or '').lower()
+
+
 def _get_gemini_tts_client():
     global _gemini_tts_client
     if _gemini_tts_client is not None:
@@ -782,23 +789,28 @@ async def _synthesize_gemini(clean, language='fr'):
         return None, None
 
     client = _get_gemini_tts_client()
-    # gemini-3.8-flash-lite-tts : lire uniquement `clean` (pas de system_instruction → 400).
+    use_style = _gemini_tts_model_supports_system_instruction(model)
 
     async def _call():
-        return await client.aio.models.generate_content(
-            model=model,
-            contents=clean,
-            config=types.GenerateContentConfig(
-                response_modalities=['AUDIO'],
-                speech_config=types.SpeechConfig(
-                    language_code=language_code,
-                    voice_config=types.VoiceConfig(
-                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                            voice_name=voice_name,
-                        ),
+        config_kwargs = {
+            'response_modalities': ['AUDIO'],
+            'speech_config': types.SpeechConfig(
+                language_code=language_code,
+                voice_config=types.VoiceConfig(
+                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                        voice_name=voice_name,
                     ),
                 ),
             ),
+        }
+        if use_style:
+            config_kwargs['system_instruction'] = _gemini_tts_system_instruction(
+                language
+            )
+        return await client.aio.models.generate_content(
+            model=model,
+            contents=clean,
+            config=types.GenerateContentConfig(**config_kwargs),
         )
 
     try:

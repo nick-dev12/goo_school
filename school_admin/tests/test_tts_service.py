@@ -141,17 +141,17 @@ class CharlineSpokenTextTests(SimpleTestCase):
 
 
 class GeminiVoiceConfigTests(SimpleTestCase):
-    @override_settings(GEMINI_TTS_VOICE='Kore')
-    def test_default_kore(self):
-        self.assertEqual(_resolve_gemini_voice(), 'Kore')
+    @override_settings(GEMINI_TTS_VOICE='Aoede')
+    def test_default_aoede(self):
+        self.assertEqual(_resolve_gemini_voice(), 'Aoede')
 
     @override_settings(GEMINI_TTS_VOICE='sulafat')
     def test_normalise_casse(self):
         self.assertEqual(_resolve_gemini_voice(), 'Sulafat')
 
     @override_settings(GEMINI_TTS_VOICE='InvalidVoice')
-    def test_voix_invalide_repli_kore(self):
-        self.assertEqual(_resolve_gemini_voice(), 'Kore')
+    def test_voix_invalide_repli_aoede(self):
+        self.assertEqual(_resolve_gemini_voice(), 'Aoede')
 
 
 class GeminiTtsInstructionTests(SimpleTestCase):
@@ -159,5 +159,7 @@ class GeminiTtsInstructionTests(SimpleTestCase):
         spoken = 'Bonjour, voici la liste des classes.'
         instruction = _gemini_tts_system_instruction('fr')
         self.assertIn('Aria', instruction)
+        self.assertIn('enjou', instruction.lower())
+        self.assertIn('accueill', instruction.lower())
         self.assertNotIn(spoken, instruction)
         self.assertIn('mot pour mot', instruction.lower())

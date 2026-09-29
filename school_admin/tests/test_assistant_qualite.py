@@ -928,6 +928,31 @@ class GeminiG4SuggestionTests(SimpleTestCase):
         self.assertNotIn('proposer_actions', sec_names)
         self.assertNotIn('proposer_actions', ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS)
 
+    def test_proposer_actions_absent_parent_et_eleve(self):
+        from school_admin.services.assistant_eleve_tools import (
+            TOOL_HANDLERS as ELEVE_TOOL_HANDLERS,
+            get_eleve_tools_schema,
+        )
+        from school_admin.services.assistant_parent_tools import (
+            TOOL_HANDLERS as PARENT_TOOL_HANDLERS,
+            get_parent_tools_schema,
+        )
+
+        parent_names = {
+            item['function']['name']
+            for item in get_parent_tools_schema()
+            if item.get('function')
+        }
+        eleve_names = {
+            item['function']['name']
+            for item in get_eleve_tools_schema()
+            if item.get('function')
+        }
+        self.assertNotIn('proposer_actions', parent_names)
+        self.assertNotIn('proposer_actions', PARENT_TOOL_HANDLERS)
+        self.assertNotIn('proposer_actions', eleve_names)
+        self.assertNotIn('proposer_actions', ELEVE_TOOL_HANDLERS)
+
     def test_speak_and_finish_envoie_text_replace_sans_json(self):
         from school_admin.consumers.assistant_consumer import AssistantConsumer
 
@@ -1659,3 +1684,332 @@ class AssistantToolCacheTests(SimpleTestCase):
         self.assertIn('assistant.tool_cache miss get_impayes', joined)
         self.assertIn('assistant.tool_cache hit get_impayes', joined)
         self.assertNotIn('tool_impayes', joined)
+
+    def _dummy_ctx(self, persona, **actors):
+        fields = {
+            'persona': persona,
+            'etablissement': type('E', (), {'pk': 3})(),
+            'annee_scolaire': type('A', (), {'pk': 9})(),
+        }
+        fields.update(actors)
+        return type('Ctx', (), fields)()
+
+    def _assert_wrap_hit_miss_redis_down(self, tool_name, persona, **actors):
+        from school_admin.services.assistant_tool_cache import (
+            DEFAULT_ASSISTANT_TOOL_TTL,
+            assistant_tool_cache_key,
+            wrap_cacheable_tool_handlers,
+        )
+
+        ctx = self._dummy_ctx(persona, **actors)
+        calls = {'n': 0}
+
+        def handler(ctx, args):
+            calls['n'] += 1
+            return {'statut': 'ok', 'n': calls['n'], 'tool': tool_name}
+
+        wrapped = wrap_cacheable_tool_handlers({tool_name: handler})
+        key = assistant_tool_cache_key(ctx, tool_name, {'filtre': 1})
+        payload = {'filtre': 1}
+        with patch('school_admin.services.assistant_tool_cache.cache') as mock_cache:
+            mock_cache.get.side_effect = [None, {'statut': 'ok', 'n': 1, 'tool': tool_name}]
+            mock_cache.set.return_value = True
+            with self.assertLogs(
+                'school_admin.services.assistant_tool_cache',
+                level='INFO',
+            ) as logs:
+                first = wrapped[tool_name](ctx, payload)
+                second = wrapped[tool_name](ctx, payload)
+        self.assertEqual(first, {'statut': 'ok', 'n': 1, 'tool': tool_name})
+        self.assertEqual(second, {'statut': 'ok', 'n': 1, 'tool': tool_name})
+        self.assertEqual(calls['n'], 1)
+        mock_cache.set.assert_called_once_with(
+            key,
+            {'statut': 'ok', 'n': 1, 'tool': tool_name},
+            timeout=DEFAULT_ASSISTANT_TOOL_TTL,
+        )
+        joined = '\n'.join(logs.output)
+        self.assertIn(f'assistant.tool_cache miss {tool_name}', joined)
+        self.assertIn(f'assistant.tool_cache hit {tool_name}', joined)
+
+        calls['n'] = 0
+        with patch('school_admin.services.assistant_tool_cache.cache') as mock_cache:
+            mock_cache.get.side_effect = RuntimeError('redis down')
+            mock_cache.set.side_effect = RuntimeError('redis down')
+            result = wrapped[tool_name](ctx, payload)
+        self.assertEqual(result, {'statut': 'ok', 'n': 1, 'tool': tool_name})
+        self.assertEqual(calls['n'], 1)
+
+    def _assert_production_cache_hit(self, handlers, tool_name, persona, **actors):
+        ctx = self._dummy_ctx(persona, **actors)
+        cached = {'cached': True, 'tool': tool_name}
+        with patch('school_admin.services.assistant_tool_cache.cache') as mock_cache:
+            mock_cache.get.return_value = cached
+            result = handlers[tool_name](ctx, {})
+        self.assertEqual(result, cached)
+        mock_cache.get.assert_called()
+
+    def _assert_production_not_cached(self, handlers, tool_name):
+        from school_admin.services.assistant_tool_cache import CACHEABLE_ASSISTANT_TOOLS
+
+        self.assertNotIn(tool_name, CACHEABLE_ASSISTANT_TOOLS)
+        self.assertIn(tool_name, handlers)
+        self.assertFalse(hasattr(handlers[tool_name], '__wrapped__'))
+
+    def test_cache_key_isole_persona_acteur(self):
+        from school_admin.services.assistant_tool_cache import assistant_tool_cache_key
+
+        directeur = self._dummy_ctx('directeur', personnel=type('P', (), {'pk': 7})())
+        parent = self._dummy_ctx('parent', parent=type('Pa', (), {'pk': 7})())
+        eleve = self._dummy_ctx('eleve', eleve=type('El', (), {'pk': 7})())
+        prof = self._dummy_ctx(
+            'enseignant_primaire', professeur=type('Pr', (), {'pk': 7})(),
+        )
+        k_dir = assistant_tool_cache_key(directeur, 'get_effectifs', {})
+        k_par = assistant_tool_cache_key(parent, 'get_notes_enfant', {})
+        k_elv = assistant_tool_cache_key(eleve, 'get_mes_notes', {})
+        k_prof = assistant_tool_cache_key(prof, 'get_effectifs', {})
+        self.assertIn(':directeur:', k_dir)
+        self.assertIn(':parent:', k_par)
+        self.assertIn(':eleve:', k_elv)
+        self.assertIn(':enseignant_primaire:', k_prof)
+        self.assertIn('personnel:7', k_dir)
+        self.assertIn('parent:7', k_par)
+        self.assertIn('eleve:7', k_elv)
+        self.assertIn('professeur:7', k_prof)
+        self.assertNotEqual(k_dir, k_prof)
+        self.assertEqual(len({k_dir, k_par, k_elv, k_prof}), 4)
+
+    def test_writes_et_nav_jamais_cacheables(self):
+        from school_admin.services.assistant_tool_cache import CACHEABLE_ASSISTANT_TOOLS
+
+        for name in (
+            'ouvrir_page',
+            'ouvrir_classe',
+            'ouvrir_recu',
+            'ouvrir_noter_examen',
+            'enregistrer_note',
+            'enregistrer_paiement',
+            'enregistrer_note_examen',
+            'imprimer_bulletins_classe',
+        ):
+            self.assertNotIn(name, CACHEABLE_ASSISTANT_TOOLS)
+
+    def test_c2_directeur_effectifs_et_vague3_wrap(self):
+        from school_admin.services.assistant_tools import TOOL_HANDLERS, tool_ouvrir_page
+
+        personnel = type('P', (), {'pk': 7})()
+        for name in (
+            'get_effectifs',
+            'get_notes_classe',
+            'get_moyennes_classe',
+            'get_bulletin_eleve',
+        ):
+            self._assert_wrap_hit_miss_redis_down(
+                name, 'directeur', personnel=personnel,
+            )
+            self._assert_production_cache_hit(
+                TOOL_HANDLERS, name, 'directeur', personnel=personnel,
+            )
+        self.assertIs(TOOL_HANDLERS['ouvrir_page'], tool_ouvrir_page)
+        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_page')
+        self._assert_production_not_cached(TOOL_HANDLERS, 'imprimer_bulletins_classe')
+
+    def test_c3_parent_lectures_lourdes_wrap(self):
+        from school_admin.services.assistant_parent_tools import TOOL_HANDLERS
+
+        parent = type('P', (), {'pk': 12})()
+        for name in (
+            'get_scolarite_enfant',
+            'get_scolarite_famille',
+            'get_notes_enfant',
+            'get_bulletin_enfant',
+            'get_absences_enfant',
+        ):
+            self._assert_wrap_hit_miss_redis_down(name, 'parent', parent=parent)
+            self._assert_production_cache_hit(
+                TOOL_HANDLERS, name, 'parent', parent=parent,
+            )
+        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_page')
+        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_recu')
+
+    def test_c4_eleve_lectures_lourdes_wrap(self):
+        from school_admin.services.assistant_eleve_tools import TOOL_HANDLERS
+
+        eleve = type('El', (), {'pk': 44})()
+        for name in (
+            'get_mes_notes',
+            'get_mon_bulletin',
+            'get_mes_devoirs',
+            'get_mon_emploi',
+        ):
+            self._assert_wrap_hit_miss_redis_down(name, 'eleve', eleve=eleve)
+            self._assert_production_cache_hit(
+                TOOL_HANDLERS, name, 'eleve', eleve=eleve,
+            )
+        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_page')
+
+    def test_c5_enseignant_prim_sec_lectures_lourdes_wrap(self):
+        from school_admin.services.assistant_enseignant_primaire_tools import (
+            ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS,
+        )
+        from school_admin.services.assistant_enseignant_secondaire_tools import (
+            ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS,
+        )
+
+        prof = type('Pr', (), {'pk': 21})()
+        prim_names = (
+            'get_notes_classe',
+            'get_effectifs',
+            'get_evaluations_classe',
+        )
+        for name in prim_names:
+            self._assert_wrap_hit_miss_redis_down(
+                name, 'enseignant_primaire', professeur=prof,
+            )
+            self._assert_production_cache_hit(
+                ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS,
+                name,
+                'enseignant_primaire',
+                professeur=prof,
+            )
+        self._assert_production_not_cached(
+            ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS, 'ouvrir_page',
+        )
+        self._assert_production_not_cached(
+            ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS, 'ouvrir_classe',
+        )
+
+        sec_names = prim_names + ('get_notes_examen',)
+        for name in sec_names:
+            self._assert_wrap_hit_miss_redis_down(
+                name, 'enseignant', professeur=prof,
+            )
+            self._assert_production_cache_hit(
+                ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS,
+                name,
+                'enseignant',
+                professeur=prof,
+            )
+        self._assert_production_not_cached(
+            ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS, 'ouvrir_page',
+        )
+        self._assert_production_not_cached(
+            ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS, 'ouvrir_noter_examen',
+        )
+        from school_admin.services.assistant_tool_cache import CACHEABLE_ASSISTANT_TOOLS
+
+        for name in (
+            'ouvrir_page',
+            'ouvrir_classe',
+            'ouvrir_recu',
+            'ouvrir_noter_examen',
+            'enregistrer_note',
+            'enregistrer_paiement',
+            'enregistrer_note_examen',
+            'imprimer_bulletins_classe',
+        ):
+            self.assertNotIn(name, CACHEABLE_ASSISTANT_TOOLS)
+
+    def test_c2_directeur_effectifs_et_vague3_wrap(self):
+        from school_admin.services.assistant_tools import TOOL_HANDLERS, tool_ouvrir_page
+
+        personnel = type('P', (), {'pk': 7})()
+        for name in (
+            'get_effectifs',
+            'get_notes_classe',
+            'get_moyennes_classe',
+            'get_bulletin_eleve',
+        ):
+            self._assert_wrap_hit_miss_redis_down(
+                name, 'directeur', personnel=personnel,
+            )
+            self._assert_production_cache_hit(
+                TOOL_HANDLERS, name, 'directeur', personnel=personnel,
+            )
+        self.assertIs(TOOL_HANDLERS['ouvrir_page'], tool_ouvrir_page)
+        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_page')
+        self._assert_production_not_cached(TOOL_HANDLERS, 'imprimer_bulletins_classe')
+
+    def test_c3_parent_lectures_lourdes_wrap(self):
+        from school_admin.services.assistant_parent_tools import TOOL_HANDLERS
+
+        parent = type('P', (), {'pk': 12})()
+        for name in (
+            'get_scolarite_enfant',
+            'get_scolarite_famille',
+            'get_notes_enfant',
+            'get_bulletin_enfant',
+            'get_absences_enfant',
+        ):
+            self._assert_wrap_hit_miss_redis_down(name, 'parent', parent=parent)
+            self._assert_production_cache_hit(
+                TOOL_HANDLERS, name, 'parent', parent=parent,
+            )
+        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_page')
+        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_recu')
+
+    def test_c4_eleve_lectures_lourdes_wrap(self):
+        from school_admin.services.assistant_eleve_tools import TOOL_HANDLERS
+
+        eleve = type('El', (), {'pk': 44})()
+        for name in (
+            'get_mes_notes',
+            'get_mon_bulletin',
+            'get_mes_devoirs',
+            'get_mon_emploi',
+        ):
+            self._assert_wrap_hit_miss_redis_down(name, 'eleve', eleve=eleve)
+            self._assert_production_cache_hit(
+                TOOL_HANDLERS, name, 'eleve', eleve=eleve,
+            )
+        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_page')
+
+    def test_c5_enseignant_prim_sec_lectures_lourdes_wrap(self):
+        from school_admin.services.assistant_enseignant_primaire_tools import (
+            ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS,
+        )
+        from school_admin.services.assistant_enseignant_secondaire_tools import (
+            ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS,
+        )
+
+        prof = type('Pr', (), {'pk': 21})()
+        prim_names = (
+            'get_notes_classe',
+            'get_effectifs',
+            'get_evaluations_classe',
+        )
+        for name in prim_names:
+            self._assert_wrap_hit_miss_redis_down(
+                name, 'enseignant_primaire', professeur=prof,
+            )
+            self._assert_production_cache_hit(
+                ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS,
+                name,
+                'enseignant_primaire',
+                professeur=prof,
+            )
+        self._assert_production_not_cached(
+            ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS, 'ouvrir_page',
+        )
+        self._assert_production_not_cached(
+            ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS, 'ouvrir_classe',
+        )
+
+        sec_names = prim_names + ('get_notes_examen',)
+        for name in sec_names:
+            self._assert_wrap_hit_miss_redis_down(
+                name, 'enseignant', professeur=prof,
+            )
+            self._assert_production_cache_hit(
+                ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS,
+                name,
+                'enseignant',
+                professeur=prof,
+            )
+        self._assert_production_not_cached(
+            ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS, 'ouvrir_page',
+        )
+        self._assert_production_not_cached(
+            ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS, 'ouvrir_noter_examen',
+        )

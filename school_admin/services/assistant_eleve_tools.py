@@ -400,6 +400,10 @@ TOOL_HANDLERS = {
     'get_mon_historique': tool_get_mon_historique,
 }
 
+from school_admin.services.assistant_tool_cache import wrap_cacheable_tool_handlers
+
+TOOL_HANDLERS.update(wrap_cacheable_tool_handlers(TOOL_HANDLERS))
+
 
 def execute_eleve_tool(ctx, name, arguments):
     args = arguments if isinstance(arguments, dict) else {}

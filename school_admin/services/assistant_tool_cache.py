@@ -26,6 +26,25 @@ CACHEABLE_ASSISTANT_TOOLS = frozenset({
     'get_repartition_cycles',
     'get_fiche_scolarite',
     'get_moratoires',
+    # Directeur — lectures lourdes hors Vague 2
+    'get_effectifs',
+    'get_notes_classe',
+    'get_moyennes_classe',
+    'get_bulletin_eleve',
+    # Parent
+    'get_scolarite_enfant',
+    'get_scolarite_famille',
+    'get_notes_enfant',
+    'get_bulletin_enfant',
+    'get_absences_enfant',
+    # Élève
+    'get_mes_notes',
+    'get_mon_bulletin',
+    'get_mes_devoirs',
+    'get_mon_emploi',
+    # Enseignant prim / sec
+    'get_evaluations_classe',
+    'get_notes_examen',
 })
 
 

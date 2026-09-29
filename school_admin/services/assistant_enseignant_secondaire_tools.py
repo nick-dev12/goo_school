@@ -600,8 +600,12 @@ ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS.update(_merge_examens_handlers())
 from school_admin.services.assistant_enseignant_complements_tools import (
     register_complements_tool_handlers,
 )
+from school_admin.services.assistant_tool_cache import wrap_cacheable_tool_handlers
 
 register_complements_tool_handlers(ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS)
+ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS.update(
+    wrap_cacheable_tool_handlers(ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS)
+)
 
 ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA = [
     {

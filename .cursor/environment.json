@@ -1,0 +1,15 @@
+{
+  "name": "Aria Edu (goo_school)",
+  "install": "bash .cursor/scripts/install-dev.sh",
+  "start": "bash .cursor/scripts/start-dev-services.sh",
+  "terminals": [
+    {
+      "name": "daphne",
+      "command": "cd /workspace && source venv/bin/activate && daphne -b 127.0.0.1 -p 8000 school.asgi:application"
+    },
+    {
+      "name": "celery",
+      "command": "cd /workspace && source venv/bin/activate && celery -A school worker -l info"
+    }
+  ]
+}

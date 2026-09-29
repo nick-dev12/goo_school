@@ -81,6 +81,7 @@
   var voiceTimer = null;
   var pendingDelta = '';
   var streamAccumulated = '';
+  var enqueuedSpeechFingerprints = [];
   var turnSpeechFingerprint = '';
   var voiceWaitScheduled = false;
   var receivedVoiceSentence = false;
@@ -277,7 +278,7 @@
     if (!currentAssistantBubble) {
       return;
     }
-    var display = withCaret ? text : collapseRepeatedReply(text);
+    var display = collapseRepeatedReply(text);
     var html = highlightData(display);
     if (withCaret) {
       html += '<span class="assistant-vocal-caret" aria-hidden="true"></span>';
@@ -1108,15 +1109,16 @@
       if (piece) {
         var merged = mergeStreamDelta(streamAccumulated, piece);
         streamAccumulated = merged.accumulated;
-        if (merged.emit) {
+        if (voiceMuted && merged.emit) {
           pendingDelta += merged.emit;
         }
-        var display = collapseRepeatedReply(stripToolMarkup(streamAccumulated));
-        if (display) {
-          ensureAssistantBubble();
-          spokenPlain = display;
-          paintAssistant(display, true);
-        }
+      }
+      return;
+    }
+    if (data.type === 'text_replace') {
+      var finalText = collapseRepeatedReply(stripToolMarkup(data.text || ''));
+      if (finalText) {
+        streamAccumulated = finalText;
       }
       return;
     }
@@ -1412,6 +1414,7 @@
     appendBubble('user', label);
     currentAssistantBubble = null;
     spokenPlain = '';
+    enqueuedSpeechFingerprints = [];
     pendingDone = false;
     receivedVoiceSentence = false;
     pendingActionResult = null;
@@ -1430,6 +1433,13 @@
     ensureAssistantBubble();
     var mime = audioMime || 'audio/wav';
     var line = collapseRepeatedReply(stripToolMarkup(text || ''));
+    var fp = speechFingerprint(line);
+    if (fp && enqueuedSpeechFingerprints.indexOf(fp) !== -1) {
+      return;
+    }
+    if (fp) {
+      enqueuedSpeechFingerprints.push(fp);
+    }
     audioQueue.push({
       text: line,
       src: !voiceMuted && audioBase64 ? 'data:' + mime + ';base64,' + audioBase64 : '',
@@ -1523,15 +1533,6 @@
     return foldAssistantText(collapseRepeatedReply(stripToolMarkup(text || ''))).slice(0, 160);
   }
 
-  var streamAccumulated = '';
-
-  function textAlreadyShown(sentence) {
-    var clean = stripToolMarkup(sentence).trim();
-    if (!clean || !spokenPlain) {
-      return false;
-    }
-    return spokenPlain.replace(/\s+/g, ' ').indexOf(clean.replace(/\s+/g, ' ')) !== -1;
-  }
 
   function paintedCoversSentence(sentence) {
     var clean = stripToolMarkup(sentence).trim();
@@ -1805,13 +1806,16 @@
         return;
       }
     }
+    var settledText = collapseRepeatedReply(
+      stripToolMarkup(spokenPlain || streamAccumulated || '')
+    );
     pendingDone = false;
     pendingDelta = '';
     streamAccumulated = '';
     receivedVoiceSentence = false;
     hideThinking();
-    if (currentAssistantBubble && spokenPlain) {
-      spokenPlain = collapseRepeatedReply(spokenPlain);
+    if (currentAssistantBubble && settledText) {
+      spokenPlain = settledText;
       paintAssistant(spokenPlain, false);
       if (chatLog.length && chatLog[chatLog.length - 1].role === 'assistant') {
         chatLog[chatLog.length - 1].text = spokenPlain;
@@ -1850,12 +1854,15 @@
   }
 
   function syncSendButton() {
-    if (!sendBtn) {
-      return;
-    }
-    sendBtn.disabled = false;
-    if (busy) {
-      sendBtn.classList.add('is-stop');
+    var settledReply = collapseRepeatedReply(
+      stripToolMarkup(spokenPlain || streamAccumulated || pendingDelta || '')
+    );
+    pendingDelta = '';
+    streamAccumulated = '';
+    receivedVoiceSentence = false;
+    hideThinking();
+    if (currentAssistantBubble && settledReply) {
+      spokenPlain = settledReply;
       sendBtn.setAttribute('aria-label', 'Arrêter');
       sendBtn.setAttribute('title', 'Arrêter');
       sendBtn.type = 'button';
@@ -2000,6 +2007,7 @@
     }
     var bottomGap = NAV_FALLBACK;
     if (nav) {
+    enqueuedSpeechFingerprints = [];
       var navBox = nav.getBoundingClientRect();
       var navHeight = Math.round(navBox.height || nav.offsetHeight || 0);
       var fromBottom = Math.round(window.innerHeight - navBox.top);

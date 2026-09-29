@@ -296,6 +296,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
 
+    async def _await_stream_tts_tasks(self):
+        tasks = [task for task in self._tts_tasks if task and not task.done()]
+        if not tasks:
+            return
+        await asyncio.gather(*tasks, return_exceptions=True)
+
     def _track_tts(self, task):
         self._tts_tasks.append(task)
         return task
@@ -865,6 +871,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
 
         if last_tool_results and not turn_stats.get('tools'):
             turn_stats['tools'] = [name for name, _result in last_tool_results]
+        await self._await_stream_tts_tasks()
         self._log_turn_stats()
         if spoken:
             await self._send_json({'type': 'text_replace', 'text': spoken})

@@ -393,6 +393,7 @@ GEMINI_TTS_MODEL = env(
 # Aoede = voix Aria (enjouée, accueillante). Alternatives : Kore, Sulafat, Despina.
 GEMINI_TTS_VOICE = env('GEMINI_TTS_VOICE', default='Aoede').strip()
 GEMINI_TTS_LANGUAGE = env('GEMINI_TTS_LANGUAGE', default='fr-FR').strip()
+GEMINI_TTS_MAX_ATTEMPTS = int(env('GEMINI_TTS_MAX_ATTEMPTS', default='4') or 4)
 GEMINI_CONTEXT_CACHE = env('GEMINI_CONTEXT_CACHE', default='true').strip().lower() in (
     '1',
     'true',

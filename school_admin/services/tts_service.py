@@ -14,6 +14,8 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 TTS_TIMEOUT_SECONDS = 25
+GEMINI_TTS_MAX_ATTEMPTS = 4
+GEMINI_TTS_RETRY_BASE_SECONDS = 0.45
 DEFAULT_VOICE = 'fr-FR-EloiseNeural'
 DEFAULT_GEMINI_VOICE = 'Aoede'
 DEFAULT_GEMINI_LANGUAGE = 'fr-FR'
@@ -757,6 +759,57 @@ def _gemini_tts_model_supports_system_instruction(model):
     return 'lite-tts' not in (model or '').lower()
 
 
+def _gemini_tts_max_attempts():
+    raw = getattr(settings, 'GEMINI_TTS_MAX_ATTEMPTS', GEMINI_TTS_MAX_ATTEMPTS)
+    try:
+        return max(1, min(6, int(raw)))
+    except (TypeError, ValueError):
+        return GEMINI_TTS_MAX_ATTEMPTS
+
+
+def _gemini_tts_retryable(exc):
+    if isinstance(exc, asyncio.TimeoutError):
+        return True
+    code = getattr(exc, 'code', None) or getattr(exc, 'status_code', None)
+    if code in (429, 500, 502, 503, 504):
+        return True
+    name = type(exc).__name__
+    if name in ('ServerError', 'ClientError', 'APIError'):
+        if code is None or int(code) >= 500 or int(code) == 429:
+            return True
+    message = str(exc).lower()
+    return 'internal error' in message or 'resource exhausted' in message
+
+
+def _wav_from_gemini_response(response):
+    candidates = getattr(response, 'candidates', None) or []
+    for candidate in candidates:
+        content = getattr(candidate, 'content', None)
+        parts = getattr(content, 'parts', None) or []
+        pcm_chunks = []
+        rate = 24000
+        for part in parts:
+            inline = getattr(part, 'inline_data', None)
+            if not inline:
+                continue
+            raw = getattr(inline, 'data', None)
+            mime = getattr(inline, 'mime_type', None) or 'audio/L16;codec=pcm;rate=24000'
+            if isinstance(raw, str):
+                pcm = base64.b64decode(raw)
+            elif isinstance(raw, (bytes, bytearray)):
+                pcm = bytes(raw)
+            else:
+                continue
+            rate = parse_pcm_sample_rate(mime)
+            pcm_chunks.append(pcm)
+        if pcm_chunks:
+            pcm = concat_pcm16_chunks(pcm_chunks, sample_rate=rate)
+            pcm = finalize_pcm16(pcm, sample_rate=rate)
+            wav = pcm16_to_wav(pcm, sample_rate=rate)
+            return wav, 'audio/wav'
+    return None, None
+
+
 def _get_gemini_tts_client():
     global _gemini_tts_client
     if _gemini_tts_client is not None:
@@ -813,38 +866,49 @@ async def _synthesize_gemini(clean, language='fr'):
             config=types.GenerateContentConfig(**config_kwargs),
         )
 
-    try:
-        response = await asyncio.wait_for(_call(), timeout=TTS_TIMEOUT_SECONDS)
-    except Exception:
-        logger.exception('Échec de la synthèse vocale Gemini TTS.')
-        return None, None
+    attempts = _gemini_tts_max_attempts()
+    last_exc = None
+    for attempt in range(1, attempts + 1):
+        try:
+            response = await asyncio.wait_for(_call(), timeout=TTS_TIMEOUT_SECONDS)
+            audio, mime = _wav_from_gemini_response(response)
+            if audio:
+                if attempt > 1:
+                    logger.info(
+                        'Gemini TTS ok après %s tentatives (model=%s).',
+                        attempt,
+                        model,
+                    )
+                return audio, mime
+            logger.warning(
+                'Gemini TTS : réponse sans audio (tentative %s/%s, model=%s).',
+                attempt,
+                attempts,
+                model,
+            )
+        except Exception as exc:
+            last_exc = exc
+            if not _gemini_tts_retryable(exc) or attempt >= attempts:
+                logger.exception(
+                    'Échec de la synthèse vocale Gemini TTS (tentative %s/%s).',
+                    attempt,
+                    attempts,
+                )
+                return None, None
+            delay = GEMINI_TTS_RETRY_BASE_SECONDS * (2 ** (attempt - 1))
+            logger.warning(
+                'Gemini TTS erreur transitoire (%s), nouvelle tentative dans %.1fs (%s/%s).',
+                exc,
+                delay,
+                attempt + 1,
+                attempts,
+            )
+            await asyncio.sleep(delay)
 
-    candidates = getattr(response, 'candidates', None) or []
-    for candidate in candidates:
-        content = getattr(candidate, 'content', None)
-        parts = getattr(content, 'parts', None) or []
-        pcm_chunks = []
-        rate = 24000
-        for part in parts:
-            inline = getattr(part, 'inline_data', None)
-            if not inline:
-                continue
-            raw = getattr(inline, 'data', None)
-            mime = getattr(inline, 'mime_type', None) or 'audio/L16;codec=pcm;rate=24000'
-            if isinstance(raw, str):
-                pcm = base64.b64decode(raw)
-            elif isinstance(raw, (bytes, bytearray)):
-                pcm = bytes(raw)
-            else:
-                continue
-            rate = parse_pcm_sample_rate(mime)
-            pcm_chunks.append(pcm)
-        if pcm_chunks:
-            pcm = concat_pcm16_chunks(pcm_chunks, sample_rate=rate)
-            pcm = finalize_pcm16(pcm, sample_rate=rate)
-            wav = pcm16_to_wav(pcm, sample_rate=rate)
-            return wav, 'audio/wav'
-    logger.warning('Gemini TTS : aucun segment audio dans la réponse.')
+    if last_exc:
+        logger.exception('Échec de la synthèse vocale Gemini TTS après repli.')
+    else:
+        logger.warning('Gemini TTS : aucun segment audio après %s tentatives.', attempts)
     return None, None
 
 

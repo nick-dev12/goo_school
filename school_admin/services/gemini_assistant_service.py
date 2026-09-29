@@ -27,6 +27,14 @@ from school_admin.services.gemini_context_cache import (
 
 logger = logging.getLogger(__name__)
 
+
+def _client_spoken(text: str) -> str:
+    from school_admin.services.assistant_stream_text import split_spoken_and_suggestions
+
+    spoken, _ = split_spoken_and_suggestions((text or '').strip())
+    return spoken
+
+
 MAX_TOOL_ROUNDS = 8
 TOOL_TEMPERATURE = 0.5
 CONVERSATION_TEMPERATURE = 0.7
@@ -74,7 +82,9 @@ def _note_turn_stats(stats, rounds=None, tools=None):
 
 async def _emit_spoken_fallback(on_text_delta, spoken):
     """Le repli oral doit aussi passer par le stream, sinon le client reste muet."""
-    text = (spoken or '').strip()
+    from school_admin.services.assistant_stream_text import split_spoken_and_suggestions
+
+    text, _ = split_spoken_and_suggestions((spoken or '').strip())
     if text and on_text_delta:
         await on_text_delta(text)
     return text
@@ -253,10 +263,11 @@ Outils :
   pas seulement les affectations.
 - Réutilise les ids déjà vus (classe_id, eleve_id) plutôt que de redemander
   le nom (« relance-le », « ouvre sa fiche »).
-- Après une lecture utile, appelle proposer_actions (1 à 3 suites). Une phrase
-  de relance à l'oral suffit, sans lire les puces.
-- Pas de proposer_actions pour un bonjour, ni quand une écriture attend
-  confirmation (la carte oui / modifier / annuler suffit).
+- À la fin de ta réponse (après le texte oral), ajoute exactement une ligne
+  [[ARIA_SUGGESTIONS:[...]]] avec 1 à 3 suggestions pertinentes (label court).
+  intent open + url seulement si tu connais une URL outil. Pas de suggestions
+  pour simple bonjour ni quand une carte de confirmation d'écriture est active.
+  Ne lis jamais cette ligne à voix haute — c'est pour l'UI.
 - Ne propose pas de créer ce que tes outils ne savent pas créer.
 
 Après une action :
@@ -297,7 +308,11 @@ les élèves en difficulté et la navigation dans l'espace enseignant.
 Réponds directement, chaleureusement, en français oral naturel (ou wolof dakarois
 si le professeur s'exprime en wolof — consignes wolof en fin de prompt).
 Pas de markdown, pas d'URL, pas de listes à puces lues à voix haute.
-Après une lecture utile, propose 2 ou 3 suites via proposer_actions (chips).
+À la fin de ta réponse (après le texte oral), ajoute exactement une ligne
+[[ARIA_SUGGESTIONS:[...]]] avec 1 à 3 suggestions pertinentes (label court).
+intent open + url seulement si tu connais une URL outil. Pas de suggestions
+pour simple bonjour ni quand une carte de confirmation d'écriture est active.
+Ne lis jamais cette ligne à voix haute — c'est pour l'UI.
 
 Outils :
 - Tu n'accèdes qu'aux classes et élèves du professeur connecté (affectations).
@@ -334,7 +349,11 @@ Tu aides pour les classes et matières affectées, les notes, présences, exerci
 Réponds directement, chaleureusement, en français oral naturel (ou wolof dakarois
 si le professeur s'exprime en wolof — consignes wolof en fin de prompt).
 Pas de markdown, pas d'URL, pas de listes à puces lues à voix haute.
-Après une lecture utile, propose 2 ou 3 suites via proposer_actions (chips).
+À la fin de ta réponse (après le texte oral), ajoute exactement une ligne
+[[ARIA_SUGGESTIONS:[...]]] avec 1 à 3 suggestions pertinentes (label court).
+intent open + url seulement si tu connais une URL outil. Pas de suggestions
+pour simple bonjour ni quand une carte de confirmation d'écriture est active.
+Ne lis jamais cette ligne à voix haute — c'est pour l'UI.
 
 Outils :
 - Tu n'accèdes qu'aux classes / matières du professeur connecté.
@@ -380,6 +399,12 @@ saisie de notes, enregistrement de paiements, données d'autres élèves que ceu
 Pour une question combinée (ex. notes et absences), appelle plusieurs outils de lecture
 dans le même tour si nécessaire — sans wizard ni action d’établissement.
 
+À la fin de ta réponse (après le texte oral), ajoute exactement une ligne
+[[ARIA_SUGGESTIONS:[...]]] avec 1 à 3 suggestions pertinentes (label court).
+intent open + url seulement si tu connais une URL outil. Pas de suggestions
+pour simple bonjour ni quand une carte de confirmation d'écriture est active.
+Ne lis jamais cette ligne à voix haute — c'est pour l'UI.
+
 Le dernier message utilisateur a toujours priorité.
 """
 
@@ -396,6 +421,12 @@ Applique les consignes wolof dakarois en fin de prompt quand il parle wolof.
 
 Interdit : effectifs, caisse, RH, outils directeur ou professeur, scolarité/paiements,
 données d’autres élèves, modification de mot de passe ou photo par la voix.
+
+À la fin de ta réponse (après le texte oral), ajoute exactement une ligne
+[[ARIA_SUGGESTIONS:[...]]] avec 1 à 3 suggestions pertinentes (label court).
+intent open + url seulement si tu connais une URL outil. Pas de suggestions
+pour simple bonjour ni quand une carte de confirmation d'écriture est active.
+Ne lis jamais cette ligne à voix haute — c'est pour l'UI.
 
 Le dernier message utilisateur a toujours priorité.
 """
@@ -1033,24 +1064,117 @@ def _extract_tool_calls(message):
 
 
 async def _stream_spoken_answer(client, messages, on_text_delta):
+    _message, _tool_calls, spoken, _live = await _stream_chat_completion(
+        client,
+        messages=messages,
+        on_text_delta=on_text_delta,
+        emit_text=True,
+    )
+    return spoken
+
+
+def _merge_stream_tool_call(bag, index, delta_call):
+    """Accumule les tool_calls fragmentés d’un flux chat.completions."""
+    if index is None:
+        return
+    slot = bag.setdefault(
+        index,
+        {'id': '', 'name': '', 'arguments': ''},
+    )
+    if delta_call is None:
+        return
+    call_id = getattr(delta_call, 'id', None)
+    if call_id:
+        slot['id'] = call_id
+    function = getattr(delta_call, 'function', None)
+    if function is None:
+        return
+    name = getattr(function, 'name', None)
+    if name:
+        slot['name'] = name
+    args_piece = getattr(function, 'arguments', None) or ''
+    if args_piece:
+        slot['arguments'] += args_piece
+
+
+def _finalize_stream_tool_calls(bag):
+    parsed = []
+    for index in sorted(bag.keys()):
+        slot = bag[index]
+        name = (slot.get('name') or '').strip()
+        if not name:
+            continue
+        raw_args = slot.get('arguments') or '{}'
+        try:
+            arguments = json.loads(raw_args)
+        except json.JSONDecodeError:
+            arguments = {}
+        if not isinstance(arguments, dict):
+            arguments = {}
+        parsed.append({
+            'id': slot.get('id') or f'stream-call-{index}',
+            'name': name,
+            'arguments': arguments,
+        })
+    return parsed
+
+
+async def _stream_chat_completion(
+    client,
+    messages,
+    on_text_delta=None,
+    emit_text=True,
+    **extra,
+):
+    """
+    Tour chat.completions en stream=True.
+    Retourne (message_dict, tool_calls, texte_oral_accumulé).
+    """
     stream = await _create_chat_completion_stream(
         client,
         messages=messages,
         stream=True,
+        **extra,
     )
-    full_text = []
+    content_parts = []
+    tool_bag = {}
+    saw_tool = False
+    streamed_live = False
     async for event in stream:
         if not event.choices:
             continue
         delta = event.choices[0].delta
+        tool_deltas = getattr(delta, 'tool_calls', None) or []
+        if tool_deltas:
+            saw_tool = True
+            for item in tool_deltas:
+                _merge_stream_tool_call(
+                    tool_bag,
+                    getattr(item, 'index', None),
+                    item,
+                )
+            continue
         piece = getattr(delta, 'content', None) or ''
         if not piece:
             continue
-        full_text.append(piece)
-        if looks_like_tool_markup(''.join(full_text)):
-            continue
-        await on_text_delta(piece)
-    return ''.join(full_text)
+        content_parts.append(piece)
+        if (
+            emit_text
+            and on_text_delta
+            and not saw_tool
+            and not looks_like_tool_markup(''.join(content_parts))
+        ):
+            await on_text_delta(piece)
+            streamed_live = True
+    spoken = strip_tool_markup(''.join(content_parts))
+    tool_calls = _finalize_stream_tool_calls(tool_bag)
+    message = {
+        'role': 'assistant',
+        'content': spoken,
+    }
+    if tool_calls:
+        message['tool_calls'] = _tool_calls_payload(tool_calls)
+    return message, tool_calls, spoken, streamed_live
 
 
 def _cached_generate_config(cache_name, temperature):
@@ -1142,7 +1266,11 @@ async def _stream_cached_round(
         except Exception as exc:
             logger.warning('Relecture tool-call Gemini échouée : %s', exc)
 
+    from school_admin.services.assistant_stream_text import split_spoken_and_suggestions
+
     spoken = '' if function_calls else strip_tool_markup(''.join(spoken_parts))
+    if spoken:
+        spoken, _ = split_spoken_and_suggestions(spoken)
     return last_chunk, function_calls, spoken, model_parts
 
 
@@ -1250,7 +1378,7 @@ async def _run_assistant_turn_cached(
                 MAX_TOOL_ROUNDS,
             )
             _note_turn_stats(turn_stats, rounds=rounds_used)
-            return messages, spoken
+            return messages, _client_spoken(spoken)
 
         call_names = ', '.join(
             (getattr(call, 'name', '') or '') for call in function_calls
@@ -1329,7 +1457,7 @@ async def _run_assistant_turn_cached(
     _note_turn_stats(turn_stats, rounds=MAX_TOOL_ROUNDS)
     if on_status:
         await on_status('speaking')
-    return messages, spoken
+    return messages, _client_spoken(spoken)
 
 
 async def run_assistant_turn(
@@ -1379,9 +1507,11 @@ async def run_assistant_turn(
         if on_status:
             await on_status('searching' if used_tools or _round == 0 else 'speaking')
         try:
-            response = await _create_chat_completion(
+            message, tool_calls, streamed, streamed_live = await _stream_chat_completion(
                 client,
                 messages=working,
+                on_text_delta=on_text_delta,
+                emit_text=True,
                 **extra,
             )
         except Exception as exc:
@@ -1393,8 +1523,6 @@ async def run_assistant_turn(
             if isinstance(exc, RuntimeError):
                 raise
             raise
-        message = response.choices[0].message
-        tool_calls = _extract_tool_calls(message)
         if not tool_calls:
             logger.info(
                 'Gemini tool rounds: %s/%s',
@@ -1402,16 +1530,16 @@ async def run_assistant_turn(
                 MAX_TOOL_ROUNDS,
             )
             _note_turn_stats(turn_stats, rounds=rounds_used)
-            spoken = strip_tool_markup(message.content or '')
+            spoken = _client_spoken(streamed or '')
             if used_tools:
                 if spoken:
-                    if on_text_delta:
+                    if on_text_delta and not streamed_live:
                         await on_text_delta(spoken)
                     working.append({'role': 'assistant', 'content': spoken})
                     return working, spoken
                 break
             if spoken:
-                if on_text_delta:
+                if on_text_delta and not streamed_live:
                     await on_text_delta(spoken)
                 working.append({'role': 'assistant', 'content': spoken})
                 return working, spoken
@@ -1430,7 +1558,14 @@ async def run_assistant_turn(
             tools=[call.get('name') or '' for call in tool_calls],
         )
         used_tools = True
-        working.append(_assistant_message_for_api(message, tool_calls=tool_calls))
+        if hasattr(message, 'model_dump'):
+            working.append(_assistant_message_for_api(message, tool_calls=tool_calls))
+        else:
+            assistant_payload = dict(message)
+            assistant_payload['role'] = 'assistant'
+            if tool_calls:
+                assistant_payload['tool_calls'] = _tool_calls_payload(tool_calls)
+            working.append(assistant_payload)
         last_compat = None
         for call in tool_calls:
             arguments = apply_working_refs(
@@ -1468,8 +1603,10 @@ async def run_assistant_turn(
     _note_turn_stats(turn_stats, rounds=MAX_TOOL_ROUNDS)
     if on_status:
         await on_status('speaking')
-    spoken = strip_tool_markup(
-        await _stream_spoken_answer(client, working, on_text_delta or _noop_delta)
+    spoken = _client_spoken(
+        strip_tool_markup(
+            await _stream_spoken_answer(client, working, on_text_delta or _noop_delta)
+        )
     )
     if spoken:
         working.append({'role': 'assistant', 'content': spoken})

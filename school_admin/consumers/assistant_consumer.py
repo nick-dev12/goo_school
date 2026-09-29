@@ -866,6 +866,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if last_tool_results and not turn_stats.get('tools'):
             turn_stats['tools'] = [name for name, _result in last_tool_results]
         self._log_turn_stats()
+        if spoken:
+            await self._send_json({'type': 'text_replace', 'text': spoken})
         await self._send_json({'type': 'done'})
 
     async def _handle_stt(self, payload):

@@ -1145,6 +1145,17 @@
       finishIfIdle();
       return;
     }
+    if (data.type === 'text_replace') {
+      var cleaned = collapseRepeatedReply(stripToolMarkup(data.text || ''));
+      if (cleaned) {
+        spokenPlain = cleaned;
+        ensureAssistantBubble();
+        paintAssistant(cleaned, false);
+        streamAccumulated = '';
+        pendingDelta = '';
+      }
+      return;
+    }
     if (data.type === 'done') {
       if (data.cancelled || ignoreIncoming) {
         abortLocalTurn();
@@ -1426,13 +1437,21 @@
     }
   }
 
-  function stripToolMarkup(text) {
+  function stripAriaSuggestions(text) {
     return String(text || '')
+      .replace(/(?:\[\[)?ARIA_?SUGGESTIONS:\s*[\s\S]*$/i, '')
+      .trim();
+  }
+
+  function stripToolMarkup(text) {
+    return stripAriaSuggestions(
+      String(text || '')
       .replace(/<\|?\s*\/?\s*DSML\s*\|?>/gi, '')
       .replace(/<｜\/?DSML｜>/g, '')
       .replace(/<\/?tool_calls?>/gi, '')
       .replace(/invoke\s+name=["'][^"']+["']/gi, '')
-      .replace(/\s+/g, ' ');
+      .replace(/\s+/g, ' ')
+    );
   }
 
   function foldAssistantText(text) {

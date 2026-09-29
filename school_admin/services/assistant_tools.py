@@ -2216,7 +2216,7 @@ def normalize_suggestions(raw_items, limit=3):
             intent = 'open' if url else 'chat'
         if intent == 'open' and not url:
             intent = 'chat'
-        value = (item.get('value') or label).strip()
+        value = (item.get('value') or item.get('text') or label).strip()
         cleaned.append({
             'label': label[:80],
             'value': value[:200],

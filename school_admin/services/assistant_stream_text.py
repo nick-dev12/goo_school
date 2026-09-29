@@ -4,10 +4,20 @@ from __future__ import annotations
 import json
 import re
 
+# Format canonique : [[ARIA_SUGGESTIONS:[{...}]]]
+# Le modèle produit souvent des variantes (sans [[ ]], sans _, objets séparés par des virgules).
 ARIA_SUGGESTIONS_MARKER = re.compile(
     r'\[\[ARIA_SUGGESTIONS:\s*(\[[\s\S]*?\])\s*\]\]\s*$',
+    re.IGNORECASE,
 )
-ARIA_SUGGESTIONS_INCOMPLETE = re.compile(r'\[\[ARIA_SUGGESTIONS:[\s\S]*$')
+ARIA_SUGGESTIONS_LOOSE = re.compile(
+    r'(?:\[\[)?ARIA_?SUGGESTIONS:\s*([\s\S]*)$',
+    re.IGNORECASE,
+)
+ARIA_SUGGESTIONS_INCOMPLETE = re.compile(
+    r'(?:\[\[)?ARIA_?SUGGESTIONS:[\s\S]*$',
+    re.IGNORECASE,
+)
 
 
 def _fold(text: str) -> str:
@@ -97,30 +107,75 @@ def collapse_near_duplicate_reply(text: str) -> str:
     return raw
 
 
+def _parse_suggestions_payload(payload: str) -> list[dict]:
+    """Parse un tableau JSON ou des objets `{…}, {…}` renvoyés par le LLM."""
+    from school_admin.services.assistant_tools import normalize_suggestions
+
+    body = (payload or '').strip()
+    if body.endswith(']]'):
+        body = body[:-2].strip()
+    if not body:
+        return []
+    candidates = [body]
+    if not body.startswith('['):
+        candidates.append(f'[{body}]')
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            continue
+        if isinstance(parsed, dict):
+            parsed = [parsed]
+        if isinstance(parsed, list):
+            return normalize_suggestions(parsed, limit=3)
+    # Objets JSON consécutifs sans tableau
+    items: list[dict] = []
+    decoder = json.JSONDecoder()
+    rest = body.lstrip(' ,')
+    while rest.startswith('{'):
+        try:
+            obj, end = decoder.raw_decode(rest)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            break
+        if isinstance(obj, dict):
+            items.append(obj)
+        rest = rest[end:].lstrip(' ,')
+    return normalize_suggestions(items, limit=3) if items else []
+
+
+def _strip_suggestions_tail(raw: str) -> tuple[str, list[dict], bool]:
+    """
+    Retire la queue suggestions (complète ou en cours de stream).
+    Retourne (spoken, suggestions, had_complete_marker).
+    """
+    text = (raw or '').strip()
+    if not text:
+        return '', [], False
+    match = ARIA_SUGGESTIONS_MARKER.search(text)
+    if match:
+        spoken = text[: match.start()].strip()
+        return spoken, _parse_suggestions_payload(match.group(1)), True
+    loose = ARIA_SUGGESTIONS_LOOSE.search(text)
+    if loose:
+        spoken = text[: loose.start()].rstrip()
+        payload = loose.group(1).strip()
+        if payload.endswith(']]'):
+            payload = payload[:-2].strip()
+        suggestions = _parse_suggestions_payload(payload)
+        complete = bool(suggestions) and payload.rstrip().endswith('}')
+        return spoken, suggestions, complete
+    incomplete = ARIA_SUGGESTIONS_INCOMPLETE.search(text)
+    if incomplete:
+        return text[: incomplete.start()].rstrip(), [], False
+    return text, [], False
+
+
 def split_spoken_and_suggestions(text: str) -> tuple[str, list[dict]]:
     """
     Sépare le texte oral des suggestions UI [[ARIA_SUGGESTIONS:[...]]].
     Retire aussi un marqueur incomplet en fin de flux (stream).
     """
-    raw = (text or '').strip()
-    if not raw:
-        return '', []
-    incomplete = ARIA_SUGGESTIONS_INCOMPLETE.search(raw)
-    if incomplete and not ARIA_SUGGESTIONS_MARKER.search(raw):
-        raw = raw[: incomplete.start()].rstrip()
-    match = ARIA_SUGGESTIONS_MARKER.search(raw)
-    if not match:
-        return raw, []
-    spoken = raw[: match.start()].strip()
-    suggestions: list[dict] = []
-    try:
-        parsed = json.loads(match.group(1))
-        if isinstance(parsed, list):
-            from school_admin.services.assistant_tools import normalize_suggestions
-
-            suggestions = normalize_suggestions(parsed, limit=3)
-    except (json.JSONDecodeError, TypeError, ValueError):
-        pass
+    spoken, suggestions, _complete = _strip_suggestions_tail(text)
     return spoken, suggestions
 
 

@@ -107,6 +107,18 @@ class AssistantStreamTextTests(SimpleTestCase):
         self.assertEqual(spoken, 'Bonjour.')
         self.assertEqual(items, [])
 
+    def test_split_spoken_loose_ariasuggestions_without_brackets(self):
+        raw = (
+            'Vous avez 6 classes. Souhaitez-vous ouvrir une fiche ? '
+            'ARIASUGGESTIONS:{"label": "Ouvrir la liste", "intent": "open", "url": "/classes/"}, '
+            '{"label": "Voir les effectifs", "intent": "chat", "text": "Affiche les effectifs"}'
+        )
+        spoken, items = split_spoken_and_suggestions(raw)
+        self.assertNotIn('ARIASUGGESTIONS', spoken)
+        self.assertNotIn('{', spoken)
+        self.assertGreaterEqual(len(items), 1)
+        self.assertEqual(items[0]['label'], 'Ouvrir la liste')
+
     def test_finalize_assistant_turn_text_strips_marker(self):
         raw = (
             'Effectifs ok. '

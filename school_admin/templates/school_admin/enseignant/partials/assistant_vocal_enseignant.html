@@ -12,6 +12,7 @@
   class="assistant-vocal-root notranslate"
   translate="no"
   data-persona="enseignant"
+  data-cache-scope="enseignant:{{ professeur.pk }}:e{{ professeur.etablissement_id|default:0 }}"
   data-etablissement="{{ professeur.etablissement.nom|default:'' }}"
   data-user-name="{{ professeur.nom_complet }}"
   data-avatar-url="{% static 'school_admin/img/aria-assistante.png' %}"
@@ -140,4 +141,4 @@
     />
   </button>
 </div>
-<script src="{% static 'school_admin/js/directeur/assistant_vocal.js' %}?v=1.9.31"></script>
+<script src="{% static 'school_admin/js/directeur/assistant_vocal.js' %}?v=1.9.32"></script>

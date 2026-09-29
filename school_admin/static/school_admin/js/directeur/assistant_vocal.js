@@ -29,7 +29,8 @@
   var liveBox = document.getElementById('assistant-vocal-live');
 
   var SILENCE_MS = 1600;
-  var CACHE_KEY = 'aria.assistant.cache';
+  var CACHE_KEY_PREFIX = 'aria.assistant.cache.';
+  var LEGACY_CACHE_KEY = 'aria.assistant.cache';
   var MUTE_KEY = 'aria.assistant.muted';
   var PARENT_LANG_KEY = 'aria.parent.lang_pref';
   var ELEVE_LANG_KEY = 'aria.eleve.lang_pref';
@@ -314,8 +315,9 @@
     }
     try {
       sessionStorage.setItem(
-        CACHE_KEY,
+        cacheStorageKey(),
         JSON.stringify({
+          scope: assistantCacheScope(),
           log: chatLog,
           open: forceOpen === true || root.classList.contains('is-open'),
         })
@@ -346,6 +348,32 @@
   function getPersonaKey() {
     var p = (root.getAttribute('data-persona') || '').trim();
     return p || 'directeur';
+  }
+
+  function assistantCacheScope() {
+    var scope = (root.getAttribute('data-cache-scope') || '').trim();
+    if (scope) {
+      return scope;
+    }
+    var etab = (root.getAttribute('data-etablissement') || '').trim();
+    var user = (root.getAttribute('data-user-name') || '').trim();
+    return getPersonaKey() + '|' + etab + '|' + user;
+  }
+
+  function cacheStorageKey() {
+    return CACHE_KEY_PREFIX + assistantCacheScope();
+  }
+
+  function annonceDraftStorageKey() {
+    return ANNONCE_DRAFT_KEY + '.' + assistantCacheScope();
+  }
+
+  function purgeLegacyAssistantCache() {
+    try {
+      sessionStorage.removeItem(LEGACY_CACHE_KEY);
+    } catch (err) {
+      /* ignore */
+    }
   }
 
   function isEnseignantPersona() {
@@ -604,13 +632,17 @@
   }
 
   function restoreCache() {
+    var scope = assistantCacheScope();
     var raw;
     try {
-      raw = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
+      raw = JSON.parse(sessionStorage.getItem(cacheStorageKey()) || 'null');
     } catch (err) {
       return false;
     }
     if (!raw || !raw.log || !raw.log.length) {
+      return false;
+    }
+    if (raw.scope && raw.scope !== scope) {
       return false;
     }
     restoring = true;
@@ -643,7 +675,7 @@
       return;
     }
     try {
-      sessionStorage.setItem(ANNONCE_DRAFT_KEY, JSON.stringify({
+      sessionStorage.setItem(annonceDraftStorageKey(), JSON.stringify({
         titre: data.titre || '',
         contenu: data.contenu || '',
         destinataires: data.destinataires || [],
@@ -669,7 +701,7 @@
 
   function restoreAnnonceForm() {
     try {
-      var draft = JSON.parse(sessionStorage.getItem(ANNONCE_DRAFT_KEY) || 'null');
+      var draft = JSON.parse(sessionStorage.getItem(annonceDraftStorageKey()) || 'null');
       if (draft) {
         applyAnnonceForm(draft);
       }
@@ -1226,7 +1258,7 @@
       }
       settleActionCard('done', data);
       try {
-        sessionStorage.removeItem(ANNONCE_DRAFT_KEY);
+        sessionStorage.removeItem(annonceDraftStorageKey());
       } catch (err) {
         /* ignore */
       }
@@ -2627,6 +2659,7 @@
       return;
     }
     booted = true;
+    purgeLegacyAssistantCache();
     try {
       voiceMuted = localStorage.getItem(MUTE_KEY) === '1';
     } catch (err) {

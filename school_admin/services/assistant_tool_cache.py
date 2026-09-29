@@ -103,11 +103,11 @@ def cached_assistant_tool(
 
 
 def wrap_cacheable_tool_handlers(handlers: dict) -> dict:
-    """Applique le cache aux handlers lourds connus."""
+    """Applique le cache aux handlers lourds connus (clé schéma, pas __name__)."""
     wrapped = {}
     for name, handler in handlers.items():
         if name in CACHEABLE_ASSISTANT_TOOLS:
-            wrapped[name] = cached_assistant_tool()(handler)
+            wrapped[name] = cached_assistant_tool(tool_name=name)(handler)
         else:
             wrapped[name] = handler
     return wrapped

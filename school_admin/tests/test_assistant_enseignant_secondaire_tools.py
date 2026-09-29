@@ -146,7 +146,6 @@ class AssistantEnseignantSecondaireToolsTests(TestCase):
 
     def test_tool_handlers_registered(self):
         self.assertIn('get_mes_classes', ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS)
-        self.assertIn('proposer_actions', ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS)
         from school_admin.services.assistant_enseignant_secondaire_actions import (
             ENSEIGNANT_SECONDAIRE_ACTION_SPECS,
         )
@@ -173,8 +172,9 @@ class AssistantEnseignantSecondaireToolsTests(TestCase):
         spoken = spoken_from_enseignant_tool('get_mes_classes', result)
         self.assertIn('6ème', spoken)
 
-    def test_proposer_actions_schema(self):
+    def test_proposer_actions_absent_du_schema(self):
         from school_admin.services.assistant_enseignant_secondaire_tools import (
+            ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS,
             get_enseignant_secondaire_tools_schema,
         )
 
@@ -184,6 +184,7 @@ class AssistantEnseignantSecondaireToolsTests(TestCase):
             for item in get_enseignant_secondaire_tools_schema(ctx)
             if item.get('function')
         }
-        self.assertIn('proposer_actions', names)
+        self.assertNotIn('proposer_actions', names)
+        self.assertNotIn('proposer_actions', ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS)
         self.assertNotIn('get_modules_classe', names)
         self.assertNotIn('get_credits_etudiant', names)

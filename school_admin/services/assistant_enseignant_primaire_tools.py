@@ -31,7 +31,6 @@ from school_admin.services.assistant_tools import (
     _safe_decimal,
     tool_emploi_du_temps,
     tool_periodes,
-    tool_proposer_actions,
 )
 
 logger = logging.getLogger(__name__)
@@ -519,7 +518,6 @@ def tool_chercher_en_base(ctx, args):
 
 ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS = {
     'chercher_en_base': tool_chercher_en_base,
-    'proposer_actions': tool_proposer_actions,
     'get_mes_classes': tool_get_mes_classes,
     'get_effectifs': tool_get_effectifs,
     'rechercher_eleves': tool_rechercher_eleves,
@@ -546,31 +544,6 @@ from school_admin.services.assistant_enseignant_complements_tools import (
 register_complements_tool_handlers(ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS)
 
 ENSEIGNANT_PRIMAIRE_TOOLS_SCHEMA = [
-    {
-        'type': 'function',
-        'function': {
-            'name': 'proposer_actions',
-            'description': (
-                'Propose 2 à 3 actions ou questions de suite (chips cliquables). '
-                'Lecture seule.'
-            ),
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'suggestions': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'label': {'type': 'string'},
-                                'value': {'type': 'string'},
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    },
     {
         'type': 'function',
         'function': {

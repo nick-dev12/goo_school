@@ -1108,8 +1108,14 @@
       if (piece) {
         var merged = mergeStreamDelta(streamAccumulated, piece);
         streamAccumulated = merged.accumulated;
-        if (voiceMuted && merged.emit) {
+        if (merged.emit) {
           pendingDelta += merged.emit;
+        }
+        var display = collapseRepeatedReply(stripToolMarkup(streamAccumulated));
+        if (display) {
+          ensureAssistantBubble();
+          spokenPlain = display;
+          paintAssistant(display, true);
         }
       }
       return;
@@ -1148,9 +1154,13 @@
     if (data.type === 'text_replace') {
       var cleaned = collapseRepeatedReply(stripToolMarkup(data.text || ''));
       if (cleaned) {
-        spokenPlain = cleaned;
         ensureAssistantBubble();
-        paintAssistant(cleaned, false);
+        if (foldAssistantText(spokenPlain) !== foldAssistantText(cleaned)) {
+          spokenPlain = cleaned;
+        } else if (!spokenPlain) {
+          spokenPlain = cleaned;
+        }
+        paintAssistant(spokenPlain || cleaned, false);
         streamAccumulated = '';
         pendingDelta = '';
       }
@@ -1420,9 +1430,6 @@
     ensureAssistantBubble();
     var mime = audioMime || 'audio/wav';
     var line = collapseRepeatedReply(stripToolMarkup(text || ''));
-    if (line && textAlreadyShown(line)) {
-      return;
-    }
     audioQueue.push({
       text: line,
       src: !voiceMuted && audioBase64 ? 'data:' + mime + ';base64,' + audioBase64 : '',
@@ -1526,6 +1533,20 @@
     return spokenPlain.replace(/\s+/g, ' ').indexOf(clean.replace(/\s+/g, ' ')) !== -1;
   }
 
+  function paintedCoversSentence(sentence) {
+    var clean = stripToolMarkup(sentence).trim();
+    if (!clean || !spokenPlain) {
+      return false;
+    }
+    return foldAssistantText(spokenPlain).indexOf(foldAssistantText(clean)) !== -1;
+  }
+
+  function paintedIsPrefixOfSentence(sentence) {
+    var clean = foldAssistantText(stripToolMarkup(sentence));
+    var shown = foldAssistantText(spokenPlain);
+    return !!(shown && clean && clean.indexOf(shown) === 0 && clean.length > shown.length);
+  }
+
   function joinSentence(prefix, sentence) {
     if (prefix && sentence && !/\s$/.test(prefix) && !/^[.,;:!?]/.test(sentence)) {
       return prefix + ' ' + sentence;
@@ -1534,9 +1555,18 @@
   }
 
   function typeAlongDuration(sentence, durationMs, onComplete) {
+    if (paintedCoversSentence(sentence)) {
+      paintAssistant(spokenPlain, false);
+      if (onComplete) {
+        onComplete();
+      }
+      return;
+    }
     var prefix = spokenPlain;
-    var total = joinSentence(prefix, sentence);
-    var startAt = prefix ? joinSentence(prefix, '').length : 0;
+    var total = paintedIsPrefixOfSentence(sentence)
+      ? stripToolMarkup(sentence).trim()
+      : joinSentence(prefix, sentence);
+    var startAt = prefix ? Math.min(prefix.length, total.length) : 0;
     var length = Math.max(1, total.length - startAt);
     var started = Date.now();
     var minDuration = Math.max(durationMs || 0, Math.round((length / CHARS_PER_SECOND) * 1000));
@@ -1558,9 +1588,14 @@
   }
 
   function bindVoiceTypewriter(audio, sentence) {
+    var skipPaint = paintedCoversSentence(sentence);
     var prefix = spokenPlain;
-    var total = joinSentence(prefix, sentence);
-    var startAt = prefix ? joinSentence(prefix, '').length : 0;
+    var total = skipPaint
+      ? spokenPlain
+      : paintedIsPrefixOfSentence(sentence)
+        ? stripToolMarkup(sentence).trim()
+        : joinSentence(prefix, sentence);
+    var startAt = prefix ? Math.min(prefix.length, total.length) : 0;
     var length = Math.max(1, total.length - startAt);
     var startedAt = Date.now();
     var finished = false;
@@ -1586,6 +1621,10 @@
     };
 
     var reveal = function () {
+      if (skipPaint) {
+        paintAssistant(spokenPlain, true);
+        return;
+      }
       var duration = audio.duration;
       var progress;
       if (duration && isFinite(duration) && duration > 0) {
@@ -1702,7 +1741,7 @@
       }
     };
     window.setTimeout(function () {
-      if (!started && sentence) {
+      if (!started && sentence && !paintedCoversSentence(sentence)) {
         paintAssistant(joinSentence(spokenPlain, sentence).slice(0, spokenPlain.length + 1), true);
       }
     }, 350);
@@ -1739,10 +1778,9 @@
       return;
     }
     if (
-      !spokenPlain &&
       !receivedVoiceSentence &&
       !voiceMuted &&
-      streamAccumulated &&
+      (streamAccumulated || spokenPlain) &&
       !voiceWaitScheduled
     ) {
       voiceWaitScheduled = true;

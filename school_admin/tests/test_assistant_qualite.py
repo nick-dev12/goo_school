@@ -48,7 +48,13 @@ from school_admin.services.gemini_assistant_service import (
     _run_assistant_turn_cached,
     _stream_cached_round,
 )
-from school_admin.services.gemini_context_cache import CACHE_DISPLAY_NAME
+from school_admin.services.gemini_context_cache import (
+    CACHE_DISPLAY_NAME,
+    CACHE_DISPLAY_NAME_ELEVE,
+    CACHE_DISPLAY_NAME_ENSEIGNANT,
+    CACHE_DISPLAY_NAME_ENSEIGNANT_SEC,
+    CACHE_DISPLAY_NAME_PARENT,
+)
 from school_admin.services.tts_service import synthesize_audio
 
 
@@ -279,6 +285,10 @@ class TtsFallbackQualiteTests(SimpleTestCase):
 class QualiteCGeminiTests(SimpleTestCase):
     def test_cache_prompt_v10(self):
         self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v16')
+        self.assertEqual(CACHE_DISPLAY_NAME_ENSEIGNANT, 'aria-enseignant-primaire-v6')
+        self.assertEqual(CACHE_DISPLAY_NAME_ENSEIGNANT_SEC, 'aria-enseignant-v7')
+        self.assertEqual(CACHE_DISPLAY_NAME_PARENT, 'aria-parent-tools-v3')
+        self.assertEqual(CACHE_DISPLAY_NAME_ELEVE, 'aria-eleve-tools-v3')
 
     def test_navigation_explicite_seulement(self):
         self.assertTrue(is_explicit_navigation('Ouvre le tableau de bord'))
@@ -884,6 +894,15 @@ class GeminiG4SuggestionTests(SimpleTestCase):
         self.assertEqual(followup, [])
 
     def test_proposer_actions_absent_du_schema(self):
+        from school_admin.services.assistant_enseignant_primaire_tools import (
+            ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS,
+            ENSEIGNANT_PRIMAIRE_TOOLS_SCHEMA,
+        )
+        from school_admin.services.assistant_enseignant_secondaire_tools import (
+            ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS,
+            ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA,
+        )
+        from school_admin.services.assistant_schema import TOOL_PERMISSIONS
         from school_admin.services.assistant_tools import TOOL_HANDLERS, TOOLS_SCHEMA
 
         names = {
@@ -893,6 +912,58 @@ class GeminiG4SuggestionTests(SimpleTestCase):
         }
         self.assertNotIn('proposer_actions', names)
         self.assertNotIn('proposer_actions', TOOL_HANDLERS)
+        self.assertNotIn('proposer_actions', TOOL_PERMISSIONS)
+        prim_names = {
+            item['function']['name']
+            for item in ENSEIGNANT_PRIMAIRE_TOOLS_SCHEMA
+            if item.get('function')
+        }
+        sec_names = {
+            item['function']['name']
+            for item in ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA
+            if item.get('function')
+        }
+        self.assertNotIn('proposer_actions', prim_names)
+        self.assertNotIn('proposer_actions', ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS)
+        self.assertNotIn('proposer_actions', sec_names)
+        self.assertNotIn('proposer_actions', ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS)
+
+    def test_speak_and_finish_envoie_text_replace_sans_json(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        async def _run():
+            consumer = AssistantConsumer()
+            consumer._cancel_requested = False
+            consumer.pending_action = None
+            consumer.history = []
+            sent = []
+
+            async def fake_send(payload):
+                sent.append(payload)
+
+            consumer._send_json = fake_send
+            consumer._flush_tts_queue = AsyncMock()
+            consumer._send_suggestions = AsyncMock()
+            consumer._send_choices = AsyncMock()
+            consumer._infer_choices = lambda spoken: []
+            await consumer._speak_and_finish(
+                user_text='Ouvre',
+                spoken=(
+                    'J’ouvre la classe. '
+                    '[[ARIA_SUGGESTIONS:[{"label":"Notes","value":"Notes"}]]]'
+                ),
+            )
+            types = [item.get('type') for item in sent]
+            self.assertIn('text_delta', types)
+            self.assertIn('text_replace', types)
+            self.assertEqual(types[-1], 'done')
+            self.assertLess(types.index('text_replace'), types.index('done'))
+            replace = next(item for item in sent if item.get('type') == 'text_replace')
+            self.assertIn('ouvre', replace['text'].lower())
+            self.assertNotIn('ARIA_SUGGESTIONS', replace['text'])
+            self.assertNotIn('Notes', replace['text'])
+
+        asyncio.run(_run())
 
 
 class GeminiG5MultiToolTests(SimpleTestCase):
@@ -1541,3 +1612,50 @@ class AssistantToolCacheTests(SimpleTestCase):
             mock_cache.set.side_effect = RuntimeError('redis down')
             result = get_bilan_scolarite(ctx, {})
         self.assertEqual(result, {'total': 42})
+
+    def test_wrap_cacheable_uses_schema_name_not_handler_name(self):
+        from school_admin.services.assistant_tool_cache import (
+            DEFAULT_ASSISTANT_TOOL_TTL,
+            assistant_tool_cache_key,
+            wrap_cacheable_tool_handlers,
+        )
+
+        ctx = type(
+            'Ctx',
+            (),
+            {
+                'persona': 'directeur',
+                'etablissement': type('E', (), {'pk': 3})(),
+                'annee_scolaire': type('A', (), {'pk': 9})(),
+                'personnel': type('P', (), {'pk': 7})(),
+            },
+        )()
+        calls = {'n': 0}
+
+        def tool_impayes(ctx, args):
+            calls['n'] += 1
+            return {'statut': 'ok', 'nb': calls['n']}
+
+        wrapped = wrap_cacheable_tool_handlers({'get_impayes': tool_impayes})
+        key = assistant_tool_cache_key(ctx, 'get_impayes', {'statut': 'actif'})
+        with patch('school_admin.services.assistant_tool_cache.cache') as mock_cache:
+            mock_cache.get.side_effect = [None, {'statut': 'ok', 'nb': 1}]
+            mock_cache.set.return_value = True
+            with self.assertLogs(
+                'school_admin.services.assistant_tool_cache',
+                level='INFO',
+            ) as logs:
+                first = wrapped['get_impayes'](ctx, {'statut': 'actif'})
+                second = wrapped['get_impayes'](ctx, {'statut': 'actif'})
+        self.assertEqual(first, {'statut': 'ok', 'nb': 1})
+        self.assertEqual(second, {'statut': 'ok', 'nb': 1})
+        self.assertEqual(calls['n'], 1)
+        mock_cache.set.assert_called_once_with(
+            key,
+            {'statut': 'ok', 'nb': 1},
+            timeout=DEFAULT_ASSISTANT_TOOL_TTL,
+        )
+        joined = '\n'.join(logs.output)
+        self.assertIn('assistant.tool_cache miss get_impayes', joined)
+        self.assertIn('assistant.tool_cache hit get_impayes', joined)
+        self.assertNotIn('tool_impayes', joined)

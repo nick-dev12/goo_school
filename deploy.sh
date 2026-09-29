@@ -95,6 +95,36 @@ else
     find ~/aria/goo_school/staticfiles -type f -exec chmod 644 {} \;
 fi
 
+# aria-daphne lit /etc/aria/env (prioritaire sur le .env Django) — aligner la voix TTS
+sync_assistant_tts_env() {
+    local dotenv="$HOME/aria/goo_school/.env"
+    local sysenv="/etc/aria/env"
+    if [ ! -f "$dotenv" ] || [ ! -f "$sysenv" ]; then
+        echo "⚠️  Sync TTS ignorée (.env ou /etc/aria/env absent)"
+        return 0
+    fi
+    if ! sudo -n true 2>/dev/null && [ -z "${SUDO_PASSWORD:-}" ]; then
+        echo "⚠️  Sync TTS ignorée (sudo requis pour /etc/aria/env)"
+        return 0
+    fi
+    local key val
+    for key in ASSISTANT_TTS_BACKEND GEMINI_TTS_MODEL GEMINI_TTS_VOICE GEMINI_TTS_LANGUAGE ASSISTANT_TTS_FALLBACK_EDGE; do
+        val=$(grep -E "^${key}=" "$dotenv" | tail -1 | cut -d= -f2- | tr -d '\r')
+        if [ -z "$val" ]; then
+            continue
+        fi
+        if grep -q "^${key}=" "$sysenv"; then
+            run_sudo sed -i "s|^${key}=.*|${key}=${val}|" "$sysenv"
+        else
+            printf '%s=%s\n' "$key" "$val" | run_sudo tee -a "$sysenv" >/dev/null
+        fi
+    done
+    echo "✅ Variables TTS assistant synchronisées (.env → /etc/aria/env)"
+}
+
+echo "🔊 Synchronisation TTS Aria (/etc/aria/env)..."
+sync_assistant_tts_env
+
 # Redémarrer les services applicatifs (ASGI + Celery)
 DAPHNE_PATTERN='/home/nick/aria/goo_school/venv/bin/daphne -b 127.0.0.1 -p 8001'
 CELERY_PATTERN='/home/nick/aria/goo_school/venv/bin/celery -A school worker'

@@ -145,7 +145,6 @@ class AssistantEnseignantPrimaireToolsTests(TestCase):
 
     def test_tool_handlers_registered(self):
         self.assertIn('get_mes_classes', ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS)
-        self.assertIn('proposer_actions', ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS)
         from school_admin.services.assistant_enseignant_actions import ENSEIGNANT_ACTION_SPECS
 
         self.assertIn('enregistrer_note', ENSEIGNANT_ACTION_SPECS)
@@ -183,8 +182,9 @@ class AssistantEnseignantPrimaireToolsTests(TestCase):
         labels = ' '.join(c['label'] for c in chips).lower()
         self.assertNotIn('impay', labels)
 
-    def test_proposer_actions_schema(self):
+    def test_proposer_actions_absent_du_schema(self):
         from school_admin.services.assistant_enseignant_primaire_tools import (
+            ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS,
             get_enseignant_primaire_tools_schema,
         )
 
@@ -193,7 +193,8 @@ class AssistantEnseignantPrimaireToolsTests(TestCase):
             for item in get_enseignant_primaire_tools_schema()
             if item.get('function')
         }
-        self.assertIn('proposer_actions', names)
+        self.assertNotIn('proposer_actions', names)
+        self.assertNotIn('proposer_actions', ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS)
 
     def test_cette_classe_working_refs(self):
         from school_admin.services.gemini_assistant_service import apply_working_refs

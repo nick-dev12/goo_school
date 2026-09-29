@@ -472,6 +472,10 @@ TOOL_HANDLERS.update({
     'ouvrir_recu': tool_ouvrir_recu,
 })
 
+from school_admin.services.assistant_tool_cache import wrap_cacheable_tool_handlers
+
+TOOL_HANDLERS.update(wrap_cacheable_tool_handlers(TOOL_HANDLERS))
+
 
 PAR2_GEMINI_TOOLS = [
         {

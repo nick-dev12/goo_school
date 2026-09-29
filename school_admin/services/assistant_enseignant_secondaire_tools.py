@@ -32,7 +32,6 @@ from school_admin.services.assistant_tools import (
     _safe_decimal,
     tool_emploi_du_temps,
     tool_periodes,
-    tool_proposer_actions,
 )
 
 logger = logging.getLogger(__name__)
@@ -578,7 +577,6 @@ ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS = {
     'chercher_en_base': tool_chercher_en_base,
     'get_modules_classe': tool_get_modules_classe,
     'get_credits_etudiant': tool_get_credits_etudiant,
-    'proposer_actions': tool_proposer_actions,
     'get_mes_classes': tool_get_mes_classes,
     'get_effectifs': tool_get_effectifs,
     'rechercher_eleves': tool_rechercher_eleves,
@@ -602,35 +600,14 @@ ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS.update(_merge_examens_handlers())
 from school_admin.services.assistant_enseignant_complements_tools import (
     register_complements_tool_handlers,
 )
+from school_admin.services.assistant_tool_cache import wrap_cacheable_tool_handlers
 
 register_complements_tool_handlers(ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS)
+ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS.update(
+    wrap_cacheable_tool_handlers(ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS)
+)
 
 ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA = [
-    {
-        'type': 'function',
-        'function': {
-            'name': 'proposer_actions',
-            'description': (
-                'Propose 2 à 3 actions ou questions de suite (chips cliquables). '
-                'Lecture seule.'
-            ),
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'suggestions': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'label': {'type': 'string'},
-                                'value': {'type': 'string'},
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    },
     {
         'type': 'function',
         'function': {

@@ -2310,8 +2310,11 @@ from school_admin.services.assistant_examens import (  # noqa: E402
 
 from school_admin.services.assistant_tool_cache import wrap_cacheable_tool_handlers  # noqa: E402
 
+TOOL_HANDLERS.update(wrap_cacheable_tool_handlers({
+    'get_effectifs': TOOL_HANDLERS['get_effectifs'],
+}))
 TOOL_HANDLERS.update(wrap_cacheable_tool_handlers(VAGUE2_READ_HANDLERS))
-TOOL_HANDLERS.update(VAGUE3_READ_HANDLERS)
+TOOL_HANDLERS.update(wrap_cacheable_tool_handlers(VAGUE3_READ_HANDLERS))
 TOOL_HANDLERS.update(VAGUE4_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE5_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE6_READ_HANDLERS)

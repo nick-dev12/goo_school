@@ -1893,6 +1893,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_suggestions(suggestions)
         else:
             await self._send_choices(choices if choices is not None else self._infer_choices(spoken))
+        if spoken:
+            await self._send_json({'type': 'text_replace', 'text': spoken})
         await self._send_json({'type': 'done'})
 
     @database_sync_to_async

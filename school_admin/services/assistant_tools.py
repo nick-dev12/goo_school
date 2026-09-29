@@ -2262,7 +2262,6 @@ TOOL_HANDLERS = {
     'get_structure_superieur': tool_structure_superieur,
     'lister_pages': tool_lister_pages,
     'ouvrir_page': tool_ouvrir_page,
-    'proposer_actions': tool_proposer_actions,
     'get_notifications': tool_notifications,
     'get_preinscriptions': tool_preinscriptions,
     'get_liaisons': tool_liaisons,
@@ -2309,7 +2308,9 @@ from school_admin.services.assistant_examens import (  # noqa: E402
     VAGUE6_READ_SCHEMA,
 )
 
-TOOL_HANDLERS.update(VAGUE2_READ_HANDLERS)
+from school_admin.services.assistant_tool_cache import wrap_cacheable_tool_handlers  # noqa: E402
+
+TOOL_HANDLERS.update(wrap_cacheable_tool_handlers(VAGUE2_READ_HANDLERS))
 TOOL_HANDLERS.update(VAGUE3_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE4_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE5_READ_HANDLERS)
@@ -2919,55 +2920,6 @@ TOOLS_SCHEMA.extend(VAGUE3_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE4_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE5_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE6_READ_SCHEMA)
-TOOLS_SCHEMA.extend([
-    {
-        'type': 'function',
-        'function': {
-            'name': 'proposer_actions',
-            'description': (
-                'Affiche jusqu’à 3 propositions cliquables après une lecture utile '
-                '(impayés, effectifs, notes, liste). N’écrit rien. '
-                'Intent chat : le directeur envoie value à Gemini. '
-                'Intent open : ouvrir url. '
-                'Ne pas appeler pour un bonjour, ni pendant une confirmation d’écriture '
-                '(la carte oui / modifier / annuler suffit). '
-                'Ne pas énumérer ces puces à l’oral.'
-            ),
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'suggestions': {
-                        'type': 'array',
-                        'maxItems': 3,
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'label': {
-                                    'type': 'string',
-                                    'description': 'Texte court du bouton',
-                                },
-                                'value': {
-                                    'type': 'string',
-                                    'description': 'Message envoyé si clic (intent chat)',
-                                },
-                                'intent': {
-                                    'type': 'string',
-                                    'enum': ['chat', 'open'],
-                                },
-                                'url': {
-                                    'type': 'string',
-                                    'description': 'URL si intent open',
-                                },
-                            },
-                            'required': ['label'],
-                        },
-                    },
-                },
-                'required': ['suggestions'],
-            },
-        },
-    },
-])
 TOOLS_SCHEMA.extend(build_action_tool_schemas())
 
 

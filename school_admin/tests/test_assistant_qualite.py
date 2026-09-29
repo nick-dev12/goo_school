@@ -7,12 +7,14 @@ from unittest.mock import AsyncMock, patch
 from django.test import SimpleTestCase
 
 from school_admin.consumers.assistant_consumer import (
-    MAX_TTS_SEGMENT_CHARS,
-    MIN_TTS_CLAUSE_CHARS,
-    SentenceAssembler,
     is_affirmative,
     is_cancel,
     is_pending_modify,
+)
+from school_admin.services.assistant_stream_text import (
+    MAX_TTS_SEGMENT_CHARS,
+    MIN_TTS_CLAUSE_CHARS,
+    SentenceAssembler,
 )
 from school_admin.services.assistant_intents import (
     METIER_SWITCH_RE,
@@ -26,7 +28,9 @@ from school_admin.services.assistant_intents import (
 from school_admin.services.assistant_stream_text import (
     collapse_near_duplicate_reply,
     finalize_assistant_spoken,
+    finalize_assistant_turn_text,
     merge_stream_delta,
+    split_spoken_and_suggestions,
 )
 from school_admin.services.gemini_assistant_service import (
     CONVERSATION_TEMPERATURE,
@@ -83,6 +87,35 @@ class AssistantStreamTextTests(SimpleTestCase):
         b = a + ' ' + a.replace('les présences', 'lesprésences')
         out = finalize_assistant_spoken(b)
         self.assertLess(len(out), len(b))
+
+    def test_split_spoken_and_suggestions(self):
+        marker = (
+            '[[ARIA_SUGGESTIONS:[{"label":"Relancer","value":"Relance les impayés","intent":"chat"}]]]'
+        )
+        spoken, items = split_spoken_and_suggestions(
+            f'La 3e A compte 28 élèves.\n{marker}'
+        )
+        self.assertEqual(spoken, 'La 3e A compte 28 élèves.')
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['label'], 'Relancer')
+        self.assertEqual(items[0]['intent'], 'chat')
+
+    def test_split_spoken_strips_incomplete_marker_while_streaming(self):
+        spoken, items = split_spoken_and_suggestions(
+            'Bonjour. [[ARIA_SUGGESTIONS:[{"label":"Suite'
+        )
+        self.assertEqual(spoken, 'Bonjour.')
+        self.assertEqual(items, [])
+
+    def test_finalize_assistant_turn_text_strips_marker(self):
+        raw = (
+            'Effectifs ok. '
+            '[[ARIA_SUGGESTIONS:[{"label":"Impayés","value":"Les impayés ?"}]]]'
+        )
+        spoken, sugg = finalize_assistant_turn_text(raw)
+        self.assertNotIn('ARIA_SUGGESTIONS', spoken)
+        self.assertEqual(finalize_assistant_spoken(raw), spoken)
+        self.assertEqual(sugg[0]['label'], 'Impayés')
 
 
 class SentenceAssemblerTests(SimpleTestCase):
@@ -170,6 +203,12 @@ class TtsFallbackQualiteTests(SimpleTestCase):
     def test_gemini_vide_bascule_sur_edge(self):
         async def _run():
             with patch(
+                'school_admin.services.tts_service._tts_backend',
+                return_value='gemini',
+            ), patch(
+                'school_admin.services.tts_service._edge_fallback_enabled',
+                return_value=True,
+            ), patch(
                 'school_admin.services.tts_service._synthesize_gemini',
                 new=AsyncMock(return_value=(None, None)),
             ), patch(
@@ -191,6 +230,8 @@ class TtsFallbackQualiteTests(SimpleTestCase):
             consumer._cancel_requested = False
             consumer._tts_tasks = []
             consumer._tts_index = 0
+            consumer._spoken_sentence_buffer = SentenceAssembler()
+            consumer._tts_chain = None
             consumer._opener_emitted = True
             consumer._opener_task = None
             concurrent = 0
@@ -225,7 +266,7 @@ class TtsFallbackQualiteTests(SimpleTestCase):
 
 class QualiteCGeminiTests(SimpleTestCase):
     def test_cache_prompt_v10(self):
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v15')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v16')
 
     def test_navigation_explicite_seulement(self):
         self.assertTrue(is_explicit_navigation('Ouvre le tableau de bord'))
@@ -786,7 +827,7 @@ class GeminiG4SuggestionTests(SimpleTestCase):
         spoken = "Souhaitez-vous que je relance les familles ?"
         self.assertEqual(consumer._infer_choices(spoken), [])
 
-    def test_proposer_actions_ne_stoppe_pas_et_remplit_les_puces(self):
+    def test_suggestions_natives_dans_reponse_orale(self):
         from school_admin.consumers.assistant_consumer import AssistantConsumer
 
         async def _run():
@@ -794,22 +835,12 @@ class GeminiG4SuggestionTests(SimpleTestCase):
             consumer.scope = {}
             consumer.pending_action = None
             consumer._followup_suggestions = []
-            consumer._last_tool_memory = ''
-            should_stop = await consumer._on_live_tool_result(
-                'proposer_actions',
-                {
-                    'statut': 'ok',
-                    'suggestions': [
-                        {
-                            'label': 'Relancer',
-                            'value': 'Relance les impayés',
-                            'intent': 'chat',
-                        },
-                    ],
-                },
+            spoken, parsed = finalize_assistant_turn_text(
+                'La 3e A a 28 élèves. '
+                '[[ARIA_SUGGESTIONS:[{"label":"Relancer","value":"Relance les impayés","intent":"chat"}]]]'
             )
-            self.assertFalse(should_stop)
-            self.assertEqual(consumer._followup_suggestions[0]['label'], 'Relancer')
+            self.assertNotIn('ARIA_SUGGESTIONS', spoken)
+            consumer._followup_suggestions = parsed
             sent = []
 
             async def fake_send(payload):
@@ -826,23 +857,21 @@ class GeminiG4SuggestionTests(SimpleTestCase):
     def test_pas_de_suggestions_si_carte_de_confirmation(self):
         from school_admin.consumers.assistant_consumer import AssistantConsumer
 
-        async def _run():
-            consumer = AssistantConsumer()
-            consumer.scope = {}
-            consumer.pending_action = {
-                'name': 'creer_classe',
-                'draft': {'statut': 'en_attente_confirmation', 'nom': '3e A'},
-            }
-            consumer._followup_suggestions = []
-            await consumer._on_live_tool_result(
-                'proposer_actions',
-                {'suggestions': [{'label': 'Autre chose'}]},
-            )
-            self.assertEqual(consumer._followup_suggestions, [])
+        consumer = AssistantConsumer()
+        consumer.pending_action = {
+            'name': 'creer_classe',
+            'draft': {'statut': 'en_attente_confirmation', 'nom': '3e A'},
+        }
+        _spoken, parsed = finalize_assistant_turn_text(
+            'Brouillon prêt. '
+            '[[ARIA_SUGGESTIONS:[{"label":"Autre chose","value":"Autre"}]]]'
+        )
+        followup = []
+        if parsed and not (consumer.pending_action and consumer._pending_is_ready()):
+            followup = parsed
+        self.assertEqual(followup, [])
 
-        asyncio.run(_run())
-
-    def test_outil_dans_le_schema(self):
+    def test_proposer_actions_absent_du_schema(self):
         from school_admin.services.assistant_tools import TOOL_HANDLERS, TOOLS_SCHEMA
 
         names = {
@@ -850,8 +879,8 @@ class GeminiG4SuggestionTests(SimpleTestCase):
             for item in TOOLS_SCHEMA
             if item.get('function')
         }
-        self.assertIn('proposer_actions', names)
-        self.assertIn('proposer_actions', TOOL_HANDLERS)
+        self.assertNotIn('proposer_actions', names)
+        self.assertNotIn('proposer_actions', TOOL_HANDLERS)
 
 
 class GeminiG5MultiToolTests(SimpleTestCase):
@@ -859,9 +888,10 @@ class GeminiG5MultiToolTests(SimpleTestCase):
 
     def test_plafond_huit_rounds_et_prompt_enchainement(self):
         self.assertEqual(MAX_TOOL_ROUNDS, 8)
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v15')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v16')
         folded = ' '.join(SYSTEM_PROMPT_STATIC.split())
         self.assertIn('tools puis UNE', folded)
+        self.assertIn('ARIA_SUGGESTIONS', SYSTEM_PROMPT_STATIC)
         self.assertIn('classe_id', folded)
         self.assertIn('eleve_id', folded)
         self.assertIn('relance-le', folded)
@@ -1034,9 +1064,6 @@ class GeminiG5MultiToolTests(SimpleTestCase):
                 'impayes': [{'eleve': 'Diallo Awa', 'eleve_id': 11, 'classe_id': 4}],
             }),
             ('ouvrir_classe', {'id': 4, 'nom': '3e A', 'url': '/classe/4'}),
-            ('proposer_actions', {
-                'suggestions': [{'label': 'Relancer', 'value': 'Relance Diallo'}],
-            }),
             None,
         ]
         cursor = {'i': 0}
@@ -1046,7 +1073,10 @@ class GeminiG5MultiToolTests(SimpleTestCase):
             item = sequence[cursor['i']]
             cursor['i'] += 1
             if item is None:
-                return None, [], 'La 3e A a 28 élèves et 2 impayés.'
+                return None, [], (
+                'La 3e A a 28 élèves et 2 impayés. '
+                '[[ARIA_SUGGESTIONS:[{"label":"Relancer","value":"Relance Diallo"}]]]'
+            )
             name, _result = item
             call = type('Call', (), {'name': name, 'args': {}})()
             return None, [call], ''
@@ -1091,12 +1121,13 @@ class GeminiG5MultiToolTests(SimpleTestCase):
                 )
             self.assertEqual(
                 executed,
-                ['get_effectifs', 'get_impayes', 'ouvrir_classe', 'proposer_actions'],
+                ['get_effectifs', 'get_impayes', 'ouvrir_classe'],
             )
             self.assertEqual(called, executed)
             self.assertIn('28 élèves', spoken)
-            self.assertGreaterEqual(cursor['i'], 5)
-            self.assertGreater(len(executed), 3)
+            self.assertNotIn('ARIA_SUGGESTIONS', spoken)
+            self.assertGreaterEqual(cursor['i'], 4)
+            self.assertGreaterEqual(len(executed), 3)
 
         asyncio.run(_run())
 
@@ -1105,7 +1136,7 @@ class GeminiG6PromptTests(SimpleTestCase):
     """G6 : prompt d’autonomie, catalogue raccourci, pièges conservés."""
 
     def test_cache_et_temperatures(self):
-        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v15')
+        self.assertEqual(CACHE_DISPLAY_NAME, 'aria-directeur-tools-v16')
         self.assertEqual(TOOL_TEMPERATURE, 0.5)
         self.assertEqual(CONVERSATION_TEMPERATURE, 0.7)
 
@@ -1221,24 +1252,18 @@ class GeminiG7TelemetryTests(SimpleTestCase):
             consumer.scope = {}
             consumer.pending_action = None
             consumer._reset_turn_stats()
-            consumer._followup_suggestions = []
             sent = []
 
             async def fake_send(payload):
                 sent.append(payload)
 
             consumer._send_json = fake_send
-            should_stop = await consumer._on_live_tool_result(
-                'proposer_actions',
-                {
-                    'suggestions': [
-                        {'label': 'Relancer', 'value': 'Relance'},
-                        {'label': 'Fiche', 'value': 'Ouvre Diallo'},
-                    ],
-                },
+            _spoken, parsed = finalize_assistant_turn_text(
+                'Résumé. '
+                '[[ARIA_SUGGESTIONS:[{"label":"Relancer","value":"Relance"},'
+                '{"label":"Fiche","value":"Ouvre Diallo"}]]]'
             )
-            self.assertFalse(should_stop)
-            await consumer._send_suggestions(consumer._followup_suggestions)
+            await consumer._send_suggestions(parsed)
             self.assertEqual(consumer._turn_stats['suggestions_count'], 2)
             self.assertEqual(consumer._turn_stats['takeover'], 0)
             self.assertEqual(sent[0]['type'], 'suggestions')
@@ -1284,7 +1309,6 @@ class GeminiG7TelemetryTests(SimpleTestCase):
         self.assertIn('2 créneaux', edt)
         walked = spoken_from_tool_results([
             ('get_effectifs', {'nb_eleves_actifs': 12, 'classe': 'CP A'}),
-            ('proposer_actions', {'suggestions': []}),
         ])
         self.assertIn('CP A', walked)
         self.assertIn('12', walked)
@@ -1339,7 +1363,6 @@ class GeminiG7TelemetryTests(SimpleTestCase):
         self.assertIn('Julie Atemkeng', profs)
         walked = spoken_from_tool_results([
             ('rechercher_classes', {'classes': [{'nom': 'CP A'}, {'nom': 'CE1 A'}]}),
-            ('proposer_actions', {'suggestions': []}),
         ])
         self.assertIn('CE1 A', walked)
         self.assertNotIn('J’ai les informations', walked)
@@ -1445,3 +1468,64 @@ class GeminiG7TelemetryTests(SimpleTestCase):
         )
         self.assertGreaterEqual(len(chips), 2)
         self.assertTrue(all(item.get('label') for item in chips))
+
+
+class AssistantToolCacheTests(SimpleTestCase):
+    def test_cache_hit_evite_le_handler(self):
+        from school_admin.services.assistant_tool_cache import (
+            assistant_tool_cache_key,
+            cached_assistant_tool,
+        )
+
+        ctx = type(
+            'Ctx',
+            (),
+            {
+                'persona': 'directeur',
+                'etablissement': type('E', (), {'pk': 3})(),
+                'annee_scolaire': type('A', (), {'pk': 9})(),
+                'personnel': type('P', (), {'pk': 7})(),
+            },
+        )()
+        calls = {'n': 0}
+
+        @cached_assistant_tool(ttl=60)
+        def get_impayes(ctx, args):
+            calls['n'] += 1
+            return {'statut': 'ok', 'nb': calls['n']}
+
+        key = assistant_tool_cache_key(ctx, 'get_impayes', {'statut': 'actif'})
+        with patch('school_admin.services.assistant_tool_cache.cache') as mock_cache:
+            mock_cache.get.side_effect = [{'statut': 'ok', 'nb': 99}, None]
+            mock_cache.set.return_value = True
+            first = get_impayes(ctx, {'statut': 'actif'})
+            second = get_impayes(ctx, {'statut': 'actif'})
+        self.assertEqual(first, {'statut': 'ok', 'nb': 99})
+        self.assertEqual(second, {'statut': 'ok', 'nb': 1})
+        self.assertEqual(calls['n'], 1)
+        mock_cache.set.assert_called_once()
+        mock_cache.set.assert_called_with(key, {'statut': 'ok', 'nb': 1}, timeout=60)
+
+    def test_redis_down_execute_sans_erreur(self):
+        from school_admin.services.assistant_tool_cache import cached_assistant_tool
+
+        ctx = type(
+            'Ctx',
+            (),
+            {
+                'persona': 'directeur',
+                'etablissement': type('E', (), {'pk': 1})(),
+                'annee_scolaire': None,
+                'personnel': None,
+            },
+        )()
+
+        @cached_assistant_tool()
+        def get_bilan_scolarite(ctx, args):
+            return {'total': 42}
+
+        with patch('school_admin.services.assistant_tool_cache.cache') as mock_cache:
+            mock_cache.get.side_effect = RuntimeError('redis down')
+            mock_cache.set.side_effect = RuntimeError('redis down')
+            result = get_bilan_scolarite(ctx, {})
+        self.assertEqual(result, {'total': 42})

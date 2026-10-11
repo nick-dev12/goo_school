@@ -1245,6 +1245,43 @@ def dashboard_directeur(request):
         'total_justifications_en_attente': total_justifications_en_attente,
     }
 
+    from ..services.dashboard.context import build_dashboard_context
+    from ..services.dashboard.executive import build_executive_dashboard
+    from ..services.dashboard.querysets import eleves_qs as dashboard_eleves_qs
+    from ..services.dashboard_absences_stats import build_dashboard_absences_stats
+
+    dashboard_ctx = build_dashboard_context(
+        request,
+        etablissement=etablissement,
+        annee_scolaire=annee_scolaire_active,
+        annee_scolaire_reellement_active=annee_scolaire_reellement_active,
+        periode_scolaire=periode_active,
+        is_directeur=is_directeur,
+        permissions=set(user_permissions) if user_permissions else None,
+    )
+    context['dashboard_ctx'] = dashboard_ctx
+    context['dashboard_freshness'] = dashboard_ctx.freshness_meta()
+    context['executive'] = build_executive_dashboard(dashboard_ctx)
+    context['periode_active'] = dashboard_ctx.periode_scolaire
+
+    from ..services.dashboard.overview import build_overview
+
+    context['overview'] = build_overview(dashboard_ctx, context['executive'])
+    context['salutation_prenom'] = (
+        etablissement.directeur_prenom if is_directeur else getattr(personnel, 'prenom', '')
+    )
+
+    toggle_params = request.GET.copy()
+    toggle_params['vue'] = 'analytique' if dashboard_ctx.is_executive else 'executive'
+    context['dashboard_vue_toggle_qs'] = toggle_params.urlencode()
+
+    context['absences_dashboard'] = build_dashboard_absences_stats(
+        etablissement,
+        annee_scolaire_active,
+        dashboard_eleves_qs(dashboard_ctx),
+        today=dashboard_ctx.today,
+    )
+
     from ..utils.directeur_ui_tabs import attach_dashboard_tab_context
 
     attach_dashboard_tab_context(request, context)
@@ -1438,7 +1475,10 @@ def gestion_pedagogique(request):
         'annee_scolaire_active': annee_scolaire_active,
     }
    
-    return render(request, 'school_admin/directeur/gestion_pedagogique.html', context)
+    from ..services.hubs_directeur import hub_pedagogique
+
+    context['hub'] = hub_pedagogique(user, etablissement, annee_scolaire_active)
+    return render(request, 'school_admin/directeur/hub/hub.html', context)
 
 
 @login_required
@@ -1465,7 +1505,10 @@ def gestion_eleves(request):
         'personnel': personnel,
     }
 
-    return render(request, 'school_admin/directeur/gestion_eleves.html', context)
+    from ..services.hubs_directeur import hub_eleves
+
+    context['hub'] = hub_eleves(request.user, etablissement, annee_scolaire_active)
+    return render(request, 'school_admin/directeur/hub/hub.html', context)
 
 
 @login_required
@@ -1586,6 +1629,8 @@ def liste_reinscription_eleves(request):
         'departments_inscription': departments_inscription,
     }
     
+    from ..services.suivi_eleves import enrichir as _enrichir_suivi
+    _enrichir_suivi(request, context, 'reinscriptions')
     return render(request, 'school_admin/directeur/reinscription/liste_reinscription_eleves.html', context)
 
 
@@ -2330,6 +2375,8 @@ def notes_et_resultats(request):
         'stats_generales': stats_generales,
     }
     
+    from ..services.suivi_eleves import enrichir as _enrichir_suivi
+    _enrichir_suivi(request, context, 'notes')
     return render(request, 'school_admin/directeur/notes_et_resultats.html', context)
 
 
@@ -3279,6 +3326,8 @@ def bulletins_notes(request):
     }
     context = _attach_directeur_niveau_classe_tabs(request, context, classes_grouped)
 
+    from ..services.suivi_eleves import enrichir as _enrichir_suivi
+    _enrichir_suivi(request, context, 'bulletins')
     return render(request, 'school_admin/directeur/bulletins_notes.html', context)
 
 
@@ -3350,6 +3399,8 @@ def calculer_moyennes_periode(request, classe_id):
 
     poids_classe = Decimal(str(ponderation.poids_classe)) / Decimal('100')
     poids_examen = Decimal(str(ponderation.poids_examen)) / Decimal('100')
+    from ..services.examens import regles as _regles_examen
+    regle_examen = _regles_examen(etablissement)
 
     est_primaire = etablissement.type_etablissement == 'primary'
     est_superieur = etablissement.type_etablissement == 'superieur'
@@ -3395,6 +3446,7 @@ def calculer_moyennes_periode(request, classe_id):
                 total_pondere = Decimal('0')
                 somme_coefficients = Decimal('0')
                 
+                lignes_lmd = []
                 for matiere in matieres:
                     # Récupérer la moyenne de classe
                     moyenne_classe = None
@@ -3415,29 +3467,6 @@ def calculer_moyennes_periode(request, classe_id):
                         if moyenne_obj and moyenne_obj.moyenne is not None:
                             moyenne_classe = Decimal(str(moyenne_obj.moyenne))
                         
-                        # Récupérer la note d'examen
-                        examens = NoteExamen.objects.filter(
-                            eleve=eleve,
-                            classe=classe,
-                            matiere=matiere,
-                            session_examen__periode=periode,
-                            actif=True,
-                            annee_scolaire=annee_scolaire_active
-                        )
-                        
-                        if examens.exists():
-                            notes_exam = []
-                            for exam in examens:
-                                if exam.note_sur_20 is not None:
-                                    notes_exam.append(Decimal(str(exam.note_sur_20)))
-                                elif exam.note is not None and exam.bareme:
-                                    bareme_decimal = Decimal(str(exam.bareme)) if exam.bareme else Decimal('20')
-                                    if bareme_decimal > 0:
-                                        note_sur_20 = (Decimal(str(exam.note)) / bareme_decimal) * Decimal('20')
-                                        notes_exam.append(note_sur_20)
-                            
-                            if notes_exam:
-                                note_examen = sum(notes_exam) / Decimal(len(notes_exam))
                     else:
                         from ..model.moyenne_model import Moyenne
                         moyenne_obj = Moyenne.objects.filter(
@@ -3453,66 +3482,20 @@ def calculer_moyennes_periode(request, classe_id):
                         if moyenne_obj and moyenne_obj.moyenne is not None:
                             moyenne_classe = Decimal(str(moyenne_obj.moyenne))
                         
-                        # Récupérer les notes d'examen (supérieur : normale / rattrapage)
-                        if est_superieur:
-                            note_examen, note_rattrap = _notes_examen_session_normale_et_rattrap(
-                                eleve, classe, matiere, periode, annee_scolaire_active
-                            )
-                        else:
-                            exam = NoteExamen.objects.filter(
-                                eleve=eleve,
-                                classe=classe,
-                                matiere=matiere,
-                                session_examen__periode=periode,
-                                actif=True,
-                                annee_scolaire=annee_scolaire_active
-                            ).first()
-                            
-                            if exam:
-                                if exam.note_sur_20 is not None:
-                                    note_examen = Decimal(str(exam.note_sur_20))
-                                elif exam.note is not None and exam.bareme:
-                                    bareme_decimal = Decimal(str(exam.bareme)) if exam.bareme else Decimal('20')
-                                    if bareme_decimal > 0:
-                                        note_examen = (Decimal(str(exam.note)) / bareme_decimal) * Decimal('20')
-                    
-                    # Calculer la moyenne de la matière selon la pondération
-                    moyenne_matiere = None
-                    if est_primaire:
-                        if moyenne_classe is not None or note_examen is not None:
-                            total = Decimal('0')
-                            poids_total = Decimal('0')
-                            
-                            if moyenne_classe is not None:
-                                total += moyenne_classe * poids_classe
-                                poids_total += poids_classe
-                            
-                            if note_examen is not None:
-                                total += note_examen * poids_examen
-                                poids_total += poids_examen
-                            
-                            if poids_total > 0:
-                                moyenne_matiere = (total / poids_total).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                    elif est_superieur:
-                        moyenne_matiere = _moyenne_ec_superieur_lmd(
-                            moyenne_classe, note_examen, note_rattrap, poids_classe, poids_examen
-                        )
-                    else:
-                        if moyenne_classe is not None or note_examen is not None:
-                            total = Decimal('0')
-                            poids_total = Decimal('0')
-                            
-                            if moyenne_classe is not None:
-                                total += moyenne_classe * poids_classe
-                                poids_total += poids_classe
-                            
-                            if note_examen is not None:
-                                total += note_examen * poids_examen
-                                poids_total += poids_examen
-                            
-                            if poids_total > 0:
-                                moyenne_matiere = (total / poids_total).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                    
+
+                    # Note d'examen effective (moteur unique : sessions comptant au bulletin, notes
+                    # publiées, absences, rattrapage) puis combinaison CC / examen, comptée une seule fois.
+                    from ..services import examens as moteur_examens
+
+                    resultat_exam = moteur_examens.resultat_examen(
+                        eleve, classe, matiere, periode, annee_scolaire_active, etablissement, regle_examen)
+                    note_examen = resultat_exam['normale'] if est_superieur else resultat_exam['valeur']
+                    note_rattrap = resultat_exam['rattrapage']
+                    if resultat_exam['statut'] == 'absent' and note_examen is None:
+                        note_examen = Decimal('0')
+                    moyenne_matiere = moteur_examens.moyenne_matiere(
+                        moyenne_classe, resultat_exam, poids_classe, poids_examen, superieur=est_superieur)
+
                     # Récupérer le coefficient ou crédits selon le type d'établissement
                     if est_superieur:
                         coefficient, credits_dec = _coef_et_credits_ec_superieur(matiere, etablissement, classe)
@@ -3575,11 +3558,20 @@ def calculer_moyennes_periode(request, classe_id):
                         if not est_superieur:
                             total_pondere += moyenne_matiere * coefficient
                             somme_coefficients += coefficient
+                    else:
+                        # Plus de moyenne calculable (ex. épreuve manquante) : on retire l'ancienne valeur.
+                        MoyennePeriode.objects.filter(eleve=eleve, etablissement=etablissement, periode=periode,
+                                                      matiere=matiere, est_moyenne_generale=False).delete()
+                    if est_superieur:
+                        lignes_lmd.append({'matiere': matiere, 'moyenne': moyenne_matiere,
+                                           'coefficient': coefficient, 'credits': credits_dec})
                 
                 # Calculer la moyenne générale
                 moyenne_generale = None
+                validation_semestre = None
                 if est_superieur:
-                    moyenne_generale = _moyenne_generale_semestre_superieur_lmd(matieres_moyennes)
+                    validation_semestre = moteur_examens.validation_lmd(lignes_lmd, regle_examen)
+                    moyenne_generale = validation_semestre['moyenne_semestre']
                 elif somme_coefficients > 0:
                     moyenne_generale = (total_pondere / somme_coefficients).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 
@@ -3594,6 +3586,10 @@ def calculer_moyennes_periode(request, classe_id):
                     standards_bundle,
                     None
                 )
+                if validation_semestre is not None:
+                    # LMD : décision issue de la validation des UE (compensation, note éliminatoire, crédits).
+                    decision_conseil = (f"{validation_semestre['decision']} — "
+                                        f"{validation_semestre['credits_acquis']:g}/{validation_semestre['credits_total']:g} crédits")
                 
                 # Enregistrer la moyenne générale
                 if moyenne_generale is not None:
@@ -3640,17 +3636,20 @@ def calculer_moyennes_periode(request, classe_id):
             # None doit venir en dernier, donc on utilise is_not_None comme première clé
             # Avec -(moyenne), les plus grandes moyennes deviennent les plus petites valeurs négatives
             # reverse=False pour que les plus petites valeurs négatives (donc plus grandes moyennes) viennent en premier
-            eleves_moyennes_generales.sort(key=lambda x: (x['moyenne'] is not None, -(x['moyenne'] or 0)), reverse=False)
-            
+            eleves_moyennes_generales.sort(key=lambda x: (x['moyenne'] is None, -(x['moyenne'] or 0)))
+            rang_precedent, moyenne_precedente = 0, None
             for index, item in enumerate(eleves_moyennes_generales, start=1):
                 eleve_id = item['eleve_id']
+                # Ex æquo : même moyenne = même rang (classement « 1, 2, 2, 4 »).
+                rang = rang_precedent if item['moyenne'] == moyenne_precedente else index
+                rang_precedent, moyenne_precedente = rang, item['moyenne']
                 MoyennePeriode.objects.filter(
                     eleve_id=eleve_id,
                     etablissement=etablissement,
                     periode=periode,
                     est_moyenne_generale=True,
                     annee_scolaire=annee_scolaire_active
-                ).update(rang=index)
+                ).update(rang=rang)
                 
                 # Mettre à jour aussi les rangs par matière (tri décroissant : la plus forte moyenne = rang 1)
                 # IMPORTANT : Comparer uniquement les élèves de la même classe
@@ -4390,27 +4389,12 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
                 matiere_scores_map[item.matiere_id].append((item.eleve_id, valeur))
                 overall_scores_map[item.eleve_id].append(valeur)
 
-            examens_qs = NoteExamen.objects.filter(
-                eleve=eleve,
-                classe=classe,
-                session_examen__periode=periode,
-                actif=True,
-                matiere__in=matieres
-            ).select_related('matiere')
-
-            for exam in examens_qs:
-                note_valeur = None
-                if exam.note_sur_20 is not None:
-                    note_valeur = Decimal(str(exam.note_sur_20))
-                elif exam.note is not None and exam.bareme:
-                    bareme_decimal = Decimal(str(exam.bareme)) if exam.bareme else Decimal('20')
-                    if bareme_decimal > 0:
-                        note_valeur = (Decimal(str(exam.note)) / bareme_decimal) * Decimal('20')
-
-                if note_valeur is not None:
-                    examens_map[exam.matiere_id].append(
-                        note_valeur.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                    )
+            from ..services import examens as moteur_examens
+            _regle = moteur_examens.regles(etablissement)
+            for _m in matieres:
+                _r = moteur_examens.resultat_examen(eleve, classe, _m, periode, annee_scolaire_active, etablissement, _regle)
+                if _r['valeur'] is not None:
+                    examens_map[_m.id].append(_r['valeur'])
 
             if examens_map:
                 logger.debug(
@@ -4533,17 +4517,12 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
 
             examens_map = {}
             has_note_examen = False
-            examens_qs = NoteExamen.objects.filter(
-                eleve=eleve,
-                classe=classe,
-                session_examen__periode=periode,
-                actif=True,
-                matiere__in=matieres
-            ).select_related('session_examen', 'matiere').order_by('date_saisie')
-            for exam in examens_qs:
-                note_val = exam.note_sur_20 if exam.note_sur_20 is not None else exam.note
-                if note_val is not None:
-                    examens_map[exam.matiere_id] = float(Decimal(note_val).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+            from ..services import examens as moteur_examens
+            _regle = moteur_examens.regles(etablissement)
+            for _m in matieres:
+                _r = moteur_examens.resultat_examen(eleve, classe, _m, periode, annee_scolaire_active, etablissement, _regle)
+                if _r['valeur'] is not None:
+                    examens_map[_m.id] = float(_r['valeur'])
                     has_note_examen = True
 
             # Récupérer les affectations des professeurs pour cette classe et cette année scolaire
@@ -5235,6 +5214,8 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
 
     poids_classe = Decimal(str(ponderation.poids_classe)) / Decimal('100')
     poids_examen = Decimal(str(ponderation.poids_examen)) / Decimal('100')
+    from ..services import examens as moteur_examens
+    regle_examen = moteur_examens.regles(etablissement)
 
     est_primaire = etablissement.type_etablissement == 'primary'
     est_superieur = etablissement.type_etablissement == 'superieur'
@@ -5270,6 +5251,7 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
             total_pondere = Decimal('0')
             somme_coefficients = Decimal('0')
 
+            lignes_lmd = []
             for matiere in matieres:
                 # Récupérer la moyenne de classe
                 moyenne_classe = None
@@ -5292,28 +5274,6 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                     if moyenne_obj and moyenne_obj.moyenne is not None:
                         moyenne_classe = Decimal(str(moyenne_obj.moyenne))
 
-                    # Récupérer la note d'examen
-                    examens = NoteExamen.objects.filter(
-                        eleve=eleve,
-                        classe=classe,
-                        matiere=matiere,
-                        session_examen__periode=periode,
-                        actif=True
-                    )
-
-                    if examens.exists():
-                        notes_exam = []
-                        for exam in examens:
-                            if exam.note_sur_20 is not None:
-                                notes_exam.append(Decimal(str(exam.note_sur_20)))
-                            elif exam.note is not None and exam.bareme:
-                                bareme_decimal = Decimal(str(exam.bareme)) if exam.bareme else Decimal('20')
-                                if bareme_decimal > 0:
-                                    note_sur_20 = (Decimal(str(exam.note)) / bareme_decimal) * Decimal('20')
-                                    notes_exam.append(note_sur_20)
-
-                        if notes_exam:
-                            note_examen = sum(notes_exam) / Decimal(len(notes_exam))
                 else:
                     from ..model.moyenne_model import Moyenne
                     moyenne_obj = Moyenne.objects.filter(
@@ -5328,64 +5288,15 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                     if moyenne_obj and moyenne_obj.moyenne is not None:
                         moyenne_classe = Decimal(str(moyenne_obj.moyenne))
 
-                    # Récupérer les notes d'examen (supérieur : session normale vs rattrapage)
-                    if est_superieur:
-                        note_examen, note_rattrap = _notes_examen_session_normale_et_rattrap(
-                            eleve, classe, matiere, periode, annee_scolaire_active
-                        )
-                    else:
-                        exam = NoteExamen.objects.filter(
-                            eleve=eleve,
-                            classe=classe,
-                            matiere=matiere,
-                            session_examen__periode=periode,
-                            actif=True
-                        ).first()
-
-                        if exam:
-                            if exam.note_sur_20 is not None:
-                                note_examen = Decimal(str(exam.note_sur_20))
-                            elif exam.note is not None and exam.bareme:
-                                bareme_decimal = Decimal(str(exam.bareme)) if exam.bareme else Decimal('20')
-                                if bareme_decimal > 0:
-                                    note_examen = (Decimal(str(exam.note)) / bareme_decimal) * Decimal('20')
-
-                # Calculer la moyenne de la matière selon la pondération
-                moyenne_matiere = None
-                if est_primaire:
-                    if moyenne_classe is not None or note_examen is not None:
-                        total = Decimal('0')
-                        poids_total = Decimal('0')
-
-                        if moyenne_classe is not None:
-                            total += moyenne_classe * poids_classe
-                            poids_total += poids_classe
-
-                        if note_examen is not None:
-                            total += note_examen * poids_examen
-                            poids_total += poids_examen
-
-                        if poids_total > 0:
-                            moyenne_matiere = (total / poids_total).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                elif est_superieur:
-                    moyenne_matiere = _moyenne_ec_superieur_lmd(
-                        moyenne_classe, note_examen, note_rattrap, poids_classe, poids_examen
-                    )
-                else:
-                    if moyenne_classe is not None or note_examen is not None:
-                        total = Decimal('0')
-                        poids_total = Decimal('0')
-
-                        if moyenne_classe is not None:
-                            total += moyenne_classe * poids_classe
-                            poids_total += poids_classe
-
-                        if note_examen is not None:
-                            total += note_examen * poids_examen
-                            poids_total += poids_examen
-
-                        if poids_total > 0:
-                            moyenne_matiere = (total / poids_total).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                # Note d'examen effective et moyenne de matière : moteur unique (services/examens.py)
+                resultat_exam = moteur_examens.resultat_examen(
+                    eleve, classe, matiere, periode, annee_scolaire_active, etablissement, regle_examen)
+                note_examen = resultat_exam['normale'] if est_superieur else resultat_exam['valeur']
+                note_rattrap = resultat_exam['rattrapage']
+                if resultat_exam['statut'] == 'absent' and note_examen is None:
+                    note_examen = Decimal('0')
+                moyenne_matiere = moteur_examens.moyenne_matiere(
+                    moyenne_classe, resultat_exam, poids_classe, poids_examen, superieur=est_superieur)
 
                 # Récupérer le coefficient ou crédits selon le type d'établissement
                 if est_superieur:
@@ -5447,11 +5358,19 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                     if not est_superieur:
                         total_pondere += moyenne_matiere * coefficient
                         somme_coefficients += coefficient
+                else:
+                    MoyennePeriode.objects.filter(eleve=eleve, etablissement=etablissement, periode=periode,
+                                                  matiere=matiere, est_moyenne_generale=False).delete()
+                if est_superieur:
+                    lignes_lmd.append({'matiere': matiere, 'moyenne': moyenne_matiere,
+                                       'coefficient': coefficient, 'credits': credits_dec})
 
             # Calculer la moyenne générale
             moyenne_generale = None
+            validation_semestre = None
             if est_superieur:
-                moyenne_generale = _moyenne_generale_semestre_superieur_lmd(matieres_moyennes)
+                validation_semestre = moteur_examens.validation_lmd(lignes_lmd, regle_examen)
+                moyenne_generale = validation_semestre['moyenne_semestre']
             elif somme_coefficients > 0:
                 moyenne_generale = (total_pondere / somme_coefficients).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
@@ -5466,6 +5385,9 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                 standards_bundle,
                 None
             )
+            if validation_semestre is not None:
+                decision_conseil = (f"{validation_semestre['decision']} — "
+                                    f"{validation_semestre['credits_acquis']:g}/{validation_semestre['credits_total']:g} crédits")
 
             # Enregistrer ou mettre à jour la moyenne générale
             if moyenne_generale is not None:
@@ -5517,9 +5439,12 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                     })
 
             # Calculer les rangs (tri décroissant : la plus forte moyenne = rang 1)
-            eleves_moyennes_generales.sort(key=lambda x: (x['moyenne'] is not None, -(x['moyenne'] or 0)), reverse=False)
-
-            for index, item in enumerate(eleves_moyennes_generales, start=1):
+            # Sans moyenne en dernier ; ex æquo = même rang.
+            eleves_moyennes_generales.sort(key=lambda x: (x['moyenne'] is None, -(x['moyenne'] or 0)))
+            rang_prec, moy_prec = 0, None
+            for position, item in enumerate(eleves_moyennes_generales, start=1):
+                index = rang_prec if item['moyenne'] == moy_prec else position
+                rang_prec, moy_prec = index, item['moyenne']
                 eleve_id_rang = item['eleve_id']
                 rang_update_qs = MoyennePeriode.objects.filter(
                     eleve_id=eleve_id_rang,
@@ -6582,6 +6507,8 @@ def suivi_presence(request):
         nav_parts.append('classe=' + str(context['initial_classe_id']))
     context['tab_nav_query'] = '&'.join(nav_parts)
 
+    from ..services.suivi_eleves import enrichir as _enrichir_suivi
+    _enrichir_suivi(request, context, 'presence')
     return render(request, 'school_admin/directeur/suivi_presence.html', context)
 
 
@@ -6774,8 +6701,16 @@ def gestion_etablissement(request):
         'stats_hub': stats_hub,
     }
     attach_etablissement_hub_context(request, context)
-   
-    return render(request, 'school_admin/directeur/gestion_etablissement.html', context)
+    from ..services.hubs_directeur import hub_etablissement
+
+    context['hub'] = hub_etablissement(request.user, etablissement, annee_scolaire_active)
+    from ..utils.context_processors import AFFICHER_MODULE_COMPTABILITE_GENERALE
+
+    if not AFFICHER_MODULE_COMPTABILITE_GENERALE:
+        for sec in context['hub']['sections']:
+            sec['liens'] = [l for l in sec['liens'] if l['titre'] != 'Comptabilité générale']
+        context['hub']['sections'] = [sec for sec in context['hub']['sections'] if sec['liens']]
+    return render(request, 'school_admin/directeur/hub/hub.html', context)
 
 
 @login_required
@@ -7120,6 +7055,8 @@ def gestion_periodes_scolaires(request):
     }
     attach_gestion_periodes_tab_context(request, context, periodes_tabs)
 
+    from ..services.structure_etablissement import enrichir as _enrichir_structure
+    _enrichir_structure(request, context, 'periodes')
     return render(request, 'school_admin/directeur/gestion_periodes_scolaires.html', context)
 
 
@@ -7882,7 +7819,10 @@ def gestion_administrative(request):
         'personnel': personnel,
     }
     
-    return render(request, 'school_admin/directeur/gestion_administrative.html', context)
+    from ..services.hubs_directeur import hub_administratif
+
+    context['hub'] = hub_administratif(request.user, etablissement, annee_scolaire_active)
+    return render(request, 'school_admin/directeur/hub/hub.html', context)
 
 
 @login_required
@@ -9986,7 +9926,22 @@ def profil_etablissement(request):
     if request.method == 'POST':
         form_type = request.POST.get('form_type')
 
-        if form_type == 'update_information':
+        if form_type == 'update_information' and is_personnel:
+            # Un membre du personnel ne modifie que son propre profil, jamais l'établissement.
+            prenom = (request.POST.get('prenom') or '').strip()
+            nom = (request.POST.get('nom') or '').strip()
+            email = (request.POST.get('email') or '').strip()
+            if not (prenom and nom and email):
+                messages.error(request, "Prénom, nom et email sont obligatoires.")
+            elif PersonnelAdministratif.objects.filter(email=email).exclude(pk=personnel.pk).exists():
+                messages.error(request, "Cette adresse email est déjà utilisée par un autre compte.")
+            else:
+                personnel.prenom, personnel.nom, personnel.email = prenom, nom, email
+                personnel.telephone = (request.POST.get('telephone') or '').strip() or personnel.telephone
+                personnel.save(update_fields=['prenom', 'nom', 'email', 'telephone', 'date_modification'])
+                success_message = "Vos informations ont été mises à jour."
+
+        elif form_type == 'update_information' and is_directeur:
             fields = {
                 'nom': request.POST.get('nom', etablissement.nom).strip(),
                 'type_etablissement': request.POST.get('type_etablissement', etablissement.type_etablissement),
@@ -10659,6 +10614,9 @@ def payer_echeance_moratoire_directeur(request, eleve_id, echeance_id):
 
 from ..controllers.caisse_controller import CaisseController
 from ..controllers.comptabilite_generale_controller import ComptabiliteGeneraleController
+from school_admin.controllers.compta_etats_controller import ComptaEtatsController
+from school_admin.controllers.pointage_controller import PointageController
+from ..controllers.finances_controller import FinancesController
 
 
 @login_required
@@ -10674,6 +10632,11 @@ def ajouter_depense_directeur(request):
 @login_required
 def supprimer_depense_directeur(request, depense_id):
     return CaisseController.supprimer_depense_directeur(request, depense_id)
+
+
+@login_required
+def annuler_depense_directeur(request, depense_id):
+    return CaisseController.annuler_depense_directeur(request, depense_id)
 
 
 @login_required
@@ -10698,7 +10661,7 @@ def supprimer_absence_directeur(request, professeur_id, absence_id):
 
 @login_required
 def cg_hub_directeur(request):
-    return ComptabiliteGeneraleController.hub(request)
+    return ComptaEtatsController.hub(request)
 
 
 @login_required
@@ -10708,12 +10671,12 @@ def cg_plan_comptable(request):
 
 @login_required
 def cg_journaux(request):
-    return ComptabiliteGeneraleController.journaux(request)
+    return ComptaEtatsController.journaux(request)
 
 
 @login_required
 def cg_exercices(request):
-    return ComptabiliteGeneraleController.exercices(request)
+    return ComptaEtatsController.exercices(request)
 
 
 @login_required
@@ -10732,10 +10695,90 @@ def cg_tresorerie(request):
 
 
 @login_required
+def cg_rapprochement(request):
+    return ComptabiliteGeneraleController.rapprochement(request)
+
+
+@login_required
+def cg_recettes(request):
+    return ComptabiliteGeneraleController.recettes(request)
+
+
+@login_required
+def cg_prets(request):
+    return ComptabiliteGeneraleController.prets(request)
+
+
+@login_required
 def cg_paie(request):
     return ComptabiliteGeneraleController.paie(request)
 
 
 @login_required
 def cg_etats(request):
-    return ComptabiliteGeneraleController.etats(request)
+    return ComptaEtatsController.etats(request)
+
+
+@login_required
+def contrat_professeur_directeur(request, professeur_id):
+    return VolumeHoraireController.contrat_directeur(request, professeur_id)
+
+
+@login_required
+def cahiers_texte_directeur(request):
+    from school_admin.controllers.cahier_texte_controller import CahierTexteController
+
+    return CahierTexteController.direction(request)
+
+
+@login_required
+def pointage_controle(request):
+    return PointageController.controle(request)
+
+
+def pointage_borne(request, borne_id):
+    return PointageController.borne(request, borne_id)
+
+
+def pointage_borne_code(request, borne_id):
+    return PointageController.borne_code(request, borne_id)
+
+
+@login_required
+def cg_grand_livre(request):
+    return ComptaEtatsController.grand_livre(request)
+
+
+@login_required
+def cg_balance(request):
+    return ComptaEtatsController.balance(request)
+
+
+@login_required
+def cg_immobilisations(request):
+    return ComptaEtatsController.immobilisations(request)
+
+
+@login_required
+def finances_situation(request):
+    return FinancesController.situation(request)
+
+
+@login_required
+def finances_entrees(request):
+    return FinancesController.entrees(request)
+
+
+@login_required
+def finances_sorties(request):
+    return FinancesController.sorties(request)
+
+
+@login_required
+def finances_tresorerie(request):
+    return FinancesController.tresorerie(request)
+
+
+@login_required
+def finances_financements(request):
+    return FinancesController.financements(request)

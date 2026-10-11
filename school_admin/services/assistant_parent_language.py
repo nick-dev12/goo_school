@@ -23,8 +23,14 @@ _WOLOF_MARKERS = re.compile(
     r'mbaa|lu\s+la\s+war|'
     r'akk\s+jamm|ba\s+beneen|'
     r'ñu|ñun|'
-    r'jëf|jëf\s+jëf'
-    r')\b',
+    r'jëf|jëf\s+jëf|'
+    # Wolof courant de Dakar (notes vocales transcrites par Gemini).
+    r'naka|nga|ngi|ngeen|def|dafa|dafay|dinaa|dina|am\s+na|amul|amagul|'
+    r'waaye|lool|rekk|itam|leegi|tey|suba|ngoon|weer|bés|xaalis|fey|'
+    r'jàng|ndongo|doom|yaay|baay|baax|benn|ñaar|ñett|tuti|yeneen'
+    r')\b'
+    # Déterminants postposés (« classe bi », « notes yi ») et « ci » hors « celle-ci ».
+    r'|(?<![\w-])(?:bi|yi|gi|ci)(?![\w-])',
     re.IGNORECASE,
 )
 
@@ -44,7 +50,8 @@ def wolof_marker_score(text: str) -> int:
         return 0
     score = len(_WOLOF_MARKERS.findall(text))
     lowered = text.lower()
-    for token in ('ñ', 'à', 'ë', 'ó'):
+    # « à » est exclu : trop courant en français (« rendez-vous à 14 h »).
+    for token in ('ñ', 'ë', 'ó'):
         if token in lowered:
             score += 1
     return score

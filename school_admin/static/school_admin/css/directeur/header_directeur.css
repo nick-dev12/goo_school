@@ -584,6 +584,12 @@ a.header-profile:hover,
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.welcome-banner .banner-actions .banner-session-selector {
+  margin-top: 0;
 }
 
 /* Navigation Toggle Button - COMPACT VERSION */
@@ -1291,4 +1297,23 @@ a.header-profile:hover,
   .bouton-none {
     display: none !important;
   }
+}
+
+/* Dashboard directeur exécutif (premium) : menu complémentaire en overlay uniquement */
+body.dashboard-premium .container > .dashboard-overview,
+body.dashboard-premium .dbd-legacy-kpis,
+body.dashboard-premium .historique-activites {
+  display: none !important;
+}
+
+body.dashboard-premium .navigation-section:not(.active) {
+  top: -100% !important;
+  visibility: hidden !important;
+  pointer-events: none;
+}
+
+body.dashboard-premium .navigation-section.active {
+  top: 72px;
+  visibility: visible;
+  pointer-events: auto;
 }

@@ -1,24 +1,138 @@
 {% load static %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% include 'school_admin/partials/seo_head.html' %}
-    <title>{{ page_title|default:"Absences & retards" }} – ARIA</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/absences_retards_eleve.css' %}?v=1.0.2">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/eleve_absences_home.css' %}?v=1.0.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Présence" %} – ARIA</title>
+  {% include 'school_admin/eleve/partials/_ex_head.html' %}
 </head>
+<body class="axd-page px-page ex-page">
+  {% include 'school_admin/eleve/partials/_ex_shell.html' %}
 
-<body>
-{% include 'school_admin/eleve/partials/header.html' %}
+  <main class="axd px ex" id="contenu">
+    <header class="px-page-head">
+      <span class="px-page-head__icon ax-tone-teal"><i class="fas fa-user-check" aria-hidden="true"></i></span>
+      <div>
+        <h1>{% trans "Présence" %}</h1>
+        <p>{% trans "Absences et retards de l’année" %}{% if classe %} · {{ classe.nom }}{% endif %}</p>
+      </div>
+    </header>
 
-{% include 'school_admin/eleve/partials/eleve_absences_content.html' %}
+    <section class="axd-mini ex-mini" aria-label="{% trans 'Résumé' %}">
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-green"><i class="fas fa-user-check" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% trans "Assiduité" %}</h2>
+          <p class="axd-mini__value{% if spres.taux != None and spres.taux < 85 %} is-bad{% endif %}">{% if spres.taux != None %}{{ spres.taux|floatformat:"-1" }}<small>%</small>{% else %}—{% endif %}</p>
+          <p class="axd-mini__caption">{% blocktrans with n=total_jours %}sur {{ n }} appels{% endblocktrans %}</p>
+        </div>
+      </article>
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-red"><i class="fas fa-user-xmark" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% trans "Absences" %}</h2>
+          <p class="axd-mini__value{% if absences_non_justifiees %} is-bad{% endif %}">{{ total_absences }}</p>
+          <p class="axd-mini__caption">{{ absences_non_justifiees }} {% trans "non justifiée(s)" %}</p>
+        </div>
+      </article>
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-blue"><i class="fas fa-file-circle-check" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% trans "Justifiées" %}</h2>
+          <p class="axd-mini__value">{{ absences_justifiees }}</p>
+          <p class="axd-mini__caption">{% trans "Justificatif reçu" %}</p>
+        </div>
+      </article>
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-orange"><i class="fas fa-clock" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% trans "Retards" %}</h2>
+          <p class="axd-mini__value">{{ total_retards }}</p>
+          <p class="axd-mini__caption">{% trans "Depuis la rentrée" %}</p>
+        </div>
+      </article>
+    </section>
 
-<script src="{% static 'school_admin/js/eleve/absences_retards_eleve.js' %}?v=1.0.1"></script>
+    {% if absences_non_justifiees %}
+    <div class="px-alert ex-alert-static">
+      <span class="px-alert__icon"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></span>
+      <span class="px-alert__text"><strong>{% blocktrans count n=absences_non_justifiees %}{{ n }} absence à justifier{% plural %}{{ n }} absences à justifier{% endblocktrans %}</strong><small>{% trans "Apporte un justificatif à la vie scolaire dès que possible." %}</small></span>
+    </div>
+    {% endif %}
 
-{% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
+    <section class="axd-grid">
+      <article class="axd-card axd-span-7">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Assiduité par mois" %}</h2>
+            <p class="axd-card__sub">{% trans "Part des appels où tu étais présent(e) · seuil 85 %" %}</p>
+          </div>
+        </header>
+        {% if spres.mois.values %}
+        <div class="axd-chart"><canvas id="ex-chart-presence" role="img" aria-label="{% trans 'Assiduité par mois' %}"></canvas></div>
+        {% else %}
+          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-user-check' message=_("Pas encore d’appel enregistré.") %}
+        {% endif %}
+      </article>
+      <aside class="axd-card axd-span-5">
+        <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Ces 30 derniers jours" %}</h2></div></header>
+        {% if absences_recentes or retards_recents %}
+        <ul class="ex-tasks">
+          {% for a in absences_recentes %}
+          <li class="ex-task">
+            <span class="axd-date-chip ex-chip-red" aria-hidden="true"><b>{{ a.date|date:"d" }}</b>{{ a.date|date:"M" }}</span>
+            <div class="ex-task__body"><strong>{% trans "Absence" %}{% if a.matiere %} · {{ a.matiere.nom }}{% endif %}</strong><small>{{ a.date|date:"l"|capfirst }}{% if a.remarque %} · {{ a.remarque|truncatechars:40 }}{% endif %}</small></div>
+            {% if a.statut == 'absent_justifie' %}<span class="px-badge px-badge--green">{% trans "Justifiée" %}</span>{% else %}<span class="px-badge px-badge--red">{% trans "À justifier" %}</span>{% endif %}
+          </li>
+          {% endfor %}
+          {% for r in retards_recents %}
+          <li class="ex-task">
+            <span class="axd-date-chip ex-chip-orange" aria-hidden="true"><b>{{ r.date|date:"d" }}</b>{{ r.date|date:"M" }}</span>
+            <div class="ex-task__body"><strong>{% trans "Retard" %}{% if r.matiere %} · {{ r.matiere.nom }}{% endif %}</strong><small>{{ r.date|date:"l"|capfirst }}{% if r.remarque %} · {{ r.remarque|truncatechars:40 }}{% endif %}</small></div>
+            <span class="px-badge px-badge--orange">{% trans "Retard" %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="axd-muted"><i class="fas fa-circle-check axd-good-icon" aria-hidden="true"></i>{% trans "Aucune absence ni retard ces 30 derniers jours. Bravo !" %}</p>
+        {% endif %}
+      </aside>
+    </section>
+
+    {% if periodes_data %}
+    <h2 class="px-section-title ex-section-title">{% trans "Par période" %}</h2>
+    <div class="ex-subjects">
+      {% for p in periodes_data %}
+      <details class="ex-subject"{% if p.est_active %} open{% endif %}>
+        <summary>
+          <span class="ex-work__icon ax-tone-{% if p.est_active %}blue{% else %}slate{% endif %}"><i class="fas fa-calendar" aria-hidden="true"></i></span>
+          <span class="ex-subject__name"><strong>{{ p.periode.nom_periode }}{% if p.est_active %} <span class="px-badge px-badge--blue">{% trans "En cours" %}</span>{% endif %}</strong><small>{{ p.nb_absences }} {% trans "absence(s)" %} · {{ p.nb_retards }} {% trans "retard(s)" %}</small></span>
+          <i class="fas fa-chevron-down ex-subject__chev" aria-hidden="true"></i>
+        </summary>
+        {% if p.mois_liste %}
+        <ul class="axd-list ex-subject__list">
+          {% for m in p.mois_liste %}
+          <li>
+            <span class="axd-list__main"><span><strong>{{ m.mois_nom|capfirst }}</strong><small>{% for a in m.absences %}{{ a.date|date:"j" }}{% if not forloop.last %}, {% endif %}{% empty %}{% trans "Aucune absence" %}{% endfor %}</small></span></span>
+            <span><span class="px-badge {% if m.nb_absences %}px-badge--red{% else %}px-badge--gray{% endif %}">{{ m.nb_absences }} abs.</span> <span class="px-badge {% if m.nb_retards %}px-badge--orange{% else %}px-badge--gray{% endif %}">{{ m.nb_retards }} ret.</span></span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="axd-muted ex-subject__empty">{% trans "Rien à signaler sur cette période." %}</p>
+        {% endif %}
+      </details>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </main>
+
+  {{ spres.charts|json_script:"ex-data" }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="{% static 'school_admin/js/eleve/dashboard_eleve_v3.js' %}?v=1.0.0"></script>
+  {% include 'school_admin/eleve/partials/_ex_foot.html' %}
 </body>
 </html>

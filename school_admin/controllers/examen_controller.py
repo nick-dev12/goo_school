@@ -6,6 +6,7 @@ from collections import OrderedDict
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.urls import reverse
 from django.db import transaction
 from django.db.models import Q, Prefetch
 from django.utils.translation import gettext as _
@@ -220,6 +221,113 @@ def _classes_depuis_formulaire_session(etablissement, post):
     return classes_out, None
 
 
+def _appliquer_formulaire_session(session, post, etablissement, prefixe_matieres='matieres'):
+    """
+    Remplit une session depuis le formulaire (création ou modification) et la valide.
+    Renvoie (classes, matieres, erreurs). Rien n'est enregistré ici.
+    """
+    from django.core.exceptions import ValidationError
+    from ..services.examens_planning import messages_validation
+
+    erreurs = []
+    nom_examen = post.get('nom_examen', '').strip()
+    periode_id = post.get('periode_id')
+    date_debut_str, date_fin_str = post.get('date_debut'), post.get('date_fin')
+    matieres_ids = post.getlist(prefixe_matieres) or post.getlist('matieres') or post.getlist('matieres_ids')
+    if not all([nom_examen, periode_id, date_debut_str, date_fin_str]):
+        return None, None, ["Nom, période et dates sont obligatoires."]
+    if not matieres_ids:
+        return None, None, ["Sélectionnez au moins une matière."]
+    classes, err_classes = _classes_depuis_formulaire_session(etablissement, post)
+    if err_classes:
+        return None, None, [err_classes]
+    periode = PeriodeScolaire.objects.filter(id=periode_id, etablissement=etablissement).first()
+    if periode is None:
+        return None, None, ["Période invalide."]
+    matieres = list(Matiere.objects.filter(id__in=matieres_ids, etablissement=etablissement))
+    if len(matieres) != len(set(matieres_ids)):
+        return None, None, [_("Sélection de matières invalide.")]
+    if etablissement.type_etablissement == 'superieur':
+        ok_m, err_m = _valider_matieres_session_superieur(classes, matieres)
+        if not ok_m:
+            return None, None, [err_m]
+    try:
+        date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
+        date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None, None, ["Dates invalides."]
+
+    type_session = post.get('type_session') or session.type_session or SessionExamen.TYPE_COMPOSITION
+    if type_session not in dict(SessionExamen.TYPE_CHOICES):
+        type_session = SessionExamen.TYPE_COMPOSITION
+    session.nom_examen = nom_examen
+    session.periode = periode
+    session.date_debut, session.date_fin = date_debut, date_fin
+    session.description = post.get('description', '').strip()
+    session.type_session = type_session
+    if 'compte_bulletin_present' in post:
+        session.compte_bulletin = post.get('compte_bulletin') == 'on'
+        session._compte_bulletin_explicite = True
+    if 'est_publie_present' in post:
+        session.est_publie = post.get('est_publie') == 'on'
+    try:
+        session.full_clean(exclude=['etablissement', 'annee_scolaire', 'duree_totale'])
+    except ValidationError as exc:
+        erreurs.extend(messages_validation(exc))
+    return classes, matieres, erreurs
+
+
+def _creneau_depuis_post(session, post, etablissement, annee_scolaire, champ_date='date_examen'):
+    """Construit un créneau (non enregistré) ; renvoie (creneau, erreurs)."""
+    date_str = post.get(champ_date) or post.get('jour_semaine') or post.get('date_examen')
+    h1, h2, matiere_id = post.get('heure_debut'), post.get('heure_fin'), post.get('matiere_id')
+    if not all([date_str, h1, h2, matiere_id]):
+        return None, ["Date, horaires et matière sont obligatoires."]
+    try:
+        date_examen = datetime.strptime(date_str, '%Y-%m-%d').date()
+        heure_debut = datetime.strptime(h1, '%H:%M').time()
+        heure_fin = datetime.strptime(h2, '%H:%M').time()
+    except (TypeError, ValueError):
+        return None, ["Date ou horaire invalide."]
+    matiere = Matiere.objects.filter(id=matiere_id, etablissement=etablissement).first()
+    if matiere is None:
+        return None, ["Matière invalide."]
+    surveillant = None
+    if post.get('surveillant_id'):
+        surveillant = Professeur.objects.filter(id=post.get('surveillant_id'), etablissement=etablissement).first()
+    salle = None
+    if post.get('salle_id'):
+        salle = Salle.objects.filter(id=post.get('salle_id'), etablissement=etablissement).first()
+    creneau = CreneauExamen(
+        session_examen=session, matiere=matiere, date_examen=date_examen,
+        heure_debut=heure_debut, heure_fin=heure_fin, surveillant=surveillant, salle=salle,
+        consignes_specifiques=post.get('consignes_specifiques', '').strip(),
+        annee_scolaire=annee_scolaire,
+    )
+    if CreneauExamen.objects.filter(session_examen=session, matiere=matiere, actif=True, est_annule=False).exists():
+        return None, [f"L'épreuve de {matiere.nom} est déjà planifiée dans cette session : supprimez l'ancien créneau pour la déplacer."]
+    return creneau, []
+
+
+def _enregistrer_creneau(request, session, etablissement, annee_scolaire):
+    """Contrôle puis enregistre un créneau ; messages pour l'utilisateur. Renvoie True si créé."""
+    from ..services.examens_planning import verifier_creneau
+
+    creneau, erreurs = _creneau_depuis_post(session, request.POST, etablissement, annee_scolaire)
+    if creneau is not None:
+        erreurs, avertissements = verifier_creneau(creneau)
+    if erreurs:
+        for e in erreurs:
+            messages.error(request, e)
+        return False
+    creneau.save()
+    for a in avertissements:
+        messages.warning(request, a)
+    messages.success(request, f"Épreuve planifiée : {creneau.matiere.nom} le {creneau.date_examen:%d/%m/%Y} "
+                              f"de {creneau.heure_debut:%H:%M} à {creneau.heure_fin:%H:%M}.")
+    return True
+
+
 def _build_grille_emploi_examens(session, creneaux_list):
     """
     Construit la grille horaire (dates × plages) pour une session d'examen.
@@ -322,70 +430,22 @@ def gestion_examens(request):
     
     est_superieur = etablissement.type_etablissement == 'superieur'
 
-    # Traitement de l'ajout d'une nouvelle session d'examen
+    # Création d'une session d'examen
     if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                nom_examen = request.POST.get('nom_examen', '').strip()
-                periode_id = request.POST.get('periode_id')
-                date_debut_str = request.POST.get('date_debut')
-                date_fin_str = request.POST.get('date_fin')
-                description = request.POST.get('description', '').strip()
-                matieres_ids = request.POST.getlist('matieres')  # Liste des matières sélectionnées
-                
-                # Validations
-                if not all([nom_examen, periode_id, date_debut_str, date_fin_str]):
-                    messages.error(request, "Tous les champs obligatoires doivent être remplis.")
-                    return redirect('directeur:gestion_examens')
-                
-                if not matieres_ids:
-                    messages.error(request, "Veuillez sélectionner au moins une matière.")
-                    return redirect('directeur:gestion_examens')
-                
-                classes, err_classes = _classes_depuis_formulaire_session(etablissement, request.POST)
-                if err_classes:
-                    messages.error(request, err_classes)
-                    return redirect('directeur:gestion_examens')
-                
-                # Récupération des objets
-                periode = get_object_or_404(PeriodeScolaire, id=periode_id, etablissement=etablissement)
-                matieres = Matiere.objects.filter(id__in=matieres_ids, etablissement=etablissement)
-                if matieres.count() != len(set(matieres_ids)):
-                    messages.error(request, _("Sélection de matières invalide."))
-                    return redirect('directeur:gestion_examens')
-                
-                if etablissement.type_etablissement == 'superieur':
-                    ok_m, err_m = _valider_matieres_session_superieur(classes, matieres)
-                    if not ok_m:
-                        messages.error(request, err_m)
-                        return redirect('directeur:gestion_examens')
-                
-                # Conversion des dates
-                date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
-                date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date()
-                
-                # Création de la session d'examen avec l'année scolaire active
-                session = SessionExamen.objects.create(
-                    nom_examen=nom_examen,
-                    etablissement=etablissement,
-                    periode=periode,
-                    date_debut=date_debut,
-                    date_fin=date_fin,
-                    description=description,
-                    annee_scolaire=annee_scolaire_active
-                )
-                
-                # Ajout des classes et matières à la session
-                session.classes.set(classes)
-                session.matieres.set(matieres)
-                
-                messages.success(request, f"Session d'examen '{nom_examen}' créée avec succès pour {len(classes)} classe(s) et {len(matieres)} matière(s).")
-                return redirect('directeur:gestion_examens')
-                
-        except Exception as e:
-            messages.error(request, f"Erreur lors de la création de la session d'examen : {str(e)}")
+        session = SessionExamen(etablissement=etablissement, annee_scolaire=annee_scolaire_active)
+        classes, matieres, erreurs = _appliquer_formulaire_session(session, request.POST, etablissement)
+        if erreurs:
+            for e in erreurs:
+                messages.error(request, e)
             return redirect('directeur:gestion_examens')
-    
+        with transaction.atomic():
+            session.save()
+            session.classes.set(classes)
+            session.matieres.set(matieres)
+        messages.success(request, f"Session « {session.nom_examen} » ({session.get_type_session_display().lower()}) créée "
+                                  f"pour {len(classes)} classe(s) et {len(matieres)} matière(s). Planifiez maintenant les épreuves.")
+        return redirect('directeur:configurer_creneaux_examen', session_id=session.id)
+
     # Récupérer toutes les périodes scolaires de l'établissement filtrées par année scolaire active
     periodes = PeriodeScolaire.objects.filter(
         etablissement=etablissement,
@@ -468,7 +528,14 @@ def gestion_examens(request):
         request, periodes_avec_stats, groupe_keys
     )
 
+    from ..services.examens import regles as _regles_examen
+    from ..services.examens_planning import avancement_session
+    for session in sessions:
+        session.avancement = avancement_session(session)
+
     context = {
+        'regles_examen': _regles_examen(etablissement),
+        'types_session': SessionExamen.TYPE_CHOICES,
         'etablissement': etablissement,
         'periodes': periodes,
         'periodes_avec_stats': periodes_avec_stats,
@@ -509,62 +576,12 @@ def emploi_du_temps_examens(request):
         messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de gérer l'emploi du temps des examens.")
         return redirect('directeur:creer_annee_scolaire_obligatoire')
     
-    # Traitement de l'ajout d'un nouveau créneau d'examen
+    # Ajout d'un créneau depuis l'emploi du temps
     if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                session_examen_id = request.POST.get('session_examen_id')
-                matiere_id = request.POST.get('matiere_id')
-                date_examen_str = request.POST.get('date_examen')
-                heure_debut_str = request.POST.get('heure_debut')
-                heure_fin_str = request.POST.get('heure_fin')
-                surveillant_id = request.POST.get('surveillant_id')
-                salle_id = request.POST.get('salle_id')
-                consignes_specifiques = request.POST.get('consignes_specifiques', '').strip()
-                
-                # Validations
-                if not all([session_examen_id, matiere_id, date_examen_str, heure_debut_str, heure_fin_str]):
-                    messages.error(request, "Tous les champs obligatoires doivent être remplis.")
-                    return redirect('directeur:emploi_du_temps_examens')
-                
-                # Récupération des objets
-                session_examen = get_object_or_404(SessionExamen, id=session_examen_id, etablissement=etablissement)
-                matiere = get_object_or_404(Matiere, id=matiere_id, etablissement=etablissement)
-                
-                # Conversion des dates et heures
-                date_examen = datetime.strptime(date_examen_str, '%Y-%m-%d').date()
-                heure_debut = datetime.strptime(heure_debut_str, '%H:%M').time()
-                heure_fin = datetime.strptime(heure_fin_str, '%H:%M').time()
-                
-                # Récupération des surveillants et salles (optionnels)
-                surveillant = None
-                if surveillant_id:
-                    surveillant = get_object_or_404(Professeur, id=surveillant_id, etablissement=etablissement)
-                
-                salle = None
-                if salle_id:
-                    salle = get_object_or_404(Salle, id=salle_id, etablissement=etablissement)
-                
-                # Création du créneau d'examen avec l'année scolaire active
-                creneau = CreneauExamen.objects.create(
-                    session_examen=session_examen,
-                    matiere=matiere,
-                    date_examen=date_examen,
-                    heure_debut=heure_debut,
-                    heure_fin=heure_fin,
-                    surveillant=surveillant,
-                    salle=salle,
-                    consignes_specifiques=consignes_specifiques,
-                    annee_scolaire=annee_scolaire_active
-                )
-                
-                messages.success(request, f"Créneau d'examen créé avec succès : {creneau}")
-                return redirect('directeur:emploi_du_temps_examens')
-                
-        except Exception as e:
-            messages.error(request, f"Erreur lors de la création du créneau d'examen : {str(e)}")
-            return redirect('directeur:emploi_du_temps_examens')
-    
+        session_examen = get_object_or_404(SessionExamen, id=request.POST.get('session_examen_id'), etablissement=etablissement)
+        _enregistrer_creneau(request, session_examen, etablissement, annee_scolaire_active)
+        return redirect(f"{request.path}?session={session_examen.id}")
+
     # Récupérer les sessions d'examens filtrées par année scolaire active
     sessions_examens = SessionExamen.objects.filter(
         etablissement=etablissement,
@@ -606,6 +623,7 @@ def emploi_du_temps_examens(request):
     stats_generales = {
         'total_sessions': sessions_examens.count(),
         'total_creneaux': creneaux.count(),
+        'sessions_publiees': sessions_examens.filter(est_publie=True).count(),
     }
 
     from ..utils.directeur_ui_tabs import resolve_session_tab_selection
@@ -660,77 +678,11 @@ def configurer_creneaux_examen(request, session_id):
         messages.error(request, "Aucune année scolaire active. Veuillez créer et activer une année scolaire avant de configurer les créneaux.")
         return redirect('directeur:creer_annee_scolaire_obligatoire')
     
-    # Traitement de l'ajout d'un créneau
+    # Ajout d'un créneau
     if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                jour_semaine_str = request.POST.get('jour_semaine')
-                heure_debut_str = request.POST.get('heure_debut')
-                heure_fin_str = request.POST.get('heure_fin')
-                matiere_id = request.POST.get('matiere_id')
-                surveillant_id = request.POST.get('surveillant_id')
-                salle_id = request.POST.get('salle_id')
-                consignes_specifiques = request.POST.get('consignes_specifiques', '').strip()
-                
-                # Validations
-                if not all([jour_semaine_str, heure_debut_str, heure_fin_str, matiere_id]):
-                    messages.error(request, "Tous les champs obligatoires doivent être remplis.")
-                    return redirect('directeur:configurer_creneaux_examen', session_id=session_id)
-                
-                # Conversion de la date du jour sélectionné et des heures
-                date_examen = datetime.strptime(jour_semaine_str, '%Y-%m-%d').date()
-                heure_debut = datetime.strptime(heure_debut_str, '%H:%M').time()
-                heure_fin = datetime.strptime(heure_fin_str, '%H:%M').time()
-                
-                # Récupérer la matière
-                matiere = get_object_or_404(Matiere, id=matiere_id, etablissement=etablissement)
-                
-                # Vérifier que la matière fait partie de la session
-                if matiere not in session.matieres.all():
-                    messages.error(request, "La matière sélectionnée ne fait pas partie de cette session d'examen.")
-                    return redirect('directeur:configurer_creneaux_examen', session_id=session_id)
-                
-                # Vérifier si un créneau existe déjà pour cette matière et cette date
-                creneau_existant = CreneauExamen.objects.filter(
-                    session_examen=session,
-                    matiere=matiere,
-                    date_examen=date_examen,
-                    actif=True
-                ).first()
-                
-                if creneau_existant:
-                    messages.warning(request, f"Un créneau existe déjà pour {matiere.nom} le {date_examen.strftime('%d/%m/%Y')}.")
-                    return redirect('directeur:configurer_creneaux_examen', session_id=session_id)
-                
-                # Récupérer le surveillant et la salle (optionnels)
-                surveillant = None
-                if surveillant_id:
-                    surveillant = get_object_or_404(Professeur, id=surveillant_id, etablissement=etablissement)
-                
-                salle = None
-                if salle_id:
-                    salle = get_object_or_404(Salle, id=salle_id, etablissement=etablissement)
-                
-                # Créer le créneau avec l'année scolaire active
-                creneau = CreneauExamen.objects.create(
-                    session_examen=session,
-                    matiere=matiere,
-                    date_examen=date_examen,
-                    heure_debut=heure_debut,
-                    heure_fin=heure_fin,
-                    surveillant=surveillant,
-                    salle=salle,
-                    consignes_specifiques=consignes_specifiques,
-                    annee_scolaire=annee_scolaire_active
-                )
-                
-                messages.success(request, f"Créneau créé avec succès : {matiere.nom} le {date_examen.strftime('%d/%m/%Y')} de {heure_debut.strftime('%H:%M')} à {heure_fin.strftime('%H:%M')}.")
-                return redirect('directeur:configurer_creneaux_examen', session_id=session_id)
-                
-        except Exception as e:
-            messages.error(request, f"Erreur lors de la création du créneau : {str(e)}")
-            return redirect('directeur:configurer_creneaux_examen', session_id=session_id)
-    
+        _enregistrer_creneau(request, session, etablissement, annee_scolaire_active)
+        return redirect('directeur:configurer_creneaux_examen', session_id=session_id)
+
     # Récupérer les créneaux existants pour cette session
     creneaux = CreneauExamen.objects.filter(
         session_examen=session,
@@ -765,7 +717,17 @@ def configurer_creneaux_examen(request, session_id):
         })
         date_courante += timedelta(days=1)
     
+    from ..services.examens_planning import avancement_session, classes_concernees
+    creneaux = list(creneaux)
+    for c in creneaux:
+        c.classes_epreuve = classes_concernees(session, c.matiere)
+    avancement = avancement_session(session)
+    matieres_session = list(session.matieres.all().order_by('nom'))
+    planifiees = {c.matiere_id for c in creneaux}
     context = {
+        'avancement': avancement,
+        'matieres_a_planifier': [m for m in matieres_session if m.id not in planifiees],
+        'matieres_session': matieres_session,
         'etablissement': etablissement,
         'session': session,
         'creneaux': creneaux,
@@ -794,69 +756,18 @@ def modifier_session_examen(request, session_id):
     session = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)
     
     if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                # Récupération des données du formulaire
-                nom_examen = request.POST.get('nom_examen', '').strip()
-                periode_id = request.POST.get('periode_id')
-                date_debut_str = request.POST.get('date_debut')
-                date_fin_str = request.POST.get('date_fin')
-                matieres_ids = request.POST.getlist('matieres_ids')
-                description = request.POST.get('description', '').strip()
-                
-                # Validations
-                if not all([nom_examen, periode_id, date_debut_str, date_fin_str]):
-                    messages.error(request, "Tous les champs obligatoires doivent être remplis.")
-                    return redirect('directeur:gestion_examens')
-                
-                if not matieres_ids:
-                    messages.error(request, "Veuillez sélectionner au moins une matière.")
-                    return redirect('directeur:gestion_examens')
-                
-                classes_a_assigner, err_classes = _classes_depuis_formulaire_session(etablissement, request.POST)
-                if err_classes:
-                    messages.error(request, err_classes)
-                    return redirect('directeur:gestion_examens')
-                
-                matieres = Matiere.objects.filter(id__in=matieres_ids, etablissement=etablissement)
-                if matieres.count() != len(set(matieres_ids)):
-                    messages.error(request, _("Sélection de matières invalide."))
-                    return redirect('directeur:gestion_examens')
-                
-                if etablissement.type_etablissement == 'superieur':
-                    ok_m, err_m = _valider_matieres_session_superieur(classes_a_assigner, matieres)
-                    if not ok_m:
-                        messages.error(request, err_m)
-                        return redirect('directeur:gestion_examens')
-                
-                # Récupération de la période
-                periode = get_object_or_404(PeriodeScolaire, id=periode_id, etablissement=etablissement)
-                
-                # Conversion des dates
-                date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
-                date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date()
-                
-                # Mise à jour de la session
-                session.nom_examen = nom_examen
-                session.periode = periode
-                session.date_debut = date_debut
-                session.date_fin = date_fin
-                session.description = description
-                session.save()
-                
-                # Mise à jour des classes
-                session.classes.set(classes_a_assigner)
-                
-                # Mise à jour des matières (déjà validées ci-dessus)
-                session.matieres.set(matieres)
-                
-                messages.success(request, f"Session d'examen '{session.nom_examen}' modifiée avec succès.")
-                return redirect('directeur:gestion_examens')
-                
-        except Exception as e:
-            messages.error(request, f"Erreur lors de la modification de la session : {str(e)}")
+        classes, matieres, erreurs = _appliquer_formulaire_session(session, request.POST, etablissement, 'matieres_ids')
+        if erreurs:
+            for e in erreurs:
+                messages.error(request, e)
             return redirect('directeur:gestion_examens')
-    
+        with transaction.atomic():
+            session.save()
+            session.classes.set(classes)
+            session.matieres.set(matieres)
+        messages.success(request, f"Session « {session.nom_examen} » modifiée.")
+        return redirect('directeur:gestion_examens')
+
     # Si GET, rediriger vers la page de gestion
     return redirect('directeur:gestion_examens')
 
@@ -890,4 +801,70 @@ def supprimer_session_examen(request, session_id):
     except Exception as e:
         messages.error(request, f"Erreur lors de la suppression de la session : {str(e)}")
     
+    return redirect('directeur:gestion_examens')
+
+@login_required
+@require_permission('examens_voir')
+def publier_session_examen(request, session_id):
+    """Publie / retire une session : seules les sessions publiées sont visibles des élèves et parents."""
+    from ..utils.decorators_permissions import _get_user_etablissement
+    etablissement = _get_user_etablissement(request, 'examens_voir')[0]
+    if etablissement is None or request.method != 'POST':
+        return redirect('directeur:gestion_examens')
+    session = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)
+    session.est_publie = not session.est_publie
+    session.save(update_fields=['est_publie'])
+    messages.success(request, f"« {session.nom_examen} » " + (
+        "est publiée : élèves et parents voient le calendrier." if session.est_publie
+        else "n'est plus visible des élèves et parents."))
+    return redirect(request.POST.get('next') or 'directeur:gestion_examens')
+
+
+@login_required
+@require_permission('examens_voir')
+def supprimer_creneau_examen(request, creneau_id):
+    """Supprime une épreuve planifiée (POST)."""
+    from ..utils.decorators_permissions import _get_user_etablissement
+    etablissement = _get_user_etablissement(request, 'examens_voir')[0]
+    if etablissement is None:
+        return redirect('directeur:gestion_examens')
+    creneau = get_object_or_404(CreneauExamen, id=creneau_id, session_examen__etablissement=etablissement)
+    session_id = creneau.session_examen_id
+    if request.method == 'POST':
+        nom = creneau.matiere.nom
+        creneau.delete()
+        messages.success(request, f"Épreuve de {nom} retirée du planning.")
+    return redirect(request.POST.get('next') or reverse('directeur:configurer_creneaux_examen', args=[session_id]))
+
+
+@login_required
+@require_permission('examens_voir')
+def regles_examens(request):
+    """Règles de calcul de l'établissement (absences, rattrapage, validation, note éliminatoire, compensation)."""
+    from decimal import Decimal, InvalidOperation
+    from ..services.examens import regles as _regles_examen
+    from ..utils.decorators_permissions import _get_user_etablissement
+    etablissement = _get_user_etablissement(request, 'examens_voir')[0]
+    if etablissement is None or request.method != 'POST':
+        return redirect('directeur:gestion_examens')
+    r = _regles_examen(etablissement)
+    post = request.POST
+    if post.get('absence_injustifiee') in ('zero', 'neutre'):
+        r.absence_injustifiee = post['absence_injustifiee']
+    if post.get('regle_rattrapage') in ('meilleure', 'remplace'):
+        r.regle_rattrapage = post['regle_rattrapage']
+    try:
+        seuil = Decimal((post.get('seuil_validation') or '10').replace(',', '.'))
+        elim_brut = (post.get('note_eliminatoire') or '').replace(',', '.').strip()
+        elim = Decimal(elim_brut) if elim_brut else None
+    except InvalidOperation:
+        messages.error(request, "Valeurs numériques invalides.")
+        return redirect('directeur:gestion_examens')
+    if not (0 < seuil <= 20) or (elim is not None and not (0 <= elim < seuil)):
+        messages.error(request, "La moyenne de validation doit être entre 0 et 20, et la note éliminatoire inférieure à celle-ci.")
+        return redirect('directeur:gestion_examens')
+    r.seuil_validation, r.note_eliminatoire = seuil, elim
+    r.compensation_semestrielle = post.get('compensation_semestrielle') == 'on'
+    r.save()
+    messages.success(request, "Règles d'examen enregistrées. Recalculez les moyennes pour les appliquer aux bulletins.")
     return redirect('directeur:gestion_examens')

@@ -1,0 +1,18 @@
+{% load i18n %}
+{% if is_personnel_administratif and personnel %}
+  {% if is_caissier %}<div class="ax-user">{% else %}<a class="ax-user" href="{% url 'directeur:profil_etablissement' %}" title="{% trans 'Profil' %}">{% endif %}
+    <span class="ax-avatar" aria-hidden="true">{{ personnel.prenom|first|upper }}{{ personnel.nom|first|upper }}</span>
+    <span class="ax-user__text">
+      <span class="ax-user__name">{{ personnel.prenom }} {{ personnel.nom }}</span>
+      <span class="ax-user__role">{{ personnel.get_fonction_display }}</span>
+    </span>
+  {% if is_caissier %}</div>{% else %}</a>{% endif %}
+{% else %}
+  <a class="ax-user" href="{% url 'directeur:profil_etablissement' %}" title="{% trans 'Profil de l’établissement' %}">
+    <span class="ax-avatar" aria-hidden="true">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</span>
+    <span class="ax-user__text">
+      <span class="ax-user__name">{{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</span>
+      <span class="ax-user__role">{{ titre_direction|default:"Directeur" }}</span>
+    </span>
+  </a>
+{% endif %}

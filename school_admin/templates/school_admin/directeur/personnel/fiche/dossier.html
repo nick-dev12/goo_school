@@ -1,0 +1,21 @@
+{% load i18n %}
+{# Dossier RH commun aux enseignants et au personnel : lecture et mise à jour. #}
+<div class="fe-card__head" style="margin-bottom:10px">
+  <div class="fe-subtabs" role="tablist" data-fe-subtabs="dos" style="margin:0">
+    <button type="button" role="tab" class="fe-subtab{% if dossier_section != 'completer' %} is-active{% endif %}" data-fe-subtab="consulter"><i class="fas fa-eye" aria-hidden="true"></i>{% trans "Consulter" %}</button>
+    <button type="button" role="tab" class="fe-subtab{% if dossier_section == 'completer' %} is-active{% endif %}" data-fe-subtab="completer"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Mettre à jour" %}</button>
+  </div>
+  <span class="cg3-chip {% if completude.taux >= 80 %}cg3-chip--ok{% elif completude.taux >= 50 %}cg3-chip--warn{% else %}cg3-chip--bad{% endif %}">{% blocktrans with t=completude.taux %}Complet à {{ t }} %{% endblocktrans %}</span>
+</div>
+{% if completude.manquants %}
+<p class="fe-alert fe-alert--warn" style="margin-bottom:14px"><i class="fas fa-list-check" aria-hidden="true"></i><span><strong>{% trans "À compléter :" %}</strong> {{ completude.manquants|join:", " }}.</span></p>
+{% endif %}
+{% if echeance.expire %}<p class="fe-alert fe-alert--warn" style="margin-bottom:14px"><i class="fas fa-calendar-xmark" aria-hidden="true"></i><span>{% blocktrans with d=echeance.fin|date:"d/m/Y" %}Le contrat a pris fin le {{ d }}.{% endblocktrans %}</span></p>
+{% elif echeance.proche %}<p class="fe-alert fe-alert--info" style="margin-bottom:14px"><i class="fas fa-calendar-day" aria-hidden="true"></i><span>{% blocktrans with d=echeance.fin|date:"d/m/Y" j=echeance.jours %}Fin de contrat le {{ d }}, dans {{ j }} jours.{% endblocktrans %}</span></p>{% endif %}
+
+<div class="fe-subpanel{% if dossier_section != 'completer' %} is-active{% endif %}" data-fe-subpanel="dos:consulter">
+  {% include 'school_admin/directeur/personnel/partials/dossier_employe_lecture.html' %}
+</div>
+<div class="fe-subpanel{% if dossier_section == 'completer' %} is-active{% endif %}" data-fe-subpanel="dos:completer">
+  {% include 'school_admin/directeur/personnel/partials/dossier_complementaire_edition.html' %}
+</div>

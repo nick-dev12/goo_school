@@ -834,6 +834,11 @@ ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA = [
 
 ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA.extend(build_enseignant_secondaire_action_tool_schemas())
 
+from school_admin.services.cahier_texte_assistant import SCHEMA_LECTURE as _CT_SCHEMA, tool_get_cahier_texte  # noqa: E402
+
+ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS['get_cahier_texte'] = tool_get_cahier_texte
+ENSEIGNANT_SECONDAIRE_TOOLS_SCHEMA.append(_CT_SCHEMA)
+
 
 def get_enseignant_secondaire_tools_schema(ctx=None):
     from school_admin.services.assistant_enseignant_complements_tools import (

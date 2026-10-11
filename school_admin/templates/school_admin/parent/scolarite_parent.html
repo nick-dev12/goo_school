@@ -1,97 +1,114 @@
-<!DOCTYPE html>
 {% load static %}
+{% load i18n %}
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% include 'school_admin/partials/seo_head.html' %}
-    <title>Scolarité — {{ parent.nom_complet }}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.1" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/parent/nav_parent.css' %}?v=1.0.1" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/parent/scolarite_parent.css' %}?v=1.0.0" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/gtranslate_header_bar.css' %}?v=1.0.1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Scolarité" %} — {{ parent.nom_complet }}</title>
+  {% include 'school_admin/parent/partials/_px_head.html' %}
 </head>
-<body class="sco-parent-body">
-    {% include 'school_admin/parent/partials/navigation_panel.html' %}
-    <div class="sco-parent-wrap">
-        <header class="sco-parent-hero">
-            <h1>Scolarité</h1>
-            <p>{{ parent.nom_complet }} · {{ etablissement.nom }}</p>
-        </header>
+<body class="axd-page px-page">
+  {% include 'school_admin/parent/partials/_px_shell.html' %}
 
-        {% if total_reste > 0 %}
-            <section class="sco-dette-banner">
-                <h2>Vous devez {{ total_reste|floatformat:0 }} {{ devise_monnaie }}</h2>
-                <p>
-                    {% if prochaine_echeance %}
-                        Échéance : {{ prochaine_echeance|date:"d/m/Y" }}
-                    {% else %}
-                        Merci de régulariser auprès de l'administration.
-                    {% endif %}
-                </p>
-            </section>
-        {% else %}
-            <section class="sco-dette-banner ok">
-                <h2>Vous êtes à jour</h2>
-                <p>Aucun reste à payer pour vos enfants cette année.</p>
-            </section>
-        {% endif %}
+  <main class="axd px" id="contenu">
+    <header class="px-page-head">
+      <span class="px-page-head__icon ax-tone-green"><i class="fas fa-wallet" aria-hidden="true"></i></span>
+      <div>
+        <h1>{% trans "Scolarité" %}</h1>
+        <p>{% trans "Ce qu’il reste à payer et vos reçus." %}{% if etablissement %} · {{ etablissement.nom }}{% endif %}</p>
+      </div>
+    </header>
 
-        {% for item in enfants_scolarite %}
-            <article class="sco-child-card">
-                <h2>{{ item.eleve.nom }} {{ item.eleve.prenom }}</h2>
-                <p>
-                    {% if item.classe %}{{ item.classe.nom }} · {% endif %}
-                    Reste : <strong>{{ item.resume.reste|floatformat:0 }} {{ item.devise }}</strong>
-                    {% if item.resume.prochaine_echeance %}
-                        · Échéance {{ item.resume.prochaine_echeance|date:"d/m/Y" }}
-                        {% if item.resume.prochaine_libelle %}({{ item.resume.prochaine_libelle }}){% endif %}
-                    {% endif %}
-                </p>
-                {% if item.resume.charges %}
-                <div class="table-responsive">
-                    <table class="sco-table">
-                        <thead>
-                            <tr>
-                                <th>Libellé</th>
-                                <th class="num">Dû</th>
-                                <th class="num">Payé</th>
-                                <th class="num">Reste</th>
-                                <th>Échéance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for charge in item.resume.charges %}
-                            <tr>
-                                <td>{{ charge.libelle }}</td>
-                                <td class="num">{{ charge.montant|floatformat:0 }}</td>
-                                <td class="num">{{ charge.montant_paye|floatformat:0 }}</td>
-                                <td class="num">{{ charge.reste|floatformat:0 }}</td>
-                                <td>{% if charge.date_echeance %}{{ charge.date_echeance|date:"d/m/Y" }}{% else %}—{% endif %}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% endif %}
-                {% if item.recus %}
-                    <p style="margin-top:0.75rem;font-weight:600;">Reçus</p>
-                    <ul>
-                        {% for recu in item.recus %}
-                            <li>
-                                <a class="sco-link" href="{% url 'school_admin:recu_paiement_parent' recu.id %}">
-                                    {{ recu.numero_recu }} — {{ recu.montant|floatformat:0 }} {{ item.devise }} ({{ recu.date_paiement|date:"d/m/Y" }})
-                                </a>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </article>
-        {% empty %}
-            <p>Aucun enfant lié pour afficher la scolarité.</p>
-        {% endfor %}
-    </div>
-    {% include 'school_admin/parent/partials/bottom_nav_parent.html' %}
+    {% if enfants_scolarite %}
+      {% if total_reste > 0 %}
+      <section class="px-balance px-balance--due">
+        <span class="px-balance__icon"><i class="fas fa-hourglass-half" aria-hidden="true"></i></span>
+        <div>
+          <strong>{% trans "Reste à payer" %} : {{ total_reste|floatformat:"0g" }} {{ devise_monnaie }}</strong>
+          <small>{% if prochaine_echeance %}{% trans "Prochaine échéance le" %} {{ prochaine_echeance|date:"d/m/Y" }}{% else %}{% trans "Merci de régulariser auprès de l’administration." %}{% endif %}</small>
+        </div>
+      </section>
+      {% else %}
+      <section class="px-balance px-balance--ok">
+        <span class="px-balance__icon"><i class="fas fa-circle-check" aria-hidden="true"></i></span>
+        <div>
+          <strong>{% trans "Vous êtes à jour" %}</strong>
+          <small>{% trans "Aucun reste à payer pour vos enfants cette année." %}</small>
+        </div>
+      </section>
+      {% endif %}
+
+      <div class="px-stack">
+      {% for item in enfants_scolarite %}
+        <article class="px-item">
+          <div class="px-item__head">
+            <div>
+              <h2 class="px-item__title">{{ item.eleve.prenom }} {{ item.eleve.nom }}</h2>
+              <p class="px-item__meta">
+                {% if item.classe %}<span><i class="fas fa-school" aria-hidden="true"></i>{{ item.classe.nom }}</span>{% endif %}
+                {% if item.resume.prochaine_echeance %}<span><i class="fas fa-calendar" aria-hidden="true"></i>{% trans "Échéance" %} {{ item.resume.prochaine_echeance|date:"d/m/Y" }}{% if item.resume.prochaine_libelle %} ({{ item.resume.prochaine_libelle }}){% endif %}</span>{% endif %}
+              </p>
+            </div>
+            {% if item.resume.reste > 0 %}
+              <span class="px-badge px-badge--orange">{% trans "Reste" %} {{ item.resume.reste|floatformat:"0g" }} {{ item.devise }}</span>
+            {% else %}
+              <span class="px-badge px-badge--green"><i class="fas fa-check" aria-hidden="true"></i>{% trans "À jour" %}</span>
+            {% endif %}
+          </div>
+
+          {% if item.resume.charges %}
+          <div class="px-table-wrap">
+            <table class="px-table">
+              <thead>
+                <tr>
+                  <th>{% trans "Frais" %}</th>
+                  <th class="num">{% trans "Dû" %}</th>
+                  <th class="num">{% trans "Payé" %}</th>
+                  <th class="num">{% trans "Reste" %}</th>
+                  <th>{% trans "Échéance" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for charge in item.resume.charges %}
+                <tr>
+                  <td>{{ charge.libelle }}</td>
+                  <td class="num">{{ charge.montant|floatformat:"0g" }}</td>
+                  <td class="num">{{ charge.montant_paye|floatformat:"0g" }}</td>
+                  <td class="num">{{ charge.reste|floatformat:"0g" }}</td>
+                  <td>{% if charge.date_echeance %}{{ charge.date_echeance|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+
+          {% if item.recus %}
+          <ul class="px-receipts" aria-label="{% trans 'Reçus de paiement' %}">
+            {% for recu in item.recus %}
+            <li>
+              <a href="{% url 'school_admin:recu_paiement_parent' recu.id %}">
+                <span><i class="fas fa-receipt" aria-hidden="true"></i> {% trans "Reçu" %} {{ recu.numero_recu }} · {{ recu.date_paiement|date:"d/m/Y" }}</span>
+                <strong>{{ recu.montant|floatformat:"0g" }} {{ item.devise }}</strong>
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </article>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="px-empty-inline">
+        <i class="fas fa-children" aria-hidden="true"></i>
+        <h2>{% trans "Aucun enfant lié" %}</h2>
+        <p>{% trans "Ajoutez votre enfant depuis l’accueil pour voir sa scolarité." %}</p>
+      </div>
+    {% endif %}
+  </main>
+
+  {% include 'school_admin/parent/partials/_px_foot.html' %}
 </body>
 </html>

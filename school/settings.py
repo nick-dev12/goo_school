@@ -382,6 +382,8 @@ ASSISTANT_TTS_BACKEND = env('ASSISTANT_TTS_BACKEND', default='gemini').strip().l
 
 GEMINI_API_KEY = env('GEMINI_API_KEY', default='').strip()
 GEMINI_MODEL = env('GEMINI_MODEL', default='gemini-3.6-flash').strip()
+# Niveau de réflexion du LLM assistant : low = réponses plus rapides ; vide = défaut modèle.
+GEMINI_THINKING_LEVEL = env('GEMINI_THINKING_LEVEL', default='low').strip().lower()
 GEMINI_API_BASE_URL = env(
     'GEMINI_API_BASE_URL',
     default='https://generativelanguage.googleapis.com/v1beta/openai/',
@@ -393,7 +395,16 @@ GEMINI_TTS_MODEL = env(
 # Aoede = voix Aria (enjouée, accueillante). Alternatives : Kore, Sulafat, Despina.
 GEMINI_TTS_VOICE = env('GEMINI_TTS_VOICE', default='Aoede').strip()
 GEMINI_TTS_LANGUAGE = env('GEMINI_TTS_LANGUAGE', default='fr-FR').strip()
-GEMINI_TTS_MAX_ATTEMPTS = int(env('GEMINI_TTS_MAX_ATTEMPTS', default='4') or 4)
+# Backend « chirp » : voix Chirp 3 HD via Cloud Text-to-Speech (clé API restreinte, 200 req/min).
+GOOGLE_TTS_API_KEY = env('GOOGLE_TTS_API_KEY', default='').strip()
+CHIRP_TTS_VOICE = env('CHIRP_TTS_VOICE', default='fr-FR-Chirp3-HD-Callirrhoe').strip()
+# Backend « cloud_gemini » : voix Gemini via Cloud Text-to-Speech (quotas production),
+# authentifié par compte de service (rôle Utilisateur Vertex AI requis).
+GOOGLE_CLOUD_TTS_MODEL = env('GOOGLE_CLOUD_TTS_MODEL', default='gemini-2.5-flash-tts').strip()
+GOOGLE_CLOUD_TTS_CREDENTIALS = str(BASE_DIR / env(
+    'GOOGLE_CLOUD_TTS_CREDENTIALS',
+    default='secrets/aria-tts.json',
+).strip())
 GEMINI_CONTEXT_CACHE = env('GEMINI_CONTEXT_CACHE', default='true').strip().lower() in (
     '1',
     'true',

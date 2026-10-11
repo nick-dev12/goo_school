@@ -16,8 +16,12 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/modules_ajout_modal.css' %}?v=2.3.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
 </head>
-<body class="gml-page-body gmd-page">
+<body class="gml-page-body gmd-page gv3 cg3">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container gml-page">
@@ -28,48 +32,9 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_matieres_url %}
         </div>
 
-        <header class="gml-hero">
-            <div class="gml-hero-text">
-                <h1 class="gml-hero-title"><i class="fas fa-cube"></i> {{ module.nom }}</h1>
-                <p class="gml-hero-sub">{{ module.code }}{% if module.classes.exists %} • {{ module.classes.count }} {% trans "classe(s)" %}{% endif %}{% if nb_niveaux_module %} • {{ nb_niveaux_module }} {% trans "niveau(x)" %}{% endif %}</p>
-                {% if linked_departments %}
-                <p class="gmd-banner{% if is_module_shared %} gmd-banner--shared{% endif %}">
-                    <i class="fas fa-building" aria-hidden="true"></i>
-                    {% if is_module_shared %}
-                    {% trans "Module mutualisé" %} — {% for dep in linked_departments %}{{ dep.nom }}{% if dep.sigle %} ({{ dep.sigle }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}
-                    {% else %}
-                    {% trans "Spécialité" %} : {{ linked_departments.0.nom }}{% if linked_departments.0.sigle %} ({{ linked_departments.0.sigle }}){% endif %}
-                    {% endif %}
-                </p>
-                {% endif %}
-            </div>
-            <div class="gml-hero-stats">
-                <div class="gml-stat-pill"><span class="gml-stat-num">{{ matieres|length }}</span><span class="gml-stat-lbl">{% trans "Matières" %}</span></div>
-                <div class="gml-stat-pill gml-stat-pill--ok"><span class="gml-stat-num">{{ module.total_credits }}</span><span class="gml-stat-lbl">{% trans "Crédits" %}</span></div>
-                {% if nb_niveaux_module %}
-                <div class="gml-stat-pill"><span class="gml-stat-num">{{ nb_niveaux_module }}</span><span class="gml-stat-lbl">{% trans "Niveaux" %}</span></div>
-                {% endif %}
-                {% if module.classes.exists %}
-                <div class="gml-stat-pill"><span class="gml-stat-num">{{ module.classes.count }}</span><span class="gml-stat-lbl">{% trans "Classes" %}</span></div>
-                {% endif %}
-            </div>
-            <div class="gml-hero-actions">
-                {% if filiere_panels %}
-                <button type="button" class="gml-action-btn gml-action-btn--primary" id="btnAjouterMatiereModule">
-                    <i class="fas fa-plus"></i> {% trans "Ajouter une matière" %}
-                </button>
-                {% endif %}
-                <button type="button" class="gml-action-btn gml-action-btn--primary" id="btnModifierModule">
-                    <i class="fas fa-edit"></i> {% trans "Modifier" %}
-                </button>
-                <form method="post" action="{% url 'matiere:supprimer_module' module.id %}" class="gml-inline-form" onsubmit="return confirm('{% trans "Supprimer ce module ? Les matières seront retirées du module." %}');">
-                    {% csrf_token %}
-                    <button type="submit" class="gml-action-btn gml-action-btn--danger">
-                        <i class="fas fa-trash"></i> {% trans "Supprimer" %}
-                    </button>
-                </form>
-            </div>
-        </header>
+        <p class="fe-crumbs" style="margin-bottom:10px"><a href="{% url 'matiere:liste_matieres' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{% trans "Modules" %}</a></p>
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=module.nom v3_sous_titre=module.code v3_icone='fa-cube' v3_tone='teal' v3_actions_tpl='school_admin/directeur/partials/v3_actions/module.html' %}
+        {% if linked_departments %}<p class="fe-alert fe-alert--info" style="margin-bottom:14px"><i class="fas fa-building" aria-hidden="true"></i><span>{% if is_module_shared %}{% trans "Module mutualisé" %} — {% for dep in linked_departments %}{{ dep.nom }}{% if dep.sigle %} ({{ dep.sigle }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}{% trans "Spécialité" %} : {{ linked_departments.0.nom }}{% if linked_departments.0.sigle %} ({{ linked_departments.0.sigle }}){% endif %}{% endif %}</span></p>{% endif %}
 
         {% include 'school_admin/directeur/pedagogique/modules/partials/gmd_module_detail_panel.html' %}
     </div>
@@ -178,6 +143,7 @@
         </div>
     </div>
 
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
     <script src="{% static 'school_admin/js/directeur/matieres_modules.js' %}?v=2.4.0"></script>
     <script src="{% static 'school_admin/js/directeur/matieres_liste_tabs.js' %}?v=2.0.0"></script>

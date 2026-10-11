@@ -1,0 +1,265 @@
+{% load static i18n eleve_nav %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Cahier de texte" %} – ARIA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}?v=1.0.3">
+  {% if ns == 'enseignant_primaire' %}{% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}{% endif %}
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/aria_shell.css' %}?v=1.0.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=1.0.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/pointage.css' %}?v=1.0.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/cahier_texte.css' %}?v=1.1.0">
+</head>
+<body class="axd-page axd-page--prof">
+  {% if ns == 'enseignant_primaire' %}{% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}{% else %}{% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}{% endif %}
+
+  <main class="axd cg3 ct" id="contenu">
+    <header class="cg3-head">
+      <div class="cg3-head__id">
+        <span class="cg3-head__icon ax-tone-teal"><i class="fas fa-book-open" aria-hidden="true"></i></span>
+        <div>
+          <p class="cg3-head__kicker">{{ etablissement.nom }}</p>
+          <h1 class="cg3-head__title">{% trans "Cahier de texte" %}</h1>
+          <p class="cg3-head__sub">{{ lib.sous_titre }}</p>
+        </div>
+      </div>
+      <div class="cg3-head__tools">
+        <button type="button" class="cg3-btn cg3-btn--primary" data-ct-nouveau><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Nouvelle entrée" %}</button>
+      </div>
+    </header>
+
+    {% if messages %}<div class="pt-messages">{% for m in messages %}<p class="pt-message pt-message--{{ m.tags|default:'info' }}"><i class="fas {% if m.tags == 'success' %}fa-circle-check{% elif m.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-info{% endif %}" aria-hidden="true"></i>{{ m }}</p>{% endfor %}</div>{% endif %}
+
+    <section class="cg3-kpis">
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Cahier à jour" %}</p><span class="cg3-kpi__icon ax-tone-teal"><i class="fas fa-book-open" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value {% if stats.taux != None and stats.taux >= 90 %}is-pos{% endif %}">{% if stats.taux != None %}{{ stats.taux }}<small>%</small>{% else %}—{% endif %}</p>
+        {% if stats.taux != None %}<div class="cg3-kpi__bar"><span class="{% if stats.taux < 70 %}is-bad{% endif %}" style="width: {{ stats.taux }}%"></span></div>{% endif %}
+        <p class="cg3-kpi__caption">{% blocktrans with f=stats.renseignes c=stats.cours %}{{ f }} cours renseignés sur {{ c }} (30 jours){% endblocktrans %}</p>
+      </article>
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "À renseigner" %}</p><span class="cg3-kpi__icon ax-tone-orange"><i class="fas fa-pen" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value {% if stats.manquants %}is-neg{% endif %}">{{ stats.manquants }}</p>
+        <p class="cg3-kpi__caption">{% trans "Cours passés sans entrée" %}</p>
+      </article>
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Travaux donnés" %}</p><span class="cg3-kpi__icon ax-tone-blue"><i class="fas fa-house-laptop" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value">{{ stats.travaux }}</p>
+        <p class="cg3-kpi__caption">{% trans "Visibles par les" %} {{ lib.apprenants }}{% if lib.type != 'superieur' %} {% trans "et les parents" %}{% endif %}</p>
+      </article>
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Brouillons à valider" %}</p><span class="cg3-kpi__icon ax-tone-violet"><i class="fas fa-file-pen" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value {% if stats.brouillons %}is-neg{% endif %}">{{ stats.brouillons }}</p>
+        <p class="cg3-kpi__caption">{% if stats.demandes %}{% blocktrans count n=stats.demandes %}{{ n }} demande de modification en attente{% plural %}{{ n }} demandes de modification en attente{% endblocktrans %}{% else %}{% trans "Non envoyés à la direction" %}{% endif %}</p>
+      </article>
+    </section>
+
+    <section class="axd-grid">
+      {# ---------- Colonne gauche ---------- #}
+      <aside class="axd-span-4 ct-side">
+        <article class="axd-card">
+          <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Mes cours d’aujourd’hui" %}</h2><p class="axd-card__sub">{{ today|date:"l j F"|capfirst }}</p></div></header>
+          {% if aujourd_hui %}
+          <ul class="ct-todo">
+            {% for c in aujourd_hui %}{% with tone=c.matiere.nom|matiere_tone %}
+            <li class="ct-tone-{{ tone }}{% if c.entree %} is-done{% endif %}">
+              <span class="ct-todo__when"><b>{{ c.debut|time:"H:i" }}</b><small>{{ c.fin|time:"H:i" }}</small></span>
+              <span class="ct-todo__id"><strong>{{ c.classe.nom }}</strong><small>{{ c.matiere.nom|default:"" }}</small></span>
+              {% if c.entree and c.entree.modifiable %}<button type="button" class="cg3-btn cg3-btn--sm" data-ct-edit="{{ c.entree.id }}" title="{% trans 'Brouillon : modifier' %}"><i class="fas fa-file-pen" aria-hidden="true"></i></button>
+              {% elif c.entree %}<span class="ct-lock" title="{% trans 'Validé et envoyé à la direction' %}"><i class="fas fa-lock" aria-hidden="true"></i></span>
+              {% else %}<button type="button" class="cg3-btn cg3-btn--sm cg3-btn--primary" data-ct-remplir data-classe="{{ c.classe.id }}" data-matiere="{{ c.matiere.id|default:'' }}" data-date="{{ c.date|date:'Y-m-d' }}" data-debut="{{ c.debut|time:'H:i' }}" data-fin="{{ c.fin|time:'H:i' }}">{% trans "Remplir" %}</button>{% endif %}
+            </li>
+            {% endwith %}{% endfor %}
+          </ul>
+          {% else %}
+          <div class="cg3-empty"><i class="fas fa-mug-hot" aria-hidden="true"></i><span>{% trans "Pas de cours aujourd’hui." %}</span></div>
+          {% endif %}
+        </article>
+
+        <article class="axd-card">
+          <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "À renseigner" %}</h2><p class="axd-card__sub">{% trans "Cours des trois dernières semaines sans entrée" %}</p></div></header>
+          {% if a_renseigner %}
+          <ul class="ct-todo">
+            {% for c in a_renseigner %}{% if c.date != today %}{% with tone=c.matiere.nom|matiere_tone %}
+            <li class="ct-tone-{{ tone }}">
+              <span class="ct-todo__when"><b>{{ c.date|date:"d/m" }}</b><small>{{ c.date|date:"D" }}</small></span>
+              <span class="ct-todo__id"><strong>{{ c.classe.nom }}</strong><small>{{ c.matiere.nom|default:"" }} · {{ c.debut|time:"H:i" }}</small></span>
+              <button type="button" class="cg3-btn cg3-btn--sm" data-ct-remplir data-classe="{{ c.classe.id }}" data-matiere="{{ c.matiere.id|default:'' }}" data-date="{{ c.date|date:'Y-m-d' }}" data-debut="{{ c.debut|time:'H:i' }}" data-fin="{{ c.fin|time:'H:i' }}">{% trans "Remplir" %}</button>
+            </li>
+            {% endwith %}{% endif %}{% endfor %}
+          </ul>
+          {% else %}
+          <div class="cg3-empty"><i class="fas fa-circle-check" aria-hidden="true"></i><strong>{% trans "Votre cahier est à jour" %}</strong></div>
+          {% endif %}
+        </article>
+      </aside>
+
+      {# ---------- Frise ---------- #}
+      <section class="axd-span-8">
+        {% if paires|length > 1 %}
+        <nav class="ct-chips" aria-label="{% trans 'Classes' %}">
+          <a class="ct-chip{% if not filtre_classe %} is-active{% endif %}" href="?">{% trans "Toutes les classes" %}</a>
+          {% for p in paires %}<a class="ct-chip{% if filtre_classe == p.classe.id|stringformat:'s' %} is-active{% endif %}" href="?classe={{ p.classe.id }}">{{ p.classe.nom }}</a>{% endfor %}
+        </nav>
+        {% endif %}
+        {% if groupes %}
+        <div class="ct-timeline">
+          {% for g in groupes %}
+          <div class="ct-day">
+            <div class="ct-day__date{% if g.date == today %} is-today{% endif %}"><b>{{ g.date|date:"d" }}</b><span>{{ g.date|date:"D M" }}</span></div>
+            <div class="ct-day__entries">
+              {% for e in g.entrees %}{% with tone=e.matiere.nom|matiere_tone %}
+              <article class="ct-entry ct-tone-{{ tone }}{% if e.statut == 'brouillon' %} is-draft{% endif %}">
+                <div class="ct-entry__top">
+                  <span class="ct-entry__subject"><i class="fas {{ e.matiere.nom|matiere_icon }}" aria-hidden="true"></i>{{ e.matiere.nom|default:"Cours" }}</span>
+                  <span class="cg3-chip cg3-chip--muted">{{ e.classe.nom }}</span>
+                  {% if e.heure_debut %}<span class="ct-entry__meta">{{ e.heure_debut|time:"H:i" }}{% if e.heure_fin %} – {{ e.heure_fin|time:"H:i" }}{% endif %}</span>{% endif %}
+                  {% if e.modifiable %}<span class="cg3-chip cg3-chip--warn"><i class="fas fa-file-pen" aria-hidden="true"></i> {% trans "Brouillon" %}</span>
+                  {% else %}<span class="cg3-chip cg3-chip--ok"><i class="fas fa-lock" aria-hidden="true"></i> {% trans "Validé" %}</span>{% endif %}
+                  {% if e.demande_statut == 'en_attente' %}<span class="cg3-chip cg3-chip--muted"><i class="fas fa-hourglass-half" aria-hidden="true"></i> {% trans "Demande en attente" %}</span>{% endif %}
+                  {% if e.redige_par_ia %}<span class="ct-badge-ia"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>Aria</span>{% endif %}
+                  <span class="ct-entry__actions">
+                    {% if e.modifiable %}
+                    <button type="button" class="cg3-btn cg3-btn--sm" data-ct-edit="{{ e.id }}" aria-label="{% trans 'Modifier' %}" title="{% trans 'Modifier' %}"><i class="fas fa-pen" aria-hidden="true"></i></button>
+                    <form method="post" onsubmit="return confirm('{% trans "Supprimer ce brouillon ?" %}');">{% csrf_token %}<input type="hidden" name="action" value="supprimer"><input type="hidden" name="entree_id" value="{{ e.id }}"><button type="submit" class="cg3-btn cg3-btn--sm" aria-label="{% trans 'Supprimer' %}" title="{% trans 'Supprimer' %}"><i class="fas fa-trash" aria-hidden="true"></i></button></form>
+                    <button type="button" class="cg3-btn cg3-btn--sm cg3-btn--primary" data-ct-valider-entree="{{ e.id }}" data-titre="{{ e.titre }}"><i class="fas fa-paper-plane" aria-hidden="true"></i>{% trans "Valider" %}</button>
+                    {% elif e.demande_statut != 'en_attente' %}
+                    <button type="button" class="cg3-btn cg3-btn--sm" data-ct-demande="{{ e.id }}" data-titre="{{ e.titre }}"><i class="fas fa-envelope-open-text" aria-hidden="true"></i>{% trans "Demander une modification" %}</button>
+                    {% endif %}
+                  </span>
+                </div>
+                {% if e.demande_statut == 'refusee' and not e.modifiable %}<p class="ct-notice ct-notice--bad"><i class="fas fa-circle-xmark" aria-hidden="true"></i><span>{% trans "Demande de modification refusée par la direction" %}{% if e.demande_reponse %} : « {{ e.demande_reponse }} »{% endif %}</span></p>
+                {% elif e.demande_statut == 'acceptee' and e.modifiable %}<p class="ct-notice ct-notice--ok"><i class="fas fa-unlock" aria-hidden="true"></i><span>{% trans "La direction a accepté votre demande : corrigez l’entrée puis validez-la de nouveau." %}{% if e.demande_reponse %} « {{ e.demande_reponse }} »{% endif %}</span></p>
+                {% elif e.demande_statut == 'en_attente' %}<p class="ct-notice"><i class="fas fa-hourglass-half" aria-hidden="true"></i><span>{% trans "Votre demande :" %} « {{ e.demande_motif|truncatechars:160 }} »</span></p>{% endif %}
+                <h3 class="ct-entry__title">{{ e.titre }}</h3>
+                {% if e.objectifs %}<div class="ct-block"><p class="ct-block__label"><i class="fas fa-bullseye" aria-hidden="true"></i>{% trans "Objectifs" %}</p><ul class="ct-list ct-list--goals">{% for l in e.objectifs|lignes %}<li>{{ l }}</li>{% endfor %}</ul></div>{% endif %}
+                <div class="ct-block"><p class="ct-block__label"><i class="fas fa-list-ol" aria-hidden="true"></i>{% trans "Déroulement" %}</p><ul class="ct-list">{% for l in e.contenu|lignes %}<li>{{ l }}</li>{% endfor %}</ul></div>
+                {% if e.travail_a_faire %}<div class="ct-homework"><i class="fas fa-house-laptop" aria-hidden="true"></i><div><strong>{% trans "Travail à faire" %}{% if e.date_travail %} · {% trans "pour le" %} {{ e.date_travail|date:"l j F" }}{% endif %}</strong><p>{{ e.travail_a_faire }}</p></div></div>{% endif %}
+                {% if e.observations %}<p class="ct-note"><i class="fas fa-lock" aria-hidden="true"></i> {{ e.observations }}</p>{% endif %}
+              </article>
+              {% endwith %}{% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="axd-card"><div class="cg3-empty"><i class="fas fa-book-open" aria-hidden="true"></i><strong>{% trans "Votre cahier de texte est vide" %}</strong><span>{% trans "Remplissez votre premier cours depuis la colonne de gauche, ou demandez à Aria de le rédiger." %}</span></div></div>
+        {% endif %}
+      </section>
+    </section>
+  </main>
+
+  {# ---------- Éditeur ---------- #}
+  <div class="cg3-modal" id="ct-editeur" role="dialog" aria-modal="true" aria-labelledby="ct-editeur-titre" hidden>
+    <div class="cg3-modal__panel ct-editor">
+      <div class="cg3-modal__head"><h2 id="ct-editeur-titre"><i class="fas fa-book-open" aria-hidden="true"></i><span data-ct-titre>{% trans "Nouvelle entrée" %}</span></h2><button type="button" class="cg3-btn cg3-btn--sm" data-cg3-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+      <form method="post" id="ct-form">
+        {% csrf_token %}<input type="hidden" name="action" value="enregistrer"><input type="hidden" name="entree_id" value=""><input type="hidden" name="ia" value="0">
+        <div class="ct-editor__context">
+          <label class="cg3-field"><span>{% trans "Classe" %}</span><select name="classe_id" required></select></label>
+          <label class="cg3-field"><span>{% trans "Matière" %}</span><select name="matiere_id"></select></label>
+          <label class="cg3-field"><span>{% trans "Date" %}</span><input type="date" name="date" max="{{ today|date:'Y-m-d' }}" required></label>
+          <label class="cg3-field"><span>{% trans "Début" %}</span><input type="time" name="heure_debut"></label>
+          <label class="cg3-field"><span>{% trans "Fin" %}</span><input type="time" name="heure_fin"></label>
+        </div>
+        <div class="ct-editor__grid">
+          <div class="ct-fields">
+            <label class="cg3-field"><span>{% trans "Leçon / chapitre" %}</span><input type="text" name="titre" maxlength="200" required placeholder="{% trans 'Ex. Chapitre 4 — Les fractions' %}"></label>
+            <label class="cg3-field"><span>{% trans "Objectifs" %} <em class="muted">({% trans "un par ligne" %})</em></span><textarea name="objectifs" rows="3"></textarea></label>
+            <label class="cg3-field"><span>{% trans "Déroulement de la séance" %} <em class="muted">({% trans "une étape par ligne" %})</em></span><textarea name="contenu" rows="6" required></textarea></label>
+            <div class="ct-row">
+              <label class="cg3-field"><span>{% trans "Travail à faire" %}</span><textarea name="travail_a_faire" rows="2"></textarea></label>
+              <label class="cg3-field"><span>{% trans "Pour le" %}</span><input type="date" name="date_travail"></label>
+            </div>
+            <label class="cg3-field"><span>{% trans "Observations" %} <em class="muted">({% trans "privées, non visibles des" %} {{ lib.apprenants }})</em></span><textarea name="observations" rows="2" placeholder="{% trans 'Ex. reprendre la notion de dénominateur commun' %}"></textarea></label>
+          </div>
+
+          <aside class="ct-aria" aria-label="{% trans 'Rédaction avec Aria' %}">
+            <div class="ct-aria__head"><span class="ct-aria__avatar"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i></span><div><strong>{% trans "Rédiger avec Aria" %}</strong><small>{% trans "Dites ce que vous avez fait, Aria met en forme" %}</small></div></div>
+            <textarea id="ct-notes" placeholder="{% trans 'Ex. fractions : addition avec même dénominateur, 3 exercices au tableau, ex 5 et 6 p.48 pour jeudi' %}"></textarea>
+            <div class="ct-aria__chips" aria-label="{% trans 'Ajouts rapides' %}">
+              <button type="button" data-ct-chip="{% trans 'Correction des exercices de la dernière séance.' %}">{% trans "Correction" %}</button>
+              <button type="button" data-ct-chip="{% trans 'Nouvelle leçon avec trace écrite.' %}">{% trans "Nouvelle leçon" %}</button>
+              <button type="button" data-ct-chip="{% trans 'Exercices d’application en groupe.' %}">{% trans "Exercices" %}</button>
+              <button type="button" data-ct-chip="{% trans 'Évaluation écrite de 30 minutes.' %}">{% trans "Évaluation" %}</button>
+              <button type="button" data-ct-chip="{% trans 'Révisions avant le contrôle.' %}">{% trans "Révisions" %}</button>
+            </div>
+            <button type="button" class="ct-aria__btn" data-ct-rediger{% if not ia_disponible %} disabled title="{% trans 'Clé Gemini non configurée' %}"{% endif %}><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>{% trans "Rédiger pour moi" %}</span></button>
+            <p class="ct-aria__msg" data-ct-msg aria-live="polite"></p>
+            <ul class="ct-aria__tips">
+              <li>{% trans "Aria tient compte du niveau de la classe et des leçons précédentes." %}</li>
+              <li>{% trans "Rien n’est enregistré tant que vous n’avez pas cliqué sur « Enregistrer en brouillon » ou « Valider »." %}</li>
+              <li>{% trans "Vous pouvez aussi demander à l’assistant vocal : « Remplis le cahier de texte de la 6e A »." %}</li>
+            </ul>
+          </aside>
+        </div>
+        <input type="hidden" name="statut" value="brouillon">
+        <div class="ct-publish">
+          <div class="ct-help">
+            <button type="button" class="ct-help__btn" aria-expanded="false" aria-controls="ct-aide" data-ct-aide><i class="fas fa-circle-question" aria-hidden="true"></i><span>{% trans "Brouillon ou validation ?" %}</span></button>
+            <div class="ct-help__pop" id="ct-aide" role="tooltip">
+              <p><b><i class="fas fa-file-pen" aria-hidden="true"></i> {% trans "Brouillon" %}</b> {% trans "Modifiable et supprimable à volonté. Visible par vous seul." %}</p>
+              <p><b><i class="fas fa-lock" aria-hidden="true"></i> {% trans "Valider" %}</b> {% trans "Envoyé à la direction et publié pour les" %} {{ lib.apprenants }}{% if lib.type != 'superieur' %} {% trans "et les parents" %}{% endif %}. {% trans "Il ne pourra plus être modifié." %}</p>
+              <p><b><i class="fas fa-envelope-open-text" aria-hidden="true"></i> {% trans "En cas d’erreur" %}</b> {% trans "Faites une demande de modification : si la direction l’accepte, l’entrée redevient un brouillon." %}</p>
+            </div>
+          </div>
+          <div class="cg3-row-actions">
+            <button type="button" class="cg3-btn" data-cg3-close>{% trans "Annuler" %}</button>
+            <button type="submit" class="cg3-btn" data-ct-brouillon><i class="fas fa-floppy-disk" aria-hidden="true"></i>{% trans "Enregistrer en brouillon" %}</button>
+            <button type="button" class="cg3-btn cg3-btn--primary" data-ct-valider><i class="fas fa-paper-plane" aria-hidden="true"></i>{% trans "Valider" %}</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="cg3-modal ct-modal-top" id="ct-confirm" role="alertdialog" aria-modal="true" aria-labelledby="ct-confirm-titre" aria-describedby="ct-confirm-texte" hidden>
+    <div class="cg3-modal__panel ct-confirm">
+      <span class="ct-confirm__icon"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></span>
+      <h2 id="ct-confirm-titre">{% trans "Valider définitivement ?" %}</h2>
+      <p class="ct-confirm__lecon" data-ct-confirm-titre></p>
+      <div id="ct-confirm-texte" class="ct-confirm__texte">
+        <p>{% trans "Une fois validée, cette entrée est envoyée à la direction et publiée pour les" %} {{ lib.apprenants }}{% if lib.type != 'superieur' %} {% trans "et les parents" %}{% endif %}.</p>
+        <p><strong>{% trans "Vous ne pourrez plus la modifier ni la supprimer." %}</strong> {% trans "Pour corriger une erreur, il faudra faire une demande de modification à la direction." %}</p>
+      </div>
+      <form method="post" id="ct-valider-form">{% csrf_token %}<input type="hidden" name="action" value="valider"><input type="hidden" name="entree_id" value=""></form>
+      <div class="ct-confirm__actions">
+        <button type="button" class="cg3-btn" data-ct-confirm-annuler>{% trans "Relire encore" %}</button>
+        <button type="button" class="cg3-btn cg3-btn--primary" data-ct-confirm-ok><i class="fas fa-lock" aria-hidden="true"></i>{% trans "Oui, valider et envoyer" %}</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cg3-modal" id="ct-demande" role="dialog" aria-modal="true" aria-labelledby="ct-demande-titre" hidden>
+    <div class="cg3-modal__panel ct-confirm ct-confirm--form">
+      <div class="cg3-modal__head"><h2 id="ct-demande-titre"><i class="fas fa-envelope-open-text" aria-hidden="true"></i>{% trans "Demander une modification" %}</h2><button type="button" class="cg3-btn cg3-btn--sm" data-cg3-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+      <p class="ct-confirm__lecon" data-ct-demande-titre></p>
+      <form method="post">
+        {% csrf_token %}<input type="hidden" name="action" value="demander_modification"><input type="hidden" name="entree_id" value="">
+        <label class="cg3-field"><span>{% trans "Qu’y a-t-il à corriger ?" %}</span><textarea name="motif" rows="4" minlength="10" required placeholder="{% trans 'Ex. erreur sur la date du travail à faire : c’est pour lundi et non jeudi.' %}"></textarea></label>
+        <p class="ct-confirm__hint"><i class="fas fa-circle-info" aria-hidden="true"></i>{% trans "Si la direction accepte, l’entrée redevient un brouillon : vous la corrigez puis la validez de nouveau." %}</p>
+        <div class="ct-confirm__actions"><button type="button" class="cg3-btn" data-cg3-close>{% trans "Annuler" %}</button><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-paper-plane" aria-hidden="true"></i>{% trans "Envoyer la demande" %}</button></div>
+      </form>
+    </div>
+  </div>
+
+  {{ entrees_json|json_script:"ct-entrees" }}
+  {{ paires_json|json_script:"ct-paires" }}
+  <script>window.CT_REDIGER_URL = "{% url ns|add:':cahier_texte_rediger' %}";</script>
+  <script src="{% static 'school_admin/js/directeur/cg_v3.js' %}?v=1.0.1"></script>
+  <script src="{% static 'school_admin/js/cahier_texte.js' %}?v=1.1.1"></script>
+  {% if ns == 'enseignant_primaire' %}
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+    {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
+  {% else %}
+    {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
+  {% endif %}
+</body>
+</html>

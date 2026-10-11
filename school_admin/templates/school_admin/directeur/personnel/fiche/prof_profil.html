@@ -1,0 +1,111 @@
+{% load i18n eleve_nav %}
+<div class="fe-grid">
+  <div class="fe-col-8 fe-stack">
+    {# ---------- Poste et matières ---------- #}
+    <article class="fe-card fe-tone-blue">
+      <header class="fe-card__head">
+        <div><h2 class="fe-card__title"><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{% trans "Poste et matières" %}</h2>
+        <p class="fe-card__sub">{% trans "Ce que l’enseignant est habilité à enseigner, et ce qu’il enseigne réellement d’après l’emploi du temps." %}</p></div>
+      </header>
+      <dl class="fe-dl">
+        <div><dt>{% trans "Niveau d’enseignement" %}</dt><dd>{{ professeur.niveau_display|default:"—" }}</dd></div>
+        {% if fiche.type_etab == 'primary' %}
+        <div><dt>{% trans "Profil" %}</dt><dd>{% trans "Enseignant polyvalent (toutes les matières de ses classes)" %}</dd></div>
+        {% endif %}
+      </dl>
+      {% if fiche.type_etab != 'primary' %}
+      <p class="fe-label">{% trans "Matière principale" %}</p>
+      <div class="fe-tags">
+        {% if professeur.matiere_principale %}<span class="fe-tag fe-tag--main fe-tone-{{ professeur.matiere_principale.nom|matiere_tone }}"><i class="fas {{ professeur.matiere_principale.nom|matiere_icon }}" aria-hidden="true"></i>{{ professeur.matiere_principale.nom }}</span>
+        {% else %}<span class="fe-alert fe-alert--warn"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{% trans "Aucune matière principale : modifiez la fiche pour en définir une." %}</span>{% endif %}
+      </div>
+      <p class="fe-label">{% trans "Matières secondaires" %}</p>
+      <div class="fe-tags">
+        {% for m in professeur.matieres_secondaires.all %}
+        <span class="fe-tag fe-tone-{{ m.nom|matiere_tone }}">{{ m.nom }}<button type="button" onclick="retirerMatiereSecondaire({{ professeur.id }}, {{ m.id }}, '{{ m.nom|escapejs }}')" aria-label="{% blocktrans with n=m.nom %}Retirer {{ n }}{% endblocktrans %}"><i class="fas fa-xmark" aria-hidden="true"></i></button></span>
+        {% empty %}<span class="fe-card__sub">{% trans "Aucune" %}</span>{% endfor %}
+        <button type="button" class="cg3-btn cg3-btn--sm" onclick="ouvrirModalAjoutMatiere()" {% if fiche.type_etab == 'superieur' %}{% if not modal_superieur_matieres_flat %}disabled{% endif %}{% elif not matieres_disponibles %}disabled{% endif %}><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter" %}</button>
+      </div>
+      {% endif %}
+      <p class="fe-label">{% trans "Matières enseignées (emploi du temps et affectations)" %}</p>
+      <div class="fe-tags">
+        {% for m in fiche.matieres_enseignees %}<span class="fe-tag fe-tone-{{ m.nom|matiere_tone }}"><i class="fas {{ m.nom|matiere_icon }}" aria-hidden="true"></i>{{ m.nom }}</span>
+        {% empty %}<span class="fe-card__sub">{% trans "Aucune pour l’instant : affectez l’enseignant à une classe ou publiez son emploi du temps." %}</span>{% endfor %}
+      </div>
+      {% if fiche.matieres_non_declarees %}
+      <p class="fe-alert fe-alert--warn" style="margin-top:12px"><i class="fas fa-circle-info" aria-hidden="true"></i><span>{% trans "Enseignée(s) mais absente(s) de sa fiche :" %} <strong>{% for m in fiche.matieres_non_declarees %}{{ m.nom }}{% if not forloop.last %}, {% endif %}{% endfor %}</strong>. {% trans "Ajoutez-la en matière secondaire pour garder une fiche cohérente." %}</span></p>
+      {% endif %}
+    </article>
+
+    {# ---------- Contrat et rémunération ---------- #}
+    <article class="fe-card fe-tone-green">
+      <header class="fe-card__head">
+        <div><h2 class="fe-card__title"><i class="fas fa-file-signature" aria-hidden="true"></i>{% trans "Contrat et rémunération" %}</h2>
+        <p class="fe-card__sub">{% trans "La paie est calculée à partir des séances validées par le pointage." %}</p></div>
+        <a class="fe-link" href="{% url 'directeur:detail_volume_horaire' professeur.id %}">{% trans "Volume horaire et paie" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+      </header>
+      <dl class="fe-dl">
+        <div><dt>{% trans "Mode de rémunération" %}</dt><dd>{{ professeur.get_type_contrat_display }}</dd></div>
+        <div><dt>{% trans "Taux horaire" %}</dt><dd>{% if professeur.prix_volume_horaire %}{{ professeur.prix_volume_horaire|floatformat:0 }} FCFA / h{% elif professeur.type_contrat == 'permanent' %}<span class="is-empty">{% trans "Calculé depuis le salaire" %}</span>{% else %}<span class="is-empty is-warn">{% trans "À définir : la paie ne peut pas être calculée" %}</span>{% endif %}</dd></div>
+        {% if professeur.type_contrat == 'permanent' %}
+        <div><dt>{% trans "Salaire mensuel" %}</dt><dd>{% if professeur.salaire_mensuel %}{{ professeur.salaire_mensuel|floatformat:0 }} FCFA{% else %}<span class="is-empty is-warn">{% trans "À définir" %}</span>{% endif %}</dd></div>
+        {% endif %}
+        <div><dt>{% trans "Heures prévues au contrat" %}</dt><dd>{% if professeur.heures_contrat_semaine %}{{ professeur.heures_contrat_semaine|floatformat:"-1" }} h / {% trans "semaine" %}{% else %}<span class="is-empty">—</span>{% endif %}</dd></div>
+        <div><dt>{% trans "Contrat RH" %}</dt><dd>{{ dossier.get_type_contrat_display_label|default:"—" }}</dd></div>
+        <div><dt>{% trans "Fin de contrat" %}</dt><dd>{% if echeance %}{{ echeance.fin|date:"d/m/Y" }}{% if echeance.expire %} <span class="cg3-chip cg3-chip--bad">{% trans "Expiré" %}</span>{% elif echeance.proche %} <span class="cg3-chip cg3-chip--warn">{% blocktrans with j=echeance.jours %}dans {{ j }} jours{% endblocktrans %}</span>{% endif %}{% else %}<span class="is-empty">—</span>{% endif %}</dd></div>
+        <div><dt>{% trans "Date d’embauche" %}</dt><dd>{% if professeur.date_embauche %}{{ professeur.date_embauche|date:"d/m/Y" }}{% if fiche.anciennete %} · {{ fiche.anciennete }}{% endif %}{% else %}<span class="is-empty is-warn">{% trans "Non renseignée" %}</span>{% endif %}</dd></div>
+        <div><dt>{% trans "Salaire de base (dossier)" %}</dt><dd>{% if dossier.salaire_base %}{{ dossier.salaire_base|floatformat:0 }} FCFA{% else %}<span class="is-empty">—</span>{% endif %}</dd></div>
+      </dl>
+    </article>
+
+    {# ---------- Identité ---------- #}
+    <article class="fe-card fe-tone-violet">
+      <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-id-card" aria-hidden="true"></i>{% trans "Identité" %}</h2></header>
+      <dl class="fe-dl">
+        <div><dt>{% trans "Nom" %}</dt><dd>{{ professeur.nom }}</dd></div>
+        <div><dt>{% trans "Prénom" %}</dt><dd>{{ professeur.prenom }}</dd></div>
+        <div><dt>{% trans "Sexe" %}</dt><dd>{{ sexe_display|default:"—" }}</dd></div>
+        <div><dt>{% trans "Date et lieu de naissance" %}</dt><dd>{% if dossier.date_naissance %}{{ dossier.date_naissance|date:"d/m/Y" }}{% else %}—{% endif %}{% if dossier.lieu_naissance %} · {{ dossier.lieu_naissance }}{% endif %}</dd></div>
+        <div><dt>{% trans "Nationalité" %}</dt><dd>{{ dossier.nationalite|default:"—" }}</dd></div>
+        <div><dt>{% trans "Diplôme" %}</dt><dd>{{ dossier.diplome_plus_eleve|default:"—" }}</dd></div>
+        <div><dt>{% trans "Contact d’urgence" %}</dt><dd>{% if dossier.contact_urgence_nom %}{{ dossier.contact_urgence_nom }}{% if dossier.contact_urgence_lien %} ({{ dossier.contact_urgence_lien }}){% endif %}{% if dossier.contact_urgence_telephone %} · <a href="tel:{{ dossier.contact_urgence_telephone }}">{{ dossier.contact_urgence_telephone }}</a>{% endif %}{% else %}—{% endif %}</dd></div>
+      </dl>
+    </article>
+  </div>
+
+  <aside class="fe-col-4 fe-stack">
+    <article class="fe-card fe-tone-teal">
+      <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-sun" aria-hidden="true"></i>{% trans "Aujourd’hui" %}</h2><p class="fe-card__sub">{% now "l j F" as auj %}{{ auj|capfirst }}</p></div></header>
+      {% if fiche.aujourd_hui %}
+      <ul class="fe-list">
+        {% for c in fiche.aujourd_hui %}
+        <li class="fe-slot fe-tone-{{ c.matiere.nom|matiere_tone }}">
+          <span class="fe-slot__time"><b>{{ c.debut|time:"H:i" }}</b>{{ c.fin|time:"H:i" }}</span>
+          <span class="fe-slot__main"><strong>{{ c.classe.nom }}</strong><small>{{ c.matiere.nom|default:"" }}{% if c.salle %} · {{ c.salle }}{% endif %}</small></span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}<div class="cg3-empty"><i class="fas fa-mug-hot" aria-hidden="true"></i><span>{% trans "Pas de cours aujourd’hui." %}</span></div>{% endif %}
+      <div class="fe-card__foot"><a class="fe-link" href="?onglet=edt" data-fe-goto="edt">{% trans "Toute la semaine" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a></div>
+    </article>
+
+    <article class="fe-card fe-tone-orange">
+      <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-folder-open" aria-hidden="true"></i>{% trans "Dossier RH" %}</h2><p class="fe-card__sub">{% blocktrans with t=completude.taux %}Complet à {{ t }} %{% endblocktrans %}</p></div></header>
+      <div class="fe-bar"><span class="{% if completude.taux < 50 %}is-bad{% elif completude.taux < 80 %}is-warn{% endif %}" style="width: {{ completude.taux }}%"></span></div>
+      {% if completude.manquants %}
+      <p class="fe-label" style="margin-top:12px !important">{% trans "À compléter" %}</p>
+      <div class="fe-missing">{% for m in completude.manquants %}<span>{{ m }}</span>{% endfor %}</div>
+      {% else %}<p class="fe-alert fe-alert--ok" style="margin-top:12px"><i class="fas fa-circle-check" aria-hidden="true"></i>{% trans "Dossier complet." %}</p>{% endif %}
+      <div class="fe-card__foot"><a class="fe-link" href="?onglet=dossier" data-fe-goto="dossier">{% trans "Ouvrir le dossier" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a></div>
+    </article>
+
+    <article class="fe-card">
+      <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-circle-info" aria-hidden="true"></i>{% trans "Compte" %}</h2></header>
+      <dl class="fe-dl">
+        <div><dt>{% trans "Créé le" %}</dt><dd>{{ professeur.date_creation|date:"d/m/Y" }}</dd></div>
+        <div><dt>{% trans "Modifié le" %}</dt><dd>{{ professeur.date_modification|date:"d/m/Y" }}</dd></div>
+        <div><dt>{% trans "Dernière connexion" %}</dt><dd>{% if professeur.last_login %}{{ professeur.last_login|date:"d/m/Y H:i" }}{% else %}<span class="is-empty is-warn">{% trans "Jamais" %}</span>{% endif %}</dd></div>
+      </dl>
+    </article>
+  </aside>
+</div>

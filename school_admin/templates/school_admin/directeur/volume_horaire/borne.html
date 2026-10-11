@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+{% load static i18n %}
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>{% trans "Borne de pointage" %} — {{ etablissement.nom }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --brand: #2a5bd7; --ink: #101828; --muted: #8a919e; --line: #e4e7ec; --good: #0f7b4a; --bad: #c0352e; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { display: grid; place-items: center; padding: 24px; background: #f5f6f8; color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+    .borne { width: min(560px, 100%); display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 32px 28px; border-radius: 28px; background: #fff; box-shadow: 0 20px 50px rgba(16,24,40,.08); text-align: center; }
+    .borne__school { margin: 0; font-size: 1rem; font-weight: 600; color: var(--muted); }
+    .borne__title { margin: 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+    .borne__qr { position: relative; padding: 18px; border-radius: 22px; border: 2px solid var(--line); background: #fff; }
+    .borne__qr canvas, .borne__qr img { display: block; width: min(340px, 70vw) !important; height: auto !important; }
+    .borne__ring { width: 100%; height: 8px; border-radius: 999px; background: #e7eaef; overflow: hidden; }
+    .borne__ring span { display: block; height: 100%; background: var(--brand); border-radius: 999px; transition: width 1s linear; }
+    .borne__code { margin: 0; font-size: 2.2rem; font-weight: 700; letter-spacing: .3em; font-variant-numeric: tabular-nums; }
+    .borne__hint { margin: 0; font-size: .95rem; color: #475467; line-height: 1.5; }
+    .borne__stats { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .borne__stat { padding: 8px 14px; border-radius: 999px; background: #eef3fe; color: #1d47b3; font-size: .85rem; font-weight: 600; }
+    .borne__clock { font-size: 1.1rem; font-weight: 700; color: var(--ink); }
+    .borne__off { display: none; color: var(--bad); font-weight: 600; }
+    body.is-offline .borne__off { display: block; }
+    body.is-offline .borne__qr { opacity: .25; }
+  </style>
+</head>
+<body>
+  <main class="borne">
+    <p class="borne__school"><i class="fas fa-school" aria-hidden="true"></i> {{ etablissement.nom }} · {{ borne.libelle }}</p>
+    <h1 class="borne__title">{% trans "Pointage des enseignants" %}</h1>
+    <div class="borne__qr" id="qr" aria-label="{% trans 'QR code de pointage' %}"></div>
+    <div class="borne__ring" aria-hidden="true"><span id="ring" style="width:100%"></span></div>
+    <p class="borne__code" id="code" aria-live="polite">— — —</p>
+    <p class="borne__hint">{% trans "Dans votre espace enseignant, touchez « Pointage » puis « Commencer le cours » et scannez ce code. Il change toutes les 30 secondes." %}</p>
+    <div class="borne__stats"><span class="borne__clock" id="heure">--:--</span><span class="borne__stat" id="en-cours">— {% trans "cours en cours" %}</span><span class="borne__stat" id="a-ouvrir">— {% trans "à ouvrir" %}</span></div>
+    <p class="borne__off">{% trans "Connexion perdue : vérifiez le réseau de l’appareil." %}</p>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    (function () {
+      var url = '{{ url_code }}';
+      var box = document.getElementById('qr');
+      var qr = new QRCode(box, { width: 340, height: 340, correctLevel: QRCode.CorrectLevel.M });
+      var dernier = '', restant = 30;
+      function maj() {
+        fetch(url, { cache: 'no-store', credentials: 'same-origin' }).then(function (r) {
+          if (!r.ok) throw new Error('refus');
+          return r.json();
+        }).then(function (d) {
+          document.body.classList.remove('is-offline');
+          if (d.contenu !== dernier) { qr.makeCode(d.contenu); dernier = d.contenu; }
+          document.getElementById('code').textContent = d.code.slice(0, 3) + ' ' + d.code.slice(3);
+          document.getElementById('heure').textContent = d.heure;
+          document.getElementById('en-cours').textContent = d.en_cours + ' {% trans "cours en cours" %}';
+          document.getElementById('a-ouvrir').textContent = d.a_ouvrir + ' {% trans "à ouvrir" %}';
+          restant = d.secondes;
+        }).catch(function () { document.body.classList.add('is-offline'); });
+      }
+      setInterval(function () {
+        restant -= 1;
+        document.getElementById('ring').style.width = Math.max(0, restant / 30 * 100) + '%';
+        if (restant <= 0) maj();
+      }, 1000);
+      setInterval(maj, 10000);
+      maj();
+      if ('wakeLock' in navigator) { navigator.wakeLock.request('screen').catch(function () {}); }
+    })();
+  </script>
+</body>
+</html>

@@ -1,68 +1,167 @@
-<!DOCTYPE html>
+{% extends 'school_admin/directeur/comptabilite_generale/_base.html' %}
 {% load static i18n %}
-{% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE }}">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "États financiers" %} — {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
-</head>
-<body class="cg-page-body">
-    {% include 'school_admin/directeur/partials/header_directeur.html' %}
-    <div class="content-container cg-page">
-        {% include 'school_admin/partials/messages.html' %}
-        <div class="page-header page-header-minimal">
-            {% url 'directeur:cg_hub_directeur' as back_url %}
-            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
-        </div>
-        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='etats' %}
-        <header class="cg-hero">
-            <div>
-                <h1 class="cg-hero-title"><i class="fas fa-chart-pie"></i> {% trans "États financiers" %}</h1>
-                <p class="cg-hero-sub">{% trans "Balance, bilan, compte de résultat à partir des écritures. Export CSV pour l'expert-comptable." %}</p>
-            </div>
-            <div class="cg-stat cg-stat--ok"><span class="cg-stat-num">{{ kpis.taux_recouvrement }}%</span><span class="cg-stat-lbl">{% trans "Recouvrement" %}</span></div>
-            <div class="cg-stat"><span class="cg-stat-num">{{ synthese.resultat|floatformat:0 }}</span><span class="cg-stat-lbl">{% trans "Résultat" %}</span></div>
-            <a class="cg-btn cg-btn--ghost" href="?export=csv">{% trans "Export CSV" %}</a>
-        </header>
-        <section class="cg-section">
-            <h2>{% trans "Synthèse" %}</h2>
-            <div class="cg-grid">
-                <div class="cg-card"><h3>{% trans "Actif" %}</h3><p>{{ synthese.actif|floatformat:0 }} {{ devise_monnaie }}</p></div>
-                <div class="cg-card"><h3>{% trans "Passif" %}</h3><p>{{ synthese.passif|floatformat:0 }} {{ devise_monnaie }}</p></div>
-                <div class="cg-card"><h3>{% trans "Charges" %}</h3><p>{{ synthese.charges|floatformat:0 }} {{ devise_monnaie }}</p></div>
-                <div class="cg-card"><h3>{% trans "Produits" %}</h3><p>{{ synthese.produits|floatformat:0 }} {{ devise_monnaie }}</p></div>
-            </div>
-        </section>
-        <section class="cg-section">
-            <h2>{% trans "Balance" %}</h2>
-            <div class="table-responsive">
-                <table class="cg-table">
-                    <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Compte" %}</th><th>{% trans "Débit" %}</th><th>{% trans "Crédit" %}</th><th>{% trans "Solde" %}</th></tr></thead>
-                    <tbody>
-                        {% for row in synthese.rows %}
-                        {% if row.debit or row.credit %}
-                        <tr>
-                            <td>{{ row.compte.numero }}</td>
-                            <td>{{ row.compte.libelle }}</td>
-                            <td>{{ row.debit }}</td>
-                            <td>{{ row.credit }}</td>
-                            <td>{{ row.solde }}</td>
-                        </tr>
-                        {% endif %}
-                        {% empty %}
-                        <tr><td colspan="5">{% trans "Aucune écriture." %}</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
+{% block title %}{% trans "États financiers" %}{% endblock %}
+{% block icon %}fa-chart-pie{% endblock %}
+{% block tone %}violet{% endblock %}
+{% block heading %}{% trans "États financiers" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "Compte de résultat et bilan SYSCOHADA, calculés en direct depuis les écritures." %}</p>{% endblock %}
+{% block actions %}
+  <a class="cg3-btn" href="?export=csv"><i class="fas fa-file-csv" aria-hidden="true"></i>{% trans "Exporter" %}</a>
+  <button type="button" class="cg3-btn" onclick="window.print()"><i class="fas fa-print" aria-hidden="true"></i>{% trans "Imprimer" %}</button>
+{% endblock %}
+
+{% block content %}
+  {# ---------- Synthèse ---------- #}
+  <section class="cg3-result" aria-label="{% trans 'Synthèse' %}">
+    <div>
+      <p class="cg3-result__label">{% trans "Résultat net de l’exercice" %} {{ exercice.libelle }}</p>
+      <p class="cg3-result__big {% if cr.resultat < 0 %}is-neg{% else %}is-pos{% endif %}">{{ cr.resultat|floatformat:"0g" }} {{ devise_monnaie }}</p>
     </div>
-    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
-</body>
-</html>
+    <span class="cg3-result__sep" aria-hidden="true"></span>
+    <div class="cg3-result__item"><b>{{ cr.total_produits|floatformat:"0g" }}</b><small>{% trans "Produits" %}</small></div>
+    <div class="cg3-result__item"><b>{{ cr.total_charges|floatformat:"0g" }}</b><small>{% trans "Charges" %}</small></div>
+    <div class="cg3-result__item"><b>{{ cr.resultat_exploitation|floatformat:"0g" }}</b><small>{% trans "Résultat d’exploitation" %}</small></div>
+    <div class="cg3-result__item"><b>{{ cr.resultat_financier|floatformat:"0g" }}</b><small>{% trans "Résultat financier" %}</small></div>
+    <span class="cg3-result__sep" aria-hidden="true"></span>
+    <div class="cg3-result__item"><b>{{ bilan.total_actif|floatformat:"0g" }}</b><small>{% trans "Total du bilan" %}</small></div>
+    <div class="cg3-result__item"><b class="{% if bilan.equilibre %}is-pos{% else %}is-neg{% endif %}">{% if bilan.equilibre %}{% trans "Équilibré" %}{% else %}{% trans "Écart" %}{% endif %}</b><small>{% trans "Actif = passif" %}</small></div>
+  </section>
+
+  <nav class="cg3-tabs" aria-label="{% trans 'États' %}">
+    <a class="cg3-tab{% if onglet != 'bilan' and onglet != 'indicateurs' %} is-active{% endif %}" href="?vue=resultat"><i class="fas fa-chart-column" aria-hidden="true"></i>{% trans "Compte de résultat" %}</a>
+    <a class="cg3-tab{% if onglet == 'bilan' %} is-active{% endif %}" href="?vue=bilan"><i class="fas fa-landmark" aria-hidden="true"></i>{% trans "Bilan" %}</a>
+    <a class="cg3-tab{% if onglet == 'indicateurs' %} is-active{% endif %}" href="?vue=indicateurs"><i class="fas fa-gauge" aria-hidden="true"></i>{% trans "Analyse financière" %}</a>
+  </nav>
+
+  {% if onglet == 'bilan' %}
+  {# ---------- Bilan ---------- #}
+  {% with r=bilan.rubriques %}
+  <section class="axd-card cg3-block">
+    <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Bilan au" %} {% if exercice.date_fin < aujourdhui %}{{ exercice.date_fin|date:"d/m/Y" }}{% else %}{{ aujourdhui|date:"d/m/Y" }}{% endif %}</h2><p class="axd-card__sub">{% trans "Ce que l’établissement possède (actif) et comment c’est financé (passif). Cliquez une rubrique pour voir les comptes." %}</p></div></header>
+    <div class="cg3-statement">
+      <div class="cg3-statement__col cg3-statement__col--actif">
+        <h3><span>{% trans "Actif" %}</span><b>{{ bilan.total_actif|floatformat:"0g" }}</b></h3>
+        <ul class="cg3-lines">
+          <li class="cg3-line cg3-line--total"><span>{% trans "Actif immobilisé net" %}</span><b>{{ bilan.actif_immo_net|floatformat:"0g" }}</b></li>
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.immo_brut %}
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.amort %}
+          <li class="cg3-line cg3-line--total"><span>{% trans "Actif circulant" %}</span><b>{{ bilan.actif_circulant|floatformat:"0g" }}</b></li>
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.stocks %}
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.clients %}
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.autres_creances %}
+          <li class="cg3-line cg3-line--total"><span>{% trans "Trésorerie — actif" %}</span><b>{{ bilan.tresorerie_actif|floatformat:"0g" }}</b></li>
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.treso_actif %}
+          <li class="cg3-line cg3-line--grand"><span>{% trans "Total actif" %}</span><b>{{ bilan.total_actif|floatformat:"0g" }}</b></li>
+        </ul>
+      </div>
+      <div class="cg3-statement__col cg3-statement__col--passif">
+        <h3><span>{% trans "Passif" %}</span><b>{{ bilan.total_passif|floatformat:"0g" }}</b></h3>
+        <ul class="cg3-lines">
+          <li class="cg3-line cg3-line--total"><span>{% trans "Capitaux propres" %}</span><b>{{ bilan.capitaux_propres|floatformat:"0g" }}</b></li>
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.capitaux %}
+          <li class="cg3-line cg3-line--sub"><span>{% trans "Résultat net de l’exercice" %}</span><b class="{% if bilan.resultat < 0 %}is-neg{% endif %}">{{ bilan.resultat|floatformat:"0g" }}</b></li>
+          <li class="cg3-line cg3-line--total"><span>{% trans "Dettes financières" %}</span><b>{{ bilan.dettes_financieres|floatformat:"0g" }}</b></li>
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.dettes_fin %}
+          <li class="cg3-line cg3-line--total"><span>{% trans "Passif circulant" %}</span><b>{{ bilan.passif_circulant|floatformat:"0g" }}</b></li>
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.fournisseurs %}
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.fiscal_social %}
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.autres_dettes %}
+          <li class="cg3-line cg3-line--total"><span>{% trans "Trésorerie — passif" %}</span><b>{{ bilan.tresorerie_passif|floatformat:"0g" }}</b></li>
+          {% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=r.treso_passif %}
+          <li class="cg3-line cg3-line--grand"><span>{% trans "Total passif" %}</span><b>{{ bilan.total_passif|floatformat:"0g" }}</b></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  <section class="axd-grid">
+    <article class="axd-card axd-span-12">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Structure du bilan" %}</h2><p class="axd-card__sub">{% trans "Les deux barres ont la même longueur quand le bilan est équilibré" %}</p></div></header>
+      <div class="cg3-chart cg3-chart--sm"><canvas id="cg3-chart-bilan" role="img" aria-label="{% trans 'Structure de l’actif et du passif' %}"></canvas></div>
+    </article>
+  </section>
+  {% endwith %}
+
+  {% elif onglet == 'indicateurs' %}
+  {# ---------- Analyse financière ---------- #}
+  <section class="cg3-kpis">
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Fonds de roulement" %}</p><span class="cg3-kpi__icon ax-tone-blue"><i class="fas fa-shield-halved" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value {% if bilan.fonds_roulement < 0 %}is-neg{% endif %}">{{ bilan.fonds_roulement|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p>
+      <p class="cg3-kpi__caption">{% trans "Ressources stables − actif immobilisé" %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Besoin en fonds de roulement" %}</p><span class="cg3-kpi__icon ax-tone-orange"><i class="fas fa-arrows-rotate" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{{ bilan.bfr|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p>
+      <p class="cg3-kpi__caption">{% trans "Créances − dettes à court terme" %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Trésorerie nette" %}</p><span class="cg3-kpi__icon ax-tone-teal"><i class="fas fa-vault" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value {% if bilan.tresorerie_nette < 0 %}is-neg{% endif %}">{{ bilan.tresorerie_nette|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p>
+      <p class="cg3-kpi__caption">{% trans "FR − BFR = trésorerie" %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Marge nette" %}</p><span class="cg3-kpi__icon ax-tone-violet"><i class="fas fa-percent" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value {% if cr.marge_pct != None and cr.marge_pct < 0 %}is-neg{% endif %}">{% if cr.marge_pct != None %}{{ cr.marge_pct }}<small>%</small>{% else %}—{% endif %}</p>
+      <p class="cg3-kpi__caption">{% trans "Résultat ÷ produits" %}</p>
+    </article>
+  </section>
+  <section class="axd-grid">
+    <article class="axd-card axd-span-6">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Résultat cumulé" %}</h2><p class="axd-card__sub">{% trans "Produits moins charges depuis le début de l’exercice" %}</p></div></header>
+      <div class="cg3-chart"><canvas id="cg3-chart-resultat" role="img" aria-label="{% trans 'Résultat cumulé par mois' %}"></canvas></div>
+    </article>
+    <article class="axd-card axd-span-6">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Trésorerie de fin de mois" %}</h2><p class="axd-card__sub">{% trans "Solde des comptes de classe 5" %}</p></div></header>
+      <div class="cg3-chart"><canvas id="cg3-chart-treso" role="img" aria-label="{% trans 'Trésorerie de fin de mois' %}"></canvas></div>
+    </article>
+  </section>
+  <section class="axd-card cg3-block">
+    <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Lecture rapide" %}</h2></div></header>
+    <ul class="cg3-checks">
+      <li class="{% if bilan.fonds_roulement >= 0 %}is-ok{% else %}is-ko{% endif %}"><i class="fas {% if bilan.fonds_roulement >= 0 %}fa-circle-check{% else %}fa-triangle-exclamation{% endif %}" aria-hidden="true"></i><div><strong>{% trans "Financement des investissements" %}</strong><small>{% if bilan.fonds_roulement >= 0 %}{% trans "Les biens durables sont financés par des ressources stables (capitaux, emprunts)." %}{% else %}{% trans "Des biens durables sont financés par des dettes à court terme : risque de tension de trésorerie." %}{% endif %}</small></div></li>
+      <li class="{% if bilan.tresorerie_nette >= 0 %}is-ok{% else %}is-ko{% endif %}"><i class="fas {% if bilan.tresorerie_nette >= 0 %}fa-circle-check{% else %}fa-triangle-exclamation{% endif %}" aria-hidden="true"></i><div><strong>{% trans "Trésorerie" %}</strong><small>{% if bilan.tresorerie_nette >= 0 %}{% trans "La trésorerie nette est positive." %}{% else %}{% trans "La trésorerie nette est négative : surveiller les découverts." %}{% endif %}</small></div></li>
+      <li class="{% if cr.resultat >= 0 %}is-ok{% else %}is-ko{% endif %}"><i class="fas {% if cr.resultat >= 0 %}fa-circle-check{% else %}fa-triangle-exclamation{% endif %}" aria-hidden="true"></i><div><strong>{% trans "Rentabilité" %}</strong><small>{% if cr.resultat >= 0 %}{% trans "Les produits couvrent les charges de l’exercice." %}{% else %}{% trans "Les charges dépassent les produits sur l’exercice." %}{% endif %}</small></div></li>
+    </ul>
+  </section>
+
+  {% else %}
+  {# ---------- Compte de résultat ---------- #}
+  <section class="axd-grid">
+    <article class="axd-card axd-span-12">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Produits et charges par mois" %}</h2><p class="axd-card__sub">{% trans "Mouvements des classes 7 et 6" %}</p></div></header>
+      <div class="cg3-chart"><canvas id="cg3-chart-mensuel" role="img" aria-label="{% trans 'Produits et charges par mois' %}"></canvas></div>
+      <ul class="cg3-legend"><li><i class="cg3-sw cg3-sw--s1"></i>{% trans "Produits" %}</li><li><i class="cg3-sw cg3-sw--s2"></i>{% trans "Charges" %}</li></ul>
+    </article>
+  </section>
+  <section class="axd-card cg3-block">
+    <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Compte de résultat" %} {{ exercice.libelle }}</h2><p class="axd-card__sub">{% trans "Cliquez une rubrique pour voir le détail par compte." %}</p></div></header>
+    <div class="cg3-statement">
+      <div class="cg3-statement__col cg3-statement__col--produits">
+        <h3><span>{% trans "Produits" %}</span><b>{{ cr.total_produits|floatformat:"0g" }}</b></h3>
+        <ul class="cg3-lines">
+          {% for b in cr.produits %}{% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=b %}{% empty %}<li class="cg3-line muted">{% trans "Aucun produit" %}</li>{% endfor %}
+          <li class="cg3-line cg3-line--grand"><span>{% trans "Total des produits" %}</span><b>{{ cr.total_produits|floatformat:"0g" }}</b></li>
+        </ul>
+      </div>
+      <div class="cg3-statement__col cg3-statement__col--charges">
+        <h3><span>{% trans "Charges" %}</span><b>{{ cr.total_charges|floatformat:"0g" }}</b></h3>
+        <ul class="cg3-lines">
+          {% for b in cr.charges %}{% include 'school_admin/directeur/comptabilite_generale/partials/_rubrique.html' with rub=b %}{% empty %}<li class="cg3-line muted">{% trans "Aucune charge" %}</li>{% endfor %}
+          <li class="cg3-line cg3-line--grand"><span>{% trans "Total des charges" %}</span><b>{{ cr.total_charges|floatformat:"0g" }}</b></li>
+        </ul>
+      </div>
+    </div>
+    <ul class="cg3-lines cg3-lines--result">
+      <li class="cg3-line cg3-line--total"><span>{% trans "Résultat d’exploitation" %}</span><b class="{% if cr.resultat_exploitation < 0 %}is-neg{% endif %}">{{ cr.resultat_exploitation|floatformat:"0g" }}</b></li>
+      <li class="cg3-line cg3-line--total"><span>{% trans "Résultat financier" %}</span><b class="{% if cr.resultat_financier < 0 %}is-neg{% endif %}">{{ cr.resultat_financier|floatformat:"0g" }}</b></li>
+      <li class="cg3-line cg3-line--grand"><span>{% trans "Résultat net" %} ({% if cr.resultat >= 0 %}{% trans "bénéfice" %}{% else %}{% trans "perte" %}{% endif %})</span><b>{{ cr.resultat|floatformat:"0g" }} {{ devise_monnaie }}</b></li>
+    </ul>
+  </section>
+  {% endif %}
+{% endblock %}
+
+{% block data %}{{ charts|json_script:"cg3-data" }}{% endblock %}
+{% block scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="{% static 'school_admin/js/directeur/cg_v3.js' %}?v=1.0.0"></script>
+{% endblock %}

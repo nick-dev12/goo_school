@@ -98,13 +98,20 @@ def openai_tools_to_gemini(tools_schema=None):
     return [types.Tool(function_declarations=declarations)]
 
 
+_native_clients = {}
+
+
 def _get_native_client():
+    """Client google-genai partagé : la construction coûte ~0,85 s et ouvre une connexion TLS à froid."""
     from google import genai
 
     api_key = getattr(settings, 'GEMINI_API_KEY', '') or ''
     if not api_key:
         raise RuntimeError('Clé API Gemini manquante. Configurez GEMINI_API_KEY.')
-    return genai.Client(api_key=api_key)
+    client = _native_clients.get(api_key)
+    if client is None:
+        client = _native_clients[api_key] = genai.Client(api_key=api_key)
+    return client
 
 
 def get_cache_stats():

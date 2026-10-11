@@ -1,0 +1,8 @@
+{% load i18n %}
+<div class="dbd-ui-empty" role="status">
+  <i class="fas fa-inbox" aria-hidden="true"></i>
+  <p>{{ message|default:_("Aucune donnée disponible pour cette période.") }}</p>
+  {% if cta_url and cta_label %}
+  <a href="{{ cta_url }}" class="dbd-abs-btn primary">{{ cta_label }}</a>
+  {% endif %}
+</div>

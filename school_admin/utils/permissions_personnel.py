@@ -194,6 +194,11 @@ PERMISSIONS_DISPONIBLES = {
         'description': 'Accès aux bilans comptables (annuels et par classe)',
         'category': 'Comptabilité'
     },
+    'pointage_controle': {
+        'label': 'Contrôler le pointage des enseignants',
+        'description': 'Voir les cours du jour, afficher la borne QR et valider ou refuser les séances à vérifier',
+        'category': 'Enseignants'
+    },
     'comptabilite_scan_qr': {
         'label': 'Voir la comptabilité via scan QR',
         'description': 'Accès aux informations de comptabilité lors du scan du QR code d\'un élève',
@@ -205,6 +210,7 @@ PERMISSIONS_DISPONIBLES = {
 PERMISSIONS_PAR_FONCTION = {
     # Direction
     'directeur_adjoint_primaire': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail', 'eleves_modifier', 'eleves_inscrire', 'eleves_transferer',
         'notes_liste', 'notes_detail', 'notes_justifications_voir',
         'presences_liste', 'presences_detail',
@@ -214,6 +220,7 @@ PERMISSIONS_PAR_FONCTION = {
         'personnel_liste', 'personnel_detail',
     ],
     'principal_adjoint': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail', 'eleves_modifier', 'eleves_transferer',
         'notes_liste', 'notes_detail', 'notes_justifications_voir',
         'presences_liste', 'presences_detail',
@@ -223,6 +230,7 @@ PERMISSIONS_PAR_FONCTION = {
         'personnel_liste', 'personnel_detail',
     ],
     'proviseur_adjoint': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail', 'eleves_modifier', 'eleves_transferer',
         'notes_liste', 'notes_detail', 'notes_justifications_voir',
         'presences_liste', 'presences_detail',
@@ -232,6 +240,7 @@ PERMISSIONS_PAR_FONCTION = {
         'personnel_liste', 'personnel_detail',
     ],
     'directeur_principal': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail', 'eleves_modifier', 'eleves_inscrire', 'eleves_transferer', 'eleves_reinscrire',
         'notes_liste', 'notes_detail', 'notes_justifications_voir', 'bulletins_voir',
         'presences_liste', 'presences_detail',
@@ -242,6 +251,7 @@ PERMISSIONS_PAR_FONCTION = {
         'config_voir', 'administrative_voir', 'annonces_voir', 'examens_voir',
     ],
     'directeur_section_primaire': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail', 'eleves_modifier', 'eleves_inscrire', 'eleves_transferer', 'eleves_reinscrire',
         'notes_liste', 'notes_detail', 'bulletins_voir',
         'presences_liste', 'presences_detail',
@@ -250,6 +260,7 @@ PERMISSIONS_PAR_FONCTION = {
         'professeurs_liste', 'professeurs_detail',
     ],
     'principal_section_college': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail', 'eleves_modifier', 'eleves_transferer',
         'notes_liste', 'notes_detail',
         'presences_liste', 'presences_detail',
@@ -258,6 +269,7 @@ PERMISSIONS_PAR_FONCTION = {
         'professeurs_liste', 'professeurs_detail',
     ],
     'proviseur_section_lycee': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail', 'eleves_modifier', 'eleves_transferer',
         'notes_liste', 'notes_detail',
         'presences_liste', 'presences_detail',
@@ -268,6 +280,7 @@ PERMISSIONS_PAR_FONCTION = {
     
     # Censeurs
     'censeur': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail',
         'notes_liste', 'notes_detail', 'notes_justifications_voir',
         'presences_liste', 'presences_detail',
@@ -276,6 +289,7 @@ PERMISSIONS_PAR_FONCTION = {
         'professeurs_liste', 'professeurs_detail',
     ],
     'censeur_etudes': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail',
         'notes_liste', 'notes_detail', 'notes_justifications_voir',
         'presences_liste', 'presences_detail',
@@ -284,6 +298,7 @@ PERMISSIONS_PAR_FONCTION = {
         'professeurs_liste', 'professeurs_detail',
     ],
     'censeur_adjoint': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail',
         'notes_liste', 'notes_detail',
         'presences_liste', 'presences_detail',
@@ -291,6 +306,7 @@ PERMISSIONS_PAR_FONCTION = {
         'classes_liste', 'classes_detail',
     ],
     'censeur_premier_cycle': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail',
         'notes_liste', 'notes_detail',
         'presences_liste', 'presences_detail',
@@ -298,6 +314,7 @@ PERMISSIONS_PAR_FONCTION = {
         'classes_liste', 'classes_detail',
     ],
     'censeur_second_cycle': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail',
         'notes_liste', 'notes_detail',
         'presences_liste', 'presences_detail',
@@ -305,6 +322,7 @@ PERMISSIONS_PAR_FONCTION = {
         'classes_liste', 'classes_detail',
     ],
     'censeur_pedagogie': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail',
         'notes_liste', 'notes_detail',
         'presences_liste', 'presences_detail',
@@ -312,6 +330,7 @@ PERMISSIONS_PAR_FONCTION = {
         'professeurs_liste', 'professeurs_detail',
     ],
     'censeur_vie_scolaire': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail',
         'presences_liste', 'presences_detail',
         'sanctions_liste', 'sanctions_detail', 'sanctions_creer', 'sanctions_modifier',
@@ -344,12 +363,14 @@ PERMISSIONS_PAR_FONCTION = {
     
     # Surveillants
     'surveillant_general': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail',
         'presences_liste', 'presences_detail',
         'sanctions_liste', 'sanctions_detail', 'sanctions_creer',
         'classes_liste', 'classes_detail',
     ],
     'surveillant': [
+        'pointage_controle',
         'eleves_liste', 'eleves_detail',
         'presences_liste', 'presences_detail',
         'sanctions_liste', 'sanctions_detail', 'sanctions_creer',

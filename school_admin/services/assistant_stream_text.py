@@ -197,6 +197,9 @@ DEFAULT_MIN_TTS_CLAUSE_CHARS = 120
 
 SENTENCE_BOUNDARY_RE = re.compile(r'(.+?(?:[.!?…]|\n)+)\s*', re.DOTALL)
 CLAUSE_BOUNDARY_RE = re.compile(r'(.{120,}?[,;:])\s+')
+# Premier segment du tour : coupé plus tôt pour que la voix démarre vite.
+FIRST_CLAUSE_MIN_CHARS = 40
+FIRST_CLAUSE_BOUNDARY_RE = re.compile(r'(.{40,}?[,;:])\s+')
 
 
 class SpokenSentenceBuffer:
@@ -206,19 +209,24 @@ class SpokenSentenceBuffer:
         self,
         max_chars=DEFAULT_MAX_TTS_SEGMENT_CHARS,
         min_clause=DEFAULT_MIN_TTS_CLAUSE_CHARS,
+        quick_first=False,
     ):
         self.buffer = ''
         self.max_chars = max_chars
         self.min_clause = min_clause
+        self._quick_first = quick_first
 
     def feed(self, delta: str) -> list[str]:
         self.buffer += delta or ''
         sentences: list[str] = []
         while True:
             match = SENTENCE_BOUNDARY_RE.match(self.buffer)
+            if not match and self._quick_first and len(self.buffer) >= FIRST_CLAUSE_MIN_CHARS:
+                match = FIRST_CLAUSE_BOUNDARY_RE.match(self.buffer)
             if not match and len(self.buffer) >= self.min_clause:
                 match = CLAUSE_BOUNDARY_RE.match(self.buffer)
             if match:
+                self._quick_first = False
                 sentence = match.group(1).strip()
                 self.buffer = self.buffer[match.end():]
                 if sentence:

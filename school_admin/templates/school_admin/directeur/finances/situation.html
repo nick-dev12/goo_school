@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Finances" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    {% include 'school_admin/directeur/finances/partials/fin_assets_head.html' %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="cg-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container cg-page">
+        {% include 'school_admin/partials/messages.html' %}
+        {% include 'school_admin/directeur/finances/partials/fin_nav.html' %}
+        <header class="cg-hero">
+            <a href="{% url 'directeur:gestion_etablissement' %}" class="cg-hero-back" aria-label="{% trans 'Retour à la gestion de l\'établissement' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+            <div class="cg-hero-main">
+                <h1 class="cg-hero-title"><i class="fas fa-wallet"></i> {% trans "Situation" %}</h1>
+                <p class="cg-hero-sub">{{ bornes.label }} · {% trans "Régime" %} {{ regime }} · {% trans "Aucune saisie ici." %}</p>
+            </div>
+        </header>
+        {% include 'school_admin/directeur/finances/partials/fin_filters.html' %}
+        <div class="fin-kpis">
+            <article class="fin-kpi fin-kpi--entree" title="{{ indicateurs.encaisse.definition }}">
+                <span class="fin-kpi-num">{{ indicateurs.encaisse.valeur|floatformat:0 }} {{ devise_monnaie }}</span>
+                <span class="fin-kpi-lbl">{% trans "Entrées" %}</span>
+                <span class="fin-kpi-def">{{ indicateurs.encaisse.definition }}</span>
+            </article>
+            <article class="fin-kpi fin-kpi--sortie" title="{{ indicateurs.paye.definition }}">
+                <span class="fin-kpi-num">{{ indicateurs.paye.valeur|floatformat:0 }} {{ devise_monnaie }}</span>
+                <span class="fin-kpi-lbl">{% trans "Sorties" %}</span>
+                <span class="fin-kpi-def">{{ indicateurs.paye.definition }}</span>
+            </article>
+            <article class="fin-kpi {% if indicateurs.resultat.valeur >= 0 %}fin-kpi--resultat-pos{% else %}fin-kpi--resultat-neg{% endif %}" title="{{ indicateurs.resultat.definition }}">
+                <span class="fin-kpi-num">{{ indicateurs.resultat.valeur|floatformat:0 }} {{ devise_monnaie }}</span>
+                <span class="fin-kpi-lbl">{% trans "Résultat" %}</span>
+                <span class="fin-kpi-def">{{ indicateurs.resultat.definition }}</span>
+            </article>
+            <article class="fin-kpi fin-kpi--dispo" title="{{ indicateurs.disponible.definition }}">
+                <span class="fin-kpi-num">{{ indicateurs.disponible.valeur|floatformat:0 }} {{ devise_monnaie }}</span>
+                <span class="fin-kpi-lbl">{% trans "Disponible" %}</span>
+                <span class="fin-kpi-def">{{ indicateurs.disponible.definition }}</span>
+            </article>
+        </div>
+        <div class="cg-mini-row">
+            <article class="cg-mini cg-mini--warn" title="{{ indicateurs.creances.definition }}"><span class="cg-mini-num">{{ indicateurs.creances.valeur|floatformat:0 }}</span><span class="cg-mini-lbl">{% trans "Créances" %} ({{ devise_monnaie }})</span></article>
+            <article class="cg-mini cg-mini--warn" title="{{ indicateurs.engagements.definition }}"><span class="cg-mini-num">{{ indicateurs.engagements.valeur|floatformat:0 }}</span><span class="cg-mini-lbl">{% trans "Reste des charges" %}</span></article>
+            <article class="cg-mini cg-mini--dette" title="{{ indicateurs.dettes.definition }}"><span class="cg-mini-num">{{ indicateurs.dettes.valeur|floatformat:0 }}</span><span class="cg-mini-lbl">{% trans "Dettes" %}</span></article>
+            <article class="cg-mini"><span class="cg-mini-num">{{ subventions.equipement|floatformat:0 }}</span><span class="cg-mini-lbl">{% trans "Équipement (destination)" %}</span></article>
+        </div>
+        {% if subventions.lignes %}
+        <section class="cg-section">
+            <h2>{% trans "Subventions à côté du résultat" %}</h2>
+            <p class="cg-form-help">{% trans "La destination n'est pas retirée du résultat. Seul un compte hors classe 7 sort du total." %}</p>
+            <div class="table-responsive">
+                <table class="cg-table">
+                    <thead><tr><th>{% trans "Destination" %}</th><th>{% trans "Net" %}</th><th>{% trans "Dans le résultat" %}</th><th>{% trans "Hors classe 7" %}</th></tr></thead>
+                    <tbody>
+                        {% for ligne in subventions.lignes %}
+                        <tr>
+                            <td>{{ ligne.label }}</td>
+                            <td>{{ ligne.net|floatformat:0 }} {{ devise_monnaie }}</td>
+                            <td>{{ ligne.dans_resultat|floatformat:0 }} {{ devise_monnaie }}</td>
+                            <td>{{ ligne.hors_resultat|floatformat:0 }} {{ devise_monnaie }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
+        <section class="cg-section">
+            <h2>{% trans "Trois dernières opérations" %}</h2>
+            <ul class="fin-ops">
+                {% for op in operations %}
+                <li>
+                    <span>
+                        <span class="fin-dot fin-dot--{{ op.sens }}"></span>
+                        {{ op.date|date:"d/m/Y" }} — {{ op.libelle }}
+                        {% if op.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulée" %}</span>{% endif %}
+                    </span>
+                    <strong>{{ op.montant|floatformat:0 }} {{ devise_monnaie }}</strong>
+                </li>
+                {% empty %}
+                <li>{% trans "Aucune opération sur ce mois." %}</li>
+                {% endfor %}
+            </ul>
+        </section>
+    </div>
+    {% include 'school_admin/directeur/finances/partials/fin_assets_scripts.html' %}
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

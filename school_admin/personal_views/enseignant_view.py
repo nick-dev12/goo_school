@@ -665,7 +665,12 @@ def dashboard_enseignant(request):
         'evaluations_data': evaluations_data,
     }
     
-    return render(request, 'school_admin/enseignant/dashboard_enseignant.html', context)
+    from ..services.dashboard.teacher import build_teacher_dashboard
+
+    context['tdash'] = build_teacher_dashboard(
+        professeur, annee_scolaire_active, date_debut, is_primaire=False,
+    )
+    return render(request, 'school_admin/enseignant/dashboard_v3.html', context)
 
 
 def gestion_classes_enseignant(request):
@@ -2913,225 +2918,154 @@ def eleves_en_difficulte_enseignant(request):
 
 def noter_examen_enseignant(request, classe_id, session_id=None):
     """
-    Page pour noter les élèves d'une classe pour un examen spécifique
-    Gère les onglets par période et les sous-onglets par session
+    Saisie des notes d'examen d'une classe : onglets par période, puis par session et par matière.
+    Seules les matières affectées à l'enseignant dans la classe sont proposées ; la note est
+    contrôlée par rapport au barème ; l'absence peut être justifiée (neutralisée) ou non (règle
+    de l'établissement) ; au rattrapage, seuls les élèves n'ayant pas validé la matière apparaissent.
     """
-    logger.info(f"Noter examen - User: {request.user}, Classe ID: {classe_id}, Session ID: {session_id}")
-    
     if not isinstance(request.user, Professeur):
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
-    
-    professeur = request.user
-    from ..model.eleve_model import Eleve
+
+    from collections import defaultdict
+    from django.shortcuts import get_object_or_404
+    from django.urls import reverse
     from ..model.classe_model import Classe
-    from ..model.session_examen_model import SessionExamen
     from ..model.note_examen_model import NoteExamen
     from ..model.periode_model import PeriodeScolaire
-    from django.shortcuts import get_object_or_404
-    from django.db import transaction
-    from django.utils import timezone
-    from decimal import Decimal
-    from collections import defaultdict
-    
-    # Vérifier que la classe existe
-    classe = get_object_or_404(Classe, id=classe_id, etablissement=professeur.etablissement)
-    
-    # Récupérer toutes les périodes scolaires
-    periodes_scolaires = PeriodeScolaire.objects.filter(
-        etablissement=professeur.etablissement,
-        est_active=True
-    ).order_by('date_debut')
-    
-    # Récupérer toutes les sessions d'examen pour cette classe et cette matière
-    toutes_sessions = SessionExamen.objects.filter(
-        etablissement=professeur.etablissement,
-        classes=classe,
-        matieres=professeur.matiere_principale,
-        actif=True
-    ).select_related('periode').order_by('-date_debut')
-    
-    # Organiser les sessions par période
-    sessions_par_periode = defaultdict(list)
-    for session in toutes_sessions:
-        sessions_par_periode[session.periode.id].append(session)
-    
-    # Déterminer la période et session actives
-    periode_id = request.GET.get('periode')
-    if not periode_id and toutes_sessions.exists():
-        # Par défaut, sélectionner la période de la première session
-        periode_id = str(toutes_sessions.first().periode.id)
-    
-    periode_active = None
-    if periode_id:
-        try:
-            periode_active = periodes_scolaires.get(id=periode_id)
-        except PeriodeScolaire.DoesNotExist:
-            pass
-    
-    # Si session_id n'est pas fourni, prendre la première session de la période active
-    if not session_id and periode_active and periode_active.id in sessions_par_periode:
-        session_examen = sessions_par_periode[periode_active.id][0]
-    elif session_id:
-        session_examen = get_object_or_404(SessionExamen, id=session_id, etablissement=professeur.etablissement)
-    else:
-        # Aucune session trouvée
-        messages.warning(request, "Aucune session d'examen trouvée pour cette classe.")
-        return redirect('enseignant:gestion_notes')
-    
-    # Vérifier que la matière du professeur fait partie de la session
-    if professeur.matiere_principale not in session_examen.matieres.all():
-        messages.error(request, "Votre matière ne fait pas partie de cette session d'examen.")
-        return redirect('enseignant:gestion_notes')
-    
-    # Vérifier que la classe fait partie de la session
-    if classe not in session_examen.classes.all():
-        messages.error(request, "Cette classe ne fait pas partie de cette session d'examen.")
-        return redirect('enseignant:gestion_notes')
-    
-    # Récupérer l'année scolaire active
+    from ..model.session_examen_model import SessionExamen
+    from ..services import examens as moteur_examens
     from ..utils.session_utils import get_session_active
-    annee_scolaire_active = get_session_active(request, professeur.etablissement)
-    
-    # Récupérer les élèves actifs de la classe via InscriptionEleve
-    eleves = _get_eleves_classe_par_inscription(classe, professeur.etablissement, annee_scolaire_active)
-    
-    # Barème par défaut (peut être modifié selon les besoins)
-    bareme = Decimal('20.00')
-    
-    # Fonction pour générer un commentaire automatique basé sur la note
-    def generer_commentaire_auto(note_sur_20):
-        if note_sur_20 is None:
-            return ""
-        elif note_sur_20 >= 18:
-            return "Excellent travail ! Résultats exceptionnels."
-        elif note_sur_20 >= 16:
-            return "Très bon travail ! Continue ainsi."
-        elif note_sur_20 >= 14:
-            return "Bon travail. Résultats satisfaisants."
-        elif note_sur_20 >= 12:
-            return "Travail correct. Peut mieux faire."
-        elif note_sur_20 >= 10:
-            return "Résultat moyen. Doit fournir plus d'efforts."
-        elif note_sur_20 >= 8:
-            return "Résultat fragile. Nécessite du travail supplémentaire."
-        else:
-            return "Résultat insuffisant. Besoin de soutien important."
-    
-    # Vérifier si les notes ont déjà été soumises
-    premiere_note = NoteExamen.objects.filter(
-        session_examen=session_examen,
-        matiere=professeur.matiere_principale,
-        classe=classe
-    ).first()
-    notes_soumises = premiere_note.soumis if premiere_note else False
-    
-    # Traitement du formulaire
+
+    professeur = request.user
+    etablissement = professeur.etablissement
+    classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement)
+    annee_scolaire_active = get_session_active(request, etablissement)
+    est_superieur = getattr(etablissement, 'type_etablissement', None) == 'superieur'
+
+    mes_matieres = moteur_examens.matieres_enseignant(professeur, classe, annee_scolaire_active)
+    if not mes_matieres:
+        messages.error(request, "Vous n'êtes pas affecté à cette classe : la saisie des notes d'examen n'est pas possible.")
+        return redirect('enseignant:gestion_notes')
+
+    toutes_sessions = list(SessionExamen.objects.filter(
+        etablissement=etablissement, classes=classe, matieres__in=mes_matieres, actif=True,
+    ).select_related('periode').distinct().order_by('-date_debut'))
+    if not toutes_sessions:
+        messages.warning(request, "Aucune session d'examen n'est programmée pour vos matières dans cette classe.")
+        return redirect('enseignant:gestion_notes')
+
+    sessions_par_periode = defaultdict(list)
+    for sess in toutes_sessions:
+        sessions_par_periode[sess.periode_id].append(sess)
+    periodes_scolaires = PeriodeScolaire.objects.filter(id__in=sessions_par_periode.keys()).order_by('date_debut')
+
+    if session_id:
+        session_examen = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)
+        if session_examen not in toutes_sessions:
+            messages.error(request, "Cette session ne concerne pas cette classe ou vos matières.")
+            return redirect('enseignant:gestion_notes')
+    else:
+        periode_get = request.GET.get('periode')
+        candidates = sessions_par_periode.get(int(periode_get), []) if (periode_get or '').isdigit() else []
+        session_examen = (candidates or toutes_sessions)[0]
+    periode_active = session_examen.periode
+
+    matieres_session = [m for m in mes_matieres if m in set(session_examen.matieres.all())]
+    matiere = matieres_session[0]
+    matiere_get = request.GET.get('matiere') or request.POST.get('matiere')
+    if (matiere_get or '').isdigit():
+        matiere = next((m for m in matieres_session if m.id == int(matiere_get)), matiere)
+
+    eleves = list(_get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active))
+    eligibles = None
+    if session_examen.est_rattrapage:
+        eligibles = moteur_examens.eleves_eligibles_rattrapage(session_examen, classe, matiere, eleves)
+
+    notes_qs = NoteExamen.objects.filter(session_examen=session_examen, matiere=matiere, classe=classe, actif=True)
+    notes_existantes = {n.eleve_id: n for n in notes_qs}
+    bareme = next((n.bareme for n in notes_existantes.values() if n.bareme), Decimal('20'))
+    concernes = [e for e in eleves if eligibles is None or e.id in eligibles]
+    notes_soumises = bool(concernes) and all(
+        notes_existantes.get(e.id) is not None and notes_existantes[e.id].soumis for e in concernes)
+
+    url_retour = reverse('enseignant:noter_examen_session', kwargs={'classe_id': classe.id, 'session_id': session_examen.id})
+    url_retour += f"?matiere={matiere.id}"
+
+    erreurs = []
     if request.method == 'POST':
-        action = request.POST.get('action')
-        
-        # Vérifier si les notes sont déjà soumises
-        if notes_soumises and action != 'soumettre':
-            messages.error(request, "Les notes ont déjà été soumises et ne peuvent plus être modifiées.")
-            return redirect('enseignant:noter_examen', classe_id=classe.id, session_id=session_examen.id)
-        
-        try:
-            with transaction.atomic():
-                bareme_str = request.POST.get('bareme', '20').replace(',', '.')
-                bareme_post = Decimal(bareme_str)
-                notes_enregistrees = 0
-                
-                for eleve in eleves:
-                    note_value = request.POST.get(f'note_{eleve.id}', '').strip().replace(',', '.')
-                    absent = request.POST.get(f'absent_{eleve.id}') == 'on'
-                    commentaire_perso = request.POST.get(f'commentaire_{eleve.id}', '').strip()
-                    
-                    # Récupérer ou créer la note d'examen
-                    note_examen, created = NoteExamen.objects.get_or_create(
-                        eleve=eleve,
-                        session_examen=session_examen,
-                        matiere=professeur.matiere_principale,
-                        defaults={
-                            'professeur': professeur,
-                            'classe': classe,
-                            'bareme': bareme_post,
-                            'absent': absent
-                        }
-                    )
-                    
-                    # Si déjà soumis, ne pas modifier
-                    if note_examen.soumis and action != 'soumettre':
-                        continue
-                    
-                    # Mettre à jour si elle existe déjà
-                    if not created:
-                        note_examen.professeur = professeur
-                        note_examen.classe = classe
-                        note_examen.bareme = bareme_post
-                        note_examen.absent = absent
-                    
-                    # Enregistrer la note ou marquer absent
-                    if absent:
-                        note_examen.note = None
-                        note_examen.absent = True
-                        note_examen.commentaire = commentaire_perso if commentaire_perso else "Absent à l'examen"
-                    elif note_value:
-                        note_examen.note = Decimal(note_value)
-                        note_examen.absent = False
-                        # Calculer note_sur_20 pour le commentaire
-                        note_sur_20_calc = (note_examen.note / bareme_post) * 20
-                        # Utiliser le commentaire personnalisé ou générer automatiquement
-                        note_examen.commentaire = commentaire_perso if commentaire_perso else generer_commentaire_auto(note_sur_20_calc)
-                    
-                    # Si action est "soumettre", marquer comme soumis
-                    if action == 'soumettre':
-                        note_examen.soumis = True
-                        note_examen.date_soumission = timezone.now()
-                    
-                    note_examen.save()
-                    notes_enregistrees += 1
-                
-                if action == 'soumettre':
-                    messages.success(request, f"Notes soumises avec succès ! Les notes sont maintenant verrouillées et ne peuvent plus être modifiées.")
-                else:
-                    messages.success(request, f"{notes_enregistrees} note(s) d'examen enregistrée(s) avec succès pour {classe.nom} - {professeur.matiere_principale.nom}.")
-                
-                # Rediriger vers la même page avec les paramètres de période
-                from django.urls import reverse
-                url = reverse('enseignant:noter_examen_session', kwargs={'classe_id': classe.id, 'session_id': session_examen.id})
-                if periode_active:
-                    url += f"?periode={periode_active.id}"
-                return redirect(url)
-                
-        except Exception as e:
-            messages.error(request, f"Erreur lors de l'enregistrement des notes : {str(e)}")
-    
-    # Récupérer les notes existantes
-    notes_existantes_list = NoteExamen.objects.filter(
-        session_examen=session_examen,
-        matiere=professeur.matiere_principale,
-        classe=classe,
-        actif=True
-    ).select_related('eleve')
-    
-    notes_existantes = {note.eleve.id: note for note in notes_existantes_list}
-    
+        action = request.POST.get('action', 'enregistrer')
+        if notes_soumises:
+            messages.error(request, "Les notes ont déjà été soumises : contactez la direction pour une correction.")
+            return redirect(url_retour)
+        saisies = {e.id: {
+            'note': request.POST.get(f'note_{e.id}', ''),
+            'absent': request.POST.get(f'absent_{e.id}') == 'on',
+            'justifiee': request.POST.get(f'justifiee_{e.id}') == 'on',
+            'commentaire': request.POST.get(f'commentaire_{e.id}', ''),
+        } for e in eleves}
+        nb, erreurs = moteur_examens.enregistrer_saisie(
+            session_examen, classe, matiere, professeur, eleves, saisies,
+            request.POST.get('bareme', bareme), soumettre=(action == 'soumettre'), eligibles=eligibles)
+        if not erreurs:
+            if action == 'soumettre':
+                messages.success(request, f"Notes de {matiere.nom} soumises : elles sont transmises à la direction et verrouillées.")
+            else:
+                messages.success(request, f"{nb} note(s) enregistrée(s) en brouillon pour {classe.nom} — {matiere.nom}.")
+            return redirect(url_retour)
+        # On réaffiche la saisie telle qu'envoyée pour corriger sans tout retaper.
+        for e in eleves:
+            n = notes_existantes.get(e.id) or NoteExamen(eleve=e, session_examen=session_examen, matiere=matiere)
+            sa = saisies[e.id]
+            n.saisie_brute = sa['note']
+            n.absent = sa['absent'] or (sa['note'] or '').strip().upper() == 'ABS'
+            n.absence_justifiee = sa['justifiee']
+            n.commentaire = sa['commentaire']
+            notes_existantes[e.id] = n
+
+    lignes = []
+    stats = {'saisies': 0, 'absents': 0, 'manquantes': 0, 'somme': Decimal('0')}
+    for e in eleves:
+        n = notes_existantes.get(e.id)
+        hors_rattrapage = eligibles is not None and e.id not in eligibles
+        lignes.append({'eleve': e, 'note': n, 'hors_rattrapage': hors_rattrapage})
+        if hors_rattrapage:
+            continue
+        if n is not None and n.absent:
+            stats['absents'] += 1
+        elif n is not None and n.note is not None and n.pk:
+            stats['saisies'] += 1
+            stats['somme'] += Decimal(str(n.note)) / Decimal(str(n.bareme or 20)) * 20
+        else:
+            stats['manquantes'] += 1
+    moyenne_classe = round(stats['somme'] / stats['saisies'], 2) if stats['saisies'] else None
+    regle = moteur_examens.regles(etablissement)
+
     context = {
         'professeur': professeur,
         'classe': classe,
         'session_examen': session_examen,
-        'matiere': professeur.matiere_principale,
+        'matiere': matiere,
+        'matieres_session': matieres_session,
         'eleves': eleves,
+        'lignes': lignes,
         'bareme': bareme,
         'notes_existantes': notes_existantes,
         'notes_soumises': notes_soumises,
         'periodes_scolaires': periodes_scolaires,
-        'periode_active': periode_active or session_examen.periode,
+        'periode_active': periode_active,
         'sessions_par_periode': dict(sessions_par_periode),
         'toutes_sessions': toutes_sessions,
+        'stats': stats,
+        'nb_concernes': len(concernes),
+        'moyenne_classe': moyenne_classe,
+        'regle_examen': regle,
+        'erreurs_saisie': erreurs,
+        'est_superieur': est_superieur,
     }
-    
     return render(request, 'school_admin/enseignant/noter_examen.html', context)
+
+
 def noter_eleves_enseignant(request, classe_id):
     """
     Page pour noter les élèves d'une classe
@@ -3644,7 +3578,22 @@ def noter_eleves_enseignant(request, classe_id):
                             # Enregistrer la note d'examen si une session existe
                             if session_examen_post:
                                 note_examen_value = request.POST.get(f'note_examen_{eleve.id}', '').strip()
-                                
+                                verrouillee = NoteExamen.objects.filter(
+                                    eleve=eleve, session_examen=session_examen_post,
+                                    matiere=matiere_enseignee, soumis=True).exists()
+                                if verrouillee:
+                                    note_examen_value = ''  # note soumise : verrouillée
+                                if note_examen_value.upper() == 'ABS':
+                                    # Absent à l'examen (non justifié ; la justification se fait sur la page de l'examen).
+                                    obj, _c = NoteExamen.objects.get_or_create(
+                                        eleve=eleve, session_examen=session_examen_post, matiere=matiere_enseignee,
+                                        defaults={'professeur': professeur, 'classe': classe, 'bareme': 20,
+                                                  'annee_scolaire': annee_scolaire_active})
+                                    if not obj.absent:
+                                        obj.absent, obj.note = True, None
+                                        obj.save()
+                                        notes_enregistrees += 1
+                                    note_examen_value = ''
                                 if note_examen_value:
                                     try:
                                         note_examen_decimal = Decimal(note_examen_value.replace(',', '.'))
@@ -4826,16 +4775,10 @@ def calculer_moyennes_classe(request, classe_id):
                     else:
                         notes_devoirs.append(note_data)
                 
-                # En supérieur : moyenne enregistrée = continu uniquement (sans examen).
-                if est_superieur:
-                    if notes.count() == 0:
-                        logger.warning(
-                            f"Aucune note continue pour {eleve.nom_complet} "
-                            f"(examen exclu du calcul en établissement supérieur)"
-                        )
-                        continue
-                elif notes.count() == 0 and (not note_examen or not note_examen.note):
-                    logger.warning(f"Aucune note trouvée pour {eleve.nom_complet} dans les évaluations sélectionnées")
+                # Moyenne enregistrée = contrôle continu uniquement, pour tous les types d'établissement :
+                # l'examen est combiné une seule fois, au bulletin, selon la pondération (services/examens.py).
+                if notes.count() == 0:
+                    logger.warning(f"Aucune note continue pour {eleve.nom_complet} (examen exclu de la moyenne de classe)")
                     continue
                 
                 # Nouveau calcul demandé: moyenne des meilleures notes continues,
@@ -4882,10 +4825,9 @@ def calculer_moyennes_classe(request, classe_id):
                         f"{eleve.nom_complet}: supérieur — moyenne CC seule={moyenne_calculee:.2f}/20 "
                         f"(examen exclu)"
                     )
-                elif note_examen and note_examen.note is not None:
-                    moyenne_calculee = (moyenne_continu + float(note_examen.note)) / 2
-                    logger.info(f"{eleve.nom_complet}: moyenne_continu={moyenne_continu:.2f}, examen={float(note_examen.note):.2f} -> finale={moyenne_calculee:.2f}")
                 else:
+                    if not selection_continues:
+                        continue
                     moyenne_calculee = moyenne_continu
                     logger.info(f"{eleve.nom_complet}: moyenne_continu={moyenne_continu:.2f} (pas d'examen) -> finale={moyenne_calculee:.2f}")
                 
@@ -4926,14 +4868,7 @@ def calculer_moyennes_classe(request, classe_id):
                     defaults={
                         'professeur': professeur,
                         'moyenne': Decimal(str(round(moyenne_calculee, 2))),
-                        'nombre_notes': (
-                            len(selection_continues)
-                            if est_superieur
-                            else (
-                                len(selection_continues)
-                                + (1 if (note_examen and note_examen.note is not None) else 0)
-                            )
-                        ),
+                        'nombre_notes': len(selection_continues),
                         'mode_calcul': nombre_meilleures_notes,
                         'evaluations_utilisees': evaluations_retenues_ids,
                         'details_notes': details_notes_eleve,
@@ -6693,7 +6628,19 @@ def detail_eleve_enseignant(request, eleve_id):
     
     from ..utils.prof_nav_trail import set_prof_breadcrumb_current_label
     set_prof_breadcrumb_current_label(request, eleve.nom_complet)
-    return render(request, 'school_admin/enseignant/detail_eleve.html', context)
+    # Fiche élève refondue (secondaire et supérieur) : notes des matières de l'enseignant.
+    from django.urls import reverse as _reverse
+    from ..services.fiche_eleve import construire as construire_fiche_eleve
+
+    context.update({
+        'fiche': construire_fiche_eleve(eleve, classe, etablissement, annee_scolaire_active, vue='enseignant',
+                                        professeur=professeur, matieres_prof=matieres_list),
+        'ns': 'enseignant', 'voir_notes': True, 'voir_presences': True, 'voir_sanctions': True,
+        'presence_url': _reverse('enseignant:modifier_presence', args=[0]),
+        'onglet_actif': {'informations': 'apercu', 'presences': 'assiduite', 'sanctions': 'discipline'}.get(
+            request.GET.get('onglet', 'apercu'), request.GET.get('onglet', 'apercu')),
+    })
+    return render(request, 'school_admin/fiche_eleve/enseignant.html', context)
 
 
 def modifier_presence_eleve(request, presence_id):
@@ -6720,15 +6667,22 @@ def modifier_presence_eleve(request, presence_id):
     
     # Vérifier que le professeur est affecté à cette classe
     from ..model.affectation_model import AffectationProfesseur
+    from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
     affectation = AffectationProfesseur.objects.filter(
         professeur=professeur,
         classe=presence.classe,
         actif=True
+    ).first() or AffectationProfesseurPrimaire.objects.filter(
+        professeur=professeur, classe=presence.classe, actif=True
     ).first()
-    
+    # Retour vers la fiche de l'espace d'où vient la demande (secondaire ou primaire).
+    ns = getattr(request.resolver_match, 'namespace', '') or 'enseignant'
+    if ns not in ('enseignant', 'enseignant_primaire'):
+        ns = 'enseignant'
+
     if not affectation:
         messages.error(request, "Vous n'êtes pas autorisé à modifier cette présence.")
-        return redirect('enseignant:detail_eleve', eleve_id=eleve.id)
+        return redirect(f'{ns}:detail_eleve', eleve_id=eleve.id)
     
     # Vérifier que la liste de présence n'est pas validée
     liste_presence = ListePresence.objects.filter(
@@ -6738,7 +6692,7 @@ def modifier_presence_eleve(request, presence_id):
     
     if liste_presence and liste_presence.validee:
         messages.warning(request, "Impossible de modifier une liste de présence déjà validée.")
-        return redirect('enseignant:detail_eleve', eleve_id=eleve.id)
+        return redirect(f'{ns}:detail_eleve', eleve_id=eleve.id)
     
     # Modifier le statut
     nouveau_statut = request.POST.get('statut')
@@ -6771,7 +6725,7 @@ def modifier_presence_eleve(request, presence_id):
     
     from django.http import HttpResponseRedirect
     from django.urls import reverse
-    url = reverse('enseignant:detail_eleve', kwargs={'eleve_id': eleve.id}) + '?onglet=presences'
+    url = reverse(f'{ns}:detail_eleve', kwargs={'eleve_id': eleve.id}) + '?onglet=assiduite'
     return HttpResponseRedirect(url)
 def historique_presence_eleve(request, eleve_id):
     """

@@ -190,6 +190,13 @@ class EcritureComptable(models.Model):
         help_text="paiement_eleve, depense, paie, od, virement…",
     )
     source_id = models.PositiveIntegerField(null=True, blank=True)
+    ecriture_origine = models.ForeignKey(
+        'self',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='extournes',
+    )
     validee = models.BooleanField(default=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     creee_par = models.ForeignKey(
@@ -276,6 +283,7 @@ class FactureFournisseur(models.Model):
         ('a_payer', 'À payer'),
         ('partiel', 'Partiellement payée'),
         ('payee', 'Payée'),
+        ('annulee', 'Annulée'),
     ]
 
     etablissement = models.ForeignKey(
@@ -293,7 +301,19 @@ class FactureFournisseur(models.Model):
     date_facture = models.DateField()
     date_echeance = models.DateField()
     montant = models.DecimalField(max_digits=14, decimal_places=2)
-    montant_paye = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    montant_paye = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Ancien champ. N'est plus saisi. Le payé vient des lignes PaiementCharge.",
+    )
+    categorie = models.ForeignKey(
+        'school_admin.CategorieFinanciere',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='factures',
+    )
     statut = models.CharField(max_length=12, choices=STATUT_CHOICES, default='a_payer')
 
     class Meta:
@@ -301,8 +321,30 @@ class FactureFournisseur(models.Model):
         verbose_name_plural = "Factures fournisseurs"
         ordering = ['date_echeance']
 
+    def montant_regle(self):
+        """Somme des paiements validés. Ignore l'ancien champ montant_paye."""
+        from django.db.models import Sum
+
+        total = self.paiements.filter(statut='validee').aggregate(s=Sum('montant'))['s']
+        return total or Decimal('0')
+
     def reste_a_payer(self):
-        return (self.montant or Decimal('0')) - (self.montant_paye or Decimal('0'))
+        if self.statut == 'annulee':
+            return Decimal('0')
+        reste = (self.montant or Decimal('0')) - self.montant_regle()
+        if reste < 0:
+            return Decimal('0')
+        return reste
+
+    def peut_etre_annulee(self):
+        if self.statut in ('annulee', 'payee'):
+            return False
+        return not self.paiements.filter(statut='validee').exists()
+
+    def a_montant_paye_historique(self):
+        if (self.montant_paye or Decimal('0')) <= 0:
+            return False
+        return not self.paiements.exists()
 
     def __str__(self):
         return f"{self.numero} — {self.fournisseur.nom}"
@@ -369,6 +411,32 @@ class MouvementTresorerie(models.Model):
     date_mouvement = models.DateField()
     montant = models.DecimalField(max_digits=14, decimal_places=2)
     libelle = models.CharField(max_length=200)
+    compte_source = models.ForeignKey(
+        'school_admin.CompteTresorerie',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='transferts_sortants',
+    )
+    compte_destination = models.ForeignKey(
+        'school_admin.CompteTresorerie',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='transferts_entrants',
+    )
+    reference = models.CharField(max_length=80, blank=True, default='')
+    motif = models.CharField(max_length=200, blank=True, default='')
+    statut = models.CharField(
+        max_length=12,
+        choices=[
+            ('validee', 'Validé'),
+            ('annulee', 'Annulé'),
+        ],
+        default='validee',
+    )
+    motif_annulation = models.TextField(blank=True, default='')
+    date_annulation = models.DateTimeField(null=True, blank=True)
     pointe = models.BooleanField(default=False)
     date_pointage = models.DateTimeField(null=True, blank=True)
     ecriture = models.ForeignKey(

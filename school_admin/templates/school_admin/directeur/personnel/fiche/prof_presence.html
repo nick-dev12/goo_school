@@ -1,0 +1,55 @@
+{% load i18n %}
+<div class="fe-grid">
+  <article class="fe-card fe-col-7 fe-tone-green">
+    <header class="fe-card__head">
+      <div><h2 class="fe-card__title"><i class="fas fa-money-check-dollar" aria-hidden="true"></i>{% trans "Paie du mois en cours" %}</h2>
+      <p class="fe-card__sub">{% blocktrans with d=fiche.mois|date:"F Y" %}Depuis le 1er {{ d }}, à partir des séances validées.{% endblocktrans %}</p></div>
+      <a class="cg3-btn cg3-btn--sm" href="{% url 'directeur:detail_volume_horaire' professeur.id %}"><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>{% trans "Détail" %}</a>
+    </header>
+    {% if fiche.paie %}
+    <div class="fe-money">
+      <div><span>{% trans "Heures prévues" %}</span><b>{{ fiche.paie.heures_prevues|floatformat:"-1" }} h</b></div>
+      <div><span>{% trans "Heures payables" %}</span><b>{{ fiche.paie.heures_validees|floatformat:"-1" }} h</b></div>
+      {% if fiche.paie.taux_horaire %}<div><span>{% trans "Taux horaire" %}</span><b>{{ fiche.paie.taux_horaire|floatformat:0 }} F</b></div>{% endif %}
+      {% if fiche.paie.retenue_absences %}<div><span>{% trans "Retenue absences" %}</span><b>− {{ fiche.paie.retenue_absences|floatformat:0 }} F</b></div>{% endif %}
+      {% if fiche.paie.montant_heures_sup %}<div><span>{% trans "Heures sup." %}</span><b>+ {{ fiche.paie.montant_heures_sup|floatformat:0 }} F</b></div>{% endif %}
+      <div class="is-total"><span>{% trans "Brut estimé" %}</span><b>{% if fiche.paie.brut != None %}{{ fiche.paie.brut|floatformat:0 }} FCFA{% else %}—{% endif %}</b></div>
+    </div>
+    {% if fiche.paie.brut == None %}<p class="fe-alert fe-alert--warn" style="margin-top:12px"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span>{% if professeur.type_contrat == 'permanent' %}{% trans "Salaire mensuel non défini : renseignez-le dans « Modifier »." %}{% else %}{% trans "Taux horaire non défini : renseignez-le dans « Modifier »." %}{% endif %}</span></p>{% endif %}
+    {% if fiche.paie.minutes_a_verifier %}<p class="fe-alert fe-alert--info" style="margin-top:12px"><i class="fas fa-hourglass-half" aria-hidden="true"></i><span>{% blocktrans with m=fiche.paie.minutes_a_verifier %}{{ m }} minutes en attente de vérification : elles seront payées une fois validées.{% endblocktrans %}</span></p>{% endif %}
+    {% else %}<div class="cg3-empty"><i class="fas fa-receipt" aria-hidden="true"></i><span>{% trans "Calcul indisponible pour le moment." %}</span></div>{% endif %}
+  </article>
+
+  <article class="fe-card fe-col-5 fe-tone-blue">
+    <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-qrcode" aria-hidden="true"></i>{% trans "Séances du mois" %}</h2>
+    <p class="fe-card__sub">{% if fiche.pointage_actif %}{% trans "Pointage par QR code actif." %}{% else %}{% trans "Le pointage n’est pas encore mis en service." %}{% endif %}</p></div></header>
+    <div class="fe-status">
+      <span class="cg3-chip cg3-chip--ok"><i class="fas fa-check" aria-hidden="true"></i>{{ fiche.stats_seances.validee }} {% trans "validées" %}</span>
+      {% if fiche.stats_seances.remplacee %}<span class="cg3-chip cg3-chip--ok">{{ fiche.stats_seances.remplacee }} {% trans "remplacées" %}</span>{% endif %}
+      <span class="cg3-chip {% if fiche.stats_seances.a_verifier %}cg3-chip--warn{% else %}cg3-chip--muted{% endif %}">{{ fiche.stats_seances.a_verifier }} {% trans "à vérifier" %}</span>
+      {% if fiche.stats_seances.contestee %}<span class="cg3-chip cg3-chip--warn">{{ fiche.stats_seances.contestee }} {% trans "contestées" %}</span>{% endif %}
+      <span class="cg3-chip {% if fiche.stats_seances.absente %}cg3-chip--bad{% else %}cg3-chip--muted{% endif %}">{{ fiche.stats_seances.absente }} {% trans "non faites" %}</span>
+    </div>
+    {% if fiche.assiduite != None %}
+    <p class="fe-label" style="margin-top:14px !important">{% trans "Assiduité" %} · {{ fiche.assiduite }} %</p>
+    <div class="fe-bar"><span class="{% if fiche.assiduite < 80 %}is-bad{% elif fiche.assiduite < 95 %}is-warn{% endif %}" style="width: {{ fiche.assiduite }}%"></span></div>
+    {% endif %}
+    <div class="fe-card__foot"><a class="fe-link" href="{% url 'directeur:liste_volume_horaire' %}">{% trans "Contrôle du pointage" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a></div>
+  </article>
+
+  <article class="fe-card fe-col-12">
+    <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-list-check" aria-hidden="true"></i>{% trans "Dernières séances" %}</h2></header>
+    {% if fiche.seances %}
+    <div class="fe-rows">
+      {% for s in fiche.seances %}
+      <div class="fe-row">
+        <span class="fe-row__date"><b>{{ s.date|date:"d/m" }}</b>{{ s.heure_debut|time:"H:i" }}</span>
+        <span class="fe-row__main"><strong>{{ s.classe.nom }}{% if s.matiere %} · {{ s.matiere.nom }}{% endif %}</strong>
+          <small class="fe-proofs"><i class="fas fa-qrcode {% if s.preuve_qr %}is-ok{% endif %}" title="{% trans 'QR scanné' %}"></i><i class="fas fa-clipboard-user {% if s.appel_fait %}is-ok{% endif %}" title="{% trans 'Appel fait' %}"></i><i class="fas fa-book-open {% if s.cahier_texte %}is-ok{% endif %}" title="{% trans 'Cahier rempli' %}"></i>{% if s.nb_eleves_appel %}&nbsp;{{ s.nb_eleves_appel }} {% trans "élèves" %}{% endif %}</small></span>
+        <span class="cg3-chip {% if s.statut == 'validee' or s.statut == 'remplacee' %}cg3-chip--ok{% elif s.statut == 'absente' %}cg3-chip--bad{% elif s.statut == 'a_verifier' or s.statut == 'contestee' %}cg3-chip--warn{% else %}cg3-chip--muted{% endif %}">{{ s.get_statut_display }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}<div class="cg3-empty"><i class="fas fa-qrcode" aria-hidden="true"></i><span>{% trans "Aucune séance pointée pour l’instant." %}</span></div>{% endif %}
+  </article>
+</div>

@@ -1,0 +1,121 @@
+{% extends 'school_admin/directeur/comptabilite_generale/_base.html' %}
+{% load static i18n %}
+{% block title %}{% trans "Immobilisations" %}{% endblock %}
+{% block icon %}fa-building{% endblock %}
+{% block tone %}slate{% endblock %}
+{% block heading %}{% trans "Immobilisations et amortissements" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "Bâtiments, bus, ordinateurs, mobilier : leur valeur et leur usure année après année (amortissement linéaire)." %}</p>{% endblock %}
+{% block actions %}
+  {% if exercice.statut == 'ouvert' and biens %}
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="amortir_tout"><button type="submit" class="cg3-btn"><i class="fas fa-calculator" aria-hidden="true"></i>{% trans "Passer toutes les dotations" %} {{ exercice.libelle }}</button></form>
+  {% endif %}
+  <button type="button" class="cg3-btn cg3-btn--primary" data-cg3-open="cg3-modal-immo"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Nouveau bien" %}</button>
+{% endblock %}
+
+{% block content %}
+  <section class="cg3-kpis">
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Valeur d’acquisition" %}</p><span class="cg3-kpi__icon ax-tone-blue"><i class="fas fa-building" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{{ total.brut|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p>
+      <p class="cg3-kpi__caption">{% blocktrans count n=biens|length %}{{ n }} bien{% plural %}{{ n }} biens{% endblocktrans %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Amortissements cumulés" %}</p><span class="cg3-kpi__icon ax-tone-orange"><i class="fas fa-arrow-trend-down" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{{ total.amort|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p>
+      <p class="cg3-kpi__caption">{% trans "Comptabilisés (comptes 28)" %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Valeur nette comptable" %}</p><span class="cg3-kpi__icon ax-tone-teal"><i class="fas fa-scale-balanced" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{{ total.vnc|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p>
+      {% if total.brut %}<div class="cg3-kpi__bar" role="img" aria-label="{% trans 'Part restant à amortir' %}"><span style="width: {% widthratio total.vnc total.brut 100 %}%"></span></div>{% endif %}
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Dotation" %} {{ exercice.libelle }}</p><span class="cg3-kpi__icon ax-tone-violet"><i class="fas fa-calculator" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{{ total.dotation|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p>
+      <p class="cg3-kpi__caption">{% trans "Charge de l’exercice (compte 681)" %}</p>
+    </article>
+  </section>
+
+  {% if biens %}
+  <section class="axd-grid">
+    <article class="axd-card axd-span-8">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Registre des immobilisations" %}</h2><p class="axd-card__sub">{% trans "Cliquez un bien pour voir son plan d’amortissement." %}</p></div></header>
+      <div class="cg3-assets">
+        {% for b in biens %}
+        <details class="cg3-asset">
+          <summary>
+            <span class="cg3-nav__icon ax-tone-{% if b.immo.categorie == 'batiment' %}blue{% elif b.immo.categorie == 'bus' %}orange{% elif b.immo.categorie == 'informatique' %}teal{% elif b.immo.categorie == 'mobilier' %}violet{% else %}slate{% endif %}"><i class="fas {% if b.immo.categorie == 'batiment' %}fa-school{% elif b.immo.categorie == 'bus' %}fa-bus{% elif b.immo.categorie == 'informatique' %}fa-laptop{% elif b.immo.categorie == 'mobilier' %}fa-chair{% else %}fa-box{% endif %}" aria-hidden="true"></i></span>
+            <span class="cg3-asset__id"><strong>{{ b.immo.libelle }}</strong><small>{{ b.immo.get_categorie_display }} · {% trans "acquis le" %} {{ b.immo.date_acquisition|date:"d/m/Y" }} · {{ b.immo.duree_annees }} {% trans "ans" %}{% if b.immo.compte_immobilisation %} · {{ b.immo.compte_immobilisation.numero }}{% endif %}</small></span>
+            <span class="cg3-asset__bar" role="img" aria-label="{{ b.pct }} % amorti"><span style="width: {{ b.pct }}%"></span></span>
+            <span class="cg3-asset__vals"><b>{{ b.vnc|floatformat:"0g" }}</b><small>{% trans "VNC" %} · {{ b.pct }} % {% trans "amorti" %}</small></span>
+          </summary>
+          <div class="cg3-asset__body">
+            <div class="cg3-asset__actions">
+              {% if not b.acquise %}<span class="cg3-chip cg3-chip--muted">{% trans "Achat non comptabilisé (bien déjà au bilan)" %}</span>{% else %}<span class="cg3-chip cg3-chip--ok">{% trans "Achat comptabilisé" %}</span>{% endif %}
+              {% if b.dotation_passee %}<span class="cg3-chip cg3-chip--ok"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Dotation" %} {{ exercice.libelle }} {% trans "passée" %}</span>
+              {% elif b.dotation and exercice.statut == 'ouvert' %}
+              <form method="post">{% csrf_token %}<input type="hidden" name="action" value="amortir"><input type="hidden" name="immo_id" value="{{ b.immo.pk }}"><button type="submit" class="cg3-btn cg3-btn--sm cg3-btn--primary"><i class="fas fa-calculator" aria-hidden="true"></i>{% trans "Passer la dotation" %} {{ exercice.libelle }} · {{ b.dotation|floatformat:"0g" }}</button></form>
+              {% endif %}
+            </div>
+            <table class="cg3-table">
+              <thead><tr><th>{% trans "Année" %}</th><th class="num">{% trans "Dotation" %}</th><th class="num">{% trans "Cumul" %}</th><th class="num">{% trans "Valeur nette" %}</th></tr></thead>
+              <tbody>
+                {% for r in b.plan %}
+                <tr{% if r.annee == exercice.date_debut.year %} class="is-subtotal"{% endif %}><td>{{ r.annee }}</td><td class="num">{{ r.dotation|floatformat:"0g" }}</td><td class="num">{{ r.cumul|floatformat:"0g" }}</td><td class="num">{{ r.vnc|floatformat:"0g" }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </details>
+        {% endfor %}
+      </div>
+    </article>
+    <aside class="axd-card axd-span-4">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Valeur nette par catégorie" %}</h2></div></header>
+      <div class="cg3-chart cg3-chart--sm"><canvas id="cg3-chart-categories" role="img" aria-label="{% trans 'Valeur nette par catégorie' %}"></canvas></div>
+      <p class="cg3-hint cg3-hint--top"><i class="fas fa-circle-info" aria-hidden="true"></i><span>{% trans "La dotation est calculée au prorata des mois la première année et datée du 31 décembre. Écriture : débit 681, crédit 2813 (bâtiments) ou 2818 (autres biens)." %}</span></p>
+    </aside>
+  </section>
+  {% else %}
+  <div class="axd-card"><div class="cg3-empty"><i class="fas fa-building" aria-hidden="true"></i><strong>{% trans "Aucun bien enregistré" %}</strong><span>{% trans "Ajoutez vos bâtiments, véhicules, ordinateurs et mobilier pour suivre leur amortissement." %}</span></div></div>
+  {% endif %}
+
+  <div class="cg3-modal" id="cg3-modal-immo" role="dialog" aria-modal="true" aria-labelledby="cg3-immo-title" hidden>
+    <div class="cg3-modal__panel cg3-modal__panel--sm">
+      <div class="cg3-modal__head"><h2 id="cg3-immo-title"><i class="fas fa-building" aria-hidden="true"></i>{% trans "Nouveau bien" %}</h2><button type="button" class="cg3-btn cg3-btn--sm" data-cg3-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+      <form method="post" class="cg3-form-grid">
+        {% csrf_token %}<input type="hidden" name="action" value="ajouter_immo">
+        <label class="cg3-field cg3-span-2"><span>{% trans "Désignation" %}</span><input type="text" name="libelle" required maxlength="160" placeholder="{% trans 'Ex. Bus scolaire Toyota Coaster' %}"></label>
+        <label class="cg3-field"><span>{% trans "Catégorie" %}</span><select name="categorie">{% for v, l in categories %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></label>
+        <label class="cg3-field"><span>{% trans "Date d’acquisition" %}</span><input type="date" name="date_acquisition" value="{{ aujourdhui|date:'Y-m-d' }}" required></label>
+        <label class="cg3-field"><span>{% trans "Valeur d’acquisition" %} ({{ devise_monnaie }})</span><input type="text" inputmode="decimal" name="valeur_origine" required></label>
+        <label class="cg3-field"><span>{% trans "Durée d’amortissement (ans)" %}</span><input type="number" name="duree_annees" value="5" min="1" max="50" required></label>
+        <label class="cg3-field cg3-span-2"><span>{% trans "Comptabiliser l’achat" %}</span>
+          <select name="financement" data-financement>
+            <option value="comptant">{% trans "Payé comptant (caisse, banque…)" %}</option>
+            <option value="credit">{% trans "À crédit, fournisseur à payer (4011)" %}</option>
+            <option value="aucun">{% trans "Bien déjà au bilan : pas d’écriture d’achat" %}</option>
+          </select>
+        </label>
+        <label class="cg3-field cg3-span-2" data-show="comptant"><span>{% trans "Payé depuis" %}</span><select name="compte_id">{% for c in comptes_tresorerie %}<option value="{{ c.pk }}">{{ c.libelle }}</option>{% endfor %}</select></label>
+        <label class="cg3-field cg3-span-2" data-show="credit" hidden><span>{% trans "Fournisseur" %}</span><select name="fournisseur_id"><option value="">—</option>{% for f in fournisseurs %}<option value="{{ f.pk }}">{{ f.nom }}</option>{% endfor %}</select></label>
+        <div class="cg3-modal__foot cg3-span-2"><button type="button" class="cg3-btn" data-cg3-close>{% trans "Annuler" %}</button><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Enregistrer" %}</button></div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block data %}{{ charts|json_script:"cg3-data" }}{% endblock %}
+{% block scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="{% static 'school_admin/js/directeur/cg_v3.js' %}?v=1.0.0"></script>
+  <script>
+    document.querySelectorAll('[data-financement]').forEach(function (sel) {
+      function maj() {
+        sel.form.querySelectorAll('[data-show]').forEach(function (el) { el.hidden = el.getAttribute('data-show') !== sel.value; });
+      }
+      sel.addEventListener('change', maj);
+      maj();
+    });
+  </script>
+{% endblock %}

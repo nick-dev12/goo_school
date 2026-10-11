@@ -293,3 +293,14 @@ function showNotification(message, type) {
 }
 
 window.copyToClipboard = copyToClipboard;
+
+/* Cahier de texte : filtre par classe des entrées validées. */
+document.addEventListener('click', function (e) {
+    var chip = e.target.closest('[data-pct-classe]');
+    if (!chip) return;
+    var id = chip.getAttribute('data-pct-classe');
+    document.querySelectorAll('[data-pct-classe]').forEach(function (c) { c.classList.toggle('is-active', c === chip); });
+    document.querySelectorAll('.pct-item').forEach(function (li) {
+        li.hidden = !!id && li.getAttribute('data-classe') !== id;
+    });
+});

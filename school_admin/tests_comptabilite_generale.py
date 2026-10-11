@@ -73,7 +73,7 @@ def _make_etablissement(suffix='pce'):
         username=email,
         email=email,
         nom=f'École {suffix} {token[-6:]}',
-        code_etablissement=f'PCE{token[-8:]}'[:12],
+        code_etablissement=f'{suffix[:4]}{token[-8:]}'[:12],
         adresse='1 rue des Tests',
         pays='Sénégal',
         ville='Dakar',
@@ -390,7 +390,8 @@ class PontsEtBackfillTests(TestCase):
             source_id=self.paiement_historique.id,
         )
         resultat = backfill_creances_ouvertes(self.etab, annee_scolaire=self.annee)
-        self.assertGreaterEqual(resultat['emises'], 2)
+        self.assertEqual(resultat['emises'], 0)
+        self.assertGreaterEqual(resultat['ignorees'], 1)
         inscriptions = EcritureComptable.objects.filter(
             etablissement=self.etab, source='creance_inscription', source_id=self.frais.id
         )
@@ -412,7 +413,7 @@ class PontsEtBackfillTests(TestCase):
         from school_admin.model.parametres_comptabilite_model import ParametresComptabilite
 
         ensure_plan_comptable(self.etab)
-        self.assertFalse(regime_est_verrouille(self.etab))
+        self.assertTrue(regime_est_verrouille(self.etab))
         pont_paiement_eleve(
             self.paiement_historique, annee_scolaire=self.annee
         )
@@ -423,3 +424,151 @@ class PontsEtBackfillTests(TestCase):
             ParametresComptabilite.objects.get(etablissement=self.etab).regime_comptable,
             REGIME_ENGAGEMENT,
         )
+
+
+class SecurisationExistanteTests(TestCase):
+    def setUp(self):
+        self.etab = _make_etablissement('secu')
+        self.annee = _make_annee(self.etab)
+        ensure_plan_comptable(self.etab)
+
+    def _request(self, user, data=None):
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from django.contrib.sessions.middleware import SessionMiddleware
+        from django.test import RequestFactory
+
+        request = RequestFactory().post('/', data or {})
+        request.user = user
+        SessionMiddleware(lambda req: None).process_request(request)
+        request.session.save()
+        request._messages = FallbackStorage(request)
+        return request
+
+    def _personnel(self, fonction):
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+
+        suffix = f'{fonction}{self.etab.pk}'
+        person = PersonnelAdministratif(
+            username=f'{suffix}@aria-test.local',
+            email=f'{suffix}@aria-test.local',
+            nom='Ndiaye',
+            prenom=fonction,
+            telephone='770000111',
+            fonction=fonction,
+            etablissement=self.etab,
+            actif=True,
+            permissions={},
+        )
+        person.set_password('Test@Test1!')
+        person.save()
+        return person
+
+    def test_caissier_ne_ouvre_pas_le_hub_comptable(self):
+        from school_admin.controllers.compta_etats_controller import ComptaEtatsController
+
+        response = ComptaEtatsController.hub(self._request(self._personnel('caissier')))
+        self.assertEqual(response.status_code, 302)
+
+    def test_comptable_ouvre_le_hub(self):
+        from school_admin.controllers.compta_etats_controller import ComptaEtatsController
+
+        response = ComptaEtatsController.hub(self._request(self._personnel('comptable')))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Comptabilité générale')
+
+    def test_ecriture_depense_orpheline_est_listee_sans_extourne(self):
+        from school_admin.model.comptabilite_generale_model import EcritureComptable
+        from school_admin.services.comptabilite_generale import (
+            compte,
+            creer_ecriture,
+            ecritures_depenses_orphelines,
+            journal,
+        )
+
+        exercice = ensure_exercice(self.etab, self.annee)
+        creer_ecriture(
+            self.etab,
+            exercice,
+            journal(self.etab, 'CAI'),
+            date(2026, 10, 2),
+            'Sortie disparue',
+            [
+                {'compte': compte(self.etab, '604'), 'debit': Decimal('1000'), 'credit': Decimal('0')},
+                {'compte': compte(self.etab, COMPTE_CAISSE), 'debit': Decimal('0'), 'credit': Decimal('1000')},
+            ],
+            source='depense',
+            source_id=999999,
+        )
+        self.assertEqual(ecritures_depenses_orphelines(self.etab).count(), 1)
+        self.assertEqual(
+            EcritureComptable.objects.filter(etablissement=self.etab, source='extourne').count(),
+            0,
+        )
+
+    def test_depense_ecrite_ne_se_supprime_pas(self):
+        from school_admin.controllers.caisse_controller import CaisseController
+        from school_admin.model.caisse_etablissement_model import DepenseEtablissement
+        from school_admin.services.comptabilite_generale import pont_depense
+
+        depense = DepenseEtablissement.objects.create(
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            date_depense=date(2026, 10, 2),
+            motif='fournitures',
+            libelle='Cahiers',
+            montant=Decimal('100000'),
+        )
+        self.assertIsNotNone(pont_depense(depense, annee_scolaire=self.annee))
+        CaisseController.supprimer_depense_directeur(self._request(self.etab), depense.id)
+        self.assertTrue(DepenseEtablissement.objects.filter(pk=depense.id).exists())
+
+    def test_sortie_validee_sans_ecriture_reste(self):
+        from school_admin.controllers.caisse_controller import CaisseController
+        from school_admin.model.caisse_etablissement_model import DepenseEtablissement
+
+        depense = DepenseEtablissement.objects.create(
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            date_depense=date(2026, 10, 2),
+            motif='autre',
+            montant=Decimal('500'),
+            statut='validee',
+        )
+        CaisseController.supprimer_depense_directeur(self._request(self.etab), depense.id)
+        self.assertTrue(DepenseEtablissement.objects.filter(pk=depense.id).exists())
+
+    def test_brouillon_peut_etre_retire(self):
+        from school_admin.controllers.caisse_controller import CaisseController
+        from school_admin.model.caisse_etablissement_model import DepenseEtablissement
+
+        depense = DepenseEtablissement.objects.create(
+            etablissement=self.etab,
+            annee_scolaire=self.annee,
+            date_depense=date(2026, 10, 2),
+            motif='autre',
+            montant=Decimal('500'),
+            statut='brouillon',
+        )
+        CaisseController.supprimer_depense_directeur(self._request(self.etab), depense.id)
+        self.assertFalse(DepenseEtablissement.objects.filter(pk=depense.id).exists())
+
+    def test_periode_verrouillee_n_enregistre_pas_la_depense(self):
+        from school_admin.controllers.caisse_controller import CaisseController
+        from school_admin.model.caisse_etablissement_model import DepenseEtablissement
+        from school_admin.model.comptabilite_generale_model import PeriodeComptable
+
+        exercice = ensure_exercice(self.etab, self.annee)
+        PeriodeComptable.objects.filter(exercice=exercice, type_periode='mois').update(verrouillee=True)
+        avant = DepenseEtablissement.objects.filter(etablissement=self.etab).count()
+        CaisseController.ajouter_depense_directeur(
+            self._request(
+                self.etab,
+                {
+                    'montant': '1000',
+                    'motif': 'fournitures',
+                    'date_depense': '2026-10-02',
+                    'libelle': 'Stylos',
+                },
+            )
+        )
+        self.assertEqual(DepenseEtablissement.objects.filter(etablissement=self.etab).count(), avant)

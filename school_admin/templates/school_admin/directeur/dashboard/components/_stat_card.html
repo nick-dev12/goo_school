@@ -1,0 +1,35 @@
+{% load i18n %}
+<article class="dbd-exec-kpi {% if metric.empty %}is-empty{% endif %}">
+  <div class="dbd-exec-kpi-icon {{ icon_mod|default:'' }}"><i class="fas {{ icon|default:'fa-chart-simple' }}" aria-hidden="true"></i></div>
+  <div class="dbd-exec-kpi-body">
+    <span class="dbd-exec-kpi-label">{{ metric.label }}</span>
+    {% if metric.empty %}
+      <span class="dbd-exec-kpi-value muted">—</span>
+      <span class="dbd-exec-kpi-hint">{{ metric.empty_reason }}</span>
+    {% else %}
+      <span class="dbd-exec-kpi-value">
+        {% if metric.id == 'outstanding_amount' %}
+          {{ metric.value|floatformat:0 }} {{ metric.unit }}
+        {% else %}
+          {{ metric.value }}{% if metric.unit == '%' %}%{% elif metric.unit == '/20' %} /20{% endif %}
+        {% endif %}
+      </span>
+      {% if metric.comparison.compatible %}
+      <span class="dbd-exec-kpi-hint">
+        {{ metric.comparison.delta_label }} {{ metric.comparison.period_label }}
+      </span>
+      {% elif metric.id == 'collection_rate' and metric.extra.total_du %}
+      <span class="dbd-exec-kpi-hint">
+        {{ metric.extra.total_paye|floatformat:0 }} / {{ metric.extra.total_du|floatformat:0 }} {{ metric.extra.devise }}
+      </span>
+      {% elif metric.id == 'class_capacity' and metric.extra %}
+      <span class="dbd-exec-kpi-hint">
+        {{ metric.extra.effectif }} / {{ metric.extra.capacite }}
+        {% if metric.extra.classes_depassement %}
+          · {{ metric.extra.classes_depassement }} {% trans "au-delà de la capacité" %}
+        {% endif %}
+      </span>
+      {% endif %}
+    {% endif %}
+  </div>
+</article>

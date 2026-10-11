@@ -6,210 +6,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Planning des épreuves" %} — {{ session.nom_examen }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_examens.css' %}?v=1.1.0">
-    <title>Configuration des Créneaux - {{ session.nom_examen }}</title>
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/examens_v3.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/examens_refonte.css' %}?v=1.0.0" />
 </head>
-<body>
+<body class="gex-page-body" data-live-page="examens">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <div class="container">
-        <!-- Messages -->
-        {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
-                {{ message }}
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
+    <div class="content-container gex-page">
+        {% include 'school_admin/partials/messages.html' %}
 
-        <!-- Page Header -->
-        <div class="page-header">
+        <div class="page-header page-header-minimal">
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
-<div class="page-title-group">
-                <h1>
-                    <i class="fas fa-clock"></i>
-                    {% trans "Configuration des Créneaux" %}
-                </h1>
-                <p>{{ session.nom_examen }} ({{ session.periode.nom_periode }})</p>
-            </div>
-            <div class="header-actions">
-                <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="btn btn-secondary">
-                    <i class="fas fa-calendar-alt"></i>
-                    {% trans "Voir l'emploi du temps" %}
-                </a>
-            </div>
         </div>
 
-        <!-- Message d'information sur l'année scolaire active -->
-        {% if annee_scolaire_active %}
-        <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
-            <i class="fas fa-calendar-check"></i>
-          </span>
-          <div>
-            <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-              Année scolaire active : {{ annee_scolaire_active.libelle }}
-            </p>
-            <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              {% trans "Les créneaux créés seront automatiquement liés à cette année scolaire." %}
-            </p>
-          </div>
-        </div>
-        {% endif %}
-
-        <!-- Session Info -->
-        <div class="info-card">
-            <h3><i class="fas fa-info-circle"></i> {% trans "Informations de la session d'examen" %}</h3>
-            <div class="info-grid">
-                <div>
-                    <strong>{% trans "Classes concernées :" %}</strong>
-                    <p>{{ session.classes_str }}</p>
-                </div>
-                <div>
-                    <strong>{% trans "Période :" %}</strong>
-                    <p>{{ session.periode.nom_periode }}</p>
-                </div>
-                <div>
-                    <strong>{% trans "Nombre de classes :" %}</strong>
-                    <p>{{ session.nombre_classes }}</p>
-                </div>
-                <div>
-                    <strong>{% trans "Nombre de matières :" %}</strong>
-                    <p>{{ session.nombre_matieres }}</p>
-                </div>
-                <div>
-                    <strong>{% trans "Période de la session :" %}</strong>
-                    <p>{{ session.date_debut|date:"d/m/Y" }} - {{ session.date_fin|date:"d/m/Y" }}</p>
-                </div>
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-red"><i class="fas fa-clock" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <p class="fe-hero__kicker">{{ session.get_type_session_display }} · {{ session.periode.nom_periode }}{% if not session.compte_bulletin %} · {% trans "hors bulletin" %}{% endif %}</p>
+                <h1 class="hb-head__title">{{ session.nom_examen }}</h1>
+                <p class="fe-hero__sub">{% blocktrans with d=session.date_debut|date:"d/m/Y" f=session.date_fin|date:"d/m/Y" %}Du {{ d }} au {{ f }}{% endblocktrans %} · {{ session.classes_str }}</p>
             </div>
-        </div>
-
-        <!-- Add Creneaux Form -->
-        <div class="form-section">
-            <h3><i class="fas fa-plus-circle"></i> {% trans "Ajouter un créneau d'examen" %}</h3>
-            <form method="post">
-                {% csrf_token %}
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="jour_semaine">{% trans "Jour de la semaine" %} <span class="required">*</span></label>
-                        <select id="jour_semaine" name="jour_semaine" class="form-control" required>
-                            <option value="">{% trans "Sélectionnez un jour" %}</option>
-                            {% for jour in jours_disponibles %}
-                            <option value="{{ jour.date_iso }}">{{ jour.nom_jour }} {{ jour.date_affichage }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="heure_debut">{% trans "Heure de début" %} <span class="required">*</span></label>
-                        <input type="time" id="heure_debut" name="heure_debut" class="form-control" required />
-                    </div>
-                    <div class="form-group">
-                        <label for="heure_fin">{% trans "Heure de fin" %} <span class="required">*</span></label>
-                        <input type="time" id="heure_fin" name="heure_fin" class="form-control" required />
-                    </div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="matiere_id">{% trans "Matière" %} <span class="required">*</span></label>
-                        <select id="matiere_id" name="matiere_id" class="form-control" required>
-                            <option value="">{% trans "Sélectionnez une matière" %}</option>
-                            {% for matiere in session.matieres.all %}
-                            <option value="{{ matiere.id }}">{{ matiere.nom }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="surveillant_id">{% trans "Surveillant" %}</label>
-                        <select id="surveillant_id" name="surveillant_id" class="form-control">
-                            <option value="">{% trans "Aucun surveillant" %}</option>
-                            {% for prof in professeurs %}
-                            <option value="{{ prof.id }}">{{ prof.nom_complet }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="salle_id">{% trans "Salle" %}</label>
-                        <select id="salle_id" name="salle_id" class="form-control">
-                            <option value="">{% trans "Aucune salle" %}</option>
-                            {% for salle in salles %}
-                            <option value="{{ salle.id }}">{{ salle.nom }} ({{ salle.numero }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="consignes_specifiques">{% trans "Consignes spécifiques" %}</label>
-                    <textarea id="consignes_specifiques" name="consignes_specifiques" class="form-control" rows="3" placeholder="{% trans "Instructions ou notes particulières pour cet examen..." %}"></textarea>
-                </div>
-
-                <div class="form-actions">
-                    <a href="{% url 'directeur:gestion_examens' %}" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> {% trans "Annuler" %}
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> {% trans "Créer le créneau" %}
+            <div class="hb-head__actions">
+                <form method="post" action="{% url 'directeur:publier_session_examen' session.id %}" class="exr-inline-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit" class="cg3-btn {% if not session.est_publie %}cg3-btn--primary{% endif %}">
+                        <i class="fas fa-{% if session.est_publie %}eye-slash{% else %}bullhorn{% endif %}" aria-hidden="true"></i>
+                        {% if session.est_publie %}{% trans "Retirer la publication" %}{% else %}{% trans "Publier le calendrier" %}{% endif %}
                     </button>
-                </div>
-            </form>
-        </div>
+                </form>
+                <a href="{% url 'directeur:emploi_du_temps_examens' %}?session={{ session.id }}" class="cg3-btn"><i class="fas fa-calendar-days" aria-hidden="true"></i>{% trans "Emploi du temps" %}</a>
+            </div>
+        </header>
 
-        <!-- Existing Creneaux -->
-        <div class="existing-creneaux-section">
-            <h3><i class="fas fa-list-alt"></i> Créneaux programmés ({{ creneaux|length }})</h3>
-            {% if creneaux %}
-            <div class="creneaux-list">
-                {% for creneau in creneaux %}
-                <div class="creneau-card">
-                    <div class="creneau-header">
-                        <h3>{{ creneau.matiere.nom }}</h3>
-                        <span class="creneau-session">{{ creneau.session_examen.nom_examen }}</span>
+        <section class="fe-kpis hb-kpis hb-kpis--4 cg3" aria-label="{% trans 'Avancement' %}">
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Épreuves planifiées" %}</span><span class="fe-kpi__icon"><i class="fas fa-list-check"></i></span></div><p class="fe-kpi__value">{{ avancement.nb_planifiees }}/{{ avancement.nb_epreuves }}</p></div>
+            <div class="fe-kpi fe-tone-orange"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "À planifier" %}</span><span class="fe-kpi__icon"><i class="fas fa-hourglass-half"></i></span></div><p class="fe-kpi__value">{{ matieres_a_planifier|length }}</p></div>
+            <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Notes reçues" %}</span><span class="fe-kpi__icon"><i class="fas fa-clipboard-check"></i></span></div><p class="fe-kpi__value">{{ avancement.taux_notes }} %</p></div>
+            <div class="fe-kpi {% if session.est_publie %}fe-tone-green{% else %}fe-tone-red{% endif %}"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Calendrier" %}</span><span class="fe-kpi__icon"><i class="fas fa-eye"></i></span></div><p class="fe-kpi__value" style="font-size:1rem">{% if session.est_publie %}{% trans "Publié" %}{% else %}{% trans "Non publié" %}{% endif %}</p></div>
+        </section>
+
+        <div class="exr-plan">
+            <section class="exr-card" aria-labelledby="titre-ajout">
+                <div class="exr-card__head"><h2 id="titre-ajout"><i class="fas fa-plus-circle"></i> {% trans "Planifier une épreuve" %}</h2></div>
+                <div class="exr-card__body">
+                    {% if matieres_a_planifier %}
+                    <p class="exr-help" style="margin-bottom:.5rem">{% trans "Épreuves restant à planifier (cliquer pour présélectionner) :" %}</p>
+                    <div class="exr-todo" style="margin-bottom:.9rem">
+                        {% for m in matieres_a_planifier %}<button type="button" data-matiere="{{ m.id }}" class="js-exr-todo">{{ m.nom }}</button>{% endfor %}
                     </div>
-                    <div class="creneau-details">
-                        <div class="detail-item">
-                            <i class="fas fa-calendar"></i>
-                            <span>{{ creneau.date_examen|date:"d/m/Y" }}</span>
+                    {% endif %}
+                    <form method="post" class="exr-form" id="formCreneau">
+                        {% csrf_token %}
+                        <label>{% trans "Matière" %} *
+                            <select name="matiere_id" id="matiere_id" required>
+                                <option value="">{% trans "Choisir…" %}</option>
+                                {% for m in matieres_session %}
+                                <option value="{{ m.id }}" {% if m not in matieres_a_planifier %}disabled{% endif %}>{{ m.nom }}{% if m not in matieres_a_planifier %} — {% trans "déjà planifiée" %}{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label>{% trans "Jour" %} *
+                            <select name="jour_semaine" required>
+                                {% for jour in jours_disponibles %}
+                                <option value="{{ jour.date_iso }}">{{ jour.nom_jour }} {{ jour.date_affichage }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <div class="exr-row2">
+                            <label>{% trans "Début" %} *<input type="time" name="heure_debut" value="08:00" required></label>
+                            <label>{% trans "Fin" %} *<input type="time" name="heure_fin" value="10:00" required></label>
                         </div>
-                        <div class="detail-item">
-                            <i class="fas fa-clock"></i>
-                            <span>{{ creneau.heure_debut|time:"H:i" }} - {{ creneau.heure_fin|time:"H:i" }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <i class="fas fa-hourglass-half"></i>
-                            <span>{{ creneau.duree_format }}</span>
-                        </div>
-                        {% if creneau.surveillant %}
-                        <div class="detail-item">
-                            <i class="fas fa-user-tie"></i>
-                            <span>{{ creneau.surveillant.nom_complet }}</span>
-                        </div>
-                        {% endif %}
-                        {% if creneau.salle %}
-                        <div class="detail-item">
-                            <i class="fas fa-door-open"></i>
-                            <span>{{ creneau.salle.nom }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                    <!-- Add actions for modifying/deleting individual creneaux if needed -->
+                        <label>{% trans "Salle" %}
+                            <select name="salle_id">
+                                <option value="">{% trans "Salle de classe habituelle" %}</option>
+                                {% for salle in salles %}<option value="{{ salle.id }}">{{ salle.nom }} ({{ salle.capacite_max }} {% trans "places" %})</option>{% endfor %}
+                            </select>
+                        </label>
+                        <label>{% trans "Surveillant" %}
+                            <select name="surveillant_id">
+                                <option value="">{% trans "À désigner" %}</option>
+                                {% for prof in professeurs %}<option value="{{ prof.id }}">{{ prof.nom_complet }}</option>{% endfor %}
+                            </select>
+                        </label>
+                        <label>{% trans "Consignes" %}
+                            <textarea name="consignes_specifiques" rows="2" placeholder="{% trans 'Calculatrice autorisée, documents interdits…' %}"></textarea>
+                        </label>
+                        <p class="exr-help"><i class="fas fa-shield-halved"></i> {% trans "Contrôles automatiques : dates de la session, salle et surveillant déjà pris, classe qui compose déjà une autre épreuve, capacité de la salle." %}</p>
+                        <button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-check"></i> {% trans "Ajouter au planning" %}</button>
+                    </form>
                 </div>
+            </section>
+
+            <section class="exr-card" aria-labelledby="titre-planning">
+                <div class="exr-card__head">
+                    <h2 id="titre-planning"><i class="fas fa-calendar-check"></i> {% trans "Planning de la session" %}</h2>
+                    <span class="exr-pill">{{ creneaux|length }} {% trans "épreuve(s)" %}</span>
+                </div>
+                {% regroup creneaux by date_examen as jours %}
+                {% for jour in jours %}
+                <div class="exr-day">
+                    <h3 class="exr-day__title">{{ jour.grouper|date:"l j F Y" }}</h3>
+                    {% for c in jour.list %}
+                    <div class="exr-slot">
+                        <div class="exr-slot__time">{{ c.heure_debut|time:"H:i" }} – {{ c.heure_fin|time:"H:i" }}<small>{{ c.duree_format|default:"" }}</small></div>
+                        <div class="exr-slot__main">
+                            <strong>{{ c.matiere.nom }}</strong>
+                            <div class="exr-slot__meta">
+                                <span><i class="fas fa-users"></i> {% for cl in c.classes_epreuve %}{{ cl.nom }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</span>
+                                <span><i class="fas fa-door-open"></i> {{ c.salle.nom|default:_("Salle habituelle") }}</span>
+                                <span><i class="fas fa-user-shield"></i> {{ c.surveillant.nom_complet|default:_("Surveillant à désigner") }}</span>
+                            </div>
+                            {% if c.consignes_specifiques %}<p class="exr-help" style="margin-top:.25rem">{{ c.consignes_specifiques }}</p>{% endif %}
+                        </div>
+                        <form method="post" action="{% url 'directeur:supprimer_creneau_examen' c.id %}" onsubmit="return confirm('{% trans "Retirer cette épreuve du planning ?" %}')">
+                            {% csrf_token %}
+                            <button type="submit" class="exr-icon-btn" title="{% trans 'Retirer' %}" aria-label="{% trans 'Retirer' %} {{ c.matiere.nom }}"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% empty %}
+                <div class="exr-empty"><i class="fas fa-calendar-plus"></i>{% trans "Aucune épreuve planifiée. Commencez par la première matière à gauche." %}</div>
                 {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <i class="fas fa-calendar-times"></i>
-                <h3>{% trans "Aucun créneau programmé pour cette session" %}</h3>
-                <p>{% trans "Utilisez le formulaire ci-dessus pour ajouter des créneaux." %}</p>
-            </div>
-            {% endif %}
+            </section>
         </div>
     </div>
 
+    <script>
+    document.querySelectorAll('.js-exr-todo').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var s = document.getElementById('matiere_id');
+            s.value = b.dataset.matiere;
+            s.focus();
+        });
+    });
+    </script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
 </body>
 </html>

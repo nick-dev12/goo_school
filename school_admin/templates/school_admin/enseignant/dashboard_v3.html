@@ -1,0 +1,361 @@
+{% load static %}
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}?v=1.0.3">
+  {% if tdash.is_primaire %}
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
+  {% elif hub_prof_ui %}
+    {% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}
+  {% endif %}
+  {# Jetons de couleur partagés avec l'espace direction, puis styles du tableau de bord. #}
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/aria_shell.css' %}?v=1.0.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=1.0.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/dashboard_enseignant_v3.css' %}?v=1.0.0">
+</head>
+<body class="axd-page axd-page--prof">
+  {% if tdash.is_primaire %}
+    {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
+  {% else %}
+    {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
+  {% endif %}
+
+  {% with t=tdash %}
+  <main class="axd axd--prof" id="contenu">
+    <div class="notifications-activation">
+      <button id="fcm-enable-btn" class="btn-activate-notifications" type="button" style="display: none;" onclick="activerNotifications()">
+        <i class="fas fa-bell" aria-hidden="true"></i> {% trans "Activer les notifications" %}
+      </button>
+      <div id="fcm-success-message" class="fcm-success-message" style="display: none;">
+        <i class="fas fa-check-circle" aria-hidden="true"></i> {% trans "Notifications activées avec succès." %}
+      </div>
+    </div>
+
+    {# ---------- Bandeau d'accueil (bleu uni) ---------- #}
+    <section class="axd-hero axd-hero--prof">
+      <div class="axd-hero__row">
+        <div class="axd-hero__text">
+          <p class="axd-hero__date">
+            {% now "l j F Y" as aujourdhui %}{{ aujourdhui|capfirst }}
+            {% if annee_scolaire_active %}<span class="axd-dot" aria-hidden="true"></span>{% trans "Année" %} {{ annee_scolaire_active.libelle }}{% endif %}
+            {% if periode_active %}<span class="axd-dot" aria-hidden="true"></span>{{ periode_active.nom_periode }}{% endif %}
+          </p>
+          <h1 class="axd-hero__title">{% trans "Bonjour" %} {{ professeur.prenom|default:professeur.nom_complet }}</h1>
+          <p class="axd-hero__sub">
+            {{ professeur.etablissement.nom }}
+            {% if not t.is_primaire and professeur.matiere_display %} · {{ professeur.matiere_display }}{% endif %}
+          </p>
+        </div>
+        <div class="axd-hero__actions">
+          <a class="axd-hero__btn" href="{% url t.ns|add:':pointage' %}"><i class="fas fa-qrcode" aria-hidden="true"></i>{% trans "Pointage" %}</a>
+          <a class="axd-hero__btn" href="{% url t.ns|add:':cahier_texte' %}"><i class="fas fa-book-open" aria-hidden="true"></i>{% trans "Cahier de texte" %}</a>
+          <a class="axd-hero__btn" href="{% url t.ns|add:':emploi_du_temps' %}"><i class="fas fa-calendar-week" aria-hidden="true"></i>{% trans "Emploi du temps" %}</a>
+          <a class="axd-hero__btn" href="{% url t.ns|add:':liste_evaluations' %}"><i class="fas fa-clipboard-list" aria-hidden="true"></i>{% trans "Évaluations" %}</a>
+          <a class="axd-hero__btn axd-hero__btn--quiet" href="{% url 'school_admin:deconnexion_compte_administrateur' %}"><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i>{% trans "Déconnexion" %}</a>
+        </div>
+      </div>
+      {% if not annee_scolaire_active %}
+      <p class="axd-hero__warn"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{% trans "Aucune année scolaire active : les chiffres peuvent ne pas correspondre à la session en cours." %}</p>
+      {% endif %}
+    </section>
+
+    {# ---------- Cartes indicatives ---------- #}
+    <section class="axd-mini" aria-label="{% trans 'Vue d’ensemble' %}">
+      {% for c in t.mini %}
+      {% if c.url %}<a class="axd-mini__card axd-mini__card--link" href="{{ c.url }}">{% else %}<article class="axd-mini__card">{% endif %}
+        <span class="axd-mini__icon axd-tone--{{ c.tone }}"><i class="fas {{ c.icon }}" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{{ c.label }}</h2>
+          <p class="axd-mini__value">{% if c.value == None %}—{% else %}{{ c.value|floatformat:"-1g" }}{% if c.unit %}<small>{{ c.unit }}</small>{% endif %}{% endif %}</p>
+          <p class="axd-mini__caption{% if c.trend == 'up' %} is-up{% elif c.trend == 'down' %} is-down{% endif %}">
+            {% if c.trend == 'up' %}<i class="fas fa-circle-check" aria-hidden="true"></i>{% elif c.trend == 'down' %}<i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{% endif %}{{ c.caption }}
+          </p>
+          {% if c.gender %}
+          <div class="axd-mini__split" role="img" aria-label="{% blocktrans with f=c.gender.female_pct m=c.gender.male_pct %}{{ f }} % de filles et {{ m }} % de garçons{% endblocktrans %}">
+            <span class="axd-split__bar"><span class="axd-split__f" style="width: {{ c.gender.female_pct }}%"></span><span class="axd-split__m" style="width: {{ c.gender.male_pct }}%"></span></span>
+            <span class="axd-mini__split-legend"><span><i class="axd-swatch axd-swatch--f"></i>{% trans "Filles" %} {{ c.gender.female_pct }} %</span><span><i class="axd-swatch axd-swatch--m"></i>{% trans "Garçons" %} {{ c.gender.male_pct }} %</span></span>
+          </div>
+          {% endif %}
+        </div>
+      {% if c.url %}</a>{% else %}</article>{% endif %}
+      {% endfor %}
+    </section>
+
+    {# ---------- Aujourd'hui + à corriger ---------- #}
+    <section class="axd-grid">
+      <article class="axd-card axd-span-7" id="axd-today">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Mes cours du jour" %}</h2>
+            <p class="axd-card__sub">{{ jour_actuel_display|default:"" }} {% now "j F" %}</p>
+          </div>
+          <a class="axd-link" href="{% url t.ns|add:':emploi_du_temps' %}">{% trans "Semaine" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+        </header>
+        {% if not emploi_publie %}
+          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-eye-slash' message=_("L’emploi du temps n’est pas encore publié par l’établissement.") %}
+        {% elif creneaux_aujourdhui %}
+        <ul class="axd-slots">
+          {% for creneau in creneaux_aujourdhui %}
+          <li class="axd-slot">
+            <div class="axd-slot__time">
+              <strong>{{ creneau.get_heure_debut|time:"H:i" }}</strong>
+              <small>{{ creneau.duree_minutes }} min</small>
+            </div>
+            <div class="axd-slot__body">
+              <p class="axd-slot__title">{{ creneau.matiere.nom|default:_("Cours") }}</p>
+              <p class="axd-slot__meta"><i class="fas fa-users" aria-hidden="true"></i>{{ creneau.emploi_du_temps.classe.nom }}{% if creneau.salle %} · <i class="fas fa-door-open" aria-hidden="true"></i>{% trans "Salle" %} {{ creneau.salle.numero }}{% endif %}</p>
+            </div>
+            <div class="axd-slot__actions">
+              <a class="axd-btn axd-btn--sm" href="{% url t.ns|add:':liste_presence' creneau.emploi_du_temps.classe.id %}{% if creneau.matiere %}?matiere={{ creneau.matiere.id }}{% endif %}"><i class="fas fa-clipboard-check" aria-hidden="true"></i>{% trans "Appel" %}</a>
+              <a class="axd-btn axd-btn--sm axd-btn--primary" href="{% url t.ns|add:':noter_eleves' creneau.emploi_du_temps.classe.id %}{% if creneau.matiere %}?matiere={{ creneau.matiere.id }}{% endif %}"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Noter" %}</a>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-mug-hot' message=_("Pas de cours aujourd’hui. Bonne journée !") %}
+        {% endif %}
+      </article>
+
+      <aside class="axd-card axd-span-5" id="axd-todo">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "À faire" %}</h2>
+            <p class="axd-card__sub">{% trans "Corrections en attente et évaluations à préparer" %}</p>
+          </div>
+        </header>
+        <h3 class="axd-watch__title"><i class="fas fa-pen-to-square" aria-hidden="true"></i>{% trans "Notes à saisir" %}</h3>
+        {% if t.a_corriger %}
+        <ul class="axd-progress-list">
+          {% for r in t.a_corriger %}
+          <li>
+            <a href="{{ r.url }}" class="axd-progress-list__main">
+              <span><strong>{{ r.titre }}</strong><small>{{ r.classe }} · {{ r.date|date:"d/m" }}</small></span>
+              <span class="axd-progress-list__count">{{ r.faits }}/{{ r.attendus }}</span>
+            </a>
+            <span class="axd-meter axd-meter--thin" role="img" aria-label="{{ r.pct }} %"><span style="width: {{ r.pct }}%"></span></span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="axd-muted"><i class="fas fa-circle-check axd-good-icon" aria-hidden="true"></i>{% trans "Toutes vos notes sont saisies." %}</p>
+        {% endif %}
+
+        <h3 class="axd-watch__title axd-watch__title--spaced"><i class="fas fa-calendar-check" aria-hidden="true"></i>{% trans "Prochaines évaluations" %}</h3>
+        {% if t.prochaines %}
+        <ul class="axd-list">
+          {% for e in t.prochaines %}
+          <li>
+            <span class="axd-list__main">
+              <span class="axd-date-chip" aria-hidden="true"><b>{{ e.date|date:"d" }}</b>{{ e.date|date:"M" }}</span>
+              <span><strong>{{ e.titre }}</strong><small>{{ e.classe }}{% if e.matiere %} · {{ e.matiere }}{% endif %}</small></span>
+            </span>
+            <span class="axd-score {% if e.jours <= 2 %}axd-score--warn{% else %}axd-score--neutral{% endif %}">{% if e.jours == 0 %}{% trans "aujourd’hui" %}{% elif e.jours == 1 %}{% trans "demain" %}{% else %}{% blocktrans with n=e.jours %}J-{{ n }}{% endblocktrans %}{% endif %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="axd-muted">{% trans "Aucune évaluation prévue dans les 2 prochaines semaines." %}</p>
+        {% endif %}
+      </aside>
+    </section>
+
+    {# ---------- Présence ---------- #}
+    <section class="axd-grid">
+      <article class="axd-card axd-span-7">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Présence dans mes cours" %}</h2>
+            <p class="axd-card__sub">{% trans "Mes appels des 30 derniers jours · seuil de vigilance 85 %" %}</p>
+          </div>
+        </header>
+        {% if t.charts.trend.values %}
+        <div class="axd-chart"><canvas id="axp-chart-trend" role="img" aria-label="{% trans 'Courbe du taux de présence dans mes cours' %}"></canvas></div>
+        {% else %}
+          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-calendar-check' message=_("Aucun appel enregistré sur les 30 derniers jours.") %}
+        {% endif %}
+      </article>
+      {% if t.une_classe %}
+      <article class="axd-card axd-span-5">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Absences selon le jour" %}</h2>
+            <p class="axd-card__sub">{% trans "Mes appels des 8 dernières semaines · part d’absences" %}</p>
+          </div>
+        </header>
+        {% if t.charts.weekdays.values %}
+        <div class="axd-chart"><canvas id="axp-chart-weekdays" role="img" aria-label="{% trans 'Taux d’absence par jour de la semaine' %}"></canvas></div>
+        {% else %}
+          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-calendar-week' message=_("Pas encore assez d’appels.") %}
+        {% endif %}
+      </article>
+      {% else %}
+      <article class="axd-card axd-span-5">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Présence par classe" %}</h2>
+            <p class="axd-card__sub">{% trans "Sur l’année, dans mes cours" %}</p>
+          </div>
+        </header>
+        {% if t.charts.classes_presence %}
+        <div class="axd-chart axd-chart--auto" style="--rows: {{ t.charts.classes_presence|length }}"><canvas id="axp-chart-presence-classes" role="img" aria-label="{% trans 'Taux de présence par classe' %}"></canvas></div>
+        <ul class="axd-legend">
+          <li><i class="axd-swatch axd-swatch--brand"></i>{% trans "85 % ou plus" %}</li>
+          <li><i class="axd-swatch axd-swatch--bad"></i><i class="fas fa-triangle-exclamation axd-legend__icon" aria-hidden="true"></i>{% trans "Sous 85 %" %}</li>
+        </ul>
+        {% else %}
+          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-school' message=_("Pas encore d’appels dans vos classes.") %}
+        {% endif %}
+      </article>
+      {% endif %}
+    </section>
+
+    {# ---------- Résultats ---------- #}
+    <section class="axd-grid">
+      <article class="axd-card axd-span-6">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Répartition de mes notes" %}</h2>
+            <p class="axd-card__sub">{% blocktrans with n=t.nb_notes %}{{ n }} notes ramenées sur 20 · seuil 10/20{% endblocktrans %}</p>
+          </div>
+          <a class="axd-link" href="{% url t.ns|add:':gestion_notes' %}">{% trans "Notes" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+        </header>
+        {% if t.nb_notes %}
+        <div class="axd-chart"><canvas id="axp-chart-histogram" role="img" aria-label="{% trans 'Histogramme de mes notes' %}"></canvas></div>
+        <ul class="axd-legend">
+          <li><i class="axd-swatch axd-swatch--bad"></i>{% trans "Sous la moyenne" %}</li>
+          <li><i class="axd-swatch axd-swatch--brand"></i>{% trans "10/20 et plus" %}</li>
+        </ul>
+        {% else %}
+          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-chart-column' message=_("Aucune note saisie pour l’instant.") %}
+        {% endif %}
+      </article>
+      {% if t.une_classe and t.charts.matieres_moyenne.values|length > 1 %}
+      <article class="axd-card axd-span-6">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Moyenne par matière" %}</h2>
+            <p class="axd-card__sub">{% trans "Moyenne de mes notes dans chaque matière (/20)" %}</p>
+          </div>
+        </header>
+        <div class="axd-chart"><canvas id="axp-chart-matieres" role="img" aria-label="{% trans 'Moyenne de mes notes par matière' %}"></canvas></div>
+      </article>
+      {% else %}
+      <article class="axd-card axd-span-6">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Moyenne par classe" %}</h2>
+            <p class="axd-card__sub">{% trans "Moyenne de mes notes dans chaque classe (/20)" %}</p>
+          </div>
+        </header>
+        {% if t.charts.classes_moyenne.values %}
+        <div class="axd-chart"><canvas id="axp-chart-classes" role="img" aria-label="{% trans 'Moyenne de mes notes par classe' %}"></canvas></div>
+        {% else %}
+          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-ranking-star' message=_("Les moyennes apparaîtront après vos premières notes.") %}
+        {% endif %}
+      </article>
+      {% endif %}
+    </section>
+
+    <section class="axd-grid">
+      <article class="axd-card axd-span-7">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Résultats au fil des évaluations" %}</h2>
+            <p class="axd-card__sub">{% trans "Moyenne de chaque évaluation notée (/20), dans l’ordre chronologique" %}</p>
+          </div>
+        </header>
+        {% if t.charts.evolution.values %}
+        <div class="axd-chart"><canvas id="axp-chart-evolution" role="img" aria-label="{% trans 'Évolution des moyennes par évaluation' %}"></canvas></div>
+        {% else %}
+          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-chart-line' message=_("Pas encore d’évaluation notée.") %}
+        {% endif %}
+      </article>
+      <article class="axd-card axd-span-5">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{{ t.libelle|capfirst }} {% trans "à accompagner" %}</h2>
+            <p class="axd-card__sub">{% trans "Moyenne de mes notes sous 10/20" %}</p>
+          </div>
+        </header>
+        {% if t.a_suivre %}
+        <ul class="axd-list">
+          {% for e in t.a_suivre %}
+          <li>
+            <span class="axd-list__main"><span class="axd-avatar-sm" aria-hidden="true">{{ e.nom|slice:":1" }}</span><span><strong>{{ e.nom }}</strong><small>{{ e.classe }} · {{ e.nb }} {% trans "note(s)" %}</small></span></span>
+            <span class="axd-score axd-score--bad">{{ e.moyenne|floatformat:2 }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="axd-muted"><i class="fas fa-circle-check axd-good-icon" aria-hidden="true"></i>{% trans "Aucun résultat sous 10/20 dans vos notes." %}</p>
+        {% endif %}
+      </article>
+    </section>
+
+    {# ---------- Mes classes ---------- #}
+    <section class="axd-card axd-classes" aria-labelledby="axp-classes-title">
+      <header class="axd-card__head">
+        <div>
+          <h2 class="axd-card__title" id="axp-classes-title">{% trans "Mes classes" %}</h2>
+          <p class="axd-card__sub">{% trans "État de chaque classe : effectif, heures, résultats et présence" %}</p>
+        </div>
+        <a class="axd-link" href="{% url t.ns|add:':gestion_classes' %}">{% trans "Toutes" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+      </header>
+      {% if t.classes %}
+      <div class="axd-class-grid">
+        {% for c in t.classes %}
+        <article class="axd-class">
+          <header class="axd-class__head">
+            <a class="axd-class__name" href="{{ c.urls.detail }}">{{ c.nom }}</a>
+            {% if c.principal %}<span class="axd-tag"><i class="fas fa-star" aria-hidden="true"></i>{% trans "Principal" %}</span>{% endif %}
+          </header>
+          {% if c.matieres %}<p class="axd-class__subjects">{{ c.matieres|join:" · " }}</p>{% endif %}
+          <dl class="axd-class__stats">
+            <div><dt>{{ t.libelle|capfirst }}</dt><dd>{{ c.effectif }}</dd></div>
+            <div><dt>{% trans "Heures/sem." %}</dt><dd>{{ c.heures|floatformat:"-1" }}</dd></div>
+            <div><dt>{% trans "Moyenne" %}</dt><dd class="{% if c.moyenne != None and c.moyenne < t.seuil %}is-bad{% endif %}">{% if c.moyenne != None %}{{ c.moyenne|floatformat:1 }}{% else %}—{% endif %}</dd></div>
+          </dl>
+          <div class="axd-class__bar">
+            <span>{% trans "Présence" %}</span>
+            {% if c.presence != None %}
+            <span class="axd-meter axd-meter--thin{% if c.presence < t.presence_seuil %} axd-meter--bad{% endif %}" role="img" aria-label="{{ c.presence }} %"><span style="width: {{ c.presence|floatformat:0 }}%"></span></span>
+            <strong>{{ c.presence|floatformat:0 }} %</strong>
+            {% else %}<em>—</em>{% endif %}
+          </div>
+          <div class="axd-class__actions">
+            <a class="axd-btn axd-btn--sm" href="{{ c.urls.appel }}"><i class="fas fa-clipboard-check" aria-hidden="true"></i>{% trans "Appel" %}</a>
+            <a class="axd-btn axd-btn--sm" href="{{ c.urls.noter }}"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Noter" %}</a>
+            <a class="axd-btn axd-btn--sm axd-btn--ghost" href="{{ c.urls.detail }}" aria-label="{% blocktrans with n=c.nom %}Ouvrir la classe {{ n }}{% endblocktrans %}"><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+        {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-chalkboard' message=_("Aucune classe ne vous est encore affectée pour cette année.") %}
+      {% endif %}
+    </section>
+  </main>
+
+  {{ t.charts|json_script:"axp-data" }}
+  {% endwith %}
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="{% static 'school_admin/js/enseignant/dashboard_enseignant_v3.js' %}?v=1.0.0"></script>
+  <script type="module" src="{% static 'school_admin/js/fcm_notifications.js' %}"></script>
+  {% if tdash.is_primaire %}
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+    {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
+  {% else %}
+    {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
+  {% endif %}
+</body>
+</html>

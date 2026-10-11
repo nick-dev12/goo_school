@@ -1,0 +1,44 @@
+{% load i18n %}
+<article class="fe-card fe-tone-blue">
+  <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-people-roof" aria-hidden="true"></i>{% trans "Comptes parents liés" %}</h2>
+  <p class="fe-card__sub">{% trans "Parents qui suivent l’élève depuis leur espace ARIA." %}</p></div></header>
+  {% if fiche.famille.comptes %}
+  <div class="fe-people">
+    {% for c in fiche.famille.comptes %}
+    <div class="fe-person">
+      <div class="fe-person__top">
+        <span class="fe-person__avatar">{{ c.parent.prenom.0|upper }}{{ c.parent.nom.0|upper }}</span>
+        <div><p class="fe-person__name">{{ c.parent.prenom }} {{ c.parent.nom }}</p><p class="fe-person__meta">{{ c.lien }}{% if c.parent.profession %} · {{ c.parent.profession }}{% endif %}</p></div>
+      </div>
+      <div class="fe-status">
+        {% if c.inscripteur %}<span class="cg3-chip cg3-chip--muted">{% trans "A inscrit l’élève" %}</span>{% endif %}
+        {% if not c.valide %}<span class="cg3-chip cg3-chip--warn">{{ c.statut }}</span>{% endif %}
+        {% if fiche.vue == 'direction' %}{% if c.connecte %}<span class="cg3-chip cg3-chip--ok">{% trans "Utilise l’espace parent" %}</span>{% else %}<span class="cg3-chip cg3-chip--warn">{% trans "Jamais connecté" %}</span>{% endif %}{% endif %}
+      </div>
+      <div class="fe-person__links">
+        {% if c.parent.telephone %}<a href="tel:{{ c.parent.telephone }}"><i class="fas fa-phone" aria-hidden="true"></i>{{ c.parent.telephone }}</a>{% endif %}
+        {% if c.email %}<a href="mailto:{{ c.email }}"><i class="fas fa-envelope" aria-hidden="true"></i>{{ c.email }}</a>{% endif %}
+      </div>
+      {% if fiche.vue == 'direction' and c.parent.matricule_parental %}<p class="fe-person__meta">{% trans "Matricule parental" %} : <strong>{{ c.parent.matricule_parental }}</strong></p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="fe-alert fe-alert--warn"><i class="fas fa-user-slash" aria-hidden="true"></i><span>{% trans "Aucun compte parent n’est lié à cet élève : la famille ne reçoit ni les notes ni les absences sur ARIA." %}</span></p>
+  {% endif %}
+</article>
+{% if fiche.famille.fiche %}
+<article class="fe-card" style="margin-top:16px">
+  <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-address-card" aria-hidden="true"></i>{% trans "Responsable déclaré à l’inscription" %}</h2></div></header>
+  <dl class="fe-dl">
+    <div><dt>{% trans "Nom" %}</dt><dd>{{ fiche.famille.fiche.nom|default:"—" }}</dd></div>
+    <div><dt>{% trans "Lien" %}</dt><dd>{{ fiche.famille.fiche.lien|default:"—" }}</dd></div>
+    <div><dt>{% trans "Téléphone" %}</dt><dd>{% if fiche.famille.fiche.telephone %}<a href="tel:{{ fiche.famille.fiche.telephone }}">{{ fiche.famille.fiche.telephone }}</a>{% else %}—{% endif %}</dd></div>
+    {% if fiche.vue == 'direction' %}
+    <div><dt>{% trans "Email" %}</dt><dd>{{ fiche.famille.fiche.email|default:"—" }}</dd></div>
+    <div><dt>{% trans "Profession" %}</dt><dd>{{ fiche.famille.fiche.profession|default:"—" }}</dd></div>
+    <div><dt>{% trans "Adresse" %}</dt><dd>{{ fiche.famille.fiche.adresse|default:"—"|linebreaksbr }}</dd></div>
+    {% endif %}
+  </dl>
+</article>
+{% endif %}

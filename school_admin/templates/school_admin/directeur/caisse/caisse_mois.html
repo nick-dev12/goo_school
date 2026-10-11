@@ -10,9 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/caisse.css' %}?v=1.1.0" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/caisse.css' %}?v=1.1.4" />
+    {% include 'school_admin/directeur/comptabilite_generale/partials/cg_assets_head.html' %}
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
 <body class="caisse-page-body" data-live-page="caisse">
@@ -113,39 +112,12 @@
                 </section>
 
                 <section class="tab-panel caisse-tab-panel {% if initial_caisse_vue == 'sorties' %}active{% endif %}" id="caisse-panel-sorties" role="tabpanel"{% if initial_caisse_vue != 'sorties' %} hidden{% endif %}>
-                    <section class="caisse-form-card">
-                        <h2>{% trans "Ajouter une sortie" %}</h2>
-                        <form method="post" action="{% url 'directeur:ajouter_depense_directeur' %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="mois" value="{{ bornes.valeur }}" />
-                            <div class="caisse-form-grid">
-                                <div>
-                                    <label for="date_depense">{% trans "Date" %}</label>
-                                    <input id="date_depense" type="date" name="date_depense" value="{{ date_defaut }}" required />
-                                </div>
-                                <div>
-                                    <label for="motif">{% trans "Motif" %}</label>
-                                    <select id="motif" name="motif">
-                                        {% for code, label in motifs %}
-                                        <option value="{{ code }}">{{ label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="montant">{% trans "Montant" %} ({{ devise_monnaie }})</label>
-                                    <input id="montant" type="number" name="montant" min="1" step="1" required />
-                                </div>
-                                <div>
-                                    <label for="libelle">{% trans "Précision" %} <span class="caisse-optional">{% trans "(optionnel)" %}</span></label>
-                                    <input id="libelle" type="text" name="libelle" maxlength="160" placeholder="{% trans 'Ex. loyer septembre' %}" />
-                                </div>
-                            </div>
-                            <button type="submit" class="caisse-btn caisse-btn--primary">
-                                <i class="fas fa-plus"></i> {% trans "Enregistrer la sortie" %}
-                            </button>
-                        </form>
-                    </section>
-                    <h2>{% trans "Sorties enregistrées" %}</h2>
+                    <div class="cg-panel-head">
+                        <h2>{% trans "Sorties enregistrées" %}</h2>
+                        <button type="button" class="caisse-btn caisse-btn--primary" data-cg-open="sheet-sortie">
+                            <i class="fas fa-plus"></i> {% trans "Ajouter une sortie" %}
+                        </button>
+                    </div>
                     <div class="table-responsive">
                         <table class="caisse-table">
                             <thead>
@@ -153,26 +125,42 @@
                                     <th>{% trans "Date" %}</th>
                                     <th>{% trans "Motif" %}</th>
                                     <th class="num">{% trans "Montant" %}</th>
+                                    <th>{% trans "Statut" %}</th>
                                     <th></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for depense in depenses %}
-                                <tr>
+                                <tr class="{% if depense.statut == 'annulee' %}caisse-row-annulee{% endif %}">
                                     <td>{{ depense.date_depense|date:"d/m/Y" }}</td>
                                     <td>{{ depense.libelle_affiche }}</td>
                                     <td class="num">{{ depense.montant|floatformat:0 }}</td>
                                     <td>
+                                        {% if depense.statut == 'annulee' %}
+                                        <span class="caisse-statut caisse-statut--annulee">{% trans "Annulée" %}</span>
+                                        {% elif depense.statut == 'brouillon' %}
+                                        <span class="caisse-statut caisse-statut--brouillon">{% trans "Brouillon" %}</span>
+                                        {% else %}
+                                        <span class="caisse-statut caisse-statut--validee">{% trans "Validée" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if depense.statut == 'brouillon' %}
                                         <form method="post" action="{% url 'directeur:supprimer_depense_directeur' depense.id %}">
                                             {% csrf_token %}
                                             <input type="hidden" name="mois" value="{{ bornes.valeur }}" />
                                             <button type="submit" class="caisse-btn caisse-btn--ghost">{% trans "Retirer" %}</button>
                                         </form>
+                                        {% elif depense.statut == 'validee' and peut_annuler %}
+                                        <button type="button" class="caisse-btn caisse-btn--ghost" data-cg-open="sheet-annuler-sortie" data-cg-action="{% url 'directeur:annuler_depense_directeur' depense.id %}">{% trans "Annuler" %}</button>
+                                        {% elif depense.statut == 'validee' and depense.ecrite %}
+                                        <span class="caisse-ecrite">{% trans "Écrite" %}</span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="4" class="caisse-empty">{% trans "Aucune sortie ce mois-ci." %}</td>
+                                    <td colspan="5" class="caisse-empty">{% trans "Aucune sortie ce mois-ci." %}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -183,7 +171,77 @@
         </div>
     </div>
 
+    <div class="cg-sheet" id="sheet-sortie" hidden>
+        <div class="cg-sheet-backdrop" data-cg-close></div>
+        <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-sortie-title">
+            <div class="cg-sheet-head">
+                <h2 id="sheet-sortie-title">{% trans "Ajouter une sortie" %}</h2>
+                <button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button>
+            </div>
+            <form method="post" action="{% url 'directeur:ajouter_depense_directeur' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="mois" value="{{ bornes.valeur }}" />
+                <div class="caisse-form-grid">
+                    <div>
+                        <label for="date_depense">{% trans "Date" %}</label>
+                        <input id="date_depense" type="date" name="date_depense" value="{{ date_defaut }}" required />
+                    </div>
+                    <div>
+                        <label for="fournisseur_id">{% trans "Fournisseur" %} <span class="caisse-optional">{% trans "(si la sortie correspond à une facture)" %}</span></label>
+                        <select id="fournisseur_id" name="fournisseur_id">
+                            <option value="">{% trans "Aucun — sortie immédiate" %}</option>
+                            {% for f in fournisseurs %}
+                            <option value="{{ f.id }}">{{ f.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="motif">{% trans "Motif" %}</label>
+                        <select id="motif" name="motif">
+                            {% for code, label in motifs %}
+                            <option value="{{ code }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="montant">{% trans "Montant" %} ({{ devise_monnaie }})</label>
+                        <input id="montant" type="number" name="montant" min="1" step="1" required />
+                    </div>
+                    <div>
+                        <label for="libelle">{% trans "Précision" %} <span class="caisse-optional">{% trans "(optionnel)" %}</span></label>
+                        <input id="libelle" type="text" name="libelle" maxlength="160" placeholder="{% trans 'Ex. loyer septembre' %}" />
+                    </div>
+                    <div>
+                        <label for="justificatif">{% trans "Justificatif" %} <span class="caisse-optional">{% trans "(optionnel, PDF ou image)" %}</span></label>
+                        <input id="justificatif" type="file" name="justificatif" accept=".pdf,.jpg,.jpeg,.png,.webp" />
+                    </div>
+                </div>
+                <button type="submit" class="caisse-btn caisse-btn--primary">
+                    <i class="fas fa-plus"></i> {% trans "Enregistrer la sortie" %}
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="cg-sheet" id="sheet-annuler-sortie" hidden>
+        <div class="cg-sheet-backdrop" data-cg-close></div>
+        <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-annuler-sortie-title">
+            <div class="cg-sheet-head">
+                <h2 id="sheet-annuler-sortie-title">{% trans "Annuler la sortie" %}</h2>
+                <button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button>
+            </div>
+            <form method="post" action="{% url 'directeur:caisse_mois_directeur' %}" class="caisse-annuler-form">
+                {% csrf_token %}
+                <input type="hidden" name="mois" value="{{ bornes.valeur }}" />
+                <label for="motif-annulation-sortie">{% trans "Motif d'annulation" %}</label>
+                <input id="motif-annulation-sortie" type="text" name="motif" maxlength="200" required placeholder="{% trans 'Motif d’annulation' %}" />
+                <button type="submit" class="caisse-btn caisse-btn--ghost">{% trans "Annuler" %}</button>
+            </form>
+        </div>
+    </div>
+
     <script src="{% static 'school_admin/js/directeur/directeur_tab_storage.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/tabs_nav_overflow.js' %}?v=1.0.1"></script>
+    <script src="{% static 'school_admin/js/directeur/cg_ui.js' %}?v=1.0.1"></script>
     <script src="{% static 'school_admin/js/directeur/caisse_mois.js' %}?v=1.0.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

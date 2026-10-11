@@ -1,0 +1,457 @@
+/* Dashboard directeur — onglet Absences (pilotage) */
+.dbd-abs-panel {
+  animation: dbdAbsFadeIn 0.45s ease-out;
+}
+
+@keyframes dbdAbsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dbd-abs-panel {
+    animation: none;
+  }
+}
+
+.dbd-abs-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.dbd-abs-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dbd-abs-title i {
+  color: var(--accent, #ef4444);
+}
+
+.dbd-abs-sub {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.dbd-abs-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dbd-abs-alert-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: var(--accent-light, rgba(239, 68, 68, 0.1));
+  color: var(--accent, #ef4444);
+}
+
+.dbd-abs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: var(--transition, all 0.3s ease);
+}
+
+.dbd-abs-btn.primary {
+  background: var(--gradient-blue, linear-gradient(135deg, #3b82f6, #1d4ed8));
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.dbd-abs-btn.secondary {
+  background: var(--white);
+  color: var(--primary, #3b82f6);
+  border-color: var(--gray-200, #e5e7eb);
+}
+
+.dbd-abs-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.dbd-abs-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 1200px) {
+  .dbd-abs-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dbd-abs-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dbd-abs-title {
+    font-size: 1.125rem;
+  }
+}
+
+.dbd-abs-kpi {
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  background: var(--white);
+  border: 1px solid var(--border-color, #e9ecef);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.25s ease;
+}
+
+.dbd-abs-kpi:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.dbd-abs-kpi--primary {
+  border-color: rgba(59, 130, 246, 0.25);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), #fff);
+}
+
+.dbd-abs-kpi--warn {
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.dbd-abs-kpi--danger {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.dbd-abs-kpi--success {
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.dbd-abs-kpi-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-light, rgba(59, 130, 246, 0.1));
+  color: var(--primary, #3b82f6);
+  flex-shrink: 0;
+}
+
+.dbd-abs-kpi-icon.accent {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.dbd-abs-kpi-icon.warning {
+  background: var(--warning-light);
+  color: var(--warning, #fbbf24);
+}
+
+.dbd-abs-kpi-icon.success {
+  background: var(--success-light);
+  color: var(--success, #10b981);
+}
+
+.dbd-abs-kpi-icon.info {
+  background: var(--info-light);
+  color: var(--info, #8b5cf6);
+}
+
+.dbd-abs-kpi-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.dbd-abs-kpi-value {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.dbd-abs-kpi-trend {
+  display: block;
+  font-size: 0.6875rem;
+  margin-top: 0.15rem;
+  color: var(--text-light);
+}
+
+.dbd-abs-kpi-trend.up {
+  color: var(--success, #10b981);
+}
+
+.dbd-abs-kpi-trend.down {
+  color: var(--accent, #ef4444);
+}
+
+.dbd-abs-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.dbd-abs-chart-card--wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+  .dbd-abs-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dbd-abs-chart-card {
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.dbd-abs-chart-card h4 {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dbd-abs-chart-wrap {
+  position: relative;
+  height: 220px;
+}
+
+.dbd-abs-chart-wrap canvas {
+  max-height: 220px;
+}
+
+.dbd-abs-section {
+  margin-bottom: 1.25rem;
+}
+
+.dbd-abs-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+}
+
+.dbd-abs-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.dbd-abs-section-head .dbd-abs-section-title {
+  margin: 0;
+}
+
+.dbd-abs-table-wrap {
+  position: relative;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--white);
+}
+
+.dbd-abs-table-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28px;
+  height: 100%;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.06), transparent);
+  pointer-events: none;
+  border-radius: 0 10px 10px 0;
+}
+
+@media (min-width: 1024px) {
+  .dbd-abs-table-wrap::after {
+    display: none;
+  }
+}
+
+.dbd-abs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+
+.dbd-abs-table th,
+.dbd-abs-table td {
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  min-width: 100px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--gray-100, #f3f4f6);
+}
+
+.dbd-abs-table th {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  background: var(--gray-50, #f9fafb);
+}
+
+.dbd-abs-table td.num {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.dbd-abs-table td.num.danger {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.dbd-abs-table td.num.warning {
+  color: var(--warning, #d97706);
+  font-weight: 600;
+}
+
+.dbd-abs-link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.dbd-abs-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.dbd-abs-timeline-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--gray-100);
+  background: var(--gray-50);
+}
+
+.dbd-abs-timeline-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 8px;
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dbd-abs-timeline-classe {
+  margin-left: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.dbd-abs-timeline-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.35rem 0;
+  font-size: 0.8125rem;
+}
+
+.dbd-abs-timeline-stats .ok {
+  color: var(--success);
+}
+
+.dbd-abs-timeline-stats .ko {
+  color: var(--accent);
+}
+
+.dbd-abs-timeline-body time {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.dbd-abs-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary);
+}
+
+.dbd-abs-empty.compact {
+  padding: 1.25rem;
+}
+
+.dbd-abs-empty i {
+  font-size: 2rem;
+  color: var(--gray-300);
+  margin-bottom: 0.5rem;
+}
+
+.dbd-abs-legend {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: var(--primary-light);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.dbd-abs-legend summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.dbd-abs-legend ul {
+  margin: 0.5rem 0 0 1.1rem;
+  padding: 0;
+}
+
+.dbd-abs-legend li {
+  margin-bottom: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .dbd-abs-table th,
+  .dbd-abs-table td {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.65rem;
+  }
+}

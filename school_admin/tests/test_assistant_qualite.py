@@ -240,8 +240,11 @@ class TtsFallbackQualiteTests(SimpleTestCase):
 
         asyncio.run(_run())
 
-    def test_flush_synthetise_une_phrase_a_la_fois(self):
-        from school_admin.consumers.assistant_consumer import AssistantConsumer
+    def test_flush_synthetise_en_parallele_et_emet_dans_l_ordre(self):
+        from school_admin.consumers.assistant_consumer import (
+            TTS_PARALLEL_SYNTH,
+            AssistantConsumer,
+        )
 
         async def _run():
             consumer = AssistantConsumer()
@@ -255,11 +258,12 @@ class TtsFallbackQualiteTests(SimpleTestCase):
             concurrent = 0
             max_concurrent = 0
 
-            async def fake_synth(_text):
+            async def fake_synth(text):
                 nonlocal concurrent, max_concurrent
                 concurrent += 1
                 max_concurrent = max(max_concurrent, concurrent)
-                await asyncio.sleep(0.02)
+                # La première phrase est la plus lente : l'ordre d'émission doit tenir.
+                await asyncio.sleep(0.06 if 'une' in text else 0.02)
                 concurrent -= 1
                 return b'WAV', 'audio/wav'
 
@@ -269,13 +273,20 @@ class TtsFallbackQualiteTests(SimpleTestCase):
                 sent.append(payload)
 
             consumer._send_json = fake_send
+            consumer._mark_first_audio = lambda: None
             with patch(
                 'school_admin.consumers.assistant_consumer.synthesize_audio',
                 new=fake_synth,
             ):
                 await consumer._flush_tts_queue(['Phrase une.', 'Phrase deux.', 'Phrase trois.'])
-            self.assertEqual(max_concurrent, 1)
+            self.assertGreater(max_concurrent, 1)
+            self.assertLessEqual(max_concurrent, TTS_PARALLEL_SYNTH)
             self.assertEqual(len(sent), 3)
+            self.assertEqual([item['index'] for item in sent], [0, 1, 2])
+            self.assertEqual(
+                [item['text'] for item in sent],
+                ['Phrase une.', 'Phrase deux.', 'Phrase trois.'],
+            )
             self.assertTrue(all(item.get('audio_base64') for item in sent))
             self.assertTrue(all(item.get('voice_failed') is False for item in sent))
 

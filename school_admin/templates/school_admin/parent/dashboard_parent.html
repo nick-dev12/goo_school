@@ -1,296 +1,258 @@
 {% load static %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% include 'school_admin/partials/seo_head.html' %}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.1"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/parent/nav_parent.css' %}?v=1.0.1"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/parent/dashboard_parent.css' %}?v=1.0.3"
-    />
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/gtranslate_header_bar.css' %}?v=1.0.1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  {% include 'school_admin/parent/partials/_px_head.html' %}
 </head>
-<body>
-    <!-- Icônes flottantes translucides -->
-    <div class="floating-icons">
-        <i class="fas fa-graduation-cap floating-icon"></i>
-        <i class="fas fa-book floating-icon"></i>
-        <i class="fas fa-user-graduate floating-icon"></i>
-        <i class="fas fa-school floating-icon"></i>
-        <i class="fas fa-apple-alt floating-icon"></i>
-        <i class="fas fa-pencil-alt floating-icon"></i>
-    </div>
+<body class="axd-page px-page">
+  {% include 'school_admin/parent/partials/_px_shell.html' %}
 
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-left">
-                <div class="header-icon">
-                    <i class="fas fa-user-friends"></i>
-                </div>
-                <div class="header-info">
-                    <h1>Espace Parent</h1>
-                    <p>{{ parent.nom_complet }} • {{ etablissement.nom }}</p>
-                </div>
-            </div>
-            <div class="header-right">
-                {% include 'school_admin/partials/gtranslate_header_bar.html' %}
-                
-                <button id="fcm-enable-btn" class="btn-fcm" type="button" style="display: none;" onclick="activerNotifications()">
-                    <i class="fas fa-bell"></i>
-                    Activer les notifications
-                </button>
-                <a href="{% url 'school_admin:notifications_parent' %}" class="btn-notifications">
-                    <i class="fas fa-bell"></i>
-                    Notifications
-                    {% if notifications_parent_non_lues > 0 %}
-                    <span class="badge">{{ notifications_parent_non_lues }}</span>
-                    {% endif %}
-                </a>
-                <a href="{% url 'school_admin:deconnexion_parent' %}" class="btn-deconnexion">
-                    <i class="fas fa-sign-out-alt"></i>
-                    Déconnexion
-                </a>
-            </div>
+  <main class="axd px" id="contenu">
+    {# ---------- Bienvenue ---------- #}
+    <section class="axd-hero px-hero">
+      <div class="px-hero__row">
+        <div>
+          <p class="axd-hero__date">
+            {% now "l j F Y" as aujourdhui %}{{ aujourdhui|capfirst }}
+            {% if annee_scolaire_active %}<span class="axd-dot" aria-hidden="true"></span>{% trans "Année" %} {{ annee_scolaire_active.libelle }}{% endif %}
+          </p>
+          <h1 class="axd-hero__title">{% trans "Bonjour" %} {{ parent.prenom }}</h1>
+          <p class="px-hero__sub">
+            {% if nombre_enfants > 1 %}{% blocktrans with n=nombre_enfants %}Voici l’essentiel sur vos {{ n }} enfants.{% endblocktrans %}
+            {% elif nombre_enfants == 1 %}{% trans "Voici l’essentiel sur votre enfant." %}
+            {% else %}{% trans "Ajoutez votre enfant pour suivre sa scolarité." %}{% endif %}
+          </p>
         </div>
-
-
-        {% include 'school_admin/parent/partials/navigation_panel.html' %}
-
-        <div id="fcm-success-message" class="fcm-success-message">
-            <i class="fas fa-check-circle"></i>
-            <span>Notifications activées avec succès.</span>
+        <div class="px-hero__actions">
+          <button type="button" class="px-hero__btn" data-open-ajout><i class="fas fa-user-plus" aria-hidden="true"></i>{% trans "Ajouter un enfant" %}</button>
+          <button id="fcm-enable-btn" class="px-hero__btn px-hero__btn--quiet" type="button" style="display: none;" onclick="activerNotifications()"><i class="fas fa-bell" aria-hidden="true"></i>{% trans "Activer les notifications" %}</button>
         </div>
+      </div>
+      <p id="fcm-success-message" class="px-hero__ok" style="display: none;"><i class="fas fa-circle-check" aria-hidden="true"></i>{% trans "Notifications activées." %}</p>
+    </section>
 
-        <!-- Messages Django -->
-        {% if messages %}
-            <div class="messages-container">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">
-                        {% if message.tags == 'error' %}
-                            <i class="fas fa-exclamation-circle"></i>
-                        {% elif message.tags == 'success' %}
-                            <i class="fas fa-check-circle"></i>
-                        {% elif message.tags == 'warning' %}
-                            <i class="fas fa-exclamation-triangle"></i>
-                        {% else %}
-                            <i class="fas fa-info-circle"></i>
-                        {% endif %}
-                        <span>{{ message }}</span>
-                    </div>
-                {% endfor %}
+    {# ---------- Scolarité à payer ---------- #}
+    {% if total_reste_scolarite > 0 %}
+    <a class="px-alert" href="{% url 'school_admin:scolarite_parent' %}">
+      <span class="px-alert__icon"><i class="fas fa-wallet" aria-hidden="true"></i></span>
+      <span class="px-alert__text">
+        <strong>{% trans "Reste à payer" %} : {{ total_reste_scolarite|floatformat:"0g" }} {{ devise_scolarite }}</strong>
+        <small>{% if prochaine_echeance_scolarite %}{% trans "Prochaine échéance le" %} {{ prochaine_echeance_scolarite|date:"d F Y" }}{% else %}{% trans "Touchez pour voir le détail" %}{% endif %}</small>
+      </span>
+      <span class="px-alert__cta">{% trans "Voir le détail" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+    </a>
+    {% endif %}
+
+    {# ---------- Mes enfants ---------- #}
+    {% if enfants %}
+    <section aria-labelledby="px-enfants-title">
+      <div class="px-section-head">
+        <h2 class="px-section-title" id="px-enfants-title">{% if nombre_enfants > 1 %}{% trans "Mes enfants" %}{% else %}{% trans "Mon enfant" %}{% endif %}</h2>
+      </div>
+      <div class="px-children">
+        {% for e in enfants %}
+        <article class="px-child">
+          <header class="px-child__head">
+            <span class="px-child__avatar">
+              {% if e.eleve.photo_profil %}<img src="{{ e.eleve.photo_profil.url }}" alt="">{% else %}{{ e.eleve.prenom|slice:":1"|upper }}{{ e.eleve.nom|slice:":1"|upper }}{% endif %}
+            </span>
+            <div class="px-child__id">
+              <h3 class="px-child__name">{{ e.eleve.prenom }} {{ e.eleve.nom }}</h3>
+              <p class="px-child__meta">
+                {% if e.classe %}<span><i class="fas fa-chalkboard" aria-hidden="true"></i>{{ e.classe.nom|default:e.classe }}</span>{% endif %}
+                <span><i class="fas fa-school" aria-hidden="true"></i>{{ e.eleve.etablissement.nom }}</span>
+              </p>
             </div>
-        {% endif %}
+            {% if e.lien %}<span class="px-chip">{{ e.lien }}</span>{% endif %}
+          </header>
 
-        <!-- Message de bienvenue -->
-        <div class="welcome-banner">
-            <h2>
-                Bienvenue {{ parent.prenom }} !
-            </h2>
-        </div>
-
-        {% if total_reste_scolarite > 0 %}
-        <a href="{% url 'school_admin:scolarite_parent' %}" class="welcome-banner" style="display:block;text-decoration:none;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;margin-top:0.75rem;">
-            <h2 style="color:#fff;">Vous devez {{ total_reste_scolarite|floatformat:0 }} {{ devise_scolarite }}</h2>
-            <p style="color:#fff;margin:0;">
-                {% if prochaine_echeance_scolarite %}
-                    Échéance : {{ prochaine_echeance_scolarite|date:"d/m/Y" }}
-                {% else %}
-                    Consultez le détail de la scolarité
-                {% endif %}
-            </p>
-        </a>
-        {% endif %}
-
-        <!-- Section Title -->
-        {% if enfants %}
-            <div class="section-title">
-                <h3>
-                    <i class="fas fa-child"></i>
-                    {% if nombre_enfants > 1 %}Vos enfants{% else %}Votre enfant{% endif %}
-                </h3>
-                <p>Cliquez sur une carte pour accéder à l'espace personnel</p>
+          <dl class="px-child__stats">
+            <div>
+              <dt>{% trans "Moyenne" %}</dt>
+              <dd class="{% if e.moyenne != None and e.moyenne < 10 %}is-bad{% endif %}">{% if e.moyenne != None %}{{ e.moyenne|floatformat:2 }}<small>/20</small>{% else %}—{% endif %}</dd>
+              <span>{% if e.moyenne_periode %}{{ e.moyenne_periode }}{% else %}{% trans "Bulletin non publié" %}{% endif %}</span>
             </div>
-        {% endif %}
-
-        {% if enfants %}
-            <!-- Grille des enfants -->
-            <div class="enfants-grid">
-                {% for enfant_data in enfants %}
-                    <a href="{% url 'school_admin:dashboard_enfant' enfant_data.eleve.id %}" class="enfant-card">
-                        <!-- Header de la carte -->
-                        <div class="enfant-header">
-                            <div class="enfant-avatar">
-                                {% if enfant_data.eleve.photo_profil %}
-                                    <img src="{{ enfant_data.eleve.photo_profil.url }}" alt="Photo de {{ enfant_data.eleve.nom_complet }}" class="enfant-avatar-img">
-                                {% else %}
-                                    <img src="{% static 'school_admin/img/Profile_avatar_placeholder_large.png' %}" alt="Photo par défaut" class="enfant-avatar-img">
-                                {% endif %}
-                                <span class="enfant-avatar-fallback">{{ enfant_data.eleve.prenom|slice:":1"|upper }}{{ enfant_data.eleve.nom|slice:":1"|upper }}</span>
-                            </div>
-                            <div class="enfant-info">
-                                <h3>{{ enfant_data.eleve.nom_complet }}</h3>
-                                {% if enfant_data.eleve.classe %}
-                                    <span class="classe-badge">
-                                        <i class="fas fa-chalkboard"></i>
-                                        {{ enfant_data.eleve.classe.nom }}
-                                    </span>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <!-- Méta-informations -->
-                        <div class="enfant-meta">
-                            <div class="meta-item">
-                                <i class="fas fa-id-card"></i>
-                                <strong>{{ enfant_data.eleve.matricule_eleve }}</strong>
-                            </div>
-                            {% if enfant_data.age %}
-                                <div class="meta-item">
-                                    <i class="fas fa-birthday-cake"></i>
-                                    <strong>{{ enfant_data.age }} ans</strong>
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Établissement -->
-                        <div class="enfant-etablissement">
-                            <i class="fas fa-school"></i>
-                            <span>{{ enfant_data.eleve.etablissement.nom }}</span>
-                        </div>
-
-                        <!-- Badge absences -->
-                        {% if enfant_data.total_absences > 0 %}
-                            <div class="absences-badge">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <span><strong>{{ enfant_data.total_absences }}</strong> absence{{ enfant_data.total_absences|pluralize }}</span>
-                            </div>
-                        {% else %}
-                            <div class="absences-badge zero">
-                                <i class="fas fa-check-circle"></i>
-                                <span>Aucune absence</span>
-                            </div>
-                        {% endif %}
-                    </a>
-                {% endfor %}
+            <div>
+              <dt>{% trans "Assiduité" %}</dt>
+              <dd class="{% if e.assiduite != None and e.assiduite < 85 %}is-warn{% endif %}">{% if e.assiduite != None %}{{ e.assiduite }}<small>%</small>{% else %}—{% endif %}</dd>
+              <span>{% trans "des appels" %}</span>
             </div>
+            <div>
+              <dt>{% trans "Absences" %}</dt>
+              <dd class="{% if e.total_absences > 0 %}is-warn{% endif %}">{{ e.total_absences }}</dd>
+              <span>{% if e.retards %}{{ e.retards }} {% trans "retard(s)" %}{% else %}{% trans "cette année" %}{% endif %}</span>
+            </div>
+            <div>
+              <dt>{% trans "À payer" %}</dt>
+              <dd class="{% if e.dette and e.dette.reste > 0 %}is-bad{% else %}is-good{% endif %}">{% if e.dette and e.dette.reste > 0 %}{{ e.dette.reste|floatformat:"0g" }}{% else %}0{% endif %}</dd>
+              <span>{% if e.dette and e.dette.reste > 0 %}{{ e.devise }}{% else %}{% trans "À jour" %}{% endif %}</span>
+            </div>
+          </dl>
+
+          {% if e.convocation %}
+          <p class="px-child__notice"><i class="fas fa-calendar-check" aria-hidden="true"></i>
+            {% blocktrans with d=e.convocation.date_convocation|date:"d F" h=e.convocation.heure_convocation|time:"H:i" o=e.convocation.objet %}Convocation le {{ d }} à {{ h }} : {{ o }}{% endblocktrans %}
+          </p>
+          {% endif %}
+
+          <div class="px-child__notes">
+            <h4>{% trans "Dernières notes" %}</h4>
+            {% if e.dernieres_notes %}
+            <ul>
+              {% for n in e.dernieres_notes %}
+              <li>
+                <span><strong>{{ n.matiere|default:n.titre }}</strong><small>{{ n.titre }}</small></span>
+                <span class="px-note {% if n.sur20 != None and n.sur20 < 10 %}is-bad{% else %}is-good{% endif %}">{{ n.valeur|floatformat:"-2" }}/{{ n.bareme|floatformat:"-1" }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="px-muted">{% trans "Aucune note publiée pour le moment." %}</p>
+            {% endif %}
+          </div>
+
+          <a class="px-child__cta" href="{% url 'school_admin:dashboard_enfant' e.eleve.id %}">
+            {% blocktrans with p=e.eleve.prenom %}Voir le suivi de {{ p }}{% endblocktrans %}<i class="fas fa-arrow-right" aria-hidden="true"></i>
+          </a>
+        </article>
+        {% endfor %}
+
+        <button type="button" class="px-child px-child--add" data-open-ajout>
+          <span class="px-child--add__icon"><i class="fas fa-plus" aria-hidden="true"></i></span>
+          <strong>{% trans "Ajouter un enfant" %}</strong>
+          <small>{% trans "Avec son matricule et son mot de passe" %}</small>
+        </button>
+      </div>
+    </section>
+
+    {# ---------- À savoir ---------- #}
+    <section class="axd-grid px-news" aria-label="{% trans 'À savoir' %}">
+      <article class="axd-card axd-span-4">
+        <header class="axd-card__head">
+          <div><h2 class="axd-card__title">{% trans "Convocations à venir" %}</h2></div>
+          <a class="axd-link" href="{% url 'school_admin:convocations_parent' %}">{% trans "Toutes" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+        </header>
+        {% if nouvelles.convocations %}
+        <ul class="axd-list">
+          {% for c in nouvelles.convocations %}
+          <li>
+            <span class="axd-list__main">
+              <span class="axd-date-chip px-date" aria-hidden="true"><b>{{ c.date_convocation|date:"d" }}</b>{{ c.date_convocation|date:"M" }}</span>
+              <span><strong>{{ c.objet }}</strong><small>{{ c.eleve.prenom }} · {{ c.heure_convocation|time:"H:i" }} · {{ c.lieu }}</small></span>
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
         {% else %}
-            <!-- État vide -->
-            <div class="empty-state">
-                <i class="fas fa-user-times"></i>
-                <h3>Aucun enfant lié</h3>
-                <p>Aucun enfant n'est actuellement associé à votre compte parent.</p>
-                <p style="margin-top: 12px; color: var(--gray-500); font-size: 15px;">
-                    Utilisez le bouton "Ajouter un enfant" ci-dessus pour créer une demande de liaison.
-                </p>
-            </div>
+        <p class="axd-muted"><i class="fas fa-circle-check axd-good-icon" aria-hidden="true"></i>{% trans "Aucune convocation prévue." %}</p>
         {% endif %}
-    </div>
+      </article>
 
-    <!-- Modal pour ajouter un enfant -->
-    <div id="modalAjouterEnfant" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>
-                    <i class="fas fa-user-plus"></i>
-                    Ajouter un enfant
-                </h2>
-                <button class="modal-close" onclick="closeModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-
-            <form action="{% url 'school_admin:demande_liaison_enfant' %}" method="POST">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-id-card"></i>
-                            Matricule de l'élève
-                        </label>
-                        <input type="text" name="matricule_eleve" class="form-input" 
-                               placeholder="Ex: BD345843" 
-                               value="{{ form_data.matricule_eleve|default:'' }}" required>
-                        <div class="form-help">Le matricule unique de votre enfant</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-lock"></i>
-                            Mot de passe de l'élève
-                        </label>
-                        <input type="password" name="mot_de_passe_eleve" class="form-input" 
-                               placeholder="Entrez le mot de passe de l'enfant" 
-                               required>
-                        <div class="form-help">Le mot de passe de connexion de votre enfant</div>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel" onclick="closeModal()">Annuler</button>
-                    <button type="submit" class="btn-submit">
-                        <i class="fas fa-paper-plane"></i>
-                        Lier l'enfant
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        function openModal() {
-            document.getElementById('modalAjouterEnfant').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeModal() {
-            document.getElementById('modalAjouterEnfant').classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
-
-        // Fermer le modal en cliquant en dehors
-        document.getElementById('modalAjouterEnfant').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
-        });
-
-        // Échapper pour fermer
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeModal();
-            }
-        });
-
-        // Ouvrir automatiquement le modal si des données de formulaire existent
-        {% if form_data %}
-            document.addEventListener('DOMContentLoaded', function() {
-                openModal();
-            });
+      <article class="axd-card axd-span-4">
+        <header class="axd-card__head">
+          <div><h2 class="axd-card__title">{% trans "Dernières annonces" %}</h2></div>
+          <a class="axd-link" href="{% url 'school_admin:annonces_parent' %}">{% trans "Toutes" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+        </header>
+        {% if nouvelles.annonces %}
+        <ul class="axd-list">
+          {% for a in nouvelles.annonces %}
+          <li>
+            <a class="axd-list__main" href="{% url 'school_admin:annonces_parent' %}">
+              <span class="axd-avatar-sm px-icon-orange" aria-hidden="true"><i class="fas fa-bullhorn"></i></span>
+              <span><strong>{{ a.titre }}</strong><small>{{ a.date_publication|date:"d/m/Y" }}</small></span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="axd-muted">{% trans "Pas de nouvelle annonce." %}</p>
         {% endif %}
+      </article>
 
-        // Gestion des erreurs de chargement d'images pour les avatars
-        document.addEventListener('DOMContentLoaded', function() {
-            const avatarImages = document.querySelectorAll('.enfant-avatar-img');
-            avatarImages.forEach(function(img) {
-                img.addEventListener('error', function() {
-                    this.classList.add('error');
-                });
-            });
-        });
-    </script>
-    {% include 'school_admin/parent/partials/bottom_nav_parent.html' %}
-    <script src="{% static 'school_admin/js/parent/header_parent.js' %}"></script>
-    <script type="module" src="{% static 'school_admin/js/fcm_notifications.js' %}"></script>
+      <article class="axd-card axd-span-4">
+        <header class="axd-card__head">
+          <div><h2 class="axd-card__title">{% trans "Notifications" %}</h2></div>
+          <a class="axd-link" href="{% url 'school_admin:notifications_parent' %}">{% trans "Toutes" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+        </header>
+        {% if notifications_recents %}
+        <ul class="axd-list">
+          {% for n in notifications_recents|slice:":4" %}
+          <li>
+            <a class="axd-list__main" href="{% url 'school_admin:notification_parent_click' n.id %}">
+              <span class="axd-avatar-sm {% if not n.lu %}px-icon-blue{% endif %}" aria-hidden="true"><i class="fas fa-bell"></i></span>
+              <span><strong>{{ n.get_type_notification_display }}</strong><small>{{ n.eleve.prenom }} · {{ n.date_creation|date:"d/m H:i" }}</small></span>
+            </a>
+            {% if not n.lu %}<span class="px-new">{% trans "Nouveau" %}</span>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="axd-muted">{% trans "Aucune notification récente." %}</p>
+        {% endif %}
+      </article>
+    </section>
+
+    {% else %}
+    {# ---------- Aucun enfant ---------- #}
+    <section class="px-empty">
+      <span class="px-empty__icon"><i class="fas fa-children" aria-hidden="true"></i></span>
+      <h2>{% trans "Ajoutez votre enfant" %}</h2>
+      <p>{% trans "Pour suivre ses notes, ses absences et sa scolarité, reliez votre compte à celui de votre enfant avec son matricule et son mot de passe (fournis par l’établissement)." %}</p>
+      <button type="button" class="axd-btn axd-btn--primary px-empty__btn" data-open-ajout><i class="fas fa-user-plus" aria-hidden="true"></i>{% trans "Ajouter mon enfant" %}</button>
+    </section>
+    {% endif %}
+  </main>
+
+  {# ---------- Formulaire « Ajouter un enfant » ---------- #}
+  <div class="px-modal" id="pxModalAjout" role="dialog" aria-modal="true" aria-labelledby="pxModalAjoutTitre" hidden>
+    <div class="px-modal__panel">
+      <header class="px-modal__head">
+        <h2 id="pxModalAjoutTitre"><i class="fas fa-user-plus" aria-hidden="true"></i>{% trans "Ajouter un enfant" %}</h2>
+        <button type="button" class="ax-icon-btn" data-close-ajout aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+      </header>
+      <form action="{% url 'school_admin:demande_liaison_enfant' %}" method="POST">
+        {% csrf_token %}
+        <p class="px-modal__intro">{% trans "Saisissez les identifiants de connexion de votre enfant, tels qu’ils vous ont été remis par l’établissement." %}</p>
+        <label class="px-field">
+          <span>{% trans "Matricule de l’élève" %}</span>
+          <input type="text" name="matricule_eleve" placeholder="{% trans 'Ex. : BD345843' %}" value="{{ form_data.matricule_eleve|default:'' }}" required autocomplete="off">
+        </label>
+        <label class="px-field">
+          <span>{% trans "Mot de passe de l’élève" %}</span>
+          <input type="password" name="mot_de_passe_eleve" placeholder="{% trans 'Mot de passe de votre enfant' %}" required autocomplete="off">
+        </label>
+        <footer class="px-modal__foot">
+          <button type="button" class="axd-btn" data-close-ajout>{% trans "Annuler" %}</button>
+          <button type="submit" class="axd-btn axd-btn--primary"><i class="fas fa-link" aria-hidden="true"></i>{% trans "Relier mon enfant" %}</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var modal = document.getElementById('pxModalAjout');
+      function open() {
+        modal.hidden = false;
+        document.documentElement.classList.add('px-modal-open');
+        var first = modal.querySelector('input');
+        if (first) first.focus();
+      }
+      function close() {
+        modal.hidden = true;
+        document.documentElement.classList.remove('px-modal-open');
+      }
+      document.querySelectorAll('[data-open-ajout]').forEach(function (b) { b.addEventListener('click', open); });
+      document.querySelectorAll('[data-close-ajout]').forEach(function (b) { b.addEventListener('click', close); });
+      modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) close(); });
+      {% if ouvrir_ajout_enfant %}open();{% endif %}
+    })();
+  </script>
+  {% include 'school_admin/parent/partials/_px_foot.html' %}
 </body>
 </html>

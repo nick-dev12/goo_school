@@ -1,215 +1,27 @@
 {% load static %}
 {% load i18n %}
-<link
-  rel="stylesheet"
-  href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.0.3">
-<!-- Messages Template -->
+{% load permissions_tags %}
+{% load directeur_nav %}
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_directeur.css' %}?v=1.0.3">
 {% include 'school_admin/partials/messages.html' %}
-<link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.1.0" />
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.1.5" />
 <link rel="stylesheet" href="{% static 'school_admin/css/directeur/page_header_back.css' %}?v=1.0.1" />
 <link rel="stylesheet" href="{% static 'school_admin/css/partials/gtranslate_header_bar.css' %}?v=1.0.1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/aria_shell.css' %}?v=1.0.0" />
 
-
-<div class="dashboard">
-  <main class="main-content full-width" id="mainContent">
-    <!-- Header Horizontal -->
-    <header class="dashboard-header-horizontal">
-      <div class="header-left">
-        <div class="header-logo">
-          <img src="{% static 'school_admin/img/logo.png' %}" alt="Aria Logo" class="header-logo-img" width="120" height="48">
-        </div>
-      </div>
-
-      <div class="header-right">
-        {% include 'school_admin/partials/gtranslate_header_bar.html' %}
-
-        <a href="{% url 'directeur:notifications_directeur' %}" class="header-button" aria-label="Notifications">
-          <i class="fas fa-bell"></i>
-          {% if notifications_directeur_non_lues > 0 %}
-          <span class="notification-badge">{{ notifications_directeur_non_lues }}</span>
-          {% endif %}
-        </a>
-
-        <button class="header-button" aria-label="Messages">
-          <i class="fas fa-envelope"></i>
-          <span class="notification-badge">0</span>
-        </button>
-
-        <button class="header-button header-button-scanner" aria-label="Scanner QR Code" id="btnQrScanner" onclick="ouvrirScannerQR()" title="Scanner un QR Code">
-          <i class="fas fa-qrcode"></i>
-          <span class="scanner-text">{% trans "Scanner" %}</span>
-        </button>
-
-        {% if is_caissier %}
-        <div class="header-profile" aria-label="{% trans 'Profil' %}">
-        {% else %}
-        <a href="{% url 'directeur:profil_etablissement' %}" class="header-profile" aria-label="{% trans 'Profil de l\'établissement' %}" title="{% trans 'Profil de l\'établissement' %}">
-        {% endif %}
-          {% if is_directeur %}
-            <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
-            <div class="header-user-info">
-              <div class="header-user-name">{{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</div>
-              <div class="header-user-role">{% if titre_direction %}{{ titre_direction }}{% else %}{% trans "Directeur" %}{% endif %}</div>
-            </div>
-          {% elif is_personnel_administratif and personnel %}
-            <div class="header-avatar">{{ personnel.prenom|first|upper }}{{ personnel.nom|first|upper }}</div>
-            <div class="header-user-info">
-              <div class="header-user-name">{{ personnel.prenom }} {{ personnel.nom }}</div>
-              <div class="header-user-role">{{ personnel.get_fonction_display }}</div>
-            </div>
-          {% else %}
-            <div class="header-avatar">{{ request.user.directeur_prenom|first|upper }}{{ request.user.directeur_nom|first|upper }}</div>
-            <div class="header-user-info">
-              <div class="header-user-name">{{ request.user.directeur_prenom }} {{ request.user.directeur_nom }}</div>
-              <div class="header-user-role">{% if titre_direction %}{{ titre_direction }}{% else %}{% trans "Directeur" %}{% endif %}</div>
-            </div>
-          {% endif %}
-        {% if is_caissier %}
-        </div>
-        {% else %}
-        </a>
-        {% endif %}
-      </div>
-    </header>
-
-    <!-- Welcome Banner -->
-    <section class="welcome-banner">
-      <div class="banner-content">
-        <div class="banner-info-row">
-          <p class="banner-subtitle">
-            {% if is_directeur %}
-              {{ request.user.nom }}
-            {% elif is_personnel_administratif and personnel %}
-              {{ personnel.etablissement.nom }}
-            {% else %}
-              {{ request.user.nom }}
-            {% endif %}
-          </p>
-          <div class="banner-session-selector">
-            <form method="post" action="{% url 'directeur:changer_session_directeur' %}?next={{ request.path }}" class="session-selector-form">
-              {% csrf_token %}
-              <label for="sessionSelector" class="session-label">
-                <i class="fas fa-calendar-alt"></i>
-                <span>{% trans "Session :" %}</span>
-              </label>
-              <select name="session_id" id="sessionSelector" class="banner-session-select" onchange="this.form.submit()" title="{% trans "Changer de session" %}">
-                <option value="">Session active ({{ annee_scolaire_reellement_active.libelle|default:"Aucune" }})</option>
-                {% for annee in toutes_annees_scolaires %}
-                  <option value="{{ annee.id }}" {% if annee_scolaire_active and annee_scolaire_active.id == annee.id %}selected{% endif %}>
-                    {{ annee.libelle }}{% if annee.est_active %} (Active){% endif %}
-                  </option>
-                {% endfor %}
-              </select>
-              {% if annee_scolaire_active and annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %}
-                <span class="banner-session-indicator" title="{% trans "Vous consultez une session différente de la session active" %}">
-                  <i class="fas fa-info-circle"></i>
-                </span>
-              {% endif %}
-            </form>
-          </div>
-        </div>
-      </div>
-      <div class="banner-actions">
-        <!-- Bouton d'installation PWA -->
-        <button id="pwa-install-btn" class="welcome-action pwa-install-btn" style="display: none;" aria-label="Installer l'application">
-          <i class="fas fa-download"></i>
-          <span>{% trans "Installer" %}</span>
-        </button>
-        <a
-          href="{% url 'school_admin:deconnexion_compte_administrateur' %}"
-          class="welcome-action logout-link"
-          aria-label="Se déconnecter"
-        >
-          <i class="fas fa-sign-out-alt"></i>
-          <span>{% trans "Déconnexion" %}</span>
-        </a>
-      </div>
-    </section>
-
-    <!-- Navigation Overlay -->
-    <div class="navigation-overlay" id="navOverlay"></div>
-
-    <!-- Navigation Cards Section -->
-    <section
-      class="section-container navigation-section"
-      id="navigationSection"
-    >
-      <button class="close-btn" id="closeNavMenu" aria-label="Fermer le menu">
-        <i class="fas fa-times"></i>
-      </button>
-
-      <div class="nav-menu-header">
-        <h2>{% trans "Menu complémentaire" %}</h2>
-        <p>{% trans "Retrouvez les accès supplémentaires non présents dans la barre principale." %}</p>
-      </div>
-
-      <div class="nav-cards-row nav-cards-compact">
-
-
-        {% load permissions_tags %}
-        {% check_permission request.user "administrative_voir" as can_view_administrative %}
-        {% if can_view_administrative or is_directeur %}
-        <a href="{% url 'directeur:gestion_administrative' %}" class="nav-link-card nav-link-complementary">
-          <div class="nav-card-icon neo-red">
-            <i class="fas fa-file-alt"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>{% trans "Administration" %}</h3>
-            <p>{% trans "Gestion des administrations" %}</p>
-          </div>
-        </a>
-        {% endif %}
-        {% check_permission request.user "annonces_voir" as can_view_annonces %}
-        {% if can_view_annonces or is_directeur %}
-        <a href="{% url 'directeur:annonces_directeur' %}" class="nav-link-card nav-link-complementary">
-          <div class="nav-card-icon neo-orange">
-            <i class="fas fa-bullhorn"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>{% trans "Annonces" %}</h3>
-            <p>{% trans "Communiquer les actualités" %}</p>
-          </div>
-        </a>
-        {% endif %}
-        {% check_permission request.user "examens_voir" as can_view_examens %}
-        {% if can_view_examens or is_directeur %}
-        <a href="{% url 'directeur:gestion_examens' %}" class="nav-link-card nav-link-complementary">
-          <div class="nav-card-icon neo-orange">
-            <i class="fas fa-clipboard-list"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>{% trans "Gestion des examens" %}</h3>
-            <p>{% trans "Planifier et suivre les sessions" %}</p>
-          </div>
-        </a>
-        {% endif %}
-        {% if not is_caissier %}
-        <a href="{% url 'directeur:profil_etablissement' %}" class="nav-link-card nav-link-complementary">
-          <div class="nav-card-icon neo-cyan">
-            <i class="fas fa-user-cog"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>{% trans "Profil" %}</h3>
-            <p>{% trans "Paramètres et informations" %}</p>
-          </div>
-        </a>
-        {% endif %}
-        {% check_permission request.user "comptabilite_voir" as can_view_comptabilite %}
-        {% if can_view_comptabilite or is_directeur %}
-        <a href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}" class="nav-link-card nav-link-complementary">
-          <div class="nav-card-icon neo-green">
-            <i class="fas fa-calculator"></i>
-          </div>
-          <div class="nav-link-content">
-            <h3>{% trans "Scolarité" %}</h3>
-            <p>{% trans "Gestion des paiements des élèves" %}</p>
-          </div>
-        </a>
-        {% endif %}
-      </div>
-    </section>
-  </main>
-</div>
+{% directeur_nav as nav %}
+{% if is_directeur %}
+  {% with ax_etab=request.user %}
+  {% include 'school_admin/directeur/partials/_ax_shell.html' %}
+  {% endwith %}
+{% else %}
+  {% with ax_etab=personnel.etablissement %}
+  {% include 'school_admin/directeur/partials/_ax_shell.html' %}
+  {% endwith %}
+{% endif %}
 
 <!-- Modal Scanner QR Code -->
 <div id="qrScannerModal" class="qr-scanner-modal">
@@ -241,7 +53,7 @@
 <!-- GTranslate : chargé via partial gtranslate_header_bar (header) -->
 
 <!-- Scripts JavaScript -->
-<script src="{% static 'school_admin/js/directeur/header_directeur.js' %}"></script>
+<script src="{% static 'school_admin/js/directeur/aria_shell.js' %}?v=1.0.0"></script>
 {% include 'school_admin/partials/realtime_scripts.html' %}
 {% include 'school_admin/partials/directeur_live_scripts.html' %}
 <script>
@@ -510,7 +322,7 @@
 
   .qr-scanner-header {
     padding: 1.5rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: #2a5bd7;
     color: white;
     display: flex;
     align-items: center;

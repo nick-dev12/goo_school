@@ -1,50 +1,161 @@
-<!DOCTYPE html>
+{% extends 'school_admin/directeur/comptabilite_generale/_base.html' %}
 {% load static i18n %}
-{% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE }}">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "Journaux" %} — {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
-</head>
-<body class="cg-page-body">
-    {% include 'school_admin/directeur/partials/header_directeur.html' %}
-    <div class="content-container cg-page">
-        {% include 'school_admin/partials/messages.html' %}
-        <div class="page-header page-header-minimal">
-            {% url 'directeur:cg_hub_directeur' as back_url %}
-            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+{% block title %}{% trans "Journaux" %}{% endblock %}
+{% block icon %}fa-book{% endblock %}
+{% block tone %}royal{% endblock %}
+{% block heading %}{% trans "Journaux et saisie" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "Toutes les pièces de l’exercice, avec leurs lignes. Les opérations de l’école y arrivent automatiquement." %}</p>{% endblock %}
+{% block actions %}
+  <a class="cg3-btn" href="?{% if filtres.journal %}journal={{ filtres.journal }}&{% endif %}export=csv"><i class="fas fa-file-csv" aria-hidden="true"></i>{% trans "Exporter" %}</a>
+  {% if exercice_ouvert %}<button type="button" class="cg3-btn cg3-btn--primary" data-cg3-open="cg3-modal-saisie"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Nouvelle écriture" %}</button>{% endif %}
+{% endblock %}
+
+{% block content %}
+  {# ---------- Journaux ---------- #}
+  <section class="cg3-journals" aria-label="{% trans 'Journaux' %}">
+    <a class="cg3-journal{% if not filtres.journal %} is-active{% endif %}" href="?"><b>{% trans "TOUS" %}</b><span>{% trans "Tous les journaux" %}</span><small>{% blocktrans count n=nb_resultats %}{{ n }} pièce{% plural %}{{ n }} pièces{% endblocktrans %}</small></a>
+    {% for s in stats_journaux %}
+    <a class="cg3-journal{% if filtres.journal == s.journal.code %} is-active{% endif %}" href="?journal={{ s.journal.code }}"><b>{{ s.journal.code }}</b><span>{{ s.journal.libelle }}</span><small>{{ s.nb }} · {{ s.total|floatformat:"0g" }} {{ devise_monnaie }}</small></a>
+    {% endfor %}
+  </section>
+
+  {# ---------- Filtres ---------- #}
+  <form method="get" class="cg3-filters" aria-label="{% trans 'Filtres' %}">
+    {% if filtres.journal %}<input type="hidden" name="journal" value="{{ filtres.journal }}">{% endif %}
+    <label class="cg3-field cg3-field--grow"><span>{% trans "Rechercher" %}</span><input type="search" name="q" value="{{ filtres.q }}" placeholder="{% trans 'Libellé, référence, n° de pièce, élève…' %}"></label>
+    <label class="cg3-field"><span>{% trans "Compte" %}</span>
+      <select name="compte"><option value="">{% trans "Tous" %}</option>{% for c in comptes %}<option value="{{ c.pk }}"{% if filtres.compte == c.pk|stringformat:'s' %} selected{% endif %}>{{ c.numero }} — {{ c.libelle|truncatechars:34 }}</option>{% endfor %}</select>
+    </label>
+    <label class="cg3-field"><span>{% trans "Du" %}</span><input type="date" name="du" value="{{ filtres.du|date:'Y-m-d' }}"></label>
+    <label class="cg3-field"><span>{% trans "Au" %}</span><input type="date" name="au" value="{{ filtres.au|date:'Y-m-d' }}"></label>
+    <button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-filter" aria-hidden="true"></i>{% trans "Filtrer" %}</button>
+    {% if filtres.q or filtres.du or filtres.au or filtres.compte %}<a class="cg3-btn" href="?{% if filtres.journal %}journal={{ filtres.journal }}{% endif %}">{% trans "Effacer" %}</a>{% endif %}
+  </form>
+
+  {# ---------- Pièces ---------- #}
+  {% if ecritures %}
+  <p class="cg3-head__sub cg3-count">{% blocktrans count n=nb_resultats %}{{ n }} pièce{% plural %}{{ n }} pièces{% endblocktrans %}{% if page.paginator.num_pages > 1 %} · {% blocktrans with p=page.number n=page.paginator.num_pages %}page {{ p }} sur {{ n }}{% endblocktrans %}{% endif %} · {% trans "total" %} {{ total_debit|floatformat:"0g" }} {{ devise_monnaie }}</p>
+  <div class="cg3-entries">
+    {% for e in ecritures %}
+    <article class="cg3-entry{% if e.id in extournees %} is-reversed{% endif %}">
+      <header class="cg3-entry__head">
+        <span class="cg3-entry__piece">{{ e.journal.code }}-{{ e.numero }}</span>
+        <p class="cg3-entry__title">{{ e.libelle }}</p>
+        <span class="cg3-entry__meta"><i class="fas fa-calendar" aria-hidden="true"></i> {{ e.date_ecriture|date:"d/m/Y" }}{% if e.reference %} · {% trans "Réf." %} {{ e.reference }}{% endif %}</span>
+        {% if e.source == 'saisie' %}<span class="cg3-chip">{% trans "Saisie manuelle" %}</span>
+        {% elif e.source == 'extourne' %}<span class="cg3-chip cg3-chip--warn">{% trans "Contrepassation" %}</span>
+        {% elif e.source == 'a_nouveaux' %}<span class="cg3-chip cg3-chip--muted">{% trans "À-nouveaux" %}</span>
+        {% elif e.source %}<span class="cg3-chip cg3-chip--muted">{% trans "Automatique" %}</span>{% endif %}
+        {% if e.id in extournees %}<span class="cg3-chip cg3-chip--bad">{% trans "Contrepassée" %}</span>{% endif %}
+        <span class="cg3-entry__amount">{{ e.total_debit|floatformat:"0g" }} {{ devise_monnaie }}</span>
+        {% if exercice_ouvert and e.id not in extournees and e.source != 'extourne' and e.source != 'a_nouveaux' %}
+        <button type="button" class="cg3-btn cg3-btn--sm" data-cg3-open="cg3-modal-extourne" data-ecriture="{{ e.pk }}" data-piece="{{ e.journal.code }}-{{ e.numero }} · {{ e.libelle|truncatechars:50 }}" title="{% trans 'Contrepasser' %}"><i class="fas fa-rotate-left" aria-hidden="true"></i><span class="cg3-hide-sm">{% trans "Contrepasser" %}</span></button>
+        {% endif %}
+      </header>
+      <table class="cg3-table">
+        <tbody>
+          {% for l in e.lignes.all %}
+          <tr class="{% if l.credit %}cg3-entry__credit-row{% endif %}">
+            <td class="cg3-acc">{{ l.compte.numero }}</td>
+            <td><span class="cg3-acc-label">{{ l.compte.libelle }}</span>{% if l.auxiliaire %} · <span class="muted">{{ l.auxiliaire }}</span>{% endif %}{% if l.libelle and l.libelle != e.libelle %}<br><small class="muted">{{ l.libelle }}</small>{% endif %}</td>
+            <td class="num">{% if l.debit %}{{ l.debit|floatformat:"0g" }}{% endif %}</td>
+            <td class="num">{% if l.credit %}{{ l.credit|floatformat:"0g" }}{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+    {% endfor %}
+  </div>
+  {% if page.paginator.num_pages > 1 %}
+  <nav class="cg3-pager" aria-label="{% trans 'Pages' %}">
+    {% if page.has_previous %}<a class="cg3-btn cg3-btn--sm" href="?{{ params_sans_page }}{% if params_sans_page %}&{% endif %}page={{ page.previous_page_number }}"><i class="fas fa-chevron-left" aria-hidden="true"></i>{% trans "Précédentes" %}</a>{% endif %}
+    {% for n in page.paginator.page_range %}{% if n == page.number %}<span class="cg3-btn cg3-btn--sm cg3-btn--primary" aria-current="page">{{ n }}</span>{% elif n == 1 or n == page.paginator.num_pages or n >= page.number|add:"-2" and n <= page.number|add:"2" %}<a class="cg3-btn cg3-btn--sm" href="?{{ params_sans_page }}{% if params_sans_page %}&{% endif %}page={{ n }}">{{ n }}</a>{% endif %}{% endfor %}
+    {% if page.has_next %}<a class="cg3-btn cg3-btn--sm" href="?{{ params_sans_page }}{% if params_sans_page %}&{% endif %}page={{ page.next_page_number }}">{% trans "Suivantes" %}<i class="fas fa-chevron-right" aria-hidden="true"></i></a>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+  <div class="axd-card"><div class="cg3-empty"><i class="fas fa-book" aria-hidden="true"></i><strong>{% trans "Aucune pièce" %}</strong><span>{% trans "Aucune écriture ne correspond à ces critères." %}</span></div></div>
+  {% endif %}
+
+  {# ---------- Saisie d'une écriture ---------- #}
+  <div class="cg3-modal" id="cg3-modal-saisie" role="dialog" aria-modal="true" aria-labelledby="cg3-saisie-title"{% if not request.GET.saisie %} hidden{% endif %}>
+    <div class="cg3-modal__panel">
+      <div class="cg3-modal__head">
+        <h2 id="cg3-saisie-title"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Nouvelle écriture" %}</h2>
+        <button type="button" class="cg3-btn cg3-btn--sm" data-cg3-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+      </div>
+      <p class="cg3-hint"><i class="fas fa-circle-info" aria-hidden="true"></i><span>{% trans "Une écriture doit être équilibrée : le total des débits égale le total des crédits. Chaque ligne est soit au débit, soit au crédit. Les encaissements de scolarité, dépenses et factures sont déjà comptabilisés automatiquement : utilisez la saisie pour les régularisations, apports, dotations ou opérations diverses." %}</span></p>
+      <form method="post" id="cg3-saisie">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="saisir">
+        <div class="cg3-entry-form__top">
+          <label class="cg3-field"><span>{% trans "Journal" %}</span>
+            <select name="journal_id" required>{% for j in journaux_saisie %}<option value="{{ j.pk }}"{% if j.code == 'OD' %} selected{% endif %}>{{ j.code }} — {{ j.libelle }}</option>{% endfor %}</select>
+          </label>
+          <label class="cg3-field"><span>{% trans "Date" %}</span><input type="date" name="date_ecriture" value="{{ aujourdhui|date:'Y-m-d' }}" required></label>
+          <label class="cg3-field"><span>{% trans "Libellé de la pièce" %}</span><input type="text" name="libelle" maxlength="200" required placeholder="{% trans 'Ex. Apport du promoteur, régularisation…' %}"></label>
+          <label class="cg3-field"><span>{% trans "Référence" %}</span><input type="text" name="reference" maxlength="80" placeholder="{% trans 'Facultatif' %}"></label>
         </div>
-        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='journaux' %}
-        <header class="cg-hero">
-            <div>
-                <h1 class="cg-hero-title"><i class="fas fa-book"></i> {% trans "Journaux comptables" %}</h1>
-                <p class="cg-hero-sub">{% trans "Les encaissements alimentent Caisse ou Banque ; les dépenses, Achats / Caisse ; la paie, le journal Paie." %}</p>
-            </div>
-        </header>
-        {% for j in journaux %}
-        <section class="cg-section">
-            <h2>{{ j.code }} — {{ j.libelle }}</h2>
-            <div class="table-responsive">
-                <table class="cg-table">
-                    <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Date" %}</th><th>{% trans "Libellé" %}</th><th>{% trans "Source" %}</th></tr></thead>
-                    <tbody>
-                        {% for e in j.dernieres_ecritures|slice:":8" %}
-                        <tr><td>{{ e.numero }}</td><td>{{ e.date_ecriture|date:"d/m/Y" }}</td><td>{{ e.libelle }}</td><td>{{ e.source }}</td></tr>
-                        {% empty %}
-                        <tr><td colspan="4">{% trans "Aucune écriture pour cet exercice." %}</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-        {% endfor %}
+        <div class="cg3-table-wrap">
+          <table class="cg3-table cg3-entry-lines">
+            <thead><tr><th>{% trans "Compte" %}</th><th>{% trans "Libellé de ligne" %}</th><th>{% trans "Tiers" %}</th><th class="num">{% trans "Débit" %}</th><th class="num">{% trans "Crédit" %}</th><th></th></tr></thead>
+            <tbody>
+              {% for _ in "12" %}
+              <tr>
+                <td><select class="cg3-input" name="compte_id"><option value="">—</option>{% for c in comptes %}<option value="{{ c.pk }}">{{ c.numero }} — {{ c.libelle|truncatechars:38 }}</option>{% endfor %}</select></td>
+                <td><input class="cg3-input" type="text" name="ligne_libelle" maxlength="200"></td>
+                <td><input class="cg3-input" type="text" name="auxiliaire" maxlength="80"></td>
+                <td class="num"><input class="cg3-input" type="text" inputmode="decimal" name="debit" autocomplete="off"></td>
+                <td class="num"><input class="cg3-input" type="text" inputmode="decimal" name="credit" autocomplete="off"></td>
+                <td><button type="button" class="cg3-btn cg3-btn--sm" data-del-line aria-label="{% trans 'Retirer la ligne' %}"><i class="fas fa-trash" aria-hidden="true"></i></button></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <template id="cg3-ligne-tpl">
+          <tr>
+            <td><select class="cg3-input" name="compte_id"><option value="">—</option>{% for c in comptes %}<option value="{{ c.pk }}">{{ c.numero }} — {{ c.libelle|truncatechars:38 }}</option>{% endfor %}</select></td>
+            <td><input class="cg3-input" type="text" name="ligne_libelle" maxlength="200"></td>
+            <td><input class="cg3-input" type="text" name="auxiliaire" maxlength="80"></td>
+            <td class="num"><input class="cg3-input" type="text" inputmode="decimal" name="debit" autocomplete="off"></td>
+            <td class="num"><input class="cg3-input" type="text" inputmode="decimal" name="credit" autocomplete="off"></td>
+            <td><button type="button" class="cg3-btn cg3-btn--sm" data-del-line aria-label="{% trans 'Retirer la ligne' %}"><i class="fas fa-trash" aria-hidden="true"></i></button></td>
+          </tr>
+        </template>
+        <div class="cg3-balance-bar">
+          <span>{% trans "Débit" %} <b data-total-debit>0</b> · {% trans "Crédit" %} <b data-total-credit>0</b> · <b data-ecart>—</b></span>
+          <span class="cg3-row-actions">
+            <button type="button" class="cg3-btn cg3-btn--sm" data-add-line><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ligne" %}</button>
+            <button type="button" class="cg3-btn cg3-btn--sm" data-equilibrer><i class="fas fa-scale-balanced" aria-hidden="true"></i>{% trans "Équilibrer" %}</button>
+            <button type="submit" class="cg3-btn cg3-btn--primary" disabled><i class="fas fa-check" aria-hidden="true"></i>{% trans "Enregistrer la pièce" %}</button>
+          </span>
+        </div>
+      </form>
     </div>
-    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
-</body>
-</html>
+  </div>
+
+  {# ---------- Contrepassation ---------- #}
+  <div class="cg3-modal" id="cg3-modal-extourne" role="dialog" aria-modal="true" aria-labelledby="cg3-ext-title" hidden>
+    <div class="cg3-modal__panel cg3-modal__panel--sm">
+      <div class="cg3-modal__head">
+        <h2 id="cg3-ext-title"><i class="fas fa-rotate-left" aria-hidden="true"></i>{% trans "Contrepasser une écriture" %}</h2>
+        <button type="button" class="cg3-btn cg3-btn--sm" data-cg3-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+      </div>
+      <p class="cg3-hint"><i class="fas fa-circle-info" aria-hidden="true"></i><span>{% trans "Une écriture comptable ne se supprime pas : une pièce inverse est passée et l’originale reste visible. Pièce :" %} <b data-piece></b></span></p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="extourner">
+        <input type="hidden" name="ecriture_id" value="">
+        <div class="cg3-entry-form__top cg3-two">
+          <label class="cg3-field"><span>{% trans "Date de la contrepassation" %}</span><input type="date" name="date_extourne" value="{{ aujourdhui|date:'Y-m-d' }}" required></label>
+          <label class="cg3-field"><span>{% trans "Motif" %}</span><input type="text" name="motif" maxlength="200" required placeholder="{% trans 'Ex. erreur de compte' %}"></label>
+        </div>
+        <div class="cg3-modal__foot"><button type="button" class="cg3-btn" data-cg3-close>{% trans "Annuler" %}</button><button type="submit" class="cg3-btn cg3-btn--danger"><i class="fas fa-rotate-left" aria-hidden="true"></i>{% trans "Contrepasser" %}</button></div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'school_admin/js/directeur/cg_v3.js' %}?v=1.0.0"></script>{% endblock %}

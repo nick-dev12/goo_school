@@ -1,0 +1,15 @@
+{% load i18n static %}
+{% if not is_caissier %}
+                <a href="{% url 'directeur:caisse_mois_directeur' %}" class="sco-action-btn sco-action-btn--primary">
+                    <i class="fas fa-cash-register"></i> {% trans "Caisse" %}
+                </a>
+                <a href="{% url 'directeur:liste_impayes_directeur' %}" class="sco-action-btn sco-action-btn--primary">
+                    <i class="fas fa-exclamation-circle"></i> {% trans "Impayés & relances" %}
+                </a>
+                <a href="{% url 'directeur:bilan_comptable_directeur' %}" class="sco-action-btn sco-action-btn--primary">
+                    <i class="fas fa-chart-line"></i> {% trans "Bilan scolarité général" %}
+                </a>
+                <a href="{% url 'directeur:parametres_comptabilite_directeur' %}" class="sco-action-btn sco-action-btn--secondary">
+                    <i class="fas fa-cog"></i> {% trans "Paramètres de scolarité" %}
+                </a>
+                {% endif %}

@@ -235,7 +235,23 @@ def dashboard_parent(request):
         )
         if annee_scolaire_active:
             annonces_query = annonces_query.filter(annee_scolaire=annee_scolaire_active)
-        nombre_annonces = annonces_query.count()
+        from django.db import NotSupportedError
+
+        try:
+            nombre_annonces = annonces_query.count()
+        except NotSupportedError:
+            # Bases sans lookup JSON « contains » (SQLite des tests) : filtrage en Python.
+            base_qs = Annonce.objects.filter(etablissement=parent.etablissement, statut='publiee', actif=True)
+            if annee_scolaire_active:
+                base_qs = base_qs.filter(annee_scolaire=annee_scolaire_active)
+            nombre_annonces = sum(
+                1 for dest in base_qs.values_list('destinataires', flat=True)
+                if {'tous', 'parents'} & set(dest or [])
+            )
+
+    from ..services.parent_dashboard import enrichir_enfants, nouvelles_parent
+
+    enrichir_enfants(enfants, request)
     
     context = {
         'parent': parent,
@@ -253,6 +269,9 @@ def dashboard_parent(request):
         'notifications_parent_non_lues': notifications_parent_non_lues,
         'current_url': request.get_full_path(),
         'annee_scolaire_active': annee_scolaire_active,
+        'nouvelles': nouvelles_parent(parent, enfants, annee_scolaire_active),
+        # Lien « Ajouter un enfant » de la barre du bas : ouvre directement le formulaire.
+        'ouvrir_ajout_enfant': bool(form_data) or request.GET.get('ajouter') == '1',
     }
     
     return render(request, 'school_admin/parent/dashboard_parent.html', context)
@@ -621,7 +640,25 @@ def annonces_parent(request):
             date_debut = today - timedelta(days=90)
             annonces_queryset = annonces_queryset.filter(date_publication__gte=date_debut)
 
-    for annonce in annonces_queryset:
+    from django.db import NotSupportedError
+    try:
+        annonces_list = list(annonces_queryset)
+    except NotSupportedError:
+        # Base sans lookup JSON « contains » (SQLite) : filtrage des destinataires en Python.
+        sans_destinataires = Annonce.objects.filter(
+            etablissement_id__in=etablissements_ids, statut='publiee', actif=True
+        )
+        if annee_scolaire_active:
+            sans_destinataires = sans_destinataires.filter(annee_scolaire=annee_scolaire_active)
+        if filtre_periode in ('semaine', 'mois', 'trimestre'):
+            jours = {'semaine': 7, 'mois': 30, 'trimestre': 90}[filtre_periode]
+            sans_destinataires = sans_destinataires.filter(date_publication__gte=today - timedelta(days=jours))
+        annonces_list = [
+            a for a in sans_destinataires.order_by('-date_publication', '-date_creation')
+            if {'tous', 'parents'} & set(a.destinataires or [])
+        ]
+
+    for annonce in annonces_list:
         etab_id = annonce.etablissement_id
         if etab_id in etablissements_map:
             etablissements_map[etab_id]["annonces"].append(annonce)

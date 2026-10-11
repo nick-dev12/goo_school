@@ -490,9 +490,9 @@ def calculer_moyenne_avec_mode(
                         note_obj.save()
                         evaluations_utilisees_set.add(str(note_obj.evaluation_primaire_id))
         
-        # Ajouter la note d'examen aux contributions si disponible
+        # La note d'examen n'entre plus dans la moyenne de classe : elle est combinée une seule
+        # fois au bulletin selon la pondération (services/examens.py). On la marque seulement.
         if note_examen_sur_20 is not None:
-            notes_contribution.append(note_examen_sur_20)
             if note_examen_obj:
                 note_examen_obj.retenue = True
                 note_examen_obj.save()

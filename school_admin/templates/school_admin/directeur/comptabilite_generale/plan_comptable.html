@@ -1,82 +1,76 @@
-<!DOCTYPE html>
+{% extends 'school_admin/directeur/comptabilite_generale/_base.html' %}
 {% load static i18n %}
-{% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE }}">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "Plan comptable" %} — {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
-</head>
-<body class="cg-page-body">
-    {% include 'school_admin/directeur/partials/header_directeur.html' %}
-    <div class="content-container cg-page">
-        {% include 'school_admin/partials/messages.html' %}
-        <div class="page-header page-header-minimal">
-            {% url 'directeur:cg_hub_directeur' as back_url %}
-            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+{% block title %}{% trans "Plan comptable" %}{% endblock %}
+{% block icon %}fa-sitemap{% endblock %}
+{% block tone %}royal{% endblock %}
+{% block heading %}{% trans "Plan comptable SYSCOHADA" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "PCE SYSCOHADA révisé : 571 caisse, 521 banque, 585 mobile money, 7051/7052 scolarité, 7061 annexes, 411 clients." %}</p>{% endblock %}
+
+{% block content %}
+        <div class="cg-mini-row">
+            <article class="cg-mini cg-mini--info"><span class="cg-mini-num">{{ comptes|length }}</span><span class="cg-mini-lbl">{% trans "Comptes" %}</span></article>
         </div>
-        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='plan' %}
-        <header class="cg-hero">
-            <div>
-                <h1 class="cg-hero-title"><i class="fas fa-sitemap"></i> {% trans "Plan comptable SYSCOHADA" %}</h1>
-                <p class="cg-hero-sub">{% trans "PCE SYSCOHADA révisé : 571 caisse, 521 banque, 585 mobile money, 7051/7052 scolarité, 7061 annexes, 411 clients." %}</p>
+        <div class="cg-workspace">
+            <section class="cg-section" data-cg-panel="comptes">
+                <div class="cg-panel-head">
+                    <h2>{% trans "Comptes" %}</h2>
+                    <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-compte"><i class="fas fa-plus"></i> {% trans "Ajouter un compte" %}</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Libellé" %}</th><th>{% trans "Classe" %}</th><th>{% trans "Nature" %}</th></tr></thead>
+                        <tbody>
+                            {% for c in comptes %}
+                            <tr><td>{{ c.numero }}</td><td>{{ c.libelle }}</td><td>{{ c.classe }}</td><td>{{ c.get_nature_display }}</td></tr>
+                            {% empty %}
+                            <tr><td colspan="4">{% trans "Aucun compte." %}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+        <div class="cg-sheet" id="sheet-compte" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-compte-title">
+                <div class="cg-sheet-head">
+                    <h2 id="sheet-compte-title">{% trans "Ajouter un compte" %}</h2>
+                    <button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button>
+                </div>
+                <p class="cg-form-hint" id="cg-plan-hint" hidden></p>
+                <form method="post" action="{% url 'directeur:cg_plan_comptable' %}" class="cg-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="ajouter_compte" />
+                    <label>{% trans "Numéro" %}<input id="cg-plan-numero" name="numero" required maxlength="12" placeholder="7061" autocomplete="off" /></label>
+                    <label>{% trans "Libellé" %}<input name="libelle" required maxlength="160" placeholder="{% trans 'Cantine' %}" /></label>
+                    <label>{% trans "Classe" %}
+                        <select id="cg-plan-classe" name="classe">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7" selected>7</option>
+                            <option value="8">8</option>
+                        </select>
+                    </label>
+                    <label>{% trans "Nature" %}
+                        <select id="cg-plan-nature" name="nature">
+                            <option value="charge">{% trans "Charge" %}</option>
+                            <option value="produit" selected>{% trans "Produit" %}</option>
+                            <option value="actif">{% trans "Actif" %}</option>
+                            <option value="passif">{% trans "Passif" %}</option>
+                            <option value="hors">{% trans "Hors bilan" %}</option>
+                        </select>
+                    </label>
+                    <p class="cg-form-help">{% trans "Ex. recette cantine : 7061 (classe 7, produit). Ex. achat denrées : 602 ou 604 (classe 6, charge)." %}</p>
+                    <button type="submit" class="cg-btn cg-btn--primary">{% trans "Enregistrer" %}</button>
+                </form>
             </div>
-        </header>
-        <section class="cg-section">
-            <h2>{% trans "Ajouter un compte" %}</h2>
-            <p class="cg-form-hint" id="cg-plan-hint" hidden></p>
-            <form method="post" action="{% url 'directeur:cg_plan_comptable' %}" class="cg-form">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="ajouter_compte" />
-                <label>{% trans "Numéro" %}<input id="cg-plan-numero" name="numero" required maxlength="12" placeholder="7061" autocomplete="off" /></label>
-                <label>{% trans "Libellé" %}<input name="libelle" required maxlength="160" placeholder="{% trans 'Cantine' %}" /></label>
-                <label>{% trans "Classe" %}
-                    <select id="cg-plan-classe" name="classe">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7" selected>7</option>
-                        <option value="8">8</option>
-                    </select>
-                </label>
-                <label>{% trans "Nature" %}
-                    <select id="cg-plan-nature" name="nature">
-                        <option value="charge">{% trans "Charge" %}</option>
-                        <option value="produit" selected>{% trans "Produit" %}</option>
-                        <option value="actif">{% trans "Actif" %}</option>
-                        <option value="passif">{% trans "Passif" %}</option>
-                        <option value="hors">{% trans "Hors bilan" %}</option>
-                    </select>
-                </label>
-                <p class="cg-form-help">{% trans "Ex. recette cantine : 7061 (classe 7, produit). Ex. achat denrées : 602 ou 604 (classe 6, charge)." %}</p>
-                <button type="submit" class="cg-btn cg-btn--primary">{% trans "Enregistrer" %}</button>
-            </form>
-        </section>
-        <section class="cg-section">
-            <h2>{% trans "Comptes" %} ({{ comptes|length }})</h2>
-            <div class="table-responsive">
-                <table class="cg-table">
-                    <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Libellé" %}</th><th>{% trans "Classe" %}</th><th>{% trans "Nature" %}</th></tr></thead>
-                    <tbody>
-                        {% for c in comptes %}
-                        <tr><td>{{ c.numero }}</td><td>{{ c.libelle }}</td><td>{{ c.classe }}</td><td>{{ c.get_nature_display }}</td></tr>
-                        {% empty %}
-                        <tr><td colspan="4">{% trans "Aucun compte." %}</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+        </div>
+{% endblock %}
+
+{% block scripts %}
     <script src="{% static 'school_admin/js/directeur/plan_comptable.js' %}?v=1.0.0"></script>
-</body>
-</html>
+{% endblock %}

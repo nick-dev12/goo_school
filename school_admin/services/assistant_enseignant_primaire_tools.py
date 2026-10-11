@@ -774,6 +774,11 @@ ENSEIGNANT_PRIMAIRE_TOOLS_SCHEMA = [
 
 ENSEIGNANT_PRIMAIRE_TOOLS_SCHEMA.extend(build_enseignant_action_tool_schemas())
 
+from school_admin.services.cahier_texte_assistant import SCHEMA_LECTURE as _CT_SCHEMA, tool_get_cahier_texte  # noqa: E402
+
+ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS['get_cahier_texte'] = tool_get_cahier_texte
+ENSEIGNANT_PRIMAIRE_TOOLS_SCHEMA.append(_CT_SCHEMA)
+
 
 def get_enseignant_primaire_tools_schema(ctx=None):
     from school_admin.services.assistant_enseignant_complements_tools import (

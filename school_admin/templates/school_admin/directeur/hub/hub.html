@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ hub.titre }} — {{ etablissement.nom }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=1.0.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0" />
+</head>
+<body class="axd-page cg3-body fe-body">
+  {% include 'school_admin/directeur/partials/header_directeur.html' %}
+  <main class="fe cg3 hb" id="contenu">
+    <header class="hb-head">
+      <span class="hb-head__icon fe-tone-{{ hub.tone }}"><i class="fas {{ hub.icone }}" aria-hidden="true"></i></span>
+      <div class="hb-head__text">
+        <p class="fe-hero__kicker">{{ etablissement.nom }}{% if annee_scolaire_active %} · {{ annee_scolaire_active.libelle }}{% endif %}</p>
+        <h1 class="hb-head__title">{{ hub.titre }}</h1>
+        <p class="fe-hero__sub">{{ hub.sous_titre }}</p>
+      </div>
+    </header>
+
+    {% if messages %}<div class="fe-messages" style="margin-top:14px">{% for m in messages %}<p class="fe-alert {% if m.tags == 'success' %}fe-alert--ok{% elif m.tags == 'error' or m.tags == 'warning' %}fe-alert--warn{% else %}fe-alert--info{% endif %}"><i class="fas fa-circle-info" aria-hidden="true"></i><span>{{ m }}</span></p>{% endfor %}</div>{% endif %}
+
+    {% if hub.kpis %}
+    <section class="fe-kpis hb-kpis hb-kpis--{{ hub.kpis|length }}" aria-label="{% trans 'Indicateurs' %}">
+      {% for k in hub.kpis %}
+      <div class="fe-kpi fe-tone-{{ k.tone }}">
+        <div class="fe-kpi__top"><span class="fe-kpi__label">{{ k.label }}</span><span class="fe-kpi__icon"><i class="fas {{ k.icon }}" aria-hidden="true"></i></span></div>
+        <p class="fe-kpi__value{% if k.texte %} is-text{% endif %}{% if k.bad %} is-warn{% endif %}">{{ k.value }}</p>
+        {% if k.pct != None and k.pct != '' %}<div class="fe-bar"><span class="{% if k.pct > 100 %}is-bad{% elif k.pct < 80 %}is-warn{% endif %}" style="width: {% if k.pct > 100 %}100{% else %}{{ k.pct }}{% endif %}%"></span></div>{% endif %}
+      </div>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if hub.alertes %}
+    <section class="hb-todo" aria-label="{% trans 'Points d’attention' %}">
+      <h2 class="hb-todo__title"><i class="fas fa-list-check" aria-hidden="true"></i>{% trans "À faire" %}</h2>
+      <ul>
+        {% for a in hub.alertes %}
+        <li class="hb-todo__item hb-todo__item--{{ a.tone }}">
+          <i class="fas {{ a.icon }}" aria-hidden="true"></i><span>{{ a.texte }}</span>
+          {% if a.url %}<a class="cg3-btn cg3-btn--sm" href="{{ a.url }}">{{ a.action }} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% for s in hub.sections %}
+    <section class="hb-section" aria-labelledby="hb-s{{ forloop.counter }}">
+      <div class="hb-section__head"><h2 id="hb-s{{ forloop.counter }}">{{ s.titre }}</h2>{% if s.desc %}<p>{{ s.desc }}</p>{% endif %}</div>
+      <div class="hb-grid">
+        {% for l in s.liens %}
+        <a class="hb-card fe-tone-{{ l.tone }}" href="{{ l.url }}">
+          <span class="hb-card__icon"><i class="fas {{ l.icon }}" aria-hidden="true"></i></span>
+          <span class="hb-card__body">
+            <strong>{{ l.titre }}</strong>
+            <small>{{ l.desc }}</small>
+          </span>
+          <i class="fas fa-chevron-right hb-card__go" aria-hidden="true"></i>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% empty %}
+    <div class="fe-card"><div class="cg3-empty"><i class="fas fa-lock" aria-hidden="true"></i><strong>{% trans "Aucun accès" %}</strong><span>{% trans "Vos autorisations ne donnent accès à aucune rubrique de cette page." %}</span></div></div>
+    {% endfor %}
+  </main>
+  {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

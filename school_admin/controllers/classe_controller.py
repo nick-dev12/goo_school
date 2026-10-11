@@ -483,6 +483,8 @@ class ClasseController:
             'field_errors': {},
         }
         
+        from ..services.structure_etablissement import enrichir as _enrichir_structure
+        _enrichir_structure(request, context, 'classes')
         return render(request, 'school_admin/directeur/administrateur_etablissement/classes/liste_classes.html', context)
     
     @staticmethod
@@ -832,6 +834,8 @@ class ClasseController:
                 'show_modal': True,  # Flag pour ouvrir le modal
             })
             
+            from ..services.structure_etablissement import enrichir as _enrichir_structure
+            _enrichir_structure(request, context, 'classes')
             return render(request, 'school_admin/directeur/administrateur_etablissement/classes/liste_classes.html', context)
         
         # GET : rediriger vers liste_classes (le formulaire est dans le modal)
@@ -1384,6 +1388,8 @@ class ClasseController:
             'examens_concours_ids_selected': examens_concours_ids_selected,
         }
         
+        from ..services.structure_etablissement import enrichir as _enrichir_structure
+        _enrichir_structure(request, context, 'classe', classe)
         return render(request, 'school_admin/directeur/administrateur_etablissement/classes/detail_classe.html', context)
     
     @staticmethod

@@ -1,0 +1,11 @@
+{% load i18n static %}
+<a href="{% url 'directeur:liste_preinscriptions' %}" class="spl-action-btn spl-action-btn--primary">
+                    <i class="fas fa-list"></i> {% trans "Voir les préinscriptions" %}
+                </a>
+                <form method="post" action="{% url 'directeur:toggle_lien_preinscription' %}" class="spl-toggle-form" onsubmit="return confirm('{% if lien.actif %}{% filter escapejs %}{% trans "Désactiver ce lien ? Les parents ne pourront plus accéder au formulaire." %}{% endfilter %}{% else %}{% filter escapejs %}{% trans "Activer ce lien ?" %}{% endfilter %}{% endif %}');">
+                    {% csrf_token %}
+                    <button type="submit" class="spl-action-btn {% if lien.actif %}spl-action-btn--danger{% else %}spl-action-btn--success{% endif %}">
+                        <i class="fas fa-{% if lien.actif %}pause{% else %}play{% endif %}"></i>
+                        {% if lien.actif %}{% trans "Désactiver le lien" %}{% else %}{% trans "Activer le lien" %}{% endif %}
+                    </button>
+                </form>

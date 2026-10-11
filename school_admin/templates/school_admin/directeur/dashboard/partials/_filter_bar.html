@@ -1,0 +1,65 @@
+{% load i18n %}
+<form class="dbd-filter-bar" method="get" action="{% url 'directeur:dashboard_directeur' %}">
+  <input type="hidden" name="activite" value="{{ initial_dashboard_activite|default:'absences' }}" />
+  <input type="hidden" name="vue" value="{{ dashboard_ctx.vue }}" />
+
+  <div class="dbd-filter-fields">
+    <label class="dbd-filter-field">
+      <span>{% trans "Année scolaire" %}</span>
+      <select disabled aria-label="{% trans 'Année scolaire (changer depuis la barre du haut)' %}">
+        <option>
+          {% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{% trans "Aucune session" %}{% endif %}
+        </option>
+      </select>
+    </label>
+
+    <label class="dbd-filter-field">
+      <span>{% trans "Cycle" %}</span>
+      <select name="cycle">
+        <option value="">{% trans "Tous les cycles" %}</option>
+        {% for opt in executive.filters.cycles %}
+        <option value="{{ opt.value }}" {% if dashboard_ctx.filters.cycle == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    {% if executive.filters.filieres %}
+    <label class="dbd-filter-field">
+      <span>{% trans "Filière" %}</span>
+      <select name="filiere">
+        <option value="">{% trans "Toutes les filières" %}</option>
+        {% for opt in executive.filters.filieres %}
+        <option value="{{ opt.id }}" {% if dashboard_ctx.filters.filiere == opt.id|stringformat:'s' %}selected{% endif %}>{{ opt.nom }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% endif %}
+
+    <label class="dbd-filter-field">
+      <span>{% trans "Classe" %}</span>
+      <select name="classe">
+        <option value="">{% trans "Toutes les classes" %}</option>
+        {% for opt in executive.filters.classes %}
+        <option value="{{ opt.id }}" {% if executive.filters.selected_classe_id == opt.id %}selected{% endif %}>{{ opt.nom }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="dbd-filter-field">
+      <span>{% trans "Période" %}</span>
+      <select name="periode">
+        <option value="">{% trans "Période active" %}</option>
+        {% for opt in executive.filters.periodes %}
+        <option value="{{ opt.id }}" {% if dashboard_ctx.periode_scolaire and dashboard_ctx.periode_scolaire.id == opt.id %}selected{% endif %}>{{ opt.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+
+  <div class="dbd-filter-actions">
+    <button type="submit" class="dbd-abs-btn primary">{% trans "Appliquer" %}</button>
+    {% if executive.filters.has_active_filters %}
+    <a class="dbd-abs-btn secondary" href="{% url 'directeur:dashboard_directeur' %}?vue={{ dashboard_ctx.vue }}&activite={{ initial_dashboard_activite|default:'absences' }}">{% trans "Réinitialiser" %}</a>
+    {% endif %}
+  </div>
+</form>

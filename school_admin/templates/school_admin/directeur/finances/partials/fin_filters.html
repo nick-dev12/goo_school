@@ -1,0 +1,26 @@
+{% load i18n %}
+<form method="get" class="cg-form fin-filters">
+    {% if vue %}<input type="hidden" name="vue" value="{{ vue }}" />{% endif %}
+    {% if filtres.releve_id %}<input type="hidden" name="releve" value="{{ filtres.releve_id }}" />{% endif %}
+    <label>{% trans "Mois" %}<input type="month" name="mois" value="{{ bornes.valeur }}" /></label>
+    <label>{% trans "Compte" %}
+        <select name="compte">
+            <option value="">{% trans "Tous" %}</option>
+            {% for compte in comptes_tresorerie %}
+            <option value="{{ compte.id }}" {% if filtres.compte_id == compte.id|stringformat:"s" %}selected{% endif %}>{{ compte.libelle }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>{% trans "Statut" %}
+        <select name="statut">
+            <option value="">{% trans "Tous" %}</option>
+            <option value="validee" {% if filtres.statut == 'validee' %}selected{% endif %}>{% trans "Validée" %}</option>
+            <option value="annulee" {% if filtres.statut == 'annulee' %}selected{% endif %}>{% trans "Annulée" %}</option>
+            <option value="a_payer" {% if filtres.statut == 'a_payer' %}selected{% endif %}>{% trans "À payer" %}</option>
+            <option value="partiel" {% if filtres.statut == 'partiel' %}selected{% endif %}>{% trans "Partielle" %}</option>
+            <option value="en_cours" {% if filtres.statut == 'en_cours' %}selected{% endif %}>{% trans "En cours" %}</option>
+        </select>
+    </label>
+    <label>{% trans "Recherche" %}<input type="search" name="q" value="{{ filtres.q }}" placeholder="{% trans 'Libellé, référence…' %}" /></label>
+    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Filtrer" %}</button>
+</form>

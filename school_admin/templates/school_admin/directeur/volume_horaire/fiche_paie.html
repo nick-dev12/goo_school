@@ -1,67 +1,101 @@
 <!DOCTYPE html>
-{% load static %}
-{% load i18n %}
+{% load static i18n %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "Fiche de paie" %} — {{ professeur.nom_complet }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/recu_paiement.css' %}?v=1.0.0" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% trans "Fiche de paie" %} — {{ professeur.nom_complet }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    :root { --ink: #101828; --ink2: #475467; --muted: #8a919e; --line: #e4e7ec; --soft: #f5f6f8; --brand: #2a5bd7; --good: #0f7b4a; --bad: #c0352e; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px 16px 48px; background: var(--soft); color: var(--ink); font: 14px/1.5 Inter, system-ui, sans-serif; }
+    .bar { max-width: 820px; margin: 0 auto 16px; display: flex; gap: 8px; justify-content: flex-end; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: 600 .86rem Inter, sans-serif; text-decoration: none; cursor: pointer; }
+    .btn--primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .sheet { max-width: 820px; margin: 0 auto; padding: 36px; border-radius: 18px; background: #fff; box-shadow: 0 12px 32px rgba(16,24,40,.06); }
+    .head { display: flex; justify-content: space-between; gap: 20px; padding-bottom: 20px; border-bottom: 2px solid var(--ink); }
+    .head h1 { margin: 0; font-size: 1.5rem; letter-spacing: .04em; }
+    .head p { margin: 2px 0 0; color: var(--ink2); }
+    .school { font-weight: 700; font-size: 1.05rem; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 22px 0; }
+    .grid div { padding: 12px; border-radius: 10px; background: var(--soft); }
+    .lbl { display: block; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .val { font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+    th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink2); background: var(--soft); }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr.total td { font-weight: 700; border-top: 2px solid var(--ink); }
+    tr.net td { font-size: 1.15rem; font-weight: 700; background: var(--ink); color: #fff; }
+    h2 { margin: 26px 0 6px; font-size: .95rem; }
+    .muted { color: var(--muted); }
+    .neg { color: var(--bad); }
+    .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 40px; }
+    .sign div { padding-top: 48px; border-top: 1px dashed var(--line); text-align: center; color: var(--ink2); font-size: .85rem; }
+    .proof { font-size: .8rem; color: var(--ink2); margin-top: 18px; padding: 10px 12px; border-radius: 10px; background: #eef3fe; }
+    @media print { body { background: #fff; padding: 0; } .bar { display: none; } .sheet { box-shadow: none; padding: 0; } }
+    @media (max-width: 640px) { .sheet { padding: 20px; } .grid { grid-template-columns: 1fr 1fr; } .head { flex-direction: column; } }
+  </style>
 </head>
-<body class="recu-body">
-    <div class="print-actions">
-        <button type="button" class="btn-print" onclick="window.print()">{% trans "Imprimer" %}</button>
-        <a href="{% url 'directeur:detail_volume_horaire' professeur.id %}{{ query_periode }}" class="btn-back">{% trans "Retour" %}</a>
+<body>
+  <div class="bar">
+    <a class="btn" href="{% url 'directeur:detail_volume_horaire' professeur.id %}{{ query_periode }}"><i class="fas fa-arrow-left"></i>{% trans "Retour" %}</a>
+    <button type="button" class="btn btn--primary" onclick="window.print()"><i class="fas fa-print"></i>{% trans "Imprimer" %}</button>
+  </div>
+  <article class="sheet">
+    <header class="head">
+      <div>
+        <p class="school">{{ etablissement.nom }}</p>
+        <p>{{ etablissement.adresse }}{% if etablissement.ville %} — {{ etablissement.ville }}{% endif %}</p>
+        {% if etablissement.telephone %}<p>{% trans "Tél." %} {{ etablissement.telephone }}</p>{% endif %}
+      </div>
+      <div style="text-align:right">
+        <h1>{% trans "BULLETIN DE PAIE" %}</h1>
+        <p>{{ paie.date_debut|date:"d/m/Y" }} → {{ paie.date_fin|date:"d/m/Y" }}</p>
+        <p class="muted">N° {{ paie.pk|stringformat:"06d" }}</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div><span class="lbl">{% trans "Enseignant" %}</span><span class="val">{{ professeur.nom|upper }} {{ professeur.prenom }}</span></div>
+      <div><span class="lbl">{% trans "Matricule" %}</span><span class="val">{{ professeur.numero_employe }}</span></div>
+      <div><span class="lbl">{% trans "Contrat" %}</span><span class="val">{% if paie.type_contrat == 'permanent' %}{% trans "Permanent" %}{% else %}{% trans "Vacataire" %}{% endif %}</span></div>
+      <div><span class="lbl">{% trans "Heures validées" %}</span><span class="val">{{ paie.heures|floatformat:"-2" }} h</span></div>
+      <div><span class="lbl">{% trans "Séances payées" %}</span><span class="val">{{ paie.nb_seances }}</span></div>
+      <div><span class="lbl">{% trans "Payé le" %}</span><span class="val">{{ paie.date_paiement|date:"d/m/Y" }}{% if paie.compte_tresorerie %} · {{ paie.compte_tresorerie.libelle }}{% endif %}</span></div>
     </div>
 
-    <article class="recu-sheet">
-        <header class="recu-head">
-            <div>
-                <p class="recu-school-name">{{ etablissement.nom }}</p>
-                <p class="recu-school-meta">
-                    {{ etablissement.adresse }} — {{ etablissement.ville }}<br />
-                    {% trans "Tél." %} {{ etablissement.telephone|default:"—" }}
-                </p>
-            </div>
-            <div class="recu-title-block">
-                <p class="recu-title">{% trans "FICHE DE PAIE" %}</p>
-                <p class="recu-number">{{ periode.label }}</p>
-            </div>
-        </header>
+    <table>
+      <thead><tr><th>{% trans "Rubrique" %}</th><th class="num">{% trans "Base" %}</th><th class="num">{% trans "Montant" %} ({{ devise_monnaie }})</th></tr></thead>
+      <tbody>
+        {% if paie.type_contrat == 'permanent' %}
+        <tr><td>{% trans "Salaire de base" %}</td><td class="num">{% trans "mensuel" %}</td><td class="num">{{ paie.salaire_base|floatformat:"0g" }}</td></tr>
+        {% if paie.montant_heures_sup %}<tr><td>{% trans "Heures supplémentaires" %}</td><td class="num">{{ paie.heures_sup|floatformat:"-2" }} h</td><td class="num">{{ paie.montant_heures_sup|floatformat:"0g" }}</td></tr>{% endif %}
+        {% if paie.retenue_absences %}<tr><td>{% trans "Retenue pour cours non faits" %}</td><td class="num"></td><td class="num neg">− {{ paie.retenue_absences|floatformat:"0g" }}</td></tr>{% endif %}
+        {% else %}
+        <tr><td>{% trans "Heures de cours validées" %}</td><td class="num">{{ paie.heures|floatformat:"-2" }} h</td><td class="num">{{ paie.montant_brut|floatformat:"0g" }}</td></tr>
+        {% endif %}
+        <tr class="total"><td>{% trans "Salaire brut" %}</td><td></td><td class="num">{{ paie.montant_brut|floatformat:"0g" }}</td></tr>
+        {% if paie.retenue_pct %}<tr><td>{% trans "Retenue à la source" %}</td><td class="num">{{ paie.retenue_pct|floatformat:"-2" }} %</td><td class="num neg">− {% widthratio paie.retenue_pct 100 paie.montant_brut %}</td></tr>{% endif %}
+        <tr class="net"><td>{% trans "Net versé" %}</td><td></td><td class="num">{{ paie.montant_net|floatformat:"0g" }}</td></tr>
+      </tbody>
+    </table>
 
-        <div class="recu-grid">
-            <div>
-                <div class="recu-label">{% trans "Professeur" %}</div>
-                <div class="recu-value">{{ professeur.nom }} {{ professeur.prenom }}</div>
-            </div>
-            <div>
-                <div class="recu-label">{% trans "Période" %}</div>
-                <div class="recu-value">{{ paie.date_debut|date:"d/m/Y" }} → {{ paie.date_fin|date:"d/m/Y" }}</div>
-            </div>
-            <div>
-                <div class="recu-label">{% trans "Heures" %}</div>
-                <div class="recu-value">{{ paie.heures|floatformat:2 }}</div>
-            </div>
-            <div>
-                <div class="recu-label">{% trans "Brut" %}</div>
-                <div class="recu-value">{{ paie.montant_brut|floatformat:0 }} {{ devise_monnaie }}</div>
-            </div>
-            <div>
-                <div class="recu-label">{% trans "Charges" %}</div>
-                <div class="recu-value">{{ paie.retenue_pct|floatformat:0 }} %</div>
-            </div>
-            <div>
-                <div class="recu-label">{% trans "Payé le" %}</div>
-                <div class="recu-value">{{ paie.date_paiement|date:"d/m/Y" }}</div>
-            </div>
-        </div>
+    {% if seances %}
+    <h2>{% trans "Détail des séances payées" %}</h2>
+    <table>
+      <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Horaire" %}</th><th>{% trans "Classe" %}</th><th>{% trans "Matière" %}</th><th>{% trans "Validation" %}</th></tr></thead>
+      <tbody>
+        {% for s in seances %}<tr><td>{{ s.date|date:"d/m/Y" }}</td><td>{{ s.heure_debut|time:"H:i" }}–{{ s.heure_fin|time:"H:i" }}</td><td>{{ s.classe.nom }}</td><td>{{ s.matiere.nom|default:"—" }}</td><td class="muted">{% if s.validation_auto %}{% trans "QR + appel" %}{% else %}{{ s.valide_par|default:"—" }}{% endif %}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    <p class="proof"><i class="fas fa-shield-halved"></i> {% trans "Chaque séance payée a été ouverte en classe par scan du QR de la borne de l’établissement, avec appel et cahier de texte, ou validée par la direction." %}</p>
+    {% endif %}
 
-        <div class="recu-amount">
-            <div class="recu-label">{% trans "Net versé" %}</div>
-            <strong>{{ paie.montant_net|floatformat:0 }} {{ devise_monnaie }}</strong>
-        </div>
-    </article>
+    <div class="sign"><div>{% trans "Signature de l’enseignant" %}</div><div>{% trans "Cachet et signature de la direction" %}</div></div>
+  </article>
 </body>
 </html>

@@ -1,0 +1,92 @@
+{% load static %}
+{% load i18n %}
+{% load eleve_nav %}
+{# Barre du haut, messages, barre du bas et feuille « Menu » de l'espace élève. #}
+{% eleve_nav as nav %}
+<header class="ax-topbar px-topbar ex-topbar">
+  <div class="ax-topbar__left">
+    <a class="px-logo" href="{% url 'eleve:dashboard_eleve' %}" aria-label="{% trans 'Accueil' %}">
+      <img src="{% static 'school_admin/img/logo_wordmark.png' %}" alt="Aria" width="104" height="32">
+    </a>
+    {% if est_parent %}
+    <a class="ex-back" href="{% url 'school_admin:retour_selection_enfant' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>{% trans "Mes enfants" %}</span></a>
+    {% endif %}
+  </div>
+  <div class="ax-topbar__right">
+    <button id="pwa-install-btn" class="ax-icon-btn" type="button" style="display: none;" aria-label="{% trans 'Installer l’application' %}" title="{% trans 'Installer l’application' %}"><i class="fas fa-download" aria-hidden="true"></i></button>
+    <div class="ax-hide-mobile">{% include 'school_admin/partials/gtranslate_header_bar.html' %}</div>
+    {% if not est_parent %}
+    <a href="{% url 'eleve:notifications_eleve' %}" class="ax-icon-btn{% if nav.active == 'notifications' %} is-current{% endif %}" aria-label="{% trans 'Notifications' %}" title="{% trans 'Notifications' %}">
+      <i class="fas fa-bell" aria-hidden="true"></i>
+      {% if notifications_eleve_non_lues > 0 %}<span class="ax-dot-badge">{{ notifications_eleve_non_lues }}</span>{% endif %}
+    </a>
+    {% endif %}
+    <span class="ax-topbar__divider ax-hide-mobile" aria-hidden="true"></span>
+    <a class="ax-user" href="{% url 'eleve:profil_eleve' %}" title="{% trans 'Profil' %}">
+      <span class="ax-avatar ex-avatar" aria-hidden="true">{{ eleve.prenom|slice:":1"|upper }}{{ eleve.nom|slice:":1"|upper }}</span>
+      <span class="ax-user__text">
+        <span class="ax-user__name">{{ eleve.prenom }} {{ eleve.nom }}</span>
+        <span class="ax-user__role">{% firstof classe_active.nom classe.nom eleve.classe.nom libelle_eleve %}</span>
+      </span>
+    </a>
+  </div>
+</header>
+
+{% if messages %}
+<div class="px-messages" role="status">
+  {% for message in messages %}
+  <div class="px-message px-message--{{ message.tags|default:'info' }}">
+    <i class="fas {% if message.tags == 'error' %}fa-circle-exclamation{% elif message.tags == 'success' %}fa-circle-check{% elif message.tags == 'warning' %}fa-triangle-exclamation{% else %}fa-circle-info{% endif %}" aria-hidden="true"></i>
+    <span>{{ message }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<nav class="ax-dock px-dock" aria-label="{% trans 'Navigation de l’espace élève' %}">
+  <ul class="ax-dock__list ax-dock__list--full">
+    {% for link in nav.bar %}
+    <li><a href="{{ link.url }}" class="ax-dock__item{% if link.active %} is-active{% endif %}"{% if link.active %} aria-current="page"{% endif %}>
+      <span class="ax-dock__icon ax-tone-{{ link.tone }}"><i class="fas {{ link.icon }}" aria-hidden="true"></i></span><span class="ax-dock__label">{{ link.label }}</span></a></li>
+    {% endfor %}
+  </ul>
+  <ul class="ax-dock__list ax-dock__list--compact">
+    {% for link in nav.mobile %}
+    <li><a href="{{ link.url }}" class="ax-dock__item{% if link.active %} is-active{% endif %}"{% if link.active %} aria-current="page"{% endif %}>
+      <span class="ax-dock__icon ax-tone-{{ link.tone }}"><i class="fas {{ link.icon }}" aria-hidden="true"></i></span><span class="ax-dock__label">{{ link.court }}</span></a></li>
+    {% endfor %}
+    <li>
+      <button type="button" class="ax-dock__item{% if nav.more_active %} is-active{% endif %}" id="axMoreBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="axSheet">
+        <span class="ax-dock__icon ax-tone-menu"><i class="fas fa-ellipsis" aria-hidden="true"></i></span>
+        <span class="ax-dock__label">{% trans "Menu" %}</span>
+      </button>
+    </li>
+  </ul>
+</nav>
+
+<div class="ax-sheet-backdrop" data-ax-sheet-close></div>
+<div class="ax-sheet" id="axSheet" role="dialog" aria-modal="true" aria-labelledby="axSheetTitle" aria-hidden="true">
+  <div class="ax-sheet__grip" aria-hidden="true"></div>
+  <div class="ax-sheet__head">
+    <h2 class="ax-sheet__title" id="axSheetTitle">{{ eleve.prenom }} {{ eleve.nom }}</h2>
+    <button type="button" class="ax-icon-btn" data-ax-sheet-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+  </div>
+  <nav class="ex-sheet-grid" aria-label="{% trans 'Toutes les sections' %}">
+    {% for group in nav.groups %}
+    <p class="ax-nav__title">{{ group.title }}</p>
+    <div class="ex-sheet-row">
+      {% for link in group.items %}
+      <a href="{{ link.url }}" class="ex-tile{% if link.active %} is-active{% endif %}"{% if link.active %} aria-current="page"{% endif %}>
+        <span class="ax-dock__icon ax-tone-{{ link.tone }}"><i class="fas {{ link.icon }}" aria-hidden="true"></i></span>
+        <span>{{ link.label }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endfor %}
+    {% if est_parent %}
+    <a class="axd-btn ex-sheet-exit" href="{% url 'school_admin:retour_selection_enfant' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{% trans "Retour à mes enfants" %}</a>
+    {% else %}
+    <a class="axd-btn ex-sheet-exit" href="{% url 'eleve:deconnexion_eleve' %}"><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i>{% trans "Se déconnecter" %}</a>
+    {% endif %}
+  </nav>
+</div>

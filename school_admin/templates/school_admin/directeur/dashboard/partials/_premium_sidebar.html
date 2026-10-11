@@ -1,0 +1,55 @@
+{% load i18n %}
+<aside class="dbd-premium-sidebar" aria-label="{% trans 'Pilotage du jour' %}">
+  <article class="dbd-premium-card" id="dbd-today">
+    <h3>
+      {% trans "Aujourd’hui" %}
+      <span>{{ dashboard_ctx.today|date:"D j M Y" }}</span>
+    </h3>
+    <div class="dbd-premium-today-grid">
+      {% for item in executive.today.items %}
+        {% if item.id != 'date' %}
+        <div class="dbd-premium-today-item">
+          <i class="fas {{ item.icon|default:'fa-circle-info' }}" aria-hidden="true"></i>
+          <span>{{ item.label }}</span>
+          {% if item.empty %}
+          <strong class="muted">—</strong>
+          <em>{{ item.empty_reason }}</em>
+          {% else %}
+          <strong>{{ item.value }}</strong>
+          {% if item.detail %}<em>{{ item.detail }}</em>{% endif %}
+          {% endif %}
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="dbd-premium-card" id="dbd-activite">
+    <h3>
+      {% trans "Activité récente" %}
+      <a href="{% url 'directeur:dashboard_directeur' %}?activite=absences&vue={{ dashboard_ctx.vue }}">{% trans "Voir tout" %}</a>
+    </h3>
+    {% if executive.activity %}
+    <ul class="dbd-premium-activity-list">
+      {% for item in executive.activity %}
+      <li class="dbd-premium-activity-item">
+        <span class="dbd-premium-activity-icon dbd-premium-activity-icon--{{ item.kind }}" aria-hidden="true">
+          <i class="fas {{ item.icon }}"></i>
+        </span>
+        <div>
+          {% if item.url %}
+          <a href="{{ item.url }}"><strong>{{ item.title }}</strong></a>
+          {% else %}
+          <strong>{{ item.title }}</strong>
+          {% endif %}
+          {% if item.detail %}<div class="muted">{{ item.detail }}</div>{% endif %}
+          <div class="dbd-premium-activity-time">{{ item.at|timesince }}</div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="dbd-exec-hint">{% trans "Aucune activité récente." %}</p>
+    {% endif %}
+  </article>
+</aside>

@@ -1,0 +1,76 @@
+{% load static i18n eleve_nav %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Cahier de texte" %} – ARIA</title>
+  {% include 'school_admin/eleve/partials/_ex_head.html' %}
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+  <link rel="stylesheet" href="{% static 'school_admin/css/cahier_texte.css' %}?v=1.0.0">
+</head>
+<body class="axd-page px-page ex-page">
+  {% include 'school_admin/eleve/partials/_ex_shell.html' %}
+
+  <main class="axd px ex ct" id="contenu">
+    <header class="px-page-head">
+      <span class="px-page-head__icon ax-tone-teal"><i class="fas fa-book-open" aria-hidden="true"></i></span>
+      <div>
+        <h1>{% trans "Cahier de texte" %}</h1>
+        <p>{% if classe %}{{ classe.nom }} · {% endif %}{% trans "Ce qui a été fait en classe et le travail à faire." %}</p>
+      </div>
+    </header>
+
+    {% if a_faire %}
+    <section class="axd-card cg3-block">
+      <header class="axd-card__head"><div><h2 class="axd-card__title"><i class="fas fa-house-laptop" aria-hidden="true"></i> {% trans "Travail à faire" %}</h2></div></header>
+      <ul class="ex-tasks">
+        {% for e in a_faire %}
+        <li class="ex-task">
+          <span class="axd-date-chip ex-chip-{{ e.matiere.nom|matiere_tone }}" aria-hidden="true"><b>{{ e.date_travail|date:"d" }}</b>{{ e.date_travail|date:"M" }}</span>
+          <div class="ex-task__body"><strong>{{ e.matiere.nom|default:"Cours" }} · {{ e.titre }}</strong><small>{{ e.travail_a_faire|truncatechars:110 }}</small></div>
+          <span class="axd-score {% if e.date_travail <= today %}axd-score--bad{% else %}ex-score--neutral{% endif %}">{{ e.date_travail|date:"D d/m" }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% if matieres|length > 1 %}
+    <nav class="ct-chips" aria-label="{% trans 'Matières' %}">
+      <a class="ct-chip{% if not matiere_id %} is-active{% endif %}" href="?">{% trans "Toutes les matières" %}</a>
+      {% for m in matieres %}<a class="ct-chip{% if matiere_id == m.pk|stringformat:'s' %} is-active{% endif %}" href="?matiere={{ m.pk }}">{{ m.nom }}</a>{% endfor %}
+    </nav>
+    {% endif %}
+
+    {% if groupes %}
+    <div class="ct-timeline">
+      {% for g in groupes %}
+      <div class="ct-day">
+        <div class="ct-day__date{% if g.date == today %} is-today{% endif %}"><b>{{ g.date|date:"d" }}</b><span>{{ g.date|date:"D M" }}</span></div>
+        <div class="ct-day__entries">
+          {% for e in g.entrees %}{% with tone=e.matiere.nom|matiere_tone %}
+          <article class="ct-entry ct-tone-{{ tone }}">
+            <div class="ct-entry__top">
+              <span class="ct-entry__subject"><i class="fas {{ e.matiere.nom|matiere_icon }}" aria-hidden="true"></i>{{ e.matiere.nom|default:"Cours" }}</span>
+              <span class="ct-entry__meta">{{ e.professeur.nom_complet }}{% if e.heure_debut %} · {{ e.heure_debut|time:"H:i" }}{% endif %}</span>
+            </div>
+            <h3 class="ct-entry__title">{{ e.titre }}</h3>
+            {% if e.objectifs %}<div class="ct-block"><p class="ct-block__label"><i class="fas fa-bullseye" aria-hidden="true"></i>{% trans "Objectifs" %}</p><ul class="ct-list ct-list--goals">{% for l in e.objectifs|lignes %}<li>{{ l }}</li>{% endfor %}</ul></div>{% endif %}
+            <div class="ct-block"><p class="ct-block__label"><i class="fas fa-list-ol" aria-hidden="true"></i>{% trans "En classe" %}</p><ul class="ct-list">{% for l in e.contenu|lignes %}<li>{{ l }}</li>{% endfor %}</ul></div>
+            {% if e.travail_a_faire %}<div class="ct-homework"><i class="fas fa-house-laptop" aria-hidden="true"></i><div><strong>{% trans "Travail à faire" %}{% if e.date_travail %} · {% trans "pour le" %} {{ e.date_travail|date:"l j F" }}{% endif %}</strong><p>{{ e.travail_a_faire }}</p></div></div>{% endif %}
+          </article>
+          {% endwith %}{% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-empty-inline"><i class="fas fa-book-open" aria-hidden="true"></i><h2>{% trans "Rien pour le moment" %}</h2><p>{% trans "Les leçons apparaîtront ici dès que tes professeurs rempliront le cahier de texte." %}</p></div>
+    {% endif %}
+  </main>
+
+  {% include 'school_admin/eleve/partials/_ex_foot.html' %}
+</body>
+</html>

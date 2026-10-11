@@ -1,0 +1,112 @@
+{% load static %}
+{% load i18n %}
+{% load directeur_nav %}
+{% load permissions_tags %}
+{# Coquille Aria : barre latérale (ordinateur), barre supérieure, barre d'onglets et feuille « Plus » (mobile). #}
+
+{# Navigation principale : barre horizontale en bas (voir plus bas). #}
+
+<header class="ax-topbar">
+  <div class="ax-topbar__left">
+    <a class="ax-topbar__logo" href="{% url 'directeur:dashboard_directeur' %}" aria-label="{% trans 'Accueil Aria' %}">
+      <img src="{% static 'school_admin/img/logo_wordmark.png' %}" alt="Aria" width="104" height="32" />
+    </a>
+    </span>
+    {% if toutes_annees_scolaires %}
+    <form method="post" action="{% url 'directeur:changer_session_directeur' %}?next={{ request.path|urlencode }}" class="ax-session">
+      {% csrf_token %}
+      <label for="axSessionSelect" class="ax-session__label">{% trans "Année scolaire" %}</label>
+      <select name="session_id" id="axSessionSelect" class="ax-select" onchange="this.form.submit()" title="{% trans 'Changer d’année scolaire' %}">
+        <option value="">{% trans "Active" %} · {{ annee_scolaire_reellement_active.libelle|default:"—" }}</option>
+        {% for annee in toutes_annees_scolaires %}
+        <option value="{{ annee.id }}" {% if annee_scolaire_active and annee_scolaire_active.id == annee.id %}selected{% endif %}>
+          {{ annee.libelle }}{% if annee.est_active %} · {% trans "active" %}{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+      {% if annee_scolaire_active and annee_scolaire_reellement_active and annee_scolaire_active.id != annee_scolaire_reellement_active.id %}
+      <i class="fas fa-circle-info ax-session__warn" title="{% trans 'Vous consultez une autre année que l’année active' %}" aria-label="{% trans 'Année différente de l’année active' %}"></i>
+      {% endif %}
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="ax-topbar__right">
+
+    <button id="pwa-install-btn" class="ax-pwa-btn" type="button">
+      <i class="fas fa-download" aria-hidden="true"></i><span>{% trans "Installer" %}</span>
+    </button>
+
+    <div class="ax-hide-mobile">{% include 'school_admin/partials/gtranslate_header_bar.html' %}</div>
+
+    <button type="button" class="ax-icon-btn" id="btnQrScanner" onclick="ouvrirScannerQR()" aria-label="{% trans 'Scanner un QR code' %}" title="{% trans 'Scanner un QR code' %}">
+      <i class="fas fa-qrcode" aria-hidden="true"></i>
+    </button>
+
+    <a href="{% url 'directeur:notifications_directeur' %}" class="ax-icon-btn" id="axNotifBtn" aria-label="{% trans 'Notifications' %}" title="{% trans 'Notifications' %}">
+      <i class="fas fa-bell" aria-hidden="true"></i>
+      {% if notifications_directeur_non_lues > 0 %}
+      <span class="ax-dot-badge">{{ notifications_directeur_non_lues }}</span>
+      {% endif %}
+    </a>
+
+    <span class="ax-topbar__divider ax-hide-mobile" aria-hidden="true"></span>
+    {% include 'school_admin/directeur/partials/_ax_user.html' %}
+  </div>
+</header>
+
+<nav class="ax-dock" aria-label="{% trans 'Navigation principale' %}">
+  <ul class="ax-dock__list ax-dock__list--full">
+    {% for link in nav.bar %}
+    <li>
+      <a href="{{ link.url }}" class="ax-dock__item{% if link.active %} is-active{% endif %}"{% if link.active %} aria-current="page"{% endif %}>
+        <span class="ax-dock__icon ax-tone-{{ link.tone }}"><i class="fas {{ link.icon }}" aria-hidden="true"></i></span>
+        <span class="ax-dock__label">{% if link.key == 'accueil' %}{% trans "Accueil" %}{% else %}{{ link.label }}{% endif %}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  <ul class="ax-dock__list ax-dock__list--compact">
+    {% for link in nav.mobile %}
+    <li>
+      <a href="{{ link.url }}" class="ax-dock__item{% if link.active %} is-active{% endif %}"{% if link.active %} aria-current="page"{% endif %}>
+        <span class="ax-dock__icon ax-tone-{{ link.tone }}"><i class="fas {{ link.icon }}" aria-hidden="true"></i></span>
+        <span class="ax-dock__label">{% if link.key == 'accueil' %}{% trans "Accueil" %}{% else %}{{ link.label }}{% endif %}</span>
+      </a>
+    </li>
+    {% endfor %}
+    <li>
+      <button type="button" class="ax-dock__item{% if nav.more_active %} is-active{% endif %}" id="axMoreBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="axSheet">
+        <span class="ax-dock__icon ax-tone-menu"><i class="fas fa-ellipsis" aria-hidden="true"></i></span>
+        <span class="ax-dock__label">{% trans "Menu" %}</span>
+      </button>
+    </li>
+  </ul>
+</nav>
+
+<div class="ax-sheet-backdrop" data-ax-sheet-close></div>
+<div class="ax-sheet" id="axSheet" role="dialog" aria-modal="true" aria-labelledby="axSheetTitle" aria-hidden="true">
+  <div class="ax-sheet__grip" aria-hidden="true"></div>
+  <div class="ax-sheet__head">
+    <h2 class="ax-sheet__title" id="axSheetTitle">{{ ax_etab.nom }}</h2>
+    <button type="button" class="ax-icon-btn" data-ax-sheet-close aria-label="{% trans 'Fermer' %}">
+      <i class="fas fa-xmark" aria-hidden="true"></i>
+    </button>
+  </div>
+  <nav class="ax-nav" aria-label="{% trans 'Toutes les sections' %}">
+    {% for group in nav.groups %}
+    <div class="ax-nav__group">
+      <p class="ax-nav__title">{{ group.title }}</p>
+      {% for link in group.items %}
+      <a href="{{ link.url }}" class="ax-nav__link{% if link.active %} is-active{% endif %}"{% if link.active %} aria-current="page"{% endif %}>
+        <i class="fas {{ link.icon }}" aria-hidden="true"></i>
+        <span>{{ link.label }}</span>
+        {% if link.key == 'notifications' and notifications_directeur_non_lues > 0 %}
+        <span class="ax-nav__badge">{{ notifications_directeur_non_lues }}</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </nav>
+</div>

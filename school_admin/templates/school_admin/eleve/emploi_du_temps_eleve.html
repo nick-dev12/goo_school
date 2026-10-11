@@ -1,24 +1,130 @@
 {% load static %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% include 'school_admin/partials/seo_head.html' %}
-    <title>{{ page_title|default:"Emploi du temps" }} – ARIA</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/eleve_emploi_du_temps.css' %}?v=1.0.0">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_examens.css' %}?v=1.0.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Emploi du temps" %} – ARIA</title>
+  {% include 'school_admin/eleve/partials/_ex_head.html' %}
 </head>
+<body class="axd-page px-page ex-page">
+  {% include 'school_admin/eleve/partials/_ex_shell.html' %}
 
-<body>
-{% include 'school_admin/eleve/partials/header.html' %}
+  <main class="axd px ex" id="contenu">
+    <header class="px-page-head">
+      <span class="px-page-head__icon ax-tone-violet"><i class="fas fa-calendar-week" aria-hidden="true"></i></span>
+      <div>
+        <h1>{% trans "Emploi du temps" %}</h1>
+        <p>{% if classe %}{{ classe.nom }}{% endif %}{% if sedt.publie %} · {% blocktrans with h=sedt.heures_semaine %}{{ h }} h de cours par semaine{% endblocktrans %}{% endif %}</p>
+      </div>
+    </header>
 
-{% include 'school_admin/eleve/partials/eleve_emploi_du_temps_content.html' %}
+    {% if sedt.publie %}
+      {% if sedt.en_cours or sedt.prochain %}
+      <section class="ex-alerts">
+        {% if sedt.en_cours %}
+        <article class="ex-alert ex-alert--blue">
+          <span class="ex-alert__icon"><i class="fas {{ sedt.en_cours.icon }}" aria-hidden="true"></i></span>
+          <div class="ex-alert__text"><strong><span class="ex-live" aria-hidden="true"></span>{% trans "En cours" %} : {{ sedt.en_cours.matiere }}</strong><small>{% trans "Jusqu’à" %} {{ sedt.en_cours.fin_txt }}{% if sedt.en_cours.salle %} · {% trans "Salle" %} {{ sedt.en_cours.salle }}{% endif %}</small></div>
+        </article>
+        {% endif %}
+        {% if sedt.prochain %}
+        <article class="ex-alert ex-alert--orange">
+          <span class="ex-alert__icon"><i class="fas fa-bell" aria-hidden="true"></i></span>
+          <div class="ex-alert__text"><strong>{% trans "Prochain cours" %} : {{ sedt.prochain.matiere }}</strong><small>{% if sedt.prochain.dans_min < 60 %}{% blocktrans with n=sedt.prochain.dans_min %}Dans {{ n }} min{% endblocktrans %}{% else %}{% trans "À" %} {{ sedt.prochain.debut_txt }}{% endif %}{% if sedt.prochain.salle %} · {% trans "Salle" %} {{ sedt.prochain.salle }}{% endif %}</small></div>
+        </article>
+        {% endif %}
+      </section>
+      {% endif %}
 
-    {% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
+      {# Vue semaine (ordinateur, tablette) #}
+      <section class="ex-week" style="--days: {{ sedt.jours|length }}" aria-label="{% trans 'Semaine' %}">
+        {% for j in sedt.jours %}
+        <div class="ex-week__col{% if j.est_aujourdhui %} is-today{% endif %}">
+          <header class="ex-week__head">
+            <span>{{ j.court }}</span><b>{{ j.date|date:"j" }}</b>
+            {% if j.est_aujourdhui %}<em>{% trans "Aujourd’hui" %}</em>{% endif %}
+          </header>
+          {% for c in j.cours %}
+          <article class="ex-block ex-block--{{ c.tone }}{% if c.etat == 'passe' %} is-past{% elif c.etat == 'en_cours' %} is-now{% endif %}">
+            <p class="ex-block__time">{{ c.debut_txt }} – {{ c.fin_txt }}{% if c.etat == 'en_cours' %} <span class="ex-live" aria-label="{% trans 'en cours' %}"></span>{% endif %}</p>
+            <p class="ex-block__title"><i class="fas {{ c.icon }}" aria-hidden="true"></i>{{ c.matiere }}</p>
+            {% if c.prof %}<p class="ex-block__meta">{{ c.prof }}</p>{% endif %}
+            {% if c.salle %}<p class="ex-block__meta">{% trans "Salle" %} {{ c.salle }}</p>{% endif %}
+          </article>
+          {% empty %}
+          <p class="ex-week__empty">{% trans "Pas de cours" %}</p>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </section>
+
+      {# Vue jour (mobile) #}
+      <section class="axd-card ex-dayview">
+        <div class="ex-days" role="tablist" aria-label="{% trans 'Jours de la semaine' %}">
+          {% for j in sedt.jours %}
+          <button type="button" class="ex-day{% if j.est_aujourdhui %} is-active{% endif %}" role="tab" aria-selected="{% if j.est_aujourdhui %}true{% else %}false{% endif %}" aria-controls="ex-day-{{ j.code }}">
+            <span>{{ j.court }}</span><b>{{ j.date|date:"j" }}</b>{% if j.cours %}<i class="ex-day__dot" aria-hidden="true"></i>{% endif %}
+          </button>
+          {% endfor %}
+        </div>
+        {% for j in sedt.jours %}
+        <div class="ex-daypanel" id="ex-day-{{ j.code }}" role="tabpanel"{% if not j.est_aujourdhui %} hidden{% endif %}>
+          {% if j.cours %}
+          <ol class="ex-timeline">
+            {% for c in j.cours %}
+            <li class="ex-course{% if c.etat == 'passe' %} is-past{% elif c.etat == 'en_cours' %} is-now{% endif %}">
+              <div class="ex-course__time"><strong>{{ c.debut_txt }}</strong><small>{{ c.fin_txt }}</small></div>
+              <span class="ex-course__icon ax-tone-{{ c.tone }}"><i class="fas {{ c.icon }}" aria-hidden="true"></i></span>
+              <div class="ex-course__body">
+                <p class="ex-course__title">{{ c.matiere }}</p>
+                <p class="ex-course__meta">{% if c.prof %}<span><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{{ c.prof }}</span>{% endif %}{% if c.salle %}<span><i class="fas fa-door-open" aria-hidden="true"></i>{% trans "Salle" %} {{ c.salle }}</span>{% endif %}</p>
+              </div>
+            </li>
+            {% endfor %}
+          </ol>
+          {% else %}
+            {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-mug-hot' message=_("Pas de cours ce jour-là.") %}
+          {% endif %}
+        </div>
+        {% endfor %}
+      </section>
+    {% else %}
+      <div class="px-empty-inline">
+        <i class="fas {% if emploi_non_publie %}fa-eye-slash{% else %}fa-calendar-xmark{% endif %}" aria-hidden="true"></i>
+        <h2>{% if emploi_non_publie %}{% trans "Emploi du temps en préparation" %}{% else %}{% trans "Pas encore d’emploi du temps" %}{% endif %}</h2>
+        <p>{% trans "Il apparaîtra ici dès que l’établissement l’aura publié." %}</p>
+      </div>
+    {% endif %}
+
+    {% if sessions_examens %}
+    <section class="axd-card ex-exams">
+      <header class="axd-card__head">
+        <div>
+          <h2 class="axd-card__title"><i class="fas fa-clipboard-check" aria-hidden="true"></i> {% trans "Examens" %}</h2>
+          <p class="axd-card__sub">{% trans "Dates, horaires et salles" %}</p>
+        </div>
+      </header>
+      {% for session in sessions_examens %}
+      <h3 class="ex-subhead">{{ session.nom }} <b>{{ session.date_debut|date:"d/m" }} – {{ session.date_fin|date:"d/m" }}</b></h3>
+      <ul class="ex-tasks">
+        {% for creneau in creneaux_examens %}{% if creneau.session_examen_id == session.id %}
+        <li class="ex-task">
+          <span class="axd-date-chip ex-chip-red" aria-hidden="true"><b>{{ creneau.date_examen|date:"d" }}</b>{{ creneau.date_examen|date:"M" }}</span>
+          <div class="ex-task__body"><strong>{{ creneau.matiere.nom }}</strong><small>{{ creneau.date_examen|date:"l"|capfirst }} · {{ creneau.heure_debut|time:"H:i" }} – {{ creneau.heure_fin|time:"H:i" }}{% if creneau.salle %} · {% trans "Salle" %} {{ creneau.salle.numero }}{% endif %}</small></div>
+        </li>
+        {% endif %}{% empty %}
+        <li class="ex-task"><span class="axd-muted">{% trans "Les horaires seront bientôt publiés." %}</span></li>
+        {% endfor %}
+      </ul>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </main>
+
+  <script src="{% static 'school_admin/js/eleve/dashboard_eleve_v3.js' %}?v=1.0.0"></script>
+  {% include 'school_admin/eleve/partials/_ex_foot.html' %}
 </body>
-
 </html>

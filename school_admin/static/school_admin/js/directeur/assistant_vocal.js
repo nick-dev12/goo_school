@@ -786,6 +786,7 @@
         label: (item && item.label) || '',
         url: (item && item.url) || '',
         publier: intent === 'confirm',
+        mode: (item && item.mode) || '',
       })
     );
   }
@@ -2030,8 +2031,10 @@
 
   function placePanel() {
     attachAssistantToBody();
-    var header = document.querySelector('.dashboard-header-horizontal');
-    var nav = document.querySelector('.bottom-nav-directeur') ||
+    var header = document.querySelector('.ax-topbar') ||
+      document.querySelector('.dashboard-header-horizontal');
+    var nav = document.querySelector('.ax-dock') ||
+      document.querySelector('.bottom-nav-directeur') ||
       document.querySelector('.enseignant-bottom-nav');
     var headerBottom = 72;
     if (header) {

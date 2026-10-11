@@ -424,6 +424,8 @@ class MatiereController:
 
         context = MatiereController.build_liste_matieres_context(request, etablissement)
         context = enrich_liste_matieres_superieur_context(request, etablissement, context)
+        from ..services.structure_etablissement import enrichir as _enrichir_structure
+        _enrichir_structure(request, context, 'matieres')
         return render(request, 'school_admin/directeur/pedagogique/matieres/liste_matieres.html', context)
 
     @staticmethod
@@ -869,6 +871,8 @@ class MatiereController:
             'modules_by_department': modules_by_department,
         }
         
+        from ..services.structure_etablissement import enrichir as _enrichir_structure
+        _enrichir_structure(request, context, 'matieres')
         return render(request, 'school_admin/directeur/pedagogique/matieres/liste_matieres.html', context)
     
     @staticmethod
@@ -1319,6 +1323,8 @@ class MatiereController:
             'coefficients_existants': coefficients_existants,
         }
         
+        from ..services.structure_etablissement import enrichir as _enrichir_structure
+        _enrichir_structure(request, context, 'matiere', matiere)
         return render(request, 'school_admin/directeur/pedagogique/matieres/detail_matiere.html', context)
     
     @staticmethod

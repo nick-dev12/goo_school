@@ -742,3 +742,7 @@ register_enseignant_action(ActionSpec(
 ))
 
 from school_admin.services import assistant_enseignant_complements_actions  # noqa: F401
+
+from school_admin.services.cahier_texte_assistant import enregistrer_dans as _cahier_texte  # noqa: E402
+
+_cahier_texte(register_enseignant_action, ActionSpec)

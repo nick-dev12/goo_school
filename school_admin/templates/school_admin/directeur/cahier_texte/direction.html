@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+{% load static i18n eleve_nav %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% trans "Cahiers de texte" %} — {{ etablissement.nom }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=1.0.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/pointage.css' %}?v=1.0.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/cahier_texte.css' %}?v=1.1.0" />
+</head>
+<body class="axd-page cg3-body">
+  {% include 'school_admin/directeur/partials/header_directeur.html' %}
+  <main class="axd cg3 ct" id="contenu">
+    <header class="cg3-head">
+      <div class="cg3-head__id">
+        <span class="cg3-head__icon ax-tone-green"><i class="fas fa-book-open" aria-hidden="true"></i></span>
+        <div>
+          <p class="cg3-head__kicker">{% trans "Pédagogie" %}</p>
+          <h1 class="cg3-head__title">{% trans "Cahiers de texte" %}</h1>
+          <p class="cg3-head__sub">{% trans "Entrées validées par les enseignants, suivi du remplissage et demandes de modification." %}</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="cg3-kpis">
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Remplissage (14 jours)" %}</p><span class="cg3-kpi__icon ax-tone-green"><i class="fas fa-book-open" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value {% if taux_global != None and taux_global >= 90 %}is-pos{% endif %}">{% if taux_global != None %}{{ taux_global }}<small>%</small>{% else %}—{% endif %}</p>
+        {% if taux_global != None %}<div class="cg3-kpi__bar"><span class="{% if taux_global < 70 %}is-bad{% endif %}" style="width: {{ taux_global }}%"></span></div>{% endif %}
+      </article>
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Cours renseignés" %}</p><span class="cg3-kpi__icon ax-tone-blue"><i class="fas fa-circle-check" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value">{{ faits }}<small>/ {{ cours_total }}</small></p>
+        <p class="cg3-kpi__caption">{% trans "Sur les 14 derniers jours" %}</p>
+      </article>
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Entrées ce mois" %}</p><span class="cg3-kpi__icon ax-tone-teal"><i class="fas fa-calendar" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value">{{ entrees_mois }}</p>
+      </article>
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Rédigées avec Aria" %}</p><span class="cg3-kpi__icon ax-tone-violet"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value">{{ par_ia }}</p>
+        <p class="cg3-kpi__caption">{% trans "Relues et validées par l’enseignant" %}</p>
+      </article>
+    </section>
+
+    {% if messages %}<div class="pt-messages">{% for m in messages %}<p class="pt-message pt-message--{{ m.tags|default:'info' }}"><i class="fas {% if m.tags == 'success' %}fa-circle-check{% elif m.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-info{% endif %}" aria-hidden="true"></i>{{ m }}</p>{% endfor %}</div>{% endif %}
+
+    {% if demandes %}
+    <section class="axd-card ct-requests" aria-labelledby="ct-dem-titre">
+      <header class="axd-card__head"><div><h2 class="axd-card__title" id="ct-dem-titre"><i class="fas fa-envelope-open-text" aria-hidden="true"></i> {% trans "Demandes de modification" %} <span class="cg3-chip cg3-chip--warn">{{ demandes|length }}</span></h2><p class="axd-card__sub">{% trans "Accepter : l’entrée redevient un brouillon que l’enseignant corrige puis valide de nouveau. Refuser : elle reste telle quelle." %}</p></div></header>
+      <ul class="ct-req-list">
+        {% for d in demandes %}{% with tone=d.matiere.nom|matiere_tone %}
+        <li class="ct-req ct-tone-{{ tone }}">
+          <div class="ct-req__body">
+            <p class="ct-req__who"><strong>{{ d.professeur.nom_complet }}</strong> · {{ d.classe.nom }}{% if d.matiere %} · {{ d.matiere.nom }}{% endif %} · {% trans "cours du" %} {{ d.date|date:"d/m/Y" }}</p>
+            <h3 class="ct-req__title">{{ d.titre }}</h3>
+            <p class="ct-req__motif"><i class="fas fa-quote-left" aria-hidden="true"></i>{{ d.demande_motif }}</p>
+            <p class="ct-req__when">{% trans "Demandé le" %} {{ d.demande_le|date:"d/m/Y à H:i" }}</p>
+          </div>
+          <form method="post" class="ct-req__form">
+            {% csrf_token %}<input type="hidden" name="action" value="traiter_demande"><input type="hidden" name="entree_id" value="{{ d.pk }}">
+            <label class="cg3-field"><span>{% trans "Réponse à l’enseignant (facultatif)" %}</span><input type="text" name="reponse" maxlength="255" placeholder="{% trans 'Ex. d’accord, corrigez la date' %}"></label>
+            <div class="ct-req__actions">
+              <button type="submit" name="decision" value="refuser" class="cg3-btn"><i class="fas fa-xmark" aria-hidden="true"></i>{% trans "Refuser" %}</button>
+              <button type="submit" name="decision" value="accepter" class="cg3-btn cg3-btn--primary"><i class="fas fa-unlock" aria-hidden="true"></i>{% trans "Accepter" %}</button>
+            </div>
+          </form>
+        </li>
+        {% endwith %}{% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    <section class="axd-grid">
+      <aside class="axd-card axd-span-4">
+        <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Suivi par enseignant" %}</h2><p class="axd-card__sub">{% trans "Les moins à jour en premier" %}</p></div></header>
+        {% if suivi %}
+        <ul class="ct-follow">
+          {% for r in suivi %}
+          <li>
+            <a href="?professeur={{ r.professeur.pk }}" class="pt-name"><span><strong>{{ r.professeur.nom_complet }}</strong><small>{{ r.stats.renseignes }}/{{ r.stats.cours }} {% trans "cours" %}</small></span></a>
+            <span class="ct-bar" role="img" aria-label="{{ r.stats.taux }} %"><span class="{% if r.stats.taux < 70 %}is-bad{% endif %}" style="width: {{ r.stats.taux }}%"></span></span>
+            <b>{{ r.stats.taux }} %</b>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}<div class="cg3-empty"><i class="fas fa-user-clock" aria-hidden="true"></i><span>{% trans "Aucun cours à l’emploi du temps publié." %}</span></div>{% endif %}
+      </aside>
+
+      <section class="axd-span-8">
+        <form method="get" class="cg3-filters">
+          <label class="cg3-field cg3-field--grow"><span>{% trans "Classe" %}</span><select name="classe" onchange="this.form.submit()"><option value="">{% trans "Toutes" %}</option>{% for c in classes %}<option value="{{ c.pk }}"{% if classe_id == c.pk|stringformat:'s' %} selected{% endif %}>{{ c.nom }}</option>{% endfor %}</select></label>
+          <label class="cg3-field cg3-field--grow"><span>{% trans "Enseignant" %}</span><select name="professeur" onchange="this.form.submit()"><option value="">{% trans "Tous" %}</option>{% for p in professeurs %}<option value="{{ p.pk }}"{% if prof_id == p.pk|stringformat:'s' %} selected{% endif %}>{{ p.nom_complet }}</option>{% endfor %}</select></label>
+        </form>
+        {% if entrees %}
+        <div class="ct-timeline">
+          {% regroup entrees by date as par_jour %}
+          {% for g in par_jour %}
+          <div class="ct-day">
+            <div class="ct-day__date{% if g.grouper == today %} is-today{% endif %}"><b>{{ g.grouper|date:"d" }}</b><span>{{ g.grouper|date:"D M" }}</span></div>
+            <div class="ct-day__entries">
+              {% for e in g.list %}{% with tone=e.matiere.nom|matiere_tone %}
+              <article class="ct-entry ct-tone-{{ tone }}">
+                <div class="ct-entry__top">
+                  <span class="ct-entry__subject"><i class="fas {{ e.matiere.nom|matiere_icon }}" aria-hidden="true"></i>{{ e.matiere.nom|default:"Cours" }}</span>
+                  <span class="cg3-chip cg3-chip--muted">{{ e.classe.nom }}</span>
+                  <span class="ct-entry__meta">{{ e.professeur.nom_complet }}{% if e.heure_debut %} · {{ e.heure_debut|time:"H:i" }}{% endif %}</span>
+                  <span class="cg3-chip cg3-chip--ok" title="{% trans 'Validé le' %} {{ e.date_validation|date:'d/m/Y H:i' }}"><i class="fas fa-lock" aria-hidden="true"></i> {% trans "Validé" %}</span>
+                  {% if e.redige_par_ia %}<span class="ct-badge-ia"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>Aria</span>{% endif %}
+                </div>
+                <h3 class="ct-entry__title">{{ e.titre }}</h3>
+                <ul class="ct-list">{% for l in e.contenu|lignes %}<li>{{ l }}</li>{% endfor %}</ul>
+                {% if e.travail_a_faire %}<div class="ct-homework"><i class="fas fa-house-laptop" aria-hidden="true"></i><div><strong>{% trans "Travail à faire" %}{% if e.date_travail %} · {% trans "pour le" %} {{ e.date_travail|date:"l j F" }}{% endif %}</strong><p>{{ e.travail_a_faire }}</p></div></div>{% endif %}
+              </article>
+              {% endwith %}{% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="axd-card"><div class="cg3-empty"><i class="fas fa-book-open" aria-hidden="true"></i><strong>{% trans "Aucune entrée" %}</strong><span>{% trans "Les entrées apparaissent ici dès que l’enseignant les valide." %}</span></div></div>
+        {% endif %}
+      </section>
+    </section>
+  </main>
+  {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

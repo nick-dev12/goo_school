@@ -1,0 +1,148 @@
+{% load i18n %}
+{# Ajout d’une matière secondaire (secondaire et supérieur). #}
+<div id="modal-ajout-matiere"
+         class="fe-matiere-modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="modal-matiere-titre"
+         data-modal-niveau-placeholder="{% trans 'Sélectionnez un niveau (L1, L2, M1…)' %}">
+        <div class="fe-matiere-modal__panel">
+            <div class="fe-matiere-modal__head">
+                <h3 id="modal-matiere-titre"><i class="fas fa-plus-circle"></i> {% trans "Ajouter une matière secondaire" %}</h3>
+                <button type="button" class="cg3-btn cg3-btn--sm" data-fe-close aria-label="{% trans 'Fermer' %}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="form-ajout-matiere" class="modal-form-matiere" method="post" action="{% url 'professeur:detail_professeur' professeur.id %}">
+                <div class="modal-matiere-scroll">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="ajouter_matiere_secondaire">
+                    {% if etablissement.type_etablissement != 'superieur' %}
+                    <input type="hidden" name="matiere_id" id="modal-matiere-id" value="">
+                    {% endif %}
+
+                    {% if etablissement.type_etablissement == 'superieur' %}
+                        {% if modal_superieur_matieres_flat and modal_superieur_departments %}
+                        <div class="form-group-matiere">
+                            <label class="form-label" for="department">
+                                <i class="fas fa-graduation-cap"></i>
+                                {% trans "Filière *" %}
+                            </label>
+                            <select name="department" id="department" class="form-control-matiere" required>
+                                <option value="">{% trans "Sélectionnez une filière" %}</option>
+                                {% for dep in modal_superieur_departments %}
+                                <option value="{{ dep.id }}">{{ dep.nom }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="modal-matiere-hint">{% trans "Choisissez la filière, puis le niveau (L1, L2…). Seules les matières réellement rattachées à ce niveau dans la filière sont proposées." %}</p>
+                        </div>
+                        <div class="form-group-matiere" id="niveau-lmd-wrap" style="display: none;">
+                            <label class="form-label" for="niveau_lmd">
+                                <i class="fas fa-layer-group"></i>
+                                {% trans "Niveau dans la filière *" %}
+                            </label>
+                            <select name="niveau_lmd" id="niveau_lmd" class="form-control-matiere" disabled>
+                                <option value="">{% trans "Sélectionnez un niveau (L1, L2, M1…)" %}</option>
+                            </select>
+                        </div>
+                        <div class="form-group-matiere" id="matieres-superieur-container" style="display: none;">
+                            <label class="form-label" for="matiere-principale-search">
+                                <i class="fas fa-book"></i>
+                                {% trans "Matière *" %}
+                            </label>
+                            <p class="modal-matiere-hint">{% trans "Recherchez ou cliquez sur une matière du niveau choisi." %}</p>
+                            <input type="search"
+                                   class="form-control-matiere"
+                                   id="matiere-principale-search"
+                                   autocomplete="off"
+                                   placeholder="{% trans 'Nom, code ou module…' %}"
+                                   disabled>
+                            <div class="matiere-principale-selected-bar" id="matiere-principale-selected-bar" hidden>
+                                <span class="matiere-principale-selected-label" id="matiere-principale-selected-label"></span>
+                                <button type="button" class="btn-matiere-clear" id="matiere-principale-clear" aria-label="{% trans 'Changer de matière' %}">
+                                    <i class="fas fa-times"></i> {% trans "Changer" %}
+                                </button>
+                            </div>
+                            <input type="hidden" name="matiere_id" id="input_matiere_principale" value="">
+                            <p class="matiere-filter-empty-msg" id="matiere-principale-no-results" hidden role="status">
+                                {% trans "Aucune matière ne correspond à votre recherche." %}
+                            </p>
+                            <div class="matiere-pick-list"
+                                 id="matiere-principale-list"
+                                 role="listbox"
+                                 aria-label="{% trans 'Matières disponibles' %}"
+                                 aria-live="polite"
+                                 aria-relevant="additions removals">
+                                {% for m in modal_superieur_matieres_flat %}
+                                <button type="button"
+                                        class="matiere-pick-item"
+                                        data-matiere-id="{{ m.id }}"
+                                        data-department-id="{{ m.department_id }}"
+                                        data-niveau-lmd-keys="{{ m.niveau_lmd_keys_csv|escape }}"
+                                        data-matiere-search="{{ m.nom|escape }} {{ m.code|escape }} {{ m.module_nom|escape }}"
+                                        role="option"
+                                        aria-selected="false">
+                                    <span class="matiere-pick-main">{{ m.nom }}</span>
+                                    <span class="matiere-pick-meta">
+                                        {% if m.module_nom %}<span class="matiere-pick-module">{{ m.module_nom }}</span> · {% endif %}
+                                        <span class="matiere-pick-code">{{ m.code }}</span>
+                                    </span>
+                                </button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {{ modal_niveaux_par_department|json_script:"niveaux-lmd-par-filiere-data" }}
+                        {% else %}
+                        <p class="modal-matiere-empty-msg">
+                            <i class="fas fa-info-circle"></i>
+                            {% trans "Aucune matière de l'établissement n'est disponible (déjà  principale ou secondaire), ou configurez des filières et des matières." %}
+                        </p>
+                        {% endif %}
+                    {% elif matieres_disponibles %}
+                    <div class="form-group-matiere">
+                        <label for="modal-matiere-search">{% trans "Rechercher ou choisir une matière" %}</label>
+                        <input type="search"
+                               id="modal-matiere-search"
+                               class="form-control-matiere modal-matiere-search-input"
+                               autocomplete="off"
+                               placeholder="{% trans 'Tapez un nom, un code ou un module…' %}">
+                    </div>
+                    <p class="modal-matiere-selected-hint" id="modal-matiere-selected-hint" hidden>
+                        <i class="fas fa-check-circle"></i>
+                        <span id="modal-matiere-selected-label"></span>
+                    </p>
+                    <div class="modal-matiere-pick-list" id="modal-matiere-pick-list" role="listbox" aria-label="{% trans 'Matières disponibles' %}">
+                        {% for matiere in matieres_disponibles %}
+                        <button type="button"
+                                class="modal-matiere-pick-item"
+                                data-matiere-id="{{ matiere.id }}"
+                                data-matiere-search="{{ matiere.nom|escape }} {{ matiere.code|escape }} {% if matiere.module %}{{ matiere.module.nom|escape }}{% endif %}">
+                            <span class="modal-matiere-pick-main">{{ matiere.nom }}</span>
+                            <span class="modal-matiere-pick-meta">
+                                <span class="modal-matiere-code">{{ matiere.code }}</span>
+                                {% if matiere.module %}
+                                <span class="modal-matiere-mod"> · {{ matiere.module.nom }}</span>
+                                {% endif %}
+                            </span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="modal-matiere-empty-msg">
+                        <i class="fas fa-info-circle"></i>
+                        {% trans "Aucune autre matière de l'établissement n'est disponible (déjà  principale ou secondaire)." %}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div class="modal-actions modal-actions-matiere">
+                    <button type="button" class="cg3-btn" data-fe-close>
+                        <i class="fas fa-times"></i> {% trans "Annuler" %}
+                    </button>
+                    <button type="submit" class="cg3-btn cg3-btn--primary" id="btn-submit-modal-matiere" {% if etablissement.type_etablissement == 'superieur' %}{% if not modal_superieur_matieres_flat or not modal_superieur_departments %}disabled{% endif %}{% else %}{% if not matieres_disponibles %}disabled{% endif %}{% endif %}>
+                        <i class="fas fa-check"></i> {% trans "Ajouter" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>

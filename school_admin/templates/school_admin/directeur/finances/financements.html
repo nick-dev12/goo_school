@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Financements" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    {% include 'school_admin/directeur/finances/partials/fin_assets_head.html' %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="cg-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container cg-page">
+        {% include 'school_admin/partials/messages.html' %}
+        {% include 'school_admin/directeur/finances/partials/fin_nav.html' %}
+        <header class="cg-hero">
+            <a href="{% url 'directeur:gestion_etablissement' %}" class="cg-hero-back" aria-label="{% trans 'Retour à la gestion de l\'établissement' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+            <div class="cg-hero-main">
+                <h1 class="cg-hero-title"><i class="fas fa-landmark"></i> {% trans "Financements" %}</h1>
+                <p class="cg-hero-sub">{% trans "L'argent emprunté augmente la banque et la dette. Seuls les intérêts et les frais sont une sortie." %}</p>
+            </div>
+        </header>
+        {% include 'school_admin/directeur/finances/partials/fin_filters.html' %}
+        <section class="cg-section">
+            <div class="cg-panel-head">
+                <h2>{% trans "Prêts" %}</h2>
+                {% if peut_annuler %}<button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-pret"><i class="fas fa-plus"></i> {% trans "Nouveau prêt" %}</button>{% endif %}
+            </div>
+            <div class="table-responsive">
+                <table class="cg-table">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Date" %}</th><th>{% trans "Référence" %}</th><th>{% trans "Compte" %}</th>
+                            <th>{% trans "Objet" %}</th><th>{% trans "Montant" %}</th><th>{% trans "Capital restant" %}</th>
+                            <th>{% trans "Statut" %}</th><th>{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pret in prets %}
+                        <tr class="{% if pret.statut == 'annulee' %}fin-row--muted{% endif %}">
+                            <td>{{ pret.date_reception|date:"d/m/Y" }}</td>
+                            <td>{{ pret.reference }}</td>
+                            <td>{{ pret.compte_tresorerie.libelle }}</td>
+                            <td>{{ pret.objet }}</td>
+                            <td>{{ pret.montant|floatformat:0 }} {{ devise_monnaie }}</td>
+                            <td><span class="cg-pill cg-pill--dette">{{ pret.capital_restant|floatformat:0 }} {{ devise_monnaie }}</span></td>
+                            <td>
+                                {% if pret.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulé" %}</span>
+                                {% elif pret.statut == 'solde' %}<span class="cg-pill cg-pill--ok">{% trans "Soldé" %}</span>
+                                {% else %}<span class="cg-pill cg-pill--dette">{% trans "En cours" %}</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if pret.statut != 'annulee' and peut_annuler %}
+                                <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-echeance" data-cg-bind="pret_id" data-cg-value="{{ pret.id }}">{% trans "Échéance" %}</button>
+                                {% endif %}
+                                {% if pret.statut == 'en_cours' and peut_annuler %}
+                                <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-rembourser" data-cg-bind="pret_id" data-cg-value="{{ pret.id }}">{% trans "Rembourser" %}</button>
+                                {% if pret.capital_rembourse == 0 %}
+                                <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-pret" data-cg-bind="pret_id" data-cg-value="{{ pret.id }}">{% trans "Annuler" %}</button>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% for ech in pret.echeances.all %}
+                        <tr>
+                            <td>{{ ech.date_echeance|date:"d/m/Y" }}</td>
+                            <td colspan="4">{% trans "Prévu" %} — {% trans "capital" %} {{ ech.capital_prevu|floatformat:0 }}, {% trans "intérêts" %} {{ ech.interets_prevus|floatformat:0 }}, {% trans "frais" %} {{ ech.frais_prevus|floatformat:0 }}</td>
+                            <td>{{ ech.total_prevu|floatformat:0 }} {{ devise_monnaie }}</td>
+                            <td><span class="cg-pill cg-pill--warn">{% trans "Prévision" %}</span></td>
+                            <td></td>
+                        </tr>
+                        {% endfor %}
+                        {% for remb in pret.remboursements.all %}
+                        <tr class="{% if remb.statut == 'annulee' %}fin-row--muted{% endif %}">
+                            <td>{{ remb.date_remboursement|date:"d/m/Y" }}</td>
+                            <td colspan="4">{% trans "Remboursement" %} — {% trans "capital" %} {{ remb.capital|floatformat:0 }}, {% trans "intérêts" %} {{ remb.interets|floatformat:0 }}, {% trans "frais" %} {{ remb.frais|floatformat:0 }}</td>
+                            <td>{{ remb.total|floatformat:0 }} {{ devise_monnaie }}</td>
+                            <td>{% if remb.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulé" %}</span>{% else %}<span class="cg-pill cg-pill--info">{% trans "Validé" %}</span>{% endif %}</td>
+                            <td>
+                                {% if remb.statut == 'validee' and peut_annuler %}
+                                <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-remb" data-cg-bind="remboursement_id" data-cg-value="{{ remb.id }}">{% trans "Annuler" %}</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% empty %}<tr><td colspan="8">{% trans "Aucun prêt." %}</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <div class="cg-sheet" id="sheet-pret" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Nouveau prêt" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_financements' %}" class="cg-form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="ajouter_pret" />
+                    <label>{% trans "Compte crédité" %}<select name="compte_id" required><option value="">{% trans "Choisir" %}</option>{% for compte in comptes_tresorerie %}<option value="{{ compte.id }}">{{ compte.libelle }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Date" %}<input type="date" name="date_reception" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Montant" %}<input type="number" name="montant" min="1" step="1" required /></label>
+                    <label>{% trans "Référence" %}<input type="text" name="reference" maxlength="80" required /></label>
+                    <label>{% trans "Objet" %}<input type="text" name="objet" maxlength="200" required /></label>
+                    <label>{% trans "Taux" %} <span class="cg-optional">{% trans "(optionnel, %)" %}</span><input type="number" name="taux" min="0" max="100" step="0.01" value="0" /></label>
+                    <label>{% trans "Durée" %} <span class="cg-optional">{% trans "(mois, optionnel)" %}</span><input type="number" name="duree_mois" min="1" step="1" /></label>
+                    <label>{% trans "Justificatif" %} <span class="cg-optional">{% trans "(optionnel)" %}</span><input type="file" name="justificatif" accept=".pdf,.jpg,.jpeg,.png,.webp" /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-echeance" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Échéance prévue" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_financements' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="ajouter_echeance" />
+                    <input type="hidden" name="pret_id" value="" />
+                    <label>{% trans "Date" %}<input type="date" name="date_echeance" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Capital prévu" %}<input type="number" name="capital_prevu" min="0" step="1" value="0" /></label>
+                    <label>{% trans "Intérêts prévus" %}<input type="number" name="interets_prevus" min="0" step="1" value="0" /></label>
+                    <label>{% trans "Frais prévus" %}<input type="number" name="frais_prevus" min="0" step="1" value="0" /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Ajouter" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-rembourser" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Rembourser le prêt" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_financements' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="rembourser_pret" />
+                    <input type="hidden" name="pret_id" value="" />
+                    <label>{% trans "Date" %}<input type="date" name="date_remboursement" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Capital" %}<input type="number" name="capital" min="0" step="1" value="0" /></label>
+                    <label>{% trans "Intérêts" %}<input type="number" name="interets" min="0" step="1" value="0" /></label>
+                    <label>{% trans "Frais" %}<input type="number" name="frais" min="0" step="1" value="0" /></label>
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Rembourser" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-annuler-pret" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Annuler le prêt" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_financements' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="annuler_pret" />
+                    <input type="hidden" name="pret_id" value="" />
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Annuler le prêt" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-annuler-remb" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Annuler le remboursement" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_financements' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="annuler_remboursement" />
+                    <input type="hidden" name="remboursement_id" value="" />
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Annuler" %}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% include 'school_admin/directeur/finances/partials/fin_assets_scripts.html' %}
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

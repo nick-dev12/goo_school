@@ -16,6 +16,25 @@ class SessionExamen(models.Model):
     """
     Modèle pour représenter une session d'examen programmée
     """
+    # Nature de la session : décide de son rôle dans le calcul des moyennes.
+    TYPE_COMPOSITION = 'composition'
+    TYPE_EXAMEN = 'examen'
+    TYPE_BLANC = 'examen_blanc'
+    TYPE_RATTRAPAGE = 'rattrapage'
+    TYPE_CHOICES = [
+        (TYPE_COMPOSITION, 'Composition / devoir de synthèse'),
+        (TYPE_EXAMEN, 'Examen de fin de période (session normale)'),
+        (TYPE_BLANC, 'Examen blanc (BFEM, Bac, CFEE…)'),
+        (TYPE_RATTRAPAGE, 'Rattrapage (2e session)'),
+    ]
+    type_session = models.CharField(
+        max_length=20, choices=TYPE_CHOICES, default=TYPE_COMPOSITION,
+        verbose_name="Type de session",
+    )
+    compte_bulletin = models.BooleanField(
+        default=True, verbose_name="Compte dans le bulletin",
+        help_text="Décocher pour un examen blanc d'entraînement : les notes restent visibles mais n'entrent pas dans les moyennes.",
+    )
     
     # Informations de base
     nom_examen = models.CharField(
@@ -131,13 +150,13 @@ class SessionExamen(models.Model):
         super().clean()
         
         # Vérifier que la date de fin est après la date de début
-        if self.date_debut and self.date_fin and self.date_fin <= self.date_debut:
+        if self.date_debut and self.date_fin and self.date_fin < self.date_debut:
             raise ValidationError({
-                'date_fin': "La date de fin doit être après la date de début."
+                'date_fin': "La date de fin ne peut pas précéder la date de début."
             })
         
-        # Vérifier que la session est dans la période scolaire
-        if self.periode and self.date_debut and self.date_fin:
+        # Vérifier que la session est dans la période scolaire (un rattrapage peut se tenir après sa fin)
+        if self.periode and self.date_debut and self.date_fin and self.type_session != self.TYPE_RATTRAPAGE:
             if self.date_debut < self.periode.date_debut or self.date_fin > self.periode.date_fin:
                 raise ValidationError({
                     'date_debut': f"La session doit être comprise entre le {self.periode.date_debut} et le {self.periode.date_fin}."
@@ -151,6 +170,10 @@ class SessionExamen(models.Model):
         if self.date_debut and self.date_fin:
             from datetime import timedelta
             self.duree_totale = (self.date_fin - self.date_debut) + timedelta(days=1)
+        # Un examen blanc ne compte pas au bulletin par défaut (à la création).
+        if not self.pk and self.type_session == self.TYPE_BLANC and self.compte_bulletin is True and \
+                not getattr(self, '_compte_bulletin_explicite', False):
+            self.compte_bulletin = False
         
         super().save(*args, **kwargs)
     
@@ -170,6 +193,10 @@ class SessionExamen(models.Model):
                 return f"{heures}h"
         return "Non définie"
     
+    @property
+    def est_rattrapage(self):
+        return self.type_session == self.TYPE_RATTRAPAGE
+
     @property
     def est_passe(self):
         """
@@ -269,3 +296,47 @@ class SessionExamen(models.Model):
             actif=True
         ).order_by('date_debut')
 
+
+
+
+class ReglesExamen(models.Model):
+    """Règles de calcul des examens propres à l'établissement (absences, rattrapage, LMD)."""
+    RATTRAPAGE_MEILLEURE = 'meilleure'
+    RATTRAPAGE_REMPLACE = 'remplace'
+    ABSENCE_ZERO = 'zero'
+    ABSENCE_NEUTRE = 'neutre'
+
+    etablissement = models.OneToOneField(Etablissement, on_delete=models.CASCADE, related_name='regles_examen')
+    absence_injustifiee = models.CharField(
+        max_length=10, default=ABSENCE_ZERO,
+        choices=[(ABSENCE_ZERO, 'Compte 0/20'), (ABSENCE_NEUTRE, 'Neutralisée (comme une absence justifiée)')],
+        verbose_name="Absence non justifiée à un examen",
+    )
+    regle_rattrapage = models.CharField(
+        max_length=10, default=RATTRAPAGE_MEILLEURE,
+        choices=[(RATTRAPAGE_MEILLEURE, 'La meilleure des deux notes'),
+                 (RATTRAPAGE_REMPLACE, 'La note de rattrapage remplace la 1re session')],
+        verbose_name="Note retenue après rattrapage",
+    )
+    seuil_validation = models.DecimalField(max_digits=4, decimal_places=2, default=10,
+                                           verbose_name="Moyenne de validation")
+    note_eliminatoire = models.DecimalField(
+        max_digits=4, decimal_places=2, null=True, blank=True, verbose_name="Note éliminatoire (supérieur)",
+        help_text="Une matière sous cette note empêche la compensation (vide = pas de note éliminatoire).",
+    )
+    compensation_semestrielle = models.BooleanField(
+        default=True, verbose_name="Compensation entre UE dans le semestre (LMD)",
+    )
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Règles d'examen"
+        verbose_name_plural = "Règles d'examen"
+
+    def __str__(self):
+        return f"Règles d'examen — {self.etablissement}"
+
+    @classmethod
+    def pour(cls, etablissement):
+        regles, _ = cls.objects.get_or_create(etablissement=etablissement)
+        return regles

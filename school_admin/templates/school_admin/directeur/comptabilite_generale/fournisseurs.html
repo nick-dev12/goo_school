@@ -1,111 +1,183 @@
-<!DOCTYPE html>
+{% extends 'school_admin/directeur/comptabilite_generale/_base.html' %}
 {% load static i18n %}
-{% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE }}">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "Fournisseurs" %} — {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
-</head>
-<body class="cg-page-body">
-    {% include 'school_admin/directeur/partials/header_directeur.html' %}
-    <div class="content-container cg-page">
-        {% include 'school_admin/partials/messages.html' %}
-        <div class="page-header page-header-minimal">
-            {% url 'directeur:cg_hub_directeur' as back_url %}
-            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+{% block title %}{% trans "Fournisseurs" %}{% endblock %}
+{% block icon %}fa-file-invoice{% endblock %}
+{% block tone %}orange{% endblock %}
+{% block heading %}{% trans "Fournisseurs et patrimoine" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "Factures des fournisseurs, paiements et dettes. Engagement : D 6xx / C 401 à la facture, D 401 / C trésorerie au paiement." %}</p>{% endblock %}
+
+{% block content %}
+        <div class="cg-mini-row">
+            <article class="cg-mini"><span class="cg-mini-num">{{ fournisseurs|length }}</span><span class="cg-mini-lbl">{% trans "Fournisseurs" %}</span></article>
+            <article class="cg-mini cg-mini--info"><span class="cg-mini-num">{{ factures|length }}</span><span class="cg-mini-lbl">{% trans "Factures" %}</span></article>
+            <article class="cg-mini"><span class="cg-mini-num">{{ immobilisations|length }}</span><span class="cg-mini-lbl">{% trans "Biens" %}</span></article>
+            <article class="cg-mini cg-mini--ok"><span class="cg-mini-num">{{ factures_historiques|length }}</span><span class="cg-mini-lbl">{% trans "Anciens montants" %}</span></article>
         </div>
-        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='fournisseurs' %}
-        <header class="cg-hero">
-            <div>
-                <h1 class="cg-hero-title"><i class="fas fa-file-invoice"></i> {% trans "Fournisseurs et patrimoine" %}</h1>
-                <p class="cg-hero-sub">{% trans "Échéancier des factures, suivi des immobilisations (bâtiments, bus, informatique, mobilier) et écritures d'amortissement." %}</p>
+        <div class="cg-workspace">
+            <div class="cg-subtabs">
+                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'section' %}" data-overflow-items-label="{% trans 'sections' %}">
+                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Sections fournisseurs' %}">
+                        <button type="button" class="matiere-tab-btn active" role="tab" data-cg-tab="factures" data-order="0" aria-selected="true"><span>{% trans "Factures" %}</span><span class="tab-count">{{ factures|length }}</span></button>
+                        <button type="button" class="matiere-tab-btn" role="tab" data-cg-tab="tiers" data-order="1" aria-selected="false"><span>{% trans "Fournisseurs" %}</span><span class="tab-count">{{ fournisseurs|length }}</span></button>
+                        <a class="matiere-tab-btn" href="{% url 'directeur:cg_immobilisations' %}" data-order="2"><span>{% trans "Biens (immobilisations)" %}</span><span class="tab-count">{{ immobilisations|length }}</span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                    </div>
+                    <div class="matiere-tabs-more-wrap" hidden>
+                        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres sections' %}"><i class="fas fa-chevron-down"></i><span class="matiere-tabs-more-label">{% trans "Autres sections" %}</span></button>
+                        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                    </div>
+                </div>
             </div>
-        </header>
-        <section class="cg-section">
-            <h2>{% trans "Nouveau fournisseur" %}</h2>
-            <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" class="cg-form">
-                {% csrf_token %}<input type="hidden" name="action" value="ajouter_fournisseur" />
-                <label>{% trans "Nom" %}<input name="nom" required /></label>
-                <label>{% trans "Téléphone" %}<input name="telephone" /></label>
-                <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
-            </form>
-        </section>
-        <section class="cg-section">
-            <h2>{% trans "Facture fournisseur" %}</h2>
-            <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" class="cg-form">
-                {% csrf_token %}<input type="hidden" name="action" value="ajouter_facture" />
-                <label>{% trans "Fournisseur" %}
-                    <select name="fournisseur_id" required>
-                        <option value="">{% trans "Choisir" %}</option>
-                        {% for f in fournisseurs %}<option value="{{ f.id }}">{{ f.nom }}</option>{% endfor %}
-                    </select>
-                </label>
-                <label>{% trans "N°" %}<input name="numero" required /></label>
-                <label>{% trans "Libellé" %}<input name="libelle" required /></label>
-                <label>{% trans "Montant" %}<input name="montant" type="number" step="0.01" min="0" required /></label>
-                <label>{% trans "Date facture" %}<input name="date_facture" type="date" required /></label>
-                <label>{% trans "Échéance" %}<input name="date_echeance" type="date" required /></label>
-                <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
-            </form>
-            <div class="table-responsive" style="margin-top:1rem;">
-                <table class="cg-table">
-                    <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Fournisseur" %}</th><th>{% trans "Échéance" %}</th><th>{% trans "Reste" %}</th></tr></thead>
-                    <tbody>
-                        {% for fac in factures %}
-                        <tr><td>{{ fac.numero }}</td><td>{{ fac.fournisseur.nom }}</td><td>{{ fac.date_echeance|date:"d/m/Y" }}</td><td>{{ fac.reste_a_payer|floatformat:0 }} {{ devise_monnaie }}</td></tr>
-                        {% empty %}<tr><td colspan="4">{% trans "Aucune facture." %}</td></tr>{% endfor %}
-                    </tbody>
-                </table>
+            <section class="cg-section" data-cg-panel="factures">
+                <div class="cg-panel-head">
+                    <h2>{% trans "Factures" %}</h2>
+                    <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-facture"><i class="fas fa-plus"></i> {% trans "Nouvelle facture" %}</button>
+                </div>
+                {% if factures_historiques %}
+                <div class="cg-anomalies">
+                    <h2>{% trans "Anciens montants payés sans ligne" %}</h2>
+                    <p>{% trans "Ces factures ont un montant payé saisi autrefois. Aucun paiement n'a été inventé." %}</p>
+                    <div class="table-responsive">
+                        <table class="cg-anomalies-table">
+                            <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Fournisseur" %}</th><th>{% trans "Ancien montant" %}</th></tr></thead>
+                            <tbody>
+                                {% for fac in factures_historiques %}
+                                <tr><td>{{ fac.numero }}</td><td>{{ fac.fournisseur.nom }}</td><td>{{ fac.montant_paye|floatformat:"0g" }} {{ devise_monnaie }}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "N°" %}</th><th>{% trans "Fournisseur" %}</th><th>{% trans "Échéance" %}</th>
+                                <th>{% trans "Payé" %}</th><th>{% trans "Reste" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fac in factures %}
+                            <tr>
+                                <td>{{ fac.numero }}</td>
+                                <td>{{ fac.fournisseur.nom }}</td>
+                                <td>{{ fac.date_echeance|date:"d/m/Y" }}</td>
+                                <td>{{ fac.montant_regle|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                                <td>{{ fac.reste_a_payer|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                                <td>
+                                    {% if fac.statut == 'payee' %}<span class="cg-pill cg-pill--ok">{% trans "Payée" %}</span>
+                                    {% elif fac.statut == 'partiel' %}<span class="cg-pill cg-pill--warn">{% trans "Partielle" %}</span>
+                                    {% elif fac.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulée" %}</span>
+                                    {% else %}<span class="cg-pill cg-pill--warn">{% trans "À payer" %}</span>{% endif %}
+                                    {% if fac.a_montant_paye_historique %}<span class="cg-badge-historique">{% trans "Ancien montant non détaillé" %}</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if fac.statut != 'payee' and fac.statut != 'annulee' and fac.reste_a_payer > 0 %}
+                                    <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-payer" data-cg-bind="facture_id" data-cg-value="{{ fac.id }}" data-cg-max="{{ fac.reste_a_payer }}">{% trans "Payer" %}</button>
+                                    {% endif %}
+                                    {% if fac.peut_etre_annulee %}
+                                    <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-facture" data-cg-bind="facture_id" data-cg-value="{{ fac.id }}">{% trans "Annuler" %}</button>
+                                    {% endif %}
+                                    {% for paiement in fac.paiements.all %}
+                                        {% if paiement.statut == 'validee' %}
+                                        <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-paiement" data-cg-bind="paiement_id" data-cg-value="{{ paiement.id }}">{{ paiement.montant|floatformat:"0g" }} · {% trans "Annuler" %}</button>
+                                        {% else %}
+                                        <span class="cg-badge-historique">{{ paiement.date_paiement|date:"d/m/Y" }} · {% trans "Annulé" %}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                            {% empty %}<tr><td colspan="7">{% trans "Aucune facture." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="cg-section" data-cg-panel="tiers" hidden>
+                <div class="cg-panel-head">
+                    <h2>{% trans "Fournisseurs" %}</h2>
+                    <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-fournisseur"><i class="fas fa-plus"></i> {% trans "Nouveau fournisseur" %}</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead><tr><th>{% trans "Nom" %}</th><th>{% trans "Téléphone" %}</th></tr></thead>
+                        <tbody>
+                            {% for f in fournisseurs %}
+                            <tr><td>{{ f.nom }}</td><td>{{ f.telephone|default:"—" }}</td></tr>
+                            {% empty %}<tr><td colspan="2">{% trans "Aucun fournisseur." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <div class="cg-sheet" id="sheet-fournisseur" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-fournisseur-title">
+                <div class="cg-sheet-head"><h2 id="sheet-fournisseur-title">{% trans "Nouveau fournisseur" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" class="cg-form">
+                    {% csrf_token %}<input type="hidden" name="action" value="ajouter_fournisseur" />
+                    <label>{% trans "Nom" %}<input name="nom" required /></label>
+                    <label>{% trans "Téléphone" %}<input name="telephone" /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+                </form>
             </div>
-        </section>
-        <section class="cg-section">
-            <h2>{% trans "Immobilisation" %}</h2>
-            <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" class="cg-form">
-                {% csrf_token %}<input type="hidden" name="action" value="ajouter_immo" />
-                <label>{% trans "Libellé" %}<input name="libelle" required placeholder="{% trans 'Bus n°1' %}" /></label>
-                <label>{% trans "Catégorie" %}
-                    <select name="categorie">
-                        <option value="batiment">{% trans "Bâtiment" %}</option>
-                        <option value="bus">{% trans "Bus" %}</option>
-                        <option value="informatique">{% trans "Informatique" %}</option>
-                        <option value="mobilier">{% trans "Mobilier" %}</option>
-                        <option value="autre">{% trans "Autre" %}</option>
-                    </select>
-                </label>
-                <label>{% trans "Acquisition" %}<input name="date_acquisition" type="date" required /></label>
-                <label>{% trans "Valeur" %}<input name="valeur_origine" type="number" step="0.01" min="0" required /></label>
-                <label>{% trans "Durée (ans)" %}<input name="duree_annees" type="number" min="1" value="5" /></label>
-                <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
-            </form>
-            <div class="table-responsive" style="margin-top:1rem;">
-                <table class="cg-table">
-                    <thead><tr><th>{% trans "Bien" %}</th><th>{% trans "Dotation annuelle" %}</th><th></th></tr></thead>
-                    <tbody>
-                        {% for im in immobilisations %}
-                        <tr>
-                            <td>{{ im.libelle }}</td>
-                            <td>{{ im.dotation_annuelle }} {{ devise_monnaie }}</td>
-                            <td>
-                                <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" style="display:inline;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="amortir" />
-                                    <input type="hidden" name="immo_id" value="{{ im.id }}" />
-                                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Générer l'écriture" %}</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% empty %}<tr><td colspan="3">{% trans "Aucun bien." %}</td></tr>{% endfor %}
-                    </tbody>
-                </table>
+        </div>
+        <div class="cg-sheet" id="sheet-facture" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-facture-title">
+                <div class="cg-sheet-head"><h2 id="sheet-facture-title">{% trans "Nouvelle facture" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" class="cg-form">
+                    {% csrf_token %}<input type="hidden" name="action" value="ajouter_facture" />
+                    <label>{% trans "Fournisseur" %}<select name="fournisseur_id" required><option value="">{% trans "Choisir" %}</option>{% for f in fournisseurs %}<option value="{{ f.id }}">{{ f.nom }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Catégorie" %}<select name="categorie_id" required><option value="">{% trans "Choisir" %}</option>{% for cat in categories %}<option value="{{ cat.id }}">{{ cat.libelle }}</option>{% endfor %}</select></label>
+                    <label>{% trans "N°" %}<input name="numero" required /></label>
+                    <label>{% trans "Libellé" %}<input name="libelle" required /></label>
+                    <label>{% trans "Montant" %}<input name="montant" type="number" step="0.01" min="0.01" required /></label>
+                    <label>{% trans "Date facture" %}<input name="date_facture" type="date" value="{{ date_defaut }}" required /></label>
+                    <label>{% trans "Échéance" %}<input name="date_echeance" type="date" value="{{ date_defaut }}" required /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+                </form>
             </div>
-        </section>
-    </div>
-    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
-</body>
-</html>
+        </div>
+        <div class="cg-sheet" id="sheet-payer" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-payer-title">
+                <div class="cg-sheet-head"><h2 id="sheet-payer-title">{% trans "Payer une facture" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" class="cg-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="payer_facture" />
+                    <input type="hidden" name="facture_id" value="" />
+                    <label>{% trans "Date" %}<input type="date" name="date_paiement" value="{{ date_defaut }}" required /></label>
+                    <label>{% trans "Montant" %}<input type="number" name="montant" min="0.01" step="0.01" required /></label>
+                    <label>{% trans "Compte" %}<select name="compte_tresorerie_id">{% for compte in comptes_tresorerie %}<option value="{{ compte.id }}">{{ compte.libelle }}</option>{% endfor %}</select></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Payer" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-annuler-facture" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-annuler-facture-title">
+                <div class="cg-sheet-head"><h2 id="sheet-annuler-facture-title">{% trans "Annuler la facture" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" class="cg-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="annuler_facture" />
+                    <input type="hidden" name="facture_id" value="" />
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Annuler la facture" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-annuler-paiement" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-annuler-paiement-title">
+                <div class="cg-sheet-head"><h2 id="sheet-annuler-paiement-title">{% trans "Annuler le paiement" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:cg_fournisseurs' %}" class="cg-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="annuler_paiement" />
+                    <input type="hidden" name="paiement_id" value="" />
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Annuler" %}</button>
+                </form>
+            </div>
+        </div>
+{% endblock %}

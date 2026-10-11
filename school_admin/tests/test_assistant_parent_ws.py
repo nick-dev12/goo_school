@@ -113,18 +113,15 @@ class AssistantParentWsTests(TransactionTestCase):
             b64 = base64.b64encode(fake_pcm).decode('ascii')
 
             with patch(
-                'school_admin.services.stt_service.transcribe_pcm16_multi',
-                new=AsyncMock(
-                    return_value={
-                        'fr-FR': '',
-                        'wo-SN': 'Na nga def',
-                    }
-                ),
+                'school_admin.services.stt_service.transcribe_with_gemini',
+                new=AsyncMock(return_value=('Na nga def', 'wo')),
             ):
                 await consumer._handle_stt({'audio_base64': b64, 'lang_pref': 'wo'})
             payload = consumer._send_json.call_args[0][0]
             self.assertEqual(payload.get('type'), 'transcript')
             self.assertIn('nga', (payload.get('text') or '').lower())
+            self.assertEqual(payload.get('stt_locale'), 'wo-SN')
+            self.assertNotIn('stt_weak', payload)
 
         _run(_go())
 

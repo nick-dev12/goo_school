@@ -242,6 +242,8 @@ class PreinscriptionController:
             'is_directeur': True,
         }
         
+        from ..services.suivi_eleves import enrichir as _enrichir_suivi
+        _enrichir_suivi(request, context, 'liens')
         return render(request, 'school_admin/directeur/preinscription/gerer_liens.html', context)
     
     @staticmethod
@@ -314,6 +316,8 @@ class PreinscriptionController:
             'is_directeur': True,
         }
         
+        from ..services.suivi_eleves import enrichir as _enrichir_suivi
+        _enrichir_suivi(request, context, 'preinscriptions')
         return render(request, 'school_admin/directeur/preinscription/liste_preinscriptions.html', context)
     
     @staticmethod

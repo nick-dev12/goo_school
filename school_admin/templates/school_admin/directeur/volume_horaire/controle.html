@@ -1,0 +1,173 @@
+{% extends 'school_admin/directeur/volume_horaire/_base.html' %}
+{% load static i18n %}
+{% block title %}{% trans "Contrôle des cours" %}{% endblock %}
+{% block icon %}fa-clipboard-check{% endblock %}
+{% block tone %}teal{% endblock %}
+{% block heading %}{% trans "Contrôle des cours" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "Qui fait cours en ce moment, quels cours n’ont pas commencé, et les séances à vérifier avant la paie." %}</p>{% endblock %}
+{% block actions %}
+  <form method="get" class="cg3-exo"><label for="pt-jour"><i class="fas fa-calendar-day" aria-hidden="true"></i>{% trans "Jour" %}</label><input id="pt-jour" type="date" name="jour" value="{{ jour|date:'Y-m-d' }}" onchange="this.form.submit()" class="pt-date"></form>
+  <a class="cg3-btn" href="?jour={{ jour_precedent|date:'Y-m-d' }}" aria-label="{% trans 'Jour précédent' %}"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+  {% if jour != today %}<a class="cg3-btn" href="?">{% trans "Aujourd’hui" %}</a>{% endif %}
+  <a class="cg3-btn" href="?jour={{ jour_suivant|date:'Y-m-d' }}" aria-label="{% trans 'Jour suivant' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
+{% endblock %}
+
+{% block content %}
+  {% if not activation %}
+  {# ---------- Mise en service ---------- #}
+  <section class="axd-card pt-onboarding">
+    <div class="pt-onboarding__text">
+      <h2>{% trans "Mettre en place le pointage des enseignants" %}</h2>
+      <p>{% trans "Créez une borne : c’est un écran (tablette, vieux téléphone, PC) posé à l’entrée ou à la surveillance, qui affiche un QR code renouvelé toutes les 30 secondes. Chaque enseignant le scanne avec son téléphone pour ouvrir son cours." %}</p>
+      <ol class="cg3-steps">
+        <li><b>1</b><span>{% trans "Créez la borne ci-dessous" %}<small>{% trans "Le pointage démarre le jour de sa création ; avant, la paie reste calculée comme aujourd’hui." %}</small></span></li>
+        <li><b>2</b><span>{% trans "Ouvrez-la sur l’appareil de l’école" %}<small>{% trans "En étant connecté avec votre compte : l’appareil est alors appairé, le lien seul ne suffit pas." %}</small></span></li>
+        <li><b>3</b><span>{% trans "Les enseignants pointent depuis leur espace" %}<small>{% trans "Bouton « Pointage » : scanner le QR, faire l’appel, remplir le cahier de texte, terminer." %}</small></span></li>
+      </ol>
+    </div>
+    {% if is_directeur %}
+    <form method="post" class="pt-onboarding__form">
+      {% csrf_token %}<input type="hidden" name="action" value="borne_creer">
+      <label class="cg3-field"><span>{% trans "Nom de la borne" %}</span><input type="text" name="libelle" value="{% trans 'Borne de l’entrée' %}" required maxlength="80"></label>
+      <label class="cg3-field"><span>{% trans "Emplacement" %}</span><input type="text" name="emplacement" maxlength="120" placeholder="{% trans 'Ex. bureau de la surveillance' %}"></label>
+      <button type="submit" class="cg3-btn cg3-btn--primary cg3-btn--block"><i class="fas fa-qrcode" aria-hidden="true"></i>{% trans "Créer la borne et démarrer" %}</button>
+    </form>
+    {% endif %}
+  </section>
+  {% else %}
+
+  {# ---------- Indicateurs du jour ---------- #}
+  <section class="cg3-kpis">
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Cours en ce moment" %}</p><span class="cg3-kpi__icon ax-tone-blue"><i class="fas fa-chalkboard-user" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{{ resume.en_cours }}</p>
+      <p class="cg3-kpi__caption">{% blocktrans with n=resume.total %}sur {{ n }} cours prévus ce jour{% endblocktrans %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Validés" %}</p><span class="cg3-kpi__icon ax-tone-green"><i class="fas fa-circle-check" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value is-pos">{{ resume.validee }}</p>
+      <p class="cg3-kpi__caption">{% trans "Comptés dans la paie" %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "À vérifier" %}</p><span class="cg3-kpi__icon ax-tone-orange"><i class="fas fa-magnifying-glass" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{{ a_verifier|length }}</p>
+      <p class="cg3-kpi__caption">{% trans "Toutes dates confondues" %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Non faits" %}</p><span class="cg3-kpi__icon ax-tone-red"><i class="fas fa-user-xmark" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value {% if resume.absente %}is-neg{% endif %}">{{ resume.absente }}</p>
+      <p class="cg3-kpi__caption">{% trans "Jamais ouverts par l’enseignant" %}</p>
+    </article>
+  </section>
+
+  {% if manquants %}
+  <div class="px-alert pt-alert">
+    <span class="px-alert__icon"><i class="fas fa-bell" aria-hidden="true"></i></span>
+    <span class="px-alert__text"><strong>{% blocktrans count n=manquants|length %}{{ n }} cours devrait avoir commencé{% plural %}{{ n }} cours devraient avoir commencé{% endblocktrans %}</strong><small>{% for s in manquants %}{{ s.professeur.nom_complet }} ({{ s.classe.nom }}){% if not forloop.last %}, {% endif %}{% endfor %}</small></span>
+  </div>
+  {% endif %}
+
+  <section class="axd-grid">
+    {# ---------- Planning du jour ---------- #}
+    <article class="axd-card axd-span-8">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Cours du" %} {{ jour|date:"l j F"|capfirst }}</h2><p class="axd-card__sub">{% trans "Mis à jour à chaque ouverture de la page" %}</p></div></header>
+      {% if seances %}
+      <div class="cg3-table-wrap">
+        <table class="cg3-table pt-table">
+          <thead><tr><th>{% trans "Heure" %}</th><th>{% trans "Enseignant" %}</th><th>{% trans "Classe" %}</th><th>{% trans "Ouvert à" %}</th><th>{% trans "Preuves" %}</th><th>{% trans "Statut" %}</th></tr></thead>
+          <tbody>
+            {% for s in seances %}
+            <tr class="{% if s.est_maintenant %}pt-now{% endif %}">
+              <td class="cg3-acc">{{ s.heure_debut|time:"H:i" }}<small class="muted"> – {{ s.heure_fin|time:"H:i" }}</small></td>
+              <td><a href="{% url 'directeur:detail_volume_horaire' s.professeur_id %}">{{ s.professeur.nom_complet }}</a>{% if s.remplacant %}<br><small class="muted">{% trans "remplacé par" %} {{ s.remplacant.nom_complet }}</small>{% endif %}</td>
+              <td>{{ s.classe.nom }}<br><small class="muted">{{ s.matiere.nom|default:"" }}</small></td>
+              <td>{% if s.debut_reel %}{{ s.debut_reel|time:"H:i" }}{% else %}<span class="muted">—</span>{% endif %}</td>
+              <td class="pt-proofs">
+                <span class="pt-proof {% if s.preuve_qr %}is-ok{% elif s.debut_reel %}is-ko{% endif %}" title="{% trans 'QR de la borne' %}"><i class="fas fa-qrcode" aria-hidden="true"></i></span>
+                <span class="pt-proof {% if s.appel_fait %}is-ok{% elif s.fin_reelle %}is-ko{% endif %}" title="{% trans 'Appel' %}"><i class="fas fa-list-check" aria-hidden="true"></i></span>
+                <span class="pt-proof {% if s.cahier_texte %}is-ok{% elif s.fin_reelle %}is-ko{% endif %}" title="{% trans 'Cahier de texte' %}"><i class="fas fa-book-open" aria-hidden="true"></i></span>
+              </td>
+              <td>{% include 'school_admin/directeur/volume_horaire/partials/_statut.html' %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <ul class="cg3-legend"><li><i class="fas fa-qrcode" aria-hidden="true"></i>{% trans "QR scanné" %}</li><li><i class="fas fa-list-check" aria-hidden="true"></i>{% trans "Appel fait" %}</li><li><i class="fas fa-book-open" aria-hidden="true"></i>{% trans "Cahier de texte" %}</li><li><span class="pt-proof is-ok"><i class="fas fa-check" aria-hidden="true"></i></span>{% trans "fait" %}</li><li><span class="pt-proof is-ko"><i class="fas fa-xmark" aria-hidden="true"></i></span>{% trans "manquant" %}</li></ul>
+      {% else %}
+      <div class="cg3-empty"><i class="fas fa-calendar-xmark" aria-hidden="true"></i><strong>{% trans "Aucun cours ce jour-là" %}</strong><span>{% trans "Les séances viennent de l’emploi du temps publié." %}</span></div>
+      {% endif %}
+    </article>
+
+    {# ---------- Bornes ---------- #}
+    <aside class="axd-card axd-span-4">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Bornes QR" %}</h2><p class="axd-card__sub">{% trans "Pointage actif depuis le" %} {{ activation|date:"d/m/Y" }}</p></div></header>
+      <ul class="pt-bornes">
+        {% for b in bornes %}
+        <li>
+          <span class="cg3-nav__icon {% if b.en_ligne %}ax-tone-green{% elif b.actif %}ax-tone-amber{% else %}ax-tone-slate{% endif %}"><i class="fas fa-tablet-screen-button" aria-hidden="true"></i></span>
+          <span class="pt-bornes__id"><strong>{{ b.libelle }}</strong><small>{% if not b.actif %}{% trans "Désactivée" %}{% elif b.en_ligne %}{% trans "En ligne" %}{% elif b.derniere_activite %}{% trans "Vue à" %} {{ b.derniere_activite|time:"H:i" }}{% else %}{% trans "Jamais ouverte" %}{% endif %}{% if b.emplacement %} · {{ b.emplacement }}{% endif %}</small></span>
+          {% if b.actif %}<a class="cg3-btn cg3-btn--sm cg3-btn--primary" href="{% url 'directeur:pointage_borne' b.pk %}" target="_blank" rel="noopener"><i class="fas fa-up-right-from-square" aria-hidden="true"></i>{% trans "Ouvrir" %}</a>{% endif %}
+          {% if is_directeur %}
+          <details class="pt-menu"><summary class="cg3-btn cg3-btn--sm" aria-label="{% trans 'Options' %}"><i class="fas fa-ellipsis" aria-hidden="true"></i></summary>
+            <div class="pt-menu__panel">
+              <form method="post">{% csrf_token %}<input type="hidden" name="borne_id" value="{{ b.pk }}"><input type="hidden" name="action" value="borne_regenerer"><button type="submit" class="cg3-btn cg3-btn--sm">{% trans "Désappairer les appareils" %}</button></form>
+              <form method="post">{% csrf_token %}<input type="hidden" name="borne_id" value="{{ b.pk }}"><input type="hidden" name="action" value="borne_activer"><button type="submit" class="cg3-btn cg3-btn--sm">{% if b.actif %}{% trans "Désactiver" %}{% else %}{% trans "Réactiver" %}{% endif %}</button></form>
+            </div>
+          </details>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% if is_directeur %}
+      <details class="pt-add"><summary class="cg3-btn cg3-btn--sm"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter une borne" %}</summary>
+        <form method="post" class="pt-add__form">{% csrf_token %}<input type="hidden" name="action" value="borne_creer">
+          <label class="cg3-field"><span>{% trans "Nom" %}</span><input type="text" name="libelle" required maxlength="80"></label>
+          <label class="cg3-field"><span>{% trans "Emplacement" %}</span><input type="text" name="emplacement" maxlength="120"></label>
+          <button type="submit" class="cg3-btn cg3-btn--primary">{% trans "Créer" %}</button>
+        </form>
+      </details>
+      {% endif %}
+      <p class="cg3-hint cg3-hint--top"><i class="fas fa-shield-halved" aria-hidden="true"></i><span>{% trans "Le QR change toutes les 30 secondes et la borne ne s’affiche que sur un appareil appairé : impossible de pointer depuis chez soi." %}</span></p>
+    </aside>
+  </section>
+
+  {# ---------- File à vérifier ---------- #}
+  <section class="axd-card cg3-block" id="a-verifier">
+    <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Séances à vérifier" %}</h2><p class="axd-card__sub">{% trans "Ouvertes sans QR, sans appel, trop courtes, ou contestées par l’enseignant. Elles ne sont payées qu’une fois validées." %}</p></div></header>
+    {% if a_verifier %}
+    <div class="pt-review">
+      {% for s in a_verifier %}
+      <article class="pt-review__item">
+        <div class="pt-review__main">
+          <p class="pt-review__title"><strong>{{ s.professeur.nom_complet }}</strong> · {{ s.classe.nom }}{% if s.matiere %} · {{ s.matiere.nom }}{% endif %}</p>
+          <p class="pt-review__meta">{{ s.date|date:"l j F"|capfirst }}, {{ s.heure_debut|time:"H:i" }} – {{ s.heure_fin|time:"H:i" }}{% if s.debut_reel %} · {% trans "ouvert à" %} {{ s.debut_reel|time:"H:i" }}{% endif %}{% if s.nb_eleves_appel %} · {{ s.nb_eleves_appel }} {% trans "élèves à l’appel" %}{% endif %}</p>
+          <ul class="pt-flags">
+            {% for a in s.libelles_anomalies %}<li><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{{ a }}</li>{% endfor %}
+            {% if s.motif_sans_qr %}<li class="is-info"><i class="fas fa-comment" aria-hidden="true"></i>{% trans "Raison donnée :" %} « {{ s.motif_sans_qr }} »</li>{% endif %}
+            {% if s.motif_contestation %}<li class="is-info"><i class="fas fa-comment-dots" aria-hidden="true"></i>{% trans "Contestation :" %} « {{ s.motif_contestation }} »</li>{% endif %}
+          </ul>
+          {% if s.cahier_texte %}<p class="pt-review__cahier"><i class="fas fa-book-open" aria-hidden="true"></i> {{ s.cahier_texte|truncatechars:160 }}</p>{% endif %}
+        </div>
+        <div class="pt-review__side">
+          {% include 'school_admin/directeur/volume_horaire/partials/_statut.html' %}
+          <span class="pt-score" title="{% trans 'Indice de confiance' %}">{{ s.confiance }}<small>/100</small></span>
+          <form method="post" class="pt-review__actions">
+            {% csrf_token %}<input type="hidden" name="action" value="decider"><input type="hidden" name="seance_id" value="{{ s.pk }}">
+            <input type="text" name="commentaire" class="cg3-input" maxlength="255" placeholder="{% trans 'Commentaire (facultatif)' %}">
+            <div class="pt-review__btns">
+              <button type="submit" name="decision" value="valider" class="cg3-btn cg3-btn--sm cg3-btn--primary"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Valider" %}</button>
+              <button type="submit" name="decision" value="refuser" class="cg3-btn cg3-btn--sm cg3-btn--danger"><i class="fas fa-xmark" aria-hidden="true"></i>{% trans "Non fait" %}</button>
+              <button type="submit" name="decision" value="justifier" class="cg3-btn cg3-btn--sm">{% trans "Absence justifiée" %}</button>
+            </div>
+          </form>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="cg3-empty"><i class="fas fa-circle-check" aria-hidden="true"></i><strong>{% trans "Rien à vérifier" %}</strong><span>{% trans "Toutes les séances closes ont été validées automatiquement ou traitées." %}</span></div>
+    {% endif %}
+  </section>
+  {% endif %}
+{% endblock %}

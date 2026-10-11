@@ -791,7 +791,10 @@ class PersonnelController:
             return redirect('personnel:liste_personnel')
         
         # Récupérer l'onglet actif
-        onglet_actif = request.GET.get('onglet', 'informations')
+        onglet_actif = {'informations': 'profil', 'connexion': 'acces'}.get(
+            request.GET.get('onglet', 'profil'), request.GET.get('onglet', 'profil'))
+        if onglet_actif not in ('profil', 'acces', 'autorisations', 'dossier'):
+            onglet_actif = 'profil'
 
         if request.method == 'POST':
             action = request.POST.get('action')
@@ -846,6 +849,11 @@ class PersonnelController:
         if not fonctions_disponibles:
             fonctions_disponibles = PersonnelController.get_fonctions_par_type_etablissement(type_etab)
         
+        # La fonction actuelle reste toujours sélectionnable, même hors de la liste du type d'établissement
+        # (sinon le formulaire de modification ne peut plus être enregistré).
+        fonctions_disponibles = list(fonctions_disponibles or [])
+        if personnel.fonction and personnel.fonction not in {c for c, _l in fonctions_disponibles}:
+            fonctions_disponibles.insert(0, (personnel.fonction, personnel.get_fonction_display()))
         # Récupérer les permissions actuelles du personnel
         permissions_actuelles = personnel.permissions if personnel.permissions else {}
         # Utiliser la fonction du formulaire si disponible, sinon celle du personnel
@@ -900,6 +908,15 @@ class PersonnelController:
             'type_contrat_choices': TYPE_CONTRAT_CHOICES,
             'document_download_url_name': 'personnel:telecharger_document',
         }
+        from ..services.fiche_employe import completude_dossier, echeance_contrat, profil_personnel
+
+        context['fiche'] = profil_personnel(personnel, user_permissions)
+        context['echeance'] = echeance_contrat(dossier)
+        from ..utils.employe_dossier_utils import dossier_form_data_from_dossier
+
+        context['dossier_form_data'] = dossier_form_data_from_dossier(dossier) if dossier else {}
+        context['completude'] = completude_dossier(personnel, dossier, documents)
+        context['nb_permissions_total'] = sum(len(v) for v in permissions_par_categorie.values())
         
         return render(request, 'school_admin/directeur/personnel/detail_personnel.html', context)
     
@@ -1047,7 +1064,8 @@ class PersonnelController:
                 is_valid = False
             
             # Validation du type de personnel selon le type d'établissement
-            fonctions_valides_codes = [f[0] for f in fonctions_disponibles]
+            # La fonction déjà attribuée reste acceptée (anciens comptes hors de la liste du type).
+            fonctions_valides_codes = [f[0] for f in fonctions_disponibles] + [personnel.fonction]
             if form_data['fonction'] and form_data['fonction'] not in fonctions_valides_codes:
                 field_errors['fonction'] = f"Cette fonction n'est pas disponible pour un établissement de type {etablissement.get_type_etablissement_display()}."
                 is_valid = False

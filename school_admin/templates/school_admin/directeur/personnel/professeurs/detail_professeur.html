@@ -1,362 +1,137 @@
 <!DOCTYPE html>
-{% load static i18n notes_tags %}
+{% load static i18n notes_tags eleve_nav %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ professeur.nom_complet }} - Détails Professeur</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/formulaires_personnel.css' %}?v=1.1.0" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.0" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/personnel_modals.css' %}?v=1.0.0" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/ajouter_professeur.css' %}?v=1.0.1" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_professeur.css' %}?v=2.1.2" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ professeur.nom_complet }} — {% trans "Fiche enseignant" %}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  {# Feuilles du formulaire de modification (modale existante), chargées avant le nouveau design. #}
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/ajouter_professeur.css' %}?v=1.0.1" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/formulaires_personnel.css' %}?v=1.1.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/personnel_modals.css' %}?v=1.0.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=1.0.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.0.0" />
 </head>
-<body data-live-page="professeur-detail">
-    <!-- Header -->
-    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+<body class="axd-page cg3-body fe-body" data-live-page="professeur-detail">
+  {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content -->
-    <div class="main-content-container prof-detail-page"
-         data-prof-detail-url="{% url 'professeur:detail_professeur' professeur.id %}"
-         data-initial-onglet="{{ onglet_actif }}"
-         data-dossier-section="{{ dossier_section }}"
-         data-enseignement-section="{{ enseignement_section }}">
-        <div class="page-header page-header-minimal">
-            {% include 'school_admin/directeur/partials/page_header_back.html' %}
+  <main class="fe cg3" id="contenu" data-fe-root data-fe-initial="{{ onglet_actif }}">
+    <nav class="fe-crumbs" aria-label="{% trans 'Fil d’Ariane' %}">
+      <a href="{% url 'professeur:liste_professeurs' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{% if fiche.type_etab == 'superieur' %}{% trans "Enseignants" %}{% else %}{% trans "Professeurs" %}{% endif %}</a>
+      <i class="fas fa-chevron-right" aria-hidden="true"></i><span>{{ professeur.nom_complet }}</span>
+    </nav>
+
+    {% if messages %}<div class="fe-messages">{% for m in messages %}<p class="fe-alert {% if m.tags == 'success' %}fe-alert--ok{% elif m.tags == 'error' or m.tags == 'warning' %}fe-alert--warn{% else %}fe-alert--info{% endif %}"><i class="fas {% if m.tags == 'success' %}fa-circle-check{% elif m.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-info{% endif %}" aria-hidden="true"></i><span>{{ m }}</span></p>{% endfor %}</div>{% endif %}
+
+    {# ================= En-tête ================= #}
+    <header class="fe-hero">
+      <div class="fe-avatar" aria-hidden="true">{{ professeur.prenom.0|upper }}{{ professeur.nom.0|upper }}<span class="fe-avatar__dot{% if not professeur.actif %} is-off{% endif %}"></span></div>
+      <div class="fe-hero__id">
+        <p class="fe-hero__kicker">{% if fiche.type_etab == 'primary' %}{% trans "Enseignant du primaire" %}{% elif fiche.type_etab == 'superieur' %}{% trans "Enseignant du supérieur" %}{% else %}{% trans "Professeur" %}{% endif %}</p>
+        <h1 class="fe-hero__name">{{ professeur.nom_complet }}</h1>
+        <p class="fe-hero__sub">
+          {% if fiche.type_etab == 'primary' %}{% trans "Enseignant polyvalent" %}{% else %}{{ professeur.matiere_display|default:_("Matière non définie") }}{% endif %}
+          · {{ professeur.niveau_display }}{% if fiche.anciennete %} · {% blocktrans with a=fiche.anciennete %}{{ a }} d’ancienneté{% endblocktrans %}{% endif %}
+        </p>
+        <div class="fe-hero__chips">
+          <span class="cg3-chip {% if professeur.actif %}cg3-chip--ok{% else %}cg3-chip--muted{% endif %}"><i class="fas fa-circle" style="font-size:.45rem" aria-hidden="true"></i>{% if professeur.actif %}{% trans "Actif" %}{% else %}{% trans "Inactif" %}{% endif %}</span>
+          <span class="cg3-chip cg3-chip--muted"><i class="fas fa-id-badge" aria-hidden="true"></i>{{ professeur.numero_employe }}</span>
+          <span class="cg3-chip {% if professeur.type_contrat == 'permanent' %}cg3-chip--ok{% else %}cg3-chip--muted{% endif %}"><i class="fas fa-file-signature" aria-hidden="true"></i>{{ professeur.get_type_contrat_display }}</span>
+          {% if professeur.mot_de_passe_provisoire %}<span class="cg3-chip cg3-chip--warn"><i class="fas fa-key" aria-hidden="true"></i>{% trans "Jamais connecté" %}</span>{% endif %}
         </div>
+      </div>
+      <div class="fe-hero__actions">
+        <button type="button" class="cg3-btn cg3-btn--primary" onclick="openModifierProfesseurModal()"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier" %}</button>
+        <a class="cg3-btn" href="{% url 'directeur:detail_volume_horaire' professeur.id %}"><i class="fas fa-money-check-dollar" aria-hidden="true"></i>{% trans "Paie" %}</a>
+        <form action="{% url 'professeur:toggle_actif' professeur.id %}" method="post" onsubmit="return confirm('{% if professeur.actif %}{% trans "Désactiver ce compte ? L’enseignant ne pourra plus se connecter." %}{% else %}{% trans "Réactiver ce compte ?" %}{% endif %}');">
+          {% csrf_token %}
+          <button type="submit" class="cg3-btn"><i class="fas fa-{% if professeur.actif %}user-slash{% else %}user-check{% endif %}" aria-hidden="true"></i>{% if professeur.actif %}{% trans "Désactiver" %}{% else %}{% trans "Activer" %}{% endif %}</button>
+        </form>
+      </div>
+      <div class="fe-contact">
+        <a href="tel:{{ professeur.telephone }}"><i class="fas fa-phone" aria-hidden="true"></i>{{ professeur.telephone }}</a>
+        {% if professeur.email %}<a href="mailto:{{ professeur.email }}"><i class="fas fa-envelope" aria-hidden="true"></i>{{ professeur.email }}</a>{% else %}<span class="is-missing"><i class="fas fa-envelope" aria-hidden="true"></i>{% trans "Email non renseigné" %}</span>{% endif %}
+        <span><i class="fas fa-user" aria-hidden="true"></i>{{ professeur.username }}</span>
+      </div>
+    </header>
 
-        <header class="prof-hero">
-            <div class="prof-hero-main">
-                <div class="prof-avatar" aria-hidden="true">{{ professeur.prenom.0 }}{{ professeur.nom.0 }}</div>
-                <div class="prof-hero-text">
-                    <h1 class="prof-hero-name">{{ professeur.nom_complet }}</h1>
-                    <p class="prof-hero-sub">{{ professeur.matiere_display }} • {{ professeur.niveau_display }}</p>
-                    <div class="prof-hero-chips">
-                        <span class="chip {% if professeur.actif %}chip-success{% else %}chip-muted{% endif %}">
-                            <span class="status-dot-inline"></span>
-                            {% if professeur.actif %}{% trans "Actif" %}{% else %}{% trans "Inactif" %}{% endif %}
-                        </span>
-                        <span class="chip chip-light"><i class="fas fa-id-card"></i> {{ professeur.numero_employe }}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="prof-hero-actions">
-                <button type="button" class="btn-action btn-edit" id="btn-open-modifier-modal" onclick="openModifierProfesseurModal()">
-                    <i class="fas fa-edit"></i>
-                    <span>{% trans "Modifier" %}</span>
-                </button>
-                <form action="{% url 'professeur:toggle_actif' professeur.id %}" method="post" class="prof-toggle-form">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-action {% if professeur.actif %}btn-danger{% else %}btn-success{% endif %}">
-                        <i class="fas fa-{% if professeur.actif %}pause{% else %}play{% endif %}"></i>
-                        <span>{% if professeur.actif %}{% trans "Désactiver" %}{% else %}{% trans "Activer" %}{% endif %}</span>
-                    </button>
-                </form>
-            </div>
-        </header>
+    {# ================= Indicateurs ================= #}
+    <section class="fe-kpis" aria-label="{% trans 'Indicateurs' %}">
+      <a class="fe-kpi fe-tone-blue" href="?onglet=enseignement" data-fe-goto="enseignement">
+        <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Classes" %}</span><span class="fe-kpi__icon"><i class="fas fa-chalkboard" aria-hidden="true"></i></span></div>
+        <p class="fe-kpi__value">{{ fiche.nb_classes }}</p>
+        <p class="fe-kpi__caption">{% blocktrans count n=fiche.nb_eleves %}{{ n }} élève{% plural %}{{ n }} élèves{% endblocktrans %}</p>
+      </a>
+      <a class="fe-kpi fe-tone-violet" href="?onglet=edt" data-fe-goto="edt">
+        <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Heures / semaine" %}</span><span class="fe-kpi__icon"><i class="fas fa-clock" aria-hidden="true"></i></span></div>
+        <p class="fe-kpi__value">{{ fiche.heures_semaine|floatformat:"-1" }}<small>h</small></p>
+        {% if fiche.charge_pct != None %}<div class="fe-bar"><span class="{% if fiche.charge_pct > 110 %}is-bad{% elif fiche.charge_pct < 80 %}is-warn{% endif %}" style="width: {% if fiche.charge_pct > 100 %}100{% else %}{{ fiche.charge_pct }}{% endif %}%"></span></div>
+        <p class="fe-kpi__caption">{% blocktrans with p=fiche.charge_pct h=professeur.heures_contrat_semaine|floatformat:"-1" %}{{ p }} % du contrat ({{ h }} h){% endblocktrans %}</p>
+        {% else %}<p class="fe-kpi__caption">{% blocktrans count n=fiche.nb_creneaux %}{{ n }} créneau publié{% plural %}{{ n }} créneaux publiés{% endblocktrans %}</p>{% endif %}
+      </a>
+      <a class="fe-kpi fe-tone-green" href="?onglet=presence" data-fe-goto="presence">
+        <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Assiduité du mois" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-check" aria-hidden="true"></i></span></div>
+        <p class="fe-kpi__value">{% if fiche.assiduite != None %}{{ fiche.assiduite }}<small>%</small>{% else %}—{% endif %}</p>
+        <p class="fe-kpi__caption">{% if fiche.assiduite == None %}{% trans "Aucune séance pointée ce mois-ci" %}{% else %}{{ fiche.paie.heures_validees|floatformat:"-1" }} h {% trans "payables" %}{% endif %}</p>
+      </a>
+      <a class="fe-kpi fe-tone-teal" href="?onglet=cahier" data-fe-goto="cahier">
+        <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Cahier de texte" %}</span><span class="fe-kpi__icon"><i class="fas fa-book-open" aria-hidden="true"></i></span></div>
+        <p class="fe-kpi__value">{% if cahier.taux != None %}{{ cahier.taux }}<small>%</small>{% else %}—{% endif %}</p>
+        <p class="fe-kpi__caption">{% blocktrans count n=cahier.total %}{{ n }} entrée validée{% plural %}{{ n }} entrées validées{% endblocktrans %}</p>
+      </a>
+      <a class="fe-kpi fe-tone-orange" href="?onglet=dossier" data-fe-goto="dossier">
+        <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Dossier RH" %}</span><span class="fe-kpi__icon"><i class="fas fa-folder-open" aria-hidden="true"></i></span></div>
+        <p class="fe-kpi__value">{{ completude.taux }}<small>%</small></p>
+        <div class="fe-bar"><span class="{% if completude.taux < 50 %}is-bad{% elif completude.taux < 80 %}is-warn{% endif %}" style="width: {{ completude.taux }}%"></span></div>
+        <p class="fe-kpi__caption">{% if completude.manquants %}{% blocktrans count n=completude.manquants|length %}{{ n }} information manquante{% plural %}{{ n }} informations manquantes{% endblocktrans %}{% else %}{% trans "Complet" %}{% endif %}</p>
+      </a>
+    </section>
 
-        <div class="prof-layout">
-            <nav class="prof-nav" role="tablist" aria-label="{% trans 'Sections du professeur' %}">
-                <button type="button" role="tab" class="prof-nav-btn {% if onglet_actif == 'profil' %}active{% endif %}" data-tab="profil" aria-selected="{% if onglet_actif == 'profil' %}true{% else %}false{% endif %}">
-                    <i class="fas fa-user-circle"></i>
-                    <span>{% trans "Profil" %}</span>
-                    <small>{% trans "Identité & connexion" %}</small>
-                </button>
-                <button type="button" role="tab" class="prof-nav-btn {% if onglet_actif == 'enseignement' %}active{% endif %}" data-tab="enseignement" aria-selected="{% if onglet_actif == 'enseignement' %}true{% else %}false{% endif %}">
-                    <i class="fas fa-school"></i>
-                    <span>{% trans "Enseignement" %}</span>
-                    <small>{% trans "Classes & notes" %}</small>
-                </button>
-                <button type="button" role="tab" class="prof-nav-btn {% if onglet_actif == 'dossier' %}active{% endif %}" data-tab="dossier" aria-selected="{% if onglet_actif == 'dossier' %}true{% else %}false{% endif %}">
-                    <i class="fas fa-folder-open"></i>
-                    <span>{% trans "Dossier RH" %}</span>
-                    <small>{% trans "Consulter & compléter" %}</small>
-                </button>
-            </nav>
+    {# ================= Onglets ================= #}
+    <nav class="fe-tabs" role="tablist" aria-label="{% trans 'Sections de la fiche' %}">
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="profil" aria-controls="fe-p-profil"><i class="fas fa-user" aria-hidden="true"></i>{% trans "Vue d’ensemble" %}</button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="enseignement" aria-controls="fe-p-enseignement"><i class="fas fa-chalkboard" aria-hidden="true"></i>{% trans "Classes & matières" %}<span class="fe-tab__count">{{ fiche.nb_classes }}</span></button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="edt" aria-controls="fe-p-edt"><i class="fas fa-calendar-week" aria-hidden="true"></i>{% trans "Emploi du temps" %}</button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="presence" aria-controls="fe-p-presence"><i class="fas fa-user-check" aria-hidden="true"></i>{% trans "Présence & paie" %}{% if fiche.stats_seances.a_verifier or fiche.stats_seances.contestee %}<span class="fe-tab__dot" title="{% trans 'Séances à vérifier' %}"></span>{% endif %}</button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="cahier" aria-controls="fe-p-cahier"><i class="fas fa-book-open" aria-hidden="true"></i>{% trans "Cahier de texte" %}{% if cahier.total %}<span class="fe-tab__count">{{ cahier.total }}</span>{% endif %}{% if cahier.demandes %}<span class="fe-tab__dot"></span>{% endif %}</button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="dossier" aria-controls="fe-p-dossier"><i class="fas fa-folder-open" aria-hidden="true"></i>{% trans "Dossier RH" %}</button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="acces" aria-controls="fe-p-acces"><i class="fas fa-key" aria-hidden="true"></i>{% trans "Accès" %}{% if professeur.mot_de_passe_provisoire %}<span class="fe-tab__dot"></span>{% endif %}</button>
+    </nav>
 
-            <div class="prof-panels">
-                <div class="prof-panel {% if onglet_actif == 'profil' %}active{% endif %}" data-tab-panel="profil" id="panel-profil" role="tabpanel">
-                    {% include 'school_admin/directeur/personnel/partials/detail_prof_panel_profil.html' %}
-                </div>
+    <section class="fe-panel" id="fe-p-profil" data-fe-panel="profil" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/prof_profil.html' %}</section>
+    <section class="fe-panel" id="fe-p-enseignement" data-fe-panel="enseignement" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/prof_enseignement.html' %}</section>
+    <section class="fe-panel" id="fe-p-edt" data-fe-panel="edt" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/prof_edt.html' %}</section>
+    <section class="fe-panel" id="fe-p-presence" data-fe-panel="presence" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/prof_presence.html' %}</section>
+    <section class="fe-panel" id="fe-p-cahier" data-fe-panel="cahier" role="tabpanel"><div class="fe-card">{% include 'school_admin/directeur/personnel/partials/detail_prof_panel_cahier.html' %}</div></section>
+    <section class="fe-panel" id="fe-p-dossier" data-fe-panel="dossier" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/dossier.html' with employe=professeur %}</section>
+    <section class="fe-panel" id="fe-p-acces" data-fe-panel="acces" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/acces.html' with employe=professeur qui=_("l’enseignant") %}</section>
 
-                <div class="prof-panel {% if onglet_actif == 'enseignement' %}active{% endif %}" data-tab-panel="enseignement" id="panel-enseignement" role="tabpanel">
-                    {% include 'school_admin/directeur/personnel/partials/detail_prof_panel_enseignement.html' %}
-                </div>
+    <form method="post" id="fe-retirer-matiere" action="{% url 'professeur:detail_professeur' professeur.id %}" hidden>
+      {% csrf_token %}<input type="hidden" name="action" value="retirer_matiere_secondaire"><input type="hidden" name="professeur_id" value="{{ professeur.id }}"><input type="hidden" name="matiere_id" value="">
+    </form>
+  </main>
 
-                <div class="prof-panel {% if onglet_actif == 'dossier' %}active{% endif %}" data-tab-panel="dossier" id="panel-dossier" role="tabpanel">
-                    {% include 'school_admin/directeur/personnel/partials/detail_prof_panel_dossier.html' %}
-                </div>
-            </div>
-        </div>
-    </div>
+  {% include 'school_admin/directeur/personnel/partials/modal_modifier_professeur.html' %}
+  {% include 'school_admin/directeur/personnel/fiche/modal_matiere.html' %}
 
-    {% include 'school_admin/directeur/personnel/partials/modal_modifier_professeur.html' %}
-
-    <!-- Modal Ajout Matière Secondaire -->
-    <div id="modal-ajout-matiere"
-         class="modal-overlay-matiere"
-         style="display: none;"
-         role="dialog"
-         aria-modal="true"
-         aria-labelledby="modal-matiere-titre"
-         data-modal-niveau-placeholder="{% trans 'Sélectionnez un niveau (L1, L2, M1…)' %}">
-        <div class="modal-content-matiere">
-            <div class="modal-header-matiere">
-                <h3 id="modal-matiere-titre"><i class="fas fa-plus-circle"></i> {% trans "Ajouter une matière secondaire" %}</h3>
-                <button type="button" class="btn-close-modal-matiere" onclick="fermerModalAjoutMatiere()" aria-label="{% trans 'Fermer' %}">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form id="form-ajout-matiere" class="modal-form-matiere" method="post" action="{% url 'professeur:detail_professeur' professeur.id %}">
-                <div class="modal-matiere-scroll">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="ajouter_matiere_secondaire">
-                    {% if etablissement.type_etablissement != 'superieur' %}
-                    <input type="hidden" name="matiere_id" id="modal-matiere-id" value="">
-                    {% endif %}
-
-                    {% if etablissement.type_etablissement == 'superieur' %}
-                        {% if modal_superieur_matieres_flat and modal_superieur_departments %}
-                        <div class="form-group-matiere">
-                            <label class="form-label" for="department">
-                                <i class="fas fa-graduation-cap"></i>
-                                {% trans "Filière *" %}
-                            </label>
-                            <select name="department" id="department" class="form-control-matiere" required>
-                                <option value="">{% trans "Sélectionnez une filière" %}</option>
-                                {% for dep in modal_superieur_departments %}
-                                <option value="{{ dep.id }}">{{ dep.nom }}</option>
-                                {% endfor %}
-                            </select>
-                            <p class="modal-matiere-hint">{% trans "Choisissez la filière, puis le niveau (L1, L2…). Seules les matières réellement rattachées à ce niveau dans la filière sont proposées." %}</p>
-                        </div>
-                        <div class="form-group-matiere" id="niveau-lmd-wrap" style="display: none;">
-                            <label class="form-label" for="niveau_lmd">
-                                <i class="fas fa-layer-group"></i>
-                                {% trans "Niveau dans la filière *" %}
-                            </label>
-                            <select name="niveau_lmd" id="niveau_lmd" class="form-control-matiere" disabled>
-                                <option value="">{% trans "Sélectionnez un niveau (L1, L2, M1…)" %}</option>
-                            </select>
-                        </div>
-                        <div class="form-group-matiere" id="matieres-superieur-container" style="display: none;">
-                            <label class="form-label" for="matiere-principale-search">
-                                <i class="fas fa-book"></i>
-                                {% trans "Matière *" %}
-                            </label>
-                            <p class="modal-matiere-hint">{% trans "Recherchez ou cliquez sur une matière du niveau choisi." %}</p>
-                            <input type="search"
-                                   class="form-control-matiere"
-                                   id="matiere-principale-search"
-                                   autocomplete="off"
-                                   placeholder="{% trans 'Nom, code ou module…' %}"
-                                   disabled>
-                            <div class="matiere-principale-selected-bar" id="matiere-principale-selected-bar" hidden>
-                                <span class="matiere-principale-selected-label" id="matiere-principale-selected-label"></span>
-                                <button type="button" class="btn-matiere-clear" id="matiere-principale-clear" aria-label="{% trans 'Changer de matière' %}">
-                                    <i class="fas fa-times"></i> {% trans "Changer" %}
-                                </button>
-                            </div>
-                            <input type="hidden" name="matiere_id" id="input_matiere_principale" value="">
-                            <p class="matiere-filter-empty-msg" id="matiere-principale-no-results" hidden role="status">
-                                {% trans "Aucune matière ne correspond à votre recherche." %}
-                            </p>
-                            <div class="matiere-pick-list"
-                                 id="matiere-principale-list"
-                                 role="listbox"
-                                 aria-label="{% trans 'Matières disponibles' %}"
-                                 aria-live="polite"
-                                 aria-relevant="additions removals">
-                                {% for m in modal_superieur_matieres_flat %}
-                                <button type="button"
-                                        class="matiere-pick-item"
-                                        data-matiere-id="{{ m.id }}"
-                                        data-department-id="{{ m.department_id }}"
-                                        data-niveau-lmd-keys="{{ m.niveau_lmd_keys_csv|escape }}"
-                                        data-matiere-search="{{ m.nom|escape }} {{ m.code|escape }} {{ m.module_nom|escape }}"
-                                        role="option"
-                                        aria-selected="false">
-                                    <span class="matiere-pick-main">{{ m.nom }}</span>
-                                    <span class="matiere-pick-meta">
-                                        {% if m.module_nom %}<span class="matiere-pick-module">{{ m.module_nom }}</span> Â· {% endif %}
-                                        <span class="matiere-pick-code">{{ m.code }}</span>
-                                    </span>
-                                </button>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {{ modal_niveaux_par_department|json_script:"niveaux-lmd-par-filiere-data" }}
-                        {% else %}
-                        <p class="modal-matiere-empty-msg">
-                            <i class="fas fa-info-circle"></i>
-                            {% trans "Aucune matière de l'établissement n'est disponible (déjà  principale ou secondaire), ou configurez des filières et des matières." %}
-                        </p>
-                        {% endif %}
-                    {% elif matieres_disponibles %}
-                    <div class="form-group-matiere">
-                        <label for="modal-matiere-search">{% trans "Rechercher ou choisir une matière" %}</label>
-                        <input type="search"
-                               id="modal-matiere-search"
-                               class="form-control-matiere modal-matiere-search-input"
-                               autocomplete="off"
-                               placeholder="{% trans 'Tapez un nom, un code ou un module…' %}">
-                    </div>
-                    <p class="modal-matiere-selected-hint" id="modal-matiere-selected-hint" hidden>
-                        <i class="fas fa-check-circle"></i>
-                        <span id="modal-matiere-selected-label"></span>
-                    </p>
-                    <div class="modal-matiere-pick-list" id="modal-matiere-pick-list" role="listbox" aria-label="{% trans 'Matières disponibles' %}">
-                        {% for matiere in matieres_disponibles %}
-                        <button type="button"
-                                class="modal-matiere-pick-item"
-                                data-matiere-id="{{ matiere.id }}"
-                                data-matiere-search="{{ matiere.nom|escape }} {{ matiere.code|escape }} {% if matiere.module %}{{ matiere.module.nom|escape }}{% endif %}">
-                            <span class="modal-matiere-pick-main">{{ matiere.nom }}</span>
-                            <span class="modal-matiere-pick-meta">
-                                <span class="modal-matiere-code">{{ matiere.code }}</span>
-                                {% if matiere.module %}
-                                <span class="modal-matiere-mod"> Â· {{ matiere.module.nom }}</span>
-                                {% endif %}
-                            </span>
-                        </button>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <p class="modal-matiere-empty-msg">
-                        <i class="fas fa-info-circle"></i>
-                        {% trans "Aucune autre matière de l'établissement n'est disponible (déjà  principale ou secondaire)." %}
-                    </p>
-                    {% endif %}
-                </div>
-
-                <div class="modal-actions modal-actions-matiere">
-                    <button type="button" class="btn-cancel-matiere" onclick="fermerModalAjoutMatiere()">
-                        <i class="fas fa-times"></i> {% trans "Annuler" %}
-                    </button>
-                    <button type="submit" class="btn-submit-matiere" id="btn-submit-modal-matiere" {% if etablissement.type_etablissement == 'superieur' %}{% if not modal_superieur_matieres_flat or not modal_superieur_departments %}disabled{% endif %}{% else %}{% if not matieres_disponibles %}disabled{% endif %}{% endif %}>
-                        <i class="fas fa-check"></i> {% trans "Ajouter" %}
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script src="{% static 'school_admin/js/directeur/ajouter_professeur.js' %}?v=1.0.5"></script>
-    <script src="{% static 'school_admin/js/directeur/detail_professeur.js' %}?v=2.1.0"></script>
-    <script src="{% static 'school_admin/js/directeur/employe_documents.js' %}?v=1.0.0"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            if (document.getElementById('matiere-principale-list') && typeof window.initProfesseurSuperieurMatierePicker === 'function') {
-                var root = document.getElementById('modal-ajout-matiere');
-                var ph = root && root.getAttribute('data-modal-niveau-placeholder');
-                window.initProfesseurSuperieurMatierePicker({
-                    submitButtonId: 'btn-submit-modal-matiere',
-                    niveauEmptyOptionText: ph || undefined
-                });
-            }
+  <script src="{% static 'school_admin/js/directeur/ajouter_professeur.js' %}?v=1.0.5"></script>
+  <script src="{% static 'school_admin/js/directeur/employe_documents.js' %}?v=1.0.0"></script>
+  <script src="{% static 'school_admin/js/directeur/fiche_employe.js' %}?v=1.0.0"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (document.getElementById('matiere-principale-list') && typeof window.initProfesseurSuperieurMatierePicker === 'function') {
+        var root = document.getElementById('modal-ajout-matiere');
+        window.initProfesseurSuperieurMatierePicker({
+          submitButtonId: 'btn-submit-modal-matiere',
+          niveauEmptyOptionText: (root && root.getAttribute('data-modal-niveau-placeholder')) || undefined
         });
-
-        function ouvrirModalAjoutMatiere() {
-            var modal = document.getElementById('modal-ajout-matiere');
-            if (!modal) return;
-            var deptSup = document.getElementById('department');
-            if (deptSup) {
-                deptSup.value = '';
-                deptSup.dispatchEvent(new Event('change', { bubbles: true }));
-                modal.style.display = 'flex';
-                document.body.style.overflow = 'hidden';
-                deptSup.focus();
-                return;
-            }
-            var hid = document.getElementById('modal-matiere-id');
-            var search = document.getElementById('modal-matiere-search');
-            var hint = document.getElementById('modal-matiere-selected-hint');
-            var label = document.getElementById('modal-matiere-selected-label');
-            if (hid) hid.value = '';
-            if (search) {
-                search.value = '';
-                search.disabled = false;
-            }
-            if (hint) hint.hidden = true;
-            if (label) label.textContent = '';
-            modal.querySelectorAll('.modal-matiere-pick-item').forEach(function (b) {
-                b.classList.remove('is-selected');
-                b.hidden = false;
-            });
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-            if (search) {
-                search.focus();
-            }
-        }
-
-        function fermerModalAjoutMatiere() {
-            document.getElementById('modal-ajout-matiere').style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-
-        function _profDetailPostUrl() {
-            var el = document.querySelector('.main-content-container');
-            return (el && el.getAttribute('data-prof-detail-url')) || window.location.pathname;
-        }
-
-        function retirerMatiereSecondaire(professeurId, matiereId) {
-            if (!confirm('Voulez-vous vraiment retirer cette matière secondaire ?')) {
-                return;
-            }
-
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = _profDetailPostUrl();
-
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrfmiddlewaretoken';
-            csrfInput.value = csrfToken;
-            form.appendChild(csrfInput);
-
-            const actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = 'action';
-            actionInput.value = 'retirer_matiere_secondaire';
-            form.appendChild(actionInput);
-
-            const profInput = document.createElement('input');
-            profInput.type = 'hidden';
-            profInput.name = 'professeur_id';
-            profInput.value = professeurId;
-            form.appendChild(profInput);
-
-            const matiereInput = document.createElement('input');
-            matiereInput.type = 'hidden';
-            matiereInput.name = 'matiere_id';
-            matiereInput.value = matiereId;
-            form.appendChild(matiereInput);
-
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-        document.addEventListener('click', function(event) {
-            const modal = document.getElementById('modal-ajout-matiere');
-            if (event.target === modal) {
-                fermerModalAjoutMatiere();
-            }
-        });
-
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                fermerModalAjoutMatiere();
-            }
-        });
-    </script>
-
-    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+      }
+    });
+  </script>
+  {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

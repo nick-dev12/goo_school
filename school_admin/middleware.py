@@ -67,6 +67,7 @@ class AuthenticationMiddleware:
             '/auth/qr/',  # Authentification par QR Code
             '/preinscription/formulaire/',  # Formulaire de préinscription
             '/scan-qr/eleve/',  # Scan QR Code Élève (page publique)
+            '/pointage/borne/',  # Borne QR de pointage : appareil appairé par cookie signé
         ]
 
         technical_urls = {

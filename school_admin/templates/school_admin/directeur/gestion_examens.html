@@ -15,6 +15,11 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/examens_v3.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/examens_refonte.css' %}?v=1.0.0" />
 </head>
 <body class="gex-page-body" data-live-page="examens">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -26,36 +31,37 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
         </div>
 
-        <header class="gex-hero">
-            <div class="gex-hero-text">
-                <h1 class="gex-hero-title"><i class="fas fa-clipboard-list"></i> {% trans "Gestion des examens" %}</h1>
-                {% if annee_scolaire_active %}
-                    <span class="gex-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
-                {% endif %}
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-red"><i class="fas fa-clipboard-list" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <p class="fe-hero__kicker">{{ etablissement.nom }}{% if annee_scolaire_active %} · {{ annee_scolaire_active.libelle }}{% endif %}</p>
+                <h1 class="hb-head__title">{% trans "Examens" %}</h1>
+                <p class="fe-hero__sub">{% trans "Sessions d’examen par période, classes concernées, matières et emploi du temps." %}</p>
             </div>
-            <div class="gex-hero-stats">
-                <div class="gex-stat-pill">
-                    <span class="gex-stat-num">{{ stats_generales.total_sessions }}</span>
-                    <span class="gex-stat-lbl">{% trans "Sessions" %}</span>
-                </div>
-                <div class="gex-stat-pill gex-stat-pill--accent">
-                    <span class="gex-stat-num">{{ stats_generales.total_periodes }}</span>
-                    <span class="gex-stat-lbl">{% trans "Périodes" %}</span>
-                </div>
-                <div class="gex-stat-pill">
-                    <span class="gex-stat-num">{{ stats_generales.total_groupes }}</span>
-                    <span class="gex-stat-lbl">{% if est_superieur %}{% trans "Filières" %}{% else %}{% trans "Niveaux" %}{% endif %}</span>
-                </div>
-            </div>
-            <div class="gex-hero-actions">
-                <button type="button" class="gex-action-btn gex-action-btn--primary" onclick="openModal()">
-                    <i class="fas fa-plus"></i> {% trans "Nouvelle session" %}
-                </button>
-                <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="gex-action-btn gex-action-btn--secondary">
-                    <i class="fas fa-calendar-alt"></i> {% trans "Emploi du temps examens" %}
-                </a>
+            <div class="hb-head__actions">
+                <button type="button" class="cg3-btn cg3-btn--primary" onclick="openModal()"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Nouvelle session" %}</button>
+                <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="cg3-btn"><i class="fas fa-calendar-days" aria-hidden="true"></i>{% trans "Emploi du temps" %}</a>
+                <button type="button" class="cg3-btn" onclick="document.getElementById('reglesModal').classList.add('is-open')"><i class="fas fa-sliders" aria-hidden="true"></i>{% trans "Règles de calcul" %}</button>
             </div>
         </header>
+        <section class="fe-kpis hb-kpis hb-kpis--3 cg3" aria-label="{% trans 'Indicateurs' %}">
+            <div class="fe-kpi fe-tone-red"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Sessions" %}</span><span class="fe-kpi__icon"><i class="fas fa-clipboard-list" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ stats_generales.total_sessions }}</p></div>
+            <div class="fe-kpi fe-tone-orange"><div class="fe-kpi__top"><span class="fe-kpi__label">{% if est_superieur %}{% trans "Semestres" %}{% else %}{% trans "Périodes" %}{% endif %}</span><span class="fe-kpi__icon"><i class="fas fa-calendar-days" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ stats_generales.total_periodes }}</p></div>
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% if est_superieur %}{% trans "Filières" %}{% else %}{% trans "Niveaux" %}{% endif %}</span><span class="fe-kpi__icon"><i class="fas fa-layer-group" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ stats_generales.total_groupes }}</p></div>
+        </section>
+
+        <section class="exr-regles" aria-label="{% trans 'Règles de calcul appliquées' %}">
+            <span class="exr-regles__title"><i class="fas fa-scale-balanced" aria-hidden="true"></i> {% trans "Règles appliquées au bulletin" %}</span>
+            <span class="exr-pill">{% trans "Absence non justifiée" %} : <strong>{% if regles_examen.absence_injustifiee == 'zero' %}0/20{% else %}{% trans "neutralisée" %}{% endif %}</strong></span>
+            <span class="exr-pill">{% trans "Absence justifiée" %} : <strong>{% trans "neutralisée" %}</strong></span>
+            <span class="exr-pill">{% trans "Rattrapage" %} : <strong>{% if regles_examen.regle_rattrapage == 'meilleure' %}{% trans "meilleure note" %}{% else %}{% trans "remplace la 1re session" %}{% endif %}</strong></span>
+            <span class="exr-pill">{% trans "Examen blanc" %} : <strong>{% trans "hors bulletin" %}</strong></span>
+            {% if est_superieur %}
+            <span class="exr-pill">{% trans "Validation" %} : <strong>{{ regles_examen.seuil_validation|floatformat:"-2" }}/20</strong></span>
+            <span class="exr-pill">{% trans "Compensation" %} : <strong>{% if regles_examen.compensation_semestrielle %}{% trans "oui" %}{% else %}{% trans "non" %}{% endif %}</strong></span>
+            <span class="exr-pill">{% trans "Note éliminatoire" %} : <strong>{% if regles_examen.note_eliminatoire is not None %}{{ regles_examen.note_eliminatoire|floatformat:"-2" }}{% else %}{% trans "aucune" %}{% endif %}</strong></span>
+            {% endif %}
+        </section>
 
         {% if est_superieur %}
         <div class="gex-alert gex-alert-info">
@@ -145,10 +151,27 @@
                                                             <span class="gex-icon-wrap" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
                                                             <div>
                                                                 <h3 class="gex-item-title">{{ session.nom_examen }}</h3>
+                                                                <div class="exr-badges">
+                                                                    <span class="exr-badge exr-badge--{{ session.type_session }}">{{ session.get_type_session_display }}</span>
+                                                                    {% if not session.compte_bulletin %}<span class="exr-badge exr-badge--muted">{% trans "Hors bulletin" %}</span>{% endif %}
+                                                                    {% if session.est_annule %}<span class="exr-badge exr-badge--danger">{% trans "Annulée" %}</span>
+                                                                    {% elif session.est_publie %}<span class="exr-badge exr-badge--ok"><i class="fas fa-eye"></i> {% trans "Publiée" %}</span>
+                                                                    {% else %}<span class="exr-badge exr-badge--warn"><i class="fas fa-eye-slash"></i> {% trans "Non publiée" %}</span>{% endif %}
+                                                                </div>
                                                                 {% if session.description %}
                                                                     <p class="gex-item-excerpt">{{ session.description|truncatewords:14 }}</p>
                                                                 {% endif %}
                                                                 <span class="gex-item-meta"><i class="fas fa-clock"></i> {{ session.duree_format }}</span>
+                                                                {% with av=session.avancement %}
+                                                                <div class="exr-progress" title="{% trans 'Épreuves planifiées et notes reçues' %}">
+                                                                    <span>{% trans "Planning" %} <strong>{{ av.nb_planifiees }}/{{ av.nb_epreuves }}</strong></span>
+                                                                    <span>{% trans "Notes transmises" %} <strong>{{ av.taux_notes }} %</strong></span>
+                                                                    <span class="exr-bar"><span style="width: {{ av.taux_notes }}%"></span></span>
+                                                                </div>
+                                                                {% if av.non_planifiees %}
+                                                                <p class="exr-warn"><i class="fas fa-triangle-exclamation"></i> {% trans "À planifier" %} : {% for m in av.non_planifiees|slice:":4" %}{{ m.nom }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if av.non_planifiees|length > 4 %}…{% endif %}</p>
+                                                                {% endif %}
+                                                                {% endwith %}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -181,7 +204,14 @@
                                                             <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="gex-act-btn gex-act-btn--secondary" title="{% trans 'Emploi du temps' %}">
                                                                 <i class="fas fa-calendar-alt"></i><span>{% trans "EDT" %}</span>
                                                             </a>
-                                                            <button type="button" class="gex-act-btn gex-act-btn--edit" title="{% trans 'Modifier' %}"
+                                                            <form method="post" action="{% url 'directeur:publier_session_examen' session.id %}" class="exr-inline-form">
+                                                                {% csrf_token %}
+                                                                <button type="submit" class="gex-act-btn {% if session.est_publie %}gex-act-btn--secondary{% else %}gex-act-btn--primary{% endif %}" title="{% if session.est_publie %}{% trans 'Retirer la publication' %}{% else %}{% trans 'Publier aux élèves et parents' %}{% endif %}">
+                                                                    <i class="fas fa-{% if session.est_publie %}eye-slash{% else %}bullhorn{% endif %}"></i><span>{% if session.est_publie %}{% trans "Dépublier" %}{% else %}{% trans "Publier" %}{% endif %}</span>
+                                                                </button>
+                                                            </form>
+                                                            <button type="button" class="gex-act-btn gex-act-btn--edit js-exr-edit" title="{% trans 'Modifier' %}"
+                                                                    data-type="{{ session.type_session }}" data-compte="{{ session.compte_bulletin|yesno:'1,0' }}" data-publie="{{ session.est_publie|yesno:'1,0' }}"
                                                                     onclick="openEditModal({{ session.id }}, '{{ session.nom_examen|escapejs }}', {{ session.periode.id }}, '{{ session.date_debut|date:'Y-m-d' }}', '{{ session.date_fin|date:'Y-m-d' }}', '{{ session.description|escapejs }}'{% if est_superieur %}, [{% for c in session.classes.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}], [{% for m in session.matieres.all %}{{ m.id }}{% if not forloop.last %},{% endif %}{% endfor %}]{% endif %})">
                                                                 <i class="fas fa-edit"></i><span>{% trans "Modifier" %}</span>
                                                             </button>
@@ -239,6 +269,33 @@
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="exam-form-body">
+                        <section class="exam-form-section">
+                            <div class="exam-section-head">
+                                <span class="exam-section-step" aria-hidden="true"><i class="fas fa-tag"></i></span>
+                                <div>
+                                    <h3>{% trans "Nature de la session" %}</h3>
+                                    <p class="exam-section-desc">{% trans "Elle décide du rôle des notes dans les moyennes." %}</p>
+                                </div>
+                            </div>
+                            <div class="exr-types" role="radiogroup" aria-label="{% trans 'Type de session' %}">
+                                {% for valeur, libelle in types_session %}
+                                <label class="exr-type">
+                                    <input type="radio" name="type_session" value="{{ valeur }}" {% if forloop.first %}checked{% endif %} class="js-exr-type">
+                                    <span class="exr-type__body">
+                                        <strong>{{ libelle }}</strong>
+                                        <small>{% if valeur == 'composition' %}{% trans "Compte au bulletin ; plusieurs compositions d'une période sont moyennées." %}{% elif valeur == 'examen' %}{% trans "Épreuve terminale de la période (session normale)." %}{% elif valeur == 'examen_blanc' %}{% trans "Entraînement : notes visibles, hors bulletin par défaut." %}{% else %}{% trans "2e chance : seuls les élèves n'ayant pas validé passent ; règle de l'établissement appliquée." %}{% endif %}</small>
+                                    </span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="compte_bulletin_present" value="1">
+                            <input type="hidden" name="est_publie_present" value="1">
+                            <div class="exr-switches">
+                                <label class="exr-switch"><input type="checkbox" name="compte_bulletin" class="js-exr-compte" checked> <span>{% trans "Compte dans le bulletin" %}</span></label>
+                                <label class="exr-switch"><input type="checkbox" name="est_publie" class="js-exr-publie"> <span>{% trans "Publier le calendrier aux élèves et parents" %}</span></label>
+                            </div>
+                        </section>
+
                         <!-- 1 — Identité -->
                         <section class="exam-form-section">
                             <div class="exam-section-head">
@@ -396,7 +453,7 @@
                         <!-- 5 — Notes -->
                         <section class="exam-form-section">
                             <div class="exam-section-head">
-                                <span class="exam-section-step" style="background: linear-gradient(135deg, #64748b, #475569);" aria-hidden="true">5</span>
+                                <span class="exam-section-step" style="background:#64748b;" aria-hidden="true">5</span>
                                 <div>
                                     <h3>{% trans "Consignes (optionnel)" %}</h3>
                                     <p class="exam-section-desc">{% trans "Informations pour les enseignants ou la scolarité (horaires, documents autorisés, etc.)." %}</p>
@@ -432,6 +489,33 @@
                 <div class="modal-body">
                     <input type="hidden" id="edit_session_id" name="session_id" />
                     <div class="exam-form-body">
+                        <section class="exam-form-section">
+                            <div class="exam-section-head">
+                                <span class="exam-section-step" aria-hidden="true"><i class="fas fa-tag"></i></span>
+                                <div>
+                                    <h3>{% trans "Nature de la session" %}</h3>
+                                    <p class="exam-section-desc">{% trans "Elle décide du rôle des notes dans les moyennes." %}</p>
+                                </div>
+                            </div>
+                            <div class="exr-types" role="radiogroup" aria-label="{% trans 'Type de session' %}">
+                                {% for valeur, libelle in types_session %}
+                                <label class="exr-type">
+                                    <input type="radio" name="type_session" value="{{ valeur }}" {% if forloop.first %}checked{% endif %} class="js-exr-type">
+                                    <span class="exr-type__body">
+                                        <strong>{{ libelle }}</strong>
+                                        <small>{% if valeur == 'composition' %}{% trans "Compte au bulletin ; plusieurs compositions d'une période sont moyennées." %}{% elif valeur == 'examen' %}{% trans "Épreuve terminale de la période (session normale)." %}{% elif valeur == 'examen_blanc' %}{% trans "Entraînement : notes visibles, hors bulletin par défaut." %}{% else %}{% trans "2e chance : seuls les élèves n'ayant pas validé passent ; règle de l'établissement appliquée." %}{% endif %}</small>
+                                    </span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="compte_bulletin_present" value="1">
+                            <input type="hidden" name="est_publie_present" value="1">
+                            <div class="exr-switches">
+                                <label class="exr-switch"><input type="checkbox" name="compte_bulletin" class="js-exr-compte" checked> <span>{% trans "Compte dans le bulletin" %}</span></label>
+                                <label class="exr-switch"><input type="checkbox" name="est_publie" class="js-exr-publie"> <span>{% trans "Publier le calendrier aux élèves et parents" %}</span></label>
+                            </div>
+                        </section>
+
                         <section class="exam-form-section">
                             <div class="exam-section-head">
                                 <span class="exam-section-step">1</span>
@@ -581,6 +665,68 @@
         </div>
     </div>
 
+
+    <!-- Règles de calcul de l'établissement -->
+    <div id="reglesModal" class="exr-modal" role="dialog" aria-modal="true" aria-labelledby="reglesTitre">
+        <div class="exr-modal__box">
+            <div class="exr-modal__head">
+                <h2 id="reglesTitre"><i class="fas fa-sliders"></i> {% trans "Règles de calcul des examens" %}</h2>
+                <button type="button" class="exr-modal__close" onclick="this.closest('.exr-modal').classList.remove('is-open')" aria-label="{% trans 'Fermer' %}">&times;</button>
+            </div>
+            <form method="post" action="{% url 'directeur:regles_examens' %}">
+                {% csrf_token %}
+                <div class="exr-modal__body">
+                    <fieldset class="exr-field">
+                        <legend>{% trans "Absence non justifiée à une épreuve" %}</legend>
+                        <label><input type="radio" name="absence_injustifiee" value="zero" {% if regles_examen.absence_injustifiee == 'zero' %}checked{% endif %}> {% trans "Compte 0/20 (usage le plus courant)" %}</label>
+                        <label><input type="radio" name="absence_injustifiee" value="neutre" {% if regles_examen.absence_injustifiee == 'neutre' %}checked{% endif %}> {% trans "Neutralisée : la moyenne repose sur le contrôle continu" %}</label>
+                        <p class="exr-help">{% trans "Une absence justifiée est toujours neutralisée." %}</p>
+                    </fieldset>
+                    <fieldset class="exr-field">
+                        <legend>{% trans "Note retenue après un rattrapage" %}</legend>
+                        <label><input type="radio" name="regle_rattrapage" value="meilleure" {% if regles_examen.regle_rattrapage == 'meilleure' %}checked{% endif %}> {% trans "La meilleure des deux notes" %}</label>
+                        <label><input type="radio" name="regle_rattrapage" value="remplace" {% if regles_examen.regle_rattrapage == 'remplace' %}checked{% endif %}> {% trans "La note de rattrapage remplace la 1re session" %}</label>
+                    </fieldset>
+                    <div class="exr-grid2">
+                        <label class="exr-field">{% trans "Moyenne de validation" %}
+                            <input type="number" name="seuil_validation" step="0.25" min="1" max="20" value="{{ regles_examen.seuil_validation|floatformat:'-2' }}">
+                        </label>
+                        <label class="exr-field">{% trans "Note éliminatoire (supérieur)" %}
+                            <input type="number" name="note_eliminatoire" step="0.25" min="0" max="20" value="{% if regles_examen.note_eliminatoire is not None %}{{ regles_examen.note_eliminatoire|floatformat:'-2' }}{% endif %}" placeholder="{% trans 'Aucune' %}">
+                        </label>
+                    </div>
+                    <label class="exr-switch"><input type="checkbox" name="compensation_semestrielle" {% if regles_examen.compensation_semestrielle %}checked{% endif %}> <span>{% trans "LMD : compensation entre UE dans le semestre (moyenne ≥ seuil, aucune note éliminatoire)" %}</span></label>
+                </div>
+                <div class="exr-modal__foot">
+                    <button type="button" class="cg3-btn" onclick="this.closest('.exr-modal').classList.remove('is-open')">{% trans "Annuler" %}</button>
+                    <button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-check"></i> {% trans "Enregistrer" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+    (function () {
+        // Examen blanc : décoché « compte au bulletin » par défaut ; on garde le choix si l'utilisateur le modifie.
+        document.querySelectorAll('.exam-modal form').forEach(function (form) {
+            var compte = form.querySelector('.js-exr-compte');
+            form.querySelectorAll('.js-exr-type').forEach(function (r) {
+                r.addEventListener('change', function () { if (compte) compte.checked = r.value !== 'examen_blanc'; });
+            });
+        });
+        // Modification : préremplir nature, bulletin et publication.
+        document.querySelectorAll('.js-exr-edit').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var form = document.getElementById('editSessionForm');
+                var radio = form.querySelector('.js-exr-type[value="' + btn.dataset.type + '"]');
+                if (radio) radio.checked = true;
+                form.querySelector('.js-exr-compte').checked = btn.dataset.compte === '1';
+                form.querySelector('.js-exr-publie').checked = btn.dataset.publie === '1';
+            });
+        });
+        var m = document.getElementById('reglesModal');
+        if (m) m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('is-open'); });
+    })();
+    </script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
     <script src="{% static 'school_admin/js/directeur/gestion_examens.js' %}?v=7.1.0"></script>

@@ -1,177 +1,134 @@
 {% load static %}
-{% load notes_tags %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% include 'school_admin/partials/seo_head.html' %}
-    <title>{{ page_title|default:"Notes & évaluations" }} – ARIA</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/notes_evaluations_eleve.css' %}?v=1.0.3">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/eleve_notes_home.css' %}?v=1.0.2">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Mes notes" %} – ARIA</title>
+  {% include 'school_admin/eleve/partials/_ex_head.html' %}
 </head>
+<body class="axd-page px-page ex-page">
+  {% include 'school_admin/eleve/partials/_ex_shell.html' %}
 
-<body>
-{% include 'school_admin/eleve/partials/header.html' %}
+  {% with n=snotes %}
+  <main class="axd px ex" id="contenu">
+    <header class="px-page-head">
+      <span class="px-page-head__icon ax-tone-green"><i class="fas fa-chart-line" aria-hidden="true"></i></span>
+      <div>
+        <h1>{% if est_parent %}{% trans "Notes" %}{% else %}{% trans "Mes notes" %}{% endif %}</h1>
+        <p>{% blocktrans count c=n.nb %}{{ c }} note publiée{% plural %}{{ c }} notes publiées{% endblocktrans %}{% if classe %} · {{ classe.nom }}{% endif %}</p>
+      </div>
+      {% if bulletin_disponible %}
+      <a class="axd-btn axd-btn--primary ex-head-btn" href="{{ bulletin_url }}"><i class="fas fa-file-lines" aria-hidden="true"></i>{% trans "Bulletin" %}{% if bulletin_periode_label %} · {{ bulletin_periode_label }}{% endif %}</a>
+      {% endif %}
+    </header>
 
-{% include 'school_admin/eleve/partials/eleve_notes_content.html' %}
-
-<!-- Modal plein écran pour les notes par matière -->
-{% for matiere_id, matiere_data in matieres_avec_notes.items %}
-<div id="matiere-modal-{{ matiere_id }}" class="fullscreen-modal">
-    <div class="fullscreen-modal-content">
-        <div class="fullscreen-modal-header">
-            <div class="modal-header-left">
-                <div class="modal-matiere-icon" style="background: {% if matiere_data.color == 'neo-blue' %}linear-gradient(135deg, #3b82f6, #2563eb){% elif matiere_data.color == 'neo-red' %}linear-gradient(135deg, #ef4444, #dc2626){% elif matiere_data.color == 'neo-green' %}linear-gradient(135deg, #10b981, #059669){% elif matiere_data.color == 'neo-purple' %}linear-gradient(135deg, #8b5cf6, #7c3aed){% elif matiere_data.color == 'neo-orange' %}linear-gradient(135deg, #f59e0b, #d97706){% elif matiere_data.color == 'neo-teal' %}linear-gradient(135deg, #14b8a6, #0d9488){% elif matiere_data.color == 'neo-cyan' %}linear-gradient(135deg, #06b6d4, #0ea5e9){% elif matiere_data.color == 'neo-pink' %}linear-gradient(135deg, #ec4899, #db2777){% endif %}">
-                    <i class="{{ matiere_data.icon }}"></i>
-                </div>
-                <div class="modal-header-info">
-                    <h2>{{ matiere_data.matiere.nom }}</h2>
-                    <p>Notes détaillées par période</p>
-                </div>
-            </div>
-            <button type="button" class="fullscreen-close-btn" onclick="closeMatiereModal({{ matiere_id }})">
-                <i class="fas fa-times"></i>
-            </button>
+    <section class="axd-mini ex-mini" aria-label="{% trans 'Résumé' %}">
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-blue"><i class="fas fa-chart-line" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% if n.moyenne %}{% trans "Moyenne générale" %}{% else %}{% trans "Moyenne des notes" %}{% endif %}</h2>
+          {% if n.moyenne %}
+          <p class="axd-mini__value{% if n.moyenne.valeur < n.seuil %} is-bad{% endif %}">{{ n.moyenne.valeur|floatformat:"-2" }}<small>/20</small>{% if n.moyenne.delta %}<span class="ex-delta {% if n.moyenne.delta > 0 %}is-up{% else %}is-down{% endif %}">{% if n.moyenne.delta > 0 %}+{% endif %}{{ n.moyenne.delta|floatformat:"-2" }}</span>{% endif %}</p>
+          <p class="axd-mini__caption">{{ n.moyenne.periode }}{% if n.moyenne.rang %} · {% trans "rang" %} {{ n.moyenne.rang }}{% endif %}</p>
+          {% else %}
+          <p class="axd-mini__value{% if n.moyenne_notes != None and n.moyenne_notes < n.seuil %} is-bad{% endif %}">{% if n.moyenne_notes != None %}{{ n.moyenne_notes|floatformat:"-2" }}<small>/20</small>{% else %}—{% endif %}</p>
+          <p class="axd-mini__caption">{% trans "Moyenne simple des notes publiées" %}</p>
+          {% endif %}
         </div>
-
-        <div class="fullscreen-modal-body">
-            <div class="modal-periodes-tabs">
-                {% for periode_nom in matiere_data.notes_par_periode.keys %}
-                    <button type="button" class="modal-periode-tab {% if forloop.first %}active{% endif %}"
-                            data-modal-id="{{ matiere_id }}"
-                            data-periode="{{ periode_nom }}"
-                            onclick="switchPeriodeInModal({{ matiere_id }}, '{{ periode_nom }}')">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>{{ periode_nom }}</span>
-                    </button>
-                {% endfor %}
-            </div>
-
-            {% for periode_nom, notes in matiere_data.notes_par_periode.items %}
-                <div class="modal-periode-content {% if forloop.first %}active{% endif %}"
-                     id="modal-periode-{{ matiere_id }}-{{ periode_nom|slugify }}"
-                     data-modal-id="{{ matiere_id }}"
-                     data-periode="{{ periode_nom }}">
-
-                    {% if notes %}
-                        {% with total_notes=notes|length %}
-                        {% with moyenne=notes|sum_notes_sur_20|divide:total_notes %}
-                        {% with meilleure=notes|max_note_sur_20 %}
-                        {% with pire=notes|min_note_sur_20 %}
-                        <div class="modal-stats">
-                            <div class="modal-stat-card">
-                                <div class="stat-icon">
-                                    <i class="fas fa-chart-line"></i>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-label">Moyenne</div>
-                                    <div class="stat-value {% if moyenne >= 16 %}excellent{% elif moyenne >= 14 %}good{% elif moyenne >= 12 %}average{% elif moyenne >= 10 %}below-average{% else %}poor{% endif %}">{{ moyenne|floatformat:2 }}/20</div>
-                                </div>
-                            </div>
-                            <div class="modal-stat-card">
-                                <div class="stat-icon">
-                                    <i class="fas fa-arrow-up"></i>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-label">Meilleure note</div>
-                                    <div class="stat-value {% if meilleure >= 16 %}excellent{% elif meilleure >= 14 %}good{% elif meilleure >= 12 %}average{% elif meilleure >= 10 %}below-average{% else %}poor{% endif %}">{{ meilleure|floatformat:2 }}/20</div>
-                                </div>
-                            </div>
-                            <div class="modal-stat-card">
-                                <div class="stat-icon">
-                                    <i class="fas fa-arrow-down"></i>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-label">Plus faible note</div>
-                                    <div class="stat-value {% if pire >= 16 %}excellent{% elif pire >= 14 %}good{% elif pire >= 12 %}average{% elif pire >= 10 %}below-average{% else %}poor{% endif %}">{{ pire|floatformat:2 }}/20</div>
-                                </div>
-                            </div>
-                            <div class="modal-stat-card">
-                                <div class="stat-icon">
-                                    <i class="fas fa-file-alt"></i>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-label">Nombre de notes</div>
-                                    <div class="stat-value">{{ total_notes }}</div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endwith %}
-                        {% endwith %}
-                        {% endwith %}
-                        {% endwith %}
-
-                        <div class="modal-notes-content">
-                            <div class="modal-notes-table-container table-responsive">
-                                <table class="modal-notes-table">
-                                    <thead>
-                                        <tr>
-                                            <th class="date-col">Date</th>
-                                            <th class="titre-col">Évaluation</th>
-                                            <th class="type-col">Type</th>
-                                            <th class="note-col">Note</th>
-                                            <th class="note-sur-20-col">/20</th>
-                                            <th class="appreciation-col">Appréciation</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for note in notes %}
-                                            <tr>
-                                                <td class="date-col" data-label="Date">{{ note.date|date:"d/m/Y" }}</td>
-                                                <td class="titre-col" data-label="Titre">
-                                                    {{ note.titre }}
-                                                    {% if note.est_examen %}
-                                                        <span class="badge-examen"><i class="fas fa-graduation-cap"></i> Examen</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td class="type-col" data-label="Type">
-                                                    <span class="type-badge {% if note.est_examen %}type-examen{% endif %}">{{ note.type }}</span>
-                                                </td>
-                                                <td class="note-col" data-label="Note">
-                                                    <div class="note-display {% if note.note_sur_20 >= 16 %}excellent{% elif note.note_sur_20 >= 14 %}good{% elif note.note_sur_20 >= 12 %}average{% elif note.note_sur_20 >= 10 %}below-average{% else %}poor{% endif %}">
-                                                        <span class="note-value">{{ note.note }}</span>
-                                                        <span class="note-max">/{{ note.bareme }}</span>
-                                                    </div>
-                                                </td>
-                                                <td class="note-sur-20-col" data-label="Note /20">
-                                                    <div class="note-display {% if note.note_sur_20 >= 16 %}excellent{% elif note.note_sur_20 >= 14 %}good{% elif note.note_sur_20 >= 12 %}average{% elif note.note_sur_20 >= 10 %}below-average{% else %}poor{% endif %}">
-                                                        <span class="note-value">{{ note.note_sur_20 }}</span>
-                                                        <span class="note-max">/20</span>
-                                                    </div>
-                                                </td>
-                                                <td class="appreciation-col" data-label="Appréciation">
-                                                    {% if note.appreciation %}
-                                                        {{ note.appreciation }}
-                                                    {% else %}
-                                                        <span style="color: #9ca3af;">-</span>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="modal-notes-content">
-                            <div class="modal-empty-state">
-                                <i class="fas fa-inbox"></i>
-                                <p>Aucune note pour cette période</p>
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
+      </article>
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-green"><i class="fas fa-trophy" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% trans "Point fort" %}</h2>
+          <p class="axd-mini__value ex-mini__text">{% if n.meilleure %}{{ n.meilleure.matiere }}{% else %}—{% endif %}</p>
+          <p class="axd-mini__caption">{% if n.meilleure %}{{ n.meilleure.moyenne|floatformat:"-2" }}/20 {% trans "de moyenne" %}{% endif %}</p>
         </div>
+      </article>
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-orange"><i class="fas fa-dumbbell" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% trans "À travailler" %}</h2>
+          <p class="axd-mini__value ex-mini__text">{% if n.a_travailler and n.matieres|length > 1 %}{{ n.a_travailler.matiere }}{% else %}—{% endif %}</p>
+          <p class="axd-mini__caption">{% if n.a_travailler and n.matieres|length > 1 %}{{ n.a_travailler.moyenne|floatformat:"-2" }}/20 {% trans "de moyenne" %}{% endif %}</p>
+        </div>
+      </article>
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-red"><i class="fas fa-book-open-reader" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% trans "Évaluations à venir" %}</h2>
+          <p class="axd-mini__value">{{ n.evaluations|length }}</p>
+          <p class="axd-mini__caption">{% if n.evaluations %}{% trans "La prochaine" %} {{ n.evaluations.0.quand }}{% else %}{% trans "Rien de prévu" %}{% endif %}</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="axd-grid">
+      <article class="axd-card axd-span-8">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Évolution" %}</h2>
+            <p class="axd-card__sub">{% trans "Chaque point est une note ramenée sur 20 · seuil 10/20" %}</p>
+          </div>
+        </header>
+        {% if n.charts.evolution.values|length > 1 %}
+        <div class="axd-chart"><canvas id="ex-chart-evolution" role="img" aria-label="{% trans 'Courbe des notes sur 20' %}"></canvas></div>
+        {% else %}
+          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-chart-line' message=_("La courbe apparaîtra après quelques notes publiées.") %}
+        {% endif %}
+      </article>
+      <aside class="axd-card axd-span-4">
+        <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Prochaines évaluations" %}</h2></div></header>
+        {% if n.evaluations %}
+        <ul class="ex-tasks">
+          {% for e in n.evaluations %}
+          <li class="ex-task">
+            <span class="axd-date-chip ex-chip-{{ e.tone }}" aria-hidden="true"><b>{{ e.date|date:"d" }}</b>{{ e.date|date:"M" }}</span>
+            <div class="ex-task__body"><strong>{{ e.titre }}</strong><small>{{ e.matiere }}</small></div>
+            <span class="axd-score {% if e.jours <= 1 %}axd-score--bad{% elif e.proche %}axd-score--warn{% else %}ex-score--neutral{% endif %}">{{ e.quand }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="axd-muted">{% trans "Aucune évaluation annoncée." %}</p>
+        {% endif %}
+      </aside>
+    </section>
+
+    <h2 class="px-section-title ex-section-title">{% trans "Par matière" %}</h2>
+    {% if n.matieres %}
+    <div class="ex-subjects">
+      {% for m in n.matieres %}
+      <details class="ex-subject"{% if forloop.first %} open{% endif %}>
+        <summary>
+          <span class="ex-work__icon ax-tone-{{ m.tone }}"><i class="fas {{ m.icon }}" aria-hidden="true"></i></span>
+          <span class="ex-subject__name"><strong>{{ m.matiere }}</strong><small>{% blocktrans count c=m.nb %}{{ c }} note{% plural %}{{ c }} notes{% endblocktrans %} · {% trans "de" %} {{ m.pire|floatformat:"-1" }} {% trans "à" %} {{ m.meilleure|floatformat:"-1" }}</small></span>
+          <span class="ex-subject__avg{% if m.moyenne < n.seuil %} is-bad{% endif %}">{{ m.moyenne|floatformat:"-2" }}<small>/20</small></span>
+          <i class="fas fa-chevron-down ex-subject__chev" aria-hidden="true"></i>
+        </summary>
+        <ul class="axd-list ex-subject__list">
+          {% for r in m.notes %}
+          <li>
+            <span class="axd-list__main"><span><strong>{{ r.titre }}</strong><small>{% if r.date %}{{ r.date|date:"l j F"|capfirst }}{% endif %}{% if r.appreciation %} · « {{ r.appreciation|truncatechars:80 }} »{% endif %}</small></span></span>
+            <span class="px-note {% if r.sur20 < n.seuil %}is-bad{% else %}is-good{% endif %}">{{ r.valeur|floatformat:"-2" }}/{{ r.bareme|floatformat:"0" }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endfor %}
     </div>
-</div>
-{% endfor %}
+    {% else %}
+    <div class="px-empty-inline"><i class="fas fa-star" aria-hidden="true"></i><h2>{% trans "Pas encore de note" %}</h2><p>{% trans "Tes notes apparaîtront ici dès que tes professeurs les auront publiées." %}</p></div>
+    {% endif %}
+  </main>
 
-<script src="{% static 'school_admin/js/eleve/notes_evaluations_eleve.js' %}?v=1.0.1"></script>
+  {{ n.charts|json_script:"ex-data" }}
+  {% endwith %}
 
-{% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="{% static 'school_admin/js/eleve/dashboard_eleve_v3.js' %}?v=1.0.0"></script>
+  {% include 'school_admin/eleve/partials/_ex_foot.html' %}
 </body>
 </html>

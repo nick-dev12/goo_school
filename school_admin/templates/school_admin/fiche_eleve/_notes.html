@@ -1,0 +1,50 @@
+{% load i18n %}
+{% if fiche.officielles %}
+<article class="fe-card fe-tone-blue" style="margin-bottom:16px">
+  <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-award" aria-hidden="true"></i>{% trans "Moyennes des bulletins" %}</h2>
+  <p class="fe-card__sub">{% trans "Moyennes générales coefficientées, calculées pour les bulletins." %}</p></div>
+  {% if fiche.vue == 'direction' and fiche.classe %}<a class="cg3-btn cg3-btn--sm" href="{% url 'directeur:voir_bulletin_eleve' fiche.classe.id eleve.id %}"><i class="fas fa-file-lines" aria-hidden="true"></i>{% trans "Bulletin" %}</a>{% endif %}</header>
+  <div class="fe-official">
+    {% for o in fiche.officielles %}
+    <div><span>{{ o.periode }}</span><b class="{% if o.moyenne < fiche.seuil %}is-low{% endif %}">{{ o.moyenne|floatformat:2 }}</b>/20
+      <small>{% if o.rang %}{% trans "Rang" %} {{ o.rang }}{% endif %}{% if not o.publie %} · <span class="fe-note-draft">{% trans "non publiée" %}</span>{% endif %}</small>
+      {% if o.decision %}<small>{{ o.decision }}</small>{% endif %}</div>
+    {% endfor %}
+  </div>
+</article>
+{% endif %}
+
+{% if fiche.sans_periode %}
+<p class="fe-alert fe-alert--warn" style="margin-bottom:12px"><i class="fas fa-calendar-xmark" aria-hidden="true"></i><span>{% blocktrans count n=fiche.sans_periode %}{{ n }} note n’est rattachée à aucune période : elle ne compte pas dans les bulletins.{% plural %}{{ n }} notes ne sont rattachées à aucune période : elles ne comptent pas dans les bulletins.{% endblocktrans %}{% if fiche.vue == 'direction' %} {% trans "Rattachez les évaluations concernées à un trimestre ou un semestre." %}{% endif %}</span></p>
+{% endif %}
+{% if fiche.periodes %}
+<div class="fe-card__head" style="margin-bottom:12px">
+  <div class="fe-subtabs" role="tablist" data-fe-subtabs="notes" style="margin:0">
+    {% for p in fiche.periodes %}<button type="button" role="tab" class="fe-subtab{% if forloop.last %} is-active{% endif %}" data-fe-subtab="p{{ p.id }}">{{ p.libelle }}{% if p.moyenne != None %} · {{ p.moyenne|floatformat:1 }}{% endif %}</button>{% endfor %}
+  </div>
+  {% if fiche.vue == 'direction' and fiche.brouillons %}<span class="cg3-chip cg3-chip--warn" title="{% trans 'Notes saisies mais pas encore publiées aux familles' %}"><i class="fas fa-eye-slash" aria-hidden="true"></i>{% blocktrans count n=fiche.brouillons %}{{ n }} note non publiée{% plural %}{{ n }} notes non publiées{% endblocktrans %}</span>{% endif %}
+</div>
+{% for p in fiche.periodes %}
+<div class="fe-subpanel{% if forloop.last %} is-active{% endif %}" data-fe-subpanel="notes:p{{ p.id }}">
+  <div class="fe-subjects">
+    {% for m in p.matieres %}
+    <article class="fe-subject fe-tone-{{ m.tone }}">
+      <div class="fe-subject__head">
+        <span class="fe-subject__icon"><i class="fas {{ m.icon }}" aria-hidden="true"></i></span>
+        <p class="fe-subject__name">{{ m.nom }}<small>{% blocktrans count n=m.nb %}{{ n }} évaluation{% plural %}{{ n }} évaluations{% endblocktrans %}{% if m.absences %} · {{ m.absences }} {% trans "absence(s)" %}{% endif %}</small></p>
+        <p class="fe-subject__avg{% if m.moyenne != None and m.moyenne < fiche.seuil %} is-low{% endif %}">{% if m.moyenne != None %}{{ m.moyenne|floatformat:2 }}<small>/20</small>{% else %}—{% endif %}</p>
+      </div>
+      <ul>
+        {% for n in m.notes %}
+        <li><span>{{ n.titre }}<small>{% if n.date %}{{ n.date|date:"d/m" }}{% endif %}</small>{% if not n.publiee %}<span class="fe-note-draft">{% trans "brouillon" %}</span>{% endif %}</span>
+          {% if n.absent %}<b class="is-low">{% trans "Absent" %}</b>{% elif n.valeur != None %}<b class="{% if n.sur20 != None and n.sur20 < fiche.seuil %}is-low{% endif %}">{{ n.valeur|floatformat:"-2" }}<small style="color:var(--ax-muted);font-weight:500">/{{ n.bareme|floatformat:0 }}</small></b>{% else %}<b>—</b>{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="fe-card"><div class="cg3-empty"><i class="fas fa-clipboard" aria-hidden="true"></i><strong>{% trans "Aucune note" %}</strong><span>{% if fiche.vue == 'enseignant' %}{% trans "Aucune note saisie dans vos matières pour cette année." %}{% else %}{% trans "Aucune note saisie pour cette année scolaire." %}{% endif %}</span></div></div>
+{% endif %}

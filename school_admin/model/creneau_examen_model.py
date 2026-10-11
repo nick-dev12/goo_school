@@ -142,14 +142,14 @@ class CreneauExamen(models.Model):
                     'matiere': f"La matière {self.matiere.nom} ne fait pas partie de la session d'examen '{self.session_examen.nom_examen}'."
                 })
         
-        # Vérifier que la date est dans la période de la session
+        # La date doit tomber dans les dates de la session (et donc de la période)
         if self.session_examen and self.date_examen:
-            periode = self.session_examen.periode
-            if self.date_examen < periode.date_debut or self.date_examen > periode.date_fin:
+            sess = self.session_examen
+            if self.date_examen < sess.date_debut or self.date_examen > sess.date_fin:
                 raise ValidationError({
-                    'date_examen': f"La date doit être comprise entre le {periode.date_debut} et le {periode.date_fin}."
+                    'date_examen': f"La date doit être comprise entre le {sess.date_debut:%d/%m/%Y} et le {sess.date_fin:%d/%m/%Y} (dates de la session)."
                 })
-        
+
         # Vérifier les conflits de salle
         if self.salle and self.date_examen and self.heure_debut and self.heure_fin:
             conflits_salle = CreneauExamen.objects.filter(
@@ -185,7 +185,28 @@ class CreneauExamen(models.Model):
                     raise ValidationError({
                         'surveillant': f"{self.surveillant.nom_complet} surveille déjà '{creneau.session_examen.nom_examen} - {creneau.matiere.nom}' de {creneau.heure_debut} à {creneau.heure_fin}."
                     })
-    
+
+        # Une même classe ne peut pas composer deux épreuves en même temps (toutes sessions confondues)
+        if self.session_examen and self.matiere and self.date_examen and self.heure_debut and self.heure_fin:
+            from school_admin.services.examens_planning import classes_concernees
+            mes_classes = set(c.id for c in classes_concernees(self.session_examen, self.matiere))
+            autres = CreneauExamen.objects.filter(
+                date_examen=self.date_examen, est_annule=False, actif=True,
+                heure_debut__lt=self.heure_fin, heure_fin__gt=self.heure_debut,
+                session_examen__etablissement_id=self.session_examen.etablissement_id,
+            ).select_related('session_examen', 'matiere')
+            if self.pk:
+                autres = autres.exclude(pk=self.pk)
+            for creneau in autres:
+                communes = mes_classes & set(c.id for c in classes_concernees(creneau.session_examen, creneau.matiere))
+                if communes:
+                    from school_admin.model.classe_model import Classe
+                    noms = ', '.join(Classe.objects.filter(id__in=communes).order_by('nom').values_list('nom', flat=True)[:4])
+                    raise ValidationError({
+                        'heure_debut': f"Conflit d'horaire : {noms} compose(nt) déjà « {creneau.matiere.nom} » "
+                                       f"de {creneau.heure_debut:%H:%M} à {creneau.heure_fin:%H:%M}."
+                    })
+
     def save(self, *args, **kwargs):
         """
         Surcharge de la méthode save pour calculer la durée

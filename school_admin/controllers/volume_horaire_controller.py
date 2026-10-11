@@ -247,124 +247,111 @@ class VolumeHoraireController:
             'absences_disponibles': False,
         }
 
+    # ------------------------------------------------------------------ accès
+    @staticmethod
+    def _acces(request, paiement=False):
+        """(établissement, is_directeur, personnel) ; pour payer il faut la permission comptabilité."""
+        from school_admin.controllers.pointage_controller import acces_direction
+
+        acces = acces_direction(request, 'comptabilite_paiements')
+        if acces is None and not paiement:
+            acces = acces_direction(request, 'pointage_controle')
+        return acces
+
+    @staticmethod
+    def _refus(request):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('directeur:dashboard_directeur')
+
+    @staticmethod
+    def _calculs(etablissement, annee_scolaire, periode, professeurs):
+        from school_admin.services import pointage as pt
+
+        activation = pt.preparer_periode(etablissement, periode.date_debut, periode.date_fin, annee_scolaire)
+        return activation, {p.id: pt.calculer_paie(p, periode.date_debut, periode.date_fin, annee_scolaire, activation)
+                            for p in professeurs}
+
+    # ------------------------------------------------------------------ liste
     @staticmethod
     @login_required
     def liste_volume_horaire_directeur(request):
-        result = VolumeHoraireController._get_user_etablissement(request)
-        if result[0] is None:
-            messages.error(request, "Accès non autorisé.")
-            return redirect('school_admin:connexion_compte_user')
-        etablissement, is_directeur, personnel = result
-        annee_scolaire = VolumeHoraireController._get_session_directeur(
-            request, etablissement
-        )
-        context = VolumeHoraireController._contexte_commun(
-            request, etablissement, is_directeur, personnel, annee_scolaire
-        )
+        acces = VolumeHoraireController._acces(request)
+        if acces is None:
+            return VolumeHoraireController._refus(request)
+        etablissement, is_directeur, personnel = acces
+        annee_scolaire = VolumeHoraireController._get_session_directeur(request, etablissement)
+        context = VolumeHoraireController._contexte_commun(request, etablissement, is_directeur, personnel,
+                                                           annee_scolaire)
         periode = context['periode']
-
-        professeurs = list(
-            Professeur.objects.filter(etablissement=etablissement)
-            .select_related('matiere_principale')
-            .order_by('nom', 'prenom')
-        )
-        creneaux = VolumeHoraireController._creneaux_publies(etablissement, annee_scolaire)
-        par_prof = defaultdict(list)
-        for creneau in creneaux:
-            par_prof[creneau.professeur_id].append(creneau)
-
+        professeurs = list(Professeur.objects.filter(etablissement=etablissement)
+                           .select_related('matiere_principale').order_by('nom', 'prenom'))
+        activation, calculs = VolumeHoraireController._calculs(etablissement, annee_scolaire, periode, professeurs)
         lignes = []
-        total_heures = Decimal('0.00')
-        total_montant = Decimal('0.00')
-        nb_avec_tarif = 0
-
-        for professeur in professeurs:
-            creneaux_prof = par_prof.get(professeur.id, [])
-            resultat, _abs, _rempl = VolumeHoraireController._resultat_avec_absences(
-                creneaux_prof, periode, professeur, etablissement
-            )
-            total_heures += resultat.heures
-            if resultat.montant is not None:
-                total_montant += resultat.montant
-                nb_avec_tarif += 1
-            lignes.append({
-                'professeur': professeur,
-                'resultat': resultat,
-                'paie': VolumeHoraireController._paie_periode(professeur, periode),
-            })
-
+        totaux = {'prevues': Decimal('0'), 'validees': Decimal('0'), 'montant': Decimal('0'), 'a_verifier': 0,
+                  'absentes': 0, 'payes': 0}
+        for prof in professeurs:
+            c = calculs[prof.id]
+            if not c.minutes_prevues and not c.minutes_remplacements:
+                continue
+            paie = VolumeHoraireController._paie_periode(prof, periode)
+            lignes.append({'professeur': prof, 'calcul': c, 'paie': paie})
+            totaux['prevues'] += c.heures_prevues
+            totaux['validees'] += c.heures_validees
+            totaux['montant'] += c.brut or Decimal('0')
+            totaux['a_verifier'] += 1 if c.minutes_a_verifier else 0
+            totaux['absentes'] += c.minutes_absentes
+            totaux['payes'] += 1 if paie else 0
+        totaux['absentes_h'] = minutes_vers_heures(totaux['absentes'])
+        totaux['taux'] = round(totaux['validees'] / totaux['prevues'] * 100) if totaux['prevues'] else None
         context.update({
-            'lignes': lignes,
-            'total_heures': total_heures,
-            'total_montant': total_montant,
-            'nb_professeurs': len(lignes),
-            'nb_avec_tarif': nb_avec_tarif,
-            'note_absences': None,
-            'periode_vide': periode.est_vide,
-            'query_periode': VolumeHoraireController._query_periode(periode),
+            'lignes': lignes, 'totaux': totaux, 'activation': activation, 'periode_vide': periode.est_vide,
+            'nb_professeurs': len(lignes), 'query_periode': VolumeHoraireController._query_periode(periode),
+            'peut_payer': VolumeHoraireController._acces(request, paiement=True) is not None,
         })
-        return render(
-            request,
-            'school_admin/directeur/volume_horaire/liste_volume_horaire.html',
-            context,
-        )
+        return render(request, 'school_admin/directeur/volume_horaire/liste_volume_horaire.html', context)
 
+    # ------------------------------------------------------------------ détail
     @staticmethod
     @login_required
     def detail_volume_horaire_directeur(request, professeur_id):
-        result = VolumeHoraireController._get_user_etablissement(request)
-        if result[0] is None:
-            messages.error(request, "Accès non autorisé.")
-            return redirect('school_admin:connexion_compte_user')
-        etablissement, is_directeur, personnel = result
-        professeur = get_object_or_404(
-            Professeur.objects.select_related('matiere_principale', 'etablissement'),
-            pk=professeur_id,
-            etablissement=etablissement,
-        )
-        annee_scolaire = VolumeHoraireController._get_session_directeur(
-            request, etablissement
-        )
-        context = VolumeHoraireController._contexte_commun(
-            request, etablissement, is_directeur, personnel, annee_scolaire
-        )
+        from school_admin.model.finances_model import CompteTresorerie
+        from school_admin.model.pointage_model import SeanceCours
+        from school_admin.services import pointage as pt
+
+        acces = VolumeHoraireController._acces(request)
+        if acces is None:
+            return VolumeHoraireController._refus(request)
+        etablissement, is_directeur, personnel = acces
+        professeur = get_object_or_404(Professeur.objects.select_related('matiere_principale', 'etablissement'),
+                                       pk=professeur_id, etablissement=etablissement)
+        annee_scolaire = VolumeHoraireController._get_session_directeur(request, etablissement)
+        context = VolumeHoraireController._contexte_commun(request, etablissement, is_directeur, personnel,
+                                                           annee_scolaire)
         periode = context['periode']
-        creneaux = list(
-            VolumeHoraireController._creneaux_publies(
-                etablissement, annee_scolaire, professeur=professeur
-            )
-        )
-        resultat, minutes_abs, minutes_rempl = VolumeHoraireController._resultat_avec_absences(
-            creneaux, periode, professeur, etablissement
-        )
-        autres_profs = Professeur.objects.filter(
-            etablissement=etablissement
-        ).exclude(pk=professeur.id).order_by('nom', 'prenom')
-        absences = list(
-            AbsenceEnseignant.objects.filter(
-                etablissement=etablissement,
-                professeur=professeur,
-                date__gte=periode.date_debut,
-                date__lte=periode.date_fin,
-            ).select_related('remplacant').order_by('-date')
-        )
+        activation, calculs = VolumeHoraireController._calculs(etablissement, annee_scolaire, periode, [professeur])
+        seances = list(SeanceCours.objects.filter(Q(professeur=professeur) | Q(remplacant=professeur),
+                                                  date__gte=periode.date_debut, date__lte=periode.date_fin)
+                       .select_related('classe', 'matiere', 'remplacant', 'professeur', 'borne', 'paie')
+                       .order_by('-date', '-heure_debut'))
+        for seance in seances:
+            seance.libelles_anomalies = pt.libelles_anomalies(seance)
+        creneaux = list(VolumeHoraireController._creneaux_publies(etablissement, annee_scolaire, professeur=professeur))
         context.update({
-            'professeur': professeur,
-            'resultat': resultat,
-            'creneaux_lignes': VolumeHoraireController._lignes_creneaux(creneaux, periode),
-            'note_absences': None,
-            'periode_vide': periode.est_vide,
+            'professeur': professeur, 'calcul': calculs[professeur.id], 'seances': seances,
+            'activation': activation, 'periode_vide': periode.est_vide,
             'paie': VolumeHoraireController._paie_periode(professeur, periode),
-            'autres_profs': autres_profs,
-            'absences': absences,
-            'minutes_remplacements': minutes_rempl,
+            'creneaux_lignes': VolumeHoraireController._lignes_creneaux(creneaux, periode),
+            'autres_profs': Professeur.objects.filter(etablissement=etablissement).exclude(pk=professeur.id)
+                                              .order_by('nom', 'prenom'),
+            'absences': list(AbsenceEnseignant.objects.filter(etablissement=etablissement, professeur=professeur,
+                                                              date__gte=periode.date_debut, date__lte=periode.date_fin)
+                             .select_related('remplacant').order_by('-date')),
+            'comptes_tresorerie': CompteTresorerie.objects.filter(etablissement=etablissement, actif=True,
+                                                                  statut='ouvert'),
+            'peut_payer': VolumeHoraireController._acces(request, paiement=True) is not None,
             'query_periode': VolumeHoraireController._query_periode(periode),
         })
-        return render(
-            request,
-            'school_admin/directeur/volume_horaire/detail_volume_horaire.html',
-            context,
-        )
+        return render(request, 'school_admin/directeur/volume_horaire/detail_volume_horaire.html', context)
 
     @staticmethod
     def _retour_detail(professeur_id, periode):
@@ -376,205 +363,178 @@ class VolumeHoraireController:
         url = reverse('directeur:liste_volume_horaire')
         return HttpResponseRedirect(url + VolumeHoraireController._query_periode(periode))
 
+    # ------------------------------------------------------------------ paie
     @staticmethod
     @login_required
     @require_POST
     def marquer_paie_directeur(request, professeur_id):
-        result = VolumeHoraireController._get_user_etablissement(request)
-        if result[0] is None:
-            messages.error(request, "Accès non autorisé.")
-            return redirect('school_admin:connexion_compte_user')
-        etablissement, _is_directeur, _personnel = result
-        professeur = get_object_or_404(
-            Professeur, pk=professeur_id, etablissement=etablissement
-        )
-        annee_scolaire = VolumeHoraireController._get_session_directeur(
-            request, etablissement
-        )
-        periode, _kind, _ref = VolumeHoraireController._periode_depuis_request(
-            request, annee_scolaire
-        )
-        creneaux = list(
-            VolumeHoraireController._creneaux_publies(
-                etablissement, annee_scolaire, professeur=professeur
-            )
-        )
-        resultat, _abs, _rempl = VolumeHoraireController._resultat_avec_absences(
-            creneaux, periode, professeur, etablissement
-        )
-        if resultat.montant is None:
-            messages.error(request, "Renseignez d'abord le tarif horaire sur la fiche du professeur.")
-            return VolumeHoraireController._retour_detail(professeur.id, periode)
+        from school_admin.model.finances_model import CompteTresorerie
+        from school_admin.services import pointage as pt
 
+        acces = VolumeHoraireController._acces(request, paiement=True)
+        if acces is None:
+            return VolumeHoraireController._refus(request)
+        etablissement, _is_directeur, _personnel = acces
+        professeur = get_object_or_404(Professeur, pk=professeur_id, etablissement=etablissement)
+        annee_scolaire = VolumeHoraireController._get_session_directeur(request, etablissement)
+        periode, _kind, _ref = VolumeHoraireController._periode_depuis_request(request, annee_scolaire)
+        _activation, calculs = VolumeHoraireController._calculs(etablissement, annee_scolaire, periode, [professeur])
         try:
             retenue_pct = Decimal(str(request.POST.get('retenue_pct') or '0').replace(',', '.'))
         except (InvalidOperation, ValueError):
             retenue_pct = Decimal('0.00')
-        if retenue_pct < 0:
-            retenue_pct = Decimal('0.00')
-        if retenue_pct > 100:
-            retenue_pct = Decimal('100.00')
-
-        net = net_apres_retenue(resultat.montant, retenue_pct)
-        enregistre_par = request.user if isinstance(request.user, CompteUser) else None
-        paie, created = PaieProfesseurPeriode.objects.get_or_create(
-            professeur=professeur,
-            date_debut=periode.date_debut,
-            date_fin=periode.date_fin,
-            defaults={
-                'etablissement': etablissement,
-                'annee_scolaire': annee_scolaire,
-                'heures': resultat.heures,
-                'montant_brut': resultat.montant,
-                'retenue_pct': retenue_pct,
-                'montant_net': net,
-                'enregistre_par': enregistre_par,
-            },
-        )
-        if not created:
-            messages.info(request, "Cette période est déjà marquée comme payée.")
+        retenue_pct = min(max(retenue_pct, Decimal('0')), Decimal('100'))
+        compte = None
+        if request.POST.get('compte_tresorerie_id'):
+            compte = CompteTresorerie.objects.filter(pk=request.POST['compte_tresorerie_id'],
+                                                     etablissement=etablissement).first()
+        try:
+            paie = pt.enregistrer_paie(calculs[professeur.id], etablissement, annee_scolaire, retenue_pct,
+                                       compte_tresorerie=compte, user=request.user)
+        except ValueError as exc:
+            messages.error(request, str(exc))
         else:
-            try:
-                from school_admin.services.comptabilite_generale import pont_paie
-
-                pont_paie(paie, annee_scolaire=annee_scolaire, user=enregistre_par)
-            except Exception:
-                pass
-        if created:
             from school_admin.services.realtime_helpers import emit_live
 
-            emit_live(
-                etablissement.id,
-                'paie.mise_a_jour',
-                {
-                    'event': 'paie.mise_a_jour',
-                    'id': paie.id,
-                    'professeur_id': professeur.id,
-                },
-            )
-            devise = devise_etablissement(etablissement)
-            messages.success(
-                request,
-                f"Paie enregistrée : {net} {devise} net pour {professeur.nom_complet}.",
-            )
-        suivant = (request.POST.get('next') or 'detail').strip()
-        if suivant == 'liste':
+            emit_live(etablissement.id, 'paie.mise_a_jour',
+                      {'event': 'paie.mise_a_jour', 'id': paie.id, 'professeur_id': professeur.id})
+            net = f"{paie.montant_net:,.0f}".replace(',', ' ')
+            messages.success(request, f"Paie enregistrée : {net} {devise_etablissement(etablissement)} net pour "
+                                      f"{professeur.nom_complet}. L'écriture comptable est passée.")
+        if (request.POST.get('next') or '') == 'liste':
             return VolumeHoraireController._retour_liste(periode)
         return VolumeHoraireController._retour_detail(professeur.id, periode)
 
     @staticmethod
     @login_required
     def fiche_paie_directeur(request, professeur_id):
-        result = VolumeHoraireController._get_user_etablissement(request)
-        if result[0] is None:
-            messages.error(request, "Accès non autorisé.")
-            return redirect('school_admin:connexion_compte_user')
-        etablissement, is_directeur, personnel = result
-        professeur = get_object_or_404(
-            Professeur, pk=professeur_id, etablissement=etablissement
-        )
-        annee_scolaire = VolumeHoraireController._get_session_directeur(
-            request, etablissement
-        )
-        periode, _kind, _ref = VolumeHoraireController._periode_depuis_request(
-            request, annee_scolaire
-        )
+        acces = VolumeHoraireController._acces(request)
+        if acces is None:
+            return VolumeHoraireController._refus(request)
+        etablissement, is_directeur, personnel = acces
+        professeur = get_object_or_404(Professeur, pk=professeur_id, etablissement=etablissement)
+        annee_scolaire = VolumeHoraireController._get_session_directeur(request, etablissement)
+        periode, _kind, _ref = VolumeHoraireController._periode_depuis_request(request, annee_scolaire)
         paie = VolumeHoraireController._paie_periode(professeur, periode)
         if paie is None:
-            messages.error(request, "Marquez d'abord cette période comme payée.")
+            messages.error(request, "Enregistrez d'abord la paie de cette période.")
             return VolumeHoraireController._retour_detail(professeur.id, periode)
-        return render(
-            request,
-            'school_admin/directeur/volume_horaire/fiche_paie.html',
-            {
-                'etablissement': etablissement,
-                'professeur': professeur,
-                'paie': paie,
-                'periode': periode,
-                'annee_scolaire_active': annee_scolaire,
-                'devise_monnaie': devise_etablissement(etablissement),
-                'is_directeur': is_directeur,
-                'personnel': personnel,
-                'query_periode': VolumeHoraireController._query_periode(periode),
-            },
-        )
+        return render(request, 'school_admin/directeur/volume_horaire/fiche_paie.html', {
+            'etablissement': etablissement, 'professeur': professeur, 'paie': paie, 'periode': periode,
+            'seances': paie.seances.select_related('classe', 'matiere').order_by('date', 'heure_debut'),
+            'annee_scolaire_active': annee_scolaire, 'devise_monnaie': devise_etablissement(etablissement),
+            'is_directeur': is_directeur, 'personnel': personnel,
+            'query_periode': VolumeHoraireController._query_periode(periode),
+        })
 
+    # ------------------------------------------------------------------ absences déclarées
     @staticmethod
     @login_required
     @require_POST
     def enregistrer_absence_directeur(request, professeur_id):
-        result = VolumeHoraireController._get_user_etablissement(request)
-        if result[0] is None:
-            messages.error(request, "Accès non autorisé.")
-            return redirect('school_admin:connexion_compte_user')
-        etablissement, _is_directeur, _personnel = result
-        professeur = get_object_or_404(
-            Professeur, pk=professeur_id, etablissement=etablissement
-        )
-        annee_scolaire = VolumeHoraireController._get_session_directeur(
-            request, etablissement
-        )
-        periode, _kind, _ref = VolumeHoraireController._periode_depuis_request(
-            request, annee_scolaire
-        )
+        """Absence prévue ou justifiée : les séances du jour passent en absence justifiée, ou en
+        remplacées si un remplaçant est choisi. Avant la mise en service du pointage, une fiche
+        d'absence est enregistrée comme avant."""
+        from school_admin.model.pointage_model import SeanceCours
+        from school_admin.services import pointage as pt
+
+        acces = VolumeHoraireController._acces(request)
+        if acces is None:
+            return VolumeHoraireController._refus(request)
+        etablissement, _is_directeur, _personnel = acces
+        professeur = get_object_or_404(Professeur, pk=professeur_id, etablissement=etablissement)
+        annee_scolaire = VolumeHoraireController._get_session_directeur(request, etablissement)
+        periode, _kind, _ref = VolumeHoraireController._periode_depuis_request(request, annee_scolaire)
         try:
             jour = datetime.strptime(request.POST.get('date') or '', '%Y-%m-%d').date()
         except ValueError:
             messages.error(request, "Indiquez la date d'absence.")
             return VolumeHoraireController._retour_detail(professeur.id, periode)
-
         remplacant = None
-        remplacant_id = (request.POST.get('remplacant_id') or '').strip()
-        if remplacant_id:
-            remplacant = Professeur.objects.filter(
-                pk=remplacant_id, etablissement=etablissement
-            ).exclude(pk=professeur.id).first()
+        if (request.POST.get('remplacant_id') or '').strip():
+            remplacant = Professeur.objects.filter(pk=request.POST['remplacant_id'],
+                                                   etablissement=etablissement).exclude(pk=professeur.id).first()
+        activation = pt.preparer_periode(etablissement, jour, jour, annee_scolaire)
+        if activation and jour >= activation:
+            seances = (SeanceCours.objects.filter(professeur=professeur, date=jour, paie__isnull=True)
+                       .exclude(statut__in=('validee', 'annulee')))
+            n = 0
+            for seance in seances:
+                pt.decider(seance, request.user, 'remplacer' if remplacant else 'justifier',
+                           request.POST.get('motif', 'Absence déclarée'), remplacant=remplacant)
+                n += 1
+            if not n:
+                messages.info(request, "Aucune séance modifiable ce jour-là.")
+            elif remplacant:
+                messages.success(request, f"{n} séance(s) du {jour:%d/%m/%Y} confiée(s) à {remplacant.nom_complet}.")
+            else:
+                messages.success(request, f"{n} séance(s) du {jour:%d/%m/%Y} marquée(s) absence justifiée.")
+            return VolumeHoraireController._retour_detail(professeur.id, periode)
 
-        creneaux = list(
-            VolumeHoraireController._creneaux_publies(
-                etablissement, annee_scolaire, professeur=professeur
-            )
-        )
-        minutes = minutes_creneaux_pour_date(creneaux, jour)
+        creneaux = list(VolumeHoraireController._creneaux_publies(etablissement, annee_scolaire, professeur=professeur))
         _obj, created = AbsenceEnseignant.objects.get_or_create(
-            professeur=professeur,
-            date=jour,
-            defaults={
-                'etablissement': etablissement,
-                'remplacant': remplacant,
-                'minutes': minutes,
-            },
+            professeur=professeur, date=jour,
+            defaults={'etablissement': etablissement, 'remplacant': remplacant,
+                      'minutes': minutes_creneaux_pour_date(creneaux, jour)},
         )
-        if not created:
-            messages.info(request, "Une absence est déjà enregistrée pour ce jour.")
-        else:
+        if created:
             messages.success(request, "Absence enregistrée. Les heures à payer sont recalculées.")
+        else:
+            messages.info(request, "Une absence est déjà enregistrée pour ce jour.")
         return VolumeHoraireController._retour_detail(professeur.id, periode)
 
     @staticmethod
     @login_required
     @require_POST
     def supprimer_absence_directeur(request, professeur_id, absence_id):
-        result = VolumeHoraireController._get_user_etablissement(request)
-        if result[0] is None:
-            messages.error(request, "Accès non autorisé.")
-            return redirect('school_admin:connexion_compte_user')
-        etablissement, _is_directeur, _personnel = result
-        professeur = get_object_or_404(
-            Professeur, pk=professeur_id, etablissement=etablissement
-        )
-        annee_scolaire = VolumeHoraireController._get_session_directeur(
-            request, etablissement
-        )
-        periode, _kind, _ref = VolumeHoraireController._periode_depuis_request(
-            request, annee_scolaire
-        )
-        absence = get_object_or_404(
-            AbsenceEnseignant,
-            pk=absence_id,
-            professeur=professeur,
-            etablissement=etablissement,
-        )
+        acces = VolumeHoraireController._acces(request)
+        if acces is None:
+            return VolumeHoraireController._refus(request)
+        etablissement, _is_directeur, _personnel = acces
+        professeur = get_object_or_404(Professeur, pk=professeur_id, etablissement=etablissement)
+        annee_scolaire = VolumeHoraireController._get_session_directeur(request, etablissement)
+        periode, _kind, _ref = VolumeHoraireController._periode_depuis_request(request, annee_scolaire)
+        absence = get_object_or_404(AbsenceEnseignant, pk=absence_id, professeur=professeur,
+                                    etablissement=etablissement)
         absence.delete()
         messages.success(request, "Absence supprimée.")
+        return VolumeHoraireController._retour_detail(professeur.id, periode)
+
+    @staticmethod
+    @login_required
+    @require_POST
+    def contrat_directeur(request, professeur_id):
+        """Type de contrat, tarif horaire, salaire mensuel et heures prévues au contrat."""
+        acces = VolumeHoraireController._acces(request, paiement=True)
+        if acces is None:
+            return VolumeHoraireController._refus(request)
+        etablissement, _is_directeur, _personnel = acces
+        professeur = get_object_or_404(Professeur, pk=professeur_id, etablissement=etablissement)
+        annee_scolaire = VolumeHoraireController._get_session_directeur(request, etablissement)
+        periode, _kind, _ref = VolumeHoraireController._periode_depuis_request(request, annee_scolaire)
+
+        def montant(nom):
+            brut = (request.POST.get(nom) or '').replace(' ', '').replace(',', '.').strip()
+            if not brut:
+                return None
+            valeur = Decimal(brut)
+            if valeur < 0:
+                raise InvalidOperation
+            return valeur
+
+        try:
+            professeur.prix_volume_horaire = montant('prix_volume_horaire')
+            professeur.salaire_mensuel = montant('salaire_mensuel')
+            professeur.heures_contrat_semaine = montant('heures_contrat_semaine')
+        except (InvalidOperation, ValueError):
+            messages.error(request, "Montants invalides.")
+            return VolumeHoraireController._retour_detail(professeur.id, periode)
+        contrat = request.POST.get('type_contrat')
+        if contrat in dict(Professeur.TYPE_CONTRAT_CHOICES):
+            professeur.type_contrat = contrat
+        if professeur.type_contrat == 'permanent' and professeur.salaire_mensuel is None:
+            messages.warning(request, "Contrat permanent : indiquez le salaire mensuel pour pouvoir calculer la paie.")
+        professeur.save(update_fields=['prix_volume_horaire', 'salaire_mensuel', 'heures_contrat_semaine',
+                                       'type_contrat'])
+        messages.success(request, f"Contrat de {professeur.nom_complet} mis à jour.")
         return VolumeHoraireController._retour_detail(professeur.id, periode)

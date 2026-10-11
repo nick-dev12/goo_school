@@ -1,215 +1,102 @@
 {% load static %}
+{% load i18n %}
+{% load eleve_nav %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Devoirs et évaluations - Espace Élève</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/devoirs_eleve.css' %}?v=2.0.1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Devoirs et évaluations" %} – ARIA</title>
+  {% include 'school_admin/eleve/partials/_ex_head.html' %}
 </head>
-<body>
-    {% include 'school_admin/eleve/partials/header.html' %}
+<body class="axd-page px-page ex-page">
+  {% include 'school_admin/eleve/partials/_ex_shell.html' %}
 
-    <main class="homework-page">
-        <div class="page-header">
-            <h2>
-                <i class="fas fa-tasks"></i>
-                Devoirs et évaluations
-            </h2>
-            <p>
-                Visualisez l'ensemble des évaluations et exercices programmés pour la classe {{ classe.nom }}.
-                Sélectionnez un onglet et une période pour filtrer vos devoirs.
-            </p>
+  <main class="axd px ex" id="contenu">
+    <header class="px-page-head">
+      <span class="px-page-head__icon ax-tone-orange"><i class="fas fa-pen-to-square" aria-hidden="true"></i></span>
+      <div>
+        <h1>{% trans "Devoirs et évaluations" %}</h1>
+        <p>{% if classe %}{{ classe.nom }} · {% endif %}{% trans "Ce qu’il faut rendre et ce qu’il faut réviser." %}</p>
+      </div>
+    </header>
+
+    <section class="px-stats" aria-label="{% trans 'Résumé' %}">
+      <div class="px-stat"><span class="px-stat__icon ax-tone-orange"><i class="fas fa-pen-to-square" aria-hidden="true"></i></span><div><strong>{{ total_exercices }}</strong><small>{% trans "Devoirs donnés" %}</small></div></div>
+      <div class="px-stat"><span class="px-stat__icon ax-tone-red"><i class="fas fa-book-open-reader" aria-hidden="true"></i></span><div><strong>{{ total_evaluations }}</strong><small>{% trans "Évaluations" %}</small></div></div>
+      <div class="px-stat"><span class="px-stat__icon ax-tone-blue"><i class="fas fa-calendar-week" aria-hidden="true"></i></span><div><strong>{{ total_semaine }}</strong><small>{% trans "Cette semaine" %}</small></div></div>
+      <div class="px-stat"><span class="px-stat__icon ax-tone-green"><i class="fas fa-hourglass-half" aria-hidden="true"></i></span><div><strong>{{ total_a_venir }}</strong><small>{% trans "À venir" %}</small></div></div>
+    </section>
+
+    <nav class="px-tabs ex-maintabs" aria-label="{% trans 'Type' %}">
+      <a href="?onglet=exercices" class="px-tab{% if onglet_actif == 'exercices' %} is-active{% endif %}"><i class="fas fa-pen-to-square" aria-hidden="true"></i>{% trans "Devoirs" %} <b>{{ total_exercices }}</b></a>
+      <a href="?onglet=evaluations" class="px-tab{% if onglet_actif == 'evaluations' %} is-active{% endif %}"><i class="fas fa-book-open-reader" aria-hidden="true"></i>{% trans "Évaluations" %} <b>{{ total_evaluations }}</b></a>
+    </nav>
+
+    {% if onglet_actif == 'evaluations' %}{% with periodes=periodes_evaluations %}
+    {% if periodes|length > 1 %}
+    <nav class="px-tabs ex-subtabs" aria-label="{% trans 'Période' %}">
+      {% for periode in periodes %}
+      <a href="?onglet=evaluations&periode={{ periode.id }}" class="px-tab{% if periode.id|stringformat:'s' == periode_selectionnee|stringformat:'s' %} is-active{% endif %}">{{ periode.nom }} <b>{{ periode.total }}</b></a>
+      {% endfor %}
+    </nav>
+    {% endif %}{% endwith %}
+    {% if evaluations %}
+    <div class="ex-cards">
+      {% for e in evaluations %}
+      <article class="ex-work{% if e.statut == 'passe' %} is-past{% endif %}">
+        <span class="ex-work__icon ax-tone-{{ e.matiere|matiere_tone }}"><i class="fas {{ e.matiere|matiere_icon }}" aria-hidden="true"></i></span>
+        <div class="ex-work__body">
+          <p class="ex-work__subject">{{ e.matiere }}</p>
+          <h2 class="ex-work__title">{{ e.titre }}</h2>
+          {% if e.description %}<p class="ex-work__desc">{{ e.description }}</p>{% endif %}
+          <p class="px-item__meta">
+            <span><i class="fas fa-calendar" aria-hidden="true"></i>{{ e.date_evaluation|date:"l j F"|capfirst }}</span>
+            <span><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{{ e.professeur }}</span>
+            <span><i class="fas fa-star" aria-hidden="true"></i>{% trans "Sur" %} {{ e.bareme|floatformat:"0" }}</span>
+          </p>
         </div>
+        <span class="px-badge {% if e.statut == 'aujourdhui' or e.statut == 'demain' %}px-badge--red{% elif e.statut == 'proche' %}px-badge--orange{% elif e.statut == 'passe' %}px-badge--gray{% else %}px-badge--blue{% endif %} ex-work__badge">{{ e.statut_label }}</span>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-empty-inline"><i class="fas fa-book-open-reader" aria-hidden="true"></i><h2>{% trans "Aucune évaluation" %}</h2><p>{% trans "Aucune évaluation programmée pour cette période." %}</p></div>
+    {% endif %}
 
-        <!-- Onglets principaux -->
-        <section class="main-tabs-section">
-            <div class="main-tabs-container">
-                <a href="?onglet=evaluations{% if periode_selectionnee != 'all' %}&periode={{ periode_selectionnee }}{% endif %}" 
-                   class="main-tab {% if onglet_actif == 'evaluations' %}active{% endif %}">
-                    <i class="fas fa-clipboard-check"></i>
-                    <span>Évaluations</span>
-                    <span class="tab-badge">{{ total_evaluations }}</span>
-                </a>
-                <a href="?onglet=exercices{% if periode_selectionnee != 'all' %}&periode={{ periode_selectionnee }}{% endif %}" 
-                   class="main-tab {% if onglet_actif == 'exercices' %}active{% endif %}">
-                    <i class="fas fa-book"></i>
-                    <span>Exercices</span>
-                    <span class="tab-badge">{{ total_exercices }}</span>
-                </a>
-            </div>
-        </section>
+    {% else %}{% with periodes=periodes_exercices %}
+    {% if periodes|length > 1 %}
+    <nav class="px-tabs ex-subtabs" aria-label="{% trans 'Période' %}">
+      {% for periode in periodes %}
+      <a href="?onglet=exercices&periode={{ periode.id }}" class="px-tab{% if periode.id|stringformat:'s' == periode_selectionnee|stringformat:'s' %} is-active{% endif %}">{{ periode.nom }} <b>{{ periode.total }}</b></a>
+      {% endfor %}
+    </nav>
+    {% endif %}{% endwith %}
+    {% if exercices %}
+    <div class="ex-cards">
+      {% for x in exercices %}
+      <article class="ex-work{% if x.statut == 'retard' %} is-past{% elif x.statut == 'jour' or x.statut == 'bientot' %} is-urgent{% endif %}">
+        <span class="ex-work__icon ax-tone-{{ x.matiere|matiere_tone }}"><i class="fas {{ x.matiere|matiere_icon }}" aria-hidden="true"></i></span>
+        <div class="ex-work__body">
+          <p class="ex-work__subject">{{ x.matiere }}</p>
+          <h2 class="ex-work__title">{{ x.titre }}</h2>
+          {% if x.description %}<p class="ex-work__desc">{{ x.description }}</p>{% endif %}
+          <p class="px-item__meta">
+            <span><i class="fas fa-calendar" aria-hidden="true"></i>{% trans "À rendre le" %} {{ x.date_rendu|date:"l j F" }}</span>
+            <span><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{{ x.professeur }}</span>
+          </p>
+        </div>
+        <span class="px-badge {% if x.statut == 'jour' or x.statut == 'bientot' %}px-badge--red{% elif x.statut == 'proche' %}px-badge--orange{% elif x.statut == 'retard' %}px-badge--gray{% else %}px-badge--blue{% endif %} ex-work__badge">{% if x.statut == 'retard' %}{% trans "Date passée" %}{% else %}{{ x.statut_label }}{% endif %}</span>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-empty-inline"><i class="fas fa-mug-hot" aria-hidden="true"></i><h2>{% trans "Aucun devoir" %}</h2><p>{% trans "Aucun devoir donné pour cette période." %}</p></div>
+    {% endif %}
+    {% endif %}
+  </main>
 
-        <!-- Sous-onglets par période -->
-        <section class="sub-tabs-section">
-            <h3>Filtrer par période</h3>
-            {% if onglet_actif == 'evaluations' %}
-                <div class="sub-tabs-container" role="tablist" aria-label="Filtrer les évaluations par période">
-                    {% for periode in periodes_evaluations %}
-                        <a href="?onglet=evaluations&periode={{ periode.id }}" 
-                           class="sub-tab {% if periode.id|stringformat:'s' == periode_selectionnee|stringformat:'s' %}active{% endif %}">
-                            <span class="sub-tab-title">{{ periode.nom }}</span>
-                            <span class="sub-tab-count">{{ periode.total }}</span>
-                        </a>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="sub-tabs-container" role="tablist" aria-label="Filtrer les exercices par période">
-                    {% for periode in periodes_exercices %}
-                        <a href="?onglet=exercices&periode={{ periode.id }}" 
-                           class="sub-tab {% if periode.id|stringformat:'s' == periode_selectionnee|stringformat:'s' %}active{% endif %}">
-                            <span class="sub-tab-title">{{ periode.nom }}</span>
-                            <span class="sub-tab-count">{{ periode.total }}</span>
-                        </a>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </section>
-
-        <!-- Contenu des évaluations -->
-        {% if onglet_actif == 'evaluations' %}
-            {% if evaluations %}
-                <section class="evaluations-grid">
-                    {% for evaluation in evaluations %}
-                    <article class="evaluation-card">
-                        <span class="status-badge status-{{ evaluation.statut }}">
-                            {% if evaluation.statut == 'passe' %}
-                                <i class="fas fa-check-circle"></i>
-                            {% elif evaluation.statut == 'aujourdhui' %}
-                                <i class="fas fa-calendar-day"></i>
-                            {% elif evaluation.statut == 'demain' %}
-                                <i class="fas fa-hourglass-half"></i>
-                            {% elif evaluation.statut == 'proche' %}
-                                <i class="fas fa-hourglass-start"></i>
-                            {% else %}
-                                <i class="fas fa-clock"></i>
-                            {% endif %}
-                            {{ evaluation.statut_label }}
-                        </span>
-                        <div class="evaluation-header">
-                            <span class="evaluation-matiere">{{ evaluation.matiere }}</span>
-                            <h3 class="evaluation-titre">
-                                {{ evaluation.titre }}
-                                <small>Prof. {{ evaluation.professeur }}</small>
-                            </h3>
-                        </div>
-                        {% if evaluation.description %}
-                        <p class="evaluation-description">
-                            {{ evaluation.description }}
-                        </p>
-                        {% endif %}
-                        <div class="evaluation-meta">
-                            <span class="meta-item">
-                                <i class="fas fa-calendar-alt"></i>
-                                Le {{ evaluation.date_evaluation|date:"d/m/Y" }}
-                            </span>
-                            <span class="meta-item">
-                                <i class="fas fa-flag"></i>
-                                {{ evaluation.periode }}
-                            </span>
-                            <span class="meta-item">
-                                <i class="fas fa-star"></i>
-                                Barème : {{ evaluation.bareme }} points
-                            </span>
-                            {% if evaluation.jours_restant >= 0 %}
-                            <span class="meta-item">
-                                <i class="fas fa-hourglass"></i>
-                                {% if evaluation.jours_restant == 0 %}
-                                    Aujourd'hui
-                                {% elif evaluation.jours_restant == 1 %}
-                                    Dans 1 jour
-                                {% else %}
-                                    Dans {{ evaluation.jours_restant }} jours
-                                {% endif %}
-                            </span>
-                            {% endif %}
-                        </div>
-                    </article>
-                    {% endfor %}
-                </section>
-            {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-clipboard-list"></i>
-                    <h3>Aucune évaluation pour l'instant</h3>
-                    <p>Vous n'avez aucune évaluation programmée pour la période sélectionnée. Revenez régulièrement pour rester informé.</p>
-                </div>
-            {% endif %}
-        {% endif %}
-
-        <!-- Contenu des exercices -->
-        {% if onglet_actif == 'exercices' %}
-            {% if exercices %}
-                <section class="exercices-grid">
-                    {% for exercice in exercices %}
-                    <article class="exercice-card">
-                        <span class="status-badge status-{{ exercice.statut }}">
-                            {% if exercice.statut == 'retard' %}
-                                <i class="fas fa-exclamation-triangle"></i>
-                            {% elif exercice.statut == 'jour' %}
-                                <i class="fas fa-calendar-day"></i>
-                            {% elif exercice.statut == 'bientot' %}
-                                <i class="fas fa-hourglass-half"></i>
-                            {% elif exercice.statut == 'proche' %}
-                                <i class="fas fa-hourglass-start"></i>
-                            {% else %}
-                                <i class="fas fa-clock"></i>
-                            {% endif %}
-                            {{ exercice.statut_label }}
-                        </span>
-                        <div class="exercice-header">
-                            <span class="exercice-matiere">{{ exercice.matiere }}</span>
-                            <h3 class="exercice-titre">
-                                {{ exercice.titre }}
-                                <small>Prof. {{ exercice.professeur }}</small>
-                            </h3>
-                        </div>
-                        {% if exercice.description %}
-                        <p class="exercice-description">
-                            {{ exercice.description }}
-                        </p>
-                        {% endif %}
-                        <div class="exercice-meta">
-                            <span class="meta-item">
-                                <i class="fas fa-calendar-check"></i>
-                                Rendu le {{ exercice.date_rendu|date:"d/m/Y" }}
-                            </span>
-                            <span class="meta-item">
-                                <i class="fas fa-flag"></i>
-                                {{ exercice.periode }}
-                            </span>
-                            <span class="meta-item">
-                                <i class="fas fa-hourglass"></i>
-                                {% if exercice.jours_restant < 0 %}
-                                    En retard de {{ exercice.jours_restant_abs }} jour{{ exercice.jours_restant_abs|pluralize }}
-                                {% elif exercice.jours_restant == 0 %}
-                                    À rendre aujourd'hui
-                                {% elif exercice.jours_restant == 1 %}
-                                    Dans 1 jour
-                                {% else %}
-                                    Dans {{ exercice.jours_restant }} jours
-                                {% endif %}
-                            </span>
-                        </div>
-                    </article>
-                    {% endfor %}
-                </section>
-            {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-smile"></i>
-                    <h3>Aucun exercice pour l'instant</h3>
-                    <p>Vous n'avez aucun exercice à réaliser pour la période sélectionnée. Revenez régulièrement pour rester informé.</p>
-                </div>
-            {% endif %}
-        {% endif %}
-
-        <a href="{% url 'eleve:dashboard_eleve' %}" class="back-link">
-            <i class="fas fa-arrow-left"></i>
-            Retour au tableau de bord
-        </a>
-    </main>
-
-    {% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
+  {% include 'school_admin/eleve/partials/_ex_foot.html' %}
 </body>
 </html>

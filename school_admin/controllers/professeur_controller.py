@@ -221,9 +221,12 @@ def _build_matieres_superieur_flat(etablissement):
     return out
 
 
+_DETAIL_ONGLETS = ('profil', 'enseignement', 'edt', 'presence', 'cahier', 'dossier', 'acces')
 _DETAIL_ONGLET_LEGACY = {
     'informations': 'profil',
-    'connexion': 'profil',
+    'connexion': 'acces',
+    'paie': 'presence',
+    'pointage': 'presence',
     'classes': 'enseignement',
     'cahier_notes': 'enseignement',
     'complementaire': 'dossier',
@@ -236,7 +239,7 @@ def _normalize_detail_onglet(raw):
         return 'profil'
     if raw in _DETAIL_ONGLET_LEGACY:
         return _DETAIL_ONGLET_LEGACY[raw]
-    if raw in ('profil', 'enseignement', 'dossier'):
+    if raw in _DETAIL_ONGLETS:
         return raw
     return 'profil'
 
@@ -1351,6 +1354,14 @@ class ProfesseurController:
             'employe': professeur,
             'dossier_form_data': dossier_form_data_from_dossier(dossier) if dossier else {},
         }
+        from ..services.fiche_employe import completude_dossier, echeance_contrat, profil_enseignant
+        from ..utils.session_utils import get_session_active
+
+        fiche = profil_enseignant(professeur, get_session_active(request, etablissement))
+        context['fiche'] = fiche
+        context['cahier'] = fiche['cahier']
+        context['echeance'] = echeance_contrat(dossier)
+        context['completude'] = completude_dossier(professeur, dossier, documents)
         context.update(modifier_ctx)
 
         return render(

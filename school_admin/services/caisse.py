@@ -100,6 +100,7 @@ def depenses_mois(etablissement, debut: date, fin: date):
         etablissement=etablissement,
         date_depense__gte=debut,
         date_depense__lte=fin,
+        statut='validee',
     )
 
 

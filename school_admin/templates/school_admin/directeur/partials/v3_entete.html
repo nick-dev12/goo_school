@@ -1,0 +1,38 @@
+{% load i18n %}
+{% comment %}En-tête v3 commun : titre, actions, indicateurs et points d’attention. Variables : v3_titre, v3_sous_titre, v3_icone, v3_tone, v3_actions_tpl, controle.{% endcomment %}
+<div class="v3-zone">
+  <header class="hb-head">
+    <span class="hb-head__icon fe-tone-{{ v3_tone|default:'blue' }}"><i class="fas {{ v3_icone }}" aria-hidden="true"></i></span>
+    <div class="hb-head__text">
+      <p class="fe-hero__kicker">{{ etablissement.nom }}{% if annee_scolaire_active %} · {{ annee_scolaire_active.libelle }}{% endif %}</p>
+      <h1 class="hb-head__title">{{ v3_titre }}</h1>
+      {% if v3_sous_titre %}<p class="fe-hero__sub">{{ v3_sous_titre }}</p>{% endif %}
+    </div>
+    {% if v3_actions_tpl %}<div class="hb-head__actions">{% include v3_actions_tpl %}</div>{% endif %}
+  </header>
+  {% if controle.kpis %}
+  <section class="fe-kpis hb-kpis hb-kpis--{{ controle.kpis|length }}" aria-label="{% trans 'Indicateurs' %}">
+    {% for k in controle.kpis %}
+    <div class="fe-kpi fe-tone-{{ k.tone }}">
+      <div class="fe-kpi__top"><span class="fe-kpi__label">{{ k.label }}</span><span class="fe-kpi__icon"><i class="fas {{ k.icon }}" aria-hidden="true"></i></span></div>
+      <p class="fe-kpi__value{% if k.texte %} is-text{% endif %}{% if k.bad %} is-warn{% endif %}">{{ k.value }}</p>
+      {% if k.pct != None %}<div class="fe-bar"><span class="{% if k.pct > 100 %}is-bad{% elif k.pct < 80 %}is-warn{% endif %}" style="width: {% if k.pct > 100 %}100{% else %}{{ k.pct }}{% endif %}%"></span></div>{% endif %}
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+  {% if controle.alertes %}
+  <section class="hb-todo" aria-label="{% trans 'Points d’attention' %}">
+    <h2 class="hb-todo__title"><i class="fas fa-list-check" aria-hidden="true"></i>{% trans "À vérifier" %} <span class="cg3-chip cg3-chip--warn">{{ controle.alertes|length }}</span></h2>
+    <ul>
+      {% for a in controle.alertes %}
+      <li class="hb-todo__item hb-todo__item--{{ a.tone }}">
+        <i class="fas {{ a.icon }}" aria-hidden="true"></i>
+        <span>{{ a.texte }}{% if a.details %}<details class="v3-details"><summary>{% trans "Voir le détail" %}</summary><span>{{ a.details|join:" · " }}</span></details>{% endif %}</span>
+        {% if a.url %}<a class="cg3-btn cg3-btn--sm" href="{{ a.url }}">{{ a.action }} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>

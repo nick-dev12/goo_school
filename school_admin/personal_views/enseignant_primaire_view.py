@@ -335,13 +335,27 @@ def dashboard_enseignant_primaire(request):
         Q(etablissement=professeur.etablissement) &
         Q(statut='publiee') &
         Q(actif=True) &
-        (Q(destinataires__contains=['tous']) | 
+        (Q(destinataires__contains=['tous']) |
          Q(destinataires__contains=['enseignants']))
     )
     if annee_scolaire_active:
         annonces_qs = annonces_qs.filter(annee_scolaire=annee_scolaire_active)
-    nombre_annonces = annonces_qs.count()
-    
+    from django.db import NotSupportedError
+
+    try:
+        nombre_annonces = annonces_qs.count()
+    except NotSupportedError:
+        # Bases sans lookup JSON « contains » (SQLite des tests) : filtrage en Python.
+        base_qs = Annonce.objects.filter(
+            etablissement=professeur.etablissement, statut='publiee', actif=True,
+        )
+        if annee_scolaire_active:
+            base_qs = base_qs.filter(annee_scolaire=annee_scolaire_active)
+        nombre_annonces = sum(
+            1 for dest in base_qs.values_list('destinataires', flat=True)
+            if {'tous', 'enseignants'} & set(dest or [])
+        )
+
     notifications_non_lues = NotificationEnseignant.objects.filter(
         enseignant=professeur, statut='non_lu'
     ).count()
@@ -363,7 +377,14 @@ def dashboard_enseignant_primaire(request):
         'annee_scolaire_active': annee_scolaire_active,
     }
     
-    return render(request, 'school_admin/enseignant/primaire/dashboard_primaire.html', context)
+    from django.utils import timezone as _tz
+
+    from ..services.dashboard.teacher import build_teacher_dashboard
+
+    context['tdash'] = build_teacher_dashboard(
+        professeur, annee_scolaire_active, _tz.localdate(), is_primaire=True,
+    )
+    return render(request, 'school_admin/enseignant/dashboard_v3.html', context)
 
 
 def gestion_classes_primaire(request):
@@ -3165,6 +3186,14 @@ def noter_eleves_primaire(request, classe_id):
                                 'annee_scolaire': annee_scolaire_active,
                             }
                         )
+                        if note_examen_obj.soumis:
+                            note_value = ''  # note soumise : verrouillée
+                        if note_value.upper() == 'ABS':
+                            if not note_examen_obj.absent:
+                                note_examen_obj.absent, note_examen_obj.note = True, None
+                                note_examen_obj.save()
+                                notes_enregistrees += 1
+                            note_value = ''
                         if note_value:
                             try:
                                 note_decimal = Decimal(note_value.replace(',', '.'))
@@ -4637,7 +4666,20 @@ def detail_eleve_primaire(request, eleve_id):
     
     from ..utils.prof_nav_trail import set_prof_breadcrumb_current_label
     set_prof_breadcrumb_current_label(request, eleve.nom_complet)
-    return render(request, 'school_admin/enseignant/primaire/detail_eleve_primaire.html', context)
+    # Fiche élève refondue (primaire) : toutes les matières confiées à l'enseignant dans la classe.
+    from django.urls import reverse as _reverse
+    from ..services.fiche_eleve import construire as construire_fiche_eleve
+
+    matieres_prof = list(affectation.matieres.all()) or None
+    context.update({
+        'fiche': construire_fiche_eleve(eleve, classe_active, professeur.etablissement, annee_scolaire_active,
+                                        vue='enseignant', professeur=professeur, matieres_prof=matieres_prof),
+        'ns': 'enseignant_primaire', 'voir_notes': True, 'voir_presences': True, 'voir_sanctions': True,
+        'presence_url': _reverse('enseignant_primaire:modifier_presence', args=[0]),
+        'onglet_actif': {'informations': 'apercu', 'presences': 'assiduite', 'sanctions': 'discipline'}.get(
+            onglet, onglet),
+    })
+    return render(request, 'school_admin/fiche_eleve/enseignant.html', context)
 
 
 def detail_classe_primaire(request, classe_id):

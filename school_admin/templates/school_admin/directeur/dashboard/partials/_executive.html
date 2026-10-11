@@ -1,0 +1,299 @@
+{% load i18n %}
+<section class="dbd-exec" aria-labelledby="dbd-exec-title">
+  <h2 id="dbd-exec-title" class="dbd-exec-heading">{% trans "Pilotage de l’établissement" %}</h2>
+  <p class="dbd-exec-lead">
+    {% trans "Les indicateurs ci-dessous répondent à des questions simples. Un tiret signifie qu’il n’y a pas encore de donnée — jamais un zéro inventé." %}
+  </p>
+
+  {% include 'school_admin/directeur/dashboard/partials/_filter_bar.html' %}
+
+  {% if executive.filters.has_active_filters %}
+  <p class="dbd-filter-chips">
+    {% trans "Filtres actifs" %} :
+    {% if dashboard_ctx.filters.cycle %}<span>{{ dashboard_ctx.filters.cycle }}</span>{% endif %}
+    {% if executive.filters.selected_classe_id %}<span>{% trans "classe" %}</span>{% endif %}
+    {% if dashboard_ctx.periode_scolaire %}<span>{{ dashboard_ctx.periode_scolaire.nom_periode }}</span>{% endif %}
+  </p>
+  {% endif %}
+
+  <div class="dbd-exec-kpi-grid">
+    {% for metric in executive.kpis %}
+      {% if metric.id == 'student_count' %}
+        {% include 'school_admin/directeur/dashboard/components/_stat_card.html' with metric=metric icon='fa-user-graduate' %}
+      {% elif metric.id == 'class_capacity' %}
+        {% include 'school_admin/directeur/dashboard/components/_stat_card.html' with metric=metric icon='fa-school' %}
+      {% elif metric.id == 'attendance_rate' %}
+        {% include 'school_admin/directeur/dashboard/components/_stat_card.html' with metric=metric icon='fa-user-check' %}
+      {% elif metric.id == 'success_rate' %}
+        {% include 'school_admin/directeur/dashboard/components/_stat_card.html' with metric=metric icon='fa-award' %}
+      {% elif metric.id == 'average_grade' %}
+        {% include 'school_admin/directeur/dashboard/components/_stat_card.html' with metric=metric icon='fa-graduation-cap' %}
+      {% elif metric.id == 'collection_rate' %}
+        {% include 'school_admin/directeur/dashboard/components/_stat_card.html' with metric=metric icon='fa-hand-holding-dollar' %}
+      {% elif metric.id == 'outstanding_amount' %}
+        {% include 'school_admin/directeur/dashboard/components/_stat_card.html' with metric=metric icon='fa-coins' %}
+      {% else %}
+        {% include 'school_admin/directeur/dashboard/components/_stat_card.html' with metric=metric %}
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {% if executive.alerts %}
+  <section class="dbd-alerts" id="dbd-a-traiter" aria-labelledby="dbd-alerts-title">
+    <h3 id="dbd-alerts-title">{% trans "À traiter" %}</h3>
+    <p class="dbd-exec-card-q">{% trans "Voici ce qui nécessite votre attention." %}</p>
+    <ul class="dbd-alert-list">
+      {% for alert in executive.alerts %}
+      <li class="dbd-alert dbd-alert--{{ alert.category|lower }}">
+        <span class="dbd-alert-cat">{{ alert.category }}</span>
+        <div>
+          <strong>{{ alert.message }}</strong>
+          <p>{{ alert.detail }} · {{ alert.period }}</p>
+        </div>
+        {% if alert.url %}
+        <a class="dbd-abs-btn secondary" href="{{ alert.url }}">{% trans "Voir" %}</a>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if executive.insights %}
+  <section class="dbd-insights" id="dbd-a-retenir" aria-labelledby="dbd-insights-title">
+    <h3 id="dbd-insights-title">{% trans "À retenir" %}</h3>
+    <p class="dbd-exec-card-q">{% trans "Observations calculées uniquement à partir des données disponibles. Aucune cause n’est inventée." %}</p>
+    {% for insight in executive.insights %}
+    <article class="dbd-insight">
+      <p>{{ insight.message }}</p>
+      <details>
+        <summary>{% trans "Pourquoi ?" %}</summary>
+        <ul>
+          <li>{% trans "Métrique" %} : {{ insight.why.metric }}</li>
+          {% if insight.why.value is not None %}<li>{% trans "Valeur" %} : {{ insight.why.value }}</li>{% endif %}
+          {% if insight.why.threshold is not None %}<li>{% trans "Référence" %} : {{ insight.why.threshold }}</li>{% endif %}
+          {% if insight.why.period %}<li>{% trans "Période" %} : {{ insight.why.period }}</li>{% endif %}
+          {% if insight.why.note %}<li>{{ insight.why.note }}</li>{% endif %}
+        </ul>
+      </details>
+      {% if insight.url %}
+      <a href="{{ insight.url }}">{% trans "Voir le détail" %}</a>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <div class="dbd-exec-grid">
+    <article class="dbd-exec-card" id="dbd-today">
+      <h3>{% trans "Aujourd’hui" %}</h3>
+      <p class="dbd-exec-card-q">{% trans "Que se passe-t-il aujourd’hui dans l’établissement ?" %}</p>
+      <ul class="dbd-today-list">
+        {% for item in executive.today.items %}
+        <li>
+          <strong>{{ item.label }}</strong>
+          {% if item.empty %}
+            <span class="muted">{{ item.empty_reason }}</span>
+          {% else %}
+            <span>{{ item.value }}{% if item.detail %} · {{ item.detail }}{% endif %}</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="dbd-exec-card" id="dbd-completeness">
+      <h3>{% trans "Fiabilité des données" %}</h3>
+      <p class="dbd-exec-card-q">{% trans "Pouvons-nous nous fier aux chiffres affichés ?" %}</p>
+      <p class="dbd-completeness-status {% if executive.completeness.status == 'complete' %}ok{% else %}partial{% endif %}">
+        {% if executive.completeness.status == 'complete' %}
+          {% trans "Données complètes" %}
+        {% else %}
+          {% trans "Données partiellement disponibles" %}
+        {% endif %}
+      </p>
+      <p class="dbd-exec-hint">{{ executive.completeness.detail }}</p>
+      {% if executive.completeness.gaps %}
+      <ul class="dbd-gap-list">
+        {% for gap in executive.completeness.gaps %}
+        <li>{{ gap.label }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </article>
+
+    <article class="dbd-exec-card dbd-exec-card--wide" id="dbd-presence-trend">
+      <h3>{% trans "Comment évolue la présence des élèves ?" %}</h3>
+      <p class="dbd-exec-card-q">
+        {% trans "Taux quotidien sur 30 jours. Un retard n’est pas une présence." %}
+        {% if executive.attendance_trend.rate_7 is not None %}
+          · 7 j : {{ executive.attendance_trend.rate_7 }} %
+        {% endif %}
+        {% if executive.attendance_trend.rate_30 is not None %}
+          · 30 j : {{ executive.attendance_trend.rate_30 }} %
+        {% endif %}
+      </p>
+      {% if executive.attendance_trend.empty %}
+        {% include 'school_admin/directeur/dashboard/components/_empty_state.html' with message=executive.attendance_trend.empty_reason %}
+      {% else %}
+        <div class="dbd-abs-chart-wrap dbd-exec-chart">
+          <canvas id="dbd-chart-presence-trend" role="img" aria-label="{% trans 'Évolution du taux de présence' %}"></canvas>
+        </div>
+      {% endif %}
+    </article>
+
+    <article class="dbd-exec-card dbd-exec-card--wide" id="dbd-results">
+      <h3>{% trans "Comment se répartissent les résultats ?" %}</h3>
+      <p class="dbd-exec-card-q">
+        {% trans "Moyennes générales de la période. Le seuil de réussite est celui configuré pour l’établissement." %}
+        {% if executive.results.extra.periode %}
+          · {{ executive.results.extra.periode }}
+        {% endif %}
+        {% if executive.results.extra.seuil is not None %}
+          · {% trans "seuil" %} {{ executive.results.extra.seuil }}/20
+        {% endif %}
+      </p>
+      {% if executive.results.empty %}
+        {% include 'school_admin/directeur/dashboard/components/_empty_state.html' with message=executive.results.empty_reason %}
+      {% else %}
+        <div class="dbd-abs-chart-wrap dbd-exec-chart">
+          <canvas id="dbd-chart-grades" role="img" aria-label="{% trans 'Répartition des moyennes générales' %}"></canvas>
+        </div>
+        {% if executive.results.extra.classes %}
+        <div class="table-responsive dbd-results-table-wrap">
+          <table class="dbd-results-table">
+            <caption>{% trans "Résultats par classe" %}</caption>
+            <thead>
+              <tr>
+                <th>{% trans "Classe" %}</th>
+                <th>{% trans "Moyenne" %}</th>
+                <th>{% trans "Réussite" %}</th>
+                <th>{% trans "Bulletins" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in executive.results.extra.classes %}
+              <tr>
+                <td>{{ row.classe }}</td>
+                <td class="is-num">{% if row.moyenne is not None %}{{ row.moyenne }}{% else %}—{% endif %}</td>
+                <td class="is-num">{% if row.taux is not None %}{{ row.taux }} %{% else %}—{% endif %}</td>
+                <td class="is-num">{{ row.n }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+        {% if executive.results.extra.at_risk %}
+        <div class="dbd-atrisk">
+          <h4>{% trans "Élèves sous le seuil" %}</h4>
+          <ul>
+            {% for row in executive.results.extra.at_risk %}
+            <li>
+              {% if row.url %}
+              <a href="{{ row.url }}">{{ row.nom }}</a>
+              {% else %}
+              <strong>{{ row.nom }}</strong>
+              {% endif %}
+              <span>{{ row.classe }} · {{ row.moyenne }}/20</span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% if executive.results.url %}
+          <a class="dbd-abs-btn secondary" href="{{ executive.results.url }}">{% trans "Voir les notes" %}</a>
+          {% endif %}
+        </div>
+        {% elif executive.results.url %}
+        <p class="dbd-exec-hint">
+          <a href="{{ executive.results.url }}">{% trans "Ouvrir notes et résultats" %}</a>
+        </p>
+        {% endif %}
+      {% endif %}
+    </article>
+
+    <article class="dbd-exec-card dbd-exec-card--wide" id="dbd-finance">
+      <h3>{% trans "Comment se porte la scolarité ?" %}</h3>
+      <p class="dbd-exec-card-q">
+        {% trans "Encaissements et statuts de paiement sur l’année consultée." %}
+        {% if not executive.finance.empty and executive.finance.extra.nb_fiches %}
+          · {{ executive.finance.extra.nb_fiches }} {% trans "dossiers" %}
+        {% endif %}
+      </p>
+      {% if executive.finance.empty %}
+        {% include 'school_admin/directeur/dashboard/components/_empty_state.html' with message=executive.finance.empty_reason %}
+      {% else %}
+        <div class="dbd-finance-charts">
+          {% if executive.finance.charts.statuts.labels %}
+          <div class="dbd-abs-chart-wrap dbd-exec-chart dbd-exec-chart--half">
+            <canvas id="dbd-chart-finance-statuts" role="img" aria-label="{% trans 'Statuts de paiement' %}"></canvas>
+          </div>
+          {% endif %}
+          {% if executive.finance.charts.payments.labels %}
+          <div class="dbd-abs-chart-wrap dbd-exec-chart dbd-exec-chart--half">
+            <canvas id="dbd-chart-finance-payments" role="img" aria-label="{% trans 'Encaissements sur 30 jours' %}"></canvas>
+          </div>
+          {% endif %}
+        </div>
+        {% if executive.finance.extra.classes %}
+        <div class="table-responsive dbd-results-table-wrap">
+          <table class="dbd-results-table">
+            <caption>{% trans "Restes à recouvrer par classe" %}</caption>
+            <thead>
+              <tr>
+                <th>{% trans "Classe" %}</th>
+                <th>{% trans "Recouvrement" %}</th>
+                <th>{% trans "Reste" %}</th>
+                <th>{% trans "Dossiers" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in executive.finance.extra.classes %}
+              <tr>
+                <td>{{ row.classe }}</td>
+                <td class="is-num">{% if row.taux is not None %}{{ row.taux }} %{% else %}—{% endif %}</td>
+                <td class="is-num">{{ row.reste|floatformat:0 }} {{ executive.finance.extra.devise }}</td>
+                <td class="is-num">{{ row.n }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+        {% if executive.finance.url %}
+        <p class="dbd-exec-hint">
+          <a href="{{ executive.finance.url }}">{% trans "Voir les impayés" %}</a>
+        </p>
+        {% endif %}
+      {% endif %}
+    </article>
+
+    <article class="dbd-exec-card dbd-exec-card--wide" id="dbd-cycles">
+      <h3>{% trans "Comment se répartissent les élèves ?" %}</h3>
+      <p class="dbd-exec-card-q">{% trans "Répartition par cycle sur l’année consultée." %}</p>
+      {% if executive.cycle_distribution.empty %}
+        {% include 'school_admin/directeur/dashboard/components/_empty_state.html' with message=executive.cycle_distribution.empty_reason %}
+      {% else %}
+        <div class="dbd-cycle-bars">
+          {% for row in executive.cycle_distribution.charts.rows %}
+          <div class="dbd-cycle-row">
+            <span>{{ row.label }}</span>
+            <strong>{{ row.value }}</strong>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="dbd-abs-chart-wrap dbd-exec-chart">
+          <canvas id="dbd-chart-cycles" role="img" aria-label="{% trans 'Répartition des élèves par cycle' %}"></canvas>
+        </div>
+      {% endif %}
+    </article>
+  </div>
+</section>
+
+{{ executive.cycle_distribution.charts|json_script:"dbd-executive-chart-data" }}
+{{ executive.attendance_trend.charts|json_script:"dbd-presence-trend-data" }}
+{% if executive.results.charts %}
+{{ executive.results.charts|json_script:"dbd-grades-chart-data" }}
+{% endif %}
+{% if executive.finance.charts %}
+{{ executive.finance.charts|json_script:"dbd-finance-chart-data" }}
+{% endif %}

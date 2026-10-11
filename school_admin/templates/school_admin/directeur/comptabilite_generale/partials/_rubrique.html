@@ -1,0 +1,16 @@
+{% load i18n %}
+{# Une rubrique d'état financier, dépliable pour voir les comptes qui la composent. #}
+{% if rub.montant or rub.comptes %}
+<li>
+  <details>
+    <summary><span>{% if rub.code %}<span class="cg3-acc">{{ rub.code }}</span> {% endif %}{{ rub.libelle }}</span><b class="{% if rub.montant < 0 %}is-neg{% endif %}">{{ rub.montant|floatformat:"0g" }}</b></summary>
+    <ul class="cg3-lines">
+      {% for c in rub.comptes %}
+      <li class="cg3-line cg3-line--sub"><a href="{% url 'directeur:cg_grand_livre' %}?compte={{ c.compte.pk }}">{{ c.compte.numero }} · {{ c.compte.libelle }}</a><b>{{ c.montant|floatformat:"0g" }}</b></li>
+      {% empty %}
+      <li class="cg3-line cg3-line--sub muted">{% trans "Aucun compte" %}</li>
+      {% endfor %}
+    </ul>
+  </details>
+</li>
+{% endif %}

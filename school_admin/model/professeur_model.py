@@ -60,6 +60,23 @@ class Professeur(AbstractUser):
         verbose_name="Prix du volume horaire (FCFA/heure)",
     )
     
+    # Contrat : un vacataire est payé à l'heure validée ; un permanent touche un salaire
+    # fixe, moins les cours non faits non justifiés, plus les heures au-delà de son contrat.
+    TYPE_CONTRAT_CHOICES = [
+        ('vacataire', 'Vacataire (payé à l’heure)'),
+        ('permanent', 'Permanent (salaire mensuel)'),
+    ]
+    type_contrat = models.CharField(
+        max_length=12, choices=TYPE_CONTRAT_CHOICES, default='vacataire', verbose_name="Type de contrat",
+    )
+    salaire_mensuel = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Salaire mensuel brut",
+    )
+    heures_contrat_semaine = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        verbose_name="Heures prévues au contrat (par semaine)",
+    )
+
     # Informations professionnelles
     numero_employe = models.CharField(max_length=20, unique=True, verbose_name="Numéro d'employé")
     matiere_principale = models.ForeignKey(

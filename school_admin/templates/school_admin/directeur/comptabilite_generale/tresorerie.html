@@ -1,85 +1,120 @@
-<!DOCTYPE html>
+{% extends 'school_admin/directeur/comptabilite_generale/_base.html' %}
 {% load static i18n %}
-{% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE }}">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "Trésorerie" %} — {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
-</head>
-<body class="cg-page-body">
-    {% include 'school_admin/directeur/partials/header_directeur.html' %}
-    <div class="content-container cg-page">
-        {% include 'school_admin/partials/messages.html' %}
-        <div class="page-header page-header-minimal">
-            {% url 'directeur:cg_hub_directeur' as back_url %}
-            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+{% block title %}{% trans "Trésorerie" %}{% endblock %}
+{% block icon %}fa-cash-register{% endblock %}
+{% block tone %}teal{% endblock %}
+{% block heading %}{% trans "Trésorerie" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "Transfert entre caisse, banque et mobile money. Aucune charge, aucun produit." %}</p>{% endblock %}
+
+{% block content %}
+        <div class="cg-mini-row">
+            <article class="cg-mini cg-mini--info"><span class="cg-mini-num">{{ comptes_tresorerie|length }}</span><span class="cg-mini-lbl">{% trans "Comptes" %}</span></article>
+            <article class="cg-mini"><span class="cg-mini-num">{{ mouvements|length }}</span><span class="cg-mini-lbl">{% trans "Mouvements" %}</span></article>
+            <article class="cg-mini"><span class="cg-mini-num">{{ ecritures_caisse|length }}</span><span class="cg-mini-lbl">{% trans "Écritures caisse" %}</span></article>
         </div>
-        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='tresorerie' %}
-        <header class="cg-hero">
-            <div>
-                <h1 class="cg-hero-title"><i class="fas fa-cash-register"></i> {% trans "Trésorerie et caisse" %}</h1>
-                <p class="cg-hero-sub">{% trans "Brouillard (écritures caisse), virement interne caisse → banque, pointage de rapprochement." %}</p>
+        <div class="cg-workspace">
+            <div class="cg-subtabs">
+                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'vue' %}" data-overflow-items-label="{% trans 'vues' %}">
+                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Vues trésorerie' %}">
+                        <button type="button" class="matiere-tab-btn active" role="tab" data-cg-tab="comptes" data-order="0" aria-selected="true"><span>{% trans "Comptes" %}</span><span class="tab-count">{{ comptes_tresorerie|length }}</span></button>
+                        <button type="button" class="matiere-tab-btn" role="tab" data-cg-tab="mouvements" data-order="1" aria-selected="false"><span>{% trans "Mouvements" %}</span><span class="tab-count">{{ mouvements|length }}</span></button>
+                        <button type="button" class="matiere-tab-btn" role="tab" data-cg-tab="brouillard" data-order="2" aria-selected="false"><span>{% trans "Brouillard" %}</span><span class="tab-count">{{ ecritures_caisse|length }}</span></button>
+                    </div>
+                    <div class="matiere-tabs-more-wrap" hidden>
+                        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres vues' %}"><i class="fas fa-chevron-down"></i><span class="matiere-tabs-more-label">{% trans "Autres vues" %}</span></button>
+                        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                    </div>
+                </div>
             </div>
-            <a class="cg-btn cg-btn--primary" href="{% url 'directeur:caisse_mois_directeur' %}">{% trans "Caisse du mois" %}</a>
-        </header>
-        <section class="cg-section">
-            <h2>{% trans "Virement caisse vers banque" %}</h2>
-            <form method="post" action="{% url 'directeur:cg_tresorerie' %}" class="cg-form">
-                {% csrf_token %}<input type="hidden" name="action" value="virement" />
-                <label>{% trans "Date" %}<input name="date_mouvement" type="date" required /></label>
-                <label>{% trans "Montant" %}<input name="montant" type="number" step="0.01" min="0.01" required /></label>
-                <label>{% trans "Libellé" %}<input name="libelle" value="{% trans 'Dépôt banque' %}" /></label>
-                <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
-            </form>
-        </section>
-        <section class="cg-section">
-            <h2>{% trans "Rapprochement (pointage)" %}</h2>
-            <div class="table-responsive">
-                <table class="cg-table">
-                    <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Type" %}</th><th>{% trans "Montant" %}</th><th>{% trans "Statut" %}</th><th></th></tr></thead>
-                    <tbody>
-                        {% for m in mouvements %}
-                        <tr>
-                            <td>{{ m.date_mouvement|date:"d/m/Y" }}</td>
-                            <td>{{ m.get_type_mouvement_display }}</td>
-                            <td>{{ m.montant }} {{ devise_monnaie }}</td>
-                            <td>{% if m.pointe %}<span class="cg-pill cg-pill--ok">{% trans "Pointé" %}</span>{% else %}<span class="cg-pill cg-pill--warn">{% trans "À pointer" %}</span>{% endif %}</td>
-                            <td>
-                                {% if not m.pointe %}
-                                <form method="post" action="{% url 'directeur:cg_tresorerie' %}" style="display:inline;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="pointer" />
-                                    <input type="hidden" name="mvt_id" value="{{ m.id }}" />
-                                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Pointer" %}</button>
-                                </form>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}<tr><td colspan="5">{% trans "Aucun mouvement." %}</td></tr>{% endfor %}
-                    </tbody>
-                </table>
+            <section class="cg-section" data-cg-panel="comptes">
+                <div class="cg-panel-head">
+                    <h2>{% trans "Comptes" %}</h2>
+                    <a class="cg-btn cg-btn--ghost" href="{% url 'directeur:caisse_mois_directeur' %}">{% trans "Caisse du mois" %}</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead><tr><th>{% trans "Compte" %}</th><th>{% trans "Type" %}</th><th>{% trans "Solde" %}</th></tr></thead>
+                        <tbody>
+                            {% for compte in comptes_tresorerie %}
+                            <tr><td>{{ compte.libelle }}</td><td>{{ compte.get_type_compte_display }}</td><td>{{ compte.solde_affiche|floatformat:"0g" }} {{ devise_monnaie }}</td></tr>
+                            {% empty %}<tr><td colspan="3">{% trans "Aucun compte de trésorerie." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="cg-section" data-cg-panel="mouvements" hidden>
+                <div class="cg-panel-head">
+                    <h2>{% trans "Mouvements" %}</h2>
+                    <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-transfert"><i class="fas fa-plus"></i> {% trans "Nouveau transfert" %}</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Départ" %}</th><th>{% trans "Arrivée" %}</th><th>{% trans "Montant" %}</th><th>{% trans "Statut" %}</th><th></th></tr></thead>
+                        <tbody>
+                            {% for m in mouvements %}
+                            <tr>
+                                <td>{{ m.date_mouvement|date:"d/m/Y" }}</td>
+                                <td>{% if m.compte_source %}{{ m.compte_source.libelle }}{% else %}—{% endif %}</td>
+                                <td>{% if m.compte_destination %}{{ m.compte_destination.libelle }}{% else %}—{% endif %}</td>
+                                <td>{{ m.montant|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                                <td>
+                                    {% if m.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulé" %}</span>
+                                    {% elif m.pointe %}<span class="cg-pill cg-pill--ok">{% trans "Pointé" %}</span>
+                                    {% else %}<span class="cg-pill cg-pill--info">{% trans "Validé" %}</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if m.statut == 'validee' and not m.pointe %}
+                                    <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-transfert" data-cg-bind="mvt_id" data-cg-value="{{ m.id }}">{% trans "Annuler" %}</button>
+                                    <a class="cg-btn cg-btn--ghost" href="{% url 'directeur:cg_rapprochement' %}">{% trans "Rapprocher" %}</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}<tr><td colspan="6">{% trans "Aucun mouvement." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="cg-section" data-cg-panel="brouillard" hidden>
+                <div class="cg-panel-head"><h2>{% trans "Brouillard de caisse" %}</h2></div>
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Date" %}</th><th>{% trans "Libellé" %}</th></tr></thead>
+                        <tbody>
+                            {% for e in ecritures_caisse %}
+                            <tr><td>{{ e.numero }}</td><td>{{ e.date_ecriture|date:"d/m/Y" }}</td><td>{{ e.libelle }}</td></tr>
+                            {% empty %}<tr><td colspan="3">{% trans "Aucune écriture caisse." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+        <div class="cg-sheet" id="sheet-transfert" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-transfert-title">
+                <div class="cg-sheet-head"><h2 id="sheet-transfert-title">{% trans "Nouveau transfert" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:cg_tresorerie' %}" class="cg-form">
+                    {% csrf_token %}<input type="hidden" name="action" value="virement" />
+                    <label>{% trans "Compte de départ" %}<select name="compte_source_id" required><option value="">{% trans "Choisir" %}</option>{% for compte in comptes_tresorerie %}<option value="{{ compte.id }}">{{ compte.libelle }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Compte d'arrivée" %}<select name="compte_destination_id" required><option value="">{% trans "Choisir" %}</option>{% for compte in comptes_tresorerie %}<option value="{{ compte.id }}">{{ compte.libelle }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Date" %}<input name="date_mouvement" type="date" value="{{ date_defaut }}" required /></label>
+                    <label>{% trans "Montant" %}<input name="montant" type="number" step="0.01" min="0.01" required /></label>
+                    <label>{% trans "Référence" %} <span class="cg-optional">{% trans "(optionnel)" %}</span><input name="reference" maxlength="80" /></label>
+                    <label>{% trans "Motif" %} <span class="cg-optional">{% trans "(optionnel)" %}</span><input name="libelle" maxlength="200" placeholder="{% trans 'Dépôt banque' %}" /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+                </form>
             </div>
-        </section>
-        <section class="cg-section">
-            <h2>{% trans "Brouillard de caisse" %}</h2>
-            <div class="table-responsive">
-                <table class="cg-table">
-                    <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Date" %}</th><th>{% trans "Libellé" %}</th></tr></thead>
-                    <tbody>
-                        {% for e in ecritures_caisse %}
-                        <tr><td>{{ e.numero }}</td><td>{{ e.date_ecriture|date:"d/m/Y" }}</td><td>{{ e.libelle }}</td></tr>
-                        {% empty %}<tr><td colspan="3">{% trans "Aucune écriture caisse." %}</td></tr>{% endfor %}
-                    </tbody>
-                </table>
+        </div>
+        <div class="cg-sheet" id="sheet-annuler-transfert" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-annuler-transfert-title">
+                <div class="cg-sheet-head"><h2 id="sheet-annuler-transfert-title">{% trans "Annuler le transfert" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:cg_tresorerie' %}" class="cg-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="annuler_transfert" />
+                    <input type="hidden" name="mvt_id" value="" />
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Annuler" %}</button>
+                </form>
             </div>
-        </section>
-    </div>
-    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
-</body>
-</html>
+        </div>
+{% endblock %}

@@ -15,8 +15,12 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
 </head>
-<body class="sp-page-body" data-live-page="suivi-presence" data-reference-date="{{ date_aujourdhui }}">
+<body class="sp-page-body gv3 cg3" data-live-page="suivi-presence" data-reference-date="{{ date_aujourdhui }}">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container sp-page">
@@ -26,21 +30,8 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
         </div>
 
-        <header class="sp-hero">
-            <div class="sp-hero-text">
-                <h1 class="sp-hero-title"><i class="fas fa-calendar-check"></i> {% trans "Suivi de présence" %}</h1>
-                <p class="sp-hero-sub">{% trans "Consultez les absences et retards par classe, filtrez par période et justifiez les absences." %}</p>
-                {% if annee_scolaire_active %}
-                    <span class="sp-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
-                {% endif %}
-            </div>
-            <div class="sp-hero-stats">
-                <div class="sp-stat-pill"><span class="sp-stat-num">{{ stats_generales.total_eleves }}</span><span class="sp-stat-lbl">{% trans "Élèves" %}</span></div>
-                <div class="sp-stat-pill"><span class="sp-stat-num">{{ stats_generales.total_classes }}</span><span class="sp-stat-lbl">{% trans "Classes" %}</span></div>
-                <div class="sp-stat-pill sp-stat-pill--warn"><span class="sp-stat-num">{{ stats_generales.absents_aujourdhui }}</span><span class="sp-stat-lbl">{% trans "Absents (jour)" %}</span></div>
-                <div class="sp-stat-pill sp-stat-pill--info"><span class="sp-stat-num">{{ stats_generales.retards_aujourdhui }}</span><span class="sp-stat-lbl">{% trans "Retards (jour)" %}</span></div>
-            </div>
-        </header>
+        {% trans "Suivi de présence" as t %}{% trans "Appels du jour, absences, retards et justifications par classe." as st %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-user-check' v3_tone='teal' %}
 
         {% if periodes and not est_superieur %}
         <nav class="sp-periodes-bar periodes-tabs-container" aria-label="{% trans 'Période scolaire' %}">
@@ -286,6 +277,7 @@
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
     <script src="{% static 'school_admin/js/directeur/notes_presence_live.js' %}?v=1.0.1"></script>
 
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

@@ -143,10 +143,16 @@ PAGE_CATALOG = (
         'mots': 'caisse dépenses solde recettes sorties',
     },
     {
+        'key': 'finances',
+        'titre': 'Finances',
+        'route': 'directeur:finances_situation',
+        'mots': 'finances situation entrées sorties trésorerie financements prêts',
+    },
+    {
         'key': 'comptabilite_generale',
         'titre': 'Comptabilité générale',
         'route': 'directeur:cg_hub_directeur',
-        'mots': 'syscohada grand livre bilan journal exercice trésorerie fournisseurs',
+        'mots': 'syscohada grand livre bilan journal exercice trésorerie fournisseurs rapprochement relevé',
     },
     {
         'key': 'administration',

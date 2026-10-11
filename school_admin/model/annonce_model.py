@@ -109,7 +109,8 @@ class Annonce(models.Model):
             return f"{self.auteur_directeur.directeur_prenom} {self.auteur_directeur.directeur_nom}"
         elif self.auteur_personnel:
             return f"{self.auteur_personnel.prenom} {self.auteur_personnel.nom}"
-        return "Auteur inconnu"
+        # Annonces créées sans auteur (import, assistant) : publiées au nom de la direction.
+        return "Direction"
     
     def get_destinataires_display(self):
         """Retourne les destinataires de manière lisible"""

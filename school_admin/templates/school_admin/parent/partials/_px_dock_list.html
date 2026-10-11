@@ -1,0 +1,15 @@
+{% load i18n %}
+{% with page=request.resolver_match.url_name %}
+<ul class="ax-dock__list {{ list_class }}">
+  <li><a href="{% url 'school_admin:dashboard_parent' %}" class="ax-dock__item{% if page == 'dashboard_parent' %} is-active{% endif %}"{% if page == 'dashboard_parent' %} aria-current="page"{% endif %}>
+    <span class="ax-dock__icon ax-tone-blue"><i class="fas fa-house" aria-hidden="true"></i></span><span class="ax-dock__label">{% trans "Accueil" %}</span></a></li>
+  <li><a href="{% url 'school_admin:scolarite_parent' %}" class="ax-dock__item{% if page == 'scolarite_parent' %} is-active{% endif %}"{% if page == 'scolarite_parent' %} aria-current="page"{% endif %}>
+    <span class="ax-dock__icon ax-tone-green"><i class="fas fa-wallet" aria-hidden="true"></i></span><span class="ax-dock__label">{% trans "Scolarité" %}</span></a></li>
+  <li><a href="{% url 'school_admin:annonces_parent' %}" class="ax-dock__item{% if page == 'annonces_parent' %} is-active{% endif %}"{% if page == 'annonces_parent' %} aria-current="page"{% endif %}>
+    <span class="ax-dock__icon ax-tone-orange"><i class="fas fa-bullhorn" aria-hidden="true"></i></span><span class="ax-dock__label">{% trans "Annonces" %}</span></a></li>
+  <li><a href="{% url 'school_admin:convocations_parent' %}" class="ax-dock__item{% if page == 'convocations_parent' %} is-active{% endif %}"{% if page == 'convocations_parent' %} aria-current="page"{% endif %}>
+    <span class="ax-dock__icon ax-tone-red"><i class="fas fa-calendar-check" aria-hidden="true"></i></span><span class="ax-dock__label">{% trans "Convocations" %}</span></a></li>
+  <li><a href="{% url 'school_admin:profil_parent' %}" class="ax-dock__item{% if page == 'profil_parent' %} is-active{% endif %}"{% if page == 'profil_parent' %} aria-current="page"{% endif %}>
+    <span class="ax-dock__icon ax-tone-violet"><i class="fas fa-user" aria-hidden="true"></i></span><span class="ax-dock__label">{% trans "Profil" %}</span></a></li>
+</ul>
+{% endwith %}

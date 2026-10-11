@@ -1465,6 +1465,8 @@ def detail_module(request, module_id):
         'modal_niveaux_par_filiere': all_niveaux,
         'modal_periodes_par_niveau': periodes_par_niveau_edit,
     }
+    from ..services.structure_etablissement import enrichir as _enrichir_structure
+    _enrichir_structure(request, context, 'module', module)
     return render(request, 'school_admin/directeur/pedagogique/modules/detail_module.html', context)
 
 

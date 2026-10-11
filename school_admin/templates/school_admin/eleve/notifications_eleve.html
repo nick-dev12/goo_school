@@ -1,258 +1,51 @@
-<!DOCTYPE html>
 {% load static %}
+{% load i18n %}
+<!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    {% include 'school_admin/partials/seo_head.html' %}
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-      :root {
-        --primary: #3b82f6;
-        --secondary: #7c3aed;
-        --accent: #ef4444;
-        --success: #10b981;
-        --warning: #fbbf24;
-        --info: #8b5cf6;
-        --white: #ffffff;
-        --gray-50: #f9fafb;
-        --gray-100: #f3f4f6;
-        --gray-200: #e5e7eb;
-        --gray-400: #9ca3af;
-        --gray-600: #4b5563;
-        --gray-800: #1f2937;
-        --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.08),
-          0 4px 6px -2px rgba(0, 0, 0, 0.03);
-      }
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% trans "Notifications" %} – ARIA</title>
+  {% include 'school_admin/eleve/partials/_ex_head.html' %}
+</head>
+<body class="axd-page px-page ex-page">
+  {% include 'school_admin/eleve/partials/_ex_shell.html' %}
 
-      body {
-        margin: 0;
-        font-family: "Poppins", Arial, sans-serif;
-        background: var(--gray-50);
-        color: var(--gray-800);
-      }
+  <main class="axd px ex" id="contenu">
+    <header class="px-page-head">
+      <span class="px-page-head__icon ax-tone-sky"><i class="fas fa-bell" aria-hidden="true"></i></span>
+      <div>
+        <h1>{% trans "Notifications" %}</h1>
+        <p>{% if notifications_eleve_non_lues %}{% blocktrans count n=notifications_eleve_non_lues %}{{ n }} nouvelle notification{% plural %}{{ n }} nouvelles notifications{% endblocktrans %}{% else %}{% trans "Tu as tout lu." %}{% endif %}</p>
+      </div>
+    </header>
 
-      .page-wrapper {
-        max-width: 900px;
-        margin: 50px auto;
-        padding: 0 24px 48px;
-      }
-
-      .page-header {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-bottom: 28px;
-      }
-
-      .page-header h1 {
-        margin: 0;
-        font-size: 28px;
-        color: var(--primary);
-      }
-
-      .page-header p {
-        margin: 0;
-        color: var(--gray-600);
-      }
-
-      .actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 12px;
-        flex-wrap: wrap;
-      }
-
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 9px 16px;
-        border-radius: 10px;
-        text-decoration: none;
-        font-weight: 600;
-        border: 1px solid transparent;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-      }
-
-      .btn-primary {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-        color: var(--white);
-        box-shadow: var(--shadow-card);
-      }
-
-      .btn-primary:hover {
-        transform: translateY(-2px);
-      }
-
-      .notifications-list {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-
-      .notification-card {
-        background: var(--white);
-        border-radius: 14px;
-        padding: 18px 22px;
-        box-shadow: var(--shadow-card);
-        border: 1px solid var(--gray-100);
-        transition: all 0.3s ease;
-      }
-
-      .notification-card.unread {
-        border-left: 4px solid var(--primary);
-        background: linear-gradient(to right, rgba(59, 130, 246, 0.05), var(--white));
-      }
-
-      .notification-card.read {
-        opacity: 0.85;
-      }
-
-      .notification-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.12),
-          0 6px 8px -3px rgba(0, 0, 0, 0.05);
-      }
-
-      .notification-link {
-        text-decoration: none;
-        color: inherit;
-      }
-
-      .notification-link:hover {
-        text-decoration: none;
-      }
-
-      .card-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--primary);
-        font-weight: 600;
-        margin-bottom: 6px;
-      }
-
-      .card-meta {
-        display: flex;
-        gap: 12px;
-        font-size: 12px;
-        color: var(--gray-500);
-        margin-bottom: 10px;
-      }
-
-      .card-meta span {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .card-body {
-        color: var(--gray-600);
-        line-height: 1.6;
-      }
-
-      .empty-state {
-        margin-top: 40px;
-        text-align: center;
-        padding: 60px 20px;
-        border-radius: 16px;
-        background: var(--white);
-        box-shadow: var(--shadow-card);
-        border: 1px solid var(--gray-100);
-      }
-
-      .empty-state i {
-        font-size: 40px;
-        color: var(--primary);
-        margin-bottom: 14px;
-      }
-
-      .empty-state h2 {
-        margin: 0 0 8px;
-        color: var(--gray-800);
-      }
-
-      .empty-state p {
-        margin: 0 0 16px;
-        color: var(--gray-600);
-      }
-    </style>
-  </head>
-  <body>
-    {% include 'school_admin/eleve/partials/header.html' %}
-    <div class="page-wrapper">
-      <header class="page-header">
-        <h1>Notifications reçues</h1>
-        <p>Toutes les alertes importantes envoyées par l'établissement.</p>
-        <div class="actions">
-          <a href="{% url 'eleve:dashboard_eleve' %}" class="btn btn-primary">
-            <i class="fas fa-arrow-left"></i>
-            Retour au tableau de bord
-          </a>
+    {% if notifications %}
+    <div class="px-stack">
+      {% for notification in notifications %}
+      <a href="{% url 'eleve:notification_eleve_click' notification.id %}" class="px-item{% if not notification.lu %} is-unread{% endif %}">
+        <div class="px-item__head">
+          <h2 class="px-item__title">{{ notification.titre }}</h2>
+          {% if not notification.lu %}<span class="px-new">{% trans "Nouveau" %}</span>{% endif %}
         </div>
-      </header>
-
-      {% if notifications %}
-        <div class="notifications-list">
-          {% for notification in notifications %}
-            {% with redirect_url=notification.donnees.redirect_url|default:"" %}
-            <a href="{% url 'eleve:notification_eleve_click' notification.id %}" class="notification-link" style="text-decoration: none; color: inherit; display: block;">
-              <article class="notification-card {% if not notification.lu %}unread{% else %}read{% endif %}" style="cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;">
-                <div class="card-header">
-                  <i class="fas fa-bell"></i>
-                  {{ notification.titre }}
-                  {% if not notification.lu %}
-                    <span style="margin-left: auto; background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Nouveau</span>
-                  {% endif %}
-                </div>
-                <div class="card-meta">
-                  <span>
-                    <i class="far fa-clock"></i>
-                    {{ notification.date_creation|date:"d/m/Y H:i" }}
-                  </span>
-                  <span>
-                    <i class="fas fa-tag"></i>
-                    {{ notification.get_type_notification_display }}
-                  </span>
-                  {% if notification.lu and notification.date_lecture %}
-                    <span style="color: var(--gray-400);">
-                      <i class="fas fa-check-circle"></i>
-                      Lu le {{ notification.date_lecture|date:"d/m/Y H:i" }}
-                    </span>
-                  {% endif %}
-                </div>
-                <div class="card-body">{{ notification.message }}</div>
-                {% if redirect_url %}
-                  <div style="margin-top: 10px; font-size: 12px; color: var(--primary);">
-                    <i class="fas fa-arrow-right"></i> Cliquez pour voir les détails
-                  </div>
-                {% endif %}
-              </article>
-            </a>
-            {% endwith %}
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="empty-state">
-          <i class="fas fa-bell-slash"></i>
-          <h2>Aucune notification</h2>
-          <p>Vous n'avez aucune nouvelle notification pour le moment.</p>
-          <a href="{% url 'eleve:dashboard_eleve' %}" class="btn btn-primary">
-            <i class="fas fa-home"></i>
-            Retour au tableau de bord
-          </a>
-        </div>
-      {% endif %}
+        <p class="px-item__body">{{ notification.message }}</p>
+        <p class="px-item__meta">
+          <span><i class="fas fa-clock" aria-hidden="true"></i>{{ notification.date_creation|date:"d/m/Y H:i" }}</span>
+          <span><i class="fas fa-tag" aria-hidden="true"></i>{{ notification.get_type_notification_display }}</span>
+          {% if notification.donnees.redirect_url %}<span class="px-item__more">{% trans "Voir le détail" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></span>{% endif %}
+        </p>
+      </a>
+      {% endfor %}
     </div>
-    {% if est_parent %}
-    {% include 'school_admin/parent/partials/assistant_vocal_parent.html' %}
     {% else %}
-    {% include 'school_admin/eleve/partials/assistant_vocal_eleve.html' %}
+    <div class="px-empty-inline">
+      <i class="fas fa-bell-slash" aria-hidden="true"></i>
+      <h2>{% trans "Aucune notification" %}</h2>
+      <p>{% trans "Tu seras prévenu(e) ici dès qu’il y a du nouveau." %}</p>
+    </div>
     {% endif %}
-  </body>
+  </main>
+
+  {% include 'school_admin/eleve/partials/_ex_foot.html' %}
+</body>
 </html>

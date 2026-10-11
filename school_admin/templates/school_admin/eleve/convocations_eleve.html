@@ -1,24 +1,62 @@
 {% load static %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% include 'school_admin/partials/seo_head.html' %}
-    <title>{{ page_title|default:"Convocations" }} – ARIA</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/convocations_eleve.css' %}?v=1.0.0">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/eleve_convocations_home.css' %}?v=1.0.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Convocations" %} – ARIA</title>
+  {% include 'school_admin/eleve/partials/_ex_head.html' %}
 </head>
+<body class="axd-page px-page ex-page">
+  {% include 'school_admin/eleve/partials/_ex_shell.html' %}
 
-<body>
-{% include 'school_admin/eleve/partials/header.html' %}
+  <main class="axd px ex" id="contenu">
+    <header class="px-page-head">
+      <span class="px-page-head__icon ax-tone-red"><i class="fas fa-calendar-check" aria-hidden="true"></i></span>
+      <div>
+        <h1>{% trans "Convocations" %}</h1>
+        <p>{% trans "Les rendez-vous demandés par l’établissement." %}</p>
+      </div>
+    </header>
 
-{% include 'school_admin/eleve/partials/eleve_convocations_content.html' %}
+    <section class="px-stats" aria-label="{% trans 'Résumé' %}">
+      <div class="px-stat"><span class="px-stat__icon ax-tone-red"><i class="fas fa-calendar-day" aria-hidden="true"></i></span><div><strong>{{ convocations_a_venir }}</strong><small>{% trans "À venir" %}</small></div></div>
+      <div class="px-stat"><span class="px-stat__icon ax-tone-orange"><i class="fas fa-hourglass-half" aria-hidden="true"></i></span><div><strong>{{ nb_en_attente }}</strong><small>{% trans "En attente" %}</small></div></div>
+      <div class="px-stat"><span class="px-stat__icon ax-tone-green"><i class="fas fa-circle-check" aria-hidden="true"></i></span><div><strong>{{ nb_honorees }}</strong><small>{% trans "Honorées" %}</small></div></div>
+      <div class="px-stat"><span class="px-stat__icon ax-tone-slate"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i></span><div><strong>{{ convocations_passees }}</strong><small>{% trans "Passées" %}</small></div></div>
+    </section>
 
-<script src="{% static 'school_admin/js/eleve/convocations_eleve.js' %}?v=1.0.0"></script>
+    {% if convocations %}
+    <div class="px-stack">
+      {% for c in convocations %}
+      <article class="px-item{% if c.est_passee %} is-past{% endif %}">
+        <div class="px-item__head">
+          <h2 class="px-item__title">{{ c.objet }}</h2>
+          <span>
+            {% if not c.est_passee %}<span class="px-badge px-badge--red"><i class="fas fa-calendar-check" aria-hidden="true"></i>{% trans "À venir" %}</span>{% endif %}
+            <span class="px-badge {% if c.statut == 'honoree' %}px-badge--green{% elif c.statut == 'en_attente' %}px-badge--orange{% elif c.statut == 'vue' %}px-badge--blue{% else %}px-badge--gray{% endif %}">{{ c.get_statut_display }}</span>
+          </span>
+        </div>
+        <p class="px-item__meta">
+          <span><i class="fas fa-calendar" aria-hidden="true"></i>{{ c.date_convocation|date:"l j F Y"|capfirst }}</span>
+          <span><i class="fas fa-clock" aria-hidden="true"></i>{{ c.heure_convocation|time:"H:i" }}</span>
+          {% if c.lieu %}<span><i class="fas fa-location-dot" aria-hidden="true"></i>{{ c.lieu }}</span>{% endif %}
+        </p>
+        {% if c.motif %}<div class="px-item__body"><strong>{% trans "Motif" %} :</strong>{{ c.motif|linebreaks }}</div>{% endif %}
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-empty-inline">
+      <i class="fas fa-calendar-xmark" aria-hidden="true"></i>
+      <h2>{% trans "Aucune convocation" %}</h2>
+      <p>{% trans "Rien de prévu : tout va bien." %}</p>
+    </div>
+    {% endif %}
+  </main>
 
-{% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
+  {% include 'school_admin/eleve/partials/_ex_foot.html' %}
 </body>
 </html>

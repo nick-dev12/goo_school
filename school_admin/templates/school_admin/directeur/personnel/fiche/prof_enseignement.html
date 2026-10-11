@@ -1,0 +1,69 @@
+{% load i18n eleve_nav notes_tags %}
+{% if fiche.type_etab == 'primary' and cahier_notes_data %}
+<div class="fe-subtabs" role="tablist" data-fe-subtabs="ens">
+  <button type="button" role="tab" class="fe-subtab{% if enseignement_section != 'notes' %} is-active{% endif %}" data-fe-subtab="classes"><i class="fas fa-chalkboard" aria-hidden="true"></i>{% trans "Classes" %}</button>
+  <button type="button" role="tab" class="fe-subtab{% if enseignement_section == 'notes' %} is-active{% endif %}" data-fe-subtab="notes"><i class="fas fa-clipboard-list" aria-hidden="true"></i>{% trans "Cahier de notes" %}</button>
+</div>
+{% endif %}
+
+<div class="fe-subpanel{% if enseignement_section != 'notes' or fiche.type_etab != 'primary' or not cahier_notes_data %} is-active{% endif %}" data-fe-subpanel="ens:classes">
+  {% if fiche.classes %}
+  <div class="fe-classes">
+    {% for lg in fiche.classes %}
+    <article class="fe-class">
+      <div class="fe-class__top">
+        <span class="fe-class__icon">{{ lg.classe.nom|truncatechars:4 }}</span>
+        <div><h3 class="fe-class__name">{{ lg.classe.nom }}</h3>
+        <p class="fe-class__meta">{{ lg.classe.get_niveau_display|default:"" }}{% if lg.statut %} · {{ lg.statut }}{% endif %}</p></div>
+      </div>
+      <div class="fe-class__stats">
+        <div><b>{{ lg.effectif }}</b><span>{% trans "élèves" %}</span></div>
+        <div><b>{{ lg.heures|floatformat:"-1" }}</b><span>{% trans "h / sem." %}</span></div>
+        <div><b>{{ lg.creneaux }}</b><span>{% trans "créneaux" %}</span></div>
+      </div>
+      {% if lg.matieres %}<div class="fe-tags">{% for m in lg.matieres %}<span class="fe-tag fe-tone-{{ m.nom|matiere_tone }}">{{ m.nom }}</span>{% endfor %}</div>{% endif %}
+      {% if lg.hors_edt %}<p class="fe-alert fe-alert--warn"><i class="fas fa-calendar-xmark" aria-hidden="true"></i><span>{% trans "Affecté mais aucun créneau publié dans l’emploi du temps de cette classe." %}</span></p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="fe-card"><div class="cg3-empty"><i class="fas fa-chalkboard" aria-hidden="true"></i><strong>{% trans "Aucune classe" %}</strong><span>{% trans "Affectez l’enseignant à une classe, ou ajoutez-le dans un emploi du temps publié." %}</span></div></div>
+  {% endif %}
+</div>
+
+{% if fiche.type_etab == 'primary' and cahier_notes_data %}
+<div class="fe-subpanel{% if enseignement_section == 'notes' %} is-active{% endif %}" data-fe-subpanel="ens:notes">
+  <div class="fe-stack">
+  {% for classe_data in cahier_notes_data %}
+    <article class="fe-card">
+      <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-clipboard-list" aria-hidden="true"></i>{{ classe_data.classe.nom }}</h2><p class="fe-card__sub">{% blocktrans count n=classe_data.classe.nombre_eleves %}{{ n }} élève{% plural %}{{ n }} élèves{% endblocktrans %} · {% trans "choisissez une matière" %}</p></div></header>
+      <nav class="fe-notes-tabs">
+        {% for mi in classe_data.matieres_info %}
+        <a href="?onglet=enseignement&amp;section=notes&amp;matiere={{ mi.matiere.id }}" class="{% if mi.est_selectionnee %}is-active{% endif %}">{{ mi.matiere.nom }}{% if mi.nombre_moyennes %} <span class="badge">{{ mi.nombre_moyennes }}</span>{% endif %}</a>
+        {% endfor %}
+      </nav>
+      {% for mi in classe_data.matieres_info %}{% if mi.est_selectionnee %}
+      <p class="fe-label" style="margin-top:16px !important">{{ mi.matiere.nom }}</p>
+      {% if mi.notes_detaillees %}
+      <div class="fe-table-wrap">
+        <table class="fe-table">
+          <thead><tr><th>{% trans "Élève" %}</th>{% for ev in mi.evaluations %}<th class="num">{{ ev.type_label }}<br><small>/{{ ev.bareme|floatformat:0 }}</small></th>{% endfor %}<th class="num">{% trans "Moyenne" %}</th><th>{% trans "Appréciation" %}</th></tr></thead>
+          <tbody>
+            {% for ed in mi.notes_detaillees %}
+            <tr>
+              <td><strong>{{ ed.eleve.nom|upper }}</strong> {{ ed.eleve.prenom }}</td>
+              {% for ev in mi.evaluations %}<td class="num">{% with nd=ed.notes_evaluations|get_item:ev.id %}{% if nd.note_obj.absent %}<span class="abs">ABS</span>{% elif nd.note_obj.note is not None %}<span style="color: {{ nd.couleur }}; font-weight:600">{{ nd.note_obj.note|floatformat:2 }}</span>{% else %}—{% endif %}{% endwith %}</td>{% endfor %}
+              <td class="num"><strong>{% if ed.moyenne %}{{ ed.moyenne|floatformat:2 }}{% else %}—{% endif %}</strong></td>
+              <td>{{ ed.appreciation|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}<div class="cg3-empty"><i class="fas fa-clipboard" aria-hidden="true"></i><span>{% trans "Aucune note enregistrée dans cette matière." %}</span></div>{% endif %}
+      {% endif %}{% endfor %}
+    </article>
+  {% endfor %}
+  </div>
+</div>
+{% endif %}

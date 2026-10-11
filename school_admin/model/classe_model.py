@@ -158,8 +158,9 @@ class Classe(models.Model):
             return self.niveau_lmd
         if self.academic_level_id:
             return f'{self.academic_level.code} — {self.academic_level.nom}'
-        # Comportement précédent : défaut « L1 » ; on affiche le libellé long équivalent
-        return NIVEAU_LMD_LIBELLES_COMPLETS['L1']
+        # Niveau non renseigné : on le dit plutôt que d'afficher « Licence 1 » par défaut,
+        # ce qui masquait les promotions mal configurées (L2, L3, M1… affichées en L1).
+        return 'Niveau à définir'
 
     def get_libelle_niveau_complet_pour_eleve(self):
         """

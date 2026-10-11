@@ -173,6 +173,61 @@
   color: var(--white);
 }
 
+.caisse-ecrite {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.caisse-statut {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.caisse-statut--validee {
+  color: #059669;
+  background: #ecfdf5;
+}
+.caisse-statut--brouillon {
+  color: #92400e;
+  background: #fffbeb;
+}
+.caisse-statut--annulee,
+.caisse-row-annulee {
+  color: #6b7280;
+}
+.caisse-row-annulee td {
+  text-decoration: line-through;
+}
+.caisse-row-annulee td:last-child {
+  text-decoration: none;
+}
+.caisse-annuler-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.caisse-annuler-form input[type="text"] {
+  min-width: 10rem;
+  min-height: 2.75rem;
+}
+.caisse-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
 .caisse-btn--ghost {
   background: transparent;
   color: var(--accent);
@@ -227,6 +282,54 @@
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   overflow: hidden;
+}
+
+/* Même gabarit que comptabilité / liste élèves (44px) — hors .cg-page */
+.caisse-tabs-bar .matiere-tab-btn.caisse-vue-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.caisse-tabs-bar .matiere-tab-btn.caisse-vue-tab:hover {
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.caisse-tabs-bar .matiere-tab-btn.caisse-vue-tab.active,
+.caisse-tabs-bar .matiere-tab-btn.caisse-vue-tab[aria-selected="true"] {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.caisse-tabs-bar .matiere-tab-btn.caisse-vue-tab .tab-count {
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 999px;
+  min-width: 1.35rem;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.caisse-tabs-bar .matiere-tab-btn.caisse-vue-tab.active .tab-count,
+.caisse-tabs-bar .matiere-tab-btn.caisse-vue-tab[aria-selected="true"] .tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
 }
 
 .caisse-tabs-content .tab-panel:not(.active) {

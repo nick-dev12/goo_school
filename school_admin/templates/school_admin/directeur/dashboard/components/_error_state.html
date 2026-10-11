@@ -1,0 +1,8 @@
+{% load i18n %}
+<div class="dbd-ui-error" role="alert">
+  <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+  <p>{{ message|default:_("Impossible de charger ces statistiques.") }}</p>
+  {% if retry_url %}
+  <a href="{{ retry_url }}" class="dbd-abs-btn secondary">{% trans "Réessayer" %}</a>
+  {% endif %}
+</div>

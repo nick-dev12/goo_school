@@ -13,8 +13,12 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
 </head>
-<body class="gps-page-body" data-live-page="periodes">
+<body class="gps-page-body gv3 cg3" data-live-page="periodes">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container gps-page">
@@ -25,32 +29,8 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_etab_url %}
         </div>
 
-        <header class="gps-hero">
-            <div class="gps-hero-text">
-                <h1 class="gps-hero-title"><i class="fas fa-calendar-alt"></i> {% trans "Périodes scolaires" %}</h1>
-                {% if annee_scolaire_active %}
-                    <span class="gps-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
-                {% endif %}
-            </div>
-            <div class="gps-hero-stats">
-                <div class="gps-stat-pill">
-                    <span class="gps-stat-num">{{ stats_generales.total_annees }}</span>
-                    <span class="gps-stat-lbl">{% trans "Années" %}</span>
-                </div>
-                <div class="gps-stat-pill gps-stat-pill--accent">
-                    <span class="gps-stat-num">{{ stats_generales.total_periodes }}</span>
-                    <span class="gps-stat-lbl">{% trans "Périodes" %}</span>
-                </div>
-            </div>
-            <div class="gps-hero-actions">
-                <button type="button" class="gps-action-btn gps-action-btn--info" id="btnCreerAnneeScolaire">
-                    <i class="fas fa-calendar-plus"></i> {% trans "Nouvelle année" %}
-                </button>
-                <button type="button" class="gps-action-btn gps-action-btn--primary" id="btnAjouterPeriode">
-                    <i class="fas fa-plus"></i> {% trans "Nouvelle période" %}
-                </button>
-            </div>
-        </header>
+        {% if etablissement.type_etablissement == 'superieur' %}{% trans "Années et semestres" as t %}{% trans "Années universitaires et semestres par niveau LMD." as st %}{% else %}{% trans "Années et périodes" as t %}{% trans "Années scolaires et découpage en trimestres ou semestres." as st %}{% endif %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-calendar-days' v3_tone='orange' v3_actions_tpl='school_admin/directeur/partials/v3_actions/periodes.html' %}
 
         {% if not annee_scolaire_active %}
         <div class="gps-alert gps-alert-warn">
@@ -463,6 +443,7 @@
     {% endif %}
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
     <script src="{% static 'school_admin/js/directeur/gestion_periodes_scolaires.js' %}?v=2.0.3"></script>
 </body>

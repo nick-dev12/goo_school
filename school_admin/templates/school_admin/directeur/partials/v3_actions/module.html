@@ -1,0 +1,4 @@
+{% load i18n %}
+{% if filiere_panels %}<button type="button" class="cg3-btn cg3-btn--primary" id="btnAjouterMatiereModule"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter une matière" %}</button>{% endif %}
+<button type="button" class="cg3-btn" id="btnModifierModule"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier" %}</button>
+<form method="post" action="{% url 'matiere:supprimer_module' module.id %}" style="margin:0" onsubmit="return confirm('{% trans "Supprimer ce module ? Les matières seront retirées du module." %}');">{% csrf_token %}<button type="submit" class="cg3-btn"><i class="fas fa-trash" aria-hidden="true"></i>{% trans "Supprimer" %}</button></form>

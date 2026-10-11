@@ -6,6 +6,7 @@ import base64
 import json
 import logging
 import re
+import time
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -69,6 +70,8 @@ from school_admin.services.tts_service import strip_assistant_markup, synthesize
 logger = logging.getLogger(__name__)
 
 MAX_HISTORY_MESSAGES = 24
+# Phrases synthétisées en parallèle (Gemini TTS ~1,5–3,5 s par phrase).
+TTS_PARALLEL_SYNTH = 4
 MAX_QUESTION_LENGTH = 8000
 AFFIRM_RE = re.compile(
     r'^\s*(oui|ouais|ok|okay|yes|d[\'’ ]?accord|je confirme|confirme[rz]?|'
@@ -274,6 +277,13 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 question,
                 self._parent_lang_pref,
             )
+        else:
+            from school_admin.services.assistant_parent_language import (
+                resolve_user_turn_language,
+            )
+
+            # Directeur / enseignants : pas de préférence UI, langue détectée à chaque tour.
+            self._parent_user_turn_lang = resolve_user_turn_language(question, 'auto')
         await self._send_working_ack(question)
         await self._ensure_pending_loaded()
         if self._socket_fresh:
@@ -338,9 +348,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             self._turn_has_output = False
             self._stream_accumulated = ''
             self._stream_spoken_len = 0
-            self._spoken_sentence_buffer = SpokenSentenceBuffer()
+            self._spoken_sentence_buffer = SpokenSentenceBuffer(quick_first=True)
             self._tts_chain = None
             self._reset_turn_stats()
+            self._turn_started_at = time.perf_counter()
+            self._first_text_ms = None
+            self._first_audio_ms = None
             try:
                 await handler()
             except asyncio.CancelledError:
@@ -878,7 +891,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._send_json({'type': 'done'})
 
     async def _handle_stt(self, payload):
-        from school_admin.services.stt_service import transcribe_pcm16, transcribe_pcm16_multi
+        from school_admin.services.assistant_parent_language import (
+            STT_FR,
+            STT_WO,
+            STT_WOLOF_WEAK_MESSAGE,
+            normalize_lang_preference,
+            wolof_marker_score,
+        )
+        from school_admin.services.stt_service import transcribe_voice_note
 
         raw = payload.get('audio_base64') or ''
         try:
@@ -891,59 +911,41 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             })
             return
 
+        pref = 'auto'
         if self._uses_bilingual_lang():
-            from school_admin.services.assistant_parent_language import (
-                STT_WOLOF_WEAK_MESSAGE,
-                normalize_lang_preference,
-                pick_best_stt_transcript,
-                stt_language_order,
-            )
-
             pref = normalize_lang_preference(
                 payload.get('lang_pref') or await self._load_persona_lang_pref()
             )
             if payload.get('lang_pref'):
                 await self._save_persona_lang_pref(pref)
             self._parent_lang_pref = pref
-            order = stt_language_order(pref)
-            if len(order) > 1:
-                candidates = await transcribe_pcm16_multi(audio_bytes, order)
-            else:
-                candidates = {
-                    order[0]: await transcribe_pcm16(audio_bytes, order[0]),
-                }
-            text, locale, weak = pick_best_stt_transcript(candidates)
-            prefer_wolof = pref == 'wo' or (
-                pref == 'auto' and locale.startswith('wo')
-            )
-            response = {
-                'type': 'transcript',
-                'text': text,
-                'stt_locale': locale,
-            }
-            if weak and prefer_wolof:
-                response['stt_weak'] = True
-                response['fallback_message'] = STT_WOLOF_WEAK_MESSAGE
-                if not text:
-                    response['text'] = ''
-            await self._send_json(response)
-            return
 
-        text = await transcribe_pcm16(audio_bytes)
-        await self._send_json({
+        # Tous les espaces : Gemini transcrit le wolof (l'ancien STT fr-FR / wo-SN ne le
+        # reconnaissait pas) ; le texte wolof suffit ensuite pour que Gemini réponde en wolof.
+        text, lang = await transcribe_voice_note(audio_bytes)
+        # « mixed » = wolof avec des mots français, la façon de parler courante à Dakar.
+        wolof = lang in ('wo', 'mixed') or wolof_marker_score(text) >= 2
+        response = {
             'type': 'transcript',
             'text': text,
-        })
+            'stt_locale': STT_WO if wolof else STT_FR,
+        }
+        if not text and (pref == 'wo' or wolof):
+            response['stt_weak'] = True
+            response['fallback_message'] = STT_WOLOF_WEAK_MESSAGE
+        await self._send_json(response)
 
     def _parent_tts_language(self, sentence):
-        if not self._uses_bilingual_lang():
-            return None
         from school_admin.services.assistant_parent_language import resolve_tts_language
 
         lang = resolve_tts_language(
             sentence or '',
             user_turn_language=getattr(self, '_parent_user_turn_lang', 'fr'),
-            preference=getattr(self, '_parent_lang_pref', 'auto'),
+            preference=(
+                getattr(self, '_parent_lang_pref', 'auto')
+                if self._uses_bilingual_lang()
+                else 'auto'
+            ),
         )
         return lang if lang == 'wo' else None
 
@@ -956,6 +958,21 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if not sentence:
             return
         prev = getattr(self, '_tts_chain', None)
+        semaphore = getattr(self, '_tts_semaphore', None)
+        if semaphore is None:
+            semaphore = self._tts_semaphore = asyncio.Semaphore(TTS_PARALLEL_SYNTH)
+
+        async def _synth():
+            # Synthèse lancée tout de suite (en parallèle des phrases précédentes) :
+            # seule l’émission reste ordonnée par la chaîne.
+            async with semaphore:
+                tts_lang = self._parent_tts_language(sentence)
+                if tts_lang:
+                    return await synthesize_audio(sentence, language=tts_lang)
+                return await synthesize_audio(sentence)
+
+        synth_task = asyncio.create_task(_synth())
+        self._track_tts(synth_task)
 
         async def _job():
             if prev is not None and not prev.done():
@@ -964,23 +981,21 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 except (asyncio.CancelledError, Exception):
                     pass
             if self._cancel_requested:
+                synth_task.cancel()
                 return
-            index = self._tts_index
-            self._tts_index += 1
             audio = b''
             mime = 'audio/wav'
             try:
-                tts_lang = self._parent_tts_language(sentence)
-                if tts_lang:
-                    audio, mime = await synthesize_audio(sentence, language=tts_lang)
-                else:
-                    audio, mime = await synthesize_audio(sentence)
+                audio, mime = await synth_task
             except asyncio.CancelledError:
                 raise
             except Exception:
                 logger.exception('Échec TTS phrase (stream).')
             if self._cancel_requested:
                 return
+            index = self._tts_index
+            self._tts_index += 1
+            self._mark_first_audio()
             await self._emit_sentence(
                 sentence,
                 index,
@@ -1053,7 +1068,19 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'suggestions',
         ):
             self._turn_has_output = True
+        if kind == 'text_delta' and getattr(self, '_first_text_ms', 0) is None:
+            self._first_text_ms = self._elapsed_turn_ms()
         await self.send(text_data=json.dumps(payload, ensure_ascii=False))
+
+    def _elapsed_turn_ms(self):
+        started = getattr(self, '_turn_started_at', None)
+        if started is None:
+            return None
+        return int((time.perf_counter() - started) * 1000)
+
+    def _mark_first_audio(self):
+        if getattr(self, '_first_audio_ms', 0) is None:
+            self._first_audio_ms = self._elapsed_turn_ms()
 
     @database_sync_to_async
     def _resolve_etablissement(self):
@@ -1310,6 +1337,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 'url': item.get('url') or '',
                 'widget': item.get('widget') or '',
                 'placeholder': item.get('placeholder') or '',
+                'mode': item.get('mode') or '',
             })
         if not cleaned:
             return
@@ -1370,6 +1398,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._ensure_pending_loaded()
             if payload.get('publier') is True and self.pending_action:
                 self.pending_action.setdefault('draft', {})['publier'] = True
+            if payload.get('mode') in ('brouillon', 'valider') and self.pending_action:
+                # Cahier de texte : le bouton choisi décide entre brouillon et validation définitive.
+                self.pending_action.setdefault('draft', {})['mode'] = payload['mode']
             await self._run_guarded(self._confirm_pending)
             return
         if intent == 'cancel':
@@ -1455,6 +1486,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             suggestions_count=stats.get('suggestions_count') or 0,
             takeover=stats.get('takeover') or 0,
         )
+        payload['first_text_ms'] = getattr(self, '_first_text_ms', None)
+        payload['first_audio_ms'] = getattr(self, '_first_audio_ms', None)
+        payload['total_ms'] = self._elapsed_turn_ms()
         log_turn_telemetry(payload)
         return payload
 

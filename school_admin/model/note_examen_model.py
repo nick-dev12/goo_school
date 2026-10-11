@@ -72,8 +72,8 @@ class NoteExamen(models.Model):
     note = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        validators=[MinValueValidator(0), MaxValueValidator(20)],
-        verbose_name="Note sur 20",
+        validators=[MinValueValidator(0)],
+        verbose_name="Note (sur le barème)",
         null=True,
         blank=True
     )
@@ -124,6 +124,11 @@ class NoteExamen(models.Model):
     absent = models.BooleanField(
         default=False,
         verbose_name="Élève absent"
+    )
+    absence_justifiee = models.BooleanField(
+        default=False,
+        verbose_name="Absence justifiée",
+        help_text="Une absence justifiée est neutralisée ; sinon la règle de l'établissement s'applique (0 par défaut).",
     )
     
     retenue = models.BooleanField(
@@ -188,15 +193,23 @@ class NoteExamen(models.Model):
                 'matiere': "La matière ne fait pas partie de cette session d'examen."
             })
         
-        # Si note présente, calculer note_sur_20
+        # Si note présente : barème positif et note comprise entre 0 et le barème
         if self.note is not None and not self.absent:
             if self.bareme <= 0:
                 raise ValidationError({
                     'bareme': "Le barème doit être supérieur à 0."
                 })
+            if self.note < 0 or self.note > self.bareme:
+                raise ValidationError({
+                    'note': f"La note doit être comprise entre 0 et {self.bareme}."
+                })
     
     def save(self, *args, **kwargs):
-        """Calcul automatique de la note sur 20"""
+        """Calcul automatique de la note sur 20 (et année scolaire reprise de la session)."""
+        if self.annee_scolaire_id is None and self.session_examen_id:
+            self.annee_scolaire_id = self.session_examen.annee_scolaire_id
+        if not self.absent:
+            self.absence_justifiee = False
         if self.note is not None and not self.absent:
             if self.bareme > 0:
                 self.note_sur_20 = (self.note / self.bareme) * 20

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+{% load static i18n directeur_nav %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{% trans "Comptabilité générale" %}{% endblock %} — {{ etablissement.nom }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=1.0.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.0" />
+  {% block head %}{% endblock %}
+</head>
+<body class="axd-page cg3-body" data-devise="{{ devise_monnaie }}">
+  {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+  <main class="axd cg3" id="contenu">
+    {# ---------- En-tête de section ---------- #}
+    <header class="cg3-head">
+      <div class="cg3-head__id">
+        <span class="cg3-head__icon ax-tone-{% block tone %}blue{% endblock %}"><i class="fas {% block icon %}fa-scale-balanced{% endblock %}" aria-hidden="true"></i></span>
+        <div>
+          <p class="cg3-head__kicker">{% trans "Comptabilité générale" %} · SYSCOHADA</p>
+          <h1 class="cg3-head__title">{% block heading %}{% trans "Comptabilité générale" %}{% endblock %}</h1>
+          {% block subheading %}{% endblock %}
+        </div>
+      </div>
+      <div class="cg3-head__tools">
+        {% if exercices %}
+        <form method="get" class="cg3-exo" aria-label="{% trans 'Exercice' %}">
+          <label for="cg3-exo"><i class="fas fa-calendar" aria-hidden="true"></i>{% trans "Exercice" %}</label>
+          <select id="cg3-exo" name="exercice" onchange="this.form.submit()">
+            {% for e in exercices %}<option value="{{ e.pk }}"{% if e.pk == exercice.pk %} selected{% endif %}>{{ e.libelle }}{% if e.statut == 'cloture' %} · {% trans "clôturé" %}{% endif %}</option>{% endfor %}
+          </select>
+        </form>
+        {% elif exercice %}
+        <span class="cg3-chip"><i class="fas fa-calendar" aria-hidden="true"></i>{% trans "Exercice" %} {{ exercice.libelle }}</span>
+        {% endif %}
+        {% if exercice %}
+          {% if exercice.statut == 'cloture' %}<span class="cg3-chip cg3-chip--muted"><i class="fas fa-lock" aria-hidden="true"></i>{% trans "Clôturé" %}</span>
+          {% else %}<span class="cg3-chip cg3-chip--ok"><i class="fas fa-lock-open" aria-hidden="true"></i>{% trans "Ouvert" %}</span>{% endif %}
+        {% endif %}
+        {% block actions %}{% endblock %}
+      </div>
+    </header>
+
+    {# ---------- Navigation de la comptabilité ---------- #}
+    {% cg_nav_items cg_nav as cg3_groupes %}
+    <nav class="cg3-nav" aria-label="{% trans 'Sections de la comptabilité' %}">
+      {% for g in cg3_groupes %}
+      <div class="cg3-nav__group">
+        <span class="cg3-nav__title">{{ g.titre }}</span>
+        <div class="cg3-nav__items">
+          {% for l in g.items %}
+          <a href="{{ l.url }}" class="cg3-nav__item{% if l.active %} is-active{% endif %}"{% if l.active %} aria-current="page"{% endif %}>
+            <span class="cg3-nav__icon ax-tone-{{ l.tone }}"><i class="fas {{ l.icon }}" aria-hidden="true"></i></span><span>{{ l.label }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </nav>
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block data %}{% endblock %}
+  <script src="{% static 'school_admin/js/directeur/cg_ui.js' %}?v=1.0.2"></script>
+  {% block scripts %}{% endblock %}
+  {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

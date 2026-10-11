@@ -347,6 +347,8 @@ class ComptabiliteController:
         }
         attach_niveau_classe_tab_context(request, context, dict(classes_grouped))
         
+        from ..services.suivi_eleves import enrichir as _enrichir_suivi
+        _enrichir_suivi(request, context, 'compta')
         return render(request, 'school_admin/directeur/comptabilite/liste_comptabilite_eleves.html', context)
 
     @staticmethod

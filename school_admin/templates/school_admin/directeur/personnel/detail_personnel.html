@@ -1,843 +1,223 @@
 <!DOCTYPE html>
-{% load static %}
-{% load i18n %}
-{% load permissions_tags %}
+{% load static i18n %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ personnel.nom_complet }} - Détails Personnel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.1.1" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_personnel.css' %}?v=1.1.2" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_professeur.css' %}?v=1.1.1" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/formulaires_personnel.css' %}?v=1.0.1" />
-  </head>
-  <body data-live-page="personnel-detail">
-    <!-- Header -->
-    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ personnel.nom_complet }} — {% trans "Fiche personnel" %}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=1.0.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.0.0" />
+</head>
+<body class="axd-page cg3-body fe-body" data-live-page="personnel-detail">
+  {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content -->
-    <div class="main-content-container">
-        <!-- Page Header avec actions -->
-        <div class="page-header">
-            {% include 'school_admin/directeur/partials/page_header_back.html' %}
-<div class="header-left">
-                <div class="page-title-section">
-                    <h1 class="page-title">
-                        <i class="fas fa-user-tie"></i>
-                        {{ personnel.nom_complet }}
-                    </h1>
-                    <p class="page-subtitle">
-                        {{ personnel.get_fonction_display }} • {{ personnel.etablissement.nom }}
-                    </p>
-                </div>
-            </div>
-            <div class="header-actions">
-                <button type="button" class="btn-action btn-primary" onclick="toggleFormModifier()">
-                    <i class="fas fa-edit"></i>
-                    <span id="btn{% trans "Modifier" %}Text">{% trans "Modifier" %}</span>
-                </button>
-                <a href="{% url 'personnel:toggle_actif' personnel.id %}" class="btn-action {% if personnel.actif %}btn-danger{% else %}btn-success{% endif %}">
-                    <i class="fas fa-{% if personnel.actif %}pause{% else %}play{% endif %}"></i>
-                    <span>{% if personnel.actif %}Désactiver{% else %}Activer{% endif %}</span>
-                </a>
-            </div>
+  <main class="fe cg3" id="contenu" data-fe-root data-fe-initial="{{ onglet_actif }}">
+    <nav class="fe-crumbs" aria-label="{% trans 'Fil d’Ariane' %}">
+      <a href="{% url 'personnel:liste_personnel' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{% trans "Personnel administratif" %}</a>
+      <i class="fas fa-chevron-right" aria-hidden="true"></i><span>{{ personnel.nom_complet }}</span>
+    </nav>
+
+    {% if messages and not field_errors_modifier %}<div class="fe-messages">{% for m in messages %}<p class="fe-alert {% if m.tags == 'success' %}fe-alert--ok{% elif m.tags == 'error' or m.tags == 'warning' %}fe-alert--warn{% else %}fe-alert--info{% endif %}"><i class="fas {% if m.tags == 'success' %}fa-circle-check{% else %}fa-circle-info{% endif %}" aria-hidden="true"></i><span>{{ m }}</span></p>{% endfor %}</div>{% endif %}
+
+    <header class="fe-hero">
+      <div class="fe-avatar" aria-hidden="true">{{ personnel.prenom.0|upper }}{{ personnel.nom.0|upper }}<span class="fe-avatar__dot{% if not personnel.actif %} is-off{% endif %}"></span></div>
+      <div class="fe-hero__id">
+        <p class="fe-hero__kicker">{% trans "Personnel administratif" %}</p>
+        <h1 class="fe-hero__name">{{ personnel.nom_complet }}</h1>
+        <p class="fe-hero__sub">{{ personnel.get_fonction_display }} · {{ personnel.etablissement.nom }}{% if fiche.anciennete %} · {% blocktrans with a=fiche.anciennete %}{{ a }} d’ancienneté{% endblocktrans %}{% endif %}</p>
+        <div class="fe-hero__chips">
+          <span class="cg3-chip {% if personnel.actif %}cg3-chip--ok{% else %}cg3-chip--muted{% endif %}"><i class="fas fa-circle" style="font-size:.45rem" aria-hidden="true"></i>{% if personnel.actif %}{% trans "Actif" %}{% else %}{% trans "Inactif" %}{% endif %}</span>
+          {% if personnel.numero_employe %}<span class="cg3-chip cg3-chip--muted"><i class="fas fa-id-badge" aria-hidden="true"></i>{{ personnel.numero_employe }}</span>{% endif %}
+          <span class="cg3-chip cg3-chip--muted"><i class="fas fa-shield-halved" aria-hidden="true"></i>{{ fiche.nb_permissions }} / {{ nb_permissions_total }} {% trans "autorisations" %}</span>
+          {% if fiche.jamais_connecte %}<span class="cg3-chip cg3-chip--warn"><i class="fas fa-key" aria-hidden="true"></i>{% trans "Jamais connecté" %}</span>{% endif %}
         </div>
+      </div>
+      <div class="fe-hero__actions">
+        <button type="button" class="cg3-btn cg3-btn--primary" data-fe-open="fe-modifier"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier" %}</button>
+        <form action="{% url 'personnel:toggle_actif' personnel.id %}" method="post" onsubmit="return confirm('{% if personnel.actif %}{% trans "Désactiver ce compte ? La personne ne pourra plus se connecter." %}{% else %}{% trans "Réactiver ce compte ?" %}{% endif %}');">
+          {% csrf_token %}
+          <button type="submit" class="cg3-btn"><i class="fas fa-{% if personnel.actif %}user-slash{% else %}user-check{% endif %}" aria-hidden="true"></i>{% if personnel.actif %}{% trans "Désactiver" %}{% else %}{% trans "Activer" %}{% endif %}</button>
+        </form>
+      </div>
+      <div class="fe-contact">
+        <a href="tel:{{ personnel.telephone }}"><i class="fas fa-phone" aria-hidden="true"></i>{{ personnel.telephone }}</a>
+        {% if personnel.email %}<a href="mailto:{{ personnel.email }}"><i class="fas fa-envelope" aria-hidden="true"></i>{{ personnel.email }}</a>{% else %}<span class="is-missing"><i class="fas fa-envelope" aria-hidden="true"></i>{% trans "Email non renseigné" %}</span>{% endif %}
+        <span><i class="fas fa-user" aria-hidden="true"></i>{{ personnel.username }}</span>
+      </div>
+    </header>
 
-        <!-- Formulaire de modification (masqué par défaut) -->
-        <div id="formModifierPersonnelContainer" style="display: none; margin: 20px 0;">
-            <div class="form-modifier-wrapper">
-                <div class="form-modifier-header">
-                    <h2>
-                        <i class="fas fa-user-edit"></i>
-                        {% trans "Modifier le Personnel" %}
-                    </h2>
-                    <button type="button" class="btn-close-form" onclick="toggleFormModifier()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <form id="formModifierPersonnel" method="post" action="{% url 'personnel:modifier_personnel' personnel.id %}">
-                    {% csrf_token %}
-                    
-                    <div class="form-modifier-body">
-                        <!-- Messages d'erreur -->
-                        {% if messages %}
-                            {% for message in messages %}
-                                <div class="alert alert-{{ message.tags }}">
-                                    {{ message }}
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-                        
-                        {% if field_errors_modifier %}
-                            <div class="alert alert-danger">
-                                <strong>{% trans "Erreurs détectées :" %}</strong>
-                                <ul>
-                                    {% for field, errors in field_errors_modifier.items %}
-                                        {% for error in errors %}
-                                            <li>{{ error }}</li>
-                                        {% endfor %}
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        {% endif %}
-                        
-                        <!-- Informations personnelles -->
-                        <div class="form-section">
-                            <h3 class="section-title-form">
-                                <i class="fas fa-user"></i>
-                                {% trans "Informations Personnelles" %}
-                            </h3>
-                            
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label for="nom_modifier" class="form-label">
-                                        {% trans "Nom" %} <span class="required">*</span>
-                                    </label>
-                                    <input type="text" 
-                                           id="nom_modifier" 
-                                           name="nom" 
-                                           class="form-input" 
-                                           required
-                                           value="{% if form_data_modifier.nom %}{{ form_data_modifier.nom }}{% else %}{{ personnel.nom }}{% endif %}">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="prenom_modifier" class="form-label">
-                                        {% trans "Prénom <span class=\"required\">*</span>" %}
-                                    </label>
-                                    <input type="text" 
-                                           id="prenom_modifier" 
-                                           name="prenom" 
-                                           class="form-input" 
-                                           required
-                                           value="{% if form_data_modifier.prenom %}{{ form_data_modifier.prenom }}{% else %}{{ personnel.prenom }}{% endif %}">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="email_modifier" class="form-label">
-                                        {% trans "Email" %} <span class="required">*</span>
-                                    </label>
-                                    <input type="email" 
-                                           id="email_modifier" 
-                                           name="email" 
-                                           class="form-input" 
-                                           required
-                                           value="{% if form_data_modifier.email %}{{ form_data_modifier.email }}{% else %}{{ personnel.email }}{% endif %}">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="telephone_modifier" class="form-label">
-                                        {% trans "Téléphone <span class=\"required\">*</span>" %}
-                                    </label>
-                                    <input type="tel" 
-                                           id="telephone_modifier" 
-                                           name="telephone" 
-                                           class="form-input" 
-                                           required
-                                           value="{% if form_data_modifier.telephone %}{{ form_data_modifier.telephone }}{% else %}{{ personnel.telephone }}{% endif %}">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Fonction -->
-                        <div class="form-section">
-                            <h3 class="section-title-form">
-                                <i class="fas fa-briefcase"></i>
-                                {% trans "Fonction" %}
-                            </h3>
-                            
-                            <div class="form-group">
-                                <label for="fonction_modifier" class="form-label">
-                                    {% trans "Fonction" %} <span class="required">*</span>
-                                </label>
-                                <select id="fonction_modifier" 
-                                        name="fonction" 
-                                        class="form-input" 
-                                        required
-                                        onchange="updatePermissionsByFunctionModifier()">
-                                    <option value="">{% trans "Sélectionnez une fonction" %}</option>
-                                    {% if fonctions_disponibles and fonctions_disponibles|length > 0 %}
-                                        {% for code, label in fonctions_disponibles %}
-                                            <option value="{{ code }}" {% if form_data_modifier.fonction == code or not form_data_modifier and personnel.fonction == code %}selected{% endif %}>
-                                                {{ label }}
-                                            </option>
-                                        {% endfor %}
-                                    {% endif %}
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <!-- Autorisations -->
-                        <div class="form-section">
-                            <h3 class="section-title-form">
-                                <i class="fas fa-key"></i>
-                                {% trans "Autorisations" %}
-                            </h3>
-                            
-                            <div class="permissions-container-form">
-                                {% for category, permissions in permissions_par_categorie.items %}
-                                    <div class="permission-category-form">
-                                        <h4 class="permission-category-title-form">
-                                            <i class="fas fa-folder"></i>
-                                            {{ category }}
-                                        </h4>
-                                        <div class="permissions-grid-form">
-                                            {% for perm in permissions %}
-                                                <div class="permission-item-form">
-                                                    <label class="permission-checkbox-form">
-                                                        <input type="checkbox" 
-                                                               name="permission_{{ perm.key }}" 
-                                                               id="permission_{{ perm.key }}_modifier"
-                                                               value="on"
-                                                               {% if perm.key in permissions_combinees %}checked{% endif %}>
-                                                        <span class="permission-label-form">{{ perm.label }}</span>
-                                                    </label>
-                                                </div>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-modifier-footer">
-                        <button type="button" class="btn-form btn-cancel" onclick="toggleFormModifier()">
-                            <i class="fas fa-times"></i>
-                            {% trans "Annuler" %}
-                        </button>
-                        <button type="submit" class="btn-form btn-submit">
-                            <i class="fas fa-save"></i>
-                            {% trans "Enregistrer les modifications" %}
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <section class="fe-kpis fe-kpis--4" aria-label="{% trans 'Indicateurs' %}">
+      <a class="fe-kpi fe-tone-blue" href="?onglet=autorisations" data-fe-goto="autorisations">
+        <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Autorisations" %}</span><span class="fe-kpi__icon"><i class="fas fa-shield-halved" aria-hidden="true"></i></span></div>
+        <p class="fe-kpi__value">{{ fiche.nb_permissions }}<small>/ {{ nb_permissions_total }}</small></p>
+        <p class="fe-kpi__caption">{% trans "Modules accessibles" %}</p>
+      </a>
+      <a class="fe-kpi fe-tone-orange" href="?onglet=dossier" data-fe-goto="dossier">
+        <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Dossier RH" %}</span><span class="fe-kpi__icon"><i class="fas fa-folder-open" aria-hidden="true"></i></span></div>
+        <p class="fe-kpi__value">{{ completude.taux }}<small>%</small></p>
+        <div class="fe-bar"><span class="{% if completude.taux < 50 %}is-bad{% elif completude.taux < 80 %}is-warn{% endif %}" style="width: {{ completude.taux }}%"></span></div>
+      </a>
+      <div class="fe-kpi fe-tone-green">
+        <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Ancienneté" %}</span><span class="fe-kpi__icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></span></div>
+        <p class="fe-kpi__value" style="font-size:1.1rem">{{ fiche.anciennete|default:"—" }}</p>
+        <p class="fe-kpi__caption">{% if personnel.date_embauche %}{% trans "Depuis le" %} {{ personnel.date_embauche|date:"d/m/Y" }}{% else %}{% trans "Date d’embauche non renseignée" %}{% endif %}</p>
+      </div>
+      <a class="fe-kpi fe-tone-violet" href="?onglet=acces" data-fe-goto="acces">
+        <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Dernière connexion" %}</span><span class="fe-kpi__icon"><i class="fas fa-right-to-bracket" aria-hidden="true"></i></span></div>
+        <p class="fe-kpi__value" style="font-size:1.1rem">{% if fiche.derniere_connexion %}{{ fiche.derniere_connexion|date:"d/m/Y" }}{% else %}{% trans "Jamais" %}{% endif %}</p>
+        <p class="fe-kpi__caption">{% if fiche.derniere_connexion %}{{ fiche.derniere_connexion|timesince }}{% else %}{% trans "Identifiants à remettre" %}{% endif %}</p>
+      </a>
+    </section>
+
+    <nav class="fe-tabs" role="tablist" aria-label="{% trans 'Sections de la fiche' %}">
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="profil"><i class="fas fa-user" aria-hidden="true"></i>{% trans "Vue d’ensemble" %}</button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="autorisations"><i class="fas fa-shield-halved" aria-hidden="true"></i>{% trans "Autorisations" %}<span class="fe-tab__count">{{ fiche.nb_permissions }}</span></button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="dossier"><i class="fas fa-folder-open" aria-hidden="true"></i>{% trans "Dossier RH" %}</button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="acces"><i class="fas fa-key" aria-hidden="true"></i>{% trans "Accès" %}{% if personnel.mot_de_passe_provisoire %}<span class="fe-tab__dot"></span>{% endif %}</button>
+    </nav>
+
+    {# ---------- Vue d'ensemble ---------- #}
+    <section class="fe-panel" data-fe-panel="profil" role="tabpanel">
+      <div class="fe-grid">
+        <div class="fe-col-8 fe-stack">
+          <article class="fe-card fe-tone-blue">
+            <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-briefcase" aria-hidden="true"></i>{% trans "Poste" %}</h2></header>
+            <dl class="fe-dl">
+              <div><dt>{% trans "Fonction" %}</dt><dd><span class="cg3-chip cg3-chip--muted">{{ personnel.get_fonction_display }}</span></dd></div>
+              <div><dt>{% trans "Établissement" %}</dt><dd>{{ personnel.etablissement.nom }} · {{ personnel.etablissement.get_type_etablissement_display }}</dd></div>
+              <div><dt>{% trans "Matricule" %}</dt><dd>{{ personnel.numero_employe|default:"—" }}</dd></div>
+              <div><dt>{% trans "Date d’embauche" %}</dt><dd>{% if personnel.date_embauche %}{{ personnel.date_embauche|date:"d/m/Y" }}{% if fiche.anciennete %} · {{ fiche.anciennete }}{% endif %}{% else %}<span class="is-empty is-warn">{% trans "Non renseignée" %}</span>{% endif %}</dd></div>
+            </dl>
+          </article>
+          <article class="fe-card fe-tone-green">
+            <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-file-signature" aria-hidden="true"></i>{% trans "Contrat et rémunération" %}</h2></header>
+            <dl class="fe-dl">
+              <div><dt>{% trans "Type de contrat" %}</dt><dd>{{ dossier.get_type_contrat_display_label|default:"—" }}</dd></div>
+              <div><dt>{% trans "Fin de contrat" %}</dt><dd>{% if echeance %}{{ echeance.fin|date:"d/m/Y" }}{% if echeance.expire %} <span class="cg3-chip cg3-chip--bad">{% trans "Expiré" %}</span>{% elif echeance.proche %} <span class="cg3-chip cg3-chip--warn">{% blocktrans with j=echeance.jours %}dans {{ j }} jours{% endblocktrans %}</span>{% endif %}{% else %}<span class="is-empty">—</span>{% endif %}</dd></div>
+              <div><dt>{% trans "Salaire de base" %}</dt><dd>{% if dossier.salaire_base %}{{ dossier.salaire_base|floatformat:0 }} FCFA{% else %}<span class="is-empty">—</span>{% endif %}</dd></div>
+              {% if personnel.prix_volume_horaire %}<div><dt>{% trans "Taux horaire" %}</dt><dd>{{ personnel.prix_volume_horaire|floatformat:0 }} FCFA / h</dd></div>{% endif %}
+              <div><dt>{% trans "Banque" %}</dt><dd>{% if dossier.banque %}{{ dossier.banque }}{% if dossier.numero_compte_bancaire %} · {{ dossier.numero_compte_bancaire }}{% endif %}{% else %}<span class="is-empty">—</span>{% endif %}</dd></div>
+            </dl>
+          </article>
+          <article class="fe-card fe-tone-violet">
+            <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-id-card" aria-hidden="true"></i>{% trans "Identité" %}</h2></header>
+            <dl class="fe-dl">
+              <div><dt>{% trans "Nom" %}</dt><dd>{{ personnel.nom }}</dd></div>
+              <div><dt>{% trans "Prénom" %}</dt><dd>{{ personnel.prenom }}</dd></div>
+              <div><dt>{% trans "Sexe" %}</dt><dd>{{ sexe_display|default:"—" }}</dd></div>
+              <div><dt>{% trans "Date et lieu de naissance" %}</dt><dd>{% if dossier.date_naissance %}{{ dossier.date_naissance|date:"d/m/Y" }}{% else %}—{% endif %}{% if dossier.lieu_naissance %} · {{ dossier.lieu_naissance }}{% endif %}</dd></div>
+              <div><dt>{% trans "Nationalité" %}</dt><dd>{{ dossier.nationalite|default:"—" }}</dd></div>
+              <div><dt>{% trans "Adresse" %}</dt><dd>{{ dossier.adresse|default:"—"|linebreaksbr }}</dd></div>
+              <div><dt>{% trans "Contact d’urgence" %}</dt><dd>{% if dossier.contact_urgence_nom %}{{ dossier.contact_urgence_nom }}{% if dossier.contact_urgence_lien %} ({{ dossier.contact_urgence_lien }}){% endif %}{% if dossier.contact_urgence_telephone %} · <a href="tel:{{ dossier.contact_urgence_telephone }}">{{ dossier.contact_urgence_telephone }}</a>{% endif %}{% else %}—{% endif %}</dd></div>
+            </dl>
+          </article>
         </div>
+        <aside class="fe-col-4 fe-stack">
+          <article class="fe-card fe-tone-blue">
+            <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-shield-halved" aria-hidden="true"></i>{% trans "Accès aux modules" %}</h2><p class="fe-card__sub">{% blocktrans with n=fiche.nb_permissions t=nb_permissions_total %}{{ n }} autorisation(s) sur {{ t }}{% endblocktrans %}</p></div></header>
+            <div class="fe-tags">
+              {% for cat, perms in permissions_par_categorie.items %}{% for p in perms %}{% if p.key in user_permissions %}<span class="fe-tag fe-tone-blue">{{ p.label }}</span>{% endif %}{% endfor %}{% endfor %}
+              {% if not fiche.nb_permissions %}<span class="fe-card__sub">{% trans "Aucune autorisation." %}</span>{% endif %}
+            </div>
+            <div class="fe-card__foot"><a class="fe-link" href="?onglet=autorisations" data-fe-goto="autorisations">{% trans "Détail des autorisations" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a></div>
+          </article>
+          <article class="fe-card fe-tone-orange">
+            <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-folder-open" aria-hidden="true"></i>{% trans "Dossier RH" %}</h2><p class="fe-card__sub">{% blocktrans with t=completude.taux %}Complet à {{ t }} %{% endblocktrans %}</p></div></header>
+            <div class="fe-bar"><span class="{% if completude.taux < 50 %}is-bad{% elif completude.taux < 80 %}is-warn{% endif %}" style="width: {{ completude.taux }}%"></span></div>
+            {% if completude.manquants %}<div class="fe-missing">{% for m in completude.manquants %}<span>{{ m }}</span>{% endfor %}</div>{% endif %}
+            <div class="fe-card__foot"><a class="fe-link" href="?onglet=dossier" data-fe-goto="dossier">{% trans "Ouvrir le dossier" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a></div>
+          </article>
+        </aside>
+      </div>
+    </section>
 
-        <!-- Status Badge -->
-        <div class="status-badge-container">
-            <div class="status-badge {% if personnel.actif %}active{% else %}inactive{% endif %}">
-                <span class="status-dot"></span>
-                <span class="status-text">{% if personnel.actif %}Actif{% else %}Inactif{% endif %}</span>
-            </div>
-            <div class="employee-number">
-                <i class="fas fa-id-card"></i>
-                <span>{{ personnel.numero_employe|default:"N/A" }}</span>
-            </div>
-            <div class="employee-username">
-                <i class="fas fa-user"></i>
-                <span>{{ personnel.username }}</span>
-            </div>
+    {# ---------- Autorisations ---------- #}
+    <section class="fe-panel" data-fe-panel="autorisations" role="tabpanel">
+      <div class="fe-card">
+        <header class="fe-card__head">
+          <div><h2 class="fe-card__title"><i class="fas fa-shield-halved" aria-hidden="true"></i>{% trans "Autorisations" %}</h2>
+          <p class="fe-card__sub">{% blocktrans with f=personnel.get_fonction_display %}Les autorisations par défaut dépendent de la fonction ({{ f }}). Vous pouvez les ajuster dans « Modifier ».{% endblocktrans %}</p></div>
+          <button type="button" class="cg3-btn cg3-btn--sm" data-fe-open="fe-modifier"><i class="fas fa-sliders" aria-hidden="true"></i>{% trans "Ajuster" %}</button>
+        </header>
+        <div class="fe-filter">
+          <input type="search" placeholder="{% trans 'Rechercher une autorisation…' %}" data-fe-perm-search aria-label="{% trans 'Rechercher une autorisation' %}">
+          <label class="cg3-chip cg3-chip--muted" style="cursor:pointer"><input type="checkbox" data-fe-perm-only> {% trans "Actives seulement" %}</label>
         </div>
-
-        <!-- Système d'onglets -->
-        <div class="tabs-container">
-            <div class="tabs-header">
-                <a href="?onglet=informations" class="tab-item {% if onglet_actif == 'informations' or not onglet_actif %}active{% endif %}">
-                    <i class="fas fa-user"></i>
-                    <span>{% trans "Informations" %}</span>
-                </a>
-                <a href="?onglet=connexion" class="tab-item {% if onglet_actif == 'connexion' %}active{% endif %}">
-                    <i class="fas fa-key"></i>
-                    <span>{% trans "Connexion" %}</span>
-                </a>
-                <a href="?onglet=autorisations" class="tab-item {% if onglet_actif == 'autorisations' %}active{% endif %}">
-                    <i class="fas fa-shield-alt"></i>
-                    <span>{% trans "Autorisations" %}</span>
-                </a>
-                <a href="?onglet=dossier" class="tab-item {% if onglet_actif == 'dossier' %}active{% endif %}">
-                    <i class="fas fa-folder-open"></i>
-                    <span>{% trans "Dossier employé" %}</span>
-                </a>
+        <div class="fe-perm-cats">
+          {% for cat, perms in permissions_par_categorie.items %}
+          <section class="fe-perm-cat">
+            <div class="fe-perm-cat__head"><span><i class="fas fa-folder" aria-hidden="true" style="color:var(--ax-brand)"></i> {{ cat }}</span><small>{{ perms|length }} {% trans "au total" %}</small></div>
+            {% for p in perms %}
+            <div class="fe-perm {% if p.key in user_permissions %}is-on{% else %}is-off{% endif %}">
+              <i class="fas {% if p.key in user_permissions %}fa-circle-check{% else %}fa-circle-minus{% endif %}" aria-hidden="true"></i>
+              <div><strong>{{ p.label }}</strong>{% if p.description %}<small>{{ p.description }}</small>{% endif %}</div>
             </div>
-
-            <div class="tabs-content">
-                <!-- ONGLET 1: INFORMATIONS -->
-                {% if onglet_actif == 'informations' or not onglet_actif %}
-                    <div class="tab-panel active">
-                        <!-- Format professionnel : Tableau d'informations -->
-                        <div class="info-table-container">
-                            <!-- Section : Informations Personnelles -->
-                            <div class="info-section">
-                                <h3 class="section-title">
-                                    <i class="fas fa-user"></i>
-                                    {% trans "Informations Personnelles" %}
-                                </h3>
-                                <table class="info-table">
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Nom complet" %}</td>
-                                        <td class="info-value-cell">{{ personnel.nom }} {{ personnel.prenom }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Sexe" %}</td>
-                                        <td class="info-value-cell">{{ sexe_display|default:"—" }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Email" %}</td>
-                                        <td class="info-value-cell">
-                                            <a href="mailto:{{ personnel.email }}" class="link-email">{{ personnel.email }}</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Téléphone" %}</td>
-                                        <td class="info-value-cell">
-                                            <a href="tel:{{ personnel.telephone }}" class="link-phone">{{ personnel.telephone }}</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Initiales" %}</td>
-                                        <td class="info-value-cell">{{ personnel.initiales }}</td>
-                                    </tr>
-                                </table>
-                            </div>
-
-                            <!-- Section : Informations Professionnelles -->
-                            <div class="info-section">
-                                <h3 class="section-title">
-                                    <i class="fas fa-briefcase"></i>
-                                    {% trans "Informations Professionnelles" %}
-                                </h3>
-                                <table class="info-table">
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Fonction" %}</td>
-                                        <td class="info-value-cell">
-                                            <span class="badge-matiere">{{ personnel.get_fonction_display }}</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Établissement" %}</td>
-                                        <td class="info-value-cell">{{ personnel.etablissement.nom }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Type d'établissement" %}</td>
-                                        <td class="info-value-cell">{{ personnel.etablissement.get_type_etablissement_display }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Numéro d'employé" %}</td>
-                                        <td class="info-value-cell">
-                                            <span class="badge-employee">{{ personnel.numero_employe|default:"N/A" }}</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Date d'embauche" %}</td>
-                                        <td class="info-value-cell">{% if personnel.date_embauche %}{{ personnel.date_embauche|date:"d/m/Y" }}{% else %}—{% endif %}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Prix du volume horaire" %}</td>
-                                        <td class="info-value-cell">{% if personnel.prix_volume_horaire %}{{ personnel.prix_volume_horaire }} FCFA/h{% else %}—{% endif %}</td>
-                                    </tr>
-                                </table>
-                            </div>
-
-                            <!-- Section : Informations Administratives -->
-                            <div class="info-section">
-                                <h3 class="section-title">
-                                    <i class="fas fa-building"></i>
-                                    {% trans "Informations Administratives" %}
-                                </h3>
-                                <table class="info-table">
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Date de création" %}</td>
-                                        <td class="info-value-cell">{{ personnel.date_creation|date:"d/m/Y à H:i" }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Dernière modification" %}</td>
-                                        <td class="info-value-cell">{{ personnel.date_modification|date:"d/m/Y à H:i" }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Dernière connexion" %}</td>
-                                        <td class="info-value-cell">
-                                            {% if personnel.last_login %}
-                                                {{ personnel.last_login|date:"d/m/Y à H:i" }}
-                                            {% else %}
-                                                <span class="text-muted">{% trans "Jamais connecté" %}</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="info-label-cell">{% trans "Statut" %}</td>
-                                        <td class="info-value-cell">
-                                            <span class="badge-status {% if personnel.actif %}active{% else %}inactive{% endif %}">
-                                                {% if personnel.actif %}Actif{% else %}Inactif{% endif %}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-
-                <!-- ONGLET 2: CONNEXION -->
-                {% if onglet_actif == 'connexion' %}
-                    <div class="tab-panel active">
-                        <div class="detail-card full-width">
-                            <div class="card-header">
-                                <div class="card-icon connexion">
-                                    <i class="fas fa-key"></i>
-                                </div>
-                                <h2 class="card-title">{% trans "Informations de Connexion" %}</h2>
-                            </div>
-                            <div class="card-content">
-                                {% if personnel.mot_de_passe_provisoire %}
-                                    <div class="alert alert-warning connexion-alert">
-                                        <div class="alert-icon">
-                                            <i class="fas fa-exclamation-triangle"></i>
-                                        </div>
-                                        <div class="alert-content">
-                                            <h4>{% trans "Mot de passe provisoire actif" %}</h4>
-                                            <p>{% trans "Le membre du personnel utilise actuellement un mot de passe provisoire. Il doit le changer lors de sa première connexion." %}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="connexion-info-grid">
-                                        <div class="connexion-item">
-                                            <div class="connexion-label">
-                                                <i class="fas fa-id-card"></i>
-                                                <span>{% trans "Identifiant de connexion" %}</span>
-                                            </div>
-                                            <div class="connexion-value">
-                                                <code class="connexion-code">{{ personnel.username }}</code>
-                                                <button class="btn-copy" onclick="copyToClipboard('{{ personnel.username }}')" title="Copier l'identifiant">
-                                                    <i class="fas fa-copy"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="connexion-item">
-                                            <div class="connexion-label">
-                                                <i class="fas fa-lock"></i>
-                                                <span>{% trans "Mot de passe provisoire" %}</span>
-                                            </div>
-                                            <div class="connexion-value">
-                                                <code class="connexion-code password-code">{{ personnel.mot_de_passe_provisoire }}</code>
-                                                <button class="btn-copy" onclick="copyToClipboard('{{ personnel.mot_de_passe_provisoire }}')" title="Copier le mot de passe">
-                                                    <i class="fas fa-copy"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="connexion-instructions">
-                                        <div class="instruction-icon">
-                                            <i class="fas fa-info-circle"></i>
-                                        </div>
-                                        <div class="instruction-content">
-                                            <h5>{% trans "Instructions de première connexion" %}</h5>
-                                            <ol>
-                                                <li>{% trans "Utilisez l'identifiant de connexion et le mot de passe provisoire ci-dessus" %}</li>
-                                                <li>{% trans "Vous serez invité à changer votre mot de passe après la connexion" %}</li>
-                                                <li>{% trans "Conservez ces informations en lieu sûr jusqu'à la première connexion" %}</li>
-                                            </ol>
-                                        </div>
-                                    </div>
-                                {% else %}
-                                    <div class="alert alert-info connexion-alert">
-                                        <div class="alert-icon">
-                                            <i class="fas fa-info-circle"></i>
-                                        </div>
-                                        <div class="alert-content">
-                                            <h4>{% trans "Mot de passe personnalisé" %}</h4>
-                                            <p>{% trans "Le membre du personnel a déjà changé son mot de passe provisoire." %}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="connexion-info-grid">
-                                        <div class="connexion-item">
-                                            <div class="connexion-label">
-                                                <i class="fas fa-id-card"></i>
-                                                <span>{% trans "Identifiant de connexion" %}</span>
-                                            </div>
-                                            <div class="connexion-value">
-                                                <code class="connexion-code">{{ personnel.username }}</code>
-                                                <button class="btn-copy" onclick="copyToClipboard('{{ personnel.username }}')" title="Copier l'identifiant">
-                                                    <i class="fas fa-copy"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-
-                <!-- ONGLET 3: AUTORISATIONS -->
-                {% if onglet_actif == 'autorisations' %}
-                    <div class="tab-panel active">
-                        <div class="detail-card full-width">
-                            <div class="card-header">
-                                <div class="card-icon autorisations">
-                                    <i class="fas fa-shield-alt"></i>
-                                </div>
-                                <h2 class="card-title">{% trans "Autorisations et Permissions" %}</h2>
-                            </div>
-                            <div class="card-content">
-                                <div class="permissions-overview">
-                                    <div class="permission-summary">
-                                        <div class="summary-item">
-                                            <span class="summary-label">{% trans "Fonction" %}</span>
-                                            <span class="summary-value">{{ personnel.get_fonction_display }}</span>
-                                        </div>
-                                        <div class="summary-item">
-                                            <span class="summary-label">{% trans "Permissions actives" %}</span>
-                                            <span class="summary-value">{{ user_permissions|length }} permission(s)</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="permissions-list-container">
-                                    {% for category_name, category_perms in permissions_par_categorie.items %}
-                                        <div class="permission-category-detail">
-                                            <h4 class="category-title">
-                                                <i class="fas fa-folder"></i>
-                                                {{ category_name }}
-                                            </h4>
-                                            <div class="permissions-list">
-                                                {% for perm in category_perms %}
-                                                    {% if perm.key in user_permissions %}
-                                                        <div class="permission-item-detail active">
-                                                            <div class="permission-icon">
-                                                                <i class="fas fa-check-circle"></i>
-                                                            </div>
-                                                            <div class="permission-content">
-                                                                <span class="permission-name">{{ perm.label }}</span>
-                                                                <small class="permission-desc">{{ perm.description }}</small>
-                                                            </div>
-                                                        </div>
-                                                    {% else %}
-                                                        <div class="permission-item-detail inactive">
-                                                            <div class="permission-icon">
-                                                                <i class="fas fa-times-circle"></i>
-                                                            </div>
-                                                            <div class="permission-content">
-                                                                <span class="permission-name">{{ perm.label }}</span>
-                                                                <small class="permission-desc">{{ perm.description }}</small>
-                                                            </div>
-                                                        </div>
-                                                    {% endif %}
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-
-                {% if onglet_actif == 'dossier' %}
-                    <div class="tab-panel active">
-                        {% include 'school_admin/directeur/personnel/partials/dossier_employe_panel.html' with employe=personnel %}
-                    </div>
-                {% endif %}
-            </div>
+            {% endfor %}
+          </section>
+          {% endfor %}
         </div>
-    </div>
+      </div>
+    </section>
 
-    <script src="{% static 'school_admin/js/directeur/employe_documents.js' %}?v=1.0.0"></script>
-    <script>
-        function toggleFormModifier() {
-            const container = document.getElementById('formModifierPersonnelContainer');
-            const btnText = document.getElementById('btnModifierText');
-            
-            if (container.style.display === 'none' || !container.style.display) {
-                container.style.display = 'block';
-                if (btnText) btnText.textContent = 'Annuler';
-                // Scroll vers le formulaire
-                container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-                container.style.display = 'none';
-                if (btnText) btnText.textContent = 'Modifier';
-            }
-        }
+    <section class="fe-panel" data-fe-panel="dossier" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/dossier.html' with employe=personnel %}</section>
+    <section class="fe-panel" data-fe-panel="acces" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/acces.html' with employe=personnel qui=_("la personne") %}</section>
+  </main>
 
-        // Afficher automatiquement le formulaire s'il y a des erreurs
+  {# ---------- Modale de modification ---------- #}
+  <div class="cg3-modal" id="fe-modifier" role="dialog" aria-modal="true" aria-labelledby="fe-modifier-titre" hidden{% if field_errors_modifier %} data-fe-auto-open{% endif %}>
+    <div class="cg3-modal__panel fe-modal-wide">
+      <div class="cg3-modal__head"><h2 id="fe-modifier-titre"><i class="fas fa-user-pen" aria-hidden="true"></i>{% trans "Modifier" %} {{ personnel.nom_complet }}</h2><button type="button" class="cg3-btn cg3-btn--sm" data-fe-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+      <form method="post" action="{% url 'personnel:modifier_personnel' personnel.id %}">
+        {% csrf_token %}
         {% if field_errors_modifier %}
-            document.addEventListener('DOMContentLoaded', function() {
-                toggleFormModifier();
-            });
+        <div class="fe-alert fe-alert--warn fe-errors"><i class="fas fa-circle-exclamation" aria-hidden="true"></i><div><strong>{% trans "Corrigez les champs suivants :" %}</strong><ul>{% for f, errs in field_errors_modifier.items %}{% for e in errs %}<li>{{ e }}</li>{% endfor %}{% endfor %}</ul></div></div>
         {% endif %}
+        <div class="fe-form-grid">
+          <label class="cg3-field"><span>{% trans "Nom" %} *</span><input type="text" name="nom" required value="{% if form_data_modifier.nom %}{{ form_data_modifier.nom }}{% else %}{{ personnel.nom }}{% endif %}"></label>
+          <label class="cg3-field"><span>{% trans "Prénom" %} *</span><input type="text" name="prenom" required value="{% if form_data_modifier.prenom %}{{ form_data_modifier.prenom }}{% else %}{{ personnel.prenom }}{% endif %}"></label>
+          <label class="cg3-field"><span>{% trans "Email" %} *</span><input type="email" name="email" required value="{% if form_data_modifier.email %}{{ form_data_modifier.email }}{% else %}{{ personnel.email|default:'' }}{% endif %}"></label>
+          <label class="cg3-field"><span>{% trans "Téléphone" %} *</span><input type="tel" name="telephone" required value="{% if form_data_modifier.telephone %}{{ form_data_modifier.telephone }}{% else %}{{ personnel.telephone }}{% endif %}"></label>
+          <label class="cg3-field"><span>{% trans "Fonction" %} *</span>
+            <select name="fonction" id="fonction_modifier" required data-permissions-url="{% url 'personnel:get_permissions' %}">
+              <option value="">{% trans "Sélectionnez une fonction" %}</option>
+              {% for code, label in fonctions_disponibles %}<option value="{{ code }}"{% if form_data_modifier.fonction == code or not form_data_modifier and personnel.fonction == code %} selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </label>
+        </div>
+        <p class="fe-label">{% trans "Autorisations" %} <span class="fe-card__sub" style="text-transform:none;letter-spacing:0;font-weight:400">— {% trans "changer la fonction recoche les autorisations par défaut" %}</span></p>
+        <div class="fe-perm-form">
+          {% for cat, perms in permissions_par_categorie.items %}
+          <fieldset><legend>{{ cat }}</legend>
+            {% for p in perms %}<label><input type="checkbox" name="permission_{{ p.key }}" id="permission_{{ p.key }}_modifier" value="on"{% if p.key in permissions_combinees %} checked{% endif %}>{{ p.label }}</label>{% endfor %}
+          </fieldset>
+          {% endfor %}
+        </div>
+        <div class="cg3-row-actions" style="margin-top:16px;justify-content:flex-end"><button type="button" class="cg3-btn" data-fe-close>{% trans "Annuler" %}</button><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-floppy-disk" aria-hidden="true"></i>{% trans "Enregistrer" %}</button></div>
+      </form>
+    </div>
+  </div>
 
-        function updatePermissionsByFunctionModifier() {
-            const fonctionSelect = document.getElementById('fonction_modifier');
-            if (!fonctionSelect) return;
-            
-            const fonction = fonctionSelect.value;
-            if (!fonction) return;
-            
-            fetch('{% url "personnel:get_permissions" %}?fonction=' + fonction, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Décocher toutes les permissions
-                    document.querySelectorAll('#formModifierPersonnelContainer input[type="checkbox"][name^="permission_"]').forEach(cb => {
-                        cb.checked = false;
-                    });
-                    
-                    // Cocher les permissions par défaut
-                    data.permissions.forEach(perm => {
-                        const checkbox = document.getElementById(`permission_${perm}_modifier`);
-                        if (checkbox) {
-                            checkbox.checked = true;
-                        }
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Erreur lors de la récupération des permissions:', error);
-            });
-        }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                // Animation de succès
-                const btn = event.currentTarget;
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check"></i>';
-                btn.classList.add('success');
-                
-                // Afficher un message de succès temporaire
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
-                alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 250px;';
-                alertDiv.innerHTML = `
-                    <i class="fas fa-check-circle"></i>
-                    Copié dans le presse-papiers !
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                document.body.appendChild(alertDiv);
-                
-                // Retourner à l'état initial après 2 secondes
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                    btn.classList.remove('success');
-                }, 2000);
-                
-                // Supprimer l'alerte après 3 secondes
-                setTimeout(() => {
-                    alertDiv.remove();
-                }, 3000);
-            }).catch(err => {
-                console.error('Erreur lors de la copie : ', err);
-                alert('Impossible de copier. Veuillez sélectionner manuellement.');
-            });
-        }
-
-        function openModalModifierPersonnel() {
-            const container = document.getElementById('modalContainerModifier');
-            if (!container) return;
-            
-            // Charger le modal via AJAX
-            fetch('{% url "personnel:modifier_personnel" personnel.id %}', {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    container.innerHTML = data.html;
-                    const modal = document.getElementById('modalModifierPersonnel');
-                    if (modal) {
-                        modal.style.display = 'flex';
-                        document.body.style.overflow = 'hidden';
-                        initModalModifierEvents();
-                    }
-                } else {
-                    alert('Erreur lors du chargement du formulaire de modification.');
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                alert('Erreur lors du chargement du formulaire de modification.');
-            });
-        }
-
-        function closeModalModifierPersonnel() {
-            const modal = document.getElementById('modalModifierPersonnel');
-            if (modal) {
-                modal.style.display = 'none';
-                document.body.style.overflow = '';
-                const container = document.getElementById('modalContainerModifier');
-                if (container) {
-                    container.innerHTML = '';
-                }
-            }
-        }
-
-        function initModalModifierEvents() {
-            const modal = document.getElementById('modalModifierPersonnel');
-            if (!modal) return;
-            
-            // Bouton de fermeture (croix)
-            const btnClose = document.getElementById('btnCloseModalModifier');
-            if (btnClose) {
-                btnClose.addEventListener('click', closeModalModifierPersonnel);
-            }
-            
-            // Bouton Annuler
-            const btnCancel = document.getElementById('btnCancelModalModifier');
-            if (btnCancel) {
-                btnCancel.addEventListener('click', closeModalModifierPersonnel);
-            }
-            
-            // Fermer en cliquant sur l'overlay
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    closeModalModifierPersonnel();
-                }
-            });
-            
-            // Fermer avec la touche Escape
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && modal.style.display === 'flex') {
-                    closeModalModifierPersonnel();
-                }
-            });
-            
-            // Mettre à jour les permissions quand la fonction change
-            const fonctionSelect = document.getElementById('fonction_modifier');
-            if (fonctionSelect) {
-                fonctionSelect.addEventListener('change', updatePermissionsByFunctionModifier);
-            }
-            
-            // Gestion de la soumission du formulaire
-            const form = document.getElementById('formModifierPersonnel');
-            if (form) {
-                let isSubmitting = false;
-                
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    if (isSubmitting) {
-                        return false;
-                    }
-                    isSubmitting = true;
-                    
-                    const submitBtn = form.querySelector('button[type="submit"]');
-                    if (submitBtn) {
-                        submitBtn.disabled = true;
-                        submitBtn.textContent = 'Modification en cours...';
-                    }
-                    
-                    const errorsDiv = document.getElementById('modalErrorsModifier');
-                    if (errorsDiv) {
-                        errorsDiv.style.display = 'none';
-                        errorsDiv.innerHTML = '';
-                    }
-                    
-                    document.querySelectorAll('.error-message-modal').forEach(span => {
-                        span.textContent = '';
-                        span.style.display = 'none';
-                    });
-                    
-                    const formData = new FormData(this);
-                    
-                    fetch(this.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                        }
-                    })
-                    .then(response => {
-                        const contentType = response.headers.get('content-type');
-                        if (contentType && contentType.includes('application/json')) {
-                            return response.json();
-                        } else {
-                            throw new Error('La réponse n\'est pas au format JSON.');
-                        }
-                    })
-                    .then(data => {
-                        isSubmitting = false;
-                        
-                        if (submitBtn) {
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = 'Modifier';
-                        }
-                        
-                        if (data.success) {
-                            alert(data.message);
-                            closeModalModifierPersonnel();
-                            window.location.reload();
-                        } else {
-                            if (errorsDiv) {
-                                errorsDiv.style.display = 'block';
-                                errorsDiv.innerHTML = '<strong>Erreurs détectées :</strong><ul>' + 
-                                    Object.values(data.errors || {}).map(err => `<li>${Array.isArray(err) ? err[0] : err}</li>`).join('') + 
-                                    '</ul>';
-                            }
-                            Object.keys(data.errors || {}).forEach(field => {
-                                const errorSpan = document.getElementById(`error_${field}_modifier`);
-                                if (errorSpan) {
-                                    const errorValue = data.errors[field];
-                                    errorSpan.textContent = Array.isArray(errorValue) ? errorValue[0] : errorValue;
-                                    errorSpan.style.display = 'block';
-                                }
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        isSubmitting = false;
-                        if (submitBtn) {
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = 'Modifier';
-                        }
-                        console.error('Erreur:', error);
-                        alert('Une erreur est survenue lors de la modification.');
-                    });
-                });
-            }
-        }
-
-        function updatePermissionsByFunctionModifier() {
-            const fonctionSelect = document.getElementById('fonction_modifier');
-            if (!fonctionSelect) return;
-            
-            const fonction = fonctionSelect.value;
-            if (!fonction) return;
-            
-            fetch('{% url "personnel:get_permissions" %}?fonction=' + fonction, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.querySelectorAll('input[type="checkbox"][name^="permission_"]').forEach(cb => {
-                        cb.checked = false;
-                    });
-                    
-                    data.permissions.forEach(perm => {
-                        const checkbox = document.getElementById(`permission_${perm}_modifier`);
-                        if (checkbox) {
-                            checkbox.checked = true;
-                        }
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Erreur lors de la récupération des permissions:', error);
-            });
-        }
-    </script>
-  
-    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+  <script src="{% static 'school_admin/js/directeur/employe_documents.js' %}?v=1.0.0"></script>
+  <script src="{% static 'school_admin/js/directeur/fiche_employe.js' %}?v=1.0.0"></script>
+  <script>
+    (function () {
+      var sel = document.getElementById('fonction_modifier');
+      if (!sel) return;
+      sel.addEventListener('change', function () {
+        if (!sel.value) return;
+        fetch(sel.dataset.permissionsUrl + '?fonction=' + encodeURIComponent(sel.value), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (!d.success) return;
+            document.querySelectorAll('#fe-modifier input[name^="permission_"]').forEach(function (cb) { cb.checked = false; });
+            d.permissions.forEach(function (p) { var cb = document.getElementById('permission_' + p + '_modifier'); if (cb) cb.checked = true; });
+          });
+      });
+    })();
+  </script>
+  {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

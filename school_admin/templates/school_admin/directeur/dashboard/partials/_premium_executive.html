@@ -1,0 +1,168 @@
+{% load i18n %}
+<section class="dbd-premium" aria-label="{% trans 'Pilotage de l’établissement' %}">
+  <div class="dbd-premium-filters">
+    {% include 'school_admin/directeur/dashboard/partials/_filter_bar.html' %}
+  </div>
+
+  {% include 'school_admin/directeur/dashboard/partials/_premium_overview_kpis.html' %}
+
+  <div class="dbd-premium-layout">
+    <div class="dbd-premium-main">
+      <div class="dbd-premium-row-2">
+        <article class="dbd-premium-card" id="dbd-situation">
+          <div class="dbd-premium-card-head">
+            <div>
+              <h3 class="dbd-premium-chart-title">{% trans "Situation générale" %}</h3>
+              <p class="dbd-premium-chart-sub">{% trans "Présence quotidienne sur 30 jours. Un retard n’est pas une présence." %}</p>
+            </div>
+            <a class="dbd-premium-cta" href="{% url 'directeur:suivi_presence' %}">{% trans "Voir le détail" %}</a>
+          </div>
+          {% if executive.attendance_trend.empty %}
+            {% include 'school_admin/directeur/dashboard/components/_empty_state.html' with message=executive.attendance_trend.empty_reason %}
+          {% else %}
+          <div class="dbd-premium-chips">
+            {% if executive.attendance_trend.rate_7 != None %}
+            <span class="dbd-premium-chip">{% trans "7 jours" %} <strong>{{ executive.attendance_trend.rate_7 }}%</strong></span>
+            {% endif %}
+            {% if executive.attendance_trend.rate_30 != None %}
+            <span class="dbd-premium-chip">{% trans "30 jours" %} <strong>{{ executive.attendance_trend.rate_30 }}%</strong></span>
+            {% endif %}
+          </div>
+          <div class="dbd-abs-chart-wrap dbd-exec-chart">
+            <canvas id="dbd-chart-situation" role="img" aria-label="{% trans 'Évolution de la présence' %}"></canvas>
+          </div>
+          {% endif %}
+        </article>
+
+        <article class="dbd-premium-card" id="dbd-cycles">
+          <div class="dbd-premium-effectifs-body">
+          <div class="dbd-premium-card-head">
+            <div>
+              <h3 class="dbd-premium-chart-title">{% trans "Répartition des effectifs" %}</h3>
+              <p class="dbd-premium-chart-sub">{% trans "Filles et garçons, année consultée." %}</p>
+            </div>
+            <a class="dbd-premium-cta" href="{% url 'directeur:gestion_eleves' %}">{% trans "Voir le détail" %}</a>
+          </div>
+          {% if executive.cycle_distribution.empty %}
+            {% include 'school_admin/directeur/dashboard/components/_empty_state.html' with message=executive.cycle_distribution.empty_reason %}
+          {% else %}
+          <div class="dbd-premium-gender-pie" aria-label="{% trans 'Filles et garçons' %}">
+            <p class="dbd-premium-gender-caption dbd-premium-gender-caption--f">
+              <strong>{{ executive.cycle_distribution.charts.gender.female }}</strong>
+              {% trans "filles" %}
+            </p>
+            <canvas id="dbd-chart-gender-pie" width="180" height="180" role="img" aria-label="{% trans 'Camembert filles et garçons' %}"></canvas>
+            <p class="dbd-premium-gender-caption dbd-premium-gender-caption--m">
+              <strong>{{ executive.cycle_distribution.charts.gender.male }}</strong>
+              {% trans "garçons" %}
+            </p>
+          </div>
+          <ul class="dbd-cycle-bars">
+            <li class="dbd-cycle-row dbd-cycle-row--total">
+              <span>{% trans "Effectif total" %}</span>
+              <strong>{{ executive.cycle_distribution.value }}</strong>
+            </li>
+            {% for row in executive.cycle_distribution.charts.rows %}
+            <li class="dbd-cycle-row">
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}{% if row.pct != None %} <em>{{ row.pct }}%</em>{% endif %}</strong>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          </div>
+        </article>
+      </div>
+
+      <div class="dbd-premium-row-3">
+        <article class="dbd-premium-card" id="dbd-presence-classes">
+          <div class="dbd-premium-card-head">
+            <div>
+              <h3 class="dbd-premium-chart-title">{% trans "Présence par classe" %}</h3>
+              <p class="dbd-premium-chart-sub">{% trans "Minimum 3 appels. Rouge sous 85 %." %}</p>
+            </div>
+            <a class="dbd-premium-cta" href="{% url 'directeur:suivi_presence' %}">{% trans "Voir le détail" %}</a>
+          </div>
+          {% if executive.presence_by_class.empty %}
+            {% include 'school_admin/directeur/dashboard/components/_empty_state.html' with message=executive.presence_by_class.empty_reason %}
+          {% else %}
+          <div class="dbd-abs-chart-wrap dbd-exec-chart">
+            <canvas id="dbd-chart-presence-classes" role="img" aria-label="{% trans 'Présence par classe' %}"></canvas>
+          </div>
+          {% endif %}
+        </article>
+
+        <article class="dbd-premium-card" id="dbd-results">
+          <div class="dbd-premium-card-head">
+            <div>
+              <h3 class="dbd-premium-chart-title">{% trans "Résultats scolaires" %}</h3>
+              <p class="dbd-premium-chart-sub">
+                {% if executive.results.charts.by_cycle.labels %}
+                  {% trans "Taux de réussite par cycle." %}
+                {% else %}
+                  {% trans "Répartition des moyennes générales." %}
+                {% endif %}
+                {% if executive.results.extra.seuil %}
+                  {% trans "Seuil" %} {{ executive.results.extra.seuil }}/20.
+                {% endif %}
+              </p>
+            </div>
+            <a class="dbd-premium-cta" href="{% url 'directeur:notes_et_resultats' %}">{% trans "Voir le détail" %}</a>
+          </div>
+          {% if executive.results.empty %}
+            {% include 'school_admin/directeur/dashboard/components/_empty_state.html' with message=executive.results.empty_reason %}
+          {% else %}
+          <div class="dbd-abs-chart-wrap dbd-exec-chart">
+            <canvas id="dbd-chart-grades" role="img" aria-label="{% trans 'Résultats scolaires' %}"></canvas>
+          </div>
+          {% endif %}
+        </article>
+
+        <article class="dbd-premium-card" id="dbd-finance">
+          <div class="dbd-premium-card-head">
+            <div>
+              <h3 class="dbd-premium-chart-title">{% trans "Situation financière" %}</h3>
+              <p class="dbd-premium-chart-sub">
+                {% if executive.finance.charts.mode == 'statuts' %}
+                  {% trans "Répartition des dossiers (aucun encaissement sur 30 jours)." %}
+                {% else %}
+                  {% trans "Encaissements des 30 derniers jours." %}
+                {% endif %}
+              </p>
+            </div>
+            <a class="dbd-premium-cta" href="{% url 'directeur:liste_impayes_directeur' %}">{% trans "Voir le détail" %}</a>
+          </div>
+          {% if executive.finance.empty %}
+            {% include 'school_admin/directeur/dashboard/components/_empty_state.html' with message=executive.finance.empty_reason %}
+          {% else %}
+          <div class="dbd-abs-chart-wrap dbd-exec-chart">
+            <canvas id="dbd-chart-finance-payments" role="img" aria-label="{% trans 'Situation financière' %}"></canvas>
+          </div>
+          {% if executive.finance.extra.reste != None %}
+          <p class="dbd-premium-caption">
+            {% trans "Reste" %} {{ executive.finance.extra.reste|floatformat:0 }} {{ executive.finance.extra.devise }}
+            {% if executive.finance.extra.recouvrement != None %}
+              · {% trans "Recouvrement" %} {{ executive.finance.extra.recouvrement }}%
+            {% endif %}
+          </p>
+          {% endif %}
+          {% endif %}
+        </article>
+      </div>
+    </div>
+
+    {% include 'school_admin/directeur/dashboard/partials/_premium_sidebar.html' %}
+  </div>
+</section>
+
+{{ executive.attendance_trend.charts|json_script:"dbd-presence-trend-data" }}
+{{ executive.cycle_distribution.charts|json_script:"dbd-executive-chart-data" }}
+{% if executive.presence_by_class.charts %}
+{{ executive.presence_by_class.charts|json_script:"dbd-presence-classes-data" }}
+{% endif %}
+{% if executive.results.charts %}
+{{ executive.results.charts|json_script:"dbd-grades-chart-data" }}
+{% endif %}
+{% if executive.finance.charts %}
+{{ executive.finance.charts|json_script:"dbd-finance-chart-data" }}
+{% endif %}

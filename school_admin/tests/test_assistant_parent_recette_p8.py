@@ -39,6 +39,14 @@ from school_admin.tests.test_assistant_parent_scope import _make_parent
 
 TEMPLATES = Path(settings.BASE_DIR) / 'school_admin' / 'templates' / 'school_admin'
 
+def _texte_avec_coquille(rel):
+    """Contenu du gabarit, augmenté du pied de page commun V3 (_ex_foot) qui inclut la bulle Aria."""
+    text = (TEMPLATES / rel).read_text(encoding='utf-8')
+    if '_ex_foot.html' in text:
+        text += (TEMPLATES / 'eleve/partials/_ex_foot.html').read_text(encoding='utf-8')
+    return text
+
+
 DIRECTOR_TOOLS_SAMPLE = frozenset({
     item['function']['name']
     for item in TOOLS_SCHEMA
@@ -298,6 +306,10 @@ class ParentRecetteP8UiTests(TestCase):
         text = (TEMPLATES / rel_path).read_text(encoding='utf-8')
         has_widget = 'assistant_vocal_parent' in text
         has_nav = 'bottom_nav_parent.html' in text or 'bottom_nav_eleve.html' in text
+        # Pages parent V3 : le widget est inclus par le pied de page commun.
+        if '_px_foot.html' in text:
+            foot = (TEMPLATES / 'parent/partials/_px_foot.html').read_text(encoding='utf-8')
+            has_widget = has_widget or 'assistant_vocal_parent' in foot
         self.assertTrue(
             has_widget or has_nav,
             msg=f'{rel_path} : ni widget ni bottom nav assistant',
@@ -309,12 +321,12 @@ class ParentRecetteP8UiTests(TestCase):
 
     def test_pages_eleve_avec_nav(self):
         for rel in ELEVE_NAV_PAGES:
-            text = (TEMPLATES / rel).read_text(encoding='utf-8')
-            self.assertIn('bottom_nav_eleve.html', text, msg=rel)
+            text = _texte_avec_coquille(rel)
+            self.assertTrue('bottom_nav_eleve.html' in text or '_ex_shell.html' in text, msg=rel)
 
     def test_pages_eleve_sans_nav_ont_widget(self):
         for rel in ELEVE_EXTRA_PAGES:
-            text = (TEMPLATES / rel).read_text(encoding='utf-8')
+            text = _texte_avec_coquille(rel)
             self.assertIn('assistant_vocal_parent', text, msg=rel)
 
     def test_bottom_nav_inclut_widget(self):

@@ -15,8 +15,12 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
 </head>
-<body class="sco-page-body" data-live-page="compta-liste">
+<body class="sco-page-body gv3 cg3" data-live-page="compta-liste">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container sco-page">
@@ -26,37 +30,8 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
         </div>
 
-        <header class="sco-hero">
-            <div class="sco-hero-text">
-                <h1 class="sco-hero-title"><i class="fas fa-wallet"></i> {% trans "Scolarité des élèves" %}</h1>
-                <p class="sco-hero-sub">{% trans "Suivez les paiements par classe, identifiez les élèves non en règle et accédez aux bilans." %}</p>
-                {% if annee_scolaire_active %}
-                    <span class="sco-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
-                {% endif %}
-            </div>
-            <div class="compta-overview sco-hero-stats">
-                <div class="sco-stat-pill"><span class="sco-stat-num">{{ stats_generales.total_eleves }}</span><span class="sco-stat-lbl">{% trans "Élèves" %}</span></div>
-                <div class="sco-stat-pill sco-stat-pill--ok"><span class="sco-stat-num">{{ stats_generales.eleves_a_jour }}</span><span class="sco-stat-lbl">{% trans "À jour" %}</span></div>
-                <div class="sco-stat-pill sco-stat-pill--warn"><span class="sco-stat-num">{{ stats_generales.eleves_non_en_regle }}</span><span class="sco-stat-lbl">{% trans "Non en règle" %}</span></div>
-                <div class="sco-stat-pill"><span class="sco-stat-num">{{ stats_generales.montant_paye|floatformat:0 }}</span><span class="sco-stat-lbl">{% trans "Encaissé" %} ({{ devise_monnaie|default:"FCFA" }})</span></div>
-            </div>
-            <div class="sco-hero-actions">
-                {% if not is_caissier %}
-                <a href="{% url 'directeur:caisse_mois_directeur' %}" class="sco-action-btn sco-action-btn--primary">
-                    <i class="fas fa-cash-register"></i> {% trans "Caisse" %}
-                </a>
-                <a href="{% url 'directeur:liste_impayes_directeur' %}" class="sco-action-btn sco-action-btn--primary">
-                    <i class="fas fa-exclamation-circle"></i> {% trans "Impayés & relances" %}
-                </a>
-                <a href="{% url 'directeur:bilan_comptable_directeur' %}" class="sco-action-btn sco-action-btn--primary">
-                    <i class="fas fa-chart-line"></i> {% trans "Bilan scolarité général" %}
-                </a>
-                <a href="{% url 'directeur:parametres_comptabilite_directeur' %}" class="sco-action-btn sco-action-btn--secondary">
-                    <i class="fas fa-cog"></i> {% trans "Paramètres de scolarité" %}
-                </a>
-                {% endif %}
-            </div>
-        </header>
+        {% trans "Scolarité des élèves" as t %}{% trans "Frais, paiements, retards et reçus de chaque élève." as st %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-wallet' v3_tone='green' v3_actions_tpl='school_admin/directeur/partials/v3_actions/compta_eleves.html' %}
 
         {% if not etablissement.module_comptabilite %}
         <div class="sco-alert sco-alert-warn">
@@ -284,6 +259,7 @@
     <script src="{% static 'school_admin/js/directeur/directeur_tab_storage.js' %}?v=1.0.0"></script>
     <script src="{% static 'school_admin/js/directeur/directeur_niveau_classe_persist.js' %}?v=1.0.1"></script>
     <script src="{% static 'school_admin/js/directeur/comptabilite_eleves.js' %}?v=2.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

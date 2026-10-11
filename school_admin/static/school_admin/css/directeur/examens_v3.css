@@ -1,0 +1,41 @@
+/* Gestion des examens : couche de style v3 (aplats, jetons --ax-*) au-dessus de gestion_examens.css. */
+body.gex-page-body { font-family: var(--ax-font, "Inter", system-ui, sans-serif); background: var(--ax-bg, #f5f6f8); color: var(--ax-ink); }
+.content-container.gex-page { max-width: 1280px; padding: 20px 24px calc(var(--ax-dock-h, 104px) + 32px); }
+.gex-page .page-header-minimal { display: none; }
+.gex-page .hb-head { margin-bottom: 16px; }
+.gex-page .fe-kpis { margin: 0 0 16px; }
+
+/* Plus de dégradés : aplats de la marque. */
+.gex-page *, .exam-modal * { background-image: none !important; }
+.gex-action-btn--primary, .exam-modal .btn-primary { background-color: var(--ax-brand) !important; color: #fff !important; border-color: var(--ax-brand) !important; box-shadow: none !important; }
+.gex-action-btn--primary:hover, .exam-modal .btn-primary:hover { background-color: var(--ax-brand-ink) !important; }
+.gex-periode-nav .matiere-tab-btn.gex-periode-tab.active { background-color: var(--ax-brand) !important; color: #fff; }
+.exam-section-step { background-color: var(--ax-brand-soft) !important; color: var(--ax-brand) !important; box-shadow: none !important; }
+.exam-modal .modal-header { background-color: var(--ax-surface) !important; color: var(--ax-ink) !important; border-bottom: 1px solid var(--ax-line); }
+.exam-modal .modal-header h2, .exam-modal .modal-header h2 i { color: var(--ax-ink) !important; }
+.exam-modal .modal-header h2 i { color: var(--ax-brand) !important; }
+.exam-modal .modal-header .close { color: var(--ax-ink-2) !important; background: var(--ax-surface-2) !important; border: 1px solid var(--ax-line); border-radius: 10px; }
+.exam-modal .modal-content { border-radius: 18px; }
+
+/* Panneau principal, onglets et lignes */
+.gex-main-panel { border-color: var(--ax-line); border-radius: var(--ax-radius, 16px); padding: 16px 18px; box-shadow: var(--ax-shadow); }
+.gex-periode-nav .matiere-tab-btn.gex-periode-tab, .gex-groupe-nav .matiere-tab-btn.gex-groupe-tab { border-radius: 10px; font-weight: 600; }
+.gex-groupe-nav .matiere-tab-btn.gex-groupe-tab.active { background: var(--ax-brand-soft); color: var(--ax-brand-ink); border-color: transparent; }
+.gex-list { border: 1px solid var(--ax-line); border-radius: 14px; overflow: hidden; }
+.gex-list-header { background: var(--ax-surface-2); color: var(--ax-ink-2); font-size: 0.74rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+.gex-list-row:hover { background: var(--ax-surface-2); }
+.gex-item-title { font-weight: 700; color: var(--ax-ink); }
+.gex-icon-wrap { background: var(--ax-brand-soft) !important; color: var(--ax-brand) !important; border-radius: 10px; }
+.gex-matiere-badge, .gex-classe-chip, .session-classe-chip { background: var(--ax-surface-2) !important; color: var(--ax-ink-2) !important; border: 1px solid var(--ax-line); border-radius: 999px; }
+.gex-act-btn { border-radius: 9px; border: 1px solid var(--ax-line); background: var(--ax-surface); color: var(--ax-ink-2); }
+.gex-act-btn:hover { border-color: var(--ax-brand); color: var(--ax-brand); }
+.gex-act-btn--delete:hover { border-color: var(--ax-bad); color: var(--ax-bad); }
+.gex-act-btn--primary { background: var(--ax-brand-soft) !important; color: var(--ax-brand) !important; border-color: transparent; }
+.gex-alert.gex-alert-info { display: flex; gap: 10px; align-items: flex-start; border: 0; border-radius: 12px; background: var(--ax-brand-soft); color: var(--ax-brand-ink); }
+.gex-empty-page, .gex-empty-groupe { border-radius: var(--ax-radius, 16px); border: 1px dashed var(--ax-line-strong); background: var(--ax-surface); }
+@media (max-width: 760px) {
+  .content-container.gex-page { padding: 12px 16px calc(var(--ax-dock-h, 104px) + 24px); }
+}
+
+.gex-empty-groupe .gex-action-btn i, .gex-empty-page .gex-action-btn i { font-size: 0.95rem !important; }
+.gex-empty-groupe .gex-action-btn, .gex-empty-page .gex-action-btn { border-radius: 10px; padding: 10px 16px; }

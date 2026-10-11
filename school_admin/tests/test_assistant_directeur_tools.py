@@ -1481,7 +1481,7 @@ class AssistantDirecteurVague4Tests(TestCase):
             annee_scolaire=cls.annee,
             matiere=cls.matiere_bdd,
             est_moyenne_generale=False,
-            moyenne_matiere=Decimal('08.00'),
+            moyenne_matiere=Decimal('06.00'),  # semestre à 9,6 : pas de compensation LMD
             credits=Decimal('4.00'),
         )
         cls.ctx = build_assistant_context(cls.etab)

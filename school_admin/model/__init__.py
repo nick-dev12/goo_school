@@ -21,7 +21,7 @@ from .parent_model import Parent
 from .lien_familial_model import LienFamilial
 from .demande_liaison_model import DemandeLiaisonParent
 from .periode_model import PeriodeScolaire
-from .session_examen_model import SessionExamen
+from .session_examen_model import SessionExamen, ReglesExamen
 from .exercice_maison_model import ExerciceMaison
 from .creneau_examen_model import CreneauExamen
 from .ponderation_model import Ponderation
@@ -53,6 +53,20 @@ from .caisse_etablissement_model import (
     DepenseEtablissement,
     PaieProfesseurPeriode,
 )
+from .finances_model import (
+    CategorieFinanciere,
+    CompteTresorerie,
+    JournalAuditFinancier,
+    LigneReleve,
+    PaiementCharge,
+    EcheancePret,
+    PieceFinanciere,
+    PretEtablissement,
+    RecetteEtablissement,
+    ReleveBancaire,
+    RemboursementOperation,
+    RemboursementPret,
+)
 from .comptabilite_generale_model import (
     CompteComptable,
     EcritureComptable,
@@ -70,3 +84,5 @@ from .parametres_comptabilite_groupe_classe_model import ParametresComptabiliteG
 from .personnel_administratif_model import PersonnelAdministratif
 from .employe_dossier_model import DocumentEmploye, DossierEmployeComplementaire
 from .sync_action_model import SyncAction
+from .pointage_model import BornePointage, SeanceCours
+from .cahier_texte_model import CahierTexte

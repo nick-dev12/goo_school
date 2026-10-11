@@ -869,6 +869,8 @@ def liste_eleves(request):
         **inscription_ctx,
     }
     
+    from ..services.suivi_eleves import enrichir as _enrichir_suivi
+    _enrichir_suivi(request, context, 'liste')
     return render(request, 'school_admin/directeur/secretaire/liste_eleves.html', context)
 
 
@@ -2170,7 +2172,7 @@ def detail_eleve(request, eleve_id):
                 'adresse': inscription_eleve_data.adresse or '',
                 'telephone': inscription_eleve_data.telephone or '',
                 'email': inscription_eleve_data.email or '',
-                'classe': inscription_eleve_data.classe.id if inscription_eleve_data.classe else '',
+                'classe': str(inscription_eleve_data.classe.id) if inscription_eleve_data.classe else '',
                 'date_inscription': inscription_eleve_data.date_inscription.strftime('%Y-%m-%d') if inscription_eleve_data.date_inscription else '',
                 'statut': inscription_eleve_data.statut,
                 # Champs parent/tuteur depuis InscriptionEleve
@@ -2216,7 +2218,7 @@ def detail_eleve(request, eleve_id):
                 'adresse': eleve.adresse or '',
                 'telephone': eleve.telephone or '',
                 'email': eleve.email or '',
-                'classe': eleve.classe.id if eleve.classe else '',
+                'classe': str(eleve.classe.id) if eleve.classe else '',
                 'date_inscription': eleve.date_inscription.strftime('%Y-%m-%d') if eleve.date_inscription else '',
                 'statut': eleve.statut,
                 # Champs parent/tuteur
@@ -2288,7 +2290,22 @@ def detail_eleve(request, eleve_id):
         'can_view_sanctions': isinstance(user, Etablissement) or (isinstance(user, PersonnelAdministratif) and check_permission(user, 'sanctions_detail')),
     }
     
-    return render(request, 'school_admin/directeur/secretaire/detail_eleve.html', context)
+    # Fiche élève refondue : données regroupées pour tous les types d'établissement.
+    from ..services.fiche_eleve import construire as construire_fiche_eleve
+
+    context['fiche'] = construire_fiche_eleve(eleve, getattr(eleve_display, 'classe', None), etablissement,
+                                              annee_scolaire_active, vue='direction')
+    # Les montants dus ne sont visibles que de la direction et du personnel habilité à la comptabilité.
+    if not (isinstance(user, Etablissement) or (isinstance(user, PersonnelAdministratif)
+                                                and check_permission(user, 'comptabilite_voir'))):
+        context['fiche']['finances'] = None
+    context['voir_notes'] = context['can_view_notes']
+    context['voir_presences'] = context['can_view_presences']
+    context['voir_sanctions'] = context['can_view_sanctions']
+    onglet = request.GET.get('onglet', 'apercu')
+    context['onglet_actif'] = {'personal': 'apercu', 'academic': 'apercu', 'presences': 'assiduite',
+                               'sanctions': 'discipline', 'login': 'acces'}.get(onglet, onglet)
+    return render(request, 'school_admin/fiche_eleve/direction.html', context)
 
 
 @login_required

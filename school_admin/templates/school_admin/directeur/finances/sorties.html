@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Sorties" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    {% include 'school_admin/directeur/finances/partials/fin_assets_head.html' %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="cg-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container cg-page">
+        {% include 'school_admin/partials/messages.html' %}
+        {% include 'school_admin/directeur/finances/partials/fin_nav.html' %}
+        <header class="cg-hero">
+            <a href="{% url 'directeur:gestion_etablissement' %}" class="cg-hero-back" aria-label="{% trans 'Retour à la gestion de l\'établissement' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+            <div class="cg-hero-main">
+                <h1 class="cg-hero-title"><i class="fas fa-arrow-up"></i> {% trans "Sorties" %}</h1>
+                <p class="cg-hero-sub">{% trans "On paie la charge du mois. Ce paiement ne crée pas une deuxième dépense du jour." %}</p>
+            </div>
+        </header>
+        {% include 'school_admin/directeur/finances/partials/fin_filters.html' %}
+        <div class="cg-workspace">
+            <div class="cg-subtabs">
+                <div class="matiere-tabs-bar">
+                    <div class="matiere-tabs-track" role="tablist">
+                        <a class="matiere-tab-btn {% if vue == 'jour' %}active{% endif %}" href="?{{ liens_vue.jour }}">{% trans "Du jour" %}</a>
+                        <a class="matiere-tab-btn {% if vue == 'mois' %}active{% endif %}" href="?{{ liens_vue.mois }}">{% trans "Du mois" %}</a>
+                    </div>
+                </div>
+            </div>
+            {% if vue == 'jour' %}
+            <section class="cg-section">
+                <div class="cg-panel-head">
+                    <h2>{% trans "Sorties du jour" %}</h2>
+                    <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-sortie"><i class="fas fa-plus"></i> {% trans "Ajouter" %}</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Date" %}</th><th>{% trans "Libellé" %}</th><th>{% trans "Catégorie" %}</th>
+                                <th>{% trans "Bénéficiaire" %}</th><th>{% trans "Montant" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for depense in depenses %}
+                            <tr class="{% if depense.statut == 'annulee' %}fin-row--muted{% endif %}">
+                                <td>{{ depense.date_depense|date:"d/m/Y" }}</td>
+                                <td>{{ depense.libelle_affiche }}</td>
+                                <td>{{ depense.get_motif_display }}</td>
+                                <td>{{ depense.fournisseur.nom|default:"—" }}</td>
+                                <td><span class="fin-montant-sortie">{{ depense.montant|floatformat:0 }} {{ devise_monnaie }}</span></td>
+                                <td>
+                                    {% if depense.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulée" %}</span>
+                                    {% elif depense.statut == 'brouillon' %}<span class="cg-pill cg-pill--warn">{% trans "Brouillon" %}</span>
+                                    {% else %}<span class="cg-pill cg-pill--info">{% trans "Validée" %}</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if depense.statut == 'validee' and peut_annuler %}
+                                    <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-sortie" data-cg-bind="depense_id" data-cg-value="{{ depense.id }}">{% trans "Annuler" %}</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}<tr><td colspan="7">{% trans "Aucune sortie du jour sur ce mois." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            {% else %}
+            <section class="cg-section">
+                <div class="cg-panel-head">
+                    <h2>{% trans "Charges du mois" %}</h2>
+                    <div>
+                        {% if peut_annuler %}
+                        <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-fournisseur">{% trans "Fournisseur" %}</button>
+                        <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-facture"><i class="fas fa-plus"></i> {% trans "Nouvelle charge" %}</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if factures_historiques %}
+                <p class="cg-form-hint">{% trans "Des factures ont un ancien montant payé sans ligne de paiement. Il n'est pas converti." %}</p>
+                {% endif %}
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "N°" %}</th><th>{% trans "Fournisseur" %}</th><th>{% trans "Échéance" %}</th>
+                                <th>{% trans "Prévu" %}</th><th>{% trans "Payé" %}</th><th>{% trans "Reste" %}</th>
+                                <th>{% trans "Statut" %}</th><th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fac in factures %}
+                            <tr class="{% if fac.statut == 'annulee' %}fin-row--muted{% endif %}">
+                                <td>{{ fac.numero }}</td>
+                                <td>{{ fac.fournisseur.nom }}</td>
+                                <td>{{ fac.date_echeance|date:"d/m/Y" }}</td>
+                                <td>{{ fac.montant|floatformat:0 }} {{ devise_monnaie }}</td>
+                                <td>{{ fac.montant_regle|floatformat:0 }} {{ devise_monnaie }}</td>
+                                <td>
+                                    {% if fac.reste_a_payer == 0 %}<span class="cg-pill cg-pill--ok">0</span>
+                                    {% else %}<span class="cg-pill cg-pill--warn">{{ fac.reste_a_payer|floatformat:0 }} {{ devise_monnaie }}</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if fac.statut == 'payee' %}<span class="cg-pill cg-pill--ok">{% trans "Payée" %}</span>
+                                    {% elif fac.statut == 'partiel' %}<span class="cg-pill cg-pill--warn">{% trans "Partielle" %}</span>
+                                    {% elif fac.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulée" %}</span>
+                                    {% else %}<span class="cg-pill cg-pill--warn">{% trans "À payer" %}</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if fac.statut != 'payee' and fac.statut != 'annulee' and fac.reste_a_payer > 0 %}
+                                    <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-payer" data-cg-bind="facture_id" data-cg-value="{{ fac.id }}" data-cg-max="{{ fac.reste_a_payer }}">{% trans "Payer" %}</button>
+                                    {% endif %}
+                                    {% if fac.peut_etre_annulee and peut_annuler %}
+                                    <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-facture" data-cg-bind="facture_id" data-cg-value="{{ fac.id }}">{% trans "Annuler" %}</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}<tr><td colspan="8">{% trans "Aucune charge du mois." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            {% endif %}
+        </div>
+        <div class="cg-sheet" id="sheet-sortie" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Sortie du jour" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_sorties' %}" class="cg-form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="ajouter_sortie" />
+                    <label>{% trans "Date" %}<input type="date" name="date_depense" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Catégorie" %}<select name="motif" required>{% for code, label in motifs %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Libellé" %}<input type="text" name="libelle" maxlength="160" /></label>
+                    <label>{% trans "Bénéficiaire" %}<select name="fournisseur_id"><option value="">{% trans "Aucun" %}</option>{% for f in fournisseurs %}<option value="{{ f.id }}">{{ f.nom }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Montant" %}<input type="number" name="montant" min="1" step="1" required /></label>
+                    <label>{% trans "Justificatif" %} <span class="cg-optional">{% trans "(optionnel)" %}</span><input type="file" name="justificatif" accept=".pdf,.jpg,.jpeg,.png,.webp" /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-facture" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Charge du mois" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_sorties' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="ajouter_facture" />
+                    <label>{% trans "Fournisseur" %}<select name="fournisseur_id" required><option value="">{% trans "Choisir" %}</option>{% for f in fournisseurs %}<option value="{{ f.id }}">{{ f.nom }}</option>{% endfor %}</select></label>
+                    <label>{% trans "N°" %}<input type="text" name="numero" maxlength="40" required /></label>
+                    <label>{% trans "Libellé" %}<input type="text" name="libelle" maxlength="200" required /></label>
+                    <label>{% trans "Catégorie" %}<select name="categorie_id" required><option value="">{% trans "Choisir" %}</option>{% for cat in categories %}<option value="{{ cat.id }}">{{ cat.libelle }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Date" %}<input type="date" name="date_facture" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Échéance" %}<input type="date" name="date_echeance" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Montant prévu" %}<input type="number" name="montant" min="1" step="1" required /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-fournisseur" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Nouveau fournisseur" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_sorties' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="ajouter_fournisseur" />
+                    <label>{% trans "Nom" %}<input type="text" name="nom" required /></label>
+                    <label>{% trans "Téléphone" %}<input type="text" name="telephone" /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-payer" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Payer la charge" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_sorties' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="payer_facture" />
+                    <input type="hidden" name="facture_id" value="" />
+                    <label>{% trans "Date" %}<input type="date" name="date_paiement" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Compte" %}<select name="compte_tresorerie_id">{% for compte in comptes_tresorerie %}<option value="{{ compte.id }}">{{ compte.libelle }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Montant" %}<input type="number" name="montant" min="1" step="1" required /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Payer" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-annuler-sortie" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Annuler la sortie" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_sorties' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="annuler_sortie" />
+                    <input type="hidden" name="depense_id" value="" />
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Annuler" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-annuler-facture" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Annuler la charge" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_sorties' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="annuler_facture" />
+                    <input type="hidden" name="facture_id" value="" />
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Annuler" %}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% include 'school_admin/directeur/finances/partials/fin_assets_scripts.html' %}
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

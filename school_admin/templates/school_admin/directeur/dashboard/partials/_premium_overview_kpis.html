@@ -1,0 +1,102 @@
+{% load i18n %}
+<div class="dashboard-overview dbd-premium-overview">
+  <div class="key-indicators">
+    <div class="indicator-card">
+      <div class="indicator-icon" style="background-color: var(--blue)">
+        <i class="fas fa-user-graduate" aria-hidden="true"></i>
+      </div>
+      <div class="indicator-content">
+        <h3>{% trans "Élèves inscrits" %}</h3>
+        <p class="indicator-value">{{ stats.nombre_eleves|default:"0" }}</p>
+        <span class="indicator-trend {% if stats.croissance_eleves > 0 %}positive{% elif stats.croissance_eleves < 0 %}negative{% endif %}">
+          {% if stats.croissance_eleves > 0 %}+{% endif %}{{ stats.croissance_eleves|default:"0" }}% {% trans "depuis l'année dernière" %}
+        </span>
+      </div>
+    </div>
+
+    {% if not is_caissier %}
+    <div class="indicator-card">
+      <div class="indicator-icon" style="background-color: var(--purple)">
+        <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>
+      </div>
+      <div class="indicator-content">
+        <h3>{% trans "Enseignants" %}</h3>
+        <p class="indicator-value">{{ stats.nombre_enseignants|default:"0" }}</p>
+        <span class="indicator-trend">{% trans "Effectif stable" %}</span>
+      </div>
+    </div>
+
+    <div class="indicator-card">
+      <div class="indicator-icon" style="background-color: var(--green)">
+        <i class="fas fa-user-tie" aria-hidden="true"></i>
+      </div>
+      <div class="indicator-content">
+        <h3>{% trans "Personnel administratif" %}</h3>
+        <p class="indicator-value">{{ stats.nombre_personnel_admin|default:"0" }}</p>
+        <span class="indicator-trend {% if stats.changement_personnel > 0 %}positive{% elif stats.changement_personnel < 0 %}negative{% endif %}">
+          {% if stats.changement_personnel > 0 %}+{% endif %}{{ stats.changement_personnel|default:"0" }} {% trans "cette année" %}
+        </span>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="indicator-card">
+      <div class="indicator-icon" style="background-color: var(--secondary)">
+        <i class="fas fa-school" aria-hidden="true"></i>
+      </div>
+      <div class="indicator-content">
+        <h3>{% trans "Classes actives" %}</h3>
+        <p class="indicator-value">{{ stats.nombre_classes|default:"0" }}</p>
+        <span class="indicator-trend">{% trans "Toutes opérationnelles" %}</span>
+      </div>
+    </div>
+
+    {% if not is_caissier %}
+    <div class="indicator-card">
+      <div class="indicator-icon" style="background-color: var(--primary)">
+        <i class="fas fa-tasks" aria-hidden="true"></i>
+      </div>
+      <div class="indicator-content">
+        <h3>{% trans "Évaluations en cours" %}</h3>
+        <p class="indicator-value">{{ stats.evaluations_semaine|default:"0" }}</p>
+        <span class="indicator-trend">{% trans "Cette semaine" %}</span>
+      </div>
+    </div>
+
+    <div class="indicator-card">
+      <div class="indicator-icon" style="background-color: var(--blue)">
+        <i class="fas fa-file-alt" aria-hidden="true"></i>
+      </div>
+      <div class="indicator-content">
+        <h3>{% trans "Bulletins publiés" %}</h3>
+        <p class="indicator-value">{{ stats.bulletins_publies|default:"0" }}</p>
+        <span class="indicator-trend">{% trans "Trimestre en cours" %}</span>
+      </div>
+    </div>
+
+    <div class="indicator-card">
+      <div class="indicator-icon" style="background-color: var(--green)">
+        <i class="fas fa-chart-line" aria-hidden="true"></i>
+      </div>
+      <div class="indicator-content">
+        <h3>{% trans "Taux de réussite" %}</h3>
+        <p class="indicator-value">{{ stats.taux_reussite|default:"0" }}%</p>
+        <span class="indicator-trend {% if stats.taux_reussite >= 70 %}positive{% endif %}">
+          {% trans "Basé sur les moyennes" %}
+        </span>
+      </div>
+    </div>
+
+    <div class="indicator-card">
+      <div class="indicator-icon" style="background-color: var(--blue)">
+        <i class="fas fa-medal" aria-hidden="true"></i>
+      </div>
+      <div class="indicator-content">
+        <h3>{% trans "Distinctions" %}</h3>
+        <p class="indicator-value">{{ stats.distinctions|default:"0" }}</p>
+        <span class="indicator-trend">{% trans "Non disponible" %}</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>

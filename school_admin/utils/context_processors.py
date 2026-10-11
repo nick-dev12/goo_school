@@ -7,8 +7,8 @@ from ..model.etablissement_model import Etablissement
 from ..model.personnel_administratif_model import PersonnelAdministratif
 from .permissions_personnel import get_permissions_personnel, has_permission, is_caissier
 
-# Passer à True pour réafficher le hub CG (plan, journaux, exercices, etc.).
-AFFICHER_MODULE_COMPTABILITE_GENERALE = False
+# Hub comptabilité générale (carte gestion établissement, paramètres, assistant).
+AFFICHER_MODULE_COMPTABILITE_GENERALE = True
 
 
 def _with_flags(ctx):

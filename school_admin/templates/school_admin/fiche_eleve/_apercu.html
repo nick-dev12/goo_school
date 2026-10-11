@@ -1,0 +1,87 @@
+{% load i18n %}
+{% if fiche.alertes %}
+<div class="fe-alerts">{% for a in fiche.alertes %}<p class="fe-alert fe-alert--{{ a.tone }}"><i class="fas {{ a.icon }}" aria-hidden="true"></i><span>{{ a.texte }}</span></p>{% endfor %}</div>
+{% endif %}
+<div class="fe-grid">
+  <div class="fe-col-8 fe-stack">
+    {% if voir_notes %}
+    <article class="fe-card fe-tone-blue">
+      <header class="fe-card__head">
+        <div><h2 class="fe-card__title"><i class="fas fa-chart-simple" aria-hidden="true"></i>{% if fiche.vue == 'enseignant' %}{% trans "Résultats dans mes matières" %}{% else %}{% trans "Résultats par matière" %}{% endif %}</h2>
+        <p class="fe-card__sub">{% if fiche.periodes %}{% with p=fiche.periodes|last %}{{ p.libelle }} · {% trans "moyenne simple des notes, sur 20" %}{% endwith %}{% else %}{% trans "Aucune note pour l’instant." %}{% endif %}</p></div>
+        <a class="fe-link" href="?onglet=notes" data-fe-goto="notes">{% trans "Détail" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+      </header>
+      {% if fiche.periodes %}{% with p=fiche.periodes|last %}
+      <ul class="fe-bars">
+        {% for m in p.matieres %}
+        <li class="fe-tone-{{ m.tone }}">
+          <span class="fe-bars__label"><i class="fas {{ m.icon }}" aria-hidden="true"></i><span>{{ m.nom }}</span></span>
+          <span class="fe-bars__track" role="img" aria-label="{{ m.nom }} : {% if m.moyenne != None %}{{ m.moyenne }}/20{% else %}—{% endif %}">{% if m.moyenne != None %}<span style="width: {% widthratio m.moyenne 20 100 %}%"></span>{% endif %}</span>
+          <span class="fe-bars__value{% if m.moyenne != None and m.moyenne < fiche.seuil %} is-low{% endif %}">{% if m.moyenne != None %}{{ m.moyenne|floatformat:1 }}{% else %}—{% endif %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="fe-bars__legend">{% trans "Le trait vertical marque la moyenne (10/20)." %}</p>
+      {% endwith %}{% else %}<div class="cg3-empty"><i class="fas fa-clipboard" aria-hidden="true"></i><span>{% trans "Les notes apparaîtront ici dès la première évaluation." %}</span></div>{% endif %}
+    </article>
+    {% endif %}
+
+    {% if fiche.vue == 'direction' %}{% include 'school_admin/fiche_eleve/_identite.html' %}{% endif %}
+
+    {% if voir_presences %}
+    <article class="fe-card fe-tone-green">
+      <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-user-clock" aria-hidden="true"></i>{% trans "Dernières absences et retards" %}</h2></div>
+      <a class="fe-link" href="?onglet=assiduite" data-fe-goto="assiduite">{% trans "Tout voir" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a></header>
+      {% if fiche.presence.recentes %}
+      <div class="fe-rows">
+        {% for p in fiche.presence.recentes|slice:":4" %}
+        <div class="fe-row"><span class="fe-row__date"><b>{{ p.date|date:"d/m" }}</b>{{ p.date|date:"D" }}</span><span class="fe-row__main"><strong>{{ p.libelle }}</strong><small>{% if p.professeur %}{{ p.professeur.nom_complet }}{% endif %}{% if p.motif %} · {{ p.motif }}{% endif %}</small></span>
+        <span class="cg3-chip {% if p.statut == 'absent' %}cg3-chip--bad{% elif p.statut == 'retard' %}cg3-chip--warn{% else %}cg3-chip--muted{% endif %}">{{ p.libelle }}</span></div>
+        {% endfor %}
+      </div>
+      {% else %}<div class="cg3-empty"><i class="fas fa-circle-check" aria-hidden="true"></i><span>{% trans "Aucune absence ni retard." %}</span></div>{% endif %}
+    </article>
+    {% endif %}
+  </div>
+
+  <aside class="fe-col-4 fe-stack">
+    <article class="fe-card fe-tone-red">
+      <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-calendar-day" aria-hidden="true"></i>{% trans "À venir" %}</h2><p class="fe-card__sub">{% trans "Évaluations et devoirs de la classe" %}</p></div></header>
+      {% if fiche.evaluations or fiche.devoirs %}
+      <ul class="fe-upcoming">
+        {% for e in fiche.evaluations|slice:":4" %}<li class="fe-tone-{{ e.tone|default:'red' }}"><span class="fe-upcoming__badge"><i class="fas fa-book-open-reader" aria-hidden="true"></i></span><span><strong>{{ e.titre }}</strong><small>{{ e.matiere }} · {{ e.quand }}</small></span></li>{% endfor %}
+        {% for d in fiche.devoirs|slice:":4" %}<li class="fe-tone-orange"><span class="fe-upcoming__badge"><i class="fas fa-pen-to-square" aria-hidden="true"></i></span><span><strong>{{ d.titre }}</strong><small>{{ d.matiere }} · {% trans "à rendre" %} {{ d.quand }}</small></span></li>{% endfor %}
+      </ul>
+      {% else %}<div class="cg3-empty"><i class="fas fa-mug-hot" aria-hidden="true"></i><span>{% trans "Rien de prévu dans les trois semaines." %}</span></div>{% endif %}
+    </article>
+
+    {% if fiche.convocations %}
+    <article class="fe-card fe-tone-violet">
+      <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-calendar-check" aria-hidden="true"></i>{% trans "Convocations" %}</h2></header>
+      <ul class="fe-upcoming">{% for c in fiche.convocations|slice:":3" %}<li><span class="fe-upcoming__badge"><i class="fas fa-envelope-open-text" aria-hidden="true"></i></span><span><strong>{{ c.objet }}</strong><small>{{ c.date_convocation|date:"d/m/Y" }} · {{ c.heure_convocation|time:"H:i" }}</small></span>{% if c.a_venir %}<span class="cg3-chip cg3-chip--warn">{% trans "À venir" %}</span>{% endif %}</li>{% endfor %}</ul>
+    </article>
+    {% endif %}
+
+    <article class="fe-card">
+      <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-people-roof" aria-hidden="true"></i>{% trans "Responsables" %}</h2></div>
+      <a class="fe-link" href="?onglet=famille" data-fe-goto="famille">{% trans "Détail" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a></header>
+      {% if fiche.famille.comptes or fiche.famille.fiche %}
+      <ul class="fe-list">
+        {% for c in fiche.famille.comptes|slice:":3" %}
+        <li class="fe-slot"><span class="fe-slot__main"><strong>{{ c.parent.prenom }} {{ c.parent.nom }}</strong><small>{{ c.lien }}{% if c.parent.telephone %} · {{ c.parent.telephone }}{% endif %}</small></span>{% if c.parent.telephone %}<a class="fe-copy" href="tel:{{ c.parent.telephone }}" aria-label="{% trans 'Appeler' %}"><i class="fas fa-phone" aria-hidden="true"></i></a>{% endif %}</li>
+        {% empty %}
+        <li class="fe-slot"><span class="fe-slot__main"><strong>{{ fiche.famille.fiche.nom|default:"—" }}</strong><small>{{ fiche.famille.fiche.lien }}{% if fiche.famille.fiche.telephone %} · {{ fiche.famille.fiche.telephone }}{% endif %}</small></span></li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="fe-alert fe-alert--warn"><i class="fas fa-phone-slash" aria-hidden="true"></i><span>{% trans "Aucun responsable enregistré." %}</span></p>{% endif %}
+    </article>
+
+    {% if fiche.vue == 'direction' %}
+    <article class="fe-card fe-tone-orange">
+      <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-folder-open" aria-hidden="true"></i>{% trans "Dossier" %}</h2><p class="fe-card__sub">{% blocktrans with t=fiche.completude.taux %}Complet à {{ t }} %{% endblocktrans %}</p></div></header>
+      <div class="fe-bar"><span class="{% if fiche.completude.taux < 50 %}is-bad{% elif fiche.completude.taux < 80 %}is-warn{% endif %}" style="width: {{ fiche.completude.taux }}%"></span></div>
+      {% if fiche.completude.manquants %}<div class="fe-missing">{% for m in fiche.completude.manquants %}<span>{{ m }}</span>{% endfor %}</div>{% endif %}
+    </article>
+    {% endif %}
+  </aside>
+</div>

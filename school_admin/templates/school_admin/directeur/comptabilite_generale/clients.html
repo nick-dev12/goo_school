@@ -1,62 +1,49 @@
-<!DOCTYPE html>
+{% extends 'school_admin/directeur/comptabilite_generale/_base.html' %}
 {% load static i18n %}
-{% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE }}">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "Clients scolarité" %} — {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
-</head>
-<body class="cg-page-body">
-    {% include 'school_admin/directeur/partials/header_directeur.html' %}
-    <div class="content-container cg-page">
-        {% include 'school_admin/partials/messages.html' %}
-        <div class="page-header page-header-minimal">
-            {% url 'directeur:cg_hub_directeur' as back_url %}
-            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
-        </div>
-        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='clients' %}
-        <header class="cg-hero">
-            <div>
-                <h1 class="cg-hero-title"><i class="fas fa-user-graduate"></i> {% trans "Comptabilité client" %}</h1>
-                <p class="cg-hero-sub">{% trans "Balance âgée des familles, impayés par classe. Facturation et encaissements se font dans Scolarité — les écritures suivent automatiquement." %}</p>
-            </div>
-            <a class="cg-btn cg-btn--primary" href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}">{% trans "Saisir un encaissement" %}</a>
-            <a class="cg-btn cg-btn--ghost" href="{% url 'directeur:liste_impayes_directeur' %}">{% trans "Relances" %}</a>
-        </header>
-        <div class="cg-grid">
-            <div class="cg-card"><h3>0–30 j</h3><p class="cg-stat-num">{{ buckets.j0_30|floatformat:0 }} {{ devise_monnaie }}</p></div>
-            <div class="cg-card"><h3>31–60 j</h3><p class="cg-stat-num">{{ buckets.j31_60|floatformat:0 }} {{ devise_monnaie }}</p></div>
-            <div class="cg-card"><h3>61–90 j</h3><p class="cg-stat-num">{{ buckets.j61_90|floatformat:0 }} {{ devise_monnaie }}</p></div>
-            <div class="cg-card"><h3>90+ j</h3><p class="cg-stat-num">{{ buckets.j90|floatformat:0 }} {{ devise_monnaie }}</p></div>
-        </div>
+{% block title %}{% trans "Clients scolarité" %}{% endblock %}
+{% block icon %}fa-user-graduate{% endblock %}
+{% block tone %}green{% endblock %}
+{% block heading %}{% trans "Comptabilité client" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "Balance âgée des familles, impayés par classe. Facturation et encaissements se font dans Scolarité — les écritures suivent automatiquement." %}</p>{% endblock %}
+{% block actions %}
+  <a class="cg-btn cg-btn--primary" href="{% url 'directeur:liste_comptabilite_eleves_directeur' %}">{% trans "Saisir un encaissement" %}</a>
+  <a class="cg-btn cg-btn--ghost" href="{% url 'directeur:liste_impayes_directeur' %}">{% trans "Relances" %}</a>
+{% endblock %}
+
+{% block content %}
+        <section class="cg3-kpis">
+          <article class="cg3-kpi"><div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Échu depuis 0 à 30 jours" %}</p><span class="cg3-kpi__icon ax-tone-green"><i class="fas fa-hourglass-start" aria-hidden="true"></i></span></div><p class="cg3-kpi__value">{{ buckets.j0_30|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p></article>
+          <article class="cg3-kpi"><div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "31 à 60 jours" %}</p><span class="cg3-kpi__icon ax-tone-amber"><i class="fas fa-hourglass-half" aria-hidden="true"></i></span></div><p class="cg3-kpi__value">{{ buckets.j31_60|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p></article>
+          <article class="cg3-kpi"><div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "61 à 90 jours" %}</p><span class="cg3-kpi__icon ax-tone-orange"><i class="fas fa-hourglass-end" aria-hidden="true"></i></span></div><p class="cg3-kpi__value">{{ buckets.j61_90|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p></article>
+          <article class="cg3-kpi"><div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Plus de 90 jours" %}</p><span class="cg3-kpi__icon ax-tone-red"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></span></div><p class="cg3-kpi__value {% if buckets.j90 %}is-neg{% endif %}">{{ buckets.j90|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p></article>
+        </section>
+        <section class="axd-card cg3-block">
+          <header class="axd-card__head">{% if total_reste != solde_411 %}<span class="cg3-chip cg3-chip--warn cg3-float"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{% trans "Écart à vérifier" %}</span>{% else %}<span class="cg3-chip cg3-chip--ok cg3-float"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Concordant" %}</span>{% endif %}<div><h2 class="axd-card__title">{% trans "Créances : scolarité et comptabilité" %}</h2><p class="axd-card__sub">{% trans "Le reste dû des familles (module scolarité) et le solde du compte 411 doivent concorder en régime d’engagement." %}</p></div></header>
+          <div class="cg3-compare">
+            <div><small>{% trans "Reste dû (scolarité)" %}</small><b>{{ total_reste|floatformat:"0g" }} {{ devise_monnaie }}</b><span class="muted">{{ nb_creances }} {% trans "élève(s)" %}</span></div>
+            <div><small>{% trans "Solde comptable 41x" %}</small><b>{{ solde_411|floatformat:"0g" }} {{ devise_monnaie }}</b><a href="{% url 'directeur:cg_grand_livre' %}">{% trans "Voir le grand livre" %}</a></div>
+          </div>
+        </section>
+        <h2 class="px-section-title cg3-sub">{% trans "Restes dus par classe" %}</h2>
         {% for g in groupes %}
-        <section class="cg-section">
-            <h2>{{ g.classe_nom }} — {{ g.total_reste|floatformat:0 }} {{ devise_monnaie }}</h2>
+        <details class="cg-section cg3-fold">
+            <summary class="cg-panel-head"><h2>{{ g.classe_nom }}</h2><span class="cg3-chip">{{ g.eleves|length }} {% trans "élève(s)" %} · {{ g.total_reste|floatformat:"0g" }} {{ devise_monnaie }}</span></summary>
             <div class="table-responsive">
                 <table class="cg-table">
-                    <thead><tr><th>{% trans "Élève" %}</th><th>{% trans "Reste dû" %}</th><th>{% trans "Échéance" %}</th></tr></thead>
+                    <thead><tr><th>{% trans "Élève" %}</th><th class="num">{% trans "Reste dû" %}</th><th>{% trans "Échéance" %}</th></tr></thead>
                     <tbody>
                         {% for item in g.eleves %}
                         <tr>
                             <td>{{ item.eleve.nom_complet }}</td>
-                            <td>{{ item.resume.reste|floatformat:0 }}</td>
+                            <td class="num">{{ item.resume.reste|floatformat:"0g" }}</td>
                             <td>{% if item.resume.prochaine_echeance %}{{ item.resume.prochaine_echeance|date:"d/m/Y" }}{% else %}—{% endif %}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-        </section>
+        </details>
         {% empty %}
         <section class="cg-section"><p>{% trans "Aucune créance ouverte." %}</p></section>
         {% endfor %}
-    </div>
-    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
-</body>
-</html>
+{% endblock %}

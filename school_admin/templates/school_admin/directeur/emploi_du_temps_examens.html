@@ -15,6 +15,10 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/examens_refonte.css' %}?v=1.0.0" />
 </head>
 <body class="edtex-page-body" data-live-page="examens-emploi">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -27,35 +31,24 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_examens_url %}
         </div>
 
-        <header class="edtex-hero">
-            <div class="edtex-hero-text">
-                <h1 class="edtex-hero-title"><i class="fas fa-calendar-alt"></i> {% trans "Emploi du temps examens" %}</h1>
-                {% if annee_scolaire_active %}
-                    <span class="edtex-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
-                {% endif %}
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-red"><i class="fas fa-calendar-alt" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <p class="fe-hero__kicker">{{ etablissement.nom }}{% if annee_scolaire_active %} · {{ annee_scolaire_active.libelle }}{% endif %}</p>
+                <h1 class="hb-head__title">{% trans "Emploi du temps des examens" %}</h1>
+                <p class="fe-hero__sub">{% trans "Grille des épreuves par session : jours, horaires, salles et surveillants." %}</p>
             </div>
-            <div class="edtex-hero-stats">
-                <div class="edtex-stat-pill">
-                    <span class="edtex-stat-num">{{ stats_generales.total_sessions }}</span>
-                    <span class="edtex-stat-lbl">{% trans "Sessions" %}</span>
-                </div>
-                <div class="edtex-stat-pill edtex-stat-pill--accent">
-                    <span class="edtex-stat-num">{{ stats_generales.total_creneaux }}</span>
-                    <span class="edtex-stat-lbl">{% trans "Créneaux" %}</span>
-                </div>
-            </div>
-            <div class="edtex-hero-actions">
-                <button type="button" class="edtex-action-btn edtex-action-btn--primary" onclick="openModal()">
-                    <i class="fas fa-plus"></i> {% trans "Ajouter un créneau" %}
-                </button>
-                <button type="button" class="edtex-action-btn edtex-action-btn--secondary" onclick="printTimetable()">
-                    <i class="fas fa-print"></i> {% trans "Imprimer" %}
-                </button>
-                <a href="{% url 'directeur:gestion_examens' %}" class="edtex-action-btn edtex-action-btn--secondary">
-                    <i class="fas fa-clipboard-list"></i> {% trans "Gérer les sessions" %}
-                </a>
+            <div class="hb-head__actions">
+                <button type="button" class="cg3-btn cg3-btn--primary" onclick="openModal()"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter une épreuve" %}</button>
+                <button type="button" class="cg3-btn" onclick="printTimetable()"><i class="fas fa-print" aria-hidden="true"></i>{% trans "Imprimer" %}</button>
+                <a href="{% url 'directeur:gestion_examens' %}" class="cg3-btn"><i class="fas fa-clipboard-list" aria-hidden="true"></i>{% trans "Sessions" %}</a>
             </div>
         </header>
+        <section class="fe-kpis hb-kpis hb-kpis--3 cg3" aria-label="{% trans 'Indicateurs' %}">
+            <div class="fe-kpi fe-tone-red"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Sessions" %}</span><span class="fe-kpi__icon"><i class="fas fa-clipboard-list"></i></span></div><p class="fe-kpi__value">{{ stats_generales.total_sessions }}</p></div>
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Épreuves planifiées" %}</span><span class="fe-kpi__icon"><i class="fas fa-clock"></i></span></div><p class="fe-kpi__value">{{ stats_generales.total_creneaux }}</p></div>
+            <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Sessions publiées" %}</span><span class="fe-kpi__icon"><i class="fas fa-eye"></i></span></div><p class="fe-kpi__value">{{ stats_generales.sessions_publiees }}</p></div>
+        </section>
 
         {% if sessions_avec_grille %}
         <section class="edtex-main-panel" aria-label="{% trans 'Planning par session' %}">
@@ -93,6 +86,11 @@
                         <div class="edtex-session-header">
                             <div class="edtex-session-info">
                                 <h2 class="edtex-session-title">{{ session.nom_examen }}</h2>
+                                <div class="exr-badges">
+                                    <span class="exr-badge exr-badge--{{ session.type_session }}">{{ session.get_type_session_display }}</span>
+                                    {% if not session.compte_bulletin %}<span class="exr-badge exr-badge--muted">{% trans "Hors bulletin" %}</span>{% endif %}
+                                    {% if session.est_publie %}<span class="exr-badge exr-badge--ok"><i class="fas fa-eye"></i> {% trans "Publiée" %}</span>{% else %}<span class="exr-badge exr-badge--warn"><i class="fas fa-eye-slash"></i> {% trans "Non publiée (invisible des élèves)" %}</span>{% endif %}
+                                </div>
                                 <div class="edtex-session-meta">
                                     <span><i class="fas fa-calendar-week"></i> {{ session.periode.nom_periode }}</span>
                                     <span><i class="fas fa-calendar"></i> {{ session.date_debut|date:"d/m/Y" }} → {{ session.date_fin|date:"d/m/Y" }}</span>
@@ -102,8 +100,13 @@
                             </div>
                             <div class="edtex-session-actions">
                                 <a href="{% url 'directeur:configurer_creneaux_examen' session.id %}" class="edtex-mini-btn edtex-mini-btn--primary">
-                                    <i class="fas fa-clock"></i> {% trans "Configurer" %}
+                                    <i class="fas fa-clock"></i> {% trans "Planifier" %}
                                 </a>
+                                <form method="post" action="{% url 'directeur:publier_session_examen' session.id %}" class="exr-inline-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.path }}?session={{ session.id }}">
+                                    <button type="submit" class="edtex-mini-btn">{% if session.est_publie %}<i class="fas fa-eye-slash"></i> {% trans "Dépublier" %}{% else %}<i class="fas fa-bullhorn"></i> {% trans "Publier" %}{% endif %}</button>
+                                </form>
                             </div>
                         </div>
 

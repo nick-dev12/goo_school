@@ -1,0 +1,58 @@
+{% extends 'school_admin/directeur/comptabilite_generale/_base.html' %}
+{% load static i18n %}
+{% block title %}{% trans "Grand livre" %}{% endblock %}
+{% block icon %}fa-book-open{% endblock %}
+{% block tone %}teal{% endblock %}
+{% block heading %}{% trans "Grand livre" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "Chaque mouvement, compte par compte, avec le solde après chaque opération." %}</p>{% endblock %}
+{% block actions %}
+  <a class="cg3-btn" href="?{% if compte_choisi %}compte={{ compte_choisi.pk }}&{% endif %}{% if du %}du={{ du|date:'Y-m-d' }}&{% endif %}{% if au %}au={{ au|date:'Y-m-d' }}&{% endif %}export=csv"><i class="fas fa-file-csv" aria-hidden="true"></i>{% trans "Exporter" %}</a>
+{% endblock %}
+
+{% block content %}
+  <form method="get" class="cg3-filters" aria-label="{% trans 'Filtres' %}">
+    <label class="cg3-field cg3-field--grow"><span>{% trans "Compte" %}</span>
+      <select name="compte" onchange="this.form.submit()"><option value="">{% trans "Tous les comptes mouvementés" %}</option>{% for c in comptes %}<option value="{{ c.pk }}"{% if compte_choisi and compte_choisi.pk == c.pk %} selected{% endif %}>{{ c.numero }} — {{ c.libelle }}</option>{% endfor %}</select>
+    </label>
+    <label class="cg3-field"><span>{% trans "Du" %}</span><input type="date" name="du" value="{{ du|date:'Y-m-d' }}"></label>
+    <label class="cg3-field"><span>{% trans "Au" %}</span><input type="date" name="au" value="{{ au|date:'Y-m-d' }}"></label>
+    <button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-filter" aria-hidden="true"></i>{% trans "Afficher" %}</button>
+  </form>
+
+  {% if blocs %}
+  <div class="cg3-ledger">
+    {% for b in blocs %}
+    <section class="axd-card cg3-ledger__acc">
+      <header class="axd-card__head">
+        <div>
+          <h2 class="axd-card__title"><span class="cg3-acc">{{ b.compte.numero }}</span> {{ b.compte.libelle }}</h2>
+          <p class="axd-card__sub">{{ b.compte.get_classe_display }} · {% blocktrans count n=b.rows|length %}{{ n }} mouvement{% plural %}{{ n }} mouvements{% endblocktrans %}</p>
+        </div>
+        <span class="cg3-chip {% if b.solde < 0 %}cg3-chip--warn{% endif %}">{% trans "Solde" %} {% if b.solde >= 0 %}{% trans "débiteur" %}{% else %}{% trans "créditeur" %}{% endif %} : {{ b.solde_abs|floatformat:"0g" }} {{ devise_monnaie }}</span>
+      </header>
+      <div class="cg3-table-wrap">
+        <table class="cg3-table">
+          <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Pièce" %}</th><th>{% trans "Libellé" %}</th><th class="num">{% trans "Débit" %}</th><th class="num">{% trans "Crédit" %}</th><th class="num">{% trans "Solde" %}</th></tr></thead>
+          <tbody>
+            {% if b.report %}<tr class="is-report"><td colspan="5">{% trans "Report au" %} {{ du|date:"d/m/Y" }}</td><td class="num">{{ b.report|floatformat:"0g" }}</td></tr>{% endif %}
+            {% for r in b.rows %}
+            <tr>
+              <td>{{ r.date|date:"d/m/Y" }}</td>
+              <td><a class="cg3-acc" href="{% url 'directeur:cg_journaux' %}?journal={{ r.journal }}&q={{ r.piece }}">{{ r.journal }}-{{ r.piece }}</a></td>
+              <td>{{ r.libelle|truncatechars:70 }}{% if r.auxiliaire %} <span class="muted">· {{ r.auxiliaire }}</span>{% endif %}</td>
+              <td class="num">{% if r.debit %}{{ r.debit|floatformat:"0g" }}{% endif %}</td>
+              <td class="num">{% if r.credit %}{{ r.credit|floatformat:"0g" }}{% endif %}</td>
+              <td class="num {% if r.solde < 0 %}is-neg{% endif %}">{{ r.solde|floatformat:"0g" }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="is-subtotal"><td colspan="3">{% trans "Totaux" %}</td><td class="num">{{ b.total_debit|floatformat:"0g" }}</td><td class="num">{{ b.total_credit|floatformat:"0g" }}</td><td class="num {% if b.solde < 0 %}is-neg{% endif %}">{{ b.solde|floatformat:"0g" }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="axd-card"><div class="cg3-empty"><i class="fas fa-book-open" aria-hidden="true"></i><strong>{% trans "Aucun mouvement" %}</strong><span>{% trans "Ce compte n’a pas été mouvementé sur la période." %}</span></div></div>
+  {% endif %}
+{% endblock %}

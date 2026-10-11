@@ -14,8 +14,12 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/classe_add_modal.css' %}?v=1.0.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
 </head>
-<body class="gcl-page-body" data-live-page="classes">
+<body class="gcl-page-body gv3 cg3" data-live-page="classes">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container gcl-page">
@@ -26,44 +30,8 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_etab_url %}
         </div>
 
-        <header class="gcl-hero">
-            <div class="gcl-hero-text">
-                <h1 class="gcl-hero-title"><i class="fas fa-chalkboard"></i> {% trans "Gestion des classes" %}</h1>
-                <p class="gcl-hero-sub">{{ etablissement.nom }}</p>
-            </div>
-            <div class="gcl-hero-stats">
-                <div class="gcl-stat-pill" data-stat-index="0">
-                    <span class="gcl-stat-num">{{ stats.total }}</span>
-                    <span class="gcl-stat-lbl">{% trans "Total" %}</span>
-                </div>
-                <div class="gcl-stat-pill gcl-stat-pill--accent" data-stat-index="1">
-                    <span class="gcl-stat-num">{{ stats.actives }}</span>
-                    <span class="gcl-stat-lbl">{% trans "Actives" %}</span>
-                </div>
-                <div class="gcl-stat-pill gcl-stat-pill--warn" data-stat-index="2">
-                    <span class="gcl-stat-num">{{ stats.inactives }}</span>
-                    <span class="gcl-stat-lbl">{% trans "Inactives" %}</span>
-                </div>
-                <div class="gcl-stat-pill" data-stat-index="3">
-                    <span class="gcl-stat-num">{% if classes_grouped %}{{ classes_grouped|length }}{% else %}0{% endif %}</span>
-                    <span class="gcl-stat-lbl">{% if est_superieur %}{% trans "Spécialités" %}{% else %}{% trans "Niveaux" %}{% endif %}</span>
-                </div>
-                <div class="gcl-stat-pill" data-stat-index="4">
-                    <span class="gcl-stat-num">{{ stats.total_enseignants_affectes }}</span>
-                    <span class="gcl-stat-lbl">{% trans "Enseignants" %}</span>
-                </div>
-            </div>
-            <div class="gcl-hero-actions">
-                {% if est_superieur %}
-                <button type="button" class="gcl-action-btn gcl-action-btn--info" id="addFiliereBtnHeader" title="{% trans 'Ajouter une spécialité' %}" {% if classes_main_tab != 'specialites' %}hidden{% endif %}>
-                    <i class="fas fa-plus"></i> {% trans "Nouvelle spécialité" %}
-                </button>
-                {% endif %}
-                <button type="button" class="gcl-action-btn gcl-action-btn--primary" id="addClasseBtn" {% if est_superieur and classes_main_tab != 'classes' %}hidden{% endif %}>
-                    <i class="fas fa-plus"></i> {% trans "Nouvelle classe" %}
-                </button>
-            </div>
-        </header>
+        {% if est_superieur %}{% trans "Promotions et spécialités" as t %}{% trans "Spécialités, promotions (L1, M1…) et classes d’examens." as st %}{% else %}{% trans "Classes" as t %}{% trans "Niveaux, effectifs, capacités et enseignants de chaque classe." as st %}{% endif %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-chalkboard' v3_tone='blue' v3_actions_tpl='school_admin/directeur/partials/v3_actions/classes.html' %}
 
         {% if est_superieur %}
         <section class="gcl-main-panel" data-classes-main-tabs data-initial-tab="{{ classes_main_tab }}">
@@ -288,6 +256,7 @@
     </div>
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
     <script src="{% static 'school_admin/js/directeur/classes_liste_page.js' %}?v=2.0.2"></script>
     <script src="{% static 'school_admin/js/directeur/classes_liste_tabs.js' %}?v=2.0.2"></script>

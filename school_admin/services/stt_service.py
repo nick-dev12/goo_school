@@ -1,11 +1,17 @@
 """
-Transcription vocale de secours (PCM 16 kHz) via l'API Web Speech de Google.
-Les dictées longues sont découpées en segments pour rester dans la limite du service.
+Transcription des notes vocales (PCM 16 kHz).
+
+Gemini (multimodal) transcrit le français, le wolof et leur mélange ; l'API Web Speech
+de Google (fr-FR) ne sert plus que de secours : elle ne reconnaît pas le wolof (wo-SN
+renvoie de l'anglais inventé). Les dictées longues y sont découpées en segments.
 """
+import io
 import json
 import logging
+import wave
 
 import httpx
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -117,3 +123,68 @@ async def transcribe_pcm16(audio_bytes, language='fr-FR'):
         return ' '.join(pieces).strip()
 
     return ' '.join(pieces).strip()
+
+
+GEMINI_STT_PROMPT = (
+    'Transcris exactement ce message vocal adressé à Aria, assistante d’une école au Sénégal. '
+    'La personne parle français, wolof du Sénégal, ou mélange les deux. '
+    'Écris le wolof en alphabet latin avec l’orthographe wolof usuelle '
+    '(ex. « Naka nga def », « ndax », « ci », « ak », « ñaari »), garde les mots français '
+    'tels quels, n’ajoute rien et ne traduis pas. Message vide ou inaudible : texte vide. '
+    'Réponds en JSON : {"text": "...", "lang": "fr" | "wo" | "mixed"}'
+)
+
+
+def _pcm_to_wav(pcm):
+    buffer = io.BytesIO()
+    with wave.open(buffer, 'wb') as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(SAMPLE_RATE)
+        out.writeframes(pcm)
+    return buffer.getvalue()
+
+
+async def transcribe_with_gemini(audio_bytes):
+    """
+    Transcrit une note vocale FR / wolof / mixte avec Gemini.
+    Retourne (texte, langue) avec langue dans {'fr', 'wo', 'mixed'} ; ('', 'fr') si échec.
+    """
+    pcm = _extract_pcm(audio_bytes)
+    if not pcm or len(pcm) < 3200:
+        return '', 'fr'
+    pcm = pcm[:MAX_PCM_BYTES]
+    try:
+        from google.genai import types
+
+        from school_admin.services.gemini_context_cache import _get_native_client
+
+        response = await _get_native_client().aio.models.generate_content(
+            model=getattr(settings, 'GEMINI_MODEL', 'gemini-3.6-flash') or 'gemini-3.6-flash',
+            contents=[
+                GEMINI_STT_PROMPT,
+                types.Part.from_bytes(data=_pcm_to_wav(pcm), mime_type='audio/wav'),
+            ],
+            config=types.GenerateContentConfig(
+                temperature=0,
+                response_mime_type='application/json',
+                thinking_config=types.ThinkingConfig(thinking_level='low'),
+            ),
+        )
+        payload = json.loads(response.text or '{}')
+    except Exception:
+        logger.exception('Échec de la transcription Gemini.')
+        return '', 'fr'
+    text = str(payload.get('text') or '').strip()
+    lang = str(payload.get('lang') or 'fr').strip().lower()
+    if lang not in ('fr', 'wo', 'mixed'):
+        lang = 'fr'
+    return text, lang
+
+
+async def transcribe_voice_note(audio_bytes):
+    """Gemini d'abord (wolof compris), puis Web Speech fr-FR en secours. Retourne (texte, langue)."""
+    text, lang = await transcribe_with_gemini(audio_bytes)
+    if text:
+        return text, lang
+    return await transcribe_pcm16(audio_bytes), 'fr'

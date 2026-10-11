@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% trans "Trésorerie" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    {% include 'school_admin/directeur/finances/partials/fin_assets_head.html' %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+</head>
+<body class="cg-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container cg-page">
+        {% include 'school_admin/partials/messages.html' %}
+        {% include 'school_admin/directeur/finances/partials/fin_nav.html' %}
+        <header class="cg-hero">
+            <a href="{% url 'directeur:gestion_etablissement' %}" class="cg-hero-back" aria-label="{% trans 'Retour à la gestion de l\'établissement' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+            <div class="cg-hero-main">
+                <h1 class="cg-hero-title"><i class="fas fa-building-columns"></i> {% trans "Trésorerie" %}</h1>
+                <p class="cg-hero-sub">{% trans "Un versement déplace l'argent. Ce n'est pas une entrée. Une ligne pointée ne se modifie plus." %}</p>
+            </div>
+        </header>
+        {% include 'school_admin/directeur/finances/partials/fin_filters.html' %}
+        <div class="cg-workspace">
+            <div class="cg-subtabs">
+                <div class="matiere-tabs-bar">
+                    <div class="matiere-tabs-track" role="tablist">
+                        <a class="matiere-tab-btn {% if vue == 'comptes' %}active{% endif %}" href="?{{ liens_vue.comptes }}">{% trans "Comptes" %}</a>
+                        <a class="matiere-tab-btn {% if vue == 'pointage' %}active{% endif %}" href="?{{ liens_vue.pointage }}">{% trans "Pointage du relevé" %}</a>
+                    </div>
+                </div>
+            </div>
+            {% if vue == 'comptes' %}
+            <div class="fin-compte-grid">
+                {% for compte in comptes_soldes %}
+                <article class="fin-compte">
+                    <h3>{{ compte.libelle }}</h3>
+                    <p>{{ compte.get_type_compte_display }}{% if compte.reference %} · {{ compte.reference }}{% endif %}</p>
+                    <div class="fin-compte-solde {% if compte.solde_affiche < 0 %}fin-decouvert{% endif %}">{{ compte.solde_affiche|floatformat:0 }} {{ devise_monnaie }}</div>
+                </article>
+                {% empty %}
+                <p>{% trans "Aucun compte de trésorerie." %}</p>
+                {% endfor %}
+            </div>
+            <section class="cg-section">
+                <div class="cg-panel-head">
+                    <h2>{% trans "Mouvements" %}</h2>
+                    <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-virement"><i class="fas fa-plus"></i> {% trans "Transfert" %}</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Date" %}</th><th>{% trans "De" %}</th><th>{% trans "Vers" %}</th>
+                                <th>{% trans "Montant" %}</th><th>{% trans "Motif" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mvt in mouvements %}
+                            <tr class="{% if mvt.statut == 'annulee' %}fin-row--muted{% endif %}">
+                                <td>{{ mvt.date_mouvement|date:"d/m/Y" }}</td>
+                                <td>{{ mvt.compte_source.libelle|default:"—" }}</td>
+                                <td>{{ mvt.compte_destination.libelle|default:"—" }}</td>
+                                <td>{{ mvt.montant|floatformat:0 }} {{ devise_monnaie }}</td>
+                                <td>{{ mvt.libelle }}</td>
+                                <td>
+                                    {% if mvt.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulé" %}</span>
+                                    {% elif mvt.pointe %}<span class="cg-pill cg-pill--ok">{% trans "Pointé" %}</span>
+                                    {% else %}<span class="cg-pill cg-pill--info">{% trans "Validé" %}</span>{% endif %}
+                                </td>
+                                <td>
+                                    {% if mvt.statut == 'validee' and peut_annuler %}
+                                    <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-mvt" data-cg-bind="mvt_id" data-cg-value="{{ mvt.id }}">{% trans "Annuler" %}</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}<tr><td colspan="7">{% trans "Aucun transfert." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            {% else %}
+            {% if releve and synthese_releve %}
+            <div class="cg-mini-row">
+                <article class="cg-mini cg-mini--info"><span class="cg-mini-num">{{ synthese_releve.solde_aria|floatformat:0 }}</span><span class="cg-mini-lbl">{% trans "Solde Aria" %}</span></article>
+                <article class="cg-mini"><span class="cg-mini-num">{{ synthese_releve.solde_releve|floatformat:0 }}</span><span class="cg-mini-lbl">{% trans "Solde relevé" %}</span></article>
+                <article class="cg-mini {% if synthese_releve.ecart == 0 %}cg-mini--ok{% else %}cg-mini--warn{% endif %}"><span class="cg-mini-num">{{ synthese_releve.ecart|floatformat:0 }}</span><span class="cg-mini-lbl">{% trans "Écart" %}</span></article>
+                <article class="cg-mini {% if synthese_releve.nb_non_pointees %}cg-mini--warn{% else %}cg-mini--ok{% endif %}"><span class="cg-mini-num">{{ synthese_releve.nb_non_pointees }}</span><span class="cg-mini-lbl">{% trans "Non pointées" %}</span></article>
+            </div>
+            {% endif %}
+            <section class="cg-section">
+                <div class="cg-panel-head">
+                    <h2>{% trans "Relevés" %}</h2>
+                    {% if peut_annuler %}<button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-releve"><i class="fas fa-plus"></i> {% trans "Nouveau relevé" %}</button>{% endif %}
+                </div>
+                <form method="get" class="cg-form">
+                    <input type="hidden" name="mois" value="{{ bornes.valeur }}" />
+                    <input type="hidden" name="vue" value="pointage" />
+                    <label>{% trans "Relevé à ouvrir" %}
+                        <select name="releve">
+                            <option value="">{% trans "Choisir" %}</option>
+                            {% for item in releves %}
+                            <option value="{{ item.id }}" {% if releve and releve.id == item.id %}selected{% endif %}>{{ item.reference }} — {{ item.compte_tresorerie.libelle }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Ouvrir" %}</button>
+                </form>
+            </section>
+            {% if releve %}
+            <section class="cg-section">
+                <div class="cg-panel-head">
+                    <h2>{% trans "Lignes" %} — {{ releve.reference }}</h2>
+                    {% if releve.statut == 'en_cours' and peut_annuler %}
+                    <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-ligne">{% trans "Ajouter une ligne" %}</button>
+                    {% endif %}
+                </div>
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Libellé" %}</th><th>{% trans "Débit" %}</th><th>{% trans "Crédit" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Actions" %}</th></tr></thead>
+                        <tbody>
+                            {% for ligne in lignes_releve %}
+                            <tr>
+                                <td>{{ ligne.date_operation|date:"d/m/Y" }}</td>
+                                <td>{{ ligne.libelle }}</td>
+                                <td>{% if ligne.debit %}{{ ligne.debit|floatformat:0 }}{% else %}—{% endif %}</td>
+                                <td>{% if ligne.credit %}{{ ligne.credit|floatformat:0 }}{% else %}—{% endif %}</td>
+                                <td>{% if ligne.pointe %}<span class="cg-pill cg-pill--ok">{% trans "Pointée" %}</span>{% else %}<span class="cg-pill cg-pill--warn">{% trans "Non pointée" %}</span>{% endif %}</td>
+                                <td>
+                                    {% if releve.statut == 'en_cours' and not ligne.pointe and peut_annuler %}
+                                    {% if ligne.candidats %}
+                                    <form method="post" action="{% url 'directeur:finances_tresorerie' %}" class="cg-pay-form">
+                                        {% csrf_token %}
+                                        {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                                        <input type="hidden" name="action" value="pointer" />
+                                        <input type="hidden" name="ligne_id" value="{{ ligne.id }}" />
+                                        <select name="ecriture_id" required>
+                                            <option value="">{% trans "Choisir" %}</option>
+                                            {% for candidat in ligne.candidats %}
+                                            <option value="{{ candidat.id }}">{{ candidat.numero }} — {{ candidat.libelle }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button class="cg-btn cg-btn--primary" type="submit">{% trans "Pointer" %}</button>
+                                    </form>
+                                    {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}<tr><td colspan="6">{% trans "Aucune ligne." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            {% endif %}
+            {% endif %}
+        </div>
+        <div class="cg-sheet" id="sheet-virement" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Transfert" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <p class="cg-form-help">{% trans "L'argent change de place. Ce n'est pas une recette." %}</p>
+                <form method="post" action="{% url 'directeur:finances_tresorerie' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="virement" />
+                    <label>{% trans "Compte source" %}<select name="compte_source_id" required>{% for compte in comptes_tresorerie %}<option value="{{ compte.id }}">{{ compte.libelle }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Compte destination" %}<select name="compte_destination_id" required>{% for compte in comptes_tresorerie %}<option value="{{ compte.id }}">{{ compte.libelle }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Date" %}<input type="date" name="date_mouvement" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Montant" %}<input type="number" name="montant" min="1" step="1" required /></label>
+                    <label>{% trans "Motif" %}<input type="text" name="libelle" maxlength="200" /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-annuler-mvt" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Annuler le transfert" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_tresorerie' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="annuler_transfert" />
+                    <input type="hidden" name="mvt_id" value="" />
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Annuler" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-releve" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Nouveau relevé" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_tresorerie' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="creer_releve" />
+                    <label>{% trans "Compte" %}<select name="compte_id" required><option value="">{% trans "Choisir" %}</option>{% for compte in comptes_releve %}<option value="{{ compte.id }}">{{ compte.libelle }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Référence" %}<input type="text" name="reference" maxlength="80" required /></label>
+                    <label>{% trans "Date de début" %}<input type="date" name="date_debut" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Date de fin" %}<input type="date" name="date_fin" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Solde d'ouverture" %}<input type="number" name="solde_ouverture" step="1" value="0" required /></label>
+                    <label>{% trans "Solde de clôture" %}<input type="number" name="solde_cloture" step="1" required /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+                </form>
+            </div>
+        </div>
+        {% if releve %}
+        <div class="cg-sheet" id="sheet-ligne" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog">
+                <div class="cg-sheet-head"><h2>{% trans "Ligne de relevé" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:finances_tresorerie' %}" class="cg-form">
+                    {% csrf_token %}
+                    {% include 'school_admin/directeur/finances/partials/fin_hidden.html' %}
+                    <input type="hidden" name="action" value="ajouter_ligne" />
+                    <input type="hidden" name="releve_id" value="{{ releve.id }}" />
+                    <label>{% trans "Date" %}<input type="date" name="date_operation" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Libellé" %}<input type="text" name="libelle" maxlength="200" required /></label>
+                    <label>{% trans "Débit" %}<input type="number" name="debit" min="0" step="1" value="0" /></label>
+                    <label>{% trans "Crédit" %}<input type="number" name="credit" min="0" step="1" value="0" /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Ajouter" %}</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% include 'school_admin/directeur/finances/partials/fin_assets_scripts.html' %}
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

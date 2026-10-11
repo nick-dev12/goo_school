@@ -1,0 +1,52 @@
+{% load i18n %}
+<section class="fe-kpis{% if fiche.vue != 'direction' %} fe-kpis--4{% endif %}" aria-label="{% trans 'Indicateurs' %}">
+  {% if voir_notes %}
+  <a class="fe-kpi fe-tone-blue" href="?onglet=notes" data-fe-goto="notes">
+    <div class="fe-kpi__top"><span class="fe-kpi__label">{% if fiche.derniere_moyenne %}{% trans "Moyenne générale" %}{% elif fiche.vue == 'enseignant' %}{% trans "Moyenne dans mes matières" %}{% else %}{% trans "Moyenne des notes" %}{% endif %}</span><span class="fe-kpi__icon"><i class="fas fa-chart-line" aria-hidden="true"></i></span></div>
+    {% if fiche.derniere_moyenne %}
+    <p class="fe-kpi__value" {% if fiche.derniere_moyenne.moyenne < fiche.seuil %}style="color:var(--ax-bad)"{% endif %}>{{ fiche.derniere_moyenne.moyenne|floatformat:2 }}<small>/20</small></p>
+    <p class="fe-kpi__caption">{{ fiche.derniere_moyenne.periode }}{% if fiche.derniere_moyenne.rang %} · {% trans "rang" %} {{ fiche.derniere_moyenne.rang }}{% endif %}</p>
+    {% else %}
+    <p class="fe-kpi__value" {% if fiche.moyenne_notes != None and fiche.moyenne_notes < fiche.seuil %}style="color:var(--ax-bad)"{% endif %}>{% if fiche.moyenne_notes != None %}{{ fiche.moyenne_notes|floatformat:2 }}<small>/20</small>{% else %}—{% endif %}</p>
+    <p class="fe-kpi__caption">{% blocktrans count n=fiche.nb_notes %}{{ n }} note{% plural %}{{ n }} notes{% endblocktrans %}</p>
+    {% endif %}
+  </a>
+  {% endif %}
+  {% if voir_presences %}
+  <a class="fe-kpi fe-tone-green" href="?onglet=assiduite" data-fe-goto="assiduite">
+    <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Assiduité" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-check" aria-hidden="true"></i></span></div>
+    <p class="fe-kpi__value">{% if fiche.presence.taux != None %}{{ fiche.presence.taux|floatformat:"-1" }}<small>%</small>{% else %}—{% endif %}</p>
+    {% if fiche.presence.taux != None %}<div class="fe-bar"><span class="{% if fiche.presence.taux < 85 %}is-bad{% elif fiche.presence.taux < 95 %}is-warn{% endif %}" style="width: {{ fiche.presence.taux|floatformat:0 }}%"></span></div>{% endif %}
+    <p class="fe-kpi__caption">{% blocktrans with a=fiche.presence.absences r=fiche.presence.retards %}{{ a }} absence(s) · {{ r }} retard(s){% endblocktrans %}</p>
+  </a>
+  {% endif %}
+  {% if voir_sanctions %}
+  <a class="fe-kpi fe-tone-orange" href="?onglet=discipline" data-fe-goto="discipline">
+    <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Discipline" %}</span><span class="fe-kpi__icon"><i class="fas fa-gavel" aria-hidden="true"></i></span></div>
+    <p class="fe-kpi__value">{{ fiche.sanctions.total }}</p>
+    <p class="fe-kpi__caption">{% if fiche.sanctions.graves %}{% blocktrans with g=fiche.sanctions.graves %}dont {{ g }} grave(s){% endblocktrans %}{% elif fiche.sanctions.total %}{% trans "sanction(s) cette année" %}{% else %}{% trans "Aucune sanction" %}{% endif %}</p>
+  </a>
+  {% endif %}
+  {% if fiche.vue == 'direction' %}
+    {% if fiche.finances %}
+    <a class="fe-kpi fe-tone-teal" href="?onglet=finances" data-fe-goto="finances">
+      <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Scolarité" %}</span><span class="fe-kpi__icon"><i class="fas fa-wallet" aria-hidden="true"></i></span></div>
+      <p class="fe-kpi__value" style="font-size:1.15rem">{% if fiche.finances.reste %}{{ fiche.finances.reste|floatformat:0 }} <small>{{ fiche.finances.devise }}</small>{% else %}{% trans "À jour" %}{% endif %}</p>
+      {% if fiche.finances.pct != None %}<div class="fe-bar"><span class="{% if fiche.finances.statut == 'impaye' or fiche.finances.statut == 'en_retard' %}is-bad{% elif fiche.finances.pct < 100 %}is-warn{% endif %}" style="width: {{ fiche.finances.pct }}%"></span></div>{% endif %}
+      <p class="fe-kpi__caption">{% if fiche.finances.reste %}{% trans "reste à payer" %} · {{ fiche.finances.libelle_statut }}{% else %}{% trans "Aucun impayé" %}{% endif %}</p>
+    </a>
+    {% endif %}
+    <a class="fe-kpi fe-tone-violet" href="?onglet=documents" data-fe-goto="documents">
+      <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Dossier" %}</span><span class="fe-kpi__icon"><i class="fas fa-folder-open" aria-hidden="true"></i></span></div>
+      <p class="fe-kpi__value">{{ fiche.completude.taux }}<small>%</small></p>
+      <div class="fe-bar"><span class="{% if fiche.completude.taux < 50 %}is-bad{% elif fiche.completude.taux < 80 %}is-warn{% endif %}" style="width: {{ fiche.completude.taux }}%"></span></div>
+      <p class="fe-kpi__caption">{{ fiche.documents.nb }}/{{ fiche.documents.total }} {% trans "pièces fournies" %}</p>
+    </a>
+  {% else %}
+  <a class="fe-kpi fe-tone-red" href="?onglet=apercu" data-fe-goto="apercu">
+    <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "À venir" %}</span><span class="fe-kpi__icon"><i class="fas fa-calendar-day" aria-hidden="true"></i></span></div>
+    <p class="fe-kpi__value">{{ fiche.evaluations|length }}</p>
+    <p class="fe-kpi__caption">{% blocktrans count n=fiche.devoirs|length %}évaluation(s) · {{ n }} devoir{% plural %}évaluation(s) · {{ n }} devoirs{% endblocktrans %}</p>
+  </a>
+  {% endif %}
+</section>

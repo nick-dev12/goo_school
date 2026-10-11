@@ -1,5 +1,6 @@
 """
-Synthèse vocale pour Aria : Gemini TTS (défaut) ou Edge Charline (rollback).
+Synthèse vocale pour Aria : Gemini TTS (défaut), Chirp 3 HD (chirp) ou Gemini
+via Cloud Text-to-Speech (cloud_gemini), Edge Charline (rollback).
 """
 import asyncio
 import base64
@@ -14,8 +15,6 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 TTS_TIMEOUT_SECONDS = 25
-GEMINI_TTS_MAX_ATTEMPTS = 4
-GEMINI_TTS_RETRY_BASE_SECONDS = 0.45
 DEFAULT_VOICE = 'fr-FR-EloiseNeural'
 DEFAULT_GEMINI_VOICE = 'Aoede'
 DEFAULT_GEMINI_LANGUAGE = 'fr-FR'
@@ -41,14 +40,18 @@ GEMINI_TTS_WOLOF_INSTRUCTION = (
     'Garde les mots français déjà présents dans le texte (devoir, classe, notes, etc.). '
     'Ne commente pas, n’ajoute rien, ne reformule pas, ne traduis pas en français.'
 )
-DEFAULT_EDGE_VOICE_WOLOF = 'fr-SN-AissatouNeural'
+# Aucune voix wolof chez Edge (fr-SN-AissatouNeural n'existe pas) : vide = même voix qu'en français.
+DEFAULT_EDGE_VOICE_WOLOF = ''
+# Edge (service gratuit non officiel) refuse parfois (403) ou traîne : on abandonne vite
+# pour passer au repli plutôt que de laisser Aria muette.
+EDGE_TTS_TIMEOUT_SECONDS = 8
 
 _gemini_tts_client = None
 
 _SESSION_RE = re.compile(r'\b(20\d{2})\s*[-–/]\s*(20\d{2})\b')
 _MATRICULE_RE = re.compile(r'\b([A-Z]{2,5})[-–]([A-Z0-9]{4,})\b')
 _CLASS_LMD_RE = re.compile(
-    r'\b([A-Za-z]{2,10})\s+L([1-3])\s+([A-Za-z0-9]{1,4})\b',
+    r'\b([A-Z][A-Za-z]{1,9})\s+L([1-3])\s+([A-Za-z0-9]{1,4})\b',
 )
 _CLASS_SEC_RE = re.compile(
     r'\b(\d)\s*(?:e|è|eme|ème)\s+([A-Za-z])\b',
@@ -66,7 +69,24 @@ _PREMIER_ER_RE = re.compile(r'\b1er\b', re.IGNORECASE)
 _CLASS_PRIM_RE = re.compile(r'\b(CP|CE1|CE2|CM1|CM2)\b')
 _LMD_WITH_GROUP_RE = re.compile(r'\b([LM])([1-3])\s+([A-Za-z0-9]{1,4})\b')
 _LMD_LEVEL_RE = re.compile(r'\b([LM])([1-3])\b')
-_ORDINAL_RE = re.compile(r'\b(\d)\s*(?:e|è|eme|ème)\b', re.IGNORECASE)
+_ORDINAL_RE = re.compile(r'\b(\d{1,3})\s*(?:e|è|eme|ème)\b', re.IGNORECASE)
+_MONTHS = [
+    'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août',
+    'septembre', 'octobre', 'novembre', 'décembre',
+]
+_DATE_DMY_RE = re.compile(r'(?<![\d/.-])(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})(?![\d/-]|\.\d)')
+_DATE_ISO_RE = re.compile(r'(?<![\d/.-])(\d{4})-(\d{2})-(\d{2})(?![\d/-]|\.\d)')
+# Mobiles et fixes sénégalais : 77 123 45 67, 77-123-45-67, 771234567, +221 33 820 00 00.
+_PHONE_SN_RE = re.compile(
+    r'(?<![\d+])(\+?221[\s.-]?)?(7[05678]|3[03])[\s.-]?(\d{3})[\s.-]?(\d{2})[\s.-]?(\d{2})(?!\d)'
+)
+_PHONE_FR_RE = re.compile(r'(?<![\d+])(\+33[\s.-]?|0)([1-9])((?:[\s.-]?\d{2}){4})(?!\d)')
+_HOUR_ONLY_RE = re.compile(r'\b(\d{1,2})\s*h\b')
+_SCORE_RE = re.compile(r'(?<![\d/])(\d{1,3}(?:,\d{1,2})?)\s*/\s*(\d{1,3})(?![\d/])')
+_RANGE_RE = re.compile(r'(?<![\d,./-])(\d{1,4})\s*[-–]\s*(\d{1,4})(?![\d/-]|[.,]\d)')
+_THOUSANDS_RE = re.compile(r'(?<![\d,.])\d{1,3}(?:[ .]\d{3})+(?!\d|,\d)')
+# Virgule = décimale ; point = décimale seulement avec 1 ou 2 chiffres (1.500 = mille cinq cents).
+_DECIMAL_RE = re.compile(r'(?<![\d,.])(\d{1,9})(?:,(\d{1,3})|\.(\d{1,2}))(?!\d|[.,]\d)')
 _ALL_CAPS_WORD_RE = re.compile(
     r"\b([A-ZÁÀÂÄÉÈÊËÎÏÔÙÛÜÇ]{2,}(?:['’-][A-ZÁÀÂÄÉÈÊËÎÏÔÙÛÜÇ]+)*)\b"
 )
@@ -167,7 +187,7 @@ _HEADING_RE = re.compile(r'^#{1,6}\s+', re.MULTILINE)
 _BULLET_RE = re.compile(r'^\s*[-*•]\s+', re.MULTILINE)
 _TIME_RE = re.compile(r'\b(\d{1,2})\s*[:hH]\s*(\d{2})\b')
 _PERCENT_RE = re.compile(r'\b(\d{1,3})\s*%')
-_NUMBER_RE = re.compile(r'\b(\d{1,6})\b')
+_NUMBER_RE = re.compile(r'\b(\d{1,9})\b')
 _NOT_A_NAME = frozenset({
     'aria', 'je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles',
     'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'ce', 'cet', 'cette',
@@ -206,7 +226,7 @@ def _spell(raw):
             digits = ''
     if digits:
         parts.extend(list(digits))
-    return ', '.join(parts)
+    return ' '.join(parts)
 
 
 def _natural_caps(token):
@@ -324,11 +344,73 @@ def int_to_fr(number):
         return f'{head} {_under_hundred(rest)}'
     if number < 1000000:
         thousands, rest = divmod(number, 1000)
-        head = 'mille' if thousands == 1 else f'{int_to_fr(thousands)} mille'
+        head = 'mille' if thousands == 1 else f'{_invariable(int_to_fr(thousands))} mille'
         if rest == 0:
             return head
         return f'{head} {int_to_fr(rest)}'
-    return str(number)
+    if number < 1000000000:
+        millions, rest = divmod(number, 1000000)
+        head = 'un million' if millions == 1 else f'{int_to_fr(millions)} millions'
+        if rest == 0:
+            return head
+        return f'{head} {int_to_fr(rest)}'
+    return ' '.join(int_to_fr(int(digit)) for digit in str(number))
+
+
+def _invariable(words):
+    """« deux cents » / « quatre-vingts » perdent leur s devant mille."""
+    if words.endswith('cents') or words.endswith('vingts'):
+        return words[:-1]
+    return words
+
+
+def ordinal_fr(number):
+    """10 → dixième, 21 → vingt et unième (1 → premier)."""
+    number = int(number)
+    if number == 1:
+        return 'premier'
+    words = _invariable(int_to_fr(number))
+    if words.endswith('cinq'):
+        return words + 'uième'
+    if words.endswith('neuf'):
+        return words[:-1] + 'vième'
+    if words.endswith('e'):
+        return words[:-1] + 'ième'
+    return words + 'ième'
+
+
+def _digit_group(raw):
+    """Groupe de chiffres lu tel quel : « 05 » → zéro cinq, « 123 » → cent vingt-trois."""
+    raw = re.sub(r'\D', '', raw or '')
+    if not raw:
+        return ''
+    if raw.startswith('0') and len(raw) > 1:
+        return 'zéro ' + _digit_group(raw[1:])
+    return int_to_fr(int(raw))
+
+
+def _speak_date(day, month, year):
+    day, month = int(day), int(month)
+    if not (1 <= day <= 31 and 1 <= month <= 12):
+        return None
+    day_word = 'premier' if day == 1 else int_to_fr(day)
+    return f'{day_word} {_MONTHS[month - 1]} {int_to_fr(int(year))}'
+
+
+def _speak_phone_sn(match):
+    prefix = 'plus deux cent vingt et un, ' if match.group(1) else ''
+    return prefix + ', '.join(_digit_group(match.group(index)) for index in range(2, 6))
+
+
+def _speak_phone_fr(match):
+    prefix = 'plus trente-trois, ' if match.group(1).startswith('+') else 'zéro '
+    pairs = re.findall(r'\d{2}', match.group(3))
+    return prefix + int_to_fr(int(match.group(2))) + ', ' + ', '.join(_digit_group(p) for p in pairs)
+
+
+def _speak_decimal(match):
+    fraction = match.group(2) or match.group(3) or ''
+    return f'{int_to_fr(int(match.group(1)))} virgule {_digit_group(fraction)}'
 
 
 def _speak_time(match):
@@ -437,8 +519,24 @@ def prepare_spoken_text(text):
     spoken = strip_assistant_markup(text)
     if not spoken:
         return spoken
+    spoken = spoken.replace('’', "'").replace(' ', ' ').replace(' ', ' ')
+    # Ordre important : dates et téléphones avant sessions, scores, plages et milliers.
+    spoken = _DATE_ISO_RE.sub(
+        lambda m: _speak_date(m.group(3), m.group(2), m.group(1)) or m.group(0),
+        spoken,
+    )
+    spoken = _DATE_DMY_RE.sub(
+        lambda m: _speak_date(m.group(1), m.group(2), m.group(3)) or m.group(0),
+        spoken,
+    )
+    spoken = _PHONE_SN_RE.sub(_speak_phone_sn, spoken)
+    spoken = _PHONE_FR_RE.sub(_speak_phone_fr, spoken)
     spoken = _SESSION_RE.sub(r'\1 à \2', spoken)
     spoken = _TIME_RE.sub(_speak_time, spoken)
+    spoken = _HOUR_ONLY_RE.sub(
+        lambda m: 'une heure' if m.group(1) == '1' else f'{int_to_fr(int(m.group(1)))} heures',
+        spoken,
+    )
     held_ids = []
 
     def _stash_matricule(match):
@@ -451,7 +549,7 @@ def prepare_spoken_text(text):
     spoken = _CLASS_TERM_RE.sub(_speak_term_class, spoken)
     spoken = _CLASS_PREM_RE.sub(_speak_prem_class, spoken)
     spoken = _CLASS_PRIM_RE.sub(lambda match: _PRIMARY[match.group(1)], spoken)
-    spoken = _PREMIER_ER_RE.sub('première,', spoken)
+    spoken = _PREMIER_ER_RE.sub('premier', spoken)
     spoken = _LMD_WITH_GROUP_RE.sub(_speak_lmd_level_group, spoken)
     spoken = _LMD_LEVEL_RE.sub(
         lambda match: (
@@ -460,9 +558,13 @@ def prepare_spoken_text(text):
         spoken,
     )
     spoken = _ORDINAL_RE.sub(
-        lambda match: _ORDINALS.get(match.group(1), match.group(0)),
+        lambda match: _ORDINALS.get(match.group(1)) or ordinal_fr(match.group(1)),
         spoken,
     )
+    spoken = _SCORE_RE.sub(r'\1 sur \2', spoken)
+    spoken = _RANGE_RE.sub(r'\1 à \2', spoken)
+    spoken = _THOUSANDS_RE.sub(lambda match: re.sub(r'[ .]', '', match.group(0)), spoken)
+    spoken = _DECIMAL_RE.sub(_speak_decimal, spoken)
 
     def _caps_word(match):
         return _speak_token(match.group(1))
@@ -473,10 +575,11 @@ def prepare_spoken_text(text):
         spoken,
     )
     spoken = _NUMBER_RE.sub(_speak_number, spoken)
+    spoken = re.sub(r'\s*%', ' pour cent', spoken)
     spoken = _soften_prosody(spoken)
     for index, code in enumerate(held_ids):
         spoken = spoken.replace(f'__M{index}__', _spell(code))
-    return spoken
+    return re.sub(r'\s+([,.;:!?])', r'\1', spoken)
 
 
 def _tts_backend():
@@ -759,57 +862,6 @@ def _gemini_tts_model_supports_system_instruction(model):
     return 'lite-tts' not in (model or '').lower()
 
 
-def _gemini_tts_max_attempts():
-    raw = getattr(settings, 'GEMINI_TTS_MAX_ATTEMPTS', GEMINI_TTS_MAX_ATTEMPTS)
-    try:
-        return max(1, min(6, int(raw)))
-    except (TypeError, ValueError):
-        return GEMINI_TTS_MAX_ATTEMPTS
-
-
-def _gemini_tts_retryable(exc):
-    if isinstance(exc, asyncio.TimeoutError):
-        return True
-    code = getattr(exc, 'code', None) or getattr(exc, 'status_code', None)
-    if code in (429, 500, 502, 503, 504):
-        return True
-    name = type(exc).__name__
-    if name in ('ServerError', 'ClientError', 'APIError'):
-        if code is None or int(code) >= 500 or int(code) == 429:
-            return True
-    message = str(exc).lower()
-    return 'internal error' in message or 'resource exhausted' in message
-
-
-def _wav_from_gemini_response(response):
-    candidates = getattr(response, 'candidates', None) or []
-    for candidate in candidates:
-        content = getattr(candidate, 'content', None)
-        parts = getattr(content, 'parts', None) or []
-        pcm_chunks = []
-        rate = 24000
-        for part in parts:
-            inline = getattr(part, 'inline_data', None)
-            if not inline:
-                continue
-            raw = getattr(inline, 'data', None)
-            mime = getattr(inline, 'mime_type', None) or 'audio/L16;codec=pcm;rate=24000'
-            if isinstance(raw, str):
-                pcm = base64.b64decode(raw)
-            elif isinstance(raw, (bytes, bytearray)):
-                pcm = bytes(raw)
-            else:
-                continue
-            rate = parse_pcm_sample_rate(mime)
-            pcm_chunks.append(pcm)
-        if pcm_chunks:
-            pcm = concat_pcm16_chunks(pcm_chunks, sample_rate=rate)
-            pcm = finalize_pcm16(pcm, sample_rate=rate)
-            wav = pcm16_to_wav(pcm, sample_rate=rate)
-            return wav, 'audio/wav'
-    return None, None
-
-
 def _get_gemini_tts_client():
     global _gemini_tts_client
     if _gemini_tts_client is not None:
@@ -866,50 +918,153 @@ async def _synthesize_gemini(clean, language='fr'):
             config=types.GenerateContentConfig(**config_kwargs),
         )
 
-    attempts = _gemini_tts_max_attempts()
-    last_exc = None
-    for attempt in range(1, attempts + 1):
-        try:
-            response = await asyncio.wait_for(_call(), timeout=TTS_TIMEOUT_SECONDS)
-            audio, mime = _wav_from_gemini_response(response)
-            if audio:
-                if attempt > 1:
-                    logger.info(
-                        'Gemini TTS ok après %s tentatives (model=%s).',
-                        attempt,
-                        model,
-                    )
-                return audio, mime
-            logger.warning(
-                'Gemini TTS : réponse sans audio (tentative %s/%s, model=%s).',
-                attempt,
-                attempts,
-                model,
-            )
-        except Exception as exc:
-            last_exc = exc
-            if not _gemini_tts_retryable(exc) or attempt >= attempts:
-                logger.exception(
-                    'Échec de la synthèse vocale Gemini TTS (tentative %s/%s).',
-                    attempt,
-                    attempts,
-                )
-                return None, None
-            delay = GEMINI_TTS_RETRY_BASE_SECONDS * (2 ** (attempt - 1))
-            logger.warning(
-                'Gemini TTS erreur transitoire (%s), nouvelle tentative dans %.1fs (%s/%s).',
-                exc,
-                delay,
-                attempt + 1,
-                attempts,
-            )
-            await asyncio.sleep(delay)
+    try:
+        response = await asyncio.wait_for(_call(), timeout=TTS_TIMEOUT_SECONDS)
+    except Exception:
+        logger.exception('Échec de la synthèse vocale Gemini TTS.')
+        return None, None
 
-    if last_exc:
-        logger.exception('Échec de la synthèse vocale Gemini TTS après repli.')
-    else:
-        logger.warning('Gemini TTS : aucun segment audio après %s tentatives.', attempts)
+    candidates = getattr(response, 'candidates', None) or []
+    for candidate in candidates:
+        content = getattr(candidate, 'content', None)
+        parts = getattr(content, 'parts', None) or []
+        pcm_chunks = []
+        rate = 24000
+        for part in parts:
+            inline = getattr(part, 'inline_data', None)
+            if not inline:
+                continue
+            raw = getattr(inline, 'data', None)
+            mime = getattr(inline, 'mime_type', None) or 'audio/L16;codec=pcm;rate=24000'
+            if isinstance(raw, str):
+                pcm = base64.b64decode(raw)
+            elif isinstance(raw, (bytes, bytearray)):
+                pcm = bytes(raw)
+            else:
+                continue
+            rate = parse_pcm_sample_rate(mime)
+            pcm_chunks.append(pcm)
+        if pcm_chunks:
+            pcm = concat_pcm16_chunks(pcm_chunks, sample_rate=rate)
+            pcm = finalize_pcm16(pcm, sample_rate=rate)
+            wav = pcm16_to_wav(pcm, sample_rate=rate)
+            return wav, 'audio/wav'
+    logger.warning('Gemini TTS : aucun segment audio dans la réponse.')
     return None, None
+
+
+CLOUD_TTS_URL = 'https://texttospeech.googleapis.com/v1/text:synthesize'
+# Cloud TTS n'accepte pas wo-SN pour les voix Gemini : le wolof est lu en fr-FR
+# avec une consigne de style wolof (rendu validé à l'écoute).
+CLOUD_TTS_STYLE_FR = (
+    'Voix féminine enjouée, accueillante et bienveillante, comme si tu recevais '
+    'quelqu’un avec le sourire. Rythme conversationnel naturel.'
+)
+CLOUD_TTS_STYLE_WOLOF = (
+    'Lis en wolof dakarois courant, voix féminine enjouée, chaleureuse et familière, '
+    'comme à Dakar. Garde les mots français tels quels.'
+)
+_cloud_tts_credentials = None
+_cloud_tts_http = {}
+
+
+async def _cloud_tts_token():
+    global _cloud_tts_credentials
+    creds = _cloud_tts_credentials
+    if creds is None:
+        from google.oauth2 import service_account
+
+        path = getattr(settings, 'GOOGLE_CLOUD_TTS_CREDENTIALS', '') or ''
+        creds = service_account.Credentials.from_service_account_file(
+            path,
+            scopes=['https://www.googleapis.com/auth/cloud-platform'],
+        )
+        _cloud_tts_credentials = creds
+    if not creds.valid:
+        from google.auth.transport.requests import Request
+
+        # Rafraîchissement OAuth synchrone (~1 fois par heure) : hors de la boucle.
+        await asyncio.to_thread(creds.refresh, Request())
+    return creds.token, creds.project_id
+
+
+def _cloud_tts_client():
+    """Client HTTP partagé par boucle d'événements (connexion TLS gardée chaude)."""
+    import httpx
+
+    loop = asyncio.get_running_loop()
+    client = _cloud_tts_http.get(id(loop))
+    if client is None or client.is_closed:
+        client = httpx.AsyncClient(timeout=TTS_TIMEOUT_SECONDS)
+        _cloud_tts_http[id(loop)] = client
+    return client
+
+
+async def _synthesize_cloud_gemini(clean, language='fr'):
+    wolof = (language or 'fr').lower() in ('wo', 'wolof', 'wo-sn')
+    try:
+        token, project = await _cloud_tts_token()
+        body = {
+            'input': {
+                'text': clean,
+                'prompt': CLOUD_TTS_STYLE_WOLOF if wolof else CLOUD_TTS_STYLE_FR,
+            },
+            'voice': {
+                'languageCode': 'fr-FR' if wolof else _resolve_gemini_language(),
+                'name': _resolve_gemini_voice(),
+                'modelName': getattr(settings, 'GOOGLE_CLOUD_TTS_MODEL', 'gemini-2.5-flash-tts'),
+            },
+            'audioConfig': {'audioEncoding': 'LINEAR16', 'sampleRateHertz': 24000},
+        }
+        response = await _cloud_tts_client().post(
+            CLOUD_TTS_URL,
+            json=body,
+            headers={'Authorization': f'Bearer {token}', 'x-goog-user-project': project},
+        )
+        if response.status_code != 200:
+            logger.warning(
+                'Cloud TTS Gemini HTTP %s : %s',
+                response.status_code,
+                response.text[:300],
+            )
+            return None, None
+        audio = base64.b64decode(response.json().get('audioContent') or '')
+    except Exception:
+        logger.exception('Échec de la synthèse vocale Cloud TTS Gemini.')
+        return None, None
+    if not audio:
+        return None, None
+    return audio, 'audio/wav'
+
+
+async def _synthesize_chirp(clean):
+    """Chirp 3 HD : pas de voix wolof chez Google, le wolof est lu par la même voix fr-FR."""
+    api_key = getattr(settings, 'GOOGLE_TTS_API_KEY', '') or ''
+    if not api_key:
+        logger.warning('GOOGLE_TTS_API_KEY manquante pour Chirp 3 HD.')
+        return None, None
+    voice = getattr(settings, 'CHIRP_TTS_VOICE', '') or 'fr-FR-Chirp3-HD-Callirrhoe'
+    body = {
+        'input': {'text': clean},
+        'voice': {'languageCode': voice[:5], 'name': voice},
+        'audioConfig': {'audioEncoding': 'LINEAR16', 'sampleRateHertz': 24000},
+    }
+    try:
+        response = await _cloud_tts_client().post(
+            CLOUD_TTS_URL,
+            json=body,
+            headers={'x-goog-api-key': api_key},
+        )
+        if response.status_code != 200:
+            logger.warning('Chirp 3 HD HTTP %s : %s', response.status_code, response.text[:300])
+            return None, None
+        audio = base64.b64decode(response.json().get('audioContent') or '')
+    except Exception:
+        logger.exception('Échec de la synthèse vocale Chirp 3 HD.')
+        return None, None
+    if not audio:
+        return None, None
+    return audio, 'audio/wav'
 
 
 async def _synthesize_edge_mp3(clean, voice=None):
@@ -920,8 +1075,17 @@ async def _synthesize_edge_mp3(clean, voice=None):
         logger.exception("Le package edge-tts n'est pas installé.")
         return None, None
 
+    tuning = {
+        key: value
+        for key, value in (
+            ('rate', getattr(settings, 'EDGE_TTS_RATE', '')),
+            ('pitch', getattr(settings, 'EDGE_TTS_PITCH', '')),
+            ('volume', getattr(settings, 'EDGE_TTS_VOLUME', '')),
+        )
+        if value
+    }
     try:
-        communicate = edge_tts.Communicate(clean, voice)
+        communicate = edge_tts.Communicate(clean, voice, **tuning)
         chunks = []
 
         async def _collect():
@@ -929,13 +1093,13 @@ async def _synthesize_edge_mp3(clean, voice=None):
                 if chunk.get('type') == 'audio' and chunk.get('data'):
                     chunks.append(chunk['data'])
 
-        await asyncio.wait_for(_collect(), timeout=TTS_TIMEOUT_SECONDS)
+        await asyncio.wait_for(_collect(), timeout=EDGE_TTS_TIMEOUT_SECONDS)
         audio = b''.join(chunks)
         if audio:
             return audio, 'audio/mpeg'
         return None, None
-    except Exception:
-        logger.exception('Échec de la synthèse vocale edge-tts.')
+    except Exception as exc:
+        logger.warning('Échec de la synthèse vocale edge-tts : %s', str(exc)[:200])
         return None, None
 
 
@@ -962,8 +1126,26 @@ async def synthesize_audio(text, voice=None, rate=None, pitch=None, language=Non
 
     backend = _tts_backend()
     if backend == 'edge':
-        return await _synthesize_edge_mp3(clean, voice=edge_voice or voice)
+        audio, mime = await _synthesize_edge_mp3(clean, voice=edge_voice or voice)
+        if audio:
+            return audio, mime
+        if not getattr(settings, 'GOOGLE_TTS_API_KEY', ''):
+            return None, None
+        logger.warning('Edge TTS indisponible, repli Chirp 3 HD.')
+        return await _synthesize_chirp(clean)
 
+    audio, mime = None, None
+    if backend == 'chirp':
+        audio, mime = await _synthesize_chirp(clean)
+        if audio:
+            return audio, mime
+        logger.warning('Chirp 3 HD indisponible, repli Gemini AI Studio.')
+    if backend == 'cloud_gemini':
+        audio, mime = await _synthesize_cloud_gemini(clean, language=lang)
+        if audio:
+            return audio, mime
+        # Repli AI Studio (même voix, quota plus faible) plutôt qu'une phrase muette.
+        logger.warning('Cloud TTS Gemini indisponible, repli Gemini AI Studio.')
     audio, mime = await _synthesize_gemini(clean, language=lang)
     if audio:
         logger.debug(

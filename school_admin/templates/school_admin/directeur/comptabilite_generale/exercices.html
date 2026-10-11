@@ -1,109 +1,125 @@
-<!DOCTYPE html>
+{% extends 'school_admin/directeur/comptabilite_generale/_base.html' %}
 {% load static i18n %}
-{% get_current_language as LANGUAGE_CODE %}
-<html lang="{{ LANGUAGE_CODE }}">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "Exercices" %} — {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_generale.css' %}?v=1.0.1" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
-</head>
-<body class="cg-page-body">
-    {% include 'school_admin/directeur/partials/header_directeur.html' %}
-    <div class="content-container cg-page">
-        {% include 'school_admin/partials/messages.html' %}
-        <div class="page-header page-header-minimal">
-            {% url 'directeur:cg_hub_directeur' as back_url %}
-            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+{% block title %}{% trans "Exercices et clôture" %}{% endblock %}
+{% block icon %}fa-lock{% endblock %}
+{% block tone %}slate{% endblock %}
+{% block heading %}{% trans "Exercices et clôture" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% blocktrans with d=exercice.date_debut|date:"d/m/Y" f=exercice.date_fin|date:"d/m/Y" %}Exercice {{ exercice }} : du {{ d }} au {{ f }}. Un exercice = une année civile.{% endblocktrans %}</p>{% endblock %}
+
+{% block content %}
+  <section class="cg3-kpis">
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Statut" %}</p><span class="cg3-kpi__icon {% if exercice.statut == 'cloture' %}ax-tone-slate{% else %}ax-tone-green{% endif %}"><i class="fas {% if exercice.statut == 'cloture' %}fa-lock{% else %}fa-lock-open{% endif %}" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{% if exercice.statut == 'cloture' %}{% trans "Clôturé" %}{% else %}{% trans "Ouvert" %}{% endif %}</p>
+      <p class="cg3-kpi__caption">{% if exercice.date_cloture %}{% trans "le" %} {{ exercice.date_cloture|date:"d/m/Y" }}{% else %}{% trans "Saisie possible" %}{% endif %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Résultat à reporter" %}</p><span class="cg3-kpi__icon ax-tone-violet"><i class="fas fa-chart-line" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value {% if cr.resultat < 0 %}is-neg{% elif cr.resultat > 0 %}is-pos{% endif %}">{{ cr.resultat|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p>
+      <p class="cg3-kpi__caption">{% if cr.resultat >= 0 %}{% trans "Bénéfice → compte 1301" %}{% else %}{% trans "Perte → compte 1309" %}{% endif %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Périodes verrouillées" %}</p><span class="cg3-kpi__icon ax-tone-orange"><i class="fas fa-calendar-xmark" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{{ nb_verrouillees }}<small>/ {{ periodes_mois|length }}</small></p>
+      <p class="cg3-kpi__caption">{% trans "Une période verrouillée refuse toute nouvelle écriture" %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Régime comptable" %}</p><span class="cg3-kpi__icon ax-tone-blue"><i class="fas fa-sliders" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{% if regime_comptable == 'tresorerie' %}{% trans "Trésorerie" %}{% else %}{% trans "Engagement" %}{% endif %}</p>
+      <p class="cg3-kpi__caption">{% if regime_verrouille %}{% trans "Figé : l’exercice contient des écritures" %}{% else %}<button type="button" class="cg3-linkbtn" data-cg-open="sheet-regime">{% trans "Modifier" %}</button>{% endif %}</p>
+    </article>
+  </section>
+
+  <section class="axd-grid">
+    <article class="axd-card axd-span-8">
+      <header class="axd-card__head">
+        <div><h2 class="axd-card__title">{% trans "Périodes mensuelles" %}</h2><p class="axd-card__sub">{% trans "Verrouillez un mois une fois ses comptes vérifiés : plus aucune écriture ne pourra y être ajoutée." %}</p></div>
+      </header>
+      <div class="cg3-months">
+        {% for p in periodes_mois %}
+        <div class="cg3-month{% if p.verrouillee %} is-locked{% endif %}">
+          <div class="cg3-month__head"><span>{{ p.libelle }}</span>{% if p.verrouillee %}<i class="fas fa-lock muted" aria-label="{% trans 'Verrouillé' %}"></i>{% else %}<i class="fas fa-lock-open is-pos" aria-label="{% trans 'Ouvert' %}"></i>{% endif %}</div>
+          <small>{% blocktrans count n=p.nb_ecritures %}{{ n }} écriture{% plural %}{{ n }} écritures{% endblocktrans %}</small>
+          <b class="{% if p.resultat < 0 %}is-neg{% elif p.resultat > 0 %}is-pos{% endif %}">{{ p.resultat|floatformat:"0g" }}</b>
+          {% if exercice.statut == 'ouvert' %}
+          <form method="post">{% csrf_token %}<input type="hidden" name="periode_id" value="{{ p.id }}"><input type="hidden" name="action" value="{% if p.verrouillee %}deverrouiller{% else %}verrouiller{% endif %}">
+            <button type="submit" class="cg3-btn cg3-btn--sm">{% if p.verrouillee %}<i class="fas fa-lock-open" aria-hidden="true"></i>{% trans "Rouvrir" %}{% else %}<i class="fas fa-lock" aria-hidden="true"></i>{% trans "Verrouiller" %}{% endif %}</button>
+          </form>
+          {% endif %}
         </div>
-        {% include 'school_admin/directeur/comptabilite_generale/partials/cg_subnav.html' with cg_nav='exercices' %}
-        <header class="cg-hero">
-            <div>
-                <h1 class="cg-hero-title"><i class="fas fa-lock"></i> {% trans "Exercice" %} {{ exercice.libelle }}</h1>
-                <p class="cg-hero-sub">{{ exercice.date_debut|date:"d/m/Y" }} → {{ exercice.date_fin|date:"d/m/Y" }} — {{ exercice.get_statut_display }}</p>
-                <p class="cg-hero-sub">{% trans "Exercice civil (1er janvier – 31 décembre). L'année scolaire reste le calendrier pédagogique." %}</p>
-            </div>
-            <form method="post" action="{% url 'directeur:cg_exercices' %}">
-                {% csrf_token %}
-                {% if exercice.statut == 'ouvert' %}
-                <input type="hidden" name="action" value="cloturer" />
-                <button class="cg-btn cg-btn--danger" type="submit">{% trans "Clôturer l'exercice" %}</button>
-                {% else %}
-                <input type="hidden" name="action" value="rouvrir" />
-                <button class="cg-btn cg-btn--primary" type="submit">{% trans "Rouvrir" %}</button>
-                {% endif %}
-            </form>
-        </header>
-        <section class="cg-section" id="regime-comptable">
-            <h2>{% trans "Régime comptable" %}</h2>
-            <p class="cg-hero-sub">{% trans "Engagement : les créances ouvertes passent en 411. Trésorerie : les encaissements créditent directement 705x / 706x. Un seul régime par exercice." %}</p>
-            <form method="post" action="{% url 'directeur:cg_exercices' %}" class="cg-form">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="enregistrer_regime" />
-                <label>{% trans "Régime" %}
-                    <select name="regime_comptable" {% if regime_verrouille %}disabled{% endif %}>
-                        <option value="engagement" {% if regime_comptable == 'engagement' %}selected{% endif %}>{% trans "Engagement (411) — recommandé" %}</option>
-                        <option value="tresorerie" {% if regime_comptable == 'tresorerie' %}selected{% endif %}>{% trans "Trésorerie (encaissements)" %}</option>
-                    </select>
-                </label>
-                {% if regime_verrouille %}
-                <p class="cg-hero-sub">{% trans "Des écritures existent déjà sur l'exercice civil ouvert : le régime ne peut plus être changé." %}</p>
-                {% else %}
-                <button class="cg-btn cg-btn--primary" type="submit"><i class="fas fa-save"></i> {% trans "Enregistrer le régime" %}</button>
-                {% endif %}
-            </form>
-        </section>
-        <section class="cg-section">
-            <h2>{% trans "Mois" %}</h2>
-            <div class="table-responsive">
-                <table class="cg-table">
-                    <thead><tr><th>{% trans "Période" %}</th><th>{% trans "Du" %}</th><th>{% trans "Au" %}</th><th>{% trans "Statut" %}</th><th></th></tr></thead>
-                    <tbody>
-                        {% for p in periodes_mois %}
-                        <tr>
-                            <td>{{ p.libelle }}</td>
-                            <td>{{ p.date_debut|date:"d/m/Y" }}</td>
-                            <td>{{ p.date_fin|date:"d/m/Y" }}</td>
-                            <td>{% if p.verrouillee %}<span class="cg-pill cg-pill--warn">{% trans "Verrouillé" %}</span>{% else %}<span class="cg-pill cg-pill--ok">{% trans "Ouvert" %}</span>{% endif %}</td>
-                            <td>
-                                <form method="post" action="{% url 'directeur:cg_exercices' %}" style="display:inline;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="periode_id" value="{{ p.id }}" />
-                                    {% if p.verrouillee %}
-                                    <input type="hidden" name="action" value="deverrouiller" />
-                                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Déverrouiller" %}</button>
-                                    {% else %}
-                                    <input type="hidden" name="action" value="verrouiller" />
-                                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Verrouiller" %}</button>
-                                    {% endif %}
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-        {% if periodes_autres %}
-        <section class="cg-section">
-            <h2>{% trans "Trimestres / semestres" %}</h2>
-            <div class="table-responsive">
-                <table class="cg-table">
-                    <thead><tr><th>{% trans "Type" %}</th><th>{% trans "Libellé" %}</th><th>{% trans "Du" %}</th><th>{% trans "Au" %}</th></tr></thead>
-                    <tbody>
-                        {% for p in periodes_autres %}
-                        <tr><td>{{ p.get_type_periode_display }}</td><td>{{ p.libelle }}</td><td>{{ p.date_debut|date:"d/m/Y" }}</td><td>{{ p.date_fin|date:"d/m/Y" }}</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-        {% endif %}
+        {% endfor %}
+      </div>
+    </article>
+
+    <aside class="axd-card axd-span-4">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Clôture de l’exercice" %}</h2></div></header>
+      {% if exercice.statut == 'ouvert' %}
+      <ol class="cg3-steps">
+        <li class="{% if not controles.nb_alertes %}is-ok{% endif %}"><b>1</b><span>{% trans "Contrôles de cohérence" %}<small>{% if controles.nb_alertes %}{% blocktrans count n=controles.nb_alertes %}{{ n }} point à vérifier{% plural %}{{ n }} points à vérifier{% endblocktrans %}{% else %}{% trans "Tout est en ordre" %}{% endif %}</small></span></li>
+        <li><b>2</b><span>{% trans "Dotations aux amortissements" %}<small><a href="{% url 'directeur:cg_immobilisations' %}">{% trans "Passer les dotations de l’exercice" %}</a></small></span></li>
+        <li><b>3</b><span>{% trans "Clôture et à-nouveaux" %}<small>{% trans "Les soldes des comptes de bilan et le résultat sont reportés au 1er janvier suivant (journal AN)." %}</small></span></li>
+      </ol>
+      <form method="post" onsubmit="return confirm('{% trans "Clôturer l’exercice ? Toutes ses périodes seront verrouillées." %}');">
+        {% csrf_token %}<input type="hidden" name="action" value="cloturer">
+        <button type="submit" class="cg3-btn cg3-btn--primary cg3-btn--block"{% if exercice.date_fin >= aujourdhui %} disabled{% endif %}><i class="fas fa-lock" aria-hidden="true"></i>{% trans "Clôturer l’exercice" %} {{ exercice.libelle }}</button>
+        {% if exercice.date_fin >= aujourdhui %}<p class="cg3-head__sub">{% blocktrans with f=exercice.date_fin|date:"d/m/Y" %}Disponible après le {{ f }}, une fois l’année terminée.{% endblocktrans %}</p>{% endif %}
+      </form>
+      {% else %}
+      <p class="cg3-hint"><i class="fas fa-circle-check" aria-hidden="true"></i><span>{% trans "Exercice clôturé." %}{% if an_existe %} {% trans "Les à-nouveaux ont été passés dans l’exercice suivant." %}{% endif %}</span></p>
+      <form method="post" onsubmit="return confirm('{% trans "Rouvrir l’exercice ? Les à-nouveaux générés seront retirés." %}');">
+        {% csrf_token %}<input type="hidden" name="action" value="rouvrir">
+        <button type="submit" class="cg3-btn cg3-btn--block"><i class="fas fa-lock-open" aria-hidden="true"></i>{% trans "Rouvrir l’exercice" %}</button>
+      </form>
+      {% endif %}
+      <h3 class="cg3-sub">{% trans "Contrôles" %}</h3>
+      <ul class="cg3-checks">
+        {% for c in controles.items %}<li class="{% if c.ok %}is-ok{% else %}is-ko{% endif %}"><i class="fas {% if c.ok %}fa-circle-check{% else %}fa-triangle-exclamation{% endif %}" aria-hidden="true"></i><div><strong>{{ c.titre }}</strong><small>{{ c.detail }}</small></div></li>{% endfor %}
+      </ul>
+    </aside>
+  </section>
+
+  <section class="axd-grid">
+    <article class="axd-card axd-span-8">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Tous les exercices" %}</h2></div></header>
+      <div class="cg3-table-wrap">
+        <table class="cg3-table">
+          <thead><tr><th>{% trans "Exercice" %}</th><th>{% trans "Du" %}</th><th>{% trans "Au" %}</th><th>{% trans "Statut" %}</th><th></th></tr></thead>
+          <tbody>
+            {% for e in exercices %}
+            <tr><td><b>{{ e.libelle }}</b></td><td>{{ e.date_debut|date:"d/m/Y" }}</td><td>{{ e.date_fin|date:"d/m/Y" }}</td>
+              <td>{% if e.statut == 'cloture' %}<span class="cg3-chip cg3-chip--muted">{% trans "Clôturé" %}</span>{% else %}<span class="cg3-chip cg3-chip--ok">{% trans "Ouvert" %}</span>{% endif %}</td>
+              <td>{% if e.pk != exercice.pk %}<a class="cg3-btn cg3-btn--sm" href="?exercice={{ e.pk }}">{% trans "Consulter" %}</a>{% else %}<span class="muted">{% trans "Affiché" %}</span>{% endif %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+    <aside class="axd-card axd-span-4">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Préparer un exercice" %}</h2><p class="axd-card__sub">{% trans "Utile pour saisir en avance une opération de l’année suivante." %}</p></div></header>
+      <form method="post" class="cg3-inline-form">
+        {% csrf_token %}<input type="hidden" name="action" value="creer_exercice">
+        <label class="cg3-field"><span>{% trans "Année" %}</span><input type="number" name="annee" value="{{ annee_suivante }}" min="2000" max="2100" required></label>
+        <button type="submit" class="cg3-btn"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Créer" %}</button>
+      </form>
+    </aside>
+  </section>
+
+  {# Régime comptable #}
+  <div class="cg-sheet" id="sheet-regime" hidden>
+    <div class="cg-sheet-backdrop" data-cg-close></div>
+    <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-regime-title">
+      <div class="cg-sheet-head"><h2 id="sheet-regime-title">{% trans "Régime comptable" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+      <p class="cg3-hint"><i class="fas fa-circle-info" aria-hidden="true"></i><span>{% trans "Engagement : la scolarité due est enregistrée en créance (411) puis soldée à l’encaissement. Trésorerie : seuls les encaissements sont comptabilisés (705x / 706x). Un seul régime par exercice." %}</span></p>
+      <form method="post" class="cg-form" id="regime-comptable">
+        {% csrf_token %}<input type="hidden" name="action" value="enregistrer_regime">
+        <label>{% trans "Régime" %}
+          <select name="regime_comptable" {% if regime_verrouille %}disabled{% endif %}>
+            <option value="engagement" {% if regime_comptable == 'engagement' %}selected{% endif %}>{% trans "Engagement (411) — recommandé" %}</option>
+            <option value="tresorerie" {% if regime_comptable == 'tresorerie' %}selected{% endif %}>{% trans "Trésorerie (encaissements)" %}</option>
+          </select>
+        </label>
+        <button type="submit" class="cg-btn cg-btn--primary" {% if regime_verrouille %}disabled{% endif %}>{% trans "Enregistrer" %}</button>
+      </form>
     </div>
-    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
-</body>
-</html>
+  </div>
+{% endblock %}

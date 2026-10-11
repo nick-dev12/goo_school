@@ -1,24 +1,61 @@
 {% load static %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% include 'school_admin/partials/seo_head.html' %}
-    <title>{{ page_title|default:"Sanctions disciplinaires" }} – ARIA</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/sanctions_eleve.css' %}?v=1.0.2">
-    <link rel="stylesheet" href="{% static 'school_admin/css/eleve/eleve_sanctions_home.css' %}?v=1.0.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Sanctions" %} – ARIA</title>
+  {% include 'school_admin/eleve/partials/_ex_head.html' %}
 </head>
+<body class="axd-page px-page ex-page">
+  {% include 'school_admin/eleve/partials/_ex_shell.html' %}
 
-<body>
-{% include 'school_admin/eleve/partials/header.html' %}
+  <main class="axd px ex" id="contenu">
+    <header class="px-page-head">
+      <span class="px-page-head__icon ax-tone-slate"><i class="fas fa-gavel" aria-hidden="true"></i></span>
+      <div>
+        <h1>{% trans "Sanctions" %}</h1>
+        <p>{% trans "Historique disciplinaire de l’année" %}</p>
+      </div>
+    </header>
 
-{% include 'school_admin/eleve/partials/eleve_sanctions_content.html' %}
+    {% if total_sanctions %}
+    <section class="px-stats" aria-label="{% trans 'Résumé' %}">
+      <div class="px-stat"><span class="px-stat__icon ax-tone-slate"><i class="fas fa-list" aria-hidden="true"></i></span><div><strong>{{ total_sanctions }}</strong><small>{% trans "Au total" %}</small></div></div>
+      <div class="px-stat"><span class="px-stat__icon ax-tone-sky"><i class="fas fa-circle-info" aria-hidden="true"></i></span><div><strong>{{ sanctions_legeres }}</strong><small>{% trans "Légères" %}</small></div></div>
+      <div class="px-stat"><span class="px-stat__icon ax-tone-orange"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></span><div><strong>{{ sanctions_moyennes }}</strong><small>{% trans "Moyennes" %}</small></div></div>
+      <div class="px-stat"><span class="px-stat__icon ax-tone-red"><i class="fas fa-circle-exclamation" aria-hidden="true"></i></span><div><strong>{{ sanctions_graves|add:sanctions_tres_graves }}</strong><small>{% trans "Graves" %}</small></div></div>
+    </section>
 
-<script src="{% static 'school_admin/js/eleve/sanctions_eleve.js' %}?v=1.0.1"></script>
+    <div class="px-stack">
+      {% for s in sanctions %}
+      <article class="px-item">
+        <div class="px-item__head">
+          <h2 class="px-item__title">{{ s.get_type_sanction_display }}</h2>
+          <span class="px-badge {% if s.gravite == 'legere' %}px-badge--blue{% elif s.gravite == 'moyenne' %}px-badge--orange{% else %}px-badge--red{% endif %}">{{ s.get_gravite_display }}</span>
+        </div>
+        <p class="px-item__meta">
+          <span><i class="fas fa-calendar" aria-hidden="true"></i>{{ s.date_sanction|date:"l j F Y"|capfirst }}</span>
+          <span><i class="fas fa-circle-info" aria-hidden="true"></i>{{ s.get_raison_display }}</span>
+          {% if s.attribue_par_nom %}<span><i class="fas fa-user" aria-hidden="true"></i>{{ s.attribue_par_nom }}</span>{% endif %}
+          {% if s.duree_jours %}<span><i class="fas fa-calendar-day" aria-hidden="true"></i>{{ s.duree_jours }} {% trans "jour(s)" %}</span>{% endif %}
+          {% if s.executee %}<span><i class="fas fa-check" aria-hidden="true"></i>{% trans "Exécutée" %}</span>{% endif %}
+        </p>
+        {% if s.description %}<p class="px-item__body">{{ s.description }}</p>{% endif %}
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-empty-inline">
+      <i class="fas fa-face-smile" aria-hidden="true"></i>
+      <h2>{% trans "Aucune sanction" %}</h2>
+      <p>{% trans "Rien à signaler cette année. Continue comme ça !" %}</p>
+    </div>
+    {% endif %}
+  </main>
 
-{% include 'school_admin/eleve/partials/bottom_nav_eleve.html' %}
+  {% include 'school_admin/eleve/partials/_ex_foot.html' %}
 </body>
 </html>

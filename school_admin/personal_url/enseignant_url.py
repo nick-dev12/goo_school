@@ -1,3 +1,5 @@
+from ..controllers.cahier_texte_controller import CahierTexteController
+from ..controllers.pointage_controller import PointageController
 # school_admin/personal_url/enseignant_url.py
 
 from django.urls import path
@@ -44,6 +46,9 @@ from ..personal_views.enseignant_view import (
 app_name = 'enseignant'
 
 urlpatterns = [
+    path('enseignant/cahier-texte/', CahierTexteController.enseignant, name='cahier_texte'),
+    path('enseignant/cahier-texte/rediger/', CahierTexteController.rediger, name='cahier_texte_rediger'),
+    path('enseignant/pointage/', PointageController.enseignant, name='pointage'),
     path('dashboard/enseignant/', dashboard_enseignant, name='dashboard_enseignant'),
     path('enseignant/classes/', gestion_classes_enseignant, name='gestion_classes'),
     path('enseignant/eleves/', gestion_eleves_enseignant, name='gestion_eleves'),

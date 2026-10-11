@@ -1,0 +1,262 @@
+{% load i18n static %}
+{% with abs=absences_dashboard kpis=absences_dashboard.kpis meta=absences_dashboard.meta %}
+<div class="dbd-abs-panel">
+  <div class="dbd-abs-header">
+    <div class="dbd-abs-header-text">
+      <h3 class="dbd-abs-title">
+        <i class="fas fa-chart-pie" aria-hidden="true"></i>
+        {% trans "Pilotage des absences" %}
+      </h3>
+      <p class="dbd-abs-sub">
+        {% trans "Période" %} : <strong>{{ meta.period_label }}</strong>
+        {% if meta.last_submission_at %}
+        · {% trans "Dernière soumission" %} : {{ meta.last_submission_at|date:"d/m/Y H:i" }}
+        {% endif %}
+      </p>
+    </div>
+    <div class="dbd-abs-header-actions">
+      {% if kpis.eleves_gt_12 > 0 %}
+      <span class="dbd-abs-alert-pill">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ kpis.eleves_gt_12 }} {% trans "élève(s) > 12 abs." %}
+      </span>
+      {% endif %}
+      <a href="{% url 'directeur:suivi_presence' %}" class="dbd-abs-btn primary">
+        <i class="fas fa-clipboard-list"></i> {% trans "Suivi complet" %}
+      </a>
+      <a href="{% url 'directeur:gestion_eleves' %}" class="dbd-abs-btn secondary">
+        <i class="fas fa-user-graduate"></i> {% trans "Élèves" %}
+      </a>
+    </div>
+  </div>
+
+  {% if not meta.has_data %}
+  <div class="dbd-abs-empty">
+    <i class="fas fa-calendar-times"></i>
+    <p>{% trans "Aucune donnée de présence enregistrée sur cette période." %}</p>
+    <a href="{% url 'directeur:suivi_presence' %}" class="dbd-abs-btn primary">{% trans "Ouvrir le suivi des présences" %}</a>
+  </div>
+  {% else %}
+
+  <div class="dbd-abs-kpi-grid">
+    <article class="dbd-abs-kpi dbd-abs-kpi--primary">
+      <div class="dbd-abs-kpi-icon"><i class="fas fa-percent"></i></div>
+      <div class="dbd-abs-kpi-body">
+        <span class="dbd-abs-kpi-label">{% trans "Taux de présence" %}</span>
+        <span class="dbd-abs-kpi-value" data-dbd-count="{{ kpis.taux_presence }}" data-dbd-suffix="%">{{ kpis.taux_presence }}%</span>
+        {% if kpis.taux_presence_delta_mois is not None %}
+        <span class="dbd-abs-kpi-trend {% if kpis.taux_presence_delta_mois >= 0 %}up{% else %}down{% endif %}">
+          {% if kpis.taux_presence_delta_mois >= 0 %}+{% endif %}{{ kpis.taux_presence_delta_mois }} pts {% trans "vs mois préc." %}
+        </span>
+        {% endif %}
+      </div>
+    </article>
+    <article class="dbd-abs-kpi">
+      <div class="dbd-abs-kpi-icon accent"><i class="fas fa-user-times"></i></div>
+      <div class="dbd-abs-kpi-body">
+        <span class="dbd-abs-kpi-label">{% trans "Absences non justifiées" %}</span>
+        <span class="dbd-abs-kpi-value" data-dbd-count="{{ kpis.absences_nj_total }}">{{ kpis.absences_nj_total }}</span>
+        {% if kpis.absences_nj_delta_mois is not None %}
+        <span class="dbd-abs-kpi-trend neutral">Δ {{ kpis.absences_nj_delta_mois }} {% trans "ce mois" %}</span>
+        {% endif %}
+      </div>
+    </article>
+    <article class="dbd-abs-kpi">
+      <div class="dbd-abs-kpi-icon info"><i class="fas fa-file-medical"></i></div>
+      <div class="dbd-abs-kpi-body">
+        <span class="dbd-abs-kpi-label">{% trans "Justifiées" %}</span>
+        <span class="dbd-abs-kpi-value" data-dbd-count="{{ kpis.absences_justifiees }}">{{ kpis.absences_justifiees }}</span>
+      </div>
+    </article>
+    <article class="dbd-abs-kpi">
+      <div class="dbd-abs-kpi-icon warning"><i class="fas fa-clock"></i></div>
+      <div class="dbd-abs-kpi-body">
+        <span class="dbd-abs-kpi-label">{% trans "Retards" %}</span>
+        <span class="dbd-abs-kpi-value" data-dbd-count="{{ kpis.retards }}">{{ kpis.retards }}</span>
+        <span class="dbd-abs-kpi-trend neutral">{{ kpis.retards_pct }}%</span>
+      </div>
+    </article>
+    <article class="dbd-abs-kpi">
+      <div class="dbd-abs-kpi-icon"><i class="fas fa-venus"></i></div>
+      <div class="dbd-abs-kpi-body">
+        <span class="dbd-abs-kpi-label">{% trans "Filles (NJ)" %}</span>
+        <span class="dbd-abs-kpi-value" data-dbd-count="{{ kpis.filles_nj }}">{{ kpis.filles_nj }}</span>
+        <span class="dbd-abs-kpi-trend neutral">{{ kpis.filles_nj_pct }}%</span>
+      </div>
+    </article>
+    <article class="dbd-abs-kpi">
+      <div class="dbd-abs-kpi-icon"><i class="fas fa-mars"></i></div>
+      <div class="dbd-abs-kpi-body">
+        <span class="dbd-abs-kpi-label">{% trans "Garçons (NJ)" %}</span>
+        <span class="dbd-abs-kpi-value" data-dbd-count="{{ kpis.garcons_nj }}">{{ kpis.garcons_nj }}</span>
+        <span class="dbd-abs-kpi-trend neutral">{{ kpis.garcons_nj_pct }}%</span>
+      </div>
+    </article>
+    <article class="dbd-abs-kpi dbd-abs-kpi--warn">
+      <div class="dbd-abs-kpi-icon warning"><i class="fas fa-layer-group"></i></div>
+      <div class="dbd-abs-kpi-body">
+        <span class="dbd-abs-kpi-label">{% trans "Élèves 10–12 abs." %}</span>
+        <span class="dbd-abs-kpi-value" data-dbd-count="{{ kpis.eleves_10_12 }}">{{ kpis.eleves_10_12 }}</span>
+      </div>
+    </article>
+    <article class="dbd-abs-kpi dbd-abs-kpi--danger">
+      <div class="dbd-abs-kpi-icon accent"><i class="fas fa-fire"></i></div>
+      <div class="dbd-abs-kpi-body">
+        <span class="dbd-abs-kpi-label">{% trans "Élèves > 12 abs." %}</span>
+        <span class="dbd-abs-kpi-value" data-dbd-count="{{ kpis.eleves_gt_12 }}">{{ kpis.eleves_gt_12 }}</span>
+      </div>
+    </article>
+    <article class="dbd-abs-kpi dbd-abs-kpi--success">
+      <div class="dbd-abs-kpi-icon success"><i class="fas fa-check-circle"></i></div>
+      <div class="dbd-abs-kpi-body">
+        <span class="dbd-abs-kpi-label">{% trans "Sans absence NJ" %}</span>
+        <span class="dbd-abs-kpi-value" data-dbd-count="{{ kpis.eleves_sans_nj }}">{{ kpis.eleves_sans_nj }}</span>
+      </div>
+    </article>
+    <article class="dbd-abs-kpi">
+      <div class="dbd-abs-kpi-icon"><i class="fas fa-broadcast-tower"></i></div>
+      <div class="dbd-abs-kpi-body">
+        <span class="dbd-abs-kpi-label">{% trans "Couverture appels" %}</span>
+        <span class="dbd-abs-kpi-value" data-dbd-count="{{ kpis.couverture_appels_pct }}" data-dbd-suffix="%">{{ kpis.couverture_appels_pct }}%</span>
+      </div>
+    </article>
+  </div>
+
+  <div class="dbd-abs-charts-grid">
+    <div class="dbd-abs-chart-card">
+      <h4>{% trans "Répartition F / M (absences NJ)" %}</h4>
+      <div class="dbd-abs-chart-wrap"><canvas id="dbd-chart-sexe-nj" role="img" aria-label="{% trans 'Graphique filles garçons' %}"></canvas></div>
+    </div>
+    <div class="dbd-abs-chart-card">
+      <h4>{% trans "Top 5 classes (taux de présence)" %}</h4>
+      <div class="dbd-abs-chart-wrap"><canvas id="dbd-chart-top-classes" role="img"></canvas></div>
+    </div>
+    <div class="dbd-abs-chart-card">
+      <h4>{% trans "Effectifs par tranche d'absences" %}</h4>
+      <div class="dbd-abs-chart-wrap"><canvas id="dbd-chart-tranches" role="img"></canvas></div>
+    </div>
+    <div class="dbd-abs-chart-card dbd-abs-chart-card--wide">
+      <h4>{% trans "Évolution mensuelle" %}</h4>
+      <div class="dbd-abs-chart-wrap"><canvas id="dbd-chart-evolution" role="img"></canvas></div>
+    </div>
+    <div class="dbd-abs-chart-card">
+      <h4>{% trans "Statuts des enregistrements" %}</h4>
+      <div class="dbd-abs-chart-wrap"><canvas id="dbd-chart-statuts" role="img"></canvas></div>
+    </div>
+    <div class="dbd-abs-chart-card">
+      <h4>{% trans "Classes les plus fragiles" %}</h4>
+      <div class="dbd-abs-chart-wrap"><canvas id="dbd-chart-bottom-classes" role="img"></canvas></div>
+    </div>
+  </div>
+
+  {% if absences_dashboard.eleves_risque %}
+  <section class="dbd-abs-section" id="dbd-abs-risque">
+    <h4 class="dbd-abs-section-title"><i class="fas fa-user-shield"></i> {% trans "Élèves à surveiller" %}</h4>
+    <div class="table-responsive dbd-abs-table-wrap">
+      <table class="dbd-abs-table">
+        <thead>
+          <tr>
+            <th>{% trans "Élève" %}</th>
+            <th>{% trans "Classe" %}</th>
+            <th>{% trans "NJ" %}</th>
+            <th>{% trans "Justif." %}</th>
+            <th>{% trans "Jours distincts" %}</th>
+            <th>{% trans "Taux prés." %}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in absences_dashboard.eleves_risque %}
+          <tr>
+            <td>{{ row.nom_complet }}</td>
+            <td>{{ row.classe_nom }}</td>
+            <td class="num danger">{{ row.absences_nj }}</td>
+            <td class="num">{{ row.absences_justifiees }}</td>
+            <td class="num">{{ row.jours_absents_nj }}</td>
+            <td class="num">{{ row.taux_presence }}%</td>
+            <td>
+              <a class="dbd-abs-link" href="{% url 'secretaire:detail_eleve' row.eleve_id %}#presences-tab">{% trans "Fiche" %}</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if absences_dashboard.classes_sous_seuil %}
+  <section class="dbd-abs-section">
+    <h4 class="dbd-abs-section-title"><i class="fas fa-school"></i> {% trans "Classes sous 85 % de présence" %}</h4>
+    <div class="table-responsive dbd-abs-table-wrap">
+      <table class="dbd-abs-table">
+        <thead>
+          <tr>
+            <th>{% trans "Classe" %}</th>
+            <th>{% trans "Taux" %}</th>
+            <th>{% trans "Abs. NJ" %}</th>
+            <th>{% trans "Enregistrements" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in absences_dashboard.classes_sous_seuil %}
+          <tr>
+            <td>{{ c.nom }}</td>
+            <td class="num warning">{{ c.taux_presence }}%</td>
+            <td class="num">{{ c.absences_nj }}</td>
+            <td class="num">{{ c.total_enregistrements }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% endif %}
+
+  <section class="dbd-abs-section dbd-abs-timeline">
+    <div class="dbd-abs-section-head">
+      <h4 class="dbd-abs-section-title"><i class="fas fa-history"></i> {% trans "Dernières soumissions" %}</h4>
+      {% if dernieres_soumissions_presence|length > 0 %}
+      <a href="{% url 'directeur:suivi_presence' %}" class="btn-voir-plus">{% trans "Voir plus" %}</a>
+      {% endif %}
+    </div>
+    {% if dernieres_soumissions_presence|length > 0 %}
+    <div class="dbd-abs-timeline-list">
+      {% for item in dernieres_soumissions_presence %}
+      <article class="dbd-abs-timeline-item">
+        <div class="dbd-abs-timeline-icon"><i class="fas fa-clipboard-check"></i></div>
+        <div class="dbd-abs-timeline-body">
+          <strong>{{ item.soumission.professeur.nom_complet }}</strong>
+          <span class="dbd-abs-timeline-classe">{{ item.soumission.classe.nom }}</span>
+          <div class="dbd-abs-timeline-stats">
+            <span class="ok"><i class="fas fa-check-circle"></i> {{ item.nombre_presents }} {% trans "présents" %}</span>
+            <span class="ko"><i class="fas fa-times-circle"></i> {{ item.nombre_absents }} {% trans "absents" %}</span>
+          </div>
+          <time><i class="fas fa-calendar"></i> {{ item.soumission.date|date:"d/m/Y" }}</time>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="dbd-abs-empty compact">
+      <i class="fas fa-inbox"></i>
+      <p>{% trans "Aucune soumission récente" %}</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <details class="dbd-abs-legend">
+    <summary><i class="fas fa-circle-info"></i> {% trans "Comment lire ces indicateurs ?" %}</summary>
+    <ul>
+      <li>{% trans "NJ = absence non justifiée (statut « Absent »)." %}</li>
+      <li>{% trans "Les paliers 10–12 et > 12 comptent le nombre d'appels absents par élève sur l'année consultée." %}</li>
+      <li>{% trans "Le taux de présence = présents / total des enregistrements (présents, absents, justifiés, retards)." %}</li>
+      <li>{% trans "Top 5 classes : meilleur taux, minimum 10 enregistrements par classe." %}</li>
+    </ul>
+  </details>
+</div>
+
+{{ absences_dashboard.charts|json_script:"dbd-absences-chart-data" }}
+{% endwith %}

@@ -1,0 +1,230 @@
+/* ==========================================================================
+   Gestion de la structure (classes, matières, modules, périodes) — couche v3
+   Chargée en dernier : harmonise les anciens composants (gcl-, gml-, gps-, mat-…)
+   avec les jetons --ax-* et les composants cg3 / fe / hb.
+   ========================================================================== */
+body.gv3 { font-family: var(--ax-font, "Inter", system-ui, sans-serif); background: var(--ax-bg, #f5f6f8); color: var(--ax-ink); }
+body.gv3 .content-container { max-width: 1280px; margin: 0 auto; padding: 20px 24px calc(var(--ax-dock-h, 104px) + 32px); }
+body.gv3 .page-header-minimal { display: none; }
+.v3-zone { margin-bottom: 16px; }
+.v3-zone .fe-kpis { margin: 16px 0; }
+.v3-details { margin-top: 4px; font-size: 0.78rem; }
+.v3-details summary { cursor: pointer; font-weight: 600; opacity: 0.85; }
+.v3-details span { display: block; margin-top: 4px; opacity: 0.9; }
+
+/* Panneaux principaux */
+body.gv3 .gcl-main-panel, body.gv3 .gml-main-panel, body.gv3 .gps-main-panel, body.gv3 .mat-main-panel {
+  border: 1px solid var(--ax-line) !important; border-radius: var(--ax-radius, 16px) !important; background: var(--ax-surface) !important;
+  box-shadow: var(--ax-shadow) !important; padding: 16px 18px !important;
+}
+
+/* Onglets */
+body.gv3 .matiere-tab-btn { border-radius: 10px !important; font-weight: 600; border-color: var(--ax-line) !important; }
+body.gv3 .matiere-tab-btn.active { background-color: var(--ax-brand) !important; color: #fff !important; border-color: var(--ax-brand) !important; box-shadow: none !important; }
+body.gv3 .matiere-tab-btn .tab-count { background: var(--ax-surface-2); color: var(--ax-ink-2); border-radius: 999px; }
+body.gv3 .matiere-tab-btn.active .tab-count { background: rgba(255, 255, 255, 0.22); color: #fff; }
+
+/* Boutons historiques → aplats de la marque */
+body.gv3 [class*="-action-btn--primary"], body.gv3 .btn-primary, body.gv3 .btn-submit, body.gv3 .btn-save,
+body.gv3 .modal-form button[type="submit"], body.gv3 .btn-action.btn-edit {
+  background-color: var(--ax-brand) !important; border-color: var(--ax-brand) !important; color: #fff !important;
+  border-radius: 10px !important; box-shadow: none !important;
+}
+body.gv3 [class*="-action-btn--danger"], body.gv3 .btn-action.btn-delete, body.gv3 .btn-danger {
+  background-color: var(--ax-surface) !important; color: var(--ax-bad) !important; border: 1px solid var(--ax-bad-soft) !important; border-radius: 10px !important; box-shadow: none !important;
+}
+body.gv3 [class*="-action-btn--info"], body.gv3 [class*="-action-btn--secondary"], body.gv3 .btn-secondary, body.gv3 .btn-cancel {
+  background-color: var(--ax-surface) !important; color: var(--ax-ink-2) !important; border: 1px solid var(--ax-line-strong) !important; border-radius: 10px !important; box-shadow: none !important;
+}
+
+/* Listes et cartes */
+body.gv3 [class*="-list-header"] { background: var(--ax-surface-2) !important; color: var(--ax-ink-2) !important; font-size: 0.74rem; letter-spacing: 0.03em; text-transform: uppercase; }
+body.gv3 [class*="-list-row"]:hover { background: var(--ax-surface-2); }
+body.gv3 [class*="-list-scroll"], body.gv3 .gcl-list, body.gv3 .gml-list { border-color: var(--ax-line) !important; border-radius: 14px !important; }
+body.gv3 .classe-card, body.gv3 .matiere-card, body.gv3 .module-card, body.gv3 .info-card, body.gv3 .stat-card, body.gv3 .detail-card {
+  border: 1px solid var(--ax-line) !important; border-radius: 14px !important; box-shadow: var(--ax-shadow) !important; background: var(--ax-surface) !important;
+}
+body.gv3 [class*="-icon-wrap"] { border-radius: 10px !important; }
+body.gv3 [class*="-empty"] { border-radius: var(--ax-radius, 16px); }
+
+/* Modales et formulaires */
+body.gv3 .modal-container, body.gv3 .modal-content, body.gv3 .edit-form-card, body.gv3 .classe-edit-modal__panel { border-radius: 18px !important; box-shadow: var(--ax-shadow-pop) !important; }
+body.gv3 .modal-header, body.gv3 .edit-form-header { background: var(--ax-surface) !important; color: var(--ax-ink) !important; border-bottom: 1px solid var(--ax-line) !important; }
+body.gv3 .modal-header .modal-title, body.gv3 .modal-header h2, body.gv3 .modal-header h3, body.gv3 .edit-form-title { color: var(--ax-ink) !important; }
+body.gv3 .modal-header i, body.gv3 .edit-form-title i { color: var(--ax-brand) !important; }
+body.gv3 .modal-close, body.gv3 .btn-close-form { background: var(--ax-surface-2) !important; color: var(--ax-ink-2) !important; border: 1px solid var(--ax-line) !important; border-radius: 10px !important; }
+body.gv3 .form-control, body.gv3 .form-input, body.gv3 .form-select, body.gv3 .modal-form input:not([type="checkbox"]):not([type="radio"]),
+body.gv3 .modal-form select, body.gv3 .modal-form textarea, body.gv3 .edit-form input:not([type="checkbox"]):not([type="radio"]), body.gv3 .edit-form select, body.gv3 .edit-form textarea {
+  border: 1px solid var(--ax-line-strong) !important; border-radius: 10px !important; background: var(--ax-surface) !important; font-family: inherit; min-height: 40px;
+}
+body.gv3 .form-control:focus, body.gv3 .modal-form input:focus, body.gv3 .modal-form select:focus, body.gv3 .edit-form input:focus, body.gv3 .edit-form select:focus {
+  outline: 2px solid var(--ax-brand-soft) !important; border-color: var(--ax-brand) !important; box-shadow: none !important;
+}
+body.gv3 [class*="section-icon"] { background-color: var(--ax-brand-soft) !important; color: var(--ax-brand) !important; box-shadow: none !important; border-radius: 10px !important; }
+body.gv3 [class*="section-icon"] i { color: var(--ax-brand) !important; }
+
+/* Alertes historiques */
+body.gv3 .alert, body.gv3 [class*="-alert"] { border-radius: 12px !important; }
+body.gv3 .alert-success { background: var(--ax-good-soft) !important; color: var(--ax-good) !important; border: 0 !important; }
+body.gv3 .alert-error, body.gv3 .alert-danger { background: var(--ax-bad-soft) !important; color: var(--ax-bad) !important; border: 0 !important; }
+body.gv3 .alert-warning, body.gv3 [class*="-alert-warn"] { background: var(--ax-warn-soft) !important; color: var(--ax-warn) !important; border: 0 !important; }
+body.gv3 .alert-info, body.gv3 [class*="-alert-info"] { background: var(--ax-brand-soft) !important; color: var(--ax-brand-ink) !important; border: 0 !important; }
+
+/* Ancien en-tête de la fiche classe / matière, remplacé par le nouvel en-tête */
+body.gv3 .page-header.v3-hidden { display: none !important; }
+
+@media (max-width: 760px) {
+  body.gv3 .content-container { padding: 12px 16px calc(var(--ax-dock-h, 104px) + 24px); }
+  body.gv3 .gcl-main-panel, body.gv3 .gml-main-panel, body.gv3 .gps-main-panel { padding: 12px !important; }
+}
+
+/* Cartes matières : le type est déjà sous le nom, le badge doublon masquait le titre. */
+body.gv3 .mat-card-head .mat-type-chip { display: none; }
+body.gv3 .mat-card-head-text { min-width: 0; flex: 1; }
+body.gv3 .mat-card-name { overflow-wrap: anywhere; }
+
+/* Boutons historiques (…-action-btn) placés dans l en-tête bleu */
+body.gv3 .hb-head__actions form { margin: 0; display: inline-flex; }
+body.gv3 .hb-head [class*="-action-btn"] { display: inline-flex !important; align-items: center; gap: 8px; height: 40px; padding: 0 14px !important; background: rgba(255,255,255,0.12) !important; color: #fff !important; border: 1px solid rgba(255,255,255,0.45) !important; border-radius: 10px !important; box-shadow: none !important; font-weight: 600; font-size: 0.85rem; text-decoration: none; }
+body.gv3 .hb-head [class*="-action-btn"]:hover { background: rgba(255,255,255,0.22) !important; }
+body.gv3 .hb-head [class*="-action-btn--primary"] { background: #fff !important; color: var(--ax-brand-ink, #1d47b3) !important; border-color: #fff !important; }
+body.gv3 .hb-head [class*="-action-btn--primary"] i { color: var(--ax-brand-ink, #1d47b3) !important; }
+body.gv3 .hb-head [class*="-action-btn"] i { color: inherit !important; }
+body.gv3 .main-content-container { max-width: 1280px; margin: 0 auto; padding: 20px 24px calc(var(--ax-dock-h, 104px) + 32px); }
+@media (max-width: 760px) { body.gv3 .main-content-container { padding: 12px 16px calc(var(--ax-dock-h, 104px) + 24px); } }
+
+/* ==========================================================================
+   Tableaux, listes et formulaires v3
+   ========================================================================== */
+
+/* ---------- Tableaux (vrais <table>) ---------- */
+body.gv3 .v3-table-scroll { width: 100%; overflow-x: auto; border: 1px solid var(--ax-line); border-radius: 14px; background: var(--ax-surface); }
+body.gv3 table.v3-table { width: 100%; border-collapse: separate !important; border-spacing: 0; font-size: 0.86rem; background: transparent !important; box-shadow: none !important; border: 0 !important; }
+body.gv3 table.v3-table thead th {
+  position: sticky; top: 0; z-index: 1; padding: 11px 14px !important; background: var(--ax-surface-2) !important; color: var(--ax-ink-2) !important;
+  font-size: 0.72rem !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase; text-align: left;
+  border: 0 !important; border-bottom: 1px solid var(--ax-line) !important; white-space: nowrap;
+}
+body.gv3 table.v3-table tbody td { padding: 11px 14px !important; border: 0 !important; border-bottom: 1px solid var(--ax-line) !important; color: var(--ax-ink); vertical-align: middle; background: transparent !important; }
+body.gv3 table.v3-table tbody tr:last-child td { border-bottom: 0 !important; }
+body.gv3 table.v3-table tbody tr:hover td { background: var(--ax-surface-2) !important; }
+
+/* ---------- Listes en grille (…-list-header / …-list-row) ---------- */
+body.gv3 .v3-list { border: 1px solid var(--ax-line) !important; border-radius: 14px !important; overflow: hidden; background: var(--ax-surface) !important; box-shadow: none !important; }
+body.gv3 .v3-list > [class*="list-header"] {
+  background: var(--ax-surface-2) !important; color: var(--ax-ink-2) !important; border-bottom: 1px solid var(--ax-line) !important;
+  font-size: 0.72rem !important; font-weight: 700 !important; letter-spacing: 0.04em; text-transform: uppercase;
+}
+body.gv3 .v3-list > .v3-row { border-bottom: 1px solid var(--ax-line) !important; background: var(--ax-surface) !important; transition: background 0.12s; }
+body.gv3 .v3-list > .v3-row:last-child { border-bottom: 0 !important; }
+body.gv3 .v3-list > .v3-row:hover { background: var(--ax-surface-2) !important; }
+body.gv3 .v3-cell-main { font-weight: 600; color: var(--ax-ink); }
+body.gv3 .v3-cell-actions a, body.gv3 .v3-cell-actions button {
+  border-radius: 9px !important; box-shadow: none !important;
+}
+
+/* Petits boutons d'action des lignes (voir / modifier / désactiver) */
+body.gv3 [class*="-list-row"] [class*="btn-view"], body.gv3 [class*="-list-row"] .btn-action-sm, body.gv3 [class*="-act-btn"] {
+  border-radius: 9px !important;
+}
+
+/* ---------- Formulaires et filtres ---------- */
+body.gv3 label.form-label, body.gv3 .filter-label, body.gv3 .form-group > label, body.gv3 .field-label, body.gv3 .modal-form label:not(.checkbox-label):not([class*="check"]):not([class*="radio"]) {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 0.78rem !important; font-weight: 600 !important; color: var(--ax-ink-2) !important; text-transform: none;
+}
+body.gv3 input[type="text"], body.gv3 input[type="email"], body.gv3 input[type="tel"], body.gv3 input[type="number"],
+body.gv3 input[type="date"], body.gv3 input[type="search"], body.gv3 input[type="password"], body.gv3 input[type="url"], body.gv3 select, body.gv3 textarea {
+  min-height: 42px; padding: 9px 12px; border: 1px solid var(--ax-line-strong) !important; border-radius: 10px !important;
+  background-color: var(--ax-surface) !important; color: var(--ax-ink); font-family: inherit; font-size: 0.88rem; box-shadow: none !important;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+body.gv3 textarea { min-height: 84px; }
+body.gv3 select { appearance: none; -webkit-appearance: none; padding-right: 36px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%23667085' stroke-width='1.6' d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important; background-position: right 12px center !important; }
+body.gv3 input:focus, body.gv3 select:focus, body.gv3 textarea:focus {
+  outline: none !important; border-color: var(--ax-brand) !important; box-shadow: 0 0 0 3px var(--ax-brand-soft) !important;
+}
+body.gv3 input::placeholder, body.gv3 textarea::placeholder { color: var(--ax-muted); }
+body.gv3 input[type="checkbox"], body.gv3 input[type="radio"] { accent-color: var(--ax-brand); width: 16px; height: 16px; }
+body.gv3 .input-error, body.gv3 .is-invalid { border-color: var(--ax-bad) !important; box-shadow: 0 0 0 3px var(--ax-bad-soft) !important; }
+
+/* Barres de filtres / recherche : grille souple qui passe à la ligne */
+body.gv3 .filters-box, body.gv3 [class*="-filters-row"], body.gv3 [class*="-filters"]:not(.v3-zone *) {
+  display: grid !important; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 12px; align-items: end;
+  padding: 12px 14px !important; border: 1px solid var(--ax-line) !important; border-radius: 12px !important; background: var(--ax-surface-2) !important; box-shadow: none !important;
+}
+body.gv3 .filters-box .filter-group, body.gv3 [class*="-filters-row"] > div { min-width: 0; margin: 0 !important; }
+body.gv3 .filters-box select, body.gv3 [class*="-filters-row"] select { width: 100%; }
+body.gv3 [class*="search-box"], body.gv3 [class*="search-wrap"], body.gv3 .search-container, body.gv3 .search-bar-container {
+  border-radius: 12px !important; box-shadow: none !important;
+}
+body.gv3 [class*="reset-btn"], body.gv3 .btn-reset-filters {
+  height: 42px; padding: 0 14px !important; border: 1px solid var(--ax-line-strong) !important; border-radius: 10px !important;
+  background: var(--ax-surface) !important; color: var(--ax-ink-2) !important; font-weight: 600; box-shadow: none !important;
+}
+
+/* Sections de formulaire (inscription, modification…) */
+body.gv3 .form-section, body.gv3 [class*="cam-section"], body.gv3 .inscription-section, body.gv3 .form-card {
+  border: 1px solid var(--ax-line) !important; border-radius: 14px !important; background: var(--ax-surface) !important; box-shadow: none !important;
+}
+body.gv3 .form-grid, body.gv3 .form-row { gap: 12px 14px !important; }
+body.gv3 .form-actions, body.gv3 .modal-footer, body.gv3 .form-actions-modern {
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 14px !important; border-top: 1px solid var(--ax-line) !important; background: transparent !important;
+}
+body.gv3 .help-text, body.gv3 .form-hint, body.gv3 .field-hint, body.gv3 small.text-muted { font-size: 0.76rem; color: var(--ax-muted) !important; }
+body.gv3 .error-message, body.gv3 .field-error, body.gv3 .invalid-feedback { font-size: 0.76rem; color: var(--ax-bad) !important; }
+
+/* Modales : panneau arrondi sur ordinateur, feuille plein écran sur mobile */
+body.gv3 .modal-overlay, body.gv3 [class*="-modal-backdrop"], body.gv3 .modal-creneau-fullscreen .modal-creneau-overlay { background: rgba(16, 24, 40, 0.5) !important; backdrop-filter: none !important; }
+
+/* ---------- Mobile : lignes en cartes ---------- */
+@media (max-width: 760px) {
+  body.gv3 .v3-table-scroll { border: 0; background: transparent; overflow: visible; }
+  body.gv3 table.v3-table thead { display: none; }
+  body.gv3 table.v3-table, body.gv3 table.v3-table tbody { display: block; }
+  body.gv3 table.v3-table tbody tr {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-bottom: 10px; padding: 12px 14px;
+    border: 1px solid var(--ax-line); border-radius: 14px; background: var(--ax-surface);
+  }
+  body.gv3 table.v3-table tbody td { display: block; padding: 0 !important; border: 0 !important; min-width: 0; }
+  body.gv3 table.v3-table tbody tr { position: relative; }
+  body.gv3 table.v3-table tbody td.v3-cell-main { grid-column: 1 / -1; order: -1; font-weight: 700; font-size: 0.95rem; padding-right: 32px !important; }
+  body.gv3 table.v3-table tbody td.v3-cell-check { position: absolute; top: 12px; right: 12px; }
+  body.gv3 table.v3-table tbody td[data-label]:not(.v3-cell-main):not(.v3-cell-check)::before {
+    content: attr(data-label); display: block; margin-bottom: 2px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ax-muted);
+  }
+  body.gv3 table.v3-table tbody td.v3-cell-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px !important; border-top: 1px dashed var(--ax-line) !important; }
+  body.gv3 table.v3-table tbody td.v3-cell-actions::before { display: none !important; }
+
+  body.gv3 .v3-list { border: 0 !important; background: transparent !important; overflow: visible; min-width: 0 !important; width: 100% !important; }
+  body.gv3 .v3-list > .v3-row > [data-label] { display: block !important; visibility: visible !important; }
+  body.gv3 .v3-list > .v3-row { width: 100% !important; min-width: 0 !important; position: relative; }
+  body.gv3 .v3-list > .v3-row > .v3-cell-check { position: absolute; top: 12px; right: 12px; }
+  body.gv3 .v3-list > [class*="list-header"] { display: none !important; }
+  body.gv3 .v3-list > .v3-row {
+    display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px 12px !important; margin-bottom: 10px; padding: 12px 14px !important;
+    border: 1px solid var(--ax-line) !important; border-radius: 14px !important; min-height: 0 !important;
+  }
+  body.gv3 .v3-list > .v3-row > * { min-width: 0; padding: 0 !important; justify-content: flex-start !important; text-align: left !important; display: block; }
+  body.gv3 .v3-list > .v3-row > .v3-cell-main { grid-column: 1 / -1; order: -1; display: flex !important; align-items: center; gap: 10px; justify-content: flex-start !important; text-align: left !important; }
+  body.gv3 .v3-list > .v3-row > .v3-cell-main * { text-align: left !important; }
+  body.gv3 .v3-list > .v3-row > [data-label]:not(.v3-cell-main):not(.v3-cell-actions)::before {
+    content: attr(data-label); display: block; margin-bottom: 2px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ax-muted);
+  }
+  body.gv3 .v3-list > .v3-row > .v3-cell-actions { grid-column: 1 / -1; display: flex !important; flex-wrap: wrap; gap: 6px; padding-top: 8px !important; border-top: 1px dashed var(--ax-line); }
+  body.gv3 [class*="-list-scroll"] { overflow: visible !important; border: 0 !important; }
+
+  body.gv3 .filters-box, body.gv3 [class*="-filters-row"] { grid-template-columns: 1fr 1fr; }
+  body.gv3 .modal-container, body.gv3 .modal-content, body.gv3 .classe-edit-modal__panel, body.gv3 .cg3-modal__panel {
+    width: 100% !important; max-width: 100% !important; max-height: 100vh !important; height: auto; border-radius: 18px 18px 0 0 !important; margin: auto 0 0 !important;
+  }
+  body.gv3 .form-actions > *, body.gv3 .modal-footer > * { flex: 1 1 auto; justify-content: center; }
+}
+@media (max-width: 760px) {
+  body.gv3 .v3-list > .v3-row > .v3-cell-main, body.gv3 .v3-list > .v3-row > .v3-cell-main > div { flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; text-align: left !important; }
+  body.gv3 .v3-list > .v3-row > .v3-cell-main [class*="avatar"] { flex: none; width: 36px !important; height: 36px !important; margin: 0 !important; }
+}
+/* Boutons d action alignés sur une ligne (lignes de tableau plus compactes) */
+body.gv3 table.v3-table td.v3-cell-actions { white-space: nowrap; width: 1%; }
+body.gv3 table.v3-table td.v3-cell-actions > div, body.gv3 .v3-row > .v3-cell-actions > div { display: inline-flex !important; flex-direction: row !important; flex-wrap: nowrap; gap: 6px; align-items: center; }

@@ -10,6 +10,14 @@ from django.test import TestCase
 
 TEMPLATES = Path(settings.BASE_DIR) / 'school_admin' / 'templates' / 'school_admin'
 
+def _texte_avec_coquille(rel):
+    """Contenu du gabarit, augmenté du pied de page commun V3 (_ex_foot) qui inclut la bulle Aria."""
+    text = (TEMPLATES / rel).read_text(encoding='utf-8')
+    if '_ex_foot.html' in text:
+        text += (TEMPLATES / 'eleve/partials/_ex_foot.html').read_text(encoding='utf-8')
+    return text
+
+
 ELEVE_NAV_PAGES = (
     'eleve/dashboard_eleve.html',
     'eleve/devoirs_eleve.html',
@@ -34,8 +42,8 @@ ELEVE_EXTRA_PAGES = (
 class AssistantEleveUiElv1Tests(TestCase):
     def test_nav_pages_incluent_bottom_nav(self):
         for rel in ELEVE_NAV_PAGES:
-            text = (TEMPLATES / rel).read_text(encoding='utf-8')
-            self.assertIn('bottom_nav_eleve.html', text, msg=rel)
+            text = _texte_avec_coquille(rel)
+            self.assertTrue('bottom_nav_eleve.html' in text or '_ex_shell.html' in text, msg=rel)
 
     def test_bottom_nav_widget_eleve_et_parent(self):
         text = (TEMPLATES / 'eleve/partials/bottom_nav_eleve.html').read_text(encoding='utf-8')
@@ -46,7 +54,7 @@ class AssistantEleveUiElv1Tests(TestCase):
 
     def test_pages_sans_nav_incluent_widget_eleve(self):
         for rel in ELEVE_EXTRA_PAGES:
-            text = (TEMPLATES / rel).read_text(encoding='utf-8')
+            text = _texte_avec_coquille(rel)
             self.assertIn('assistant_vocal_eleve.html', text, msg=rel)
             self.assertIn('{% if est_parent %}', text, msg=rel)
 

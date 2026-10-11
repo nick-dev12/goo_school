@@ -1,0 +1,29 @@
+{% load i18n %}
+{# En-tête de la fiche élève. Variables : eleve, fiche, actions_tpl (facultatif), peut_photo. #}
+<header class="fe-hero">
+  <div class="fe-avatar{% if eleve.photo_profil %} fe-avatar--photo{% endif %}">
+    {% if eleve.photo_profil %}<img src="{{ eleve.photo_profil.url }}" alt="{% blocktrans with n=eleve.nom_complet %}Photo de {{ n }}{% endblocktrans %}">{% else %}<span aria-hidden="true">{{ eleve.prenom.0|upper }}{{ eleve.nom.0|upper }}</span>{% endif %}
+    <span class="fe-avatar__dot{% if not eleve.actif %} is-off{% endif %}"></span>
+    {% if peut_photo %}<button type="button" class="fe-avatar__edit" data-fe-open="fe-photo" aria-label="{% trans 'Changer la photo' %}"><i class="fas fa-camera" aria-hidden="true"></i></button>{% endif %}
+  </div>
+  <div class="fe-hero__id">
+    <p class="fe-hero__kicker">{% if fiche.type_etab == 'superieur' %}{% trans "Étudiant" %}{% else %}{% trans "Élève" %}{% endif %}{% if fiche.classe %} · {{ fiche.classe.nom }}{% endif %}</p>
+    <h1 class="fe-hero__name">{{ eleve.nom_complet }}</h1>
+    <p class="fe-hero__sub">
+      {% if fiche.classe %}{{ fiche.classe.get_niveau_display|default:"" }}{% else %}{% trans "Sans classe cette année" %}{% endif %}
+      {% if eleve.age %} · {{ eleve.age }} {% trans "ans" %}{% endif %}{% if eleve.sexe %} · {{ eleve.get_sexe_display }}{% endif %}
+    </p>
+    <div class="fe-hero__chips">
+      <span class="cg3-chip {% if eleve.actif %}cg3-chip--ok{% else %}cg3-chip--muted{% endif %}"><i class="fas fa-circle" style="font-size:.45rem" aria-hidden="true"></i>{% if eleve.actif %}{% trans "Actif" %}{% else %}{% trans "Compte désactivé" %}{% endif %}</span>
+      {% if eleve.matricule_eleve or eleve.numero_eleve %}<span class="cg3-chip cg3-chip--muted"><i class="fas fa-id-badge" aria-hidden="true"></i>{{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>{% endif %}
+      {% if eleve.statut %}<span class="cg3-chip cg3-chip--muted"><i class="fas fa-user-plus" aria-hidden="true"></i>{{ eleve.get_statut_display }}</span>{% endif %}
+      {% if eleve.date_inscription %}<span class="cg3-chip cg3-chip--muted"><i class="fas fa-calendar-plus" aria-hidden="true"></i>{% trans "Inscrit le" %} {{ eleve.date_inscription|date:"d/m/Y" }}</span>{% endif %}
+    </div>
+  </div>
+  {% if actions_tpl %}<div class="fe-hero__actions">{% include actions_tpl %}</div>{% endif %}
+  <div class="fe-contact">
+    {% if fiche.famille.contact %}<a href="tel:{{ fiche.famille.contact }}"><i class="fas fa-phone" aria-hidden="true"></i>{% trans "Responsable" %} · {{ fiche.famille.contact }}</a>{% else %}<span class="is-missing"><i class="fas fa-phone-slash" aria-hidden="true"></i>{% trans "Aucun téléphone de responsable" %}</span>{% endif %}
+    {% if eleve.telephone %}<a href="tel:{{ eleve.telephone }}"><i class="fas fa-mobile-screen" aria-hidden="true"></i>{{ eleve.telephone }}</a>{% endif %}
+    {% if eleve.email %}<a href="mailto:{{ eleve.email }}"><i class="fas fa-envelope" aria-hidden="true"></i>{{ eleve.email }}</a>{% endif %}
+  </div>
+</header>

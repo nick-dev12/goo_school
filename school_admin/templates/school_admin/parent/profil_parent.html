@@ -1,314 +1,108 @@
 {% load static %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Profil - {{ parent.nom_complet }} | Espace Parent</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'school_admin/css/parent/nav_parent.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/parent/profil_parent.css' %}?v=1.0.1">
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/gtranslate_header_bar.css' %}?v=1.0.1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Mon profil" %} — {{ parent.nom_complet }}</title>
+  {% include 'school_admin/parent/partials/_px_head.html' %}
 </head>
-<body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-left">
-                <div class="header-icon">
-                    <i class="fas fa-user-circle"></i>
-                </div>
-                <div class="header-info">
-                    <h1>Mon Profil</h1>
-                    <p>{{ parent.nom_complet }} • {{ etablissement.nom }}</p>
-                </div>
-            </div>
-            <div class="header-right">
-                {% include 'school_admin/partials/gtranslate_header_bar.html' %}
-                <a href="{% url 'school_admin:dashboard_parent' %}" class="btn-back">
-                    <i class="fas fa-arrow-left"></i>
-                    Retour
-                </a>
-            </div>
-        </div>
+<body class="axd-page px-page">
+  {% include 'school_admin/parent/partials/_px_shell.html' %}
 
-        {% include 'school_admin/parent/partials/annee_scolaire_badge.html' %}
+  <main class="axd px" id="contenu">
+    <section class="px-profile">
+      <span class="px-profile__avatar" aria-hidden="true">{{ parent.prenom|slice:":1"|upper }}{{ parent.nom|slice:":1"|upper }}</span>
+      <div>
+        <h1>{{ parent.prenom }} {{ parent.nom|upper }}</h1>
+        <p>{{ parent.get_type_parent_display }}{% if etablissement %} · {{ etablissement.nom }}{% endif %} · {% blocktrans count n=nombre_enfants %}{{ n }} enfant lié{% plural %}{{ n }} enfants liés{% endblocktrans %}</p>
+      </div>
+    </section>
 
-    {% include 'school_admin/partials/messages.html' %}
-        <!-- Profil Header Card -->
-        <div class="profil-header-card">
-            <div class="profil-header-content">
-                <div class="profil-avatar">
-                    {{ parent.prenom|slice:":1"|upper }}{{ parent.nom|slice:":1"|upper }}
-                </div>
-                <div class="profil-identity">
-                    <h1 class="profil-nom">{{ parent.prenom }} {{ parent.nom|upper }}</h1>
-                    <p class="profil-role">
-                        <i class="fas fa-user-tag"></i>
-                        {{ parent.get_type_parent_display }} • {{ etablissement.nom }}
-                    </p>
-                    <div class="profil-stats">
-                        <div class="stat-item">
-                            <div class="stat-value">{{ nombre_enfants }}</div>
-                            <div class="stat-label">Enfant{{ nombre_enfants|pluralize }} lié{{ nombre_enfants|pluralize }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="px-profile-grid">
+      <section class="axd-card">
+        <header class="axd-card__head">
+          <div><h2 class="axd-card__title">{% trans "Mes informations" %}</h2></div>
+        </header>
+        <dl class="px-info">
+          <div><dt>{% trans "Matricule parental" %}</dt><dd>{{ parent.matricule_parental }}</dd></div>
+          <div><dt>{% trans "Téléphone" %}</dt><dd>{{ parent.telephone|default:_("Non renseigné") }}</dd></div>
+          <div><dt>{% trans "E-mail" %}</dt><dd>{{ parent.email|default:_("Non renseigné") }}</dd></div>
+          {% if parent.profession %}<div><dt>{% trans "Profession" %}</dt><dd>{{ parent.profession }}</dd></div>{% endif %}
+          {% if parent.adresse %}<div><dt>{% trans "Adresse" %}</dt><dd>{{ parent.adresse }}</dd></div>{% endif %}
+          <div><dt>{% trans "Compte créé le" %}</dt><dd>{{ parent.date_creation|date:"d/m/Y" }}</dd></div>
+        </dl>
 
-        <!-- Informations Personnelles -->
-        <div class="info-card">
-            <div class="info-card-header">
-                <i class="fas fa-user"></i>
-                <h3>Informations Personnelles</h3>
-            </div>
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">Matricule Parental</span>
-                    <div class="info-value">
-                        <i class="fas fa-id-card"></i>
-                        {{ parent.matricule_parental }}
-                    </div>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Nom</span>
-                    <div class="info-value">
-                        <i class="fas fa-user"></i>
-                        {{ parent.nom }}
-                    </div>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Prénom</span>
-                    <div class="info-value">
-                        <i class="fas fa-user"></i>
-                        {{ parent.prenom }}
-                    </div>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Email</span>
-                    <div class="info-value">
-                        <i class="fas fa-envelope"></i>
-                        {{ parent.email|default:"Non renseigné" }}
-                    </div>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Téléphone</span>
-                    <div class="info-value">
-                        <i class="fas fa-phone"></i>
-                        {{ parent.telephone|default:"Non renseigné" }}
-                    </div>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Type de Parent</span>
-                    <div class="info-value">
-                        <i class="fas fa-user-tag"></i>
-                        {{ parent.get_type_parent_display }}
-                    </div>
-                </div>
-                {% if parent.profession %}
-                <div class="info-item">
-                    <span class="info-label">Profession</span>
-                    <div class="info-value">
-                        <i class="fas fa-briefcase"></i>
-                        {{ parent.profession }}
-                    </div>
-                </div>
-                {% endif %}
-                {% if parent.adresse %}
-                <div class="info-item info-item-full">
-                    <span class="info-label">Adresse</span>
-                    <div class="info-value">
-                        <i class="fas fa-map-marker-alt"></i>
-                        {{ parent.adresse }}
-                    </div>
-                </div>
-                {% endif %}
-                <div class="info-item">
-                    <span class="info-label">Établissement</span>
-                    <div class="info-value">
-                        <i class="fas fa-school"></i>
-                        {{ etablissement.nom }}
-                    </div>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Date de création</span>
-                    <div class="info-value">
-                        <i class="fas fa-calendar-alt"></i>
-                        {{ parent.date_creation|date:"d/m/Y" }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sécurité - Modification du mot de passe -->
-        <div class="info-card">
-            <div class="info-card-header">
-                <i class="fas fa-shield-alt"></i>
-                <h3>Sécurité</h3>
-            </div>
-            <form method="POST" action="{% url 'school_admin:profil_parent' %}" class="security-form">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="change_password">
-                
-                <div class="form-group">
-                    <label for="current_password" class="form-label">
-                        <i class="fas fa-key"></i>
-                        Mot de passe actuel *
-                    </label>
-                    <div class="password-input-wrapper">
-                        <input
-                            type="password"
-                            id="current_password"
-                            name="current_password"
-                            class="form-input"
-                            required
-                            placeholder="Entrez votre mot de passe actuel"
-                        />
-                        <button type="button" class="toggle-password" data-target="current_password" aria-label="Afficher/Masquer le mot de passe">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="new_password" class="form-label">
-                        <i class="fas fa-lock"></i>
-                        Nouveau mot de passe *
-                    </label>
-                    <div class="password-input-wrapper">
-                        <input
-                            type="password"
-                            id="new_password"
-                            name="new_password"
-                            class="form-input"
-                            required
-                            placeholder="Entrez un nouveau mot de passe (min. 8 caractères)"
-                        />
-                        <button type="button" class="toggle-password" data-target="new_password" aria-label="Afficher/Masquer le mot de passe">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                    <small class="form-hint">Le mot de passe doit contenir au moins 8 caractères</small>
-                </div>
-                
-                <div class="form-group">
-                    <label for="confirm_password" class="form-label">
-                        <i class="fas fa-lock"></i>
-                        Confirmer le nouveau mot de passe *
-                    </label>
-                    <div class="password-input-wrapper">
-                        <input
-                            type="password"
-                            id="confirm_password"
-                            name="confirm_password"
-                            class="form-input"
-                            required
-                            placeholder="Confirmez votre nouveau mot de passe"
-                        />
-                        <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Afficher/Masquer le mot de passe">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="password-tips">
-                    <h4><i class="fas fa-info-circle"></i> Conseils pour un mot de passe sécurisé :</h4>
-                    <ul>
-                        <li>Au moins 8 caractères</li>
-                        <li>Combinaison de lettres, chiffres et symboles</li>
-                        <li>Ne pas utiliser d'informations personnelles</li>
-                        <li>Ne pas réutiliser un ancien mot de passe</li>
-                    </ul>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="submit" class="btn-submit">
-                        <i class="fas fa-save"></i>
-                        Enregistrer le nouveau mot de passe
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        {% comment %} <!-- Liste des Enfants -->
         {% if enfants_list %}
-        <div class="info-card">
-            <div class="info-card-header">
-                <i class="fas fa-child"></i>
-                <h3>Mes Enfants ({{ nombre_enfants }})</h3>
-            </div>
-            <div class="enfants-list">
-                {% for enfant_data in enfants_list %}
-                <div class="enfant-item">
-                    <div class="enfant-item-header">
-                        <div class="enfant-avatar-small">
-                            {{ enfant_data.eleve.prenom|slice:":1"|upper }}{{ enfant_data.eleve.nom|slice:":1"|upper }}
-                        </div>
-                        <div>
-                            <div class="enfant-name">{{ enfant_data.eleve.nom_complet }}</div>
-                        </div>
-                    </div>
-                    <div class="enfant-details">
-                        <div class="enfant-detail-item">
-                            <i class="fas fa-id-card"></i>
-                            <span>{{ enfant_data.eleve.matricule_eleve }}</span>
-                        </div>
-                        <div class="enfant-detail-item">
-                            <i class="fas fa-chalkboard"></i>
-                            <span>{{ enfant_data.classe }}</span>
-                        </div>
-                        <div class="enfant-detail-item">
-                            <i class="fas fa-heart"></i>
-                            <span>Lien : {{ enfant_data.type_lien }}</span>
-                        </div>
-                        <div class="enfant-detail-item">
-                            <i class="fas fa-school"></i>
-                            <span>{{ enfant_data.eleve.etablissement.nom }}</span>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %} {% endcomment %}
+        <h3 class="px-subtitle">{% trans "Mes enfants" %}</h3>
+        <ul class="axd-list">
+          {% for enfant_data in enfants_list %}
+          <li>
+            <span class="axd-list__main">
+              <span class="axd-avatar-sm px-icon-blue" aria-hidden="true">{{ enfant_data.eleve.prenom|slice:":1"|upper }}{{ enfant_data.eleve.nom|slice:":1"|upper }}</span>
+              <span><strong>{{ enfant_data.eleve.nom_complet }}</strong><small>{{ enfant_data.classe }} · {{ enfant_data.type_lien }}</small></span>
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </section>
+
+      <section class="axd-card">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Changer mon mot de passe" %}</h2>
+            <p class="axd-card__sub">{% trans "Au moins 8 caractères, avec des lettres et des chiffres." %}</p>
+          </div>
+        </header>
+        <form method="post" action="{% url 'school_admin:profil_parent' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="change_password">
+          <label class="px-field" for="current_password">
+            <span>{% trans "Mot de passe actuel" %}</span>
+            <span class="px-password">
+              <input type="password" id="current_password" name="current_password" required autocomplete="current-password">
+              <button type="button" class="ax-icon-btn toggle-password" data-target="current_password" aria-label="{% trans 'Afficher le mot de passe' %}"><i class="fas fa-eye" aria-hidden="true"></i></button>
+            </span>
+          </label>
+          <label class="px-field" for="new_password">
+            <span>{% trans "Nouveau mot de passe" %}</span>
+            <span class="px-password">
+              <input type="password" id="new_password" name="new_password" required minlength="8" autocomplete="new-password">
+              <button type="button" class="ax-icon-btn toggle-password" data-target="new_password" aria-label="{% trans 'Afficher le mot de passe' %}"><i class="fas fa-eye" aria-hidden="true"></i></button>
+            </span>
+          </label>
+          <label class="px-field" for="confirm_password">
+            <span>{% trans "Confirmer le nouveau mot de passe" %}</span>
+            <span class="px-password">
+              <input type="password" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password">
+              <button type="button" class="ax-icon-btn toggle-password" data-target="confirm_password" aria-label="{% trans 'Afficher le mot de passe' %}"><i class="fas fa-eye" aria-hidden="true"></i></button>
+            </span>
+          </label>
+          <button type="submit" class="axd-btn axd-btn--primary px-block-btn"><i class="fas fa-lock" aria-hidden="true"></i>{% trans "Enregistrer" %}</button>
+        </form>
+      </section>
     </div>
 
-    {% include 'school_admin/parent/partials/bottom_nav_parent.html' %}
+    <a class="axd-btn px-logout" href="{% url 'school_admin:deconnexion_parent' %}"><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i>{% trans "Se déconnecter" %}</a>
+  </main>
 
-    <script>
-        // Fonction pour initialiser les boutons toggle de mot de passe
-        function initPasswordToggles() {
-            const toggleButtons = document.querySelectorAll('.toggle-password');
-            
-            toggleButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const targetId = this.getAttribute('data-target');
-                    const passwordInput = document.getElementById(targetId);
-                    const icon = this.querySelector('i');
-                    
-                    if (passwordInput) {
-                        if (passwordInput.type === 'password') {
-                            passwordInput.type = 'text';
-                            icon.classList.remove('fa-eye');
-                            icon.classList.add('fa-eye-slash');
-                            this.setAttribute('aria-label', 'Masquer le mot de passe');
-                        } else {
-                            passwordInput.type = 'password';
-                            icon.classList.remove('fa-eye-slash');
-                            icon.classList.add('fa-eye');
-                            this.setAttribute('aria-label', 'Afficher le mot de passe');
-                        }
-                    }
-                });
-            });
-        }
-
-        // Initialiser les toggles au chargement de la page
-        document.addEventListener('DOMContentLoaded', function() {
-            initPasswordToggles();
-        });
-    </script>
+  {% include 'school_admin/parent/partials/_px_foot.html' %}
+  <script>
+    document.querySelectorAll('.toggle-password').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var input = document.getElementById(btn.dataset.target);
+        var icon = btn.querySelector('i');
+        if (!input) return;
+        var visible = input.type === 'password';
+        input.type = visible ? 'text' : 'password';
+        icon.classList.toggle('fa-eye', !visible);
+        icon.classList.toggle('fa-eye-slash', visible);
+        btn.setAttribute('aria-label', visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+      });
+    });
+  </script>
 </body>
 </html>
-

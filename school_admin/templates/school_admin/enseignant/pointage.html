@@ -1,0 +1,192 @@
+{% load static %}
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Pointage" %} – ARIA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}?v=1.0.3">
+  {% if ns == 'enseignant_primaire' %}{% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}{% endif %}
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/aria_shell.css' %}?v=1.0.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=1.0.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/pointage.css' %}?v=1.0.0">
+</head>
+<body class="axd-page axd-page--prof">
+  {% if ns == 'enseignant_primaire' %}{% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}{% else %}{% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}{% endif %}
+
+  <main class="axd cg3 pt-prof" id="contenu">
+    <header class="cg3-head">
+      <div class="cg3-head__id">
+        <span class="cg3-head__icon ax-tone-teal"><i class="fas fa-qrcode" aria-hidden="true"></i></span>
+        <div>
+          <p class="cg3-head__kicker">{{ today|date:"l j F Y"|capfirst }}</p>
+          <h1 class="cg3-head__title">{% trans "Pointage de mes cours" %}</h1>
+          <p class="cg3-head__sub">{% trans "Ouvrez chaque cours en scannant le QR de la borne, faites l’appel, notez ce que vous avez fait, puis terminez." %}</p>
+        </div>
+      </div>
+    </header>
+
+    {% if messages %}
+    <div class="pt-messages">{% for m in messages %}<p class="pt-message pt-message--{{ m.tags|default:'info' }}"><i class="fas {% if m.tags == 'success' %}fa-circle-check{% elif m.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-info{% endif %}" aria-hidden="true"></i>{{ m }}</p>{% endfor %}</div>
+    {% endif %}
+
+    {% if not activation %}
+    <div class="axd-card"><div class="cg3-empty"><i class="fas fa-clock" aria-hidden="true"></i><strong>{% trans "Le pointage n’est pas encore activé" %}</strong><span>{% trans "Votre établissement n’a pas encore installé de borne. Vos heures restent calculées selon l’emploi du temps." %}</span></div></div>
+    {% else %}
+
+    {# ---------- Mes cours du jour ---------- #}
+    <section class="pt-today" aria-label="{% trans 'Mes cours du jour' %}">
+      {% for s in seances_jour %}
+      <article class="pt-card pt-card--{{ s.statut }}">
+        <header class="pt-card__head">
+          <div class="pt-card__time"><strong>{{ s.heure_debut|time:"H:i" }}</strong><small>{{ s.heure_fin|time:"H:i" }}</small></div>
+          <div class="pt-card__id"><h2>{{ s.classe.nom }}</h2><p>{{ s.matiere.nom|default:"" }}</p></div>
+          {% include 'school_admin/directeur/volume_horaire/partials/_statut.html' %}
+        </header>
+
+        {% if s.statut == 'prevue' %}
+          {% if s.ouvrable %}
+          <div class="pt-card__body">
+            <button type="button" class="cg3-btn cg3-btn--primary pt-big" data-cg3-open="pt-scan" data-seance="{{ s.pk }}" data-libelle="{{ s.classe.nom }} · {{ s.heure_debut|time:'H:i' }}"><i class="fas fa-qrcode" aria-hidden="true"></i>{% trans "Commencer le cours" %}</button>
+            {% if s.en_retard %}<p class="pt-warn"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{% trans "Plus de 15 minutes de retard : le cours sera vérifié par la direction." %}</p>{% endif %}
+          </div>
+          {% else %}
+          <p class="pt-card__info"><i class="fas fa-hourglass-start" aria-hidden="true"></i>{% blocktrans with h=s.ouverture|time:"H:i" %}Ouverture possible à partir de {{ h }}.{% endblocktrans %}</p>
+          {% endif %}
+        {% elif s.statut == 'en_cours' %}
+          <div class="pt-card__body">
+            <p class="pt-card__info is-live"><span class="pt-live" aria-hidden="true"></span>{% blocktrans with h=s.debut_reel|time:"H:i" %}Cours ouvert à {{ h }}{% endblocktrans %}{% if s.preuve_qr %} · <i class="fas fa-qrcode" aria-hidden="true"></i> {% trans "QR vérifié" %}{% endif %}</p>
+            <a class="cg3-btn pt-step" href="{% url ns|add:':liste_presence' s.classe_id %}{% if s.matiere_id %}?matiere={{ s.matiere_id }}{% endif %}"><span class="pt-step__n">1</span>{% trans "Faire l’appel" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+            <form method="post" class="pt-finish">
+              {% csrf_token %}<input type="hidden" name="action" value="terminer"><input type="hidden" name="seance_id" value="{{ s.pk }}">
+              <label class="cg3-field"><span><span class="pt-step__n">2</span>{% trans "Cahier de texte : ce que vous avez fait" %}</span><textarea name="cahier_texte" rows="3" required placeholder="{% trans 'Ex. Chapitre 4 : les fractions, exercices 1 à 5 page 48' %}">{{ s.cahier_texte }}</textarea></label>
+              <button type="submit" class="cg3-btn cg3-btn--primary pt-big"><span class="pt-step__n pt-step__n--w">3</span>{% trans "Terminer le cours" %}</button>
+            </form>
+          </div>
+        {% elif s.statut == 'validee' %}
+          <p class="pt-card__info is-ok"><i class="fas fa-circle-check" aria-hidden="true"></i>{% trans "Cours validé : il sera compté dans votre paie." %}</p>
+        {% elif s.statut == 'a_verifier' %}
+          <p class="pt-card__info is-warn"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>{% trans "En attente de vérification :" %} {{ s.libelles_anomalies|join:" ; " }}.</p>
+        {% elif s.statut == 'absente' %}
+          <p class="pt-card__info is-bad"><i class="fas fa-user-xmark" aria-hidden="true"></i>{% trans "Ce cours n’a pas été ouvert." %}</p>
+        {% endif %}
+      </article>
+      {% empty %}
+      <div class="axd-card"><div class="cg3-empty"><i class="fas fa-mug-hot" aria-hidden="true"></i><strong>{% trans "Pas de cours aujourd’hui" %}</strong></div></div>
+      {% endfor %}
+    </section>
+
+    {# ---------- Mon mois ---------- #}
+    {% with c=calcul %}
+    <section class="cg3-kpis">
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Heures validées ce mois" %}</p><span class="cg3-kpi__icon ax-tone-green"><i class="fas fa-circle-check" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value is-pos">{{ c.heures_validees|floatformat:"-2g" }}<small>h</small></p>
+        <p class="cg3-kpi__caption">{% blocktrans with p=c.heures_prevues|floatformat:"-1g" %}sur {{ p }} h prévues à ce jour{% endblocktrans %}</p>
+      </article>
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "En vérification" %}</p><span class="cg3-kpi__icon ax-tone-orange"><i class="fas fa-magnifying-glass" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value">{{ c.minutes_a_verifier }}<small>min</small></p>
+        <p class="cg3-kpi__caption">{% trans "Décision de la direction en attente" %}</p>
+      </article>
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Cours non faits" %}</p><span class="cg3-kpi__icon ax-tone-red"><i class="fas fa-user-xmark" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value {% if c.minutes_absentes %}is-neg{% endif %}">{{ c.minutes_absentes }}<small>min</small></p>
+        <p class="cg3-kpi__caption">{% trans "Contestables ci-dessous" %}</p>
+      </article>
+      <article class="cg3-kpi">
+        <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Estimation (brut)" %}</p><span class="cg3-kpi__icon ax-tone-violet"><i class="fas fa-coins" aria-hidden="true"></i></span></div>
+        <p class="cg3-kpi__value">{% if c.brut != None %}{{ c.brut|floatformat:"0g" }}<small>{{ devise_monnaie }}</small>{% else %}—{% endif %}</p>
+        <p class="cg3-kpi__caption">{% trans "Du 1er du mois à aujourd’hui" %}</p>
+      </article>
+    </section>
+    {% endwith %}
+
+    <section class="axd-card cg3-block">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Mes séances du mois" %}</h2></div></header>
+      {% if historique %}
+      <div class="pt-history">
+        {% for s in historique %}
+        <div class="pt-history__row">
+          <span class="cg3-acc">{{ s.date|date:"D d/m" }} · {{ s.heure_debut|time:"H:i" }}</span>
+          <span class="pt-history__cls">{{ s.classe.nom }}<small class="muted"> {{ s.matiere.nom|default:"" }}</small></span>
+          {% include 'school_admin/directeur/volume_horaire/partials/_statut.html' %}
+          {% if s.statut == 'absente' and not s.absence_justifiee and not s.paie_id %}
+          <details class="pt-contest"><summary class="cg3-btn cg3-btn--sm">{% trans "Contester" %}</summary>
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="contester"><input type="hidden" name="seance_id" value="{{ s.pk }}">
+              <textarea name="motif" class="cg3-input" rows="2" required minlength="10" placeholder="{% trans 'Expliquez pourquoi le cours a bien eu lieu' %}"></textarea>
+              <button type="submit" class="cg3-btn cg3-btn--sm cg3-btn--primary">{% trans "Envoyer" %}</button>
+            </form>
+          </details>
+          {% elif s.libelles_anomalies and s.statut == 'a_verifier' %}<small class="pt-anom" title="{{ s.libelles_anomalies|join:' · ' }}">{{ s.libelles_anomalies|length }} {% trans "alerte(s)" %}</small>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="cg3-empty"><i class="fas fa-inbox" aria-hidden="true"></i><span>{% trans "Aucune séance passée ce mois-ci." %}</span></div>
+      {% endif %}
+    </section>
+    {% endif %}
+  </main>
+
+  {# ---------- Scanner ---------- #}
+  <div class="cg3-modal" id="pt-scan" role="dialog" aria-modal="true" aria-labelledby="pt-scan-title" hidden>
+    <div class="cg3-modal__panel cg3-modal__panel--sm">
+      <div class="cg3-modal__head"><h2 id="pt-scan-title"><i class="fas fa-qrcode" aria-hidden="true"></i>{% trans "Scanner le QR de la borne" %}</h2><button type="button" class="cg3-btn cg3-btn--sm" data-cg3-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+      <p class="cg3-head__sub" data-seance-libelle></p>
+      <div id="pt-reader" class="pt-reader"></div>
+      <form method="post" id="pt-form-scan" class="pt-scan-form">
+        {% csrf_token %}<input type="hidden" name="action" value="commencer"><input type="hidden" name="seance_id" value=""><input type="hidden" name="qr" value="">
+        <label class="cg3-field"><span>{% trans "Ou tapez le code à 6 chiffres affiché sous le QR" %}</span><input type="text" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" data-code placeholder="123 456"></label>
+        <button type="submit" class="cg3-btn cg3-btn--primary cg3-btn--block"><i class="fas fa-play" aria-hidden="true"></i>{% trans "Commencer" %}</button>
+        <details class="pt-noqr"><summary>{% trans "Je ne peux pas scanner (borne en panne, téléphone…)" %}</summary>
+          <label class="cg3-field"><span>{% trans "Raison" %}</span><input type="text" name="motif_sans_qr" maxlength="200" placeholder="{% trans 'Ex. la borne est éteinte' %}"></label>
+          <p class="cg3-head__sub">{% trans "Le cours sera ouvert mais vérifié par la direction avant d’être payé." %}</p>
+        </details>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'school_admin/js/directeur/cg_v3.js' %}?v=1.0.1"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script>
+    (function () {
+      var form = document.getElementById('pt-form-scan');
+      var scanner = null;
+      function stop() { if (scanner) { scanner.stop().catch(function () {}); scanner = null; } }
+      document.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-seance]');
+        if (b) {
+          form.seance_id.value = b.dataset.seance;
+          document.querySelector('[data-seance-libelle]').textContent = b.dataset.libelle;
+          if (window.Html5Qrcode) {
+            scanner = new Html5Qrcode('pt-reader');
+            scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 230 }, function (texte) {
+              if (texte.indexOf('ARIA-POINTAGE:') !== 0) return;
+              form.qr.value = texte; stop(); form.submit();
+            }).catch(function () { document.getElementById('pt-reader').innerHTML = '<p class="cg3-head__sub">{% trans "Caméra indisponible : tapez le code à 6 chiffres." %}</p>'; });
+          }
+        }
+        if (e.target.closest('[data-cg3-close]')) stop();
+      });
+      form.addEventListener('submit', function (e) {
+        var code = (form.querySelector('[data-code]').value || '').replace(/\s/g, '');
+        if (!form.qr.value && code) form.qr.value = code;
+        if (!form.qr.value && !form.motif_sans_qr.value.trim()) { e.preventDefault(); form.querySelector('[data-code]').focus(); }
+      });
+    })();
+  </script>
+  {% if ns == 'enseignant_primaire' %}
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+    {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
+  {% else %}
+    {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
+  {% endif %}
+</body>
+</html>

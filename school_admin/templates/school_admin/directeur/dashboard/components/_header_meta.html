@@ -1,0 +1,28 @@
+{% load i18n %}
+<div class="dbd-hero-meta">
+  <span class="dbd-hero-date"><i class="fas fa-clock" aria-hidden="true"></i> {% now "l j F Y" %}</span>
+  {% if dashboard_freshness.freshness_label %}
+  <span class="dbd-hero-freshness" title="{% trans 'Horodatage serveur — pas un flux temps réel' %}">
+    <i class="fas fa-arrows-rotate" aria-hidden="true"></i> {{ dashboard_freshness.freshness_label }}
+  </span>
+  {% endif %}
+  {% if dashboard_ctx %}
+  <span class="dbd-hero-vue">
+    {% if dashboard_ctx.is_executive %}
+      {% trans "Vue exécutive" %}
+    {% else %}
+      {% trans "Vue analytique" %}
+    {% endif %}
+  </span>
+  {% endif %}
+  <a href="{{ request.path }}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+     class="dbd-hero-refresh"
+     title="{% trans 'Actualiser' %}">
+    <i class="fas fa-sync-alt" aria-hidden="true"></i> {% trans "Actualiser" %}
+  </a>
+  {% if dashboard_ctx and dashboard_ctx.is_executive %}
+  <a href="?{{ dashboard_vue_toggle_qs }}" class="dbd-hero-vue-link">{% trans "Mode analytique" %}</a>
+  {% elif dashboard_ctx %}
+  <a href="?{{ dashboard_vue_toggle_qs }}" class="dbd-hero-vue-link">{% trans "Mode exécutif" %}</a>
+  {% endif %}
+</div>

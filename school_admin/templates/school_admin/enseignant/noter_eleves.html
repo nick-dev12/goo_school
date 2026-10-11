@@ -219,13 +219,13 @@
                                     {% if session_examen %}
                                         {% with note_examen=notes_examen_par_eleve|get_item:eleve.id %}
                                         <td class="note-cell has-evaluation examen-cell {% if note_examen and note_examen.note %}note-saved{% endif %}">
-                                            <input type="number" 
+                                            <input type="text" inputmode="decimal" title="Note sur 20 ou ABS"
                                                    name="note_examen_{{ eleve.id }}" 
                                                    class="note-input examen-input {% if note_examen and note_examen.note %}saved{% endif %}{% if releve_notes.soumis %} locked{% endif %}" 
                                                    min="0" 
                                                    max="20" 
                                                    step="0.5" 
-                                                   value="{% if note_examen and not note_examen.absent and note_examen.note %}{{ note_examen.note|format_note }}{% endif %}"
+                                                   value="{% if note_examen and not note_examen.absent and note_examen.note is not None %}{{ note_examen.note|format_note }}{% endif %}"
                                                    placeholder="--"
                                                    data-type="examen" 
                                                    data-max="20"

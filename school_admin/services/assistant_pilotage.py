@@ -47,7 +47,8 @@ def _safe_decimal(value):
 logger = logging.getLogger(__name__)
 
 ZERO = Decimal('0.00')
-PRESENCE_PRESENT = frozenset({'present', 'retard'})
+# Décision produit (2026-10-02) : un retard n’est pas une présence.
+PRESENCE_PRESENT = frozenset({'present'})
 PRESENCE_ABSENT = frozenset({'absent', 'absent_justifie'})
 IMPAYES_STATUTS = frozenset({'en_retard', 'impaye', 'en_attente'})
 

@@ -1,0 +1,58 @@
+{% load i18n %}
+{# Variables : fiche, presence_url (URL de modification avec 0 à remplacer, enseignant seulement). #}
+<div class="fe-grid">
+  <article class="fe-card fe-col-5 fe-tone-green">
+    <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-user-check" aria-hidden="true"></i>{% trans "Bilan de l’année" %}</h2></header>
+    <div class="fe-money">
+      <div class="is-total"><span>{% trans "Taux de présence" %}</span><b>{% if fiche.presence.taux != None %}{{ fiche.presence.taux|floatformat:"-1" }} %{% else %}—{% endif %}</b></div>
+      <div><span>{% trans "Appels" %}</span><b>{{ fiche.presence.total }}</b></div>
+      <div><span>{% trans "Absences non justifiées" %}</span><b {% if fiche.presence.non_justifiees %}style="color:var(--ax-bad)"{% endif %}>{{ fiche.presence.non_justifiees }}</b></div>
+      <div><span>{% trans "Absences justifiées" %}</span><b>{{ fiche.presence.justifiees }}</b></div>
+      <div><span>{% trans "Retards" %}</span><b>{{ fiche.presence.retards }}</b></div>
+    </div>
+  </article>
+  <article class="fe-card fe-col-7 fe-tone-green">
+    <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-chart-column" aria-hidden="true"></i>{% trans "Présence par mois" %}</h2><p class="fe-card__sub">{% trans "Part des appels où l’élève était présent." %}</p></div></header>
+    {% if fiche.presence.mois_items %}
+    <div class="fe-months" role="img" aria-label="{% trans 'Taux de présence des derniers mois' %}">
+      {% for l, v in fiche.presence.mois_items %}
+      <div class="fe-month" title="{{ l }} : {{ v }} %"><b>{{ v|floatformat:0 }}%</b><span class="fe-month__bar{% if v < 85 %} is-bad{% elif v < 95 %} is-warn{% endif %}" style="height: {{ v|floatformat:0 }}%"></span><small>{{ l }}</small></div>
+      {% endfor %}
+    </div>
+    {% else %}<div class="cg3-empty"><i class="fas fa-calendar" aria-hidden="true"></i><span>{% trans "Aucun appel enregistré." %}</span></div>{% endif %}
+  </article>
+  <article class="fe-card fe-col-12">
+    <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-list" aria-hidden="true"></i>{% trans "Absences et retards" %}</h2>
+    {% if presence_url %}<p class="fe-card__sub">{% trans "Vous pouvez corriger un appel que vous avez fait par erreur." %}</p>{% endif %}</div></header>
+    {% if fiche.presence.recentes %}
+    <div class="fe-rows">
+      {% for p in fiche.presence.recentes %}
+      <div class="fe-row">
+        <span class="fe-row__date"><b>{{ p.date|date:"d/m" }}</b>{{ p.date|date:"D Y" }}</span>
+        <span class="fe-row__main"><strong>{{ p.libelle }}</strong><small>{% if p.professeur %}{% trans "Appel de" %} {{ p.professeur.nom_complet }}{% endif %}{% if p.motif %} · {{ p.motif }}{% endif %}</small></span>
+        <span style="display:flex;gap:6px;align-items:center">
+          <span class="cg3-chip {% if p.statut == 'absent' %}cg3-chip--bad{% elif p.statut == 'retard' %}cg3-chip--warn{% else %}cg3-chip--muted{% endif %}">{{ p.libelle }}</span>
+          {% if presence_url and p.professeur_id == request.user.id %}<button type="button" class="cg3-btn cg3-btn--sm" data-fe-presence="{{ p.id }}" data-statut="{{ p.statut }}" data-date="{{ p.date|date:'d/m/Y' }}"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Corriger" %}</button>{% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}<div class="cg3-empty"><i class="fas fa-circle-check" aria-hidden="true"></i><span>{% trans "Aucune absence ni retard cette année." %}</span></div>{% endif %}
+  </article>
+</div>
+{% if presence_url %}
+<div class="cg3-modal" id="fe-presence" role="dialog" aria-modal="true" aria-labelledby="fe-presence-titre" hidden>
+  <div class="cg3-modal__panel" style="max-width:420px">
+    <div class="cg3-modal__head"><h2 id="fe-presence-titre"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Corriger l’appel" %}</h2><button type="button" class="cg3-btn cg3-btn--sm" data-fe-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+    <form method="post" class="fe-modal-form" data-url="{{ presence_url }}">
+      {% csrf_token %}
+      <p class="fe-card__sub">{% trans "Appel du" %} <strong data-fe-presence-date></strong></p>
+      <div class="fe-radio-row">
+        <label><input type="radio" name="statut" value="present"> <i class="fas fa-circle-check" style="color:var(--ax-good)" aria-hidden="true"></i>{% trans "Présent" %}</label>
+        <label><input type="radio" name="statut" value="absent"> <i class="fas fa-circle-xmark" style="color:var(--ax-bad)" aria-hidden="true"></i>{% trans "Absent" %}</label>
+      </div>
+      <div class="cg3-row-actions" style="justify-content:flex-end"><button type="button" class="cg3-btn" data-fe-close>{% trans "Annuler" %}</button><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-floppy-disk" aria-hidden="true"></i>{% trans "Enregistrer" %}</button></div>
+    </form>
+  </div>
+</div>
+{% endif %}

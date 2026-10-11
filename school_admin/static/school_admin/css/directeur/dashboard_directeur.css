@@ -1575,6 +1575,93 @@ p {
   border-radius: 999px;
 }
 
+.dbd-hero-badge--warn {
+  background: var(--warning-light, rgba(251, 191, 36, 0.15));
+  color: var(--gray-800);
+}
+
+.dbd-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.65rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  width: 100%;
+}
+
+.dbd-hero-refresh,
+.dbd-hero-vue-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dbd-hero-refresh:hover,
+.dbd-hero-vue-link:hover {
+  text-decoration: underline;
+}
+
+.dbd-ui-empty,
+.dbd-ui-error {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: var(--text-secondary);
+  border-radius: 10px;
+  border: 1px dashed var(--gray-200);
+  background: var(--gray-50);
+}
+
+.dbd-ui-error {
+  border-color: rgba(239, 68, 68, 0.25);
+  background: var(--accent-light);
+}
+
+.dbd-ui-skeleton {
+  padding: 1rem;
+}
+
+.dbd-ui-skeleton-line {
+  height: 0.65rem;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--gray-100) 25%,
+    var(--gray-200) 50%,
+    var(--gray-100) 75%
+  );
+  background-size: 200% 100%;
+  animation: dbdSkeleton 1.2s ease-in-out infinite;
+  margin-bottom: 0.5rem;
+}
+
+.dbd-ui-skeleton-line.wide {
+  width: 85%;
+}
+
+.dbd-ui-skeleton-line.short {
+  width: 45%;
+}
+
+@keyframes dbdSkeleton {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dbd-ui-skeleton-line {
+    animation: none;
+  }
+}
+
 .dbd-activites-tabs {
   margin-bottom: 1rem;
 }

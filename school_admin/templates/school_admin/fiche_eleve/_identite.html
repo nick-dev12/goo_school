@@ -1,0 +1,15 @@
+{% load i18n %}
+<article class="fe-card fe-tone-violet">
+  <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-id-card" aria-hidden="true"></i>{% trans "Identité et scolarité" %}</h2></header>
+  <dl class="fe-dl">
+    <div><dt>{% trans "Nom" %}</dt><dd>{{ eleve.nom }}</dd></div>
+    <div><dt>{% trans "Prénom(s)" %}</dt><dd>{{ eleve.prenom }}</dd></div>
+    <div><dt>{% trans "Né(e) le" %}</dt><dd>{% if eleve.date_naissance %}{{ eleve.date_naissance|date:"d/m/Y" }}{% if eleve.lieu_naissance %} {% trans "à" %} {{ eleve.lieu_naissance }}{% endif %}{% else %}<span class="is-empty is-warn">{% trans "Non renseigné" %}</span>{% endif %}</dd></div>
+    <div><dt>{% trans "Nationalité" %}</dt><dd>{{ eleve.get_nationalite_display|default:eleve.nationalite|default:"—" }}</dd></div>
+    <div><dt>{% trans "Adresse" %}</dt><dd>{{ eleve.adresse|default:"—"|linebreaksbr }}</dd></div>
+    <div><dt>{% trans "Classe" %}</dt><dd>{% if fiche.classe %}{{ fiche.classe.nom }} · {{ fiche.classe.get_niveau_display }}{% else %}<span class="is-empty is-warn">{% trans "Aucune classe cette année" %}</span>{% endif %}</dd></div>
+    <div><dt>{% trans "Année scolaire" %}</dt><dd>{{ annee_scolaire_active.libelle|default:"—" }}</dd></div>
+    <div><dt>{% trans "Type d’inscription" %}</dt><dd>{{ eleve.get_statut_display|default:"—" }}</dd></div>
+    <div><dt>{% trans "Matricule" %}</dt><dd>{{ eleve.matricule_eleve|default:eleve.numero_eleve|default:"—" }}</dd></div>
+  </dl>
+</article>

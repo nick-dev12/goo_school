@@ -1,6 +1,8 @@
 """Caisse école, paie du mois et absences / remplacements enseignants."""
 from decimal import Decimal
 
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils import timezone
 
@@ -63,6 +65,47 @@ class DepenseEtablissement(models.Model):
         related_name='depenses_caisse_enregistrees',
         verbose_name="Enregistré par",
     )
+    statut = models.CharField(
+        max_length=12,
+        choices=[
+            ('brouillon', 'Brouillon'),
+            ('validee', 'Validée'),
+            ('annulee', 'Annulée'),
+        ],
+        default='validee',
+    )
+    categorie = models.ForeignKey(
+        'school_admin.CategorieFinanciere',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='depenses',
+    )
+    compte_tresorerie = models.ForeignKey(
+        'school_admin.CompteTresorerie',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='depenses',
+    )
+    fournisseur = models.ForeignKey(
+        'school_admin.FournisseurEtablissement',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='depenses_immediates',
+    )
+    motif_annulation = models.TextField(blank=True, default='')
+    date_annulation = models.DateTimeField(null=True, blank=True)
+    annule_content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='depenses_annulees',
+    )
+    annule_object_id = models.PositiveIntegerField(null=True, blank=True)
+    annule_par = GenericForeignKey('annule_content_type', 'annule_object_id')
 
     class Meta:
         verbose_name = "Dépense d'établissement"
@@ -113,6 +156,17 @@ class PaieProfesseurPeriode(models.Model):
         verbose_name="Charges %",
     )
     montant_net = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Net versé")
+    # Détail du calcul à partir des séances pointées.
+    type_contrat = models.CharField(max_length=12, blank=True, default='vacataire')
+    nb_seances = models.PositiveIntegerField(default=0)
+    salaire_base = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    heures_sup = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.00'))
+    montant_heures_sup = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    retenue_absences = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    compte_tresorerie = models.ForeignKey(
+        'school_admin.CompteTresorerie', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='paies_professeurs',
+    )
     date_paiement = models.DateTimeField(default=timezone.now, verbose_name="Payé le")
     enregistre_par = models.ForeignKey(
         'school_admin.CompteUser',

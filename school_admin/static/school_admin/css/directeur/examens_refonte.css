@@ -1,0 +1,106 @@
+/* Examens — refonte : nature de session, publication, avancement, règles, planning (sans dégradés) */
+:root {
+    --exr-brand: var(--ax-brand, #1d4ed8);
+    --exr-ink: #0f172a;
+    --exr-muted: #64748b;
+    --exr-line: #e2e8f0;
+    --exr-soft: #f8fafc;
+}
+
+/* Rappel des règles */
+.exr-regles { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; background: #fff; border: 1px solid var(--exr-line); border-radius: .9rem; padding: .7rem .9rem; margin: .8rem 0; }
+.exr-regles__title { font-weight: 600; font-size: .85rem; color: var(--exr-ink); margin-right: .3rem; }
+.exr-regles__title i { color: var(--exr-brand); }
+.exr-pill { font-size: .78rem; color: var(--exr-muted); background: var(--exr-soft); border: 1px solid var(--exr-line); border-radius: 999px; padding: .22rem .65rem; }
+.exr-pill strong { color: var(--exr-ink); font-weight: 600; }
+
+/* Badges de session */
+.exr-badges { display: flex; flex-wrap: wrap; gap: .3rem; margin: .25rem 0 .2rem; }
+.exr-badge { display: inline-flex; align-items: center; gap: .3rem; font-size: .7rem; font-weight: 600; padding: .15rem .55rem; border-radius: 999px; background: #eef2ff; color: #3730a3; }
+.exr-badge--composition { background: #eff6ff; color: #1d4ed8; }
+.exr-badge--examen { background: #ecfeff; color: #0e7490; }
+.exr-badge--examen_blanc { background: #f5f3ff; color: #6d28d9; }
+.exr-badge--rattrapage { background: #fff7ed; color: #c2410c; }
+.exr-badge--muted { background: #f1f5f9; color: var(--exr-muted); }
+.exr-badge--ok { background: #f0fdf4; color: #15803d; }
+.exr-badge--warn { background: #fffbeb; color: #b45309; }
+.exr-badge--danger { background: #fef2f2; color: #b91c1c; }
+
+/* Avancement */
+.exr-progress { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .8rem; font-size: .75rem; color: var(--exr-muted); margin-top: .35rem; }
+.exr-progress strong { color: var(--exr-ink); }
+.exr-bar { flex: 1 1 80px; min-width: 80px; height: 6px; border-radius: 999px; background: #e2e8f0; overflow: hidden; }
+.exr-bar > span { display: block; height: 100%; background: #16a34a; border-radius: 999px; }
+.exr-warn { margin: .3rem 0 0; font-size: .75rem; color: #b45309; }
+.exr-inline-form { display: inline; margin: 0; }
+
+/* Nature de session dans les formulaires */
+.exr-types { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
+.exr-type { position: relative; cursor: pointer; }
+.exr-type input { position: absolute; opacity: 0; pointer-events: none; }
+.exr-type__body { display: block; height: 100%; box-sizing: border-box; border: 1.5px solid var(--exr-line); border-radius: .75rem; padding: .65rem .8rem; background: #fff; }
+.exr-type__body strong { display: block; font-size: .86rem; color: var(--exr-ink); }
+.exr-type__body small { display: block; font-size: .74rem; color: var(--exr-muted); margin-top: .2rem; line-height: 1.35; }
+.exr-type input:checked + .exr-type__body { border-color: var(--exr-brand); background: #eff6ff; }
+.exr-type input:focus-visible + .exr-type__body { outline: 2px solid #93c5fd; }
+.exr-switches { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; margin-top: .8rem; }
+.exr-switch { display: inline-flex; align-items: center; gap: .5rem; font-size: .85rem; color: var(--exr-ink); cursor: pointer; }
+.exr-switch input { width: 1.05rem; height: 1.05rem; accent-color: var(--exr-brand); }
+
+/* Modale des règles */
+.exr-modal { position: fixed; inset: 0; z-index: 3000; display: none; align-items: center; justify-content: center; background: rgba(15, 23, 42, .45); padding: 16px; }
+.exr-modal.is-open { display: flex; }
+.exr-modal__box { width: 100%; max-width: 560px; max-height: 92vh; overflow: auto; background: #fff; border-radius: 1rem; box-shadow: 0 20px 50px rgba(15, 23, 42, .25); }
+.exr-modal__head { display: flex; justify-content: space-between; align-items: center; background: var(--exr-brand); color: #fff; padding: .9rem 1.1rem; }
+.exr-modal__head h2 { margin: 0; font-size: 1.05rem; color: #fff; }
+.exr-modal__close { background: transparent; border: 0; color: #fff; font-size: 1.6rem; line-height: 1; cursor: pointer; }
+.exr-modal__body { padding: 1rem 1.1rem; display: grid; gap: .9rem; }
+.exr-modal__foot { display: flex; justify-content: flex-end; gap: .5rem; padding: .8rem 1.1rem; border-top: 1px solid var(--exr-line); background: var(--exr-soft); }
+.exr-field { border: 1px solid var(--exr-line); border-radius: .75rem; padding: .7rem .85rem; margin: 0; display: grid; gap: .4rem; font-size: .86rem; color: var(--exr-ink); }
+.exr-field legend { font-weight: 600; padding: 0 .3rem; }
+.exr-field label { display: flex; gap: .5rem; align-items: center; }
+.exr-field input[type="number"] { border: 1px solid #cbd5e1; border-radius: .55rem; padding: .45rem .6rem; font: inherit; }
+.exr-help { margin: 0; font-size: .76rem; color: var(--exr-muted); }
+.exr-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+
+/* Planning d'une session */
+.exr-plan { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.exr-card { background: #fff; border: 1px solid var(--exr-line); border-radius: 1rem; overflow: hidden; }
+.exr-card__head { padding: .8rem 1rem; border-bottom: 1px solid var(--exr-line); display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.exr-card__head h2 { margin: 0; font-size: .98rem; color: var(--exr-ink); }
+.exr-card__body { padding: .9rem 1rem; }
+.exr-form { display: grid; gap: .7rem; }
+.exr-form label { display: grid; gap: .3rem; font-size: .8rem; font-weight: 600; color: var(--exr-muted); }
+.exr-form input, .exr-form select, .exr-form textarea { border: 1px solid #cbd5e1; border-radius: .55rem; padding: .55rem .65rem; font: inherit; font-size: .9rem; color: var(--exr-ink); background: #fff; width: 100%; box-sizing: border-box; }
+.exr-form input:focus, .exr-form select:focus, .exr-form textarea:focus { outline: 2px solid #bfdbfe; border-color: var(--exr-brand); }
+.exr-form .exr-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.exr-form button[type="submit"] { justify-self: stretch; justify-content: center; }
+.exr-todo { display: flex; flex-wrap: wrap; gap: .35rem; }
+.exr-todo button { border: 1px dashed #f59e0b; background: #fffbeb; color: #92400e; border-radius: 999px; padding: .25rem .7rem; font: inherit; font-size: .78rem; cursor: pointer; }
+.exr-todo button:hover { background: #fef3c7; }
+.exr-day { border-top: 1px solid var(--exr-line); }
+.exr-day:first-child { border-top: 0; }
+.exr-day__title { margin: 0; padding: .6rem 1rem; background: var(--exr-soft); font-size: .82rem; font-weight: 600; color: var(--exr-ink); text-transform: capitalize; }
+.exr-slot { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: .8rem; align-items: center; padding: .7rem 1rem; border-top: 1px solid #f1f5f9; }
+.exr-slot__time { font-weight: 700; color: var(--exr-brand); font-size: .9rem; }
+.exr-slot__time small { display: block; color: var(--exr-muted); font-weight: 500; font-size: .74rem; }
+.exr-slot__main strong { display: block; color: var(--exr-ink); }
+.exr-slot__meta { display: flex; flex-wrap: wrap; gap: .3rem .8rem; font-size: .78rem; color: var(--exr-muted); margin-top: .15rem; }
+.exr-icon-btn { border: 1px solid #fecaca; background: #fff; color: #b91c1c; border-radius: .5rem; width: 2rem; height: 2rem; cursor: pointer; }
+.exr-icon-btn:hover { background: #fef2f2; }
+.exr-empty { text-align: center; padding: 2rem 1rem; color: var(--exr-muted); }
+.exr-empty i { font-size: 1.6rem; display: block; margin-bottom: .4rem; color: #cbd5e1; }
+
+@media (max-width: 900px) {
+    .exr-plan { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+    .exr-types, .exr-grid2, .exr-form .exr-row2 { grid-template-columns: 1fr; }
+    .exr-slot { grid-template-columns: 1fr auto; }
+    .exr-slot__time { grid-column: 1 / -1; }
+}
+
+/* Conteneur commun aux pages examens qui ne chargent pas gestion_examens.css */
+.gex-page-body { background: #f9fafb; font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.content-container.gex-page { max-width: 1400px; margin: 0 auto; padding: 1rem 1.5rem 5rem; box-sizing: border-box; }
+@media (max-width: 768px) { .content-container.gex-page { padding: .75rem 16px 5.5rem; } }

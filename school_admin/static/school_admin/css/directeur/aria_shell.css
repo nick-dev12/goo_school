@@ -1,0 +1,864 @@
+/* ==========================================================================
+   Aria — coquille de l'espace direction (barre latérale, barre supérieure,
+   barre mobile). Couleurs à plat, aucun dégradé.
+   ========================================================================== */
+:root {
+  --ax-bg: #f5f6f8;
+  --ax-surface: #ffffff;
+  --ax-surface-2: #f9fafb;
+  --ax-line: rgba(16, 24, 40, 0.08);
+  --ax-line-strong: rgba(16, 24, 40, 0.14);
+  --ax-ink: #101828;
+  --ax-ink-2: #475467;
+  --ax-muted: #8a919e;
+  --ax-brand: #2a5bd7;
+  --ax-brand-ink: #1d47b3;
+  --ax-brand-soft: #eef3fe;
+  --ax-good: #0f7b4a;
+  --ax-good-soft: #e9f6ef;
+  --ax-warn: #9a5b00;
+  --ax-warn-soft: #fff5e1;
+  --ax-bad: #c0352e;
+  --ax-bad-soft: #fdeceb;
+  --ax-radius: 16px;
+  --ax-radius-sm: 10px;
+  --ax-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --ax-shadow-pop: 0 12px 32px rgba(16, 24, 40, 0.12), 0 2px 6px rgba(16, 24, 40, 0.06);
+  --ax-topbar-h: 64px;
+  --ax-dock-h: 104px;
+  --ax-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body:has(.ax-dock) {
+  font-family: var(--ax-font);
+  background: var(--ax-bg);
+  color: var(--ax-ink);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* L'ancienne feuille impose Poppins à tous les éléments (« * ») : Inter partout dans
+   l'espace direction, sauf sur les icônes Font Awesome. */
+body:has(.ax-dock) *:not(i):not(.fa):not(.fas):not(.far):not(.fab):not([class*="fa-"]) {
+  font-family: var(--ax-font);
+}
+
+/* Les anciennes marges prévues pour l'ancien en-tête fixe n'ont plus lieu d'être. */
+body:has(.ax-dock) .container {
+  margin-top: 24px !important;
+}
+
+.ax-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Éléments partagés ---------- */
+.ax-icon-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ax-ink-2);
+  cursor: pointer;
+  position: relative;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ax-icon-btn:hover {
+  background: var(--ax-surface-2);
+  color: var(--ax-ink);
+}
+
+.ax-icon-btn:focus-visible,
+.ax-nav__link:focus-visible,
+.ax-tab:focus-visible {
+  outline: 2px solid var(--ax-brand);
+  outline-offset: 2px;
+}
+
+.ax-school-mark {
+  flex: 0 0 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--ax-brand);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+.ax-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 14px 16px;
+}
+
+.ax-nav__group + .ax-nav__group {
+  margin-top: 14px;
+}
+
+.ax-nav__title {
+  margin: 10px 10px 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ax-muted);
+}
+
+.ax-nav__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  margin: 2px 0;
+  border-radius: 10px;
+  color: var(--ax-ink-2);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ax-nav__link i {
+  width: 20px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--ax-muted);
+  transition: color 0.15s ease;
+}
+
+.ax-nav__link:hover {
+  background: var(--ax-surface-2);
+  color: var(--ax-ink);
+}
+
+.ax-nav__link:hover i {
+  color: var(--ax-ink-2);
+}
+
+.ax-nav__link.is-active {
+  background: var(--ax-brand-soft);
+  color: var(--ax-brand-ink);
+  font-weight: 600;
+}
+
+.ax-nav__link.is-active i {
+  color: var(--ax-brand);
+}
+
+.ax-nav__badge {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--ax-bad);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.ax-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.ax-user:hover {
+  background: var(--ax-surface-2);
+}
+
+.ax-avatar {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #1f2a44;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.ax-user__text {
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.ax-user__name {
+  font-size: 0.84rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ax-user__role {
+  font-size: 0.72rem;
+  color: var(--ax-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Barre supérieure ---------- */
+.ax-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 800;
+  height: var(--ax-topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(180%) blur(10px);
+  border-bottom: 1px solid var(--ax-line);
+}
+
+.ax-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ax-topbar__logo img {
+  height: 28px;
+  width: auto;
+  display: block;
+}
+
+.ax-session {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ax-session__label {
+  font-size: 0.78rem;
+  color: var(--ax-muted);
+  white-space: nowrap;
+}
+
+.ax-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 36px;
+  padding: 0 32px 0 12px;
+  border: 1px solid var(--ax-line-strong);
+  border-radius: 10px;
+  background-color: var(--ax-surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475467' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  color: var(--ax-ink);
+  font: 500 0.84rem var(--ax-font);
+  cursor: pointer;
+  max-width: 220px;
+  text-overflow: ellipsis;
+}
+
+.ax-select:hover {
+  border-color: rgba(16, 24, 40, 0.24);
+}
+
+.ax-select:focus-visible {
+  outline: 2px solid var(--ax-brand);
+  outline-offset: 1px;
+}
+
+.ax-session__warn {
+  color: var(--ax-warn);
+  font-size: 0.9rem;
+}
+
+.ax-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ax-search {
+  position: relative;
+  display: none;
+}
+
+.ax-search i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ax-muted);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.ax-search input {
+  width: 240px;
+  height: 38px;
+  padding: 0 52px 0 36px;
+  border: 1px solid var(--ax-line);
+  border-radius: 10px;
+  background: var(--ax-surface-2);
+  color: var(--ax-ink);
+  font: 400 0.86rem var(--ax-font);
+  transition: border-color 0.15s ease, background 0.15s ease, width 0.2s ease;
+}
+
+.ax-search input::placeholder {
+  color: var(--ax-muted);
+}
+
+.ax-search input:focus {
+  outline: none;
+  background: var(--ax-surface);
+  border-color: var(--ax-brand);
+  width: 320px;
+}
+
+.ax-search kbd {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 2px 6px;
+  border: 1px solid var(--ax-line-strong);
+  border-radius: 6px;
+  background: var(--ax-surface);
+  color: var(--ax-muted);
+  font: 500 0.68rem var(--ax-font);
+}
+
+.ax-dot-badge {
+  position: absolute;
+  top: 4px;
+  right: 3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  border: 2px solid var(--ax-surface);
+  background: var(--ax-bad);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+}
+
+.ax-topbar__divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 6px;
+  background: var(--ax-line);
+}
+
+.ax-topbar .ax-user {
+  padding: 4px 6px 4px 4px;
+}
+
+.ax-topbar .ax-user__text {
+  display: none;
+}
+
+/* Sélecteur de langue : on l'allège pour qu'il suive la barre. */
+.ax-topbar .gtranslate-header-bar,
+.ax-topbar [class*="gtranslate"] {
+  transform: scale(0.92);
+}
+
+.ax-pwa-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--ax-line-strong);
+  border-radius: 10px;
+  background: var(--ax-surface);
+  color: var(--ax-ink);
+  font: 500 0.8rem var(--ax-font);
+  cursor: pointer;
+}
+
+/* Feuille « Plus » */
+.ax-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 960;
+  background: rgba(16, 24, 40, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.ax-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 970;
+  max-height: 82vh;
+  overflow-y: auto;
+  padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background: var(--ax-surface);
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+}
+
+html.ax-sheet-open .ax-sheet-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+html.ax-sheet-open .ax-sheet {
+  transform: translateY(0);
+}
+
+html.ax-sheet-open,
+html.ax-sheet-open body {
+  overflow: hidden;
+}
+
+.ax-sheet__grip {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 12px;
+  border-radius: 999px;
+  background: var(--ax-line-strong);
+}
+
+.ax-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.ax-sheet__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.ax-sheet .ax-nav {
+  padding: 0;
+  overflow: visible;
+}
+
+.ax-sheet .ax-nav__link {
+  padding: 12px 10px;
+  font-size: 0.95rem;
+}
+
+.ax-sheet .ax-nav__link.is-active::before {
+  display: none;
+}
+
+/* ---------- Points de rupture ---------- */
+@media (max-width: 1023.98px) {
+  .ax-session__label {
+    display: none;
+  }
+
+  .ax-select {
+    max-width: 200px;
+  }
+
+  .ax-hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .ax-topbar {
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .ax-topbar__logo {
+    display: none;
+  }
+
+  .ax-select {
+    max-width: 180px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ax-topbar {
+    padding: 0 28px;
+  }
+
+  .ax-sheet,
+  .ax-sheet-backdrop {
+    display: none;
+  }
+
+  .ax-search {
+    display: block;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ax-topbar .ax-user__text {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ax-sheet,
+  .ax-sheet-backdrop,
+  .ax-dock__item,
+  .ax-dock__icon {
+    transition: none !important;
+  }
+}
+
+@media print {
+  .ax-dock,
+  .ax-topbar,
+  .ax-sheet,
+  .ax-sheet-backdrop {
+    display: none !important;
+  }
+
+  body:has(.ax-dock) {
+    padding: 0 !important;
+  }
+}
+
+/* ---------- Assistant vocal : bouton au-dessus de la barre du bas ---------- */
+body:has(.ax-dock) .assistant-vocal-root {
+  right: 20px;
+  bottom: calc(var(--ax-dock-h) + 20px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Bouton d'activation des notifications : discret, aligné sur le contenu. */
+body:has(.ax-dock) .btn-activate-notifications {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  height: 34px;
+  margin: 0 0 16px;
+  padding: 0 14px;
+  border: 1px solid var(--ax-line-strong);
+  border-radius: 999px;
+  background: var(--ax-surface);
+  box-shadow: none;
+  color: var(--ax-ink-2);
+  font-size: 0.8rem;
+  font-weight: 550;
+  cursor: pointer;
+  animation: none;
+}
+
+body:has(.ax-dock) .btn-activate-notifications i {
+  color: var(--ax-brand);
+}
+
+/* Le bouton de l'assistant s'efface quand la feuille « Plus » est ouverte. */
+html.ax-sheet-open .assistant-vocal-root {
+  visibility: hidden;
+}
+
+/* ==========================================================================
+   Barre de navigation du bas : horizontale, flottante, icônes sur carrés
+   de couleur unie (aucun dégradé). Ordinateur : toutes les sections ;
+   téléphone : 4 raccourcis + « Menu ».
+   ========================================================================== */
+body:has(.ax-dock) {
+  padding-bottom: calc(var(--ax-dock-h) + 28px + env(safe-area-inset-bottom));
+}
+
+.ax-dock {
+  position: fixed;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 950;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 12px 22px 10px;
+  border: 1px solid var(--ax-line);
+  border-radius: 28px;
+  background: var(--ax-surface);
+  box-shadow: 0 16px 40px rgba(16, 24, 40, 0.12), 0 2px 6px rgba(16, 24, 40, 0.06);
+}
+
+.ax-dock__list {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ax-dock__list--compact {
+  display: none;
+}
+
+.ax-dock__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 84px;
+  padding: 4px 8px 10px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ax-ink-2);
+  font: 500 0.84rem var(--ax-font);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.ax-dock__icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  color: #fff;
+  font-size: 1.15rem;
+  box-shadow: 0 4px 10px rgba(16, 24, 40, 0.14);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ax-dock__label {
+  white-space: nowrap;
+}
+
+.ax-dock__item:hover .ax-dock__icon {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(16, 24, 40, 0.18);
+}
+
+.ax-dock__item:hover {
+  color: var(--ax-ink);
+}
+
+.ax-dock__item:focus-visible {
+  outline: 2px solid var(--ax-brand);
+  outline-offset: 2px;
+}
+
+/* Section active : carré plus grand, anneau, libellé en couleur et soulignement. */
+.ax-dock__item.is-active {
+  color: var(--ax-brand);
+  font-weight: 600;
+}
+
+.ax-dock__item.is-active .ax-dock__icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  font-size: 1.35rem;
+  box-shadow: 0 0 0 4px var(--ax-brand-soft), 0 8px 18px rgba(42, 91, 215, 0.28);
+  transform: translateY(-6px);
+}
+
+.ax-dock__item.is-active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 34px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--ax-brand);
+  transform: translateX(-50%);
+}
+
+/* Couleurs unies des sections */
+.ax-tone-blue { background: #3567e0; }
+.ax-tone-royal { background: #2f62d9; }
+.ax-tone-violet { background: #7c4ddb; }
+.ax-tone-teal { background: #2a9a88; }
+.ax-tone-sky { background: #3aa2dd; }
+.ax-tone-orange { background: #e3832a; }
+.ax-tone-amber { background: #e39a2e; }
+.ax-tone-red { background: #d94848; }
+.ax-tone-green { background: #22a06b; }
+.ax-tone-slate { background: #475467; }
+.ax-tone-menu { background: #7c4ddb; }
+
+/* Écrans moyens : on resserre avant de passer au mode compact. */
+@media (max-width: 1279.98px) {
+  .ax-dock {
+    padding: 10px 14px 8px;
+  }
+
+  .ax-dock__item {
+    min-width: 72px;
+    padding: 4px 4px 10px;
+    font-size: 0.78rem;
+  }
+
+  .ax-dock__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
+  .ax-dock__item.is-active .ax-dock__icon {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+/* Tablette et téléphone : 4 raccourcis + « Menu ». */
+@media (max-width: 1023.98px) {
+  :root {
+    --ax-dock-h: 92px;
+  }
+
+  .ax-dock {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+    transform: none;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    padding: 10px 6px 6px;
+    border-radius: 24px;
+  }
+
+  .ax-dock__list--full {
+    display: none;
+  }
+
+  .ax-dock__list--compact {
+    display: flex;
+    justify-content: space-around;
+    gap: 0;
+  }
+
+  .ax-dock__list--compact li {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  .ax-dock__item {
+    min-width: 0;
+    width: 100%;
+    gap: 6px;
+    padding: 2px 2px 10px;
+    font-size: 0.74rem;
+  }
+
+  .ax-dock__label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ax-dock__icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    font-size: 1.02rem;
+  }
+
+  .ax-dock__item.is-active .ax-dock__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 15px;
+    font-size: 1.15rem;
+    transform: translateY(-4px);
+  }
+
+  .ax-dock__item.is-active::after {
+    width: 26px;
+    height: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ax-dock__item:hover .ax-dock__icon,
+  .ax-dock__item.is-active .ax-dock__icon {
+    transform: none;
+  }
+}
+
+/* Établissement dans la barre du haut */
+.ax-topbar__school {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 280px;
+  padding-left: 16px;
+  margin-left: 4px;
+  border-left: 1px solid var(--ax-line);
+}
+
+.ax-topbar__school .ax-school-mark {
+  flex-basis: 32px;
+  height: 32px;
+  font-size: 0.78rem;
+}
+
+.ax-topbar__school-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.ax-topbar__school-name {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ax-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ax-topbar__school-type {
+  font-size: 0.72rem;
+  color: var(--ax-muted);
+}
+
+.ax-topbar__left .ax-session {
+  margin-left: 8px;
+}
+
+@media (max-width: 479.98px) {
+  .ax-dock__item {
+    font-size: 0.66rem;
+    letter-spacing: -0.01em;
+  }
+}

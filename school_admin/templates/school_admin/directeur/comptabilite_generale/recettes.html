@@ -1,0 +1,201 @@
+{% extends 'school_admin/directeur/comptabilite_generale/_base.html' %}
+{% load static i18n %}
+{% block title %}{% trans "Recettes" %}{% endblock %}
+{% block icon %}fa-hand-holding-dollar{% endblock %}
+{% block tone %}green{% endblock %}
+{% block heading %}{% trans "Recettes complémentaires" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "Activité, subvention et divers. La scolarité reste en lecture seule." %}</p>{% endblock %}
+
+{% block content %}
+        <div class="cg-mini-row">
+            <article class="cg-mini cg-mini--ok"><span class="cg-mini-num">{{ synthese.resultat|floatformat:"0g" }}</span><span class="cg-mini-lbl">{% trans "Résultat 6 et 7" %} ({{ devise_monnaie }})</span></article>
+            <article class="cg-mini"><span class="cg-mini-num">{{ synthese.produits|floatformat:"0g" }}</span><span class="cg-mini-lbl">{% trans "Produits" %}</span></article>
+            <article class="cg-mini"><span class="cg-mini-num">{{ synthese.charges|floatformat:"0g" }}</span><span class="cg-mini-lbl">{% trans "Charges" %}</span></article>
+            <article class="cg-mini cg-mini--info"><span class="cg-mini-num">{{ recettes|length }}</span><span class="cg-mini-lbl">{% trans "Recettes" %}</span></article>
+            <article class="cg-mini"><span class="cg-mini-num">{{ paiements_scolarite|length }}</span><span class="cg-mini-lbl">{% trans "Paiements élèves" %}</span></article>
+        </div>
+        <div class="cg-workspace">
+            <div class="cg-subtabs">
+                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'vue' %}" data-overflow-items-label="{% trans 'vues' %}">
+                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Vues recettes' %}">
+                        <button type="button" class="matiere-tab-btn active" role="tab" data-cg-tab="recettes" data-order="0" aria-selected="true"><span>{% trans "Recettes" %}</span><span class="tab-count">{{ recettes|length }}</span></button>
+                        <button type="button" class="matiere-tab-btn" role="tab" data-cg-tab="subventions" data-order="1" aria-selected="false"><span>{% trans "Subventions" %}</span><span class="tab-count">{{ destinations|length }}</span></button>
+                        <button type="button" class="matiere-tab-btn" role="tab" data-cg-tab="scolarite" data-order="2" aria-selected="false"><span>{% trans "Scolarité" %}</span><span class="tab-count">{{ paiements_scolarite|length }}</span></button>
+                    </div>
+                    <div class="matiere-tabs-more-wrap" hidden>
+                        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres vues' %}"><i class="fas fa-chevron-down"></i><span class="matiere-tabs-more-label">{% trans "Autres vues" %}</span></button>
+                        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+                    </div>
+                </div>
+            </div>
+            <section class="cg-section" data-cg-panel="recettes">
+                <div class="cg-panel-head">
+                    <h2>{% trans "Recettes enregistrées" %}</h2>
+                    <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-recette"><i class="fas fa-plus"></i> {% trans "Nouvelle recette" %}</button>
+                </div>
+                <p class="cg-form-help">{% trans "Le mot équipement ne sort pas la subvention du résultat. Seul un compte hors classe 7 le fait." %}</p>
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Date" %}</th><th>{% trans "Nature" %}</th><th>{% trans "Destination" %}</th>
+                                <th>{% trans "Catégorie" %}</th><th>{% trans "Compte" %}</th><th>{% trans "Montant" %}</th>
+                                <th>{% trans "Net" %}</th><th>{% trans "Résultat" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for recette in recettes %}
+                            <tr>
+                                <td>{{ recette.date_recette|date:"d/m/Y" }}</td>
+                                <td>{{ recette.get_nature_display }}</td>
+                                <td>{% if recette.destination %}{{ recette.get_destination_display }}{% else %}—{% endif %}</td>
+                                <td>{{ recette.categorie.libelle }}</td>
+                                <td>{{ recette.compte_tresorerie.libelle }}</td>
+                                <td>{{ recette.montant|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                                <td>{{ recette.net|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                                <td>{% if recette.dans_le_resultat %}<span class="cg-pill cg-pill--ok">{% trans "Classe 7" %}</span>{% else %}<span class="cg-pill cg-pill--warn">{% trans "Hors classe 7" %}</span>{% endif %}</td>
+                                <td>{% if recette.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulée" %}</span>{% else %}<span class="cg-pill cg-pill--info">{% trans "Validée" %}</span>{% endif %}</td>
+                                <td>
+                                    {% if recette.statut == 'validee' and recette.montant_rembourse == 0 %}
+                                    <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-recette" data-cg-bind="recette_id" data-cg-value="{{ recette.id }}">{% trans "Annuler" %}</button>
+                                    {% endif %}
+                                    {% if recette.statut == 'validee' and recette.net > 0 %}
+                                    <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-rembourser" data-cg-bind="recette_id" data-cg-value="{{ recette.id }}">{% trans "Rembourser" %}</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% for remb in recette.remboursements.all %}
+                            <tr>
+                                <td>{{ remb.date_remboursement|date:"d/m/Y" }}</td>
+                                <td colspan="4">{% trans "Remboursement" %} — {{ remb.motif }}</td>
+                                <td>{{ remb.montant|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                                <td>—</td><td>—</td>
+                                <td>{% if remb.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulé" %}</span>{% else %}<span class="cg-pill cg-pill--info">{% trans "Validé" %}</span>{% endif %}</td>
+                                <td>
+                                    {% if remb.statut == 'validee' %}
+                                    <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-remb" data-cg-bind="remboursement_id" data-cg-value="{{ remb.id }}">{% trans "Annuler" %}</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% empty %}<tr><td colspan="10">{% trans "Aucune recette complémentaire." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="cg-section" data-cg-panel="subventions" hidden>
+                <div class="cg-panel-head"><h2>{% trans "Destinations de subvention" %}</h2></div>
+                <p class="cg-form-help">{% trans "Ces montants sont déjà dans le résultat lorsqu'ils sont en classe 7. Ils ne sont pas soustraits." %}</p>
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead><tr><th>{% trans "Destination" %}</th><th>{% trans "Net" %}</th><th>{% trans "Dans le résultat" %}</th><th>{% trans "Hors classe 7" %}</th></tr></thead>
+                        <tbody>
+                            {% for ligne in destinations %}
+                            <tr>
+                                <td>{{ ligne.label }}</td>
+                                <td>{{ ligne.net|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                                <td>{{ ligne.dans_resultat|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                                <td>{{ ligne.hors_resultat|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                            </tr>
+                            {% empty %}<tr><td colspan="4">{% trans "Aucune subvention validée." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="cg-section" data-cg-panel="scolarite" hidden>
+                <div class="cg-panel-head"><h2>{% trans "Scolarité" %}</h2></div>
+                <p class="cg-form-help">{% trans "Lecture seule. Ces lignes sont les paiements élèves. Aucune recette n'est créée à partir d'eux." %}</p>
+                <div class="table-responsive">
+                    <table class="cg-table">
+                        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Élève" %}</th><th>{% trans "Type" %}</th><th>{% trans "Montant" %}</th><th>{% trans "Reçu" %}</th><th>{% trans "Dossier" %}</th></tr></thead>
+                        <tbody>
+                            {% for paiement in paiements_scolarite %}
+                            <tr>
+                                <td>{{ paiement.date_paiement|date:"d/m/Y" }}</td>
+                                <td>{{ paiement.eleve.nom_complet }}</td>
+                                <td>{{ paiement.get_type_paiement_display }}</td>
+                                <td>{{ paiement.montant|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                                <td><a href="{% url 'directeur:recu_paiement_directeur' paiement.id %}">{% if paiement.numero_recu %}{{ paiement.numero_recu }}{% else %}{% trans "Reçu" %}{% endif %}</a></td>
+                                <td><a href="{% url 'directeur:details_comptabilite_eleve_directeur' paiement.eleve_id %}">{% trans "Dossier" %}</a></td>
+                            </tr>
+                            {% empty %}<tr><td colspan="6">{% trans "Aucun paiement élève sur cette année." %}</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+        <div class="cg-sheet" id="sheet-recette" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-recette-title">
+                <div class="cg-sheet-head"><h2 id="sheet-recette-title">{% trans "Nouvelle recette" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:cg_recettes' %}" class="cg-form" enctype="multipart/form-data">
+                    {% csrf_token %}<input type="hidden" name="action" value="ajouter_recette" />
+                    <label>{% trans "Nature" %}<select name="nature" id="recette-nature" required><option value="">{% trans "Choisir" %}</option>{% for code, label in natures %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></label>
+                    <label id="recette-destination">{% trans "Destination de la subvention" %}<select name="destination"><option value="">{% trans "Choisir" %}</option>{% for code, label in destinations_choices %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Catégorie" %}<select name="categorie_id" required><option value="">{% trans "Choisir" %}</option>{% for cat in categories %}<option value="{{ cat.id }}">{{ cat.libelle }} — {{ cat.compte_comptable.numero }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Compte encaissé" %}<select name="compte_id" required><option value="">{% trans "Choisir" %}</option>{% for compte in comptes %}<option value="{{ compte.id }}">{{ compte.libelle }}</option>{% endfor %}</select></label>
+                    <label>{% trans "Date" %}<input type="date" name="date_recette" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Montant" %}<input type="number" name="montant" min="1" step="1" required /></label>
+                    <label>{% trans "Libellé" %}<input type="text" name="libelle" maxlength="200" /></label>
+                    <label>{% trans "Origine" %} <span class="cg-optional">{% trans "(optionnel)" %}</span><input type="text" name="origine" maxlength="160" /></label>
+                    <label>{% trans "Référence" %} <span class="cg-optional">{% trans "(optionnel)" %}</span><input type="text" name="reference" maxlength="80" /></label>
+                    <label>{% trans "Justificatif" %} <span class="cg-optional">{% trans "(optionnel)" %}</span><input type="file" name="justificatif" accept=".pdf,.jpg,.jpeg,.png,.webp" /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Enregistrer" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-rembourser" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-rembourser-title">
+                <div class="cg-sheet-head"><h2 id="sheet-rembourser-title">{% trans "Rembourser une recette" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:cg_recettes' %}" class="cg-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="rembourser_recette" />
+                    <input type="hidden" name="recette_id" value="" />
+                    <label>{% trans "Date" %}<input type="date" name="date_remboursement" value="{{ date_defaut|date:'Y-m-d' }}" required /></label>
+                    <label>{% trans "Montant" %}<input type="number" name="montant" min="1" step="1" required /></label>
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--primary" type="submit">{% trans "Rembourser" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-annuler-recette" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-annuler-recette-title">
+                <div class="cg-sheet-head"><h2 id="sheet-annuler-recette-title">{% trans "Annuler la recette" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:cg_recettes' %}" class="cg-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="annuler_recette" />
+                    <input type="hidden" name="recette_id" value="" />
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Annuler" %}</button>
+                </form>
+            </div>
+        </div>
+        <div class="cg-sheet" id="sheet-annuler-remb" hidden>
+            <div class="cg-sheet-backdrop" data-cg-close></div>
+            <div class="cg-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-annuler-remb-title">
+                <div class="cg-sheet-head"><h2 id="sheet-annuler-remb-title">{% trans "Annuler le remboursement" %}</h2><button type="button" class="cg-sheet-close" data-cg-close aria-label="{% trans 'Fermer' %}">×</button></div>
+                <form method="post" action="{% url 'directeur:cg_recettes' %}" class="cg-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="annuler_remboursement" />
+                    <input type="hidden" name="remboursement_id" value="" />
+                    <label>{% trans "Motif" %}<input type="text" name="motif" maxlength="200" required /></label>
+                    <button class="cg-btn cg-btn--ghost" type="submit">{% trans "Annuler" %}</button>
+                </form>
+            </div>
+        </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        (function () {
+            var nature = document.getElementById('recette-nature');
+            var bloc = document.getElementById('recette-destination');
+            if (!nature || !bloc) return;
+            function sync() { bloc.hidden = nature.value !== 'subvention'; }
+            nature.addEventListener('change', sync);
+            sync();
+        })();
+    </script>
+{% endblock %}

@@ -81,6 +81,32 @@ class CharlineSpokenTextTests(SimpleTestCase):
         self.assertNotIn('instant, c', spoken)
         self.assertNotIn('peux, confirmer', spoken)
 
+    def test_dates_lues_en_toutes_lettres(self):
+        spoken = prepare_spoken_text('RDV le 15-10-2026, le 01/11/2026 et le 2026-10-20.')
+        self.assertIn('quinze octobre deux mille vingt-six', spoken)
+        self.assertIn('premier novembre deux mille vingt-six', spoken)
+        self.assertIn('vingt octobre deux mille vingt-six', spoken)
+
+    def test_telephones_lus_par_groupes(self):
+        spoken = prepare_spoken_text('Appelez le 77-123-45-67 ou le +221 33 820 00 00.')
+        self.assertIn('soixante-dix-sept, cent vingt-trois, quarante-cinq, soixante-sept', spoken)
+        self.assertIn('plus deux cent vingt et un, trente-trois, huit cent vingt, zéro zéro', spoken)
+
+    def test_notes_decimales_et_montants(self):
+        spoken = prepare_spoken_text('Il a 9,5/20, 12,5 de moyenne et doit 10 000 FCFA.')
+        self.assertIn('neuf virgule cinq sur vingt', spoken)
+        self.assertIn('douze virgule cinq', spoken)
+        self.assertIn('dix mille francs', spoken)
+        self.assertIn('un million cinq cent mille', prepare_spoken_text('1 500 000'))
+        self.assertIn('deux cent mille', prepare_spoken_text('200 000'))
+
+    def test_classes_et_ordinaux(self):
+        spoken = prepare_spoken_text("L'élève est en L1 Info, 10e sur 45, le 1er octobre.")
+        self.assertIn('en licence un, informatique', spoken)
+        self.assertNotIn('En,', spoken)
+        self.assertIn('dixième sur quarante-cinq', spoken)
+        self.assertIn('premier octobre', spoken)
+
     def test_parse_pcm_sample_rate(self):
         self.assertEqual(parse_pcm_sample_rate('audio/L16;codec=pcm;rate=24000'), 24000)
         self.assertEqual(parse_pcm_sample_rate(''), 24000)
@@ -163,3 +189,38 @@ class GeminiTtsInstructionTests(SimpleTestCase):
         self.assertIn('accueill', instruction.lower())
         self.assertNotIn(spoken, instruction)
         self.assertIn('mot pour mot', instruction.lower())
+
+
+class EdgeBackendTests(SimpleTestCase):
+    @override_settings(
+        ASSISTANT_TTS_BACKEND='edge',
+        EDGE_TTS_VOICE='fr-FR-VivienneMultilingualNeural',
+        EDGE_TTS_PITCH='+12Hz',
+        GOOGLE_TTS_API_KEY='cle-test',
+    )
+    def test_edge_applique_la_hauteur_et_repli_chirp_si_refus(self):
+        import asyncio
+        from unittest.mock import patch
+
+        from school_admin.services import tts_service
+
+        captured = {}
+
+        class FakeCommunicate:
+            def __init__(self, text, voice, **kwargs):
+                captured.update(voice=voice, **kwargs)
+
+            async def stream(self):
+                raise RuntimeError('403, message=Invalid response status')
+                yield  # pragma: no cover
+
+        async def fake_chirp(clean):
+            return b'RIFF-chirp', 'audio/wav'
+
+        with patch('edge_tts.Communicate', FakeCommunicate), patch.object(
+            tts_service, '_synthesize_chirp', side_effect=fake_chirp
+        ):
+            audio, mime = asyncio.run(tts_service.synthesize_audio('Bonjour.', language='wo'))
+        self.assertEqual(captured['voice'], 'fr-FR-VivienneMultilingualNeural')
+        self.assertEqual(captured['pitch'], '+12Hz')
+        self.assertEqual((audio, mime), (b'RIFF-chirp', 'audio/wav'))

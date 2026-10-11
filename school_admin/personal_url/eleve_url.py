@@ -1,3 +1,4 @@
+from ..controllers.cahier_texte_controller import CahierTexteController
 """
 URLs pour l'espace élève
 """
@@ -10,6 +11,7 @@ urlpatterns = [
     # Dashboard
     path('eleve/dashboard/', eleve_view.dashboard_eleve, name='dashboard_eleve'),
     path('eleve/devoirs/', eleve_view.devoirs_eleve, name='devoirs_eleve'),
+    path('eleve/cahier-de-texte/', CahierTexteController.eleve, name='cahier_texte'),
     path('eleve/bulletin/', eleve_view.bulletin_eleve, name='bulletin_eleve'),
     
     # Emploi du temps

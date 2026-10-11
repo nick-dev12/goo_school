@@ -2,6 +2,7 @@
 Client Gemini 2.5 Flash (API compatible OpenAI) pour l'assistant vocal Aria.
 Rollback DeepSeek via ASSISTANT_LLM_PROVIDER=deepseek.
 """
+import asyncio
 import json
 import logging
 import re
@@ -21,6 +22,7 @@ from school_admin.services.assistant_tools import (
     spoken_from_tool_results,
 )
 from school_admin.services.gemini_context_cache import (
+    _get_native_client,
     cache_enabled,
     ensure_tools_cache,
 )
@@ -1180,13 +1182,24 @@ async def _stream_chat_completion(
 def _cached_generate_config(cache_name, temperature):
     from google.genai import types
 
+    extra = {}
+    level = _thinking_level()
+    if level:
+        # Réflexion par défaut (dynamique) : ~+0,8 s par tour, sans gain utile ici.
+        extra['thinking_config'] = types.ThinkingConfig(thinking_level=level)
     return types.GenerateContentConfig(
         cached_content=cache_name,
         temperature=temperature,
         automatic_function_calling=types.AutomaticFunctionCallingConfig(
             disable=True,
         ),
+        **extra,
     )
+
+
+def _thinking_level():
+    """GEMINI_THINKING_LEVEL : low (défaut), high, ou vide pour le défaut du modèle."""
+    return (getattr(settings, 'GEMINI_THINKING_LEVEL', 'low') or '').strip().lower()
 
 
 async def _stream_cached_round(
@@ -1284,7 +1297,6 @@ async def _run_assistant_turn_cached(
     turn_stats=None,
     working_refs=None,
 ):
-    from google import genai
     from google.genai import types
 
     model = _model_name()
@@ -1292,7 +1304,9 @@ async def _run_assistant_turn_cached(
     prompt_static = system_prompt_static_for(ctx)
     from school_admin.services.assistant_schema import schema_profile
 
-    cached = ensure_tools_cache(
+    # Appels réseau synchrones (list/create cache) : hors de la boucle async.
+    cached = await asyncio.to_thread(
+        ensure_tools_cache,
         prompt_static,
         model,
         tools_schema=tools_schema_for(ctx),
@@ -1308,8 +1322,7 @@ async def _run_assistant_turn_cached(
     if not cached:
         return None
     cache_name, cache_model, _token_count = cached
-    api_key = getattr(settings, 'GEMINI_API_KEY', '') or ''
-    client = genai.Client(api_key=api_key)
+    client = _get_native_client()
     contents = _dialog_to_gemini_contents(ctx, messages, tool_memory=tool_memory)
     used_tools = False
     spoken = ''

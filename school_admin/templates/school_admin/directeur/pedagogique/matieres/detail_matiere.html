@@ -10,38 +10,20 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/detail_matiere.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
 </head>
-<body data-live-page="matiere-detail">
+<body class="gv3 cg3" data-live-page="matiere-detail">
     <!-- Header -->
   {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content -->
 <div class="main-content-container">
     <!-- Page Header -->
-    <div class="page-header">
-        {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-            <h1 class="page-title">
-                <i class="fas fa-book"></i>
-                {{ matiere.nom }}
-            </h1>
-            <p class="page-subtitle">{{ matiere.etablissement.nom }} - Détails de la matière</p>
-        </div>
-        <div class="page-actions">
-            <button class="btn-add btn-primary" onclick="toggleEditForm()">
-                <i class="fas fa-edit"></i>
-                <span>{% trans "Modifier" %}</span>
-            </button>
-            <button class="btn-add btn-danger" onclick="confirmDelete({{ matiere.id }})">
-                <i class="fas fa-trash"></i>
-                <span>{% trans "Supprimer" %}</span>
-            </button>
-        </div>
-    </div>
-
- 
-
-    <!-- Matiere Information -->
+    <p class="fe-crumbs" style="margin-bottom:10px"><a href="{% url 'matiere:liste_matieres' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{% trans "Matières" %}</a></p>
+    {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=matiere.nom v3_sous_titre=v3_sous_titre_matiere v3_icone='fa-book-open' v3_tone='violet' v3_actions_tpl='school_admin/directeur/partials/v3_actions/matiere.html' %}
     <div class="matiere-info-container">
         <div class="info-card">
             <div class="card-header">
@@ -669,6 +651,7 @@
     </style>
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

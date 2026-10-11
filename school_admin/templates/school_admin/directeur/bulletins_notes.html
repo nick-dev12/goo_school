@@ -15,8 +15,12 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=1.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
-  </head>
-  <body class="bul-page-body" data-live-page="bulletins-liste">
+      <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
+</head>
+  <body class="bul-page-body gv3 cg3" data-live-page="bulletins-liste">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container bul-page">
@@ -26,29 +30,8 @@
         {% include 'school_admin/directeur/partials/page_header_back.html' %}
       </div>
 
-      <header class="bul-hero">
-        <div class="bul-hero-text">
-          <h1 class="bul-hero-title"><i class="fas fa-file-alt"></i> {% trans "Gestion des bulletins" %}</h1>
-          <p class="bul-hero-sub">{% trans "Calculez les moyennes, publiez et contrôlez la visibilité des bulletins par classe." %}</p>
-          {% if annee_scolaire_active %}
-            <span class="bul-hero-badge"><i class="fas fa-calendar-check"></i> {{ annee_scolaire_active.libelle }}</span>
-          {% endif %}
-        </div>
-        <div class="bulletins-overview bul-hero-stats">
-          <div class="bul-stat-pill"><span class="bul-stat-num">{{ stats_generales.total_eleves }}</span><span class="bul-stat-lbl">{% trans "Élèves" %}</span></div>
-          <div class="bul-stat-pill bul-stat-pill--ok"><span class="bul-stat-num">{{ stats_generales.bulletins_publies }}</span><span class="bul-stat-lbl">{% trans "Publiés" %}</span></div>
-          <div class="bul-stat-pill"><span class="bul-stat-num">{{ stats_generales.progression_globale }}%</span><span class="bul-stat-lbl">{% trans "Progression" %}</span></div>
-          <div class="bul-stat-pill"><span class="bul-stat-num">{{ stats_generales.classes_terminees }}/{{ stats_generales.total_classes }}</span><span class="bul-stat-lbl">{% trans "Classes OK" %}</span></div>
-        </div>
-        <div class="bul-hero-actions">
-          <a href="{% url 'directeur:configuration_moyennes_generales' %}" class="bul-action-btn bul-action-btn--primary">
-            <i class="fas fa-sliders-h"></i> {% trans "Moyennes générales" %}
-          </a>
-          <a href="{% url 'directeur:configuration_standards_reussite' %}" class="bul-action-btn bul-action-btn--secondary">
-            <i class="fas fa-graduation-cap"></i> {% trans "Standards de réussite" %}
-          </a>
-        </div>
-      </header>
+      {% if etablissement.type_etablissement == 'superieur' %}{% trans "Relevés et bulletins" as t %}{% trans "Calcul des moyennes, crédits, publication et impression par promotion." as st %}{% else %}{% trans "Bulletins" as t %}{% trans "Calcul des moyennes, rangs, publication et impression par classe." as st %}{% endif %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-file-lines' v3_tone='violet' v3_actions_tpl='school_admin/directeur/partials/v3_actions/bulletins.html' %}
 
       {% if periodes_nav and not est_superieur %}
         <nav class="bul-periodes-bar period-tabs" aria-label="{% trans 'Période scolaire' %}">
@@ -401,6 +384,7 @@
     <script src="{% static 'school_admin/js/directeur/bulletins_notes.js' %}?v=2.1.0"></script>
     <script src="{% static 'school_admin/js/directeur/bulletins_live.js' %}?v=1.0.1"></script>
 
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

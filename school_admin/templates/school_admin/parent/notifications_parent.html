@@ -1,111 +1,61 @@
 {% load static %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notifications – {{ parent.nom_complet }}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/bottom_nav.css' %}?v=1.0.1">
-    <link rel="stylesheet" href="{% static 'school_admin/css/parent/nav_parent.css' %}?v=1.0.1">
-    <link rel="stylesheet" href="{% static 'school_admin/css/parent/notifications_parent.css' %}?v=1.0.2">
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/gtranslate_header_bar.css' %}?v=1.0.1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% trans "Notifications" %} — {{ parent.nom_complet }}</title>
+  {% include 'school_admin/parent/partials/_px_head.html' %}
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div>
-                <h1>Notifications</h1>
-                {% with etablissements|length as nb_etabs %}
-                    <p>
-                        {% if nb_etabs > 1 %}
-                            {{ parent.nom_complet }} &bull; {{ nb_etabs }} établissements suivis
-                        {% elif nb_etabs == 1 %}
-                            {{ parent.nom_complet }} &bull; {{ etablissements.0.etablissement.nom }}
-                        {% else %}
-                            {{ parent.nom_complet }}
-                        {% endif %}
-                    </p>
-                {% endwith %}
-            </div>
-            <div class="header-actions">
-                {% include 'school_admin/partials/gtranslate_header_bar.html' %}
-                <button class="parent-nav-toggle" id="openNavMenu" aria-label="Ouvrir le menu de navigation">
-                    <span class="d-none d-sm-inline">Menu</span>
-                    <i class="fas fa-th-large"></i>
-                </button>
-                <a class="btn-retour" href="{% url 'school_admin:dashboard_parent' %}">
-                    <i class="fas fa-arrow-left"></i>
-                    Retour au tableau de bord
-                </a>
-            </div>
+<body class="axd-page px-page">
+  {% include 'school_admin/parent/partials/_px_shell.html' %}
+
+  <main class="axd px" id="contenu">
+    <header class="px-page-head">
+      <span class="px-page-head__icon ax-tone-blue"><i class="fas fa-bell" aria-hidden="true"></i></span>
+      <div>
+        <h1>{% trans "Notifications" %}</h1>
+        <p>{% if notifications_parent_non_lues %}{% blocktrans count n=notifications_parent_non_lues %}{{ n }} nouvelle notification{% plural %}{{ n }} nouvelles notifications{% endblocktrans %}{% else %}{% trans "Vous avez tout lu." %}{% endif %}</p>
+      </div>
+    </header>
+
+    {% if etablissements|length > 1 %}
+    <nav class="px-tabs" aria-label="{% trans 'Établissements' %}">
+      {% for entree in etablissements %}
+      <a href="?etablissement={{ entree.id }}" class="px-tab{% if entree.id == selected_etablissement_id %} is-active{% endif %}">
+        <i class="fas fa-school" aria-hidden="true"></i>{{ entree.etablissement.nom }} <b>{{ entree.notifications|length }}</b>
+      </a>
+      {% endfor %}
+    </nav>
+    {% endif %}
+
+    {% if notifications_selectionnees %}
+    <div class="px-stack">
+      {% for notification in notifications_selectionnees %}
+      <a href="{% url 'school_admin:notification_parent_click' notification.id %}" class="px-item{% if not notification.lu %} is-unread{% endif %}">
+        <div class="px-item__head">
+          <h2 class="px-item__title">{{ notification.get_type_notification_display }}{% if notification.eleve %} · {{ notification.eleve.nom_complet }}{% endif %}</h2>
+          {% if not notification.lu %}<span class="px-new">{% trans "Nouveau" %}</span>{% endif %}
         </div>
-
-        {% include 'school_admin/parent/partials/annee_scolaire_badge.html' %}
-
-        {% include 'school_admin/parent/partials/navigation_panel.html' %}
-
-        {% if etablissements %}
-            <div class="tabs-container">
-                {% for entree in etablissements %}
-                    <a href="?etablissement={{ entree.id }}" class="tab-link {% if entree.id == selected_etablissement_id %}active{% endif %}">
-                        <i class="fas fa-school"></i>
-                        <span>{{ entree.etablissement.nom }}</span>
-                        <span class="badge">{{ entree.notifications|length }}</span>
-                    </a>
-                {% endfor %}
-            </div>
-        {% endif %}
-
-        {% if notifications_selectionnees %}
-            <div class="notifications-wrapper">
-                {% for notification in notifications_selectionnees %}
-                    {% with redirect_url=notification.donnees.redirect_url|default:"" %}
-                    <a href="{% url 'school_admin:notification_parent_click' notification.id %}" class="notification-link" style="text-decoration: none; color: inherit; display: block;">
-                        <div class="notification-card {% if not notification.lu %}unread{% else %}read{% endif %}" style="cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;">
-                            <div class="notification-header">
-                                <strong>{{ notification.get_type_notification_display }} – {{ notification.eleve.nom_complet }}</strong>
-                                <span class="notification-meta">
-                                    <i class="fas fa-clock"></i>
-                                    {{ notification.date_creation|date:"d/m/Y H:i" }}
-                                    {% if not notification.lu %}
-                                      <span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-left: 8px;">Nouveau</span>
-                                    {% endif %}
-                                    {% if notification.lu and notification.date_lecture %}
-                                      <span style="color: #9ca3af; margin-left: 8px;">
-                                        <i class="fas fa-check-circle"></i>
-                                        Lu le {{ notification.date_lecture|date:"d/m/Y H:i" }}
-                                      </span>
-                                    {% endif %}
-                                </span>
-                            </div>
-                            <p class="notification-body">{{ notification.message }}</p>
-                            {% if redirect_url %}
-                              <div style="margin-top: 10px; font-size: 12px; color: #3b82f6;">
-                                <i class="fas fa-arrow-right"></i> Cliquez pour voir les détails
-                              </div>
-                            {% endif %}
-                        </div>
-                    </a>
-                    {% endwith %}
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty-state">
-                <i class="fas fa-bell-slash"></i>
-                <h2>Aucune notification</h2>
-                <p>
-                    {% if etablissements|length == 0 %}
-                        Aucun établissement n'est associé à votre compte.
-                    {% else %}
-                        Vous n’avez pas de nouvelles notifications pour cet établissement.
-                    {% endif %}
-                </p>
-            </div>
-        {% endif %}
+        <p class="px-item__body">{{ notification.message }}</p>
+        <p class="px-item__meta">
+          <span><i class="fas fa-clock" aria-hidden="true"></i>{{ notification.date_creation|date:"d/m/Y H:i" }}</span>
+          {% if notification.lu and notification.date_lecture %}<span><i class="fas fa-check" aria-hidden="true"></i>{% trans "Lu le" %} {{ notification.date_lecture|date:"d/m/Y H:i" }}</span>{% endif %}
+          {% if notification.donnees.redirect_url %}<span class="px-item__more">{% trans "Voir le détail" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></span>{% endif %}
+        </p>
+      </a>
+      {% endfor %}
     </div>
+    {% else %}
+    <div class="px-empty-inline">
+      <i class="fas fa-bell-slash" aria-hidden="true"></i>
+      <h2>{% trans "Aucune notification" %}</h2>
+      <p>{% if etablissements|length == 0 %}{% trans "Aucun établissement n’est associé à votre compte." %}{% else %}{% trans "Vous serez prévenu ici dès qu’il y a du nouveau." %}{% endif %}</p>
+    </div>
+    {% endif %}
+  </main>
 
-    {% include 'school_admin/parent/partials/bottom_nav_parent.html' %}
-    <script src="{% static 'school_admin/js/parent/header_parent.js' %}"></script>
+  {% include 'school_admin/parent/partials/_px_foot.html' %}
 </body>
 </html>

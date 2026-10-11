@@ -1,0 +1,59 @@
+{% load i18n eleve_nav %}
+<div class="prof-panel-intro">
+    <h2 class="prof-panel-title"><i class="fas fa-book-open"></i> {% trans "Cahier de texte" %}</h2>
+    <p class="prof-panel-desc">{% trans "Toutes les entrées validées et envoyées à la direction par cet enseignant. Les brouillons ne sont pas visibles ici." %}</p>
+</div>
+
+<div class="pct-kpis">
+    <div class="pct-kpi"><span>{% trans "Entrées validées" %}</span><b>{{ cahier.total }}</b></div>
+    <div class="pct-kpi"><span>{% trans "Ce mois-ci" %}</span><b>{{ cahier.mois }}</b></div>
+    <div class="pct-kpi"><span>{% trans "Dernière validation" %}</span><b>{% if cahier.derniere %}{{ cahier.derniere|date:"d/m/Y" }}{% else %}—{% endif %}</b></div>
+    <div class="pct-kpi"><span>{% trans "Remplissage (30 j)" %}</span><b>{% if cahier.taux != None %}{{ cahier.taux }} %{% else %}—{% endif %}</b></div>
+</div>
+
+{% if cahier.demandes %}
+<div class="prof-alert prof-alert-warning pct-alert">
+    <i class="fas fa-envelope-open-text"></i>
+    <span>{% blocktrans count n=cahier.demandes %}{{ n }} demande de modification en attente.{% plural %}{{ n }} demandes de modification en attente.{% endblocktrans %}
+    <a href="{% url 'directeur:cahiers_texte' %}">{% trans "Traiter les demandes" %}</a></span>
+</div>
+{% endif %}
+
+{% if cahier.entrees %}
+{% if cahier.classes|length > 1 %}
+<div class="pct-chips" role="group" aria-label="{% trans 'Filtrer par classe' %}">
+    <button type="button" class="pct-chip is-active" data-pct-classe="">{% trans "Toutes les classes" %}</button>
+    {% for c in cahier.classes %}<button type="button" class="pct-chip" data-pct-classe="{{ c.id }}">{{ c.nom }}</button>{% endfor %}
+</div>
+{% endif %}
+<ul class="pct-list">
+    {% for e in cahier.entrees %}{% with tone=e.matiere.nom|matiere_tone %}
+    <li class="pct-item pct-tone-{{ tone }}" data-classe="{{ e.classe_id }}">
+        <details>
+            <summary>
+                <span class="pct-date"><b>{{ e.date|date:"d" }}</b><small>{{ e.date|date:"M Y" }}</small></span>
+                <span class="pct-main">
+                    <strong>{{ e.titre }}</strong>
+                    <small>{{ e.classe.nom }}{% if e.matiere %} · {{ e.matiere.nom }}{% endif %}{% if e.heure_debut %} · {{ e.heure_debut|time:"H:i" }}{% if e.heure_fin %}–{{ e.heure_fin|time:"H:i" }}{% endif %}{% endif %}</small>
+                </span>
+                <span class="pct-tags">
+                    {% if e.travail_a_faire %}<span class="pct-tag" title="{% trans 'Travail donné' %}"><i class="fas fa-house-laptop"></i></span>{% endif %}
+                    {% if e.redige_par_ia %}<span class="pct-tag pct-tag--ia" title="{% trans 'Rédigé avec Aria' %}"><i class="fas fa-wand-magic-sparkles"></i></span>{% endif %}
+                    <span class="pct-tag pct-tag--ok"><i class="fas fa-lock"></i> {% trans "Validé" %}</span>
+                </span>
+                <i class="fas fa-chevron-down pct-caret" aria-hidden="true"></i>
+            </summary>
+            <div class="pct-body">
+                {% if e.objectifs %}<p class="pct-label">{% trans "Objectifs" %}</p><ul>{% for l in e.objectifs|lignes %}<li>{{ l }}</li>{% endfor %}</ul>{% endif %}
+                <p class="pct-label">{% trans "Déroulement" %}</p>
+                <ol>{% for l in e.contenu|lignes %}<li>{{ l }}</li>{% endfor %}</ol>
+                {% if e.travail_a_faire %}<p class="pct-label">{% trans "Travail à faire" %}{% if e.date_travail %} · {% trans "pour le" %} {{ e.date_travail|date:"l j F" }}{% endif %}</p><p>{{ e.travail_a_faire }}</p>{% endif %}
+                <p class="pct-meta"><i class="fas fa-paper-plane"></i> {% trans "Validé le" %} {{ e.date_validation|date:"d/m/Y à H:i" }}{% if e.demande_statut == 'en_attente' %} · <span class="pct-wait">{% trans "demande de modification en attente" %}</span>{% endif %}</p>
+            </div>
+        </details>
+    </li>
+    {% endwith %}{% endfor %}
+</ul>
+{% else %}
+<div class="prof-empty"><i class="fas fa-book-open"></i><p>{% trans "Aucune entrée validée pour le moment." %}</p></div>
+{% endif %}

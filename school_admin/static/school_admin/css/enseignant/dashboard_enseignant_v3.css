@@ -1,0 +1,459 @@
+/* ==========================================================================
+   Aria — tableau de bord enseignant (V3). S'appuie sur dashboard_v3.css
+   (cartes, grille, graphiques) et ajoute les blocs propres au professeur.
+   Couleurs à plat, aucun dégradé.
+   ========================================================================== */
+
+/* Police Inter sur le contenu (l'en-tête enseignant garde la sienne). */
+.axd--prof,
+.axd--prof *:not(i):not(.fa):not(.fas):not(.far):not(.fab):not([class*="fa-"]) {
+  font-family: var(--ax-font);
+}
+
+.axd-page--prof {
+  background: var(--ax-bg);
+}
+
+/* Le bandeau d'accueil de l'en-tête est remplacé par celui du tableau de bord. */
+.axd-page--prof .welcome-banner {
+  display: none;
+}
+
+.axd--prof {
+  padding-top: 20px;
+  padding-bottom: 140px;
+}
+
+.axd--prof .notifications-activation {
+  display: flex;
+}
+
+/* ---------- Bandeau ---------- */
+.axd-hero--prof {
+  gap: 12px;
+}
+
+.axd-hero__row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.axd-hero__sub {
+  margin: 6px 0 0;
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.axd-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.axd-hero__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ax-brand-ink);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.axd-hero__btn:hover {
+  background: var(--ax-brand-soft);
+}
+
+.axd-hero__btn--quiet {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #fff;
+}
+
+.axd-hero__btn--quiet:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.axd-hero__btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.axd-hero__warn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 0.82rem;
+}
+
+/* ---------- Cartes cliquables ---------- */
+.axd-mini__card--link {
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.axd-mini__card--link:hover {
+  border-color: var(--ax-line-strong);
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08);
+  transform: translateY(-2px);
+}
+
+.axd-mini__card--link:focus-visible {
+  outline: 2px solid var(--ax-brand);
+  outline-offset: 2px;
+}
+
+.axd-tone--orange { background: #e3832a; }
+.axd-tone--teal { background: #2a9a88; }
+.axd-tone--red { background: #d94848; }
+
+/* ---------- Boutons compacts ---------- */
+.axd-btn--sm {
+  height: 32px;
+  padding: 0 11px;
+  gap: 6px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+
+.axd-btn--ghost {
+  border-color: transparent;
+  background: var(--ax-surface-2);
+}
+
+/* ---------- Cours du jour ---------- */
+.axd-slots {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.axd-slot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--ax-line);
+  border-left: 3px solid var(--axd-s1);
+  border-radius: 12px;
+  background: var(--ax-surface);
+}
+
+.axd-slot__time {
+  flex: 0 0 64px;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.axd-slot__time strong {
+  font-size: 1rem;
+  color: var(--ax-ink);
+}
+
+.axd-slot__time small {
+  font-size: 0.72rem;
+  color: var(--ax-muted);
+}
+
+.axd-slot__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.axd-slot__title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ax-ink);
+}
+
+.axd-slot__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 3px 0 0;
+  font-size: 0.78rem;
+  color: var(--ax-muted);
+}
+
+.axd-slot__actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ---------- À faire ---------- */
+.axd-watch__title--spaced {
+  margin-top: 20px;
+}
+
+.axd-progress-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.axd-progress-list__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.axd-progress-list__main strong {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ax-ink);
+}
+
+.axd-progress-list__main:hover strong {
+  color: var(--ax-brand-ink);
+}
+
+.axd-progress-list__main small {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--ax-muted);
+}
+
+.axd-progress-list__count {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--ax-warn);
+  font-variant-numeric: tabular-nums;
+}
+
+.axd-meter--thin {
+  display: block;
+  height: 5px;
+}
+
+.axd-meter--thin > span {
+  background: var(--axd-warning);
+}
+
+.axd-class__bar .axd-meter--thin > span {
+  background: var(--axd-s1);
+}
+
+.axd-meter--bad > span,
+.axd-class__bar .axd-meter--bad > span {
+  background: var(--axd-critical);
+}
+
+.axd-date-chip {
+  flex: 0 0 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border-radius: 10px;
+  background: var(--ax-brand-soft);
+  color: var(--ax-brand-ink);
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.axd-date-chip b {
+  font-size: 0.95rem;
+}
+
+.axd-score--neutral {
+  background: var(--ax-surface-2);
+  color: var(--ax-ink-2);
+}
+
+/* ---------- Mes classes ---------- */
+.axd-classes {
+  margin-bottom: 16px;
+}
+
+.axd-class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+}
+
+.axd-class {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--ax-line);
+  border-radius: 14px;
+  background: var(--ax-surface-2);
+}
+
+.axd-class__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.axd-class__name {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--ax-ink);
+  text-decoration: none;
+}
+
+.axd-class__name:hover {
+  color: var(--ax-brand-ink);
+}
+
+.axd-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ax-warn-soft);
+  color: var(--ax-warn);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.axd-class__subjects {
+  margin: -4px 0 0;
+  font-size: 0.76rem;
+  color: var(--ax-muted);
+}
+
+.axd-class__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+}
+
+.axd-class__stats div {
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--ax-surface);
+  border: 1px solid var(--ax-line);
+}
+
+.axd-class__stats dt {
+  font-size: 0.68rem;
+  color: var(--ax-muted);
+}
+
+.axd-class__stats dd {
+  margin: 2px 0 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--ax-ink);
+}
+
+.axd-class__stats dd.is-bad {
+  color: var(--ax-bad);
+}
+
+.axd-class__bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.76rem;
+  color: var(--ax-ink-2);
+}
+
+.axd-class__bar strong {
+  font-size: 0.78rem;
+  color: var(--ax-ink);
+}
+
+.axd-class__bar em {
+  font-style: normal;
+  color: var(--ax-muted);
+}
+
+.axd-class__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.axd-class__actions .axd-btn--ghost {
+  margin-left: auto;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 639.98px) {
+  .axd--prof {
+    padding-bottom: 150px;
+  }
+
+  .axd-hero__actions {
+    width: 100%;
+  }
+
+  .axd-hero__btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .axd-slot {
+    flex-wrap: wrap;
+  }
+
+  .axd-slot__actions {
+    width: 100%;
+  }
+
+  .axd-slot__actions .axd-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* Bouton d'activation des notifications : discret. */
+.axd--prof .notifications-activation {
+  margin-bottom: 12px;
+}
+
+.axd--prof .btn-activate-notifications {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--ax-line-strong);
+  border-radius: 999px;
+  background: var(--ax-surface);
+  color: var(--ax-ink-2);
+  font-size: 0.8rem;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.axd--prof .btn-activate-notifications i {
+  color: var(--ax-brand);
+}

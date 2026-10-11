@@ -1,0 +1,6 @@
+{% load i18n %}
+<button type="button" class="cg3-btn cg3-btn--primary" data-fe-open="fe-modifier"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier" %}</button>
+<button type="button" class="cg3-btn" data-fe-open="fe-transfert"><i class="fas fa-right-left" aria-hidden="true"></i>{% trans "Classe" %}</button>
+<a class="cg3-btn" href="{% url 'secretaire:reçu_inscription_eleve' eleve.id %}"><i class="fas fa-file-invoice" aria-hidden="true"></i>{% trans "Reçu" %}</a>
+<a class="cg3-btn" href="{% url 'secretaire:carte_identite_eleve' eleve.id %}"><i class="fas fa-id-card" aria-hidden="true"></i>{% trans "Carte" %}</a>
+<a class="cg3-btn" href="{% url 'secretaire:desactiver_compte_eleve' eleve.id %}" onclick="return confirm('{% if eleve.actif %}{% trans "Désactiver le compte de cet élève ?" %}{% else %}{% trans "Réactiver le compte de cet élève ?" %}{% endif %}');"><i class="fas {% if eleve.actif %}fa-user-slash{% else %}fa-user-check{% endif %}" aria-hidden="true"></i>{% if eleve.actif %}{% trans "Désactiver" %}{% else %}{% trans "Réactiver" %}{% endif %}</a>

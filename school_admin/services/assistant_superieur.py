@@ -263,6 +263,23 @@ def _credits_valides_qs(ctx, eleve, periode=None):
     return qs
 
 
+def _credits_acquis(ctx, rows):
+    """
+    Crédits acquis selon le LMD : par UE (moyenne des EC pondérée), avec compensation dans le
+    semestre et note éliminatoire (règles d'examen de l'établissement) — et non EC par EC.
+    """
+    from school_admin.services.examens import regles, validation_lmd
+
+    regle = regles(ctx.etablissement)
+    par_semestre = {}
+    for row in rows:
+        par_semestre.setdefault(row.periode_id, []).append({
+            'matiere': row.matiere, 'moyenne': row.moyenne_matiere,
+            'coefficient': getattr(row, 'coefficient', None) or 1, 'credits': row.credits,
+        })
+    return sum((validation_lmd(lignes, regle)['credits_acquis'] for lignes in par_semestre.values()), Decimal('0'))
+
+
 def _ects_pour_eleve(ctx, eleve, periode=None):
     classe = eleve.classe
     maquette = _maquette_qs(classe)
@@ -271,11 +288,7 @@ def _ects_pour_eleve(ctx, eleve, periode=None):
     inscrits = sum((mc.credits or Decimal('0')) for mc in maquette)
     seuil = _seuil_passage(ctx)
     credits_rows = list(_credits_valides_qs(ctx, eleve, periode=periode))
-    valides = sum(
-        (row.credits or Decimal('0'))
-        for row in credits_rows
-        if row.moyenne_matiere is not None and row.moyenne_matiere >= seuil
-    )
+    valides = _credits_acquis(ctx, credits_rows)
     restants = inscrits - valides
     if restants < 0:
         restants = Decimal('0')
@@ -315,11 +328,7 @@ def _ects_par_semestre(ctx, eleve):
     for bucket in groupes.values():
         periode = bucket.pop('_periode')
         rows = list(_credits_valides_qs(ctx, eleve, periode=periode)) if periode else []
-        valides = sum(
-            (row.credits or Decimal('0'))
-            for row in rows
-            if row.moyenne_matiere is not None and row.moyenne_matiere >= seuil
-        )
+        valides = _credits_acquis(ctx, rows)
         restants = bucket['inscrits'] - valides
         if restants < 0:
             restants = Decimal('0')

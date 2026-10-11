@@ -27,8 +27,12 @@
     {% else %}
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres.css' %}?v=2.1.0" />
     {% endif %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
 </head>
-<body class="gml-page-body mat-page-body" data-live-page="matieres">
+<body class="gml-page-body mat-page-body gv3 cg3" data-live-page="matieres">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container gml-page mat-page">
@@ -36,35 +40,8 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
         </div>
 
-        <header class="gml-hero mat-hero">
-            <div class="gml-hero-text mat-hero-text">
-                <h1 class="gml-hero-title mat-hero-title"><i class="fas fa-{% if est_superieur %}cubes{% else %}book-open{% endif %}"></i> {% if est_superieur %}{% trans "Gestion des modules" %}{% else %}{% trans "Gestion des matières" %}{% endif %}</h1>
-                <p class="gml-hero-sub mat-hero-sub">{% if est_superieur %}{% trans "Organisez les modules par filière et niveau LMD. Ajoutez les matières depuis la fiche de chaque module." %}{% else %}{% trans "Organisez le programme d'enseignement, les coefficients et les classes concernées." %}{% endif %}</p>
-            </div>
-            <div class="gml-hero-stats mat-hero-stats">
-                {% if est_superieur %}
-                <div class="gml-stat-pill mat-stat-pill"><span class="gml-stat-num mat-stat-num">{{ modules_stats.total }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Modules" %}</span></div>
-                <div class="gml-stat-pill gml-stat-pill--ok mat-stat-pill mat-stat-pill--ok"><span class="gml-stat-num mat-stat-num">{{ modules_stats.actives }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Actifs" %}</span></div>
-                <div class="gml-stat-pill mat-stat-pill"><span class="gml-stat-num mat-stat-num">{{ modules_par_filiere|length }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Filières" %}</span></div>
-                {% else %}
-                <div class="gml-stat-pill mat-stat-pill"><span class="gml-stat-num mat-stat-num">{{ stats.total }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Matières" %}</span></div>
-                <div class="gml-stat-pill gml-stat-pill--ok mat-stat-pill mat-stat-pill--ok"><span class="gml-stat-num mat-stat-num">{{ stats.actives }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Actives" %}</span></div>
-                <div class="gml-stat-pill mat-stat-pill"><span class="gml-stat-num mat-stat-num">{{ stats.obligatoires|default:0 }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Obligatoires" %}</span></div>
-                <div class="gml-stat-pill mat-stat-pill"><span class="gml-stat-num mat-stat-num">{{ stats.optionnelles|default:0 }}</span><span class="gml-stat-lbl mat-stat-lbl">{% trans "Optionnelles" %}</span></div>
-                {% endif %}
-            </div>
-            <div class="gml-hero-actions mat-hero-actions">
-                {% if est_superieur %}
-                    <button type="button" class="gml-action-btn gml-action-btn--primary mat-action-btn mat-action-btn--primary" id="addModuleBtnHeader" title="{% trans 'Ajouter un module' %}">
-                        <i class="fas fa-plus"></i> {% trans "Ajouter un module" %}
-                    </button>
-                {% else %}
-                    <button type="button" class="gml-action-btn gml-action-btn--primary mat-action-btn mat-action-btn--primary" onclick="toggleAddForm()">
-                        <i class="fas fa-plus"></i> {% trans "Ajouter une matière" %}
-                    </button>
-                {% endif %}
-            </div>
-        </header>
+        {% if est_superieur %}{% trans "Modules et matières" as t %}{% trans "Unités d’enseignement par spécialité et niveau LMD, avec leurs matières et crédits ECTS." as st %}{% else %}{% trans "Matières" as t %}{% trans "Programme, coefficients et classes concernées." as st %}{% endif %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-book-open' v3_tone='violet' v3_actions_tpl='school_admin/directeur/partials/v3_actions/matieres.html' %}
 
         {% if est_superieur %}
             {% include 'school_admin/directeur/pedagogique/matieres/partials/gml_modules_list_panel.html' %}
@@ -597,7 +574,7 @@
                 const depIds = getSelectedDepartmentIds();
                 const hasDepts = depIds.length > 0;
                 
-                moduleContainer.style.display = hasDepts ? 'block' : 'none';
+                if (moduleContainer) moduleContainer.style.display = hasDepts ? 'block' : 'none';
                 if (creditsContainer) creditsContainer.style.display = 'none';
                 
                 moduleCheckboxes.forEach(function(label) {
@@ -712,6 +689,7 @@
     </style>
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

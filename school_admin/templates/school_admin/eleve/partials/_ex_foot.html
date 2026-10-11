@@ -1,0 +1,9 @@
+{% load static %}
+{# Scripts de fin de page communs à l'espace élève. #}
+<script src="{% static 'school_admin/js/directeur/aria_shell.js' %}?v=1.0.0"></script>
+<script type="module" src="{% static 'school_admin/js/fcm_notifications.js' %}"></script>
+{% if est_parent %}
+{% include 'school_admin/parent/partials/assistant_vocal_parent.html' %}
+{% else %}
+{% include 'school_admin/eleve/partials/assistant_vocal_eleve.html' %}
+{% endif %}

@@ -356,43 +356,22 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
 </head>
-<body data-live-page="preinscriptions">
+<body class="gv3 cg3" data-live-page="preinscriptions">
     <!-- Header -->
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content -->
     <div class="main-content-container">
         <!-- Page Header -->
-        <div class="page-header">
-            {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-clipboard-list"></i>
-                    {% trans "Liste des préinscriptions" %}
-                </h1>
-                <p class="page-subtitle">
-                    {% trans "Préinscriptions en attente de validation - Les préinscriptions validées ne sont plus affichées ici" %}
-                </p>
-            </div>
-            <div class="page-actions">
-                <a href="{% url 'directeur:gerer_liens_preinscription' %}" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 8px; background: var(--primary); color: white; text-decoration: none; font-weight: 600;">
-                    <i class="fas fa-link"></i>
-                    <span>{% trans "Gérer les liens" %}</span>
-                </a>
-            </div>
-        </div>
-
-        <!-- Messages Django -->
+{% trans "Préinscriptions" as t %}{% trans "Demandes reçues en ligne, à valider ou refuser. Les demandes validées deviennent des inscriptions." as st %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-inbox' v3_tone='orange' v3_actions_tpl='school_admin/directeur/partials/v3_actions/preinscriptions.html' %}
         {% include 'school_admin/partials/messages.html' %}
 
-        <!-- Statistiques -->
-        <div class="stats-container">
-            <div class="stat-card warning">
-                <div class="stat-label">{% trans "Préinscriptions en attente" %}</div>
-                <div class="stat-number">{{ total_en_attente }}</div>
-            </div>
-        </div>
 
         <!-- Barre de recherche -->
         <div class="search-container">
@@ -620,6 +599,7 @@
         }
     </script>
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
-</body>
+<script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
+    </body>
 </html>
 

@@ -1,0 +1,94 @@
+{% extends 'school_admin/directeur/comptabilite_generale/_base.html' %}
+{% load static i18n %}
+{% block title %}{% trans "Balance générale" %}{% endblock %}
+{% block icon %}fa-scale-balanced{% endblock %}
+{% block tone %}sky{% endblock %}
+{% block heading %}{% trans "Balance générale" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "Les soldes de tous les comptes, classe par classe. Débits et crédits doivent être égaux." %}</p>{% endblock %}
+{% block actions %}
+  <a class="cg3-btn" href="?{% if du %}du={{ du|date:'Y-m-d' }}&{% endif %}{% if au %}au={{ au|date:'Y-m-d' }}&{% endif %}export=csv"><i class="fas fa-file-csv" aria-hidden="true"></i>{% trans "Exporter" %}</a>
+{% endblock %}
+
+{% block content %}
+  {% with t=balance.totaux %}
+  <section class="cg3-kpis">
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Mouvements au débit" %}</p><span class="cg3-kpi__icon ax-tone-blue"><i class="fas fa-arrow-right-to-bracket" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{{ t.mvt_debit|default:0|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Mouvements au crédit" %}</p><span class="cg3-kpi__icon ax-tone-orange"><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{{ t.mvt_credit|default:0|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Comptes mouvementés" %}</p><span class="cg3-kpi__icon ax-tone-teal"><i class="fas fa-list-ol" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value">{{ balance.nb_comptes }}</p>
+      <p class="cg3-kpi__caption">{% blocktrans count n=balance.classes|length %}réparti sur {{ n }} classe{% plural %}réparti sur {{ n }} classes{% endblocktrans %}</p>
+    </article>
+    <article class="cg3-kpi">
+      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Équilibre" %}</p><span class="cg3-kpi__icon {% if balance.equilibree %}ax-tone-green{% else %}ax-tone-red{% endif %}"><i class="fas {% if balance.equilibree %}fa-circle-check{% else %}fa-triangle-exclamation{% endif %}" aria-hidden="true"></i></span></div>
+      <p class="cg3-kpi__value {% if balance.equilibree %}is-pos{% else %}is-neg{% endif %}">{% if balance.equilibree %}{% trans "Équilibrée" %}{% else %}{% trans "Écart" %}{% endif %}</p>
+      <p class="cg3-kpi__caption">{% trans "Débit = crédit, soldes compris" %}</p>
+    </article>
+  </section>
+
+  <form method="get" class="cg3-filters" aria-label="{% trans 'Période' %}">
+    <label class="cg3-field"><span>{% trans "Du" %}</span><input type="date" name="du" value="{{ du|date:'Y-m-d' }}"></label>
+    <label class="cg3-field"><span>{% trans "Au" %}</span><input type="date" name="au" value="{{ au|date:'Y-m-d' }}"></label>
+    <button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-filter" aria-hidden="true"></i>{% trans "Afficher" %}</button>
+    {% if du or au %}<a class="cg3-btn" href="?">{% trans "Tout l’exercice" %}</a>{% endif %}
+  </form>
+
+  {% if balance.classes %}
+  <section class="axd-grid">
+    <article class="axd-card axd-span-12">
+      <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Mouvements par classe" %}</h2><p class="axd-card__sub">{% trans "Total des débits et des crédits de chaque classe de comptes" %}</p></div></header>
+      <div class="cg3-chart cg3-chart--sm"><canvas id="cg3-chart-classes" role="img" aria-label="{% trans 'Mouvements par classe' %}"></canvas></div>
+      <ul class="cg3-legend"><li><i class="cg3-sw cg3-sw--s1"></i>{% trans "Débit" %}</li><li><i class="cg3-sw cg3-sw--s2"></i>{% trans "Crédit" %}</li></ul>
+    </article>
+  </section>
+
+  <div class="cg3-table-wrap">
+    <table class="cg3-table">
+      <thead>
+        <tr><th rowspan="2">{% trans "Compte" %}</th><th rowspan="2">{% trans "Intitulé" %}</th><th class="num" colspan="2">{% trans "Ouverture" %}</th><th class="num" colspan="2">{% trans "Mouvements" %}</th><th class="num" colspan="2">{% trans "Soldes" %}</th></tr>
+        <tr><th class="num">{% trans "Débit" %}</th><th class="num">{% trans "Crédit" %}</th><th class="num">{% trans "Débit" %}</th><th class="num">{% trans "Crédit" %}</th><th class="num">{% trans "Débiteur" %}</th><th class="num">{% trans "Créditeur" %}</th></tr>
+      </thead>
+      <tbody>
+        {% for bloc in balance.classes %}
+        <tr class="is-group"><td colspan="8">{{ bloc.libelle }}</td></tr>
+        {% for r in bloc.rows %}
+        <tr>
+          <td><a class="cg3-acc" href="{% url 'directeur:cg_grand_livre' %}?compte={{ r.compte.pk }}">{{ r.compte.numero }}</a></td>
+          <td class="cg3-acc-label">{{ r.compte.libelle }}</td>
+          <td class="num">{% if r.ouv_debit %}{{ r.ouv_debit|floatformat:"0g" }}{% endif %}</td>
+          <td class="num">{% if r.ouv_credit %}{{ r.ouv_credit|floatformat:"0g" }}{% endif %}</td>
+          <td class="num">{% if r.mvt_debit %}{{ r.mvt_debit|floatformat:"0g" }}{% endif %}</td>
+          <td class="num">{% if r.mvt_credit %}{{ r.mvt_credit|floatformat:"0g" }}{% endif %}</td>
+          <td class="num">{% if r.solde_debit %}{{ r.solde_debit|floatformat:"0g" }}{% endif %}</td>
+          <td class="num">{% if r.solde_credit %}{{ r.solde_credit|floatformat:"0g" }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+        <tr class="is-subtotal"><td colspan="2">{% trans "Total classe" %} {{ bloc.classe }}</td>
+          <td class="num">{{ bloc.totaux.ouv_debit|floatformat:"0g" }}</td><td class="num">{{ bloc.totaux.ouv_credit|floatformat:"0g" }}</td>
+          <td class="num">{{ bloc.totaux.mvt_debit|floatformat:"0g" }}</td><td class="num">{{ bloc.totaux.mvt_credit|floatformat:"0g" }}</td>
+          <td class="num">{{ bloc.totaux.solde_debit|floatformat:"0g" }}</td><td class="num">{{ bloc.totaux.solde_credit|floatformat:"0g" }}</td></tr>
+        {% endfor %}
+        <tr class="is-total"><td colspan="2">{% trans "Total général" %}</td>
+          <td class="num">{{ t.ouv_debit|floatformat:"0g" }}</td><td class="num">{{ t.ouv_credit|floatformat:"0g" }}</td>
+          <td class="num">{{ t.mvt_debit|floatformat:"0g" }}</td><td class="num">{{ t.mvt_credit|floatformat:"0g" }}</td>
+          <td class="num">{{ t.solde_debit|floatformat:"0g" }}</td><td class="num">{{ t.solde_credit|floatformat:"0g" }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="axd-card"><div class="cg3-empty"><i class="fas fa-scale-balanced" aria-hidden="true"></i><strong>{% trans "Balance vide" %}</strong><span>{% trans "Aucune écriture sur la période." %}</span></div></div>
+  {% endif %}
+  {% endwith %}
+{% endblock %}
+
+{% block data %}{{ charts|json_script:"cg3-data" }}{% endblock %}
+{% block scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="{% static 'school_admin/js/directeur/cg_v3.js' %}?v=1.0.0"></script>
+{% endblock %}

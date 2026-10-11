@@ -1,0 +1,27 @@
+{% load i18n %}
+<div class="fe-grid">
+  <article class="fe-card fe-col-8 fe-tone-orange">
+    <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-gavel" aria-hidden="true"></i>{% trans "Sanctions" %}</h2>
+    <p class="fe-card__sub">{% if fiche.vue == 'enseignant' %}{% trans "Sanctions données dans cette classe cette année." %}{% else %}{% trans "Toutes les sanctions de l’année." %}{% endif %}</p></div>
+    <div class="fe-status"><span class="cg3-chip cg3-chip--muted">{{ fiche.sanctions.total }} {% trans "au total" %}</span>{% if fiche.sanctions.graves %}<span class="cg3-chip cg3-chip--bad">{{ fiche.sanctions.graves }} {% trans "grave(s)" %}</span>{% endif %}{% if fiche.sanctions.non_executees %}<span class="cg3-chip cg3-chip--warn">{{ fiche.sanctions.non_executees }} {% trans "à exécuter" %}</span>{% endif %}</div></header>
+    {% if fiche.sanctions.items %}
+    <div class="fe-rows">
+      {% for s in fiche.sanctions.items %}
+      <div class="fe-row">
+        <span class="fe-row__date"><b>{{ s.date_sanction|date:"d/m" }}</b>{{ s.date_sanction|date:"Y" }}</span>
+        <span class="fe-row__main"><strong>{{ s.get_type_sanction_display }} · {{ s.get_raison_display }}</strong>
+          <small>{% if s.attribue_par_nom %}{{ s.attribue_par_nom }}{% elif s.professeur %}{{ s.professeur.nom_complet }}{% endif %}{% if s.duree_jours %} · {{ s.duree_jours }} {% trans "jour(s)" %}{% endif %}{% if s.parents_informes %} · {% trans "parents informés" %}{% endif %}{% if s.description %} · {{ s.description|truncatechars:90 }}{% endif %}</small></span>
+        <span style="display:flex;gap:6px;flex-wrap:wrap"><span class="cg3-chip {% if s.gravite == 'grave' or s.gravite == 'tres_grave' %}cg3-chip--bad{% elif s.gravite == 'moyenne' %}cg3-chip--warn{% else %}cg3-chip--muted{% endif %}">{{ s.get_gravite_display }}</span>{% if s.executee %}<span class="cg3-chip cg3-chip--ok">{% trans "Exécutée" %}</span>{% endif %}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}<div class="cg3-empty"><i class="fas fa-face-smile" aria-hidden="true"></i><span>{% trans "Aucune sanction cette année." %}</span></div>{% endif %}
+  </article>
+  <article class="fe-card fe-col-4 fe-tone-violet">
+    <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-calendar-check" aria-hidden="true"></i>{% trans "Convocations" %}</h2></div>
+    {% if fiche.vue == 'direction' %}<a class="fe-link" href="{% url 'directeur:voir_convocations_eleve' eleve.id %}">{% trans "Gérer" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>{% endif %}</header>
+    {% if fiche.convocations %}
+    <ul class="fe-upcoming">{% for c in fiche.convocations %}<li><span class="fe-upcoming__badge"><i class="fas fa-envelope-open-text" aria-hidden="true"></i></span><span><strong>{{ c.objet }}</strong><small>{{ c.date_convocation|date:"d/m/Y" }} · {{ c.heure_convocation|time:"H:i" }}{% if c.lieu %} · {{ c.lieu }}{% endif %}</small></span>{% if c.a_venir %}<span class="cg3-chip cg3-chip--warn">{% trans "À venir" %}</span>{% endif %}</li>{% endfor %}</ul>
+    {% else %}<div class="cg3-empty"><i class="fas fa-envelope" aria-hidden="true"></i><span>{% trans "Aucune convocation." %}</span></div>{% endif %}
+  </article>
+</div>

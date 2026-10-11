@@ -1,0 +1,54 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ eleve.nom_complet }} — {% trans "Fiche élève" %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}?v=1.0.3">
+  {% if ns == 'enseignant_primaire' %}{% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}{% endif %}
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/aria_shell.css' %}?v=1.0.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=1.0.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+</head>
+<body class="axd-page axd-page--prof cg3-body fe-body">
+  {% if ns == 'enseignant_primaire' %}{% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}{% else %}{% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}{% endif %}
+
+  <main class="fe cg3" id="contenu" data-fe-root data-fe-initial="{{ onglet_actif|default:'apercu' }}">
+    {% if messages %}<div class="fe-messages">{% for m in messages %}<p class="fe-alert {% if m.tags == 'success' %}fe-alert--ok{% elif m.tags == 'error' or m.tags == 'warning' %}fe-alert--warn{% else %}fe-alert--info{% endif %}"><i class="fas fa-circle-info" aria-hidden="true"></i><span>{{ m }}</span></p>{% endfor %}</div>{% endif %}
+
+    {% include 'school_admin/fiche_eleve/_hero.html' %}
+
+    {% if fiche.matieres_prof %}
+    <p class="fe-alert fe-alert--info" style="margin-top:14px"><i class="fas fa-chalkboard-user" aria-hidden="true"></i><span>{% trans "Vous voyez les notes de vos matières :" %} <strong>{% for m in fiche.matieres_prof %}{{ m.nom }}{% if not forloop.last %}, {% endif %}{% endfor %}</strong>{% if fiche.derniere_moyenne %} {% trans "et la moyenne générale publiée." %}{% else %}.{% endif %}</span></p>
+    {% endif %}
+
+    {% include 'school_admin/fiche_eleve/_kpis.html' %}
+
+    <nav class="fe-tabs" role="tablist" aria-label="{% trans 'Sections de la fiche' %}">
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="apercu"><i class="fas fa-house" aria-hidden="true"></i>{% trans "Vue d’ensemble" %}{% if fiche.alertes %}<span class="fe-tab__dot"></span>{% endif %}</button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="notes"><i class="fas fa-chart-line" aria-hidden="true"></i>{% trans "Notes" %}<span class="fe-tab__count">{{ fiche.nb_notes }}</span></button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="assiduite"><i class="fas fa-user-check" aria-hidden="true"></i>{% trans "Assiduité" %}</button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="discipline"><i class="fas fa-gavel" aria-hidden="true"></i>{% trans "Discipline" %}{% if fiche.sanctions.total %}<span class="fe-tab__count">{{ fiche.sanctions.total }}</span>{% endif %}</button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="famille"><i class="fas fa-people-roof" aria-hidden="true"></i>{% trans "Contacts" %}</button>
+    </nav>
+
+    <section class="fe-panel" data-fe-panel="apercu" role="tabpanel">{% include 'school_admin/fiche_eleve/_apercu.html' %}</section>
+    <section class="fe-panel" data-fe-panel="notes" role="tabpanel">{% include 'school_admin/fiche_eleve/_notes.html' %}</section>
+    <section class="fe-panel" data-fe-panel="assiduite" role="tabpanel">{% include 'school_admin/fiche_eleve/_assiduite.html' %}</section>
+    <section class="fe-panel" data-fe-panel="discipline" role="tabpanel">{% include 'school_admin/fiche_eleve/_discipline.html' %}</section>
+    <section class="fe-panel" data-fe-panel="famille" role="tabpanel">{% include 'school_admin/fiche_eleve/_famille.html' %}</section>
+  </main>
+
+  <script src="{% static 'school_admin/js/directeur/fiche_employe.js' %}?v=1.1.0"></script>
+  {% if ns == 'enseignant_primaire' %}
+    <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+    {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
+  {% else %}
+    {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
+  {% endif %}
+</body>
+</html>

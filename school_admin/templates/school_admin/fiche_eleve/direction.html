@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ eleve.nom_complet }} — {% trans "Fiche élève" %}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  {# Feuilles du formulaire de modification existant, chargées avant le nouveau design. #}
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=1.0.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0" />
+</head>
+<body class="axd-page cg3-body fe-body" data-live-page="eleve-detail">
+  {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+  <main class="fe cg3" id="contenu" data-fe-root data-fe-initial="{{ onglet_actif|default:'apercu' }}">
+    <nav class="fe-crumbs" aria-label="{% trans 'Fil d’Ariane' %}">
+      <a href="{% url 'secretaire:liste_eleves' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{% trans "Élèves" %}</a>
+      {% if fiche.classe %}<i class="fas fa-chevron-right" aria-hidden="true"></i><a href="{% url 'secretaire:detail_classe' fiche.classe.id %}">{{ fiche.classe.nom }}</a>{% endif %}
+      <i class="fas fa-chevron-right" aria-hidden="true"></i><span>{{ eleve.nom_complet }}</span>
+    </nav>
+
+    {% if messages %}<div class="fe-messages">{% for m in messages %}<p class="fe-alert {% if m.tags == 'success' %}fe-alert--ok{% elif m.tags == 'error' or m.tags == 'warning' %}fe-alert--warn{% else %}fe-alert--info{% endif %}"><i class="fas {% if m.tags == 'success' %}fa-circle-check{% else %}fa-circle-info{% endif %}" aria-hidden="true"></i><span>{{ m }}</span></p>{% endfor %}</div>{% endif %}
+    {% if not annee_scolaire_active %}<p class="fe-alert fe-alert--warn" style="margin-bottom:14px"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span>{% trans "Aucune année scolaire active : toutes les données sont affichées." %}</span></p>{% endif %}
+
+    {% include 'school_admin/fiche_eleve/_hero.html' with actions_tpl='school_admin/fiche_eleve/_actions_direction.html' peut_photo=True %}
+    {% include 'school_admin/fiche_eleve/_kpis.html' %}
+
+    <nav class="fe-tabs" role="tablist" aria-label="{% trans 'Sections de la fiche' %}">
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="apercu"><i class="fas fa-house" aria-hidden="true"></i>{% trans "Vue d’ensemble" %}{% if fiche.alertes %}<span class="fe-tab__dot"></span>{% endif %}</button>
+      {% if voir_notes %}<button type="button" role="tab" class="fe-tab" data-fe-tab="notes"><i class="fas fa-chart-line" aria-hidden="true"></i>{% trans "Notes" %}<span class="fe-tab__count">{{ fiche.nb_notes }}</span></button>{% endif %}
+      {% if voir_presences %}<button type="button" role="tab" class="fe-tab" data-fe-tab="assiduite"><i class="fas fa-user-check" aria-hidden="true"></i>{% trans "Assiduité" %}</button>{% endif %}
+      {% if voir_sanctions %}<button type="button" role="tab" class="fe-tab" data-fe-tab="discipline"><i class="fas fa-gavel" aria-hidden="true"></i>{% trans "Discipline" %}{% if fiche.sanctions.total %}<span class="fe-tab__count">{{ fiche.sanctions.total }}</span>{% endif %}</button>{% endif %}
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="famille"><i class="fas fa-people-roof" aria-hidden="true"></i>{% trans "Famille" %}{% if not fiche.famille.comptes %}<span class="fe-tab__dot"></span>{% endif %}</button>
+      {% if fiche.finances %}<button type="button" role="tab" class="fe-tab" data-fe-tab="finances"><i class="fas fa-wallet" aria-hidden="true"></i>{% trans "Scolarité" %}{% if fiche.finances.statut == 'impaye' or fiche.finances.statut == 'en_retard' %}<span class="fe-tab__dot"></span>{% endif %}</button>{% endif %}
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="documents"><i class="fas fa-folder-open" aria-hidden="true"></i>{% trans "Documents" %}</button>
+      <button type="button" role="tab" class="fe-tab" data-fe-tab="acces"><i class="fas fa-key" aria-hidden="true"></i>{% trans "Accès" %}</button>
+    </nav>
+
+    <section class="fe-panel" data-fe-panel="apercu" role="tabpanel">{% include 'school_admin/fiche_eleve/_apercu.html' %}</section>
+    {% if voir_notes %}<section class="fe-panel" data-fe-panel="notes" role="tabpanel">{% include 'school_admin/fiche_eleve/_notes.html' %}</section>{% endif %}
+    {% if voir_presences %}<section class="fe-panel" data-fe-panel="assiduite" role="tabpanel">{% include 'school_admin/fiche_eleve/_assiduite.html' %}</section>{% endif %}
+    {% if voir_sanctions %}<section class="fe-panel" data-fe-panel="discipline" role="tabpanel">{% include 'school_admin/fiche_eleve/_discipline.html' %}</section>{% endif %}
+    <section class="fe-panel" data-fe-panel="famille" role="tabpanel">{% include 'school_admin/fiche_eleve/_famille.html' %}</section>
+    {% include 'school_admin/fiche_eleve/_admin_panels.html' %}
+  </main>
+
+  {# ---------- Photo ---------- #}
+  <div class="cg3-modal" id="fe-photo" role="dialog" aria-modal="true" aria-labelledby="fe-photo-titre" hidden{% if photo_modal_open %} data-fe-auto-open{% endif %}>
+    <div class="cg3-modal__panel" style="max-width:480px">
+      <div class="cg3-modal__head"><h2 id="fe-photo-titre"><i class="fas fa-camera" aria-hidden="true"></i>{% trans "Photo de l’élève" %}</h2><button type="button" class="cg3-btn cg3-btn--sm" data-fe-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+      <form action="{% url 'secretaire:detail_eleve' eleve.id %}" method="post" enctype="multipart/form-data" class="fe-modal-form">
+        {% csrf_token %}<input type="hidden" name="form_type" value="photo_upload">
+        <p class="fe-card__sub">{% trans "JPG, PNG ou WEBP, 5 Mo maximum." %}</p>
+        <div class="fe-radio-row">
+          <label><input type="radio" name="photo_source" value="gallery" checked data-fe-photo-source> <i class="fas fa-images" aria-hidden="true"></i>{% trans "Depuis un fichier" %}</label>
+          <label><input type="radio" name="photo_source" value="camera" data-fe-photo-source> <i class="fas fa-camera" aria-hidden="true"></i>{% trans "Prendre une photo" %}</label>
+        </div>
+        <label class="cg3-field" data-source="gallery"><span>{% trans "Fichier" %}</span><input type="file" name="photo_fichier" accept="image/*"></label>
+        <label class="cg3-field" data-source="camera" hidden><span>{% trans "Appareil photo" %}</span><input type="file" name="photo_camera" accept="image/*" capture="environment" disabled></label>
+        {% if photo_form_errors %}<div class="fe-alert fe-alert--warn"><i class="fas fa-circle-exclamation" aria-hidden="true"></i><span>{% for e in photo_form_errors %}{{ e }}{% if not forloop.last %} · {% endif %}{% endfor %}</span></div>{% endif %}
+        <div class="cg3-row-actions" style="justify-content:flex-end"><button type="button" class="cg3-btn" data-fe-close>{% trans "Annuler" %}</button><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>{% trans "Enregistrer" %}</button></div>
+      </form>
+    </div>
+  </div>
+
+  {# ---------- Transfert ---------- #}
+  <div class="cg3-modal" id="fe-transfert" role="dialog" aria-modal="true" aria-labelledby="fe-transfert-titre" hidden>
+    <div class="cg3-modal__panel" style="max-width:520px">
+      <div class="cg3-modal__head"><h2 id="fe-transfert-titre"><i class="fas fa-right-left" aria-hidden="true"></i>{% trans "Changer de classe" %}</h2><button type="button" class="cg3-btn cg3-btn--sm" data-fe-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+      <form method="post" action="{% url 'secretaire:transfer_eleve' eleve.id %}" class="fe-modal-form">
+        {% csrf_token %}
+        <label class="cg3-field"><span>{% trans "Classe actuelle" %}</span><input type="text" value="{% if fiche.classe %}{{ fiche.classe.nom }} · {{ fiche.classe.get_niveau_display }}{% else %}—{% endif %}" readonly></label>
+        <label class="cg3-field"><span>{% trans "Nouvelle classe" %} *</span>
+          <select name="new_class" required>
+            <option value="">{% trans "Choisir une classe" %}</option>
+            {% for c in classes %}{% if not fiche.classe or c.id != fiche.classe.id %}<option value="{{ c.id }}"{% if c.places_disponibles <= 0 %} disabled{% endif %}>{{ c.nom }} · {{ c.get_niveau_display }} — {% if c.places_disponibles <= 0 %}{% trans "complète" %}{% else %}{{ c.places_disponibles }} {% trans "place(s)" %}{% endif %}</option>{% endif %}{% endfor %}
+          </select>
+        </label>
+        <label class="cg3-field"><span>{% trans "Motif" %}</span><textarea name="transfer_reason" rows="3" placeholder="{% trans 'Ex. demande de la famille, réorientation…' %}"></textarea></label>
+        <div class="cg3-row-actions" style="justify-content:flex-end"><button type="button" class="cg3-btn" data-fe-close>{% trans "Annuler" %}</button><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-right-left" aria-hidden="true"></i>{% trans "Transférer" %}</button></div>
+      </form>
+    </div>
+  </div>
+
+  {# ---------- Modification (formulaire d'inscription existant) ---------- #}
+  <div class="cg3-modal fe-edit-modal" id="fe-modifier" role="dialog" aria-modal="true" aria-labelledby="fe-modifier-titre" hidden{% if field_errors %} data-fe-auto-open{% endif %}>
+    <div class="cg3-modal__panel">
+      <div class="cg3-modal__head"><h2 id="fe-modifier-titre"><i class="fas fa-user-pen" aria-hidden="true"></i>{% trans "Modifier" %} {{ eleve.nom_complet }}</h2><button type="button" class="cg3-btn cg3-btn--sm" data-fe-close aria-label="{% trans 'Fermer' %}"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+      <div class="form-container-modern">{% include 'school_admin/directeur/secretaire/partials/formulaire_modification_eleve.html' %}</div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/intlTelInput.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
+  {% include 'school_admin/fiche_eleve/edit_form_scripts.html' %}
+  <script src="{% static 'school_admin/js/directeur/fiche_employe.js' %}?v=1.1.0"></script>
+  {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

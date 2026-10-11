@@ -1,0 +1,34 @@
+{% load i18n %}
+{# Accès à la plateforme, commun aux enseignants et au personnel. Variables : employe, qui. #}
+<div class="fe-grid">
+  <article class="fe-card fe-col-8 fe-tone-blue">
+    <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-key" aria-hidden="true"></i>{% trans "Connexion à ARIA" %}</h2>
+    <p class="fe-card__sub">{% trans "Identifiants à communiquer en main propre." %}</p></div></header>
+    {% if employe.mot_de_passe_provisoire %}
+    <p class="fe-alert fe-alert--warn"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span><strong>{% trans "Mot de passe provisoire actif." %}</strong> {% blocktrans %}Il sera demandé à {{ qui }} de le changer à la première connexion.{% endblocktrans %}</span></p>
+    {% else %}
+    <p class="fe-alert fe-alert--ok"><i class="fas fa-shield-halved" aria-hidden="true"></i><span><strong>{% trans "Mot de passe personnel défini." %}</strong> {% trans "Il n’est plus visible par la direction." %}</span></p>
+    {% endif %}
+    <div class="fe-access">
+      <div class="fe-access__item"><span>{% trans "Identifiant" %}</span><div class="fe-access__val"><code>{{ employe.username }}</code><button type="button" class="fe-copy" data-fe-copy="{{ employe.username }}" aria-label="{% trans 'Copier l’identifiant' %}"><i class="fas fa-copy" aria-hidden="true"></i></button></div></div>
+      {% if employe.mot_de_passe_provisoire %}
+      <div class="fe-access__item"><span>{% trans "Mot de passe provisoire" %}</span><div class="fe-access__val"><code>{{ employe.mot_de_passe_provisoire }}</code><button type="button" class="fe-copy" data-fe-copy="{{ employe.mot_de_passe_provisoire }}" aria-label="{% trans 'Copier le mot de passe' %}"><i class="fas fa-copy" aria-hidden="true"></i></button></div></div>
+      {% endif %}
+    </div>
+    {% if employe.mot_de_passe_provisoire %}
+    <ol class="fe-steps">
+      <li>{% trans "Se connecter avec l’identifiant et le mot de passe provisoire ci-dessus." %}</li>
+      <li>{% trans "Choisir un nouveau mot de passe personnel à la première connexion." %}</li>
+      <li>{% trans "Le mot de passe provisoire disparaît alors de cette page." %}</li>
+    </ol>
+    {% endif %}
+  </article>
+  <article class="fe-card fe-col-4">
+    <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i>{% trans "Activité" %}</h2></header>
+    <dl class="fe-dl">
+      <div><dt>{% trans "Compte" %}</dt><dd>{% if employe.actif %}<span class="cg3-chip cg3-chip--ok">{% trans "Actif" %}</span>{% else %}<span class="cg3-chip cg3-chip--muted">{% trans "Désactivé" %}</span>{% endif %}</dd></div>
+      <div><dt>{% trans "Dernière connexion" %}</dt><dd>{% if employe.last_login %}{{ employe.last_login|date:"d/m/Y H:i" }}{% else %}<span class="is-empty is-warn">{% trans "Jamais connecté" %}</span>{% endif %}</dd></div>
+      <div><dt>{% trans "Créé le" %}</dt><dd>{{ employe.date_creation|date:"d/m/Y" }}</dd></div>
+    </dl>
+  </article>
+</div>

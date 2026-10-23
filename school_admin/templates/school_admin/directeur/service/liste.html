@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+{% load i18n %}
+<html lang="fr">
+<head>
+    <title>{% trans "Service des enseignants" %} — {{ etablissement.nom }}</title>
+    {% include 'school_admin/directeur/maquette/_head.html' %}
+    <style>
+        .srv-bar { height: 8px; border-radius: 999px; background: #e2e8f0; overflow: hidden; margin-top: .3rem; position: relative; }
+        .srv-bar span { display: block; height: 100%; border-radius: 999px; background: #16a34a; }
+        .srv-bar--sous span { background: #d97706; } .srv-bar--plus span { background: #1d4ed8; }
+        .srv-stat { display: inline-block; font-size: .72rem; font-weight: 700; padding: .15rem .55rem; border-radius: 999px; }
+        .srv-stat--complementaires { background: #dbeafe; color: #1d4ed8; } .srv-stat--equilibre { background: #dcfce7; color: #166534; }
+        .srv-stat--sous_service { background: #fef3c7; color: #92400e; } .srv-stat--vacataire { background: #ede9fe; color: #6d28d9; }
+        .srv-mini { font-size: .74rem; color: #64748b; display: block; }
+        .srv-regles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .7rem; }
+        .srv-regles label, .srv-grades label { display: grid; gap: .3rem; font-size: .76rem; font-weight: 600; color: #64748b; }
+        .srv-regles input, .srv-grades input { border: 1px solid #cbd5e1; border-radius: .5rem; padding: .45rem .55rem; font: inherit; font-size: .88rem; width: 100%; box-sizing: border-box; }
+        .srv-grades { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .7rem; margin-top: .8rem; }
+        details.dlb-card > summary { cursor: pointer; list-style: none; }
+        details.dlb-card > summary::-webkit-details-marker { display: none; }
+        @media (max-width: 900px) { .srv-regles, .srv-grades { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body class="dlb-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    {% with s=synthese r=synthese.regles %}
+    <div class="content-container dlb">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">{% include 'school_admin/directeur/partials/page_header_back.html' %}</div>
+
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-orange"><i class="fas fa-scale-balanced" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <p class="fe-hero__kicker">{{ etablissement.nom }}{% if annee_scolaire_active %} · {{ annee_scolaire_active.libelle }}{% endif %}</p>
+                <h1 class="hb-head__title">{% trans "Service des enseignants" %}</h1>
+                <p class="fe-hero__sub">{% blocktrans with cm=r.coef_cm|floatformat:"-2" tp=r.coef_tp|floatformat:"-2" %}Heures prévues aux emplois du temps, en équivalent TD (1 h CM = {{ cm }} h, 1 h TP = {{ tp }} h), comparées au service dû.{% endblocktrans %}</p>
+            </div>
+            <div class="hb-head__actions">
+                <a href="{% url 'directeur:liste_maquettes' %}" class="cg3-btn"><i class="fas fa-sitemap" aria-hidden="true"></i>{% trans "Maquettes" %}</a>
+            </div>
+        </header>
+
+        <section class="fe-kpis hb-kpis hb-kpis--4 cg3">
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Heures éq. TD prévues" %}</span><span class="fe-kpi__icon"><i class="fas fa-clock"></i></span></div><p class="fe-kpi__value">{{ s.total_eqtd|floatformat:"0" }} h</p></div>
+            <div class="fe-kpi fe-tone-violet"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Heures complémentaires" %}</span><span class="fe-kpi__icon"><i class="fas fa-plus"></i></span></div><p class="fe-kpi__value">{{ s.total_complementaires|floatformat:"0" }} h</p></div>
+            <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Montant estimé" %}</span><span class="fe-kpi__icon"><i class="fas fa-coins"></i></span></div><p class="fe-kpi__value">{{ s.total_montant|floatformat:"0g" }} <small style="font-size:.85rem;font-weight:600">{{ devise }}</small></p></div>
+            <div class="fe-kpi {% if compteurs.sous_service %}fe-tone-orange{% else %}fe-tone-green{% endif %}"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "En sous-service" %}</span><span class="fe-kpi__icon"><i class="fas fa-arrow-down"></i></span></div><p class="fe-kpi__value">{{ compteurs.sous_service }}</p></div>
+        </section>
+
+        {% if s.alertes %}
+        <section class="dlb-card"><div class="dlb-card__body"><ul class="mqt-alertes">{% for a in s.alertes %}<li><i class="fas fa-triangle-exclamation"></i> {{ a }}</li>{% endfor %}</ul></div></section>
+        {% endif %}
+
+        <form method="post" class="dlb-card">
+            {% csrf_token %}<input type="hidden" name="action" value="grades">
+            <div class="dlb-card__head">
+                <h2><i class="fas fa-chalkboard-user"></i> {% trans "Enseignants" %}</h2>
+                <nav class="dlb-filtres">
+                    <a class="dlb-filtre {% if not filtre %}is-active{% endif %}" href="?">{% trans "Tous" %} <b>{{ s.bilans|length }}</b></a>
+                    <a class="dlb-filtre {% if filtre == 'complementaires' %}is-active{% endif %}" href="?filtre=complementaires"><span class="srv-stat srv-stat--complementaires">{% trans "Heures compl." %}</span> <b>{{ compteurs.complementaires }}</b></a>
+                    <a class="dlb-filtre {% if filtre == 'sous_service' %}is-active{% endif %}" href="?filtre=sous_service"><span class="srv-stat srv-stat--sous_service">{% trans "Sous-service" %}</span> <b>{{ compteurs.sous_service }}</b></a>
+                    <a class="dlb-filtre {% if filtre == 'vacataire' %}is-active{% endif %}" href="?filtre=vacataire"><span class="srv-stat srv-stat--vacataire">{% trans "Vacataires" %}</span> <b>{{ compteurs.vacataire }}</b></a>
+                </nav>
+            </div>
+            <div class="dlb-table-wrap">
+            <table class="dlb-table">
+                <thead><tr><th>{% trans "Enseignant" %}</th><th>{% trans "Grade" %}</th><th>{% trans "Service dû" %}</th><th>CM · TD · TP</th><th>{% trans "Éq. TD" %}</th><th>{% trans "Situation" %}</th><th>{% trans "Compl." %}</th><th>{% trans "Montant" %}</th></tr></thead>
+                <tbody>
+                {% for b in bilans %}{% with p=b.professeur %}
+                <tr>
+                    <td class="dlb-etu"><strong><a href="{% url 'directeur:service_enseignant_detail' p.id %}" style="color:inherit">{{ p.nom|upper }} {{ p.prenom }}</a></strong><small>{{ p.get_type_contrat_display }}</small></td>
+                    <td data-label="{% trans 'Grade' %}"><select class="dlb-input" name="grade_{{ p.id }}"><option value="">—</option>{% for v, l in grades %}<option value="{{ v }}" {% if p.grade_universitaire == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></td>
+                    <td data-label="{% trans 'Service dû' %}"><input class="dlb-input" style="width:5rem" type="number" min="0" max="600" name="service_{{ p.id }}" value="{{ p.service_statutaire }}" title="{% trans '0 = selon le grade' %}"><span class="srv-mini">{{ b.du|floatformat:"0" }} h {% if not p.service_statutaire %}({% trans "grade" %}){% endif %}</span></td>
+                    <td data-label="CM · TD · TP" class="dlb-num">{{ b.cm|floatformat:"0" }} · {{ b.td|floatformat:"0" }} · {{ b.tp|floatformat:"0" }}<small>{% trans "heures réelles" %}</small></td>
+                    <td data-label="{% trans 'Éq. TD' %}" class="dlb-credits"><span class="dlb-num">{{ b.eqtd|floatformat:"0" }} h</span>
+                        <div class="srv-bar {% if b.statut == 'sous_service' %}srv-bar--sous{% elif b.statut == 'complementaires' %}srv-bar--plus{% endif %}"><span style="width: {% if b.pct_service > 100 %}100{% else %}{{ b.pct_service }}{% endif %}%"></span></div>
+                        {% if b.du %}<span class="srv-mini">{{ b.pct_service }} % {% trans "du service" %}</span>{% endif %}</td>
+                    <td data-label="{% trans 'Situation' %}"><span class="srv-stat srv-stat--{{ b.statut }}">{% if b.statut == 'complementaires' %}+{{ b.ecart|floatformat:"0" }} h{% elif b.statut == 'sous_service' %}{{ b.ecart|floatformat:"0" }} h{% elif b.statut == 'vacataire' %}{% trans "Vacataire" %}{% else %}{% trans "Service fait" %}{% endif %}</span></td>
+                    <td data-label="{% trans 'Compl.' %}" class="dlb-num">{{ b.complementaires|floatformat:"0" }} h</td>
+                    <td data-label="{% trans 'Montant' %}" class="dlb-num">{{ b.montant|floatformat:"0g" }}<small>{{ b.taux|floatformat:"0g" }} {{ devise }} / h</small></td>
+                </tr>
+                {% endwith %}{% empty %}<tr><td colspan="8"><div class="dlb-vide"><i class="fas fa-chalkboard-user"></i>{% trans "Aucun enseignant pour ce filtre." %}</div></td></tr>{% endfor %}
+                </tbody>
+            </table>
+            </div>
+            <div class="dlb-actions-bar"><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-floppy-disk"></i> {% trans "Enregistrer grades et services" %}</button></div>
+        </form>
+
+        <details class="dlb-card" {% if not r.taux_heure_complementaire %}open{% endif %}>
+            <summary class="dlb-card__head"><h2><i class="fas fa-sliders"></i> {% trans "Règles de service" %}</h2><span class="dlb-help">{% trans "Équivalences, taux et service par grade" %}</span></summary>
+            <form method="post" class="dlb-card__body">
+                {% csrf_token %}<input type="hidden" name="action" value="regles">
+                <div class="srv-regles">
+                    <label>{% trans "1 h CM = (h éq. TD)" %}<input type="text" inputmode="decimal" name="coef_cm" value="{{ r.coef_cm|floatformat:'-2' }}"></label>
+                    <label>{% trans "1 h TD = (h éq. TD)" %}<input type="text" inputmode="decimal" name="coef_td" value="{{ r.coef_td|floatformat:'-2' }}"></label>
+                    <label>{% trans "1 h TP = (h éq. TD)" %}<input type="text" inputmode="decimal" name="coef_tp" value="{{ r.coef_tp|floatformat:'-2' }}"></label>
+                    <label>{% trans "Taux heure complémentaire" %}<input type="text" inputmode="decimal" name="taux" value="{{ r.taux_heure_complementaire|floatformat:'-2' }}"></label>
+                    <label>{% trans "Semaines (« toute l'année »)" %}<input type="number" min="1" max="52" name="semaines_annee" value="{{ r.semaines_annee }}"></label>
+                </div>
+                <p class="dlb-help" style="margin-top:.8rem">{% trans "Service annuel dû par grade (heures éq. TD) :" %}</p>
+                <div class="srv-grades">{% for g, l, v in services_grade %}<label>{{ l }}<input type="number" min="0" max="600" name="service_{{ g }}" value="{{ v }}"></label>{% endfor %}</div>
+                <div style="margin-top:.9rem"><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-check"></i> {% trans "Enregistrer les règles" %}</button></div>
+            </form>
+        </details>
+    </div>
+    {% endwith %}
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+</body>
+</html>

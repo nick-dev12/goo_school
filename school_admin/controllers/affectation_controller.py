@@ -303,6 +303,13 @@ class AffectationController:
             matiere_id = request.POST.get('matiere_id')  # Matière à enseigner
             action = request.POST.get('action')  # 'add' ou 'remove'
             statut = request.POST.get('statut', 'classique')  # 'principal' ou 'classique'
+            # Supérieur : rôle (CM / TD / TP / EC complet) et groupe
+            role_enseignement = request.POST.get('role_enseignement') or AffectationProfesseur.ROLE_COMPLET
+            if role_enseignement not in dict(AffectationProfesseur.ROLE_CHOICES):
+                role_enseignement = AffectationProfesseur.ROLE_COMPLET
+            groupe = (request.POST.get('groupe') or '').strip().upper()[:30]
+            if role_enseignement == AffectationProfesseur.ROLE_COMPLET:
+                groupe = ''
             
             # Vérifier que l'utilisateur est autorisé
             if isinstance(request.user, Etablissement):
@@ -463,11 +470,15 @@ class AffectationController:
                                 return redirect('affectation:affectation_professeurs')
                         
                         # Vérifier si une affectation existe déjà pour cette année scolaire (actif ou non)
+                        if etablissement.type_etablissement != 'superieur':
+                            role_enseignement, groupe = AffectationProfesseur.ROLE_COMPLET, ''
                         existing_affectation = AffectationProfesseur.objects.filter(
                             professeur=professeur,
                             classe=classe,
                             matiere=matiere,
-                            annee_scolaire=annee_scolaire_active
+                            annee_scolaire=annee_scolaire_active,
+                            role_enseignement=role_enseignement,
+                            groupe=groupe,
                         ).first()
                         
                         if existing_affectation:
@@ -483,16 +494,19 @@ class AffectationController:
                                 messages.success(request, f"Affectation réactivée : Professeur {professeur.nom} affecté à la classe {classe.nom} en tant que {statut_display} pour la matière {matiere.nom}")
                         else:
                             try:
-                                AffectationProfesseur.objects.create(
+                                aff = AffectationProfesseur.objects.create(
                                     professeur=professeur,
                                     classe=classe,
                                     matiere=matiere,
                                     statut=statut,
                                     annee_scolaire=annee_scolaire_active,
+                                    role_enseignement=role_enseignement,
+                                    groupe=groupe,
                                     actif=True
                                 )
                                 statut_display = "Professeur Principal" if statut == 'principal' else "Professeur Classique"
-                                messages.success(request, f"Professeur {professeur.nom} affecté à la classe {classe.nom} en tant que {statut_display} pour la matière {matiere.nom}")
+                                role_txt = f" ({aff.libelle_role})" if aff.libelle_role else ""
+                                messages.success(request, f"Professeur {professeur.nom} affecté à la classe {classe.nom} en tant que {statut_display} pour la matière {matiere.nom}{role_txt}")
                             except IntegrityError:
                                 # Si une erreur d'intégrité se produit (contrainte unique violée)
                                 messages.error(request, f"Le professeur {professeur.nom} est déjà affecté à la classe {classe.nom} pour {matiere.nom} pour l'année scolaire {annee_scolaire_active.libelle}. Veuillez vérifier les affectations existantes.")
@@ -521,13 +535,16 @@ class AffectationController:
                         # Récupérer la matière si elle est fournie dans le POST pour une suppression plus précise
                         matiere_id_remove = request.POST.get('matiere_id')
                         if matiere_id_remove:
-                            affectation = AffectationProfesseur.objects.filter(
+                            affectation_qs = AffectationProfesseur.objects.filter(
                                 professeur=professeur,
                                 classe=classe,
                                 matiere_id=matiere_id_remove,
                                 actif=True,
                                 annee_scolaire=annee_scolaire_active
-                            ).first()
+                            )
+                            if request.POST.get('role_enseignement'):
+                                affectation_qs = affectation_qs.filter(role_enseignement=role_enseignement, groupe=groupe)
+                            affectation = affectation_qs.first()
                         else:
                             # Si aucune matière n'est spécifiée, prendre la première affectation trouvée pour cette année scolaire
                             affectation = AffectationProfesseur.objects.filter(

@@ -438,7 +438,7 @@
                         <i class="fas fa-lock"></i> Relevé soumis
                     </div>
                 {% endif %}
-                <a href="{% url 'enseignant:imprimer_releve' classe.id %}?periode={{ periode_active.id }}" target="_blank" class="btn btn-info">
+                <a href="{% url 'enseignant:imprimer_releve' classe.id %}?periode={{ periode_active.id }}{% if matiere %}&matiere={{ matiere.id }}{% endif %}" target="_blank" class="btn btn-info">
                     <i class="fas fa-print"></i>
                     Imprimer
                 </a>

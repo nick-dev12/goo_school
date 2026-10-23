@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.postgres',
+    'django.forms',  # requis par FORM_RENDERER = TemplatesSetting (gabarits des erreurs de formulaire)
     'corsheaders',  # Django CORS Headers
     'django_countries',  # Django Countries pour la gestion des pays
     'school_admin',

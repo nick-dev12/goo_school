@@ -996,8 +996,9 @@ def _extract_reasoning_content(message):
 
 
 def _tool_calls_payload(tool_calls):
-    return [
-        {
+    payload = []
+    for call in tool_calls:
+        item = {
             'id': call['id'],
             'type': 'function',
             'function': {
@@ -1005,8 +1006,10 @@ def _tool_calls_payload(tool_calls):
                 'arguments': json.dumps(call['arguments'], ensure_ascii=False),
             },
         }
-        for call in tool_calls
-    ]
+        if call.get('extra_content'):
+            item['extra_content'] = call['extra_content']
+        payload.append(item)
+    return payload
 
 
 def _assistant_message_for_api(message, tool_calls=None):
@@ -1076,18 +1079,31 @@ async def _stream_spoken_answer(client, messages, on_text_delta):
 
 
 def _merge_stream_tool_call(bag, index, delta_call):
-    """Accumule les tool_calls fragmentés d’un flux chat.completions."""
-    if index is None:
+    """
+    Accumule les tool_calls fragmentés d’un flux chat.completions.
+
+    Gemini 3.x (endpoint OpenAI) envoie chaque appel complet sans champ « index » :
+    on se rabat alors sur l’id de l’appel, sinon sur un nouvel emplacement.
+    """
+    if delta_call is None and index is None:
         return
+    call_id = getattr(delta_call, 'id', None) if delta_call is not None else None
+    if index is None:
+        index = f'id:{call_id}' if call_id else f'pos:{len(bag)}'
     slot = bag.setdefault(
         index,
         {'id': '', 'name': '', 'arguments': ''},
     )
     if delta_call is None:
         return
-    call_id = getattr(delta_call, 'id', None)
     if call_id:
         slot['id'] = call_id
+    # Gemini 3.x : thought_signature à renvoyer telle quelle au tour suivant.
+    extra = getattr(delta_call, 'extra_content', None)
+    if extra is None:
+        extra = (getattr(delta_call, 'model_extra', None) or {}).get('extra_content')
+    if extra:
+        slot['extra_content'] = extra
     function = getattr(delta_call, 'function', None)
     if function is None:
         return
@@ -1101,7 +1117,7 @@ def _merge_stream_tool_call(bag, index, delta_call):
 
 def _finalize_stream_tool_calls(bag):
     parsed = []
-    for index in sorted(bag.keys()):
+    for position, index in enumerate(bag.keys()):  # ordre d’arrivée
         slot = bag[index]
         name = (slot.get('name') or '').strip()
         if not name:
@@ -1113,11 +1129,14 @@ def _finalize_stream_tool_calls(bag):
             arguments = {}
         if not isinstance(arguments, dict):
             arguments = {}
-        parsed.append({
-            'id': slot.get('id') or f'stream-call-{index}',
+        call = {
+            'id': slot.get('id') or f'stream-call-{position}',
             'name': name,
             'arguments': arguments,
-        })
+        }
+        if slot.get('extra_content'):
+            call['extra_content'] = slot['extra_content']
+        parsed.append(call)
     return parsed
 
 
@@ -1378,6 +1397,13 @@ async def _run_assistant_turn_cached(
                 )
                 return messages, fallback
             logger.warning('Tour Gemini avec cache échoué, repli sans cache : %s', exc)
+            from school_admin.services.gemini_context_cache import (
+                est_erreur_cache_introuvable,
+                oublier_cache,
+            )
+            if est_erreur_cache_introuvable(exc):
+                # Cache expiré chez Google : recréé au prochain tour au lieu d'échouer à chaque fois.
+                oublier_cache(cache_name)
             return None
 
         cached_tokens = _usage_cache_tokens(response)

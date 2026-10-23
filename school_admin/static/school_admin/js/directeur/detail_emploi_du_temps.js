@@ -184,6 +184,10 @@
         if (elProf) elProf.value = btn.dataset.professeurId ? String(btn.dataset.professeurId) : '';
         if (elSalle) elSalle.value = btn.dataset.salleId ? String(btn.dataset.salleId) : '';
         if (elType) elType.value = btn.dataset.typeCours || 'cours';
+        var elSem = document.getElementById('modalModifSemestre');
+        var elGrp = document.getElementById('modalModifGroupe');
+        if (elSem) elSem.value = btn.dataset.periodeId || '';
+        if (elGrp) elGrp.value = btn.dataset.groupeId || '';
         modalModifier.querySelectorAll('.error-message-modal').forEach(function (el) {
           el.style.display = 'none';
         });

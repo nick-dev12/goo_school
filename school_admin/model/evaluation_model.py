@@ -57,6 +57,18 @@ class Evaluation(models.Model):
     date_evaluation = models.DateField(
         verbose_name="Date de l'évaluation"
     )
+    # Supérieur : composante du contrôle continu (pondérée selon les règles de l'établissement)
+    TYPE_EVALUATION_CHOICES = [
+        ('interrogation', 'Interrogation'),
+        ('devoir', 'Devoir surveillé'),
+        ('td', 'Travaux dirigés (TD)'),
+        ('tp', 'Travaux pratiques (TP)'),
+        ('expose', 'Exposé / oral'),
+        ('projet', 'Projet / dossier'),
+        ('partiel', 'Partiel (mi-semestre)'),
+    ]
+    type_evaluation = models.CharField(max_length=15, choices=TYPE_EVALUATION_CHOICES, blank=True, default='',
+                                       verbose_name="Type d'évaluation")
     bareme = models.DecimalField(
         max_digits=5,
         decimal_places=2,

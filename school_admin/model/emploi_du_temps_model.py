@@ -217,6 +217,17 @@ class CreneauEmploiDuTemps(models.Model):
     )
     
     # Type de cours
+    # Supérieur : créneau propre à un semestre et/ou à un groupe de TD / TP
+    periode_scolaire = models.ForeignKey(
+        'school_admin.PeriodeScolaire', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='creneaux_emploi', verbose_name="Semestre",
+        help_text="Vide = toute l'année.",
+    )
+    groupe = models.ForeignKey(
+        'school_admin.GroupeEnseignement', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='creneaux', verbose_name="Groupe", help_text="Vide = toute la classe.",
+    )
+
     TYPE_COURS_CHOICES = [
         ('cours', 'Cours'),
         ('td', 'Travaux Dirigés'),

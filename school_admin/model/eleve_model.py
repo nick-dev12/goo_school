@@ -802,6 +802,10 @@ class Eleve(AbstractUser):
 
     def save(self, *args, **kwargs):
         """Surcharge du save pour garantir un QR code cohérent et mettre à jour la facturation de l'établissement."""
+        # Connexion : seul last_login change, inutile de recontrôler le QR et de recalculer la facturation.
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None and set(update_fields) <= {'last_login'}:
+            return super().save(*args, **kwargs)
         # Formater automatiquement les noms et prénoms
         if self.nom:
             self.nom = self.nom.strip().upper()

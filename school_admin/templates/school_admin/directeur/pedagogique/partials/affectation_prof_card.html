@@ -33,6 +33,7 @@
                         {% if type_etablissement != 'primary' and affectation.matiere %}
                             <span class="aff-classe-matiere">({{ affectation.matiere.nom }})</span>
                         {% endif %}
+                        {% if est_superieur and affectation.libelle_role %}<span class="aff-role aff-role--{{ affectation.role_enseignement }}">{{ affectation.libelle_role }}</span>{% endif %}
                         {% if affectation.is_principal %}<i class="fas fa-crown" title="{% trans 'Professeur principal' %}"></i>{% endif %}
                     </span>
                 {% endfor %}

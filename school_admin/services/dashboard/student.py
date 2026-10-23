@@ -119,8 +119,9 @@ def notes_publiees(eleve, annee, primaire):
 
 
 # --------------------------------------------------------------------------- emploi du temps
-def emploi_du_temps(classe, annee, today, now_time):
-    """Créneaux publiés de la semaine, regroupés par jour, et l'état du jour."""
+def emploi_du_temps(classe, annee, today, now_time, eleve=None):
+    """Créneaux publiés de la semaine, regroupés par jour, et l'état du jour.
+    Supérieur : seulement le semestre en cours, le groupe de TD / TP et les UE suivies par l'étudiant."""
     from school_admin.model.emploi_du_temps_model import CreneauEmploiDuTemps, EmploiDuTemps
 
     out = {'publie': False, 'non_publie': False, 'jours': [], 'aujourdhui': [], 'en_cours': None,
@@ -139,7 +140,10 @@ def emploi_du_temps(classe, annee, today, now_time):
     par_jour = defaultdict(list)
     minutes = 0
     qs = CreneauEmploiDuTemps.objects.filter(emploi_du_temps=edt).select_related(
-        'matiere', 'professeur', 'salle', 'periode_etablissement')
+        'matiere', 'professeur', 'salle', 'periode_etablissement', 'periode_scolaire', 'groupe')
+    if eleve is not None and getattr(classe.etablissement, 'type_etablissement', None) == 'superieur':
+        from school_admin.services.maquette import creneaux_etudiant
+        qs = creneaux_etudiant(list(qs), eleve, classe, annee, today)
     for c in qs:
         pe = c.periode_etablissement
         if pe is not None and getattr(pe, 'est_pause', False):
@@ -157,7 +161,8 @@ def emploi_du_temps(classe, annee, today, now_time):
             'debut_txt': debut.strftime('%H:%M'), 'fin_txt': fin.strftime('%H:%M'),
             'salle': getattr(c.salle, 'numero', '') or '',
             'prof': c.professeur.nom_complet if c.professeur else '',
-            'type': c.get_type_cours_display() if c.type_cours and c.type_cours != 'cours' else '',
+            'type': (c.get_type_cours_display() if c.type_cours and c.type_cours != 'cours' else '')
+                    + (f" · {c.groupe.nom}" if getattr(c, 'groupe_id', None) else ''),
         })
     out['heures_semaine'] = round(minutes / 60, 1)
 
@@ -292,7 +297,7 @@ def build_student_dashboard(eleve, classe, annee, primaire, est_parent=False, no
 
     now = timezone.localtime(now or timezone.now())
     today = now.date()
-    edt = emploi_du_temps(classe, annee, today, now.time())
+    edt = emploi_du_temps(classe, annee, today, now.time(), eleve=eleve)
     devoirs = devoirs_a_faire(eleve, classe, annee, today)
     evals = evaluations_a_venir(classe, annee, today, primaire)
     notes = notes_publiees(eleve, annee, primaire)

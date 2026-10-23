@@ -555,22 +555,25 @@ def _bulletin_barre_academique_superieur(classe):
     }
 
 
-def _totaux_credits_superieur(matieres_table):
-    """Crédits attendus (somme EC) et obtenus (EC validés, moyenne ≥ 10)."""
+def _totaux_credits_superieur(matieres_table, regle=None):
+    """
+    Crédits attendus et obtenus. Obtenus = crédits des UE acquises selon le moteur LMD
+    (moyenne d'UE, compensation semestrielle, note éliminatoire) — identique à la décision.
+    """
+    from ..services import examens as moteur_examens
+
     att = Decimal('0')
-    obt = Decimal('0')
     for row in matieres_table:
         c = row.get('credits')
-        if c is None:
-            continue
-        crd = Decimal(str(c))
-        att += crd
-        m = row.get('moyenne_eleve')
-        if m is not None and Decimal(str(m)) >= Decimal('10'):
-            obt += crd
+        if c is not None:
+            att += Decimal(str(c))
+    obt = Decimal('0')
+    if regle is not None and matieres_table:
+        obt = moteur_examens.validation_lmd_bulletin(matieres_table, regle)['credits_acquis']
+    q = Decimal('0.01')
     return (
-        float(att.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)) if att else None,
-        float(obt.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)) if obt else None,
+        float(att.quantize(q, rounding=ROUND_HALF_UP)) if att else None,
+        float(obt.quantize(q, rounding=ROUND_HALF_UP)) if att else None,
     )
 
 
@@ -657,9 +660,10 @@ def _matieres_table_superieur_depuis_moyennes_periode(eleve, classe, periode, et
     return matieres_table
 
 
-def _group_matieres_par_ue_superieur(matieres_table):
+def _group_matieres_par_ue_superieur(matieres_table, regle=None):
     """
     Regroupe les lignes du bulletin par module (UE) pour l'affichage type LMD.
+    Avec `regle`, le statut et les crédits obtenus de chaque UE viennent du moteur LMD.
     """
     from collections import OrderedDict
 
@@ -725,14 +729,59 @@ def _group_matieres_par_ue_superieur(matieres_table):
                 moy_ue = round(sum(vals) / len(vals), 2)
         valide = moy_ue is not None and moy_ue >= 10.0
         blocs.append({
+            'cle': ('ue', key) if key != '__sans_ue__' else None,
             'ue_titre': ue_titre,
             'ecs': ecs,
             'sum_moyenne_coef': float(sum_moy_coef) if sum_moy_coef else None,
             'total_credits': float(sum_credits) if sum_credits else None,
+            'credits_obtenus': None,
             'moyenne_ue': moy_ue,
             'statut_ue': 'Validée' if valide else ('Non validée' if moy_ue is not None else '—'),
         })
+    if regle is not None:
+        from ..services import examens as moteur_examens
+
+        validation = moteur_examens.validation_lmd_bulletin(matieres_table, regle)
+        par_cle = {ue['cle']: ue for ue in validation['ues']}
+        for bloc in blocs:
+            ue = par_cle.get(bloc['cle'])
+            if ue is None and bloc['cle'] is None:
+                # EC hors module : chaque EC est sa propre UE pour le moteur.
+                ues_ec = [par_cle.get(('ec', e.get('matiere_id') or e.get('nom'))) for e in bloc['ecs']]
+                ues_ec = [u for u in ues_ec if u]
+                acquis = sum((u['credits'] for u in ues_ec if u['acquise']), Decimal('0'))
+                bloc['credits_obtenus'] = float(acquis)
+                continue
+            if ue is None:
+                continue
+            if ue['moyenne'] is None:
+                bloc['statut_ue'] = '—'
+            else:
+                bloc['moyenne_ue'] = float(ue['moyenne'])
+                bloc['statut_ue'] = moteur_examens.STATUTS_UE.get(ue['mode'], bloc['statut_ue'])
+                if ue.get('eliminatoire'):
+                    bloc['statut_ue'] = 'Note éliminatoire'
+            bloc['credits_obtenus'] = float(ue['credits']) if ue['acquise'] else 0.0
     return blocs
+
+
+def _fmt_credits(valeur):
+    """30 → « 30 », 7.5 → « 7,5 » (affichage des crédits)."""
+    v = Decimal(str(valeur or 0)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP).normalize()
+    return format(v, 'f').replace('.', ',')
+
+
+def _decision_annuelle_lmd(obt1, att1, obt2, att2):
+    """Bilan de l'année (S1 + S2) en crédits : admis si tous les crédits de l'année sont acquis."""
+    try:
+        acquis = Decimal(str(obt1 or 0)) + Decimal(str(obt2 or 0))
+        total = Decimal(str(att1 or 0)) + Decimal(str(att2 or 0))
+    except Exception:
+        return None
+    if total <= 0:
+        return None
+    statut = 'Année validée' if acquis >= total else 'Année non validée'
+    return f"{statut} — {_fmt_credits(acquis)}/{_fmt_credits(total)} crédits"
 
 
 def _coef_et_credits_ec_superieur(matiere, etablissement, classe):
@@ -3385,6 +3434,13 @@ def calculer_moyennes_periode(request, classe_id):
             redirect_url = f"{redirect_url}?periode={selected_periode_id}"
         return redirect(redirect_url)
 
+    # Délibération clôturée : les moyennes de ce semestre sont figées.
+    from ..services.deliberations import message_verrou, periode_verrouillee
+    verrou = periode_verrouillee(classe, periode)
+    if verrou:
+        messages.error(request, message_verrou(verrou))
+        return redirect(f"{reverse('directeur:bulletins_notes')}?periode={periode.id}")
+
     # Récupérer la pondération configurée
     annee_scolaire = getattr(periode, 'annee_scolaire', None) or Ponderation.default_school_year()
     ponderation = Ponderation.objects.filter(
@@ -3401,6 +3457,8 @@ def calculer_moyennes_periode(request, classe_id):
     poids_examen = Decimal(str(ponderation.poids_examen)) / Decimal('100')
     from ..services.examens import regles as _regles_examen
     regle_examen = _regles_examen(etablissement)
+    from ..services import maquette as maquette_svc
+    cache_suivi = {}
 
     est_primaire = etablissement.type_etablissement == 'primary'
     est_superieur = etablissement.type_etablissement == 'superieur'
@@ -3448,6 +3506,12 @@ def calculer_moyennes_periode(request, classe_id):
                 
                 lignes_lmd = []
                 for matiere in matieres:
+                    # Supérieur : UE d'un autre parcours ou option non choisie → pas de moyenne pour cet étudiant.
+                    if est_superieur and not maquette_svc.matiere_suivie(eleve, matiere, classe,
+                                                                         annee_scolaire_active, cache_suivi):
+                        MoyennePeriode.objects.filter(eleve=eleve, etablissement=etablissement, periode=periode,
+                                                      matiere=matiere, est_moyenne_generale=False).delete()
+                        continue
                     # Récupérer la moyenne de classe
                     moyenne_classe = None
                     note_examen = None
@@ -3589,7 +3653,7 @@ def calculer_moyennes_periode(request, classe_id):
                 if validation_semestre is not None:
                     # LMD : décision issue de la validation des UE (compensation, note éliminatoire, crédits).
                     decision_conseil = (f"{validation_semestre['decision']} — "
-                                        f"{validation_semestre['credits_acquis']:g}/{validation_semestre['credits_total']:g} crédits")
+                                        f"{_fmt_credits(validation_semestre['credits_acquis'])}/{_fmt_credits(validation_semestre['credits_total'])} crédits")
                 
                 # Enregistrer la moyenne générale
                 if moyenne_generale is not None:
@@ -4559,6 +4623,10 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
                     )
                 }
 
+            if est_superieur:
+                from ..services.maquette import module_ids_exclus
+                _exclus = module_ids_exclus(eleve, classe, annee_scolaire_active)
+                matieres = [m for m in matieres if not (m.module_id and m.module_id in _exclus)]
             for matiere in matieres:
                 moyenne_obj = eleve_moyennes.get(matiere.id)
                 soumis = bool(moyenne_obj and moyenne_obj.soumis)
@@ -4978,25 +5046,31 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
                 poids_cc_pct = int(moyenne_periode_generale.poids_classe)
             if moyenne_periode_generale.poids_examen is not None:
                 poids_exam_pct = int(moyenne_periode_generale.poids_examen)
-        bulletin_ue_blocs = _group_matieres_par_ue_superieur(matieres_table)
-        bulletin_recap_ues = [
-            {
-                'index': i + 1,
-                'ue_titre': b.get('ue_titre') or '',
-                'moyenne': b['moyenne_ue'],
-                'statut': b['statut_ue'],
-                'credits': b['total_credits'],
-            }
-            for i, b in enumerate(bulletin_ue_blocs)
-        ]
-        # Aligné sur le gabarit dual (7 colonnes UE par semestre dans bulletin_superieur_corps.html)
-        _BSUP_RECAP_UE_COLS = 7
-        recap_ue_slots = [
-            bulletin_recap_ues[i] if i < len(bulletin_recap_ues) else None
-            for i in range(_BSUP_RECAP_UE_COLS)
-        ]
+        from ..services import examens as moteur_examens
+
+        regle_lmd = moteur_examens.regles(etablissement)
+
+        def _recap(blocs):
+            return [
+                {
+                    'index': i + 1,
+                    'ue_titre': b.get('ue_titre') or '',
+                    'moyenne': b['moyenne_ue'],
+                    'statut': b['statut_ue'],
+                    'credits': b['credits_obtenus'],
+                    'credits_total': b['total_credits'],
+                }
+                for i, b in enumerate(blocs)
+            ]
+
+        bulletin_ue_blocs = _group_matieres_par_ue_superieur(matieres_table, regle_lmd)
+        bulletin_recap_ues = _recap(bulletin_ue_blocs)
+        # Autant de colonnes que d'UE (plus de limite à 7) ; complété plus bas avec le S1.
+        _BSUP_RECAP_UE_COLS = max(len(bulletin_recap_ues), 1)
+        recap_ue_slots = list(bulletin_recap_ues)
         bulletin_barre_academique = _bulletin_barre_academique_superieur(classe)
-        total_credits_attendus, total_credits_obtenus = _totaux_credits_superieur(matieres_table)
+        total_credits_attendus, total_credits_obtenus = _totaux_credits_superieur(matieres_table, regle_lmd)
+        validation_semestre = moteur_examens.validation_lmd_bulletin(matieres_table, regle_lmd)
 
         from ..model.periode_model import (
             est_deuxieme_semestre_annee_universitaire,
@@ -5014,22 +5088,10 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
                     matieres_s1 = _matieres_table_superieur_depuis_moyennes_periode(
                         eleve, classe, periode_s1_obj, etablissement, annee_scolaire_active
                     )
-                    att1, obt1 = _totaux_credits_superieur(matieres_s1)
-                    blocs_s1 = _group_matieres_par_ue_superieur(matieres_s1)
-                    bulletin_recap_s1 = [
-                        {
-                            'index': i + 1,
-                            'ue_titre': b.get('ue_titre') or '',
-                            'moyenne': b['moyenne_ue'],
-                            'statut': b['statut_ue'],
-                            'credits': b['total_credits'],
-                        }
-                        for i, b in enumerate(blocs_s1)
-                    ]
-                    recap_ue_slots_s1 = [
-                        bulletin_recap_s1[i] if i < len(bulletin_recap_s1) else None
-                        for i in range(_BSUP_RECAP_UE_COLS)
-                    ]
+                    att1, obt1 = _totaux_credits_superieur(matieres_s1, regle_lmd)
+                    blocs_s1 = _group_matieres_par_ue_superieur(matieres_s1, regle_lmd)
+                    recap_ue_slots_s1 = _recap(blocs_s1)
+                    _BSUP_RECAP_UE_COLS = max(_BSUP_RECAP_UE_COLS, len(recap_ue_slots_s1))
                     mp_s1 = MoyennePeriode.objects.filter(
                         eleve=eleve,
                         etablissement=etablissement,
@@ -5083,7 +5145,37 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
                         'moyenne_annuelle_univ': moy_ann_univ,
                         'recap_ue_slots_s1': recap_ue_slots_s1,
                         'recap_ue_slots_s2': recap_ue_slots,
+                        'ue_indexes': [str(i) for i in range(_BSUP_RECAP_UE_COLS)],
+                        'decision_annuelle': _decision_annuelle_lmd(
+                            obt1, att1, total_credits_obtenus, total_credits_attendus),
                     }
+        # Décision du jury : celle du moteur LMD (crédits), jamais la règle « moyenne de passage » du secondaire.
+        complement_info = dict(complement_info or {})
+        decision_lmd = (f"{validation_semestre['decision']} — "
+                        f"{_fmt_credits(validation_semestre['credits_acquis'])}/{_fmt_credits(validation_semestre['credits_total'])} crédits")
+        if bsup_bilan_annuel and bsup_bilan_annuel.get('decision_annuelle'):
+            decision_lmd = bsup_bilan_annuel['decision_annuelle']
+        complement_info['decision_conseil'] = decision_lmd
+        complement_info['decision_semestre'] = validation_semestre['decision']
+        # Délibération clôturée : la décision officielle du jury (points de jury compris) prime.
+        from ..model.deliberation_model import DecisionJury, Deliberation
+        dj_qs = DecisionJury.objects.filter(eleve=eleve, deliberation__classe=classe,
+                                            deliberation__statut=Deliberation.STATUT_CLOTUREE)
+        dj = dj_qs.filter(deliberation__periode=periode).order_by('-deliberation__session').first() if periode else None
+        dj_annuelle = dj_qs.filter(deliberation__periode__isnull=True,
+                                   deliberation__annee_scolaire=annee_scolaire_active).first() if bsup_bilan_annuel else None
+        for officielle in (dj, dj_annuelle):
+            if officielle is None:
+                continue
+            texte = (f"{officielle.get_decision_display()} — {_fmt_credits(officielle.credits_acquis)}/"
+                     f"{_fmt_credits(officielle.credits_total)} crédits")
+            if officielle.points_jury:
+                texte += f" (jury +{_fmt_credits(officielle.points_jury)})"
+            if officielle.mention:
+                texte += f" — mention {officielle.mention}"
+            complement_info['decision_conseil'] = texte
+            complement_info['decision_semestre'] = officielle.get_decision_display()
+            complement_info['decision_officielle'] = True
     
     context = {
         'etablissement': etablissement,
@@ -5206,6 +5298,12 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
             redirect_url = f"{redirect_url}?periode={periode_param}"
         return redirect(redirect_url)
 
+    from ..services.deliberations import message_verrou, periode_verrouillee
+    verrou = periode_verrouillee(classe, periode)
+    if verrou:
+        messages.error(request, message_verrou(verrou))
+        return redirect(f"{reverse('directeur:voir_bulletin_eleve', args=[classe_id, eleve_id])}?periode={periode.id}")
+
     # Récupérer la pondération
     ponderation = Ponderation.objects.filter(etablissement=etablissement).first()
     if not ponderation:
@@ -5252,7 +5350,14 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
             somme_coefficients = Decimal('0')
 
             lignes_lmd = []
+            from ..services import maquette as maquette_svc
+            cache_suivi = {}
             for matiere in matieres:
+                if est_superieur and not maquette_svc.matiere_suivie(eleve, matiere, classe,
+                                                                     annee_scolaire_active, cache_suivi):
+                    MoyennePeriode.objects.filter(eleve=eleve, etablissement=etablissement, periode=periode,
+                                                  matiere=matiere, est_moyenne_generale=False).delete()
+                    continue
                 # Récupérer la moyenne de classe
                 moyenne_classe = None
                 note_examen = None
@@ -5387,7 +5492,7 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
             )
             if validation_semestre is not None:
                 decision_conseil = (f"{validation_semestre['decision']} — "
-                                    f"{validation_semestre['credits_acquis']:g}/{validation_semestre['credits_total']:g} crédits")
+                                    f"{_fmt_credits(validation_semestre['credits_acquis'])}/{_fmt_credits(validation_semestre['credits_total'])} crédits")
 
             # Enregistrer ou mettre à jour la moyenne générale
             if moyenne_generale is not None:

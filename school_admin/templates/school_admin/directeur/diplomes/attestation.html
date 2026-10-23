@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+{% load i18n %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Attestation de diplôme" %} — {{ d.numero }}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #e2e8f0; font-family: Georgia, "Times New Roman", serif; color: #0f172a; }
+        .barre { display: flex; justify-content: center; gap: .6rem; padding: 12px; font-family: "Segoe UI", Arial, sans-serif; }
+        .barre button { font: inherit; font-weight: 600; padding: 8px 16px; border-radius: 8px; border: 0; background: #1d4ed8; color: #fff; cursor: pointer; }
+        .feuille { width: 297mm; min-height: 210mm; margin: 0 auto 24px; background: #fff; padding: 14mm; box-shadow: 0 4px 18px rgba(15,23,42,.15); }
+        .cadre { border: 3px double #1e3a8a; min-height: calc(210mm - 28mm); padding: 12mm 16mm; position: relative; display: flex; flex-direction: column; }
+        .entete { text-align: center; }
+        .entete .pays { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #475569; }
+        .entete h1 { margin: 6px 0 2px; font-size: 22px; text-transform: uppercase; letter-spacing: .04em; color: #1e3a8a; }
+        .entete p { margin: 0; color: #475569; font-size: 13px; }
+        h2 { text-align: center; font-size: 30px; margin: 10mm 0 4mm; letter-spacing: .06em; color: #0f172a; }
+        .texte { text-align: center; font-size: 16px; line-height: 1.9; margin: 0 auto; max-width: 220mm; }
+        .texte strong { font-size: 19px; }
+        .diplome { display: block; font-size: 22px; color: #1e3a8a; font-weight: bold; margin: 2mm 0; }
+        .details { display: flex; justify-content: center; gap: 14mm; margin-top: 7mm; font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; }
+        .details div { text-align: center; } .details span { display: block; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+        .bas { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; font-size: 13px; }
+        .signature { text-align: center; min-width: 70mm; } .signature .ligne { border-top: 1px solid #0f172a; margin-top: 18mm; padding-top: 4px; }
+        .numero { font-family: "Segoe UI", Arial, sans-serif; font-size: 11px; color: #475569; }
+        .annule { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 80px; color: rgba(220, 38, 38, .25); transform: rotate(-18deg); font-family: Arial; font-weight: 800; pointer-events: none; }
+        @media print { body { background: #fff; } .barre { display: none; } .feuille { margin: 0; box-shadow: none; width: auto; min-height: 0; } @page { size: A4 landscape; margin: 8mm; } }
+        @media screen and (max-width: 1100px) { .feuille { width: 100%; min-height: 0; padding: 12px; } .cadre { padding: 18px; } h2 { font-size: 22px; } .details { flex-wrap: wrap; gap: 14px; } }
+    </style>
+</head>
+<body>
+    <div class="barre"><button type="button" onclick="window.print()">{% trans "Imprimer l'attestation" %}</button></div>
+    <div class="feuille"><div class="cadre">
+        {% if d.annule %}<div class="annule">{% trans "ANNULÉ" %}</div>{% endif %}
+        <div class="entete">
+            <div class="pays">{{ etablissement.pays|default:"République du Sénégal" }}</div>
+            <h1>{{ etablissement.nom }}</h1>
+            <p>{{ etablissement.adresse }}{% if etablissement.ville %} — {{ etablissement.ville }}{% endif %}</p>
+        </div>
+        <h2>{% trans "ATTESTATION DE DIPLÔME" %}</h2>
+        <p class="texte">
+            {% trans "Le Directeur de l'établissement atteste que" %}<br>
+            <strong>{% if d.eleve.sexe == 'F' %}Mme{% else %}M.{% endif %} {{ d.eleve.prenom }} {{ d.eleve.nom|upper }}</strong><br>
+            {% trans "né(e) le" %} {{ d.eleve.date_naissance|date:"d F Y" }} {% trans "à" %} {{ d.eleve.lieu_naissance }},
+            {% trans "a obtenu le diplôme de" %}
+            <span class="diplome">{{ d.intitule }}</span>
+            {% if d.domaine %}{% trans "Domaine" %} : {{ d.domaine }} — {% endif %}{% trans "au titre de l'année académique" %} {{ d.annee_scolaire.libelle|default:"" }}{% if d.mention %}, {% trans "avec la mention" %} <strong>{{ d.mention }}</strong>{% endif %}.
+        </p>
+        <div class="details">
+            <div><span>{% trans "Grade" %}</span>{{ d.grade|default:"—" }}</div>
+            <div><span>{% trans "Crédits capitalisés" %}</span>{{ d.credits|floatformat:"-2" }} ECTS</div>
+            {% if d.moyenne is not None %}<div><span>{% trans "Moyenne" %}</span>{{ d.moyenne|floatformat:2 }} / 20</div>{% endif %}
+            <div><span>{% trans "N° du diplôme" %}</span>{{ d.numero }}</div>
+        </div>
+        <div class="bas">
+            <div class="numero">{% trans "Attestation délivrée pour servir et valoir ce que de droit, en attendant la délivrance du diplôme définitif." %}</div>
+            <div class="signature">{% trans "Fait à" %} {{ etablissement.ville|default:"…" }}, {% trans "le" %} {{ d.date_delivrance|date:"d/m/Y" }}<div class="ligne">{% trans "Le Directeur" %}{% if etablissement.directeur_nom %}<br>{{ etablissement.directeur_prenom }} {{ etablissement.directeur_nom }}{% endif %}</div></div>
+        </div>
+    </div></div>
+</body>
+</html>

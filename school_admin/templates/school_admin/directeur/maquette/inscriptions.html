@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+{% load i18n %}
+<html lang="fr">
+<head>
+    <title>{% trans "Inscriptions pédagogiques" %} — {{ classe.nom }}</title>
+    {% include 'school_admin/directeur/maquette/_head.html' %}
+</head>
+<body class="dlb-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container dlb">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:maquette_classe' classe.id as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-violet"><i class="fas fa-user-check" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <p class="fe-hero__kicker">{% trans "Inscriptions pédagogiques" %} · {{ annee_scolaire_active.libelle }}</p>
+                <h1 class="hb-head__title">{{ classe.nom }}</h1>
+                <p class="fe-hero__sub">{% trans "Parcours suivi, UE optionnelles choisies et groupes de TD / TP de chaque étudiant." %}</p>
+            </div>
+            <div class="hb-head__actions"><a href="{% url 'directeur:maquette_classe' classe.id %}" class="cg3-btn"><i class="fas fa-sitemap" aria-hidden="true"></i>{% trans "Maquette" %}</a></div>
+        </header>
+
+        <section class="fe-kpis hb-kpis hb-kpis--3 cg3">
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Étudiants" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-graduate"></i></span></div><p class="fe-kpi__value">{{ lignes|length }}</p></div>
+            <div class="fe-kpi {% if sans_choix %}fe-tone-orange{% else %}fe-tone-green{% endif %}"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Options non choisies" %}</span><span class="fe-kpi__icon"><i class="fas fa-list-check"></i></span></div><p class="fe-kpi__value">{% if options %}{{ sans_choix }}{% else %}—{% endif %}</p></div>
+            <div class="fe-kpi {% if sans_parcours %}fe-tone-orange{% else %}fe-tone-green{% endif %}"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Sans parcours" %}</span><span class="fe-kpi__icon"><i class="fas fa-route"></i></span></div><p class="fe-kpi__value">{% if parcours %}{{ sans_parcours }}{% else %}—{% endif %}</p></div>
+        </section>
+
+        {% if not options and not parcours and not groupes %}
+        <div class="dlb-card"><div class="dlb-vide"><i class="fas fa-circle-info"></i>{% trans "Cette classe n'a ni parcours, ni UE optionnelle, ni groupe : tous les étudiants suivent la même maquette." %}<br><a href="{% url 'directeur:maquette_classe' classe.id %}" class="cg3-btn" style="margin-top:.8rem">{% trans "Configurer la maquette" %}</a></div></div>
+        {% else %}
+        <form method="post" class="dlb-card">
+            {% csrf_token %}
+            <div class="dlb-card__head">
+                <h2><i class="fas fa-user-check"></i> {% trans "Choix des étudiants" %}</h2>
+                <span class="dlb-help">{% trans "Une UE optionnelle non choisie n'entre ni dans les moyennes ni dans les crédits de l'étudiant." %}</span>
+            </div>
+            <div class="dlb-table-wrap">
+            <table class="dlb-table">
+                <thead><tr>
+                    <th>{% trans "Étudiant" %}</th>
+                    {% if parcours %}<th>{% trans "Parcours" %}</th>{% endif %}
+                    {% if options %}<th>{% trans "UE optionnelles" %}</th>{% endif %}
+                    {% for t in types_groupes %}<th>{% trans "Groupe" %} {{ t|upper }}</th>{% endfor %}
+                </tr></thead>
+                <tbody>
+                {% for l in lignes %}
+                <tr>
+                    <td class="dlb-etu"><strong>{{ l.eleve.nom|upper }} {{ l.eleve.prenom }}</strong><small>{{ l.eleve.matricule_eleve|default:l.eleve.numero_eleve }}</small></td>
+                    {% if parcours %}<td data-label="{% trans 'Parcours' %}"><select class="dlb-input" name="parcours_{{ l.eleve.id }}"><option value="">—</option>{% for p in parcours %}<option value="{{ p.id }}" {% if l.parcours_id == p.id %}selected{% endif %}>{{ p.nom }}</option>{% endfor %}</select></td>{% endif %}
+                    {% if options %}<td data-label="{% trans 'UE optionnelles' %}">
+                        {% for cle, liste in groupes_opt.items %}
+                        <div style="margin-bottom:.3rem"><span class="mqt-opt-groupe">{{ cle.0 }} · {{ cle.1 }} ({{ liste.0.choix_requis }} {% trans "à choisir" %})</span>
+                            <div class="mqt-opt">{% for mc in liste %}<label><input type="checkbox" name="options_{{ l.eleve.id }}" value="{{ mc.id }}" {% if mc.id in l.options %}checked{% endif %}> {{ mc.module.nom }}</label>{% endfor %}</div>
+                        </div>
+                        {% endfor %}
+                    </td>{% endif %}
+                    {% for t, gid in l.groupes.items %}<td data-label="{% trans 'Groupe' %} {{ t|upper }}"><select class="dlb-input" name="groupe_{{ t }}_{{ l.eleve.id }}"><option value="">—</option>{% for g in groupes %}{% if g.type_groupe == t %}<option value="{{ g.id }}" {% if gid == g.id %}selected{% endif %}>{{ g.nom }}</option>{% endif %}{% endfor %}</select></td>{% endfor %}
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            <div class="dlb-actions-bar"><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-floppy-disk"></i> {% trans "Enregistrer les inscriptions" %}</button></div>
+        </form>
+        {% endif %}
+    </div>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+</body>
+</html>

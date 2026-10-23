@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+{% load static i18n %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Délibérations" %} — {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/deliberations.css' %}?v=1.0.0" />
+</head>
+<body class="dlb-page-body" data-live-page="examens">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+
+    <div class="content-container dlb">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:gestion_examens' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-red"><i class="fas fa-gavel" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <p class="fe-hero__kicker">{{ etablissement.nom }} · {{ annee_scolaire_active.libelle }}</p>
+                <h1 class="hb-head__title">{% trans "Délibérations du jury" %}</h1>
+                <p class="fe-hero__sub">{% trans "Résultats par semestre et bilan annuel : points de jury, crédits, dettes, procès-verbal." %}</p>
+            </div>
+            <div class="hb-head__actions">
+                <a href="{% url 'directeur:gestion_examens' %}" class="cg3-btn"><i class="fas fa-clipboard-list" aria-hidden="true"></i>{% trans "Examens" %}</a>
+            </div>
+        </header>
+
+        <section class="fe-kpis hb-kpis hb-kpis--4 cg3" aria-label="{% trans 'Indicateurs' %}">
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Délibérations" %}</span><span class="fe-kpi__icon"><i class="fas fa-gavel"></i></span></div><p class="fe-kpi__value">{{ deliberations|length }}</p></div>
+            <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Clôturées" %}</span><span class="fe-kpi__icon"><i class="fas fa-lock"></i></span></div><p class="fe-kpi__value">{{ nb_cloturees }}</p></div>
+            <div class="fe-kpi fe-tone-orange"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Passage conditionnel" %}</span><span class="fe-kpi__icon"><i class="fas fa-route"></i></span></div><p class="fe-kpi__value">{% if regles_examen.pourcentage_passage_conditionnel < 100 %}{{ regles_examen.pourcentage_passage_conditionnel }} %{% else %}—{% endif %}</p></div>
+            <div class="fe-kpi fe-tone-red"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Points de jury max" %}</span><span class="fe-kpi__icon"><i class="fas fa-plus-minus"></i></span></div><p class="fe-kpi__value">{{ regles_examen.points_jury_max|floatformat:"-2" }}</p></div>
+        </section>
+
+        <section class="dlb-card" aria-labelledby="titre-ouvrir">
+            <div class="dlb-card__head"><h2 id="titre-ouvrir"><i class="fas fa-plus-circle"></i> {% trans "Ouvrir une délibération" %}</h2></div>
+            <div class="dlb-card__body">
+                <form method="post" class="dlb-form" id="formOuvrir">
+                    {% csrf_token %}
+                    <div class="dlb-grid">
+                        <label>{% trans "Classe" %}
+                            <select name="classe_id" id="classeSel" required>
+                                <option value="">{% trans "Choisir…" %}</option>
+                                {% for c in classes %}<option value="{{ c.id }}" data-niveau="{{ c.niveau_lmd|default:'' }}">{{ c.nom }}{% if c.department %} — {{ c.department.nom }}{% endif %}</option>{% endfor %}
+                            </select>
+                        </label>
+                        <div>
+                            <span class="dlb-help" style="display:block;margin-bottom:.3rem;font-weight:600">{% trans "Portée" %}</span>
+                            <div class="dlb-seg" role="radiogroup">
+                                <label><input type="radio" name="portee" value="semestre" checked><span>{% trans "Semestre" %}</span></label>
+                                <label><input type="radio" name="portee" value="annuelle"><span>{% trans "Année" %}</span></label>
+                            </div>
+                        </div>
+                        <label id="periodeWrap">{% trans "Semestre" %}
+                            <select name="periode_id" id="periodeSel">
+                                {% for p in periodes %}<option value="{{ p.id }}" data-niveau="{{ p.niveau_lmd|default:'' }}">{{ p.nom_periode }}{% if p.niveau_lmd %} ({{ p.niveau_lmd }}){% endif %}</option>{% endfor %}
+                            </select>
+                        </label>
+                        <label>{% trans "Session" %}
+                            <select name="session">{% for v, l in sessions %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+                        </label>
+                    </div>
+                    <p class="dlb-help"><i class="fas fa-circle-info"></i> {% trans "Les résultats sont calculés à partir des moyennes enregistrées (bulletins). Le bilan annuel décide du passage : tous les crédits = admis ; au moins" %} {{ regles_examen.pourcentage_passage_conditionnel }} % {% trans "des crédits = admis avec dettes ; sinon redoublement." %}</p>
+                    <div><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-gavel"></i> {% trans "Ouvrir la délibération" %}</button></div>
+                </form>
+            </div>
+        </section>
+
+        <section class="dlb-card" aria-labelledby="titre-liste">
+            <div class="dlb-card__head"><h2 id="titre-liste"><i class="fas fa-list"></i> {% trans "Délibérations de l'année" %}</h2></div>
+            <div class="dlb-card__body">
+                {% if deliberations %}
+                <div class="dlb-liste">
+                    {% for d in deliberations %}
+                    <a class="dlb-item" href="{% url 'directeur:detail_deliberation' d.id %}">
+                        <div class="dlb-item__top">
+                            <div>
+                                <h3>{{ d.classe.nom }}</h3>
+                                <p>{{ d.libelle_portee }}{% if d.date_deliberation %} · {{ d.date_deliberation|date:"d/m/Y" }}{% endif %}</p>
+                            </div>
+                            <span class="dlb-statut dlb-statut--{{ d.statut }}"><i class="fas fa-{% if d.est_cloturee %}lock{% else %}pen{% endif %}"></i> {{ d.get_statut_display }}</span>
+                        </div>
+                        <div class="dlb-repartition" style="margin-top:.7rem">
+                            {% for r in d.stats.par_decision %}<span class="dlb-r--{{ r.code }}" style="width: {{ r.pct|stringformat:'s' }}%" title="{{ r.libelle }} : {{ r.nombre }}"></span>{% endfor %}
+                        </div>
+                        <div class="dlb-item__stats">
+                            <span><strong>{{ d.stats.effectif }}</strong>{% trans "étudiants" %}</span>
+                            <span><strong>{{ d.stats.taux_admis }} %</strong>{% trans "admis" %}</span>
+                            <span><strong>{% if d.stats.moyenne_promo is not None %}{{ d.stats.moyenne_promo|floatformat:2 }}{% else %}—{% endif %}</strong>{% trans "moyenne" %}</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="dlb-vide"><i class="fas fa-gavel"></i>{% trans "Aucune délibération pour cette année. Ouvrez la première ci-dessus." %}</div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+    <script>
+    (function () {
+        var classe = document.getElementById('classeSel'), periode = document.getElementById('periodeSel');
+        var wrap = document.getElementById('periodeWrap');
+        function filtrer() {
+            var niv = classe.selectedOptions[0] ? classe.selectedOptions[0].dataset.niveau : '';
+            var premier = null;
+            Array.prototype.forEach.call(periode.options, function (o) {
+                var ok = !niv || !o.dataset.niveau || o.dataset.niveau === niv;
+                o.hidden = !ok; o.disabled = !ok;
+                if (ok && !premier) premier = o;
+            });
+            if (periode.selectedOptions[0] && periode.selectedOptions[0].disabled && premier) periode.value = premier.value;
+        }
+        function portee() {
+            var annuelle = document.querySelector('input[name=portee]:checked').value === 'annuelle';
+            wrap.style.visibility = annuelle ? 'hidden' : 'visible';
+            periode.required = !annuelle;
+        }
+        classe.addEventListener('change', filtrer);
+        document.querySelectorAll('input[name=portee]').forEach(function (r) { r.addEventListener('change', portee); });
+        filtrer(); portee();
+    })();
+    </script>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+</body>
+</html>

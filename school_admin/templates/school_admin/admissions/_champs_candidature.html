@@ -1,0 +1,47 @@
+{% load i18n %}
+<fieldset class="cdt-bloc">
+    <legend><i class="fas fa-user"></i> {% trans "Identité du candidat" %}</legend>
+    <div class="cdt-grid">
+        <label>{% trans "Nom" %} *<input type="text" name="nom" required maxlength="100" value="{{ post.nom|default:'' }}"></label>
+        <label>{% trans "Prénom(s)" %} *<input type="text" name="prenom" required maxlength="100" value="{{ post.prenom|default:'' }}"></label>
+        <label>{% trans "Sexe" %} *<select name="sexe"><option value="M" {% if post.sexe == 'M' %}selected{% endif %}>{% trans "Masculin" %}</option><option value="F" {% if post.sexe == 'F' %}selected{% endif %}>{% trans "Féminin" %}</option></select></label>
+        <label>{% trans "Date de naissance" %} *<input type="date" name="date_naissance" required value="{{ post.date_naissance|default:'' }}"></label>
+        <label>{% trans "Lieu de naissance" %} *<input type="text" name="lieu_naissance" required maxlength="120" value="{{ post.lieu_naissance|default:'' }}"></label>
+        <label>{% trans "Nationalité" %}<input type="text" name="nationalite" maxlength="60" value="{{ post.nationalite|default:'Sénégalaise' }}"></label>
+        <label>{% trans "Téléphone" %} *<input type="tel" name="telephone" required maxlength="30" value="{{ post.telephone|default:'' }}"></label>
+        <label>{% trans "E-mail" %}<input type="email" name="email" maxlength="254" value="{{ post.email|default:'' }}"></label>
+        <label class="cdt-large">{% trans "Adresse" %}<input type="text" name="adresse" maxlength="200" value="{{ post.adresse|default:'' }}"></label>
+    </div>
+</fieldset>
+<fieldset class="cdt-bloc">
+    <legend><i class="fas fa-graduation-cap"></i> {% trans "Baccalauréat" %}</legend>
+    <div class="cdt-grid">
+        <label>{% trans "Série" %}<select name="serie_bac"><option value="">—</option>{% for v, l in series %}<option value="{{ v }}" {% if post.serie_bac == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+        <label>{% trans "Année d'obtention" %}<input type="number" name="annee_bac" min="1980" max="2100" value="{{ post.annee_bac|default:'' }}"></label>
+        <label>{% trans "Mention" %}<select name="mention_bac">{% for v, l in mentions %}<option value="{{ v }}" {% if post.mention_bac == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+        <label>{% trans "N° de table" %}<input type="text" name="numero_table" maxlength="30" value="{{ post.numero_table|default:'' }}"></label>
+        <label>{% trans "Moyenne au bac (/20)" %}{% if concours.diplome_requis == 'bac' and concours.mode != 'concours' %} *{% endif %}<input type="text" inputmode="decimal" name="moyenne_bac" value="{{ post.moyenne_bac|default:'' }}" placeholder="12,50"></label>
+    </div>
+</fieldset>
+<fieldset class="cdt-bloc">
+    <legend><i class="fas fa-award"></i> {% trans "Diplôme précédent" %} {% if concours.diplome_requis == 'licence' or concours.diplome_requis == 'master' %}*{% else %}<small>{% trans "(accès en Master, admission parallèle)" %}</small>{% endif %}</legend>
+    <div class="cdt-grid">
+        <label class="cdt-large">{% trans "Intitulé" %}<input type="text" name="diplome_precedent" maxlength="160" value="{{ post.diplome_precedent|default:'' }}" placeholder="{% trans 'Licence en Droit' %}"></label>
+        <label class="cdt-large">{% trans "Établissement" %}<input type="text" name="etablissement_precedent" maxlength="160" value="{{ post.etablissement_precedent|default:'' }}"></label>
+        <label>{% trans "Année" %}<input type="number" name="annee_diplome" min="1980" max="2100" value="{{ post.annee_diplome|default:'' }}"></label>
+        <label>{% trans "Moyenne (/20)" %}<input type="text" inputmode="decimal" name="moyenne_diplome" value="{{ post.moyenne_diplome|default:'' }}"></label>
+    </div>
+</fieldset>
+<fieldset class="cdt-bloc">
+    <legend><i class="fas fa-phone"></i> {% trans "Personne à contacter" %}</legend>
+    <div class="cdt-grid">
+        <label>{% trans "Nom" %}<input type="text" name="contact_nom" maxlength="100" value="{{ post.contact_nom|default:'' }}"></label>
+        <label>{% trans "Prénom" %}<input type="text" name="contact_prenom" maxlength="100" value="{{ post.contact_prenom|default:'' }}"></label>
+        <label>{% trans "Téléphone" %}<input type="tel" name="contact_telephone" maxlength="30" value="{{ post.contact_telephone|default:'' }}"></label>
+        <label>{% trans "Lien" %}<select name="contact_lien">{% for v, l in liens_contact %}<option value="{{ v }}" {% if post.contact_lien == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+    </div>
+</fieldset>
+<fieldset class="cdt-bloc">
+    <legend><i class="fas fa-folder-open"></i> {% trans "Pièces du dossier" %}</legend>
+    <div class="cdt-pieces">{% for v, l in pieces %}<label><input type="checkbox" name="piece_{{ v }}"> {{ l }}</label>{% endfor %}</div>
+</fieldset>

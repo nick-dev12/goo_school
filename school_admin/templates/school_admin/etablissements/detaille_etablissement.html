@@ -236,10 +236,12 @@
               <div class="form-group">
                 <label class="form-label">Type d'établissement</label>
                 <select name="type_etablissement" class="form-control" required>
-                  <option value="lycee" {% if etablissement.type_etablissement == 'lycee' %}selected{% endif %}>Lycée</option>
-                  <option value="college" {% if etablissement.type_etablissement == 'college' %}selected{% endif %}>Collège</option>
-                  <option value="ecole_primaire" {% if etablissement.type_etablissement == 'ecole_primaire' %}selected{% endif %}>École primaire</option>
-                  <option value="universite" {% if etablissement.type_etablissement == 'universite' %}selected{% endif %}>Université</option>
+                  <option value="primary" {% if etablissement.type_etablissement == 'primary' %}selected{% endif %}>École Primaire</option>
+                  <option value="collège" {% if etablissement.type_etablissement == 'collège' %}selected{% endif %}>Collège</option>
+                  <option value="lycée" {% if etablissement.type_etablissement == 'lycée' %}selected{% endif %}>Lycée</option>
+                  <option value="collège_lycée" {% if etablissement.type_etablissement == 'collège_lycée' %}selected{% endif %}>Collège + Lycée</option>
+                  <option value="mixte" {% if etablissement.type_etablissement == 'mixte' %}selected{% endif %}>Établissement Mixte (Primaire + Collège + Lycée)</option>
+                  <option value="superieur" {% if etablissement.type_etablissement == 'superieur' %}selected{% endif %}>Établissement Supérieur</option>
                 </select>
               </div>
               <div class="form-group">

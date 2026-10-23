@@ -194,6 +194,12 @@ def hub_pedagogique(user, etab, annee):
                             f"{sans_prof} sans enseignant" if sans_prof else None),
         ]},
         {'titre': 'Organisation des cours', 'desc': 'Emplois du temps, présence des enseignants et suivi des séances.', 'liens': [
+            etab.type_etablissement == 'superieur' and _peut(user, 'config_voir') and _lien(
+                'Maquettes LMD', 'UE, EC, crédits, volumes CM / TD / TP, options, parcours, groupes',
+                _url('directeur:liste_maquettes'), 'fa-sitemap', 'violet', nb_classes, 'classe(s)'),
+            etab.type_etablissement == 'superieur' and perso and _lien(
+                'Service des enseignants', 'Grades, service dû, équivalent TD, heures complémentaires',
+                _url('directeur:service_enseignants'), 'fa-scale-balanced', 'orange', nb_profs, 'enseignant(s)'),
             _peut(user, 'classes_liste') and _lien('Emplois du temps', 'Créneaux par classe, publication', _url('administrateur_etablissement:liste_emplois_du_temps'),
                                                                       'fa-calendar-week', 'green', nb_edt_publies, f"/ {nb_classes} publiés"),
             _peut(user, 'pointage_controle', 'professeurs_detail') and _lien('Pointage des enseignants', 'QR code en classe, validation et anomalies',
@@ -263,6 +269,12 @@ def hub_eleves(user, etab, annee):
                                                    'fa-users', 'blue', nb, 'inscrit(s)'),
             _peut(user, 'eleves_reinscrire') and _lien('Réinscriptions', 'Passage à l’année suivante', _url('directeur:liste_reinscription'),
                                                         'fa-rotate', 'teal'),
+            etab.type_etablissement == 'superieur' and _peut(user, 'eleves_liste') and _lien(
+                'Admissions et concours', 'Candidatures en ligne, épreuves, classement, listes d’attente',
+                _url('directeur:liste_concours'), 'fa-door-open', 'green'),
+            etab.type_etablissement == 'superieur' and _peut(user, 'eleves_liste') and _lien(
+                'Diplômes', 'Éligibilité par crédits, délivrance et attestations', _url('directeur:liste_diplomes'),
+                'fa-award', 'orange'),
             isinstance(user, Etablissement) and _lien('Liens de préinscription', 'Formulaire en ligne pour les familles', _url('directeur:gerer_liens_preinscription'),
                                                        'fa-link', 'violet'),
             isinstance(user, Etablissement) and _lien('Préinscriptions reçues', 'Valider ou refuser les demandes', _url('directeur:liste_preinscriptions'),

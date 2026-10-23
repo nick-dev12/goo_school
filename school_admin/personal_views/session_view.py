@@ -60,7 +60,12 @@ def changer_session(request):
             messages.info(request, "Vous consultez maintenant la session active.")
     
     # Rediriger vers la page précédente ou le dashboard
-    redirect_url = request.GET.get('next', 'directeur:dashboard_directeur')
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    redirect_url = request.GET.get('next') or 'directeur:dashboard_directeur'
+    if '/' in redirect_url and not url_has_allowed_host_and_scheme(
+            redirect_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        redirect_url = 'directeur:dashboard_directeur'
     
     # Adapter selon le type d'utilisateur
     if not isinstance(request.user, Etablissement):
@@ -71,7 +76,7 @@ def changer_session(request):
             elif hasattr(request.user, 'classe'):  # Élève
                 redirect_url = 'eleve:dashboard_eleve'
             elif hasattr(request.user, 'liens_enfants'):  # Parent
-                redirect_url = 'parent:dashboard_parent'
+                redirect_url = 'school_admin:dashboard_parent'
     
     return redirect(redirect_url)
 

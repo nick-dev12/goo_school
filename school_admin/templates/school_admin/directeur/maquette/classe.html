@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+{% load i18n %}
+<html lang="fr">
+<head>
+    <title>{% trans "Maquette" %} — {{ classe.nom }}</title>
+    {% include 'school_admin/directeur/maquette/_head.html' %}
+</head>
+<body class="dlb-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container dlb">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:liste_maquettes' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-violet"><i class="fas fa-sitemap" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <p class="fe-hero__kicker">{% trans "Maquette" %} · {{ annee_scolaire_active.libelle }}{% if classe.department %} · {{ classe.department.nom }}{% endif %}</p>
+                <h1 class="hb-head__title">{{ classe.nom }}</h1>
+                <p class="fe-hero__sub">{{ classe.get_libelle_niveau_superieur_complet|default:classe.niveau_lmd }} · {{ nb_etudiants }} {% trans "étudiant(s)" %}</p>
+            </div>
+            <div class="hb-head__actions">
+                <a href="{% url 'directeur:inscriptions_pedagogiques' classe.id %}" class="cg3-btn cg3-btn--primary"><i class="fas fa-user-check" aria-hidden="true"></i>{% trans "Inscriptions pédagogiques" %}</a>
+                <a href="{% url 'administrateur_etablissement:detail_emploi_du_temps' classe.id %}" class="cg3-btn"><i class="fas fa-calendar-week" aria-hidden="true"></i>{% trans "Emploi du temps" %}</a>
+            </div>
+        </header>
+
+        {% if semestres %}
+        <nav class="mqt-tabs" aria-label="{% trans 'Semestres' %}">
+            {% for s in semestres %}<a class="mqt-tab {% if actif.periode.id == s.periode.id %}is-active{% endif %}" href="?semestre={{ s.periode.id }}">{{ s.periode.nom_periode }} <small>{{ s.totaux.credits|floatformat:"-2" }} cr.</small></a>{% endfor %}
+        </nav>
+        {% endif %}
+
+        {% if actif %}
+        {% with t=actif.totaux %}
+        <section class="fe-kpis hb-kpis hb-kpis--4 cg3">
+            <div class="fe-kpi {% if t.credits == 30 %}fe-tone-green{% else %}fe-tone-orange{% endif %}"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Crédits par étudiant" %}</span><span class="fe-kpi__icon"><i class="fas fa-award"></i></span></div><p class="fe-kpi__value">{{ t.credits|floatformat:"-2" }} <small style="font-size:.9rem">/ 30</small></p></div>
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "UE · EC" %}</span><span class="fe-kpi__icon"><i class="fas fa-layer-group"></i></span></div><p class="fe-kpi__value">{{ actif.ues|length }} · {{ t.ec }}</p></div>
+            <div class="fe-kpi fe-tone-violet"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Présentiel" %}</span><span class="fe-kpi__icon"><i class="fas fa-chalkboard-user"></i></span></div><p class="fe-kpi__value">{{ t.presentiel }} h <small style="font-size:.8rem;font-weight:600">CM {{ t.cm }} · TD {{ t.td }} · TP {{ t.tp }}</small></p></div>
+            <div class="fe-kpi fe-tone-red"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Charge totale (avec TPE)" %}</span><span class="fe-kpi__icon"><i class="fas fa-clock"></i></span></div><p class="fe-kpi__value">{{ t.charge }} h <small style="font-size:.8rem;font-weight:600">{{ actif.semaines }} {% trans "sem." %}</small></p></div>
+        </section>
+        {% endwith %}
+
+        <section class="dlb-card">
+            <div class="dlb-card__head"><h2><i class="fas fa-clipboard-check"></i> {% trans "Contrôles de la maquette" %}</h2></div>
+            <div class="dlb-card__body">
+                {% if actif.controles %}
+                <ul class="mqt-alertes">{% for c in actif.controles %}<li><i class="fas fa-triangle-exclamation"></i> {{ c }}</li>{% endfor %}</ul>
+                {% else %}<p class="mqt-ok"><i class="fas fa-circle-check"></i> {% trans "Maquette conforme : 30 crédits, volumes renseignés, options cohérentes." %}</p>{% endif %}
+            </div>
+        </section>
+
+        <form method="post" class="dlb-card">
+            {% csrf_token %}<input type="hidden" name="action" value="maquette"><input type="hidden" name="semestre" value="{{ actif.periode.id }}">
+            <div class="dlb-card__head">
+                <h2><i class="fas fa-sitemap"></i> {% trans "Unités d'enseignement" %} — {{ actif.periode.nom_periode }}</h2>
+                <span class="dlb-help">{% trans "Volumes en heures sur le semestre. « Planifié » = heures programmées dans l'emploi du temps." %}</span>
+            </div>
+            {% for ue in actif.ues %}{% with mc=ue.mc %}
+            <div class="mqt-ue">
+                <div class="mqt-ue__head">
+                    <div class="mqt-ue__titre">
+                        <strong>{% if mc.numero_ue %}{{ mc.numero_ue }} · {% endif %}{{ mc.module.nom }}
+                            <span class="mqt-type mqt-type--{{ mc.type_ue }}">{{ mc.get_type_ue_display }}</span>
+                            {% if mc.optionnelle %}<span class="mqt-type mqt-type--option">{% trans "Option" %}{% if mc.groupe_options %} · {{ mc.groupe_options }}{% endif %}</span>{% endif %}
+                            {% if mc.parcours %}<span class="mqt-type mqt-type--parcours">{{ mc.parcours.nom }}</span>{% endif %}
+                        </strong>
+                        <span>CM {{ ue.cm }} h · TD {{ ue.td }} h · TP {{ ue.tp }} h · TPE {{ ue.tpe }} h</span>
+                    </div>
+                    <label class="mqt-field">{% trans "Crédits" %}<input type="text" inputmode="decimal" name="mc_{{ mc.id }}_credits" value="{{ mc.credits|floatformat:'-2' }}"></label>
+                    <label class="mqt-field">{% trans "Type" %}<select name="mc_{{ mc.id }}_type">{% for v, l in types_ue %}<option value="{{ v }}" {% if mc.type_ue == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+                    <label class="mqt-field">{% trans "Parcours" %}<select name="mc_{{ mc.id }}_parcours"><option value="">{% trans "Tronc commun" %}</option>{% for p in parcours %}<option value="{{ p.id }}" {% if mc.parcours_id == p.id %}selected{% endif %}>{{ p.nom }}</option>{% endfor %}</select></label>
+                    <div class="mqt-field">{% trans "Optionnelle" %}<label class="mqt-check"><input type="checkbox" name="mc_{{ mc.id }}_optionnelle" class="js-opt" data-mc="{{ mc.id }}" {% if mc.optionnelle %}checked{% endif %}> {% trans "Au choix" %}</label></div>
+                    <div class="mqt-field js-opt-detail" id="optDetail{{ mc.id }}" {% if not mc.optionnelle %}style="visibility:hidden"{% endif %}>
+                        {% trans "Groupe · nb à choisir" %}
+                        <div style="display:flex;gap:.3rem"><input type="text" name="mc_{{ mc.id }}_groupe" value="{{ mc.groupe_options }}" placeholder="{% trans 'Option S1' %}"><input type="number" min="1" max="10" name="mc_{{ mc.id }}_choix" value="{{ mc.choix_requis }}" style="width:3.5rem"></div>
+                    </div>
+                </div>
+                <table class="mqt-ec">
+                    <thead><tr><th>{% trans "EC" %}</th><th>{% trans "Crédits" %}</th><th>CM</th><th>TD</th><th>TP</th><th>TPE</th><th>{% trans "Planifié (EDT)" %}</th></tr></thead>
+                    <tbody>
+                    {% for l in ue.ecs %}{% with m=l.matiere %}
+                    <tr>
+                        <td class="mqt-ec-nom">{{ m.nom }}</td>
+                        <td data-label="{% trans 'Crédits' %}">{{ m.credits|floatformat:"-2"|default:"—" }}</td>
+                        <td data-label="CM"><input type="number" min="0" max="999" name="ec_{{ m.id }}_cm" value="{{ m.volume_cm }}" aria-label="CM {{ m.nom }}"></td>
+                        <td data-label="TD"><input type="number" min="0" max="999" name="ec_{{ m.id }}_td" value="{{ m.volume_td }}" aria-label="TD {{ m.nom }}"></td>
+                        <td data-label="TP"><input type="number" min="0" max="999" name="ec_{{ m.id }}_tp" value="{{ m.volume_tp }}" aria-label="TP {{ m.nom }}"></td>
+                        <td data-label="TPE"><input type="number" min="0" max="999" name="ec_{{ m.id }}_tpe" value="{{ m.volume_tpe }}" aria-label="TPE {{ m.nom }}"></td>
+                        <td data-label="{% trans 'Planifié (EDT)' %}">
+                            {{ l.planifie_total|floatformat:"0" }} h
+                            {% if l.ecart is not None %}
+                                {% if l.ecart == 0 %}<span class="mqt-ecart mqt-ecart--ok">· {% trans "conforme" %}</span>
+                                {% elif l.ecart < 0 %}<span class="mqt-ecart mqt-ecart--moins">· {{ l.ecart|floatformat:"0" }} h</span>
+                                {% else %}<span class="mqt-ecart mqt-ecart--plus">· +{{ l.ecart|floatformat:"0" }} h</span>{% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}{% empty %}<tr><td colspan="7" class="dlb-help">{% trans "Aucun EC dans cette UE." %}</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endwith %}{% empty %}
+            <div class="dlb-vide"><i class="fas fa-layer-group"></i>{% trans "Aucune UE rattachée à ce semestre. Rattachez des modules à la classe (gestion pédagogique)." %}</div>
+            {% endfor %}
+            {% if actif.ues %}<div class="dlb-actions-bar"><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-floppy-disk"></i> {% trans "Enregistrer la maquette" %}</button></div>{% endif %}
+        </form>
+        {% else %}
+        <div class="dlb-card"><div class="dlb-vide"><i class="fas fa-calendar-xmark"></i>{% trans "Aucun semestre défini pour ce niveau sur l'année active." %}</div></div>
+        {% endif %}
+
+        <div class="mqt-side">
+            <section class="dlb-card">
+                <div class="dlb-card__head"><h2><i class="fas fa-route"></i> {% trans "Parcours" %}</h2></div>
+                <div class="dlb-card__body">
+                    <div class="mqt-chips">
+                        {% for p in parcours %}
+                        <form method="post" class="mqt-chip" onsubmit="return confirm('{% trans "Supprimer ce parcours ?" %}')">{% csrf_token %}<input type="hidden" name="action" value="parcours_supprimer"><input type="hidden" name="id" value="{{ p.id }}"><input type="hidden" name="semestre" value="{{ actif.periode.id }}">{{ p.nom }}{% if p.code %} <small>{{ p.code }}</small>{% endif %}<button type="submit" aria-label="{% trans 'Supprimer' %}"><i class="fas fa-xmark"></i></button></form>
+                        {% empty %}<p class="dlb-help">{% trans "Aucun parcours : toutes les UE sont du tronc commun." %}</p>{% endfor %}
+                    </div>
+                    <form method="post" class="mqt-inline">{% csrf_token %}<input type="hidden" name="action" value="parcours_ajouter"><input type="hidden" name="semestre" value="{{ actif.periode.id }}">
+                        <input type="text" name="nom" placeholder="{% trans 'Ex. Droit privé' %}" required maxlength="120">
+                        <input type="text" name="code" placeholder="{% trans 'Code' %}" maxlength="20" style="width:6rem">
+                        <button type="submit" class="cg3-btn"><i class="fas fa-plus"></i> {% trans "Ajouter" %}</button>
+                    </form>
+                </div>
+            </section>
+            <section class="dlb-card">
+                <div class="dlb-card__head"><h2><i class="fas fa-users"></i> {% trans "Groupes de TD / TP" %}</h2></div>
+                <div class="dlb-card__body">
+                    <div class="mqt-chips">
+                        {% for g in groupes %}
+                        <form method="post" class="mqt-chip" onsubmit="return confirm('{% trans "Supprimer ce groupe ?" %}')">{% csrf_token %}<input type="hidden" name="action" value="groupe_supprimer"><input type="hidden" name="id" value="{{ g.id }}"><input type="hidden" name="semestre" value="{{ actif.periode.id }}">{{ g.libelle }} <small>{{ g.etudiants.all|length }}/{{ g.capacite }}</small><button type="submit" aria-label="{% trans 'Supprimer' %}"><i class="fas fa-xmark"></i></button></form>
+                        {% empty %}<p class="dlb-help">{% trans "Aucun groupe : les TD se font en classe entière." %}</p>{% endfor %}
+                    </div>
+                    <form method="post" class="mqt-inline" style="margin-bottom:.6rem">{% csrf_token %}<input type="hidden" name="action" value="groupe_ajouter"><input type="hidden" name="semestre" value="{{ actif.periode.id }}">
+                        <select name="type_groupe"><option value="td">TD</option><option value="tp">TP</option></select>
+                        <input type="text" name="nom" placeholder="G1" required maxlength="30" style="width:5rem">
+                        <input type="number" name="capacite" value="40" min="1" max="500" style="width:5rem" aria-label="{% trans 'Capacité' %}">
+                        <button type="submit" class="cg3-btn"><i class="fas fa-plus"></i> {% trans "Ajouter" %}</button>
+                    </form>
+                    {% if groupes %}
+                    <form method="post" class="mqt-inline">{% csrf_token %}<input type="hidden" name="action" value="groupes_repartir"><input type="hidden" name="semestre" value="{{ actif.periode.id }}">
+                        <select name="type_groupe"><option value="td">TD</option><option value="tp">TP</option></select>
+                        <button type="submit" class="cg3-btn" onclick="return confirm('{% trans "Répartir automatiquement tous les étudiants ? Les groupes actuels de ce type seront remplacés." %}')"><i class="fas fa-shuffle"></i> {% trans "Répartir automatiquement" %}</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+    </div>
+    <script>
+    document.querySelectorAll('.js-opt').forEach(function (c) {
+        c.addEventListener('change', function () {
+            var d = document.getElementById('optDetail' + c.dataset.mc);
+            if (d) d.style.visibility = c.checked ? 'visible' : 'hidden';
+        });
+    });
+    </script>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+</body>
+</html>

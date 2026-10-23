@@ -21,6 +21,22 @@ NIVEAUX_PERIODE_SUPERIEUR = [
     ('D1', 'Doctorat 1'),
     ('D2', 'Doctorat 2'),
     ('D3', 'Doctorat 3'),
+    ('LP', 'Licence professionnelle'),
+    ('CPI1', 'Classe préparatoire 1'),
+    ('CPI2', 'Classe préparatoire 2'),
+    ('ING1', 'Ingénieur 1'),
+    ('ING2', 'Ingénieur 2'),
+    ('ING3', 'Ingénieur 3'),
+    ('MBA1', 'MBA 1'),
+    ('MBA2', 'MBA 2'),
+    ('DU', 'Diplôme universitaire'),
+    ('MED1', 'Médecine 1'),
+    ('MED2', 'Médecine 2'),
+    ('MED3', 'Médecine 3'),
+    ('MED4', 'Médecine 4'),
+    ('MED5', 'Médecine 5'),
+    ('MED6', 'Médecine 6'),
+    ('MED7', 'Médecine 7'),
 ]
 NIVEAUX_PERIODE_SUPERIEUR_KEYS = {k for k, _ in NIVEAUX_PERIODE_SUPERIEUR}
 
@@ -80,6 +96,70 @@ SEMESTRES_PAR_NIVEAU_LMD = {
     'D3': [
         ('Semestre 15', 'Semestre 15 — 1er semestre de Doctorat 3'),
         ('Semestre 16', 'Semestre 16 — 2e semestre de Doctorat 3'),
+    ],
+    'LP': [
+        ('Semestre 5', 'Semestre 5 — 1er semestre de Licence professionnelle'),
+        ('Semestre 6', 'Semestre 6 — 2e semestre de Licence professionnelle'),
+    ],
+    'CPI1': [
+        ('Semestre 1', 'Semestre 1 — 1er semestre de Classe préparatoire 1'),
+        ('Semestre 2', 'Semestre 2 — 2e semestre de Classe préparatoire 1'),
+    ],
+    'CPI2': [
+        ('Semestre 3', 'Semestre 3 — 1er semestre de Classe préparatoire 2'),
+        ('Semestre 4', 'Semestre 4 — 2e semestre de Classe préparatoire 2'),
+    ],
+    'ING1': [
+        ('Semestre 5', 'Semestre 5 — 1er semestre de Ingénieur 1'),
+        ('Semestre 6', 'Semestre 6 — 2e semestre de Ingénieur 1'),
+    ],
+    'ING2': [
+        ('Semestre 7', 'Semestre 7 — 1er semestre de Ingénieur 2'),
+        ('Semestre 8', 'Semestre 8 — 2e semestre de Ingénieur 2'),
+    ],
+    'ING3': [
+        ('Semestre 9', 'Semestre 9 — 1er semestre de Ingénieur 3'),
+        ('Semestre 10', 'Semestre 10 — 2e semestre de Ingénieur 3'),
+    ],
+    'MBA1': [
+        ('Semestre 1', 'Semestre 1 — 1er semestre de MBA 1'),
+        ('Semestre 2', 'Semestre 2 — 2e semestre de MBA 1'),
+    ],
+    'MBA2': [
+        ('Semestre 3', 'Semestre 3 — 1er semestre de MBA 2'),
+        ('Semestre 4', 'Semestre 4 — 2e semestre de MBA 2'),
+    ],
+    'DU': [
+        ('Semestre 1', 'Semestre 1 — 1er semestre de Diplôme universitaire'),
+        ('Semestre 2', 'Semestre 2 — 2e semestre de Diplôme universitaire'),
+    ],
+    'MED1': [
+        ('Semestre 1', 'Semestre 1 — 1er semestre de Médecine 1'),
+        ('Semestre 2', 'Semestre 2 — 2e semestre de Médecine 1'),
+    ],
+    'MED2': [
+        ('Semestre 3', 'Semestre 3 — 1er semestre de Médecine 2'),
+        ('Semestre 4', 'Semestre 4 — 2e semestre de Médecine 2'),
+    ],
+    'MED3': [
+        ('Semestre 5', 'Semestre 5 — 1er semestre de Médecine 3'),
+        ('Semestre 6', 'Semestre 6 — 2e semestre de Médecine 3'),
+    ],
+    'MED4': [
+        ('Semestre 7', 'Semestre 7 — 1er semestre de Médecine 4'),
+        ('Semestre 8', 'Semestre 8 — 2e semestre de Médecine 4'),
+    ],
+    'MED5': [
+        ('Semestre 9', 'Semestre 9 — 1er semestre de Médecine 5'),
+        ('Semestre 10', 'Semestre 10 — 2e semestre de Médecine 5'),
+    ],
+    'MED6': [
+        ('Semestre 11', 'Semestre 11 — 1er semestre de Médecine 6'),
+        ('Semestre 12', 'Semestre 12 — 2e semestre de Médecine 6'),
+    ],
+    'MED7': [
+        ('Semestre 13', 'Semestre 13 — 1er semestre de Médecine 7'),
+        ('Semestre 14', 'Semestre 14 — 2e semestre de Médecine 7'),
     ],
 }
 

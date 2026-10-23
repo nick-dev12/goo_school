@@ -231,7 +231,7 @@ class Etablissement(AbstractUser):
         nombre_eleves_actifs = self.eleves.filter(actif=True).count()
         
         # Calculer le montant total : nombre d'élèves × montant par élève
-        montant_total = Decimal(str(nombre_eleves_actifs)) * self.montant_par_eleve
+        montant_total = Decimal(str(nombre_eleves_actifs)) * Decimal(str(self.montant_par_eleve or 0))
         
         # Mettre à jour les champs
         self.montant_total_facturation = montant_total

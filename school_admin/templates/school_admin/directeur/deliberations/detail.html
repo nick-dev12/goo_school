@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+{% load static i18n %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Délibération" %} — {{ deliberation.classe.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=1.0.1" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/deliberations.css' %}?v=1.0.0" />
+</head>
+<body class="dlb-page-body" data-live-page="examens">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    {% with d=deliberation cloturee=deliberation.est_cloturee %}
+    <div class="content-container dlb">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:liste_deliberations' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-red"><i class="fas fa-gavel" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <p class="fe-hero__kicker">{% trans "Délibération" %} · {{ d.annee_scolaire.libelle }}{% if d.classe.department %} · {{ d.classe.department.nom }}{% endif %}</p>
+                <h1 class="hb-head__title">{{ d.classe.nom }} — {{ d.libelle_portee }}</h1>
+                <p class="fe-hero__sub">
+                    <span class="dlb-statut dlb-statut--{{ d.statut }}" style="vertical-align:middle"><i class="fas fa-{% if cloturee %}lock{% else %}pen{% endif %}"></i> {{ d.get_statut_display }}</span>
+                    {% if d.date_deliberation %} · {% trans "le" %} {{ d.date_deliberation|date:"d/m/Y" }}{% endif %}
+                    {% if d.president %} · {% trans "Président" %} : {{ d.president }}{% endif %}
+                </p>
+            </div>
+            <div class="hb-head__actions">
+                <a href="{% url 'directeur:pv_deliberation' d.id %}" target="_blank" rel="noopener" class="cg3-btn"><i class="fas fa-file-signature" aria-hidden="true"></i>{% trans "Procès-verbal" %}</a>
+                {% if cloturee %}
+                <form method="post" onsubmit="return confirm('{% trans "Rouvrir la délibération ? Les notes redeviennent modifiables et les UE capitalisées par cette délibération sont retirées." %}')">
+                    {% csrf_token %}<input type="hidden" name="action" value="rouvrir">
+                    <button type="submit" class="cg3-btn"><i class="fas fa-lock-open" aria-hidden="true"></i>{% trans "Rouvrir" %}</button>
+                </form>
+                {% else %}
+                <form method="post">{% csrf_token %}<input type="hidden" name="action" value="recalculer">
+                    <button type="submit" class="cg3-btn"><i class="fas fa-rotate" aria-hidden="true"></i>{% trans "Recalculer" %}</button>
+                </form>
+                <form method="post" onsubmit="return confirm('{% trans "Clôturer la délibération ? Les décisions seront publiées sur les relevés, les UE acquises capitalisées et les notes verrouillées." %}')">
+                    {% csrf_token %}<input type="hidden" name="action" value="cloturer">
+                    <button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-lock" aria-hidden="true"></i>{% trans "Clôturer" %}</button>
+                </form>
+                {% endif %}
+            </div>
+        </header>
+
+        <section class="fe-kpis hb-kpis hb-kpis--4 cg3" aria-label="{% trans 'Indicateurs' %}">
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Étudiants" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-graduate"></i></span></div><p class="fe-kpi__value">{{ stats.effectif }}</p></div>
+            <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Admis" %}</span><span class="fe-kpi__icon"><i class="fas fa-circle-check"></i></span></div><p class="fe-kpi__value">{{ stats.admis }} <small style="font-size:.9rem;font-weight:600">({{ stats.taux_admis }} %)</small></p></div>
+            <div class="fe-kpi fe-tone-orange"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Moyenne de la promotion" %}</span><span class="fe-kpi__icon"><i class="fas fa-chart-line"></i></span></div><p class="fe-kpi__value">{% if stats.moyenne_promo is not None %}{{ stats.moyenne_promo|floatformat:2 }}{% else %}—{% endif %}</p></div>
+            <div class="fe-kpi fe-tone-red"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Avec points de jury" %}</span><span class="fe-kpi__icon"><i class="fas fa-plus-minus"></i></span></div><p class="fe-kpi__value">{{ stats.avec_points }}</p></div>
+        </section>
+
+        {% if cloturee %}
+        <div class="dlb-verrou" role="status"><i class="fas fa-lock"></i>
+            <span>{% blocktrans with par=d.cloturee_par le=d.cloturee_le|date:"d/m/Y à H:i" %}Clôturée le {{ le }} par {{ par }}. Décisions publiées sur les relevés, UE acquises capitalisées, notes du semestre verrouillées.{% endblocktrans %}</span>
+        </div>
+        {% endif %}
+
+        <section class="dlb-card" aria-labelledby="titre-repartition">
+            <div class="dlb-card__head">
+                <h2 id="titre-repartition"><i class="fas fa-chart-simple"></i> {% trans "Répartition des décisions" %}</h2>
+                <span class="dlb-help">{% if d.est_annuelle %}{% trans "Bilan annuel : passage, passage avec dettes ou redoublement." %}{% else %}{% trans "Semestre : UE acquises, compensation, note éliminatoire." %}{% endif %}</span>
+            </div>
+            <div class="dlb-card__body">
+                <div class="dlb-repartition">{% for r in stats.par_decision %}<span class="dlb-r--{{ r.code }}" style="width: {{ r.pct|stringformat:'s' }}%" title="{{ r.libelle }} : {{ r.nombre }}"></span>{% endfor %}</div>
+                <nav class="dlb-filtres" aria-label="{% trans 'Filtrer' %}">
+                    <a class="dlb-filtre {% if not filtre %}is-active{% endif %}" href="?">{% trans "Tous" %} <b>{{ stats.effectif }}</b></a>
+                    {% for r in stats.par_decision %}<a class="dlb-filtre {% if filtre == r.code %}is-active{% endif %}" href="?filtre={{ r.code }}"><span class="dlb-dec dlb-dec--{{ r.code }}">{{ r.libelle }}</span> <b>{{ r.nombre }}</b></a>{% endfor %}
+                    <a class="dlb-filtre {% if filtre == 'dettes' %}is-active{% endif %}" href="?filtre=dettes"><i class="fas fa-triangle-exclamation" style="color:#dc2626"></i> {% trans "Avec UE non acquises" %}</a>
+                </nav>
+            </div>
+        </section>
+
+        <form method="post" class="dlb-card" aria-labelledby="titre-jury-table">
+            {% csrf_token %}<input type="hidden" name="action" value="points">
+            <div class="dlb-card__head">
+                <h2 id="titre-jury-table"><i class="fas fa-users-rectangle"></i> {% trans "Résultats et points de jury" %}</h2>
+                <span class="dlb-help">{% blocktrans with m=regles_examen.points_jury_max|floatformat:"-2" %}Points de jury : 0 à {{ m }}, avec un motif. Ils comptent pour la compensation.{% endblocktrans %}</span>
+            </div>
+            <div class="dlb-table-wrap">
+            <table class="dlb-table">
+                <thead><tr>
+                    <th>{% trans "Étudiant" %}</th><th>{% trans "Moyenne" %}</th><th>{% trans "Points jury" %}</th>
+                    <th>{% trans "Après jury" %}</th><th>{% trans "Crédits" %}</th><th>{% trans "Décision" %}</th>
+                    <th>{% trans "UE non acquises" %}</th><th>{% trans "Motif" %}</th>
+                </tr></thead>
+                <tbody>
+                {% for dj in decisions %}
+                <tr>
+                    <td class="dlb-etu"><strong>{{ dj.eleve.nom|upper }} {{ dj.eleve.prenom }}</strong><small>{{ dj.eleve.matricule_eleve|default:dj.eleve.numero_eleve }}</small></td>
+                    <td data-label="{% trans 'Moyenne' %}" class="dlb-num">{% if dj.moyenne is not None %}{{ dj.moyenne|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td data-label="{% trans 'Points jury' %}"><input class="dlb-input dlb-input--pts" type="text" inputmode="decimal" name="points_{{ dj.eleve_id }}" value="{{ dj.points_jury|floatformat:'-2' }}" {% if cloturee %}disabled{% endif %} aria-label="{% trans 'Points de jury' %} {{ dj.eleve.nom_complet }}"></td>
+                    <td data-label="{% trans 'Après jury' %}" class="dlb-num">{% if dj.moyenne_jury is not None %}{{ dj.moyenne_jury|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td data-label="{% trans 'Crédits' %}" class="dlb-credits">
+                        <span class="dlb-num">{{ dj.credits_acquis|floatformat:"-2" }} / {{ dj.credits_total|floatformat:"-2" }}</span>
+                        <div class="dlb-credits__bar"><span style="width: {% widthratio dj.credits_acquis dj.credits_total 100 %}%"></span></div>
+                    </td>
+                    <td data-label="{% trans 'Décision' %}"><span class="dlb-dec dlb-dec--{{ dj.decision }}">{{ dj.get_decision_display }}</span>{% if dj.mention %}<span class="dlb-mention">{% trans "Mention" %} {{ dj.mention }}</span>{% endif %}</td>
+                    <td data-label="{% trans 'UE non acquises' %}">
+                        {% if dj.dettes %}<div class="dlb-dettes">{% for ue in dj.dettes %}<span class="dlb-dette" title="{{ ue.titre }}{% if ue.moyenne %} — {{ ue.moyenne }}{% endif %}">{{ ue.titre|truncatechars:26 }}</span>{% endfor %}</div>
+                        {% else %}<span class="dlb-aucune"><i class="fas fa-check"></i> {% trans "Aucune" %}</span>{% endif %}
+                    </td>
+                    <td data-label="{% trans 'Motif' %}"><input class="dlb-input" type="text" name="motif_{{ dj.eleve_id }}" value="{{ dj.motif_jury }}" maxlength="255" placeholder="{% trans 'Assiduité, progression…' %}" {% if cloturee %}disabled{% endif %}></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8"><div class="dlb-vide"><i class="fas fa-user-graduate"></i>{% trans "Aucun étudiant pour ce filtre." %}</div></td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% if not cloturee %}
+            <div class="dlb-actions-bar"><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-floppy-disk"></i> {% trans "Enregistrer les points de jury" %}</button></div>
+            {% endif %}
+        </form>
+
+        <section class="dlb-card" aria-labelledby="titre-jury">
+            <div class="dlb-card__head"><h2 id="titre-jury"><i class="fas fa-user-tie"></i> {% trans "Composition du jury" %}</h2></div>
+            <div class="dlb-card__body">
+                <form method="post" class="dlb-form">
+                    {% csrf_token %}<input type="hidden" name="action" value="jury">
+                    <div class="dlb-grid2">
+                        <label>{% trans "Président du jury" %} *<input type="text" name="president" value="{{ d.president }}" maxlength="150" {% if cloturee %}disabled{% endif %} placeholder="{% trans 'Pr. …' %}"></label>
+                        <label>{% trans "Date de la délibération" %}<input type="date" name="date_deliberation" value="{{ d.date_deliberation|date:'Y-m-d' }}" {% if cloturee %}disabled{% endif %}></label>
+                    </div>
+                    <div class="dlb-grid2">
+                        <label>{% trans "Membres (un par ligne)" %}<textarea name="membres" rows="4" {% if cloturee %}disabled{% endif %}>{{ d.membres }}</textarea></label>
+                        <label>{% trans "Observations" %}<textarea name="observations" rows="4" {% if cloturee %}disabled{% endif %}>{{ d.observations }}</textarea></label>
+                    </div>
+                    {% if not cloturee %}<div><button type="submit" class="cg3-btn"><i class="fas fa-check"></i> {% trans "Enregistrer le jury" %}</button></div>{% endif %}
+                </form>
+            </div>
+        </section>
+    </div>
+    {% endwith %}
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+</body>
+</html>

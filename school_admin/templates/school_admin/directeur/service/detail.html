@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+{% load i18n %}
+<html lang="fr">
+<head>
+    <title>{% trans "Service" %} — {{ b.professeur.nom_complet }}</title>
+    {% include 'school_admin/directeur/maquette/_head.html' %}
+</head>
+<body class="dlb-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    {% with p=b.professeur %}
+    <div class="content-container dlb">
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:service_enseignants' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-orange"><i class="fas fa-user-tie" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <p class="fe-hero__kicker">{% trans "Service" %} · {{ annee_scolaire_active.libelle }}</p>
+                <h1 class="hb-head__title">{{ p.nom_complet }}</h1>
+                <p class="fe-hero__sub">{{ p.get_grade_universitaire_display|default:_("Grade non renseigné") }} · {{ p.get_type_contrat_display }}</p>
+            </div>
+        </header>
+        <section class="fe-kpis hb-kpis hb-kpis--4 cg3">
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Service dû" %}</span><span class="fe-kpi__icon"><i class="fas fa-bullseye"></i></span></div><p class="fe-kpi__value">{{ b.du|floatformat:"0" }} h</p></div>
+            <div class="fe-kpi fe-tone-violet"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Prévu (éq. TD)" %}</span><span class="fe-kpi__icon"><i class="fas fa-clock"></i></span></div><p class="fe-kpi__value">{{ b.eqtd|floatformat:"0" }} h <small style="font-size:.8rem;font-weight:600">CM {{ b.cm|floatformat:"0" }} · TD {{ b.td|floatformat:"0" }} · TP {{ b.tp|floatformat:"0" }}</small></p></div>
+            <div class="fe-kpi {% if b.statut == 'sous_service' %}fe-tone-orange{% else %}fe-tone-green{% endif %}"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Heures complémentaires" %}</span><span class="fe-kpi__icon"><i class="fas fa-plus"></i></span></div><p class="fe-kpi__value">{{ b.complementaires|floatformat:"0" }} h</p></div>
+            <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Montant estimé" %}</span><span class="fe-kpi__icon"><i class="fas fa-coins"></i></span></div><p class="fe-kpi__value">{{ b.montant|floatformat:"0g" }} <small style="font-size:.8rem;font-weight:600">{{ devise }} · {{ b.taux|floatformat:"0g" }} / h</small></p></div>
+        </section>
+        <section class="dlb-card">
+            <div class="dlb-card__head"><h2><i class="fas fa-list"></i> {% trans "Enseignements prévus" %}</h2><span class="dlb-help">{% trans "Un CM commun à plusieurs classes n'est compté qu'une fois." %}</span></div>
+            <div class="dlb-table-wrap">
+            <table class="dlb-table">
+                <thead><tr><th>{% trans "EC" %}</th><th>{% trans "Type" %}</th><th>{% trans "Classes" %}</th><th>{% trans "Semestre" %}</th><th>{% trans "Heures" %}</th><th>{% trans "Éq. TD" %}</th></tr></thead>
+                <tbody>
+                {% for l in b.lignes %}
+                <tr>
+                    <td class="dlb-etu"><strong>{{ l.matiere }}</strong>{% if l.mutualise %}<small>{% trans "Cours mutualisé" %}</small>{% endif %}</td>
+                    <td data-label="{% trans 'Type' %}"><span class="edtd-tag mqt-type mqt-type--{% if l.type == 'cm' %}fondamentale{% elif l.type == 'td' %}transversale{% else %}decouverte{% endif %}">{{ l.type|upper }}</span></td>
+                    <td data-label="{% trans 'Classes' %}">{{ l.classes|join:", " }}</td>
+                    <td data-label="{% trans 'Semestre' %}">{{ l.semestres }}</td>
+                    <td data-label="{% trans 'Heures' %}" class="dlb-num">{{ l.heures|floatformat:"0" }} h</td>
+                    <td data-label="{% trans 'Éq. TD' %}" class="dlb-num">{{ l.eqtd|floatformat:"0" }} h</td>
+                </tr>
+                {% empty %}<tr><td colspan="6"><div class="dlb-vide"><i class="fas fa-calendar-xmark"></i>{% trans "Aucun cours planifié dans les emplois du temps." %}</div></td></tr>{% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </section>
+    </div>
+    {% endwith %}
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+</body>
+</html>

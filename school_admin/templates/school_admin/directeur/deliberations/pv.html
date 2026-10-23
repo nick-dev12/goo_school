@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+{% load i18n %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PV — {{ deliberation.classe.nom }} — {{ deliberation.libelle_portee }}</title>
+    <style>
+        :root { --ink: #0f172a; --muted: #475569; --line: #cbd5e1; --brand: #1d4ed8; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #e2e8f0; color: var(--ink); font-family: "Segoe UI", Arial, sans-serif; font-size: 12px; }
+        .barre { display: flex; justify-content: center; gap: .6rem; padding: 12px 16px; }
+        .barre button, .barre a { font: inherit; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; text-decoration: none; }
+        .barre button { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .page { width: 210mm; min-height: 297mm; margin: 0 auto 24px; background: #fff; padding: 14mm 12mm; box-shadow: 0 4px 18px rgba(15, 23, 42, .15); }
+        .entete { display: grid; grid-template-columns: 1fr auto; gap: 12px; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+        .entete h1 { margin: 0; font-size: 15px; text-transform: uppercase; }
+        .entete p { margin: 2px 0 0; color: var(--muted); }
+        .ref { text-align: right; color: var(--muted); }
+        h2.titre { text-align: center; font-size: 17px; letter-spacing: .04em; margin: 14px 0 4px; text-transform: uppercase; }
+        .sous { text-align: center; margin: 0 0 12px; color: var(--muted); font-size: 12.5px; }
+        .infos { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); margin-bottom: 10px; }
+        .infos div { padding: 6px 8px; border-right: 1px solid var(--line); }
+        .infos div:last-child { border-right: 0; }
+        .infos span { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; }
+        .infos strong { font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid var(--line); padding: 4px 5px; text-align: center; }
+        th { background: #f1f5f9; font-size: 10.5px; text-transform: uppercase; }
+        td.nom { text-align: left; }
+        td.dettes { text-align: left; font-size: 10.5px; color: var(--muted); }
+        .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+        .bloc { border: 1px solid var(--line); padding: 8px 10px; }
+        .bloc h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; }
+        .bloc ul { margin: 0; padding-left: 16px; }
+        .regles { font-size: 10.5px; color: var(--muted); margin-top: 8px; }
+        .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; }
+        .signatures div { border-top: 1px solid var(--ink); padding-top: 4px; min-height: 60px; font-size: 11px; }
+        .mention-cachet { margin-top: 10px; font-size: 10.5px; color: var(--muted); text-align: right; }
+        @media print {
+            body { background: #fff; }
+            .barre { display: none; }
+            .page { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
+            @page { size: A4; margin: 12mm; }
+            tr { page-break-inside: avoid; }
+        }
+        @media screen and (max-width: 820px) { .page { width: 100%; padding: 16px; } .infos { grid-template-columns: 1fr 1fr; } .stats, .signatures { grid-template-columns: 1fr; } table { font-size: 10px; } }
+    </style>
+</head>
+<body>
+{% with d=deliberation %}
+<div class="barre">
+    <a href="{% url 'directeur:detail_deliberation' d.id %}">← {% trans "Retour" %}</a>
+    <button type="button" onclick="window.print()">{% trans "Imprimer le procès-verbal" %}</button>
+</div>
+<div class="page">
+    <div class="entete">
+        <div>
+            <h1>{{ etablissement.nom }}</h1>
+            <p>{{ etablissement.adresse }}{% if etablissement.ville %} — {{ etablissement.ville }}{% endif %}</p>
+        </div>
+        <div class="ref">
+            {% trans "Année académique" %} <strong>{{ d.annee_scolaire.libelle }}</strong><br>
+            {% trans "PV n°" %} {{ d.id|stringformat:"05d" }}
+        </div>
+    </div>
+
+    <h2 class="titre">{% trans "Procès-verbal de délibération" %}</h2>
+    <p class="sous">{{ d.libelle_portee }} — {{ d.get_session_display }}{% if not d.est_cloturee %} — <strong style="color:#b45309">{% trans "document provisoire (délibération non clôturée)" %}</strong>{% endif %}</p>
+
+    <div class="infos">
+        <div><span>{% trans "Classe" %}</span><strong>{{ d.classe.nom }}</strong></div>
+        <div><span>{% trans "Filière" %}</span><strong>{{ d.classe.department.nom|default:"—" }}</strong></div>
+        <div><span>{% trans "Niveau" %}</span><strong>{{ d.classe.get_libelle_niveau_superieur_complet|default:d.classe.niveau_lmd }}</strong></div>
+        <div><span>{% trans "Date" %}</span><strong>{{ d.date_deliberation|date:"d/m/Y"|default:"—" }}</strong></div>
+    </div>
+
+    <table>
+        <thead><tr>
+            <th>N°</th><th>{% trans "Matricule" %}</th><th>{% trans "Nom et prénom" %}</th><th>{% trans "Moy." %}</th>
+            <th>{% trans "Pts jury" %}</th><th>{% trans "Moy. jury" %}</th><th>{% trans "Crédits" %}</th>
+            <th>{% trans "Décision" %}</th><th>{% trans "Mention" %}</th><th>{% trans "UE à repasser" %}</th>
+        </tr></thead>
+        <tbody>
+        {% for dj in decisions %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ dj.eleve.matricule_eleve|default:dj.eleve.numero_eleve }}</td>
+            <td class="nom">{{ dj.eleve.nom|upper }} {{ dj.eleve.prenom }}</td>
+            <td>{% if dj.moyenne is not None %}{{ dj.moyenne|floatformat:2 }}{% else %}—{% endif %}</td>
+            <td>{% if dj.points_jury %}+{{ dj.points_jury|floatformat:"-2" }}{% else %}—{% endif %}</td>
+            <td>{% if dj.moyenne_jury is not None %}{{ dj.moyenne_jury|floatformat:2 }}{% else %}—{% endif %}</td>
+            <td>{{ dj.credits_acquis|floatformat:"-2" }}/{{ dj.credits_total|floatformat:"-2" }}</td>
+            <td><strong>{{ dj.get_decision_display }}</strong></td>
+            <td>{{ dj.mention|default:"—" }}</td>
+            <td class="dettes">{% for ue in dj.dettes %}{{ ue.titre }}{% if not forloop.last %} ; {% endif %}{% empty %}—{% endfor %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="stats">
+        <div class="bloc">
+            <h3>{% trans "Résultats" %}</h3>
+            <ul>
+                <li>{% trans "Effectif délibéré" %} : <strong>{{ stats.effectif }}</strong></li>
+                {% for r in stats.par_decision %}<li>{{ r.libelle }} : <strong>{{ r.nombre }}</strong> ({{ r.pct }} %)</li>{% endfor %}
+                <li>{% trans "Taux d'admission" %} : <strong>{{ stats.taux_admis }} %</strong></li>
+                {% if stats.moyenne_promo is not None %}<li>{% trans "Moyenne de la promotion" %} : <strong>{{ stats.moyenne_promo|floatformat:2 }}</strong></li>{% endif %}
+            </ul>
+        </div>
+        <div class="bloc">
+            <h3>{% trans "Observations du jury" %}</h3>
+            <p style="margin:0;white-space:pre-line">{{ d.observations|default:"Néant." }}</p>
+            {% if stats.avec_points %}<p style="margin:.4rem 0 0">{% blocktrans count n=stats.avec_points %}{{ n }} étudiant a bénéficié de points de jury.{% plural %}{{ n }} étudiants ont bénéficié de points de jury.{% endblocktrans %}</p>{% endif %}
+        </div>
+    </div>
+    <p class="regles">
+        {% trans "Règles appliquées" %} : {% trans "validation" %} {{ regles_examen.seuil_validation|floatformat:"-2" }}/20 ;
+        {% trans "compensation semestrielle" %} {% if regles_examen.compensation_semestrielle %}{% trans "oui" %}{% else %}{% trans "non" %}{% endif %} ;
+        {% trans "compensation annuelle" %} {% if regles_examen.compensation_annuelle %}{% trans "oui" %}{% else %}{% trans "non" %}{% endif %} ;
+        {% if regles_examen.note_eliminatoire is not None %}{% trans "note éliminatoire" %} {{ regles_examen.note_eliminatoire|floatformat:"-2" }} ;{% endif %}
+        {% trans "passage conditionnel à" %} {{ regles_examen.pourcentage_passage_conditionnel }} % {% trans "des crédits" %} ;
+        {% trans "points de jury jusqu'à" %} {{ regles_examen.points_jury_max|floatformat:"-2" }}.
+    </p>
+
+    <div class="signatures">
+        <div><strong>{% trans "Le président du jury" %}</strong><br>{{ d.president|default:"" }}</div>
+        {% for m in d.liste_membres|slice:":2" %}<div><strong>{% trans "Membre du jury" %}</strong><br>{{ m }}</div>{% empty %}<div><strong>{% trans "Membre du jury" %}</strong></div><div><strong>{% trans "Membre du jury" %}</strong></div>{% endfor %}
+    </div>
+    {% if d.liste_membres|length > 2 %}<p class="regles">{% trans "Autres membres" %} : {{ d.liste_membres|slice:"2:"|join:", " }}</p>{% endif %}
+    <p class="mention-cachet">{% trans "Fait à" %} {{ etablissement.ville|default:"…" }}, {% trans "le" %} {{ date_impression|date:"d/m/Y" }}{% if d.est_cloturee %} — {% trans "délibération clôturée le" %} {{ d.cloturee_le|date:"d/m/Y" }}{% endif %}</p>
+</div>
+{% endwith %}
+</body>
+</html>

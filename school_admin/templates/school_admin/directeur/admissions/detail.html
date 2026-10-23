@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+{% load static i18n %}
+<html lang="fr">
+<head>
+    <title>{{ concours.intitule }} — {% trans "Admissions" %}</title>
+    {% include 'school_admin/directeur/maquette/_head.html' %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/admissions.css' %}?v=1.0.0" />
+</head>
+<body class="dlb-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container dlb">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:liste_concours' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-green"><i class="fas fa-door-open" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <p class="fe-hero__kicker">{{ concours.get_mode_display }} · {{ concours.get_statut_display }}{% if concours.classe_cible %} · {{ concours.classe_cible.nom }}{% endif %}</p>
+                <h1 class="hb-head__title">{{ concours.intitule }}</h1>
+                <p class="fe-hero__sub">{{ concours.places }} {% trans "places" %} · {{ concours.places_attente }} {% trans "en liste d'attente" %} · {% trans "note minimale" %} {{ concours.seuil_admission|floatformat:"-2" }}/20{% if concours.date_epreuves %} · {% trans "épreuves le" %} {{ concours.date_epreuves|date:"d/m/Y" }}{% endif %}</p>
+            </div>
+            <div class="hb-head__actions">
+                <form method="post">{% csrf_token %}<input type="hidden" name="action" value="cloturer"><input type="hidden" name="onglet" value="{{ onglet }}">
+                    <button type="submit" class="cg3-btn"><i class="fas fa-{% if concours.statut == 'ouvert' %}lock{% else %}lock-open{% endif %}"></i>{% if concours.statut == 'ouvert' %}{% trans "Clore les candidatures" %}{% else %}{% trans "Rouvrir" %}{% endif %}</button></form>
+                <form method="post">{% csrf_token %}<input type="hidden" name="action" value="calculer"><input type="hidden" name="onglet" value="resultats">
+                    <button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-ranking-star"></i>{% trans "Calculer le classement" %}</button></form>
+            </div>
+        </header>
+
+        <section class="fe-kpis hb-kpis hb-kpis--4 cg3">
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Candidatures" %}</span><span class="fe-kpi__icon"><i class="fas fa-file-signature"></i></span></div><p class="fe-kpi__value">{{ stats.total }}</p></div>
+            <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Admis" %}</span><span class="fe-kpi__icon"><i class="fas fa-circle-check"></i></span></div><p class="fe-kpi__value">{{ stats.admis }} <small style="font-size:.85rem">/ {{ concours.places }}</small></p></div>
+            <div class="fe-kpi fe-tone-violet"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Liste d'attente" %}</span><span class="fe-kpi__icon"><i class="fas fa-hourglass-half"></i></span></div><p class="fe-kpi__value">{{ stats.attente }}</p></div>
+            <div class="fe-kpi fe-tone-orange"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Barre d'admission" %}</span><span class="fe-kpi__icon"><i class="fas fa-ruler-horizontal"></i></span></div><p class="fe-kpi__value">{% if stats.barre is not None %}{{ stats.barre|floatformat:2 }}{% else %}—{% endif %}</p></div>
+        </section>
+
+        <div class="adm-lien"><i class="fas fa-link"></i> <strong>{% trans "Lien de candidature en ligne" %}</strong>
+            <input type="text" readonly value="{{ lien_public }}" onclick="this.select()" aria-label="{% trans 'Lien de candidature' %}">
+            <a class="adm-mini adm-mini--bleu" href="{{ lien_public }}" target="_blank" rel="noopener">{% trans "Ouvrir" %}</a>
+        </div>
+
+        <nav class="adm-onglets" aria-label="{% trans 'Sections' %}">
+            <a class="adm-onglet {% if onglet == 'candidatures' %}is-active{% endif %}" href="?onglet=candidatures"><i class="fas fa-users"></i> {% trans "Candidatures" %} <b>{{ stats.total }}</b></a>
+            {% if concours.mode != 'dossier' %}<a class="adm-onglet {% if onglet == 'notes' %}is-active{% endif %}" href="?onglet=notes"><i class="fas fa-pen-to-square"></i> {% trans "Épreuves et notes" %} <b>{{ epreuves|length }}</b></a>{% endif %}
+            <a class="adm-onglet {% if onglet == 'resultats' %}is-active{% endif %}" href="?onglet=resultats"><i class="fas fa-ranking-star"></i> {% trans "Résultats" %}</a>
+            <a class="adm-onglet {% if onglet == 'ajouter' %}is-active{% endif %}" href="?onglet=ajouter"><i class="fas fa-user-plus"></i> {% trans "Ajouter un candidat" %}</a>
+        </nav>
+
+        {% if onglet == 'candidatures' %}
+        <section class="dlb-card">
+            <div class="dlb-card__head">
+                <h2><i class="fas fa-users"></i> {% trans "Dossiers de candidature" %}</h2>
+                <nav class="dlb-filtres">
+                    <a class="dlb-filtre {% if not filtre %}is-active{% endif %}" href="?onglet=candidatures">{% trans "Tous" %}</a>
+                    {% for v, l in statuts %}<a class="dlb-filtre {% if filtre == v %}is-active{% endif %}" href="?onglet=candidatures&statut={{ v }}"><span class="adm-st adm-st--{{ v }}">{{ l }}</span></a>{% endfor %}
+                </nav>
+            </div>
+            <div class="dlb-table-wrap">
+            <table class="dlb-table">
+                <thead><tr><th>{% trans "Candidat" %}</th><th>{% trans "Bac" %}</th><th>{% trans "Diplôme précédent" %}</th><th>{% trans "Pièces" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Actions" %}</th></tr></thead>
+                <tbody>
+                {% for c in candidatures %}
+                <tr>
+                    <td class="dlb-etu"><strong>{{ c.nom|upper }} {{ c.prenom }}</strong><small>{{ c.numero }} · {{ c.telephone }}{% if c.en_ligne %} · <i class="fas fa-globe" title="{% trans 'Déposée en ligne' %}"></i>{% endif %}</small></td>
+                    <td data-label="{% trans 'Bac' %}">{% if c.serie_bac %}{{ c.serie_bac }} {{ c.annee_bac|default:"" }}<span class="dlb-mention">{% if c.moyenne_bac is not None %}{{ c.moyenne_bac|floatformat:2 }}/20{% endif %}{% if c.mention_bac %} · {{ c.get_mention_bac_display }}{% endif %}</span>{% else %}—{% endif %}</td>
+                    <td data-label="{% trans 'Diplôme précédent' %}">{{ c.diplome_precedent|default:"—" }}{% if c.moyenne_diplome is not None %}<span class="dlb-mention">{{ c.moyenne_diplome|floatformat:2 }}/20</span>{% endif %}</td>
+                    <td data-label="{% trans 'Pièces' %}" class="dlb-num">{{ c.pieces|length }}/{{ pieces|length }}</td>
+                    <td data-label="{% trans 'Statut' %}"><span class="adm-st adm-st--{{ c.statut }}">{{ c.get_statut_display }}</span>{% if c.motif %}<span class="dlb-mention">{{ c.motif }}</span>{% endif %}</td>
+                    <td data-label="{% trans 'Actions' %}"><div class="adm-actions-ligne">
+                        {% if c.statut == 'soumise' or c.statut == 'irrecevable' %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="statut"><input type="hidden" name="statut" value="recevable"><input type="hidden" name="id" value="{{ c.id }}"><button class="adm-mini adm-mini--ok">{% trans "Recevable" %}</button></form>{% endif %}
+                        {% if c.statut == 'soumise' or c.statut == 'recevable' %}<form method="post" onsubmit="var m=prompt('{% trans "Motif de l’irrecevabilité ?" %}'); if(m===null) return false; this.motif.value=m;">{% csrf_token %}<input type="hidden" name="action" value="statut"><input type="hidden" name="statut" value="irrecevable"><input type="hidden" name="motif"><input type="hidden" name="id" value="{{ c.id }}"><button class="adm-mini adm-mini--ko">{% trans "Irrecevable" %}</button></form>{% endif %}
+                    </div></td>
+                </tr>
+                {% empty %}<tr><td colspan="6"><div class="dlb-vide"><i class="fas fa-inbox"></i>{% trans "Aucune candidature. Partagez le lien de candidature en ligne ou ajoutez un candidat." %}</div></td></tr>{% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if onglet == 'notes' %}
+        <section class="dlb-card">
+            <div class="dlb-card__head"><h2><i class="fas fa-list-ol"></i> {% trans "Épreuves" %}</h2></div>
+            <div class="dlb-card__body">
+                <div class="mqt-chips">
+                    {% for e in epreuves %}<form method="post" class="mqt-chip" onsubmit="return confirm('{% trans "Supprimer cette épreuve et ses notes ?" %}')">{% csrf_token %}<input type="hidden" name="action" value="epreuve_supprimer"><input type="hidden" name="id" value="{{ e.id }}"><input type="hidden" name="onglet" value="notes">{{ e.nom }} <small>coef. {{ e.coefficient|floatformat:"-2" }}{% if e.note_eliminatoire is not None %} · élim. &lt; {{ e.note_eliminatoire|floatformat:"-2" }}{% endif %}</small><button type="submit" aria-label="{% trans 'Supprimer' %}"><i class="fas fa-xmark"></i></button></form>
+                    {% empty %}<p class="dlb-help">{% trans "Aucune épreuve." %}</p>{% endfor %}
+                </div>
+                <form method="post" class="mqt-inline">{% csrf_token %}<input type="hidden" name="action" value="epreuve_ajouter"><input type="hidden" name="onglet" value="notes">
+                    <input type="text" name="nom" required placeholder="{% trans 'Ex. Culture générale' %}" maxlength="120">
+                    <input type="text" inputmode="decimal" name="coefficient" value="1" style="width:5rem" aria-label="{% trans 'Coefficient' %}">
+                    <input type="text" inputmode="decimal" name="note_eliminatoire" placeholder="{% trans 'Éliminatoire' %}" style="width:7rem">
+                    <button type="submit" class="cg3-btn"><i class="fas fa-plus"></i> {% trans "Ajouter l'épreuve" %}</button>
+                </form>
+            </div>
+        </section>
+        {% if epreuves %}
+        <form method="post" class="dlb-card">
+            {% csrf_token %}<input type="hidden" name="action" value="notes"><input type="hidden" name="onglet" value="notes">
+            <div class="dlb-card__head"><h2><i class="fas fa-pen-to-square"></i> {% trans "Saisie des notes" %}</h2><span class="dlb-help">{% trans "Note sur 20 ou ABS pour un absent (éliminé)." %}</span></div>
+            <div class="dlb-table-wrap">
+            <table class="dlb-table">
+                <thead><tr><th>{% trans "Candidat" %}</th>{% for e in epreuves %}<th>{{ e.nom }} <small style="text-transform:none">×{{ e.coefficient|floatformat:"-2" }}</small></th>{% endfor %}</tr></thead>
+                <tbody>
+                {% for l in grille %}
+                <tr><td class="dlb-etu"><strong>{{ l.c.nom|upper }} {{ l.c.prenom }}</strong><small>{{ l.c.numero }}</small></td>
+                    {% for cel in l.cellules %}<td data-label="{{ cel.epreuve.nom }}"><input class="adm-note {% if cel.note.absent %}adm-note--abs{% endif %}" type="text" inputmode="decimal" name="n_{{ l.c.id }}_{{ cel.epreuve.id }}" value="{% if cel.note.absent %}ABS{% elif cel.note.note is not None %}{{ cel.note.note|floatformat:'-2' }}{% endif %}" aria-label="{{ cel.epreuve.nom }} {{ l.c.nom_complet }}"></td>{% endfor %}</tr>
+                {% empty %}<tr><td colspan="{{ epreuves|length|add:1 }}"><div class="dlb-vide">{% trans "Aucun candidat recevable." %}</div></td></tr>{% endfor %}
+                </tbody>
+            </table>
+            </div>
+            <div class="dlb-actions-bar"><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-floppy-disk"></i> {% trans "Enregistrer les notes" %}</button></div>
+        </form>
+        {% endif %}
+        {% endif %}
+
+        {% if onglet == 'resultats' %}
+        <section class="dlb-card">
+            <div class="dlb-card__head">
+                <h2><i class="fas fa-ranking-star"></i> {% trans "Classement" %}</h2>
+                {% if concours.statut != 'publie' %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="publier"><input type="hidden" name="onglet" value="resultats"><button class="cg3-btn cg3-btn--primary"><i class="fas fa-bullhorn"></i> {% trans "Publier les résultats" %}</button></form>{% else %}<span class="adm-st adm-st--admis"><i class="fas fa-bullhorn"></i> {% trans "Résultats publiés" %}</span>{% endif %}
+            </div>
+            <div class="dlb-table-wrap">
+            <table class="dlb-table">
+                <thead><tr><th>{% trans "Rang" %}</th><th>{% trans "Candidat" %}</th><th>{% trans "Dossier" %}</th><th>{% trans "Total /20" %}</th><th>{% trans "Résultat" %}</th><th>{% trans "Suite" %}</th></tr></thead>
+                <tbody>
+                {% for c in resultats %}
+                <tr>
+                    <td data-label="{% trans 'Rang' %}" class="dlb-num">{{ c.rang|default:"—" }}</td>
+                    <td class="dlb-etu"><strong>{{ c.nom|upper }} {{ c.prenom }}</strong><small>{{ c.numero }}</small></td>
+                    <td data-label="{% trans 'Dossier' %}" class="dlb-num">{% if c.note_dossier is not None %}{{ c.note_dossier|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td data-label="{% trans 'Total /20' %}" class="dlb-num">{% if c.total is not None %}{{ c.total|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td data-label="{% trans 'Résultat' %}"><span class="adm-st adm-st--{{ c.statut }}">{{ c.get_statut_display }}</span>{% if c.motif %}<span class="dlb-mention">{{ c.motif }}</span>{% endif %}</td>
+                    <td data-label="{% trans 'Suite' %}"><div class="adm-actions-ligne">
+                        {% if c.statut == 'admis' %}
+                        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="inscrire"><input type="hidden" name="id" value="{{ c.id }}"><input type="hidden" name="onglet" value="resultats">
+                            <select name="classe" class="dlb-input" style="width:auto">{% for cl in classes %}<option value="{{ cl.id }}" {% if concours.classe_cible_id == cl.id %}selected{% endif %}>{{ cl.nom }}</option>{% endfor %}</select>
+                            <button class="adm-mini adm-mini--bleu" onclick="return confirm('{% trans "Inscrire cet étudiant ? Son dossier, son matricule et sa facturation seront créés." %}')"><i class="fas fa-user-check"></i> {% trans "Inscrire" %}</button></form>
+                        {% endif %}
+                        {% if c.statut == 'admis' or c.statut == 'attente' %}
+                        <form method="post" onsubmit="return confirm('{% trans "Enregistrer le désistement ? Le premier de la liste d’attente sera admis." %}')">{% csrf_token %}<input type="hidden" name="action" value="desister"><input type="hidden" name="id" value="{{ c.id }}"><input type="hidden" name="onglet" value="resultats"><button class="adm-mini adm-mini--ko">{% trans "Désistement" %}</button></form>
+                        {% endif %}
+                        {% if c.statut == 'inscrit' and c.eleve %}<span class="dlb-mention"><i class="fas fa-id-card"></i> {{ c.eleve.matricule_eleve|default:c.eleve.numero_eleve }}</span>{% endif %}
+                    </div></td>
+                </tr>
+                {% empty %}<tr><td colspan="6"><div class="dlb-vide"><i class="fas fa-ranking-star"></i>{% trans "Pas encore de classement : cliquez sur « Calculer le classement »." %}</div></td></tr>{% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if onglet == 'ajouter' %}
+        <form method="post" class="dlb-card"><div class="dlb-card__body">
+            {% csrf_token %}<input type="hidden" name="action" value="candidature"><input type="hidden" name="onglet" value="candidatures">
+            {% include 'school_admin/admissions/_champs_candidature.html' with post=None %}
+            <button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-user-plus"></i> {% trans "Enregistrer la candidature" %}</button>
+        </div></form>
+        {% endif %}
+    </div>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+</body>
+</html>

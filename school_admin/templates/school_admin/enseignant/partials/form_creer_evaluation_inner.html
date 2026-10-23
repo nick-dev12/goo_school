@@ -50,6 +50,16 @@
           <span class="help-text">Note maximale (ex. 20)</span>
           {% if errors.bareme %}<span class="error-message">{{ errors.bareme }}</span>{% endif %}
         </div>
+        {% if est_superieur_eval %}
+        <div class="form-group">
+          <label for="type_evaluation"><i class="fas fa-tags"></i> Type d'évaluation</label>
+          <select id="type_evaluation" name="type_evaluation">
+            <option value="">— Non précisé —</option>
+            {% for v, l in types_evaluation %}<option value="{{ v }}" {% if form_data.type_evaluation == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+          </select>
+          <span class="help-text">Le contrôle continu est pondéré par type (TD, TP, devoirs, partiel…) selon les règles de l'établissement.</span>
+        </div>
+        {% endif %}
         <div class="form-group {% if errors.periode_scolaire %}has-error{% endif %}">
           <label for="periode_scolaire"><i class="fas fa-calendar-alt"></i> Période</label>
           {% if periode_verrouillee_sup and periode_fixe_sup %}

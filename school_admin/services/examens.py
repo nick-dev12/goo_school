@@ -135,10 +135,13 @@ def moyenne_matiere(moyenne_cc, examen, poids_classe, poids_examen, superieur=Fa
 
 
 # --------------------------------------------------------------------------- LMD
-def validation_lmd(lignes, regle):
+def validation_lmd(lignes, regle, bonus=D0, compensation=None):
     """
-    lignes : [{'matiere', 'moyenne' (Decimal|None), 'coefficient', 'credits'}]
-    Renvoie la moyenne du semestre, le détail par UE, les crédits acquis et la décision.
+    lignes : [{'matiere', 'moyenne' (Decimal|None), 'coefficient', 'credits', 'capitalisee' (bool, facultatif)}]
+    bonus : points de jury ajoutés à la moyenne pour décider de la compensation.
+    compensation : force la compensation (bilan annuel) ; par défaut la règle semestrielle.
+    Une UE dont toutes les lignes sont capitalisées (acquise une année précédente) reste acquise.
+    Renvoie la moyenne, le détail par UE, les crédits acquis et la décision.
     """
     seuil = Decimal(str(regle.seuil_validation))
     elim = Decimal(str(regle.note_eliminatoire)) if regle.note_eliminatoire is not None else None
@@ -149,26 +152,33 @@ def validation_lmd(lignes, regle):
         ues.setdefault(cle, {'titre': getattr(m.module, 'nom', None) if m.module_id else m.nom, 'lignes': []})
         ues[cle]['lignes'].append(ln)
 
-    incomplet = any(ln.get('moyenne') is None for ln in lignes)
-    eliminatoire = bool(elim is not None and any(ln.get('moyenne') is not None and ln['moyenne'] < elim for ln in lignes))
+    a_evaluer = [ln for ln in lignes if not ln.get('capitalisee')]
+    incomplet = any(ln.get('moyenne') is None for ln in a_evaluer)
+    eliminatoire = bool(elim is not None and any(ln.get('moyenne') is not None and ln['moyenne'] < elim
+                                                 for ln in a_evaluer))
     numer = denom = D0
     resultat_ues = []
-    for ue in ues.values():
+    for cle_ue, ue in ues.items():
         ls = [ln for ln in ue['lignes'] if ln.get('moyenne') is not None]
         coef = sum((Decimal(str(ln.get('coefficient') or 1)) for ln in ls), D0)
         credits = sum((Decimal(str(ln.get('credits') or 0)) for ln in ue['lignes']), D0)
         moy = _q(sum((ln['moyenne'] * Decimal(str(ln.get('coefficient') or 1)) for ln in ls), D0) / coef) if coef else None
-        ue_elim = bool(elim is not None and any(ln['moyenne'] < elim for ln in ls))
+        capitalisee = all(ln.get('capitalisee') for ln in ue['lignes'])
+        ue_elim = bool(not capitalisee and elim is not None and any(ln['moyenne'] < elim for ln in ls))
         complete = len(ls) == len(ue['lignes'])
-        acquise = bool(moy is not None and complete and moy >= seuil and not ue_elim)
-        resultat_ues.append({'titre': ue['titre'], 'moyenne': moy, 'credits': credits, 'acquise': acquise,
-                             'mode': 'acquise' if acquise else 'non_acquise', 'eliminatoire': ue_elim})
+        acquise = capitalisee or bool(moy is not None and complete and moy >= seuil and not ue_elim)
+        mode = 'capitalisee' if capitalisee else ('acquise' if acquise else 'non_acquise')
+        resultat_ues.append({'cle': cle_ue, 'titre': ue['titre'], 'moyenne': moy, 'credits': credits, 'acquise': acquise,
+                             'mode': mode, 'eliminatoire': ue_elim})
         if moy is not None:
             poids = credits if credits > 0 else (coef or Decimal('1'))
             numer += moy * poids
             denom += poids
     moyenne_semestre = _q(numer / denom) if denom else None
-    compense = bool(regle.compensation_semestrielle and moyenne_semestre is not None and moyenne_semestre >= seuil
+    bonus = Decimal(str(bonus or 0))
+    moyenne_jury = _q(min(D20, moyenne_semestre + bonus)) if moyenne_semestre is not None else None
+    compenser = regle.compensation_semestrielle if compensation is None else compensation
+    compense = bool(compenser and moyenne_jury is not None and moyenne_jury >= seuil
                     and not eliminatoire and not incomplet)
     if compense:
         for ue in resultat_ues:
@@ -182,8 +192,32 @@ def validation_lmd(lignes, regle):
         decision = 'Admis par compensation' if any(ue['mode'] == 'compensee' for ue in resultat_ues) else 'Admis'
     else:
         decision = 'Ajourné'
-    return {'moyenne_semestre': moyenne_semestre, 'ues': resultat_ues, 'credits_total': total,
+    return {'moyenne_semestre': moyenne_semestre, 'moyenne_jury': moyenne_jury, 'bonus': bonus,
+            'ues': resultat_ues, 'credits_total': total,
             'credits_acquis': acquis, 'decision': decision, 'eliminatoire': eliminatoire, 'incomplet': incomplet}
+
+
+def validation_lmd_bulletin(lignes_bulletin, regle):
+    """
+    Même validation que le calcul des moyennes, à partir des lignes du bulletin supérieur
+    (dictionnaires avec module_id, module_nom, nom, moyenne_eleve, coefficient, credits).
+    Renvoie le résultat de validation_lmd ; ues[i]['cle'] vaut ('ue', module_id) ou ('ec', nom).
+    """
+    from types import SimpleNamespace
+
+    lignes = []
+    for row in lignes_bulletin or []:
+        mid = row.get('module_id')
+        m = SimpleNamespace(id=row.get('matiere_id') or row.get('nom'), module_id=mid, nom=row.get('nom') or '',
+                            module=SimpleNamespace(nom=row.get('module_nom') or '') if mid else None)
+        moy = row.get('moyenne_eleve')
+        lignes.append({'matiere': m, 'moyenne': None if moy is None else Decimal(str(moy)),
+                       'coefficient': row.get('coefficient') or 1, 'credits': row.get('credits') or 0})
+    return validation_lmd(lignes, regle)
+
+
+STATUTS_UE = {'acquise': 'Validée', 'compensee': 'Compensée', 'non_acquise': 'Non validée',
+              'capitalisee': 'Capitalisée'}
 
 
 def eleves_eligibles_rattrapage(session, classe, matiere, eleves):
@@ -260,6 +294,10 @@ def enregistrer_saisie(session, classe, matiere, professeur, eleves, saisies, ba
         return 0, ["Le barème doit être compris entre 1 et 100."]
     if session.est_annule:
         return 0, ["Cette session est annulée : la saisie est fermée."]
+    from school_admin.services.deliberations import message_verrou, periode_verrouillee
+    verrou = periode_verrouillee(classe, session.periode)
+    if verrou:
+        return 0, [message_verrou(verrou)]
 
     existantes = {n.eleve_id: n for n in NoteExamen.objects.filter(
         session_examen=session, matiere=matiere, eleve__in=eleves)}

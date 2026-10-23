@@ -415,7 +415,7 @@ def scan_qr_eleve_authenticated(request, qr_identifier):
         # Pour le personnel administratif, vérifier la fonction
         fonction = user.fonction if hasattr(user, 'fonction') else None
         if fonction == 'secretaire':
-            dashboard_url = reverse('secretaire:dashboard_secretaire')
+            dashboard_url = reverse('directeur:dashboard_directeur')
         else:
             dashboard_url = reverse('directeur:dashboard_directeur')
     else:

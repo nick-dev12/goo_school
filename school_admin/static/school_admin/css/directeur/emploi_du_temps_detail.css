@@ -28,9 +28,9 @@ html {
   --info-light: rgba(139, 92, 246, 0.1);
 
   /* Gradient Colors */
-  --gradient-blue: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  --gradient-purple: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  --gradient-header: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  --gradient-blue: #3b82f6;
+  --gradient-purple: #8b5cf6;
+  --gradient-header: #3b82f6;
 
   /* Neutral Colors */
   --white: #ffffff;
@@ -540,7 +540,7 @@ p {
 .edt-header {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  background: linear-gradient(135deg, #4a90e2, #357abd);
+  background: #4a90e2;
   color: var(--white);
   padding: var(--space-4);
   gap: 0;
@@ -580,7 +580,7 @@ p {
   right: 0;
   width: 30px;
   height: 100%;
-  background: linear-gradient(to left, rgba(0, 0, 0, 0.1), transparent);
+  background: transparent;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -638,7 +638,7 @@ p {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, transparent 0%, rgba(59, 130, 246, 0.03) 100%);
+  background: transparent;
   pointer-events: none;
 }
 
@@ -1253,7 +1253,7 @@ p {
 }
 
 .edt-horaire-cell {
-  background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+  background: #f8f9ff;
   padding: 1rem;
   text-align: center;
   vertical-align: middle;
@@ -1343,7 +1343,7 @@ p {
 }
 
 .creneau-pause {
-  background: linear-gradient(135deg, #fff7ed, #ffe8d1);
+  background: #fff7ed;
   border: 2px dashed #fb923c;
 }
 
@@ -1450,19 +1450,19 @@ p {
 
 /* ===== PAUSES EN LIGNE COMPLÈTE ===== */
 .pause-row {
-  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  background: #fff7ed;
   border-top: 2px solid #fb923c;
   border-bottom: 2px solid #fb923c;
 }
 
 .pause-horaire {
-  background: linear-gradient(135deg, #fed7aa, #fdba74) !important;
+  background: #fed7aa !important;
   border-right: 2px solid #fb923c !important;
 }
 
 .pause-cell-full {
   padding: 0 !important;
-  background: linear-gradient(90deg, #fff7ed 0%, #ffedd5 50%, #fff7ed 100%);
+  background: #fff7ed;
 }
 
 .pause-banner {
@@ -1500,22 +1500,12 @@ p {
 
 .pause-recreation {
   color: #ea580c;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(251, 146, 60, 0.1) 10%, 
-    rgba(251, 146, 60, 0.15) 50%, 
-    rgba(251, 146, 60, 0.1) 90%, 
-    transparent 100%);
+  background: transparent;
 }
 
 .pause-dejeuner {
   color: #c2410c;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(234, 88, 12, 0.1) 10%, 
-    rgba(234, 88, 12, 0.2) 50%, 
-    rgba(234, 88, 12, 0.1) 90%, 
-    transparent 100%);
+  background: rgba(234, 88, 12, 0.2);
 }
 
 .pause-banner i {
@@ -1590,3 +1580,12 @@ p {
 .edt-creneau-cell .creneau-salle i {
   color: #9ca3af;
 }
+/* Supérieur : semestre affiché, type de cours et groupe sur les créneaux */
+.edtd-semestres { display: flex; flex-wrap: wrap; gap: .35rem; }
+.edtd-sem { padding: .35rem .8rem; border-radius: 999px; border: 1px solid #e2e8f0; background: #fff; color: #334155; font-size: .82rem; font-weight: 600; text-decoration: none; }
+.edtd-sem.is-active { background: var(--ax-brand, #1d4ed8); border-color: var(--ax-brand, #1d4ed8); color: #fff; }
+.edtd-tags { display: flex; flex-wrap: wrap; gap: .25rem; margin: .2rem 0; }
+.edtd-tag { font-size: .68rem; font-weight: 700; padding: .05rem .45rem; border-radius: 999px; background: #e0e7ff; color: #3730a3; }
+.edtd-tag--cours { background: #dbeafe; color: #1d4ed8; }
+.edtd-tag--td { background: #dcfce7; color: #15803d; }
+.edtd-tag--tp { background: #ffedd5; color: #c2410c; }

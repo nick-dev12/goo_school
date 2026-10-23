@@ -1,6 +1,8 @@
 from django.urls import path
 from ..personal_views.directeur_view import *
 from ..controllers.examen_controller import *
+from ..controllers import (admission_controller, deliberation_controller, diplome_controller,
+                           maquette_controller, service_enseignant_controller)
 from ..controllers.preinscription_controller import PreinscriptionController
 
 app_name = 'directeur'  # ← Changement du namespace pour éviter le conflit
@@ -111,6 +113,19 @@ urlpatterns = [
     path('publier-session-examen/<int:session_id>/', publier_session_examen, name='publier_session_examen'),
     path('supprimer-creneau-examen/<int:creneau_id>/', supprimer_creneau_examen, name='supprimer_creneau_examen'),
     path('regles-examens/', regles_examens, name='regles_examens'),
+    path('deliberations/', deliberation_controller.liste_deliberations, name='liste_deliberations'),
+    path('maquette/', maquette_controller.liste_maquettes, name='liste_maquettes'),
+    path('admissions/', admission_controller.liste_concours, name='liste_concours'),
+    path('admissions/<int:concours_id>/', admission_controller.detail_concours, name='detail_concours'),
+    path('diplomes/', diplome_controller.liste_diplomes, name='liste_diplomes'),
+    path('diplomes/classe/<int:classe_id>/', diplome_controller.diplomes_classe, name='diplomes_classe'),
+    path('diplomes/<int:diplome_id>/attestation/', diplome_controller.imprimer_diplome, name='imprimer_diplome'),
+    path('service-enseignants/', service_enseignant_controller.service_enseignants, name='service_enseignants'),
+    path('service-enseignants/<int:professeur_id>/', service_enseignant_controller.service_enseignant_detail, name='service_enseignant_detail'),
+    path('maquette/classe/<int:classe_id>/', maquette_controller.maquette_classe, name='maquette_classe'),
+    path('maquette/classe/<int:classe_id>/inscriptions/', maquette_controller.inscriptions_pedagogiques, name='inscriptions_pedagogiques'),
+    path('deliberations/<int:deliberation_id>/', deliberation_controller.detail_deliberation, name='detail_deliberation'),
+    path('deliberations/<int:deliberation_id>/pv/', deliberation_controller.pv_deliberation, name='pv_deliberation'),
     
     # Gestion des annonces
     path('directeur/annonces/', annonces_directeur, name='annonces_directeur'),

@@ -12,6 +12,8 @@ from .api_views import fcm_views, fcm_test_views, test_notes_notifications, sync
 from .personal_views.qr_scan_view import scan_qr_eleve, scan_qr_eleve_authenticated
 from .seo_views import robots_txt, sitemap_xml
 
+from .controllers import admission_controller
+
 app_name = 'school_admin'
 
 urlpatterns =[
@@ -89,6 +91,7 @@ urlpatterns =[
     
     # Préinscriptions (routes publiques - doit être après les routes directeur pour éviter les conflits)
     path('preinscription/formulaire/', include('school_admin.personal_url.preinscription_url')),
+    path('candidature/<str:jeton>/', admission_controller.candidature_publique, name='candidature_publique'),
     path('suppression-compte/', views.suppression_compte, name='suppression_compte'),
     path('password-reset/', views.password_reset_request, name='password_reset_request'),
     path('password-reset/verify/<str:identifier>/<str:user_type>/', views.password_reset_verify, name='password_reset_verify'),

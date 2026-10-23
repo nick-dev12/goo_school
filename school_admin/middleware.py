@@ -35,6 +35,40 @@ class UserTypeMiddleware:
 
         return response
 
+MODULES_INTERNES = ('administrateur_view', 'commercial_view', 'comptable_view', 'administrateur_compte_controller')
+VUES_INTERNES = {'inscription_compte_user', 'dashboard_support', 'dashboard_developpeur', 'dashboard_marketing',
+                 'dashboard_rh', 'test_fcm_page'}
+
+
+def _refus_page_interne(request):
+    """Redirige un compte d'établissement (direction, personnel, enseignant, élève, parent) qui ouvre une page interne."""
+    from django.urls import Resolver404, resolve
+    from .model.compte_user import CompteUser
+
+    if isinstance(request.user, CompteUser):
+        return None
+    try:
+        vue = resolve(request.path_info).func
+    except Resolver404:
+        return None
+    module = getattr(vue, '__module__', '').rsplit('.', 1)[-1]
+    if module not in MODULES_INTERNES and getattr(vue, '__name__', '') not in VUES_INTERNES:
+        return None
+    if request.path.startswith('/api/') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        from django.http import JsonResponse
+        return JsonResponse({'ok': False, 'error': 'Accès non autorisé'}, status=403)
+    from django.contrib import messages
+    messages.error(request, "Cette page est réservée à l'équipe Aria.")
+    from .controllers.compte_user_controller import CompteUserController
+    try:
+        cible = reverse(CompteUserController.get_user_dashboard_url(request.user))
+    except Exception:
+        cible = None
+    if not cible or cible == request.path:
+        cible = reverse('school_admin:connexion_compte_user')
+    return redirect(cible)
+
+
 class AuthenticationMiddleware:
     """
     Middleware pour vérifier l'authentification des utilisateurs et les rediriger
@@ -50,7 +84,6 @@ class AuthenticationMiddleware:
         # Liste des URLs qui ne nécessitent pas d'authentification
         public_urls = [
             reverse('school_admin:connexion_compte_user'),
-            reverse('school_admin:inscription_compte_user'),
             reverse('school_admin:firebase_messaging_sw'),
             reverse('school_admin:prof_connexion_otp'),
             reverse('school_admin:password_reset_request'),
@@ -66,6 +99,7 @@ class AuthenticationMiddleware:
         public_url_patterns = [
             '/auth/qr/',  # Authentification par QR Code
             '/preinscription/formulaire/',  # Formulaire de préinscription
+            '/candidature/',  # Candidature en ligne (admissions du supérieur)
             '/scan-qr/eleve/',  # Scan QR Code Élève (page publique)
             '/pointage/borne/',  # Borne QR de pointage : appareil appairé par cookie signé
         ]
@@ -128,6 +162,13 @@ class AuthenticationMiddleware:
             login_url = f"{reverse('school_admin:connexion_compte_user')}?next={next_url}"
             return redirect(login_url)
         
+        # Pages internes de la plateforme Aria (administration, commerciaux, comptabilité Aria) :
+        # réservées aux comptes de l'équipe (CompteUser), jamais aux comptes des établissements.
+        if request.user.is_authenticated and not is_public_path:
+            refus = _refus_page_interne(request)
+            if refus is not None:
+                return refus
+
         # Si l'utilisateur est connecté et qu'il est sur la page d'accueil
         if request.user.is_authenticated and request.path == '/school_admin/':
             # Rediriger vers le tableau de bord approprié selon le type d'utilisateur

@@ -526,12 +526,12 @@ def deconnexion_eleve(request):
     return redirect('school_admin:connexion_compte_user')
 
 
-def _semaine_eleve(classe, annee):
+def _semaine_eleve(classe, annee, eleve=None):
     """Semaine de cours publiée, jour par jour, avec l'état des cours du jour (V3)."""
     from ..services.dashboard.student import emploi_du_temps as semaine
 
     now = timezone.localtime()
-    return semaine(classe, annee, now.date(), now.time())
+    return semaine(classe, annee, now.date(), now.time(), eleve=eleve)
 
 
 def emploi_du_temps_eleve(request):
@@ -586,7 +586,7 @@ def emploi_du_temps_eleve(request):
             'creneaux_par_jour': {},
             'emploi_non_publie': emplois_actifs.exists(),
             'est_parent': est_parent,
-            'sedt': _semaine_eleve(classe, annee_scolaire_active),
+            'sedt': _semaine_eleve(classe, annee_scolaire_active, eleve),
             'page_title': 'Emploi du temps',
         }
         return render(request, 'school_admin/eleve/emploi_du_temps_eleve.html', context)
@@ -600,9 +600,13 @@ def emploi_du_temps_eleve(request):
     # Récupérer tous les créneaux
     tous_creneaux = list(
         emploi_du_temps.creneaux.all().select_related(
-            'matiere', 'professeur', 'salle', 'periode_etablissement'
+            'matiere', 'professeur', 'salle', 'periode_etablissement', 'periode_scolaire', 'groupe'
         ).order_by('jour', 'heure_debut')
     )
+    if getattr(etablissement, 'type_etablissement', None) == 'superieur':
+        # Semestre en cours, groupe de TD / TP de l'étudiant, UE de son parcours et de ses options.
+        from ..services.maquette import creneaux_etudiant
+        tous_creneaux = creneaux_etudiant(tous_creneaux, eleve, classe, annee_scolaire_active)
     for creneau in tous_creneaux:
         matiere_nom = creneau.matiere.nom if creneau.matiere else "Sans matière"
         icone, couleur = get_matiere_config(matiere_nom)
@@ -737,7 +741,7 @@ def emploi_du_temps_eleve(request):
         'dates_examens_triees': dates_examens_triees,
         'annee_scolaire_active': annee_scolaire_active,
         'creneaux_par_jour': creneaux_par_jour,
-        'sedt': _semaine_eleve(classe, annee_scolaire_active),
+        'sedt': _semaine_eleve(classe, annee_scolaire_active, eleve),
         'page_title': 'Emploi du temps',
     }
     

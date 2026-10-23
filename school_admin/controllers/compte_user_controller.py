@@ -428,7 +428,7 @@ class CompteUserController:
         Redirige le personnel administratif vers le bon tableau de bord selon sa fonction.
         """
         redirect_mapping = {
-            'secretaire': 'secretaire:dashboard_secretaire',
+            'secretaire': 'directeur:dashboard_directeur',
             'surveillant_general': 'directeur:dashboard_directeur',
             'censeur': 'directeur:dashboard_directeur',
             'administrateur': 'directeur:dashboard_directeur',
@@ -457,7 +457,7 @@ class CompteUserController:
             fonction = user.fonction
             logger.info(f"Utilisateur détecté comme PersonnelAdministratif - Fonction: {fonction}")
             redirect_mapping = {
-                'secretaire': 'secretaire:dashboard_secretaire',
+                'secretaire': 'directeur:dashboard_directeur',
                 'surveillant_general': 'directeur:dashboard_directeur',
                 'censeur': 'directeur:dashboard_directeur',
                 'administrateur': 'directeur:dashboard_directeur',

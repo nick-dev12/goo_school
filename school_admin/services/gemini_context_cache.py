@@ -136,11 +136,17 @@ def _reuse_or_create_cache(
 ):
     from google.genai import types
 
+    import time
+
     fingerprint = tools_fingerprint(system_prompt, model, tools_schema)
     ttl = f'{_ttl_seconds()}s'
     with lock:
+        # Le cache expire chez Google après le TTL : on ne réutilise le nom mémorisé
+        # que s'il est encore valide (marge de 5 min), sinon on le prolonge / recrée.
+        frais = _expirations.get(state['name'] or '', 0) > time.time() + 300
         if (
             state['name']
+            and frais
             and state['fingerprint'] == fingerprint
             and state['model'] == model
         ):
@@ -168,6 +174,7 @@ def _reuse_or_create_cache(
                 state['model'] = model
                 state['fingerprint'] = fingerprint
                 state['token_count'] = tokens
+                _expirations[existing.name] = time.time() + _ttl_seconds()
                 logger.info(
                     'Cache Gemini réutilisé %s (%s outils, %s tokens).',
                     existing.name,
@@ -197,6 +204,7 @@ def _reuse_or_create_cache(
         state['model'] = model
         state['fingerprint'] = fingerprint
         state['token_count'] = tokens
+        _expirations[created.name] = time.time() + _ttl_seconds()
         logger.info(
             'Cache Gemini créé %s (%s outils, %s tokens, ttl=%s).',
             created.name,
@@ -205,6 +213,22 @@ def _reuse_or_create_cache(
             ttl,
         )
         return state['name'], state['model'], state['token_count']
+
+
+# Échéance (timestamp) de chaque cache Gemini créé ou prolongé par ce processus.
+_expirations = {}
+
+
+def oublier_cache(cache_name=None):
+    """Cache introuvable chez Google (expiré / supprimé) : on oublie tout pour le recréer au tour suivant."""
+    if cache_name:
+        _expirations.pop(cache_name, None)
+    reset_cache_state()
+
+
+def est_erreur_cache_introuvable(exc):
+    texte = str(exc)
+    return 'CachedContent' in texte or ('PERMISSION_DENIED' in texte and 'cache' in texte.lower())
 
 
 def _directeur_state():

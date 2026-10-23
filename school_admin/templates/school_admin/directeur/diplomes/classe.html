@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+{% load static i18n %}
+<html lang="fr">
+<head>
+    <title>{% trans "Diplômes" %} — {{ classe.nom }}</title>
+    {% include 'school_admin/directeur/maquette/_head.html' %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/admissions.css' %}?v=1.0.0" />
+</head>
+<body class="dlb-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container dlb">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">
+            {% url 'directeur:liste_diplomes' as back_url %}
+            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
+        </div>
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-orange"><i class="fas fa-award" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <p class="fe-hero__kicker">{% trans "Diplômes" %} · {{ annee_scolaire_active.libelle }}</p>
+                <h1 class="hb-head__title">{{ classe.nom }}</h1>
+                <p class="fe-hero__sub">{% if info %}{{ info.0 }} · {{ info.2 }} {% trans "crédits capitalisés requis et un bilan annuel favorable" %}{% else %}{% trans "Classe qui n'est pas de fin de cycle." %}{% endif %}</p>
+            </div>
+        </header>
+        <section class="fe-kpis hb-kpis hb-kpis--3 cg3">
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Étudiants" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-graduate"></i></span></div><p class="fe-kpi__value">{{ lignes|length }}</p></div>
+            <div class="fe-kpi fe-tone-orange"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Éligibles à délivrer" %}</span><span class="fe-kpi__icon"><i class="fas fa-hourglass-half"></i></span></div><p class="fe-kpi__value">{{ nb_eligibles }}</p></div>
+            <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Délivrés" %}</span><span class="fe-kpi__icon"><i class="fas fa-award"></i></span></div><p class="fe-kpi__value">{{ nb_delivres }}</p></div>
+        </section>
+        <form method="post" class="dlb-card">
+            {% csrf_token %}<input type="hidden" name="action" value="delivrer">
+            <div class="dlb-card__head"><h2><i class="fas fa-list-check"></i> {% trans "Situation des étudiants" %}</h2><span class="dlb-help">{% trans "Les crédits viennent des UE capitalisées lors des délibérations clôturées." %}</span></div>
+            <div class="dlb-table-wrap"><table class="dlb-table">
+                <thead><tr><th></th><th>{% trans "Étudiant" %}</th><th>{% trans "Crédits" %}</th><th>{% trans "Dernier bilan" %}</th><th>{% trans "Mention" %}</th><th>{% trans "Diplôme" %}</th></tr></thead>
+                <tbody>{% for l in lignes %}<tr>
+                    <td data-label="">{% if l.eligible and not l.diplome %}<input type="checkbox" name="eleves" value="{{ l.eleve.id }}" checked aria-label="{% trans 'Sélectionner' %}">{% endif %}</td>
+                    <td class="dlb-etu"><strong>{{ l.eleve.nom|upper }} {{ l.eleve.prenom }}</strong><small>{{ l.eleve.matricule_eleve|default:l.eleve.numero_eleve }}</small></td>
+                    <td data-label="{% trans 'Crédits' %}" class="dlb-credits"><span class="dlb-num">{{ l.credits|floatformat:"-2" }} / {{ l.requis|floatformat:"-2" }}</span><div class="dlb-credits__bar"><span style="width: {{ l.pct }}%"></span></div></td>
+                    <td data-label="{% trans 'Dernier bilan' %}">{% if l.decision %}<span class="dlb-dec dlb-dec--{{ l.decision.decision }}">{{ l.decision.get_decision_display }}</span>{% if l.moyenne is not None %}<span class="dlb-mention">{{ l.moyenne|floatformat:2 }}/20</span>{% endif %}{% else %}—{% endif %}</td>
+                    <td data-label="{% trans 'Mention' %}">{{ l.mention|default:"—" }}</td>
+                    <td data-label="{% trans 'Diplôme' %}">
+                        {% if l.diplome %}<span class="adm-st adm-st--admis"><i class="fas fa-award"></i> {{ l.diplome.numero }}</span> <a class="adm-mini" href="{% url 'directeur:imprimer_diplome' l.diplome.id %}" target="_blank" rel="noopener"><i class="fas fa-print"></i></a>
+                        {% elif l.eligible %}<span class="adm-st adm-st--attente">{% trans "Éligible" %}</span>
+                        {% else %}<span class="dlb-mention">{{ l.motif }}</span>{% endif %}
+                    </td>
+                </tr>{% empty %}<tr><td colspan="6"><div class="dlb-vide">{% trans "Aucun étudiant." %}</div></td></tr>{% endfor %}</tbody>
+            </table></div>
+            {% if nb_eligibles %}<div class="dlb-actions-bar"><button type="submit" class="cg3-btn cg3-btn--primary" onclick="return confirm('{% trans "Délivrer le diplôme aux étudiants sélectionnés ?" %}')"><i class="fas fa-award"></i> {% trans "Délivrer les diplômes" %}</button></div>{% endif %}
+        </form>
+    </div>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+</body>
+</html>

@@ -171,6 +171,7 @@
                                             {% if type_etablissement != 'primary' and affectation.matiere %}
                                                 — <strong>{% if est_superieur and affectation.matiere.department %}{{ affectation.matiere.department.nom }} › {% endif %}{% if est_superieur and affectation.matiere.module %}{{ affectation.matiere.module.nom }} › {% endif %}{{ affectation.matiere.nom }}</strong>
                                             {% endif %}
+                                            {% if est_superieur and affectation.libelle_role %}<span class="statut-badge role-badge role-{{ affectation.role_enseignement }}">{{ affectation.libelle_role }}</span>{% endif %}
                                             {% if affectation.is_principal %}<span class="statut-badge principal">{% trans "Principal" %}</span>{% else %}<span class="statut-badge classique">{% trans "Classique" %}</span>{% endif %}
                                         </span>
                                         <form method="post" action="{% url 'affectation:affecter_professeur' %}">
@@ -178,6 +179,7 @@
                                             <input type="hidden" name="professeur_id" value="{{ professeur.id }}">
                                             <input type="hidden" name="classe_id" value="{{ affectation.classe.id }}">
                                             {% if type_etablissement != 'primary' and affectation.matiere %}<input type="hidden" name="matiere_id" value="{{ affectation.matiere.id }}">{% endif %}
+                                            {% if est_superieur %}<input type="hidden" name="role_enseignement" value="{{ affectation.role_enseignement }}"><input type="hidden" name="groupe" value="{{ affectation.groupe }}">{% endif %}
                                             <input type="hidden" name="action" value="remove">
                                             <button type="submit" class="remove-affectation" onclick="return confirm('{% trans "Supprimer cette affectation ?" %}')"><i class="fas fa-times"></i></button>
                                         </form>
@@ -229,6 +231,21 @@
                                             {% endfor %}
                                         </select>
                                     </div>
+                                    {% if est_superieur %}
+                                    <div class="form-group-modal">
+                                        <label for="role{{ professeur.id }}" class="form-label-modal"><i class="fas fa-chalkboard-user"></i> {% trans "Rôle dans la matière" %}</label>
+                                        <select name="role_enseignement" id="role{{ professeur.id }}" class="form-control-modal js-role-ens" data-professeur-id="{{ professeur.id }}">
+                                            <option value="complet">{% trans "EC complet (CM + TD + TP)" %}</option>
+                                            <option value="cm">{% trans "Cours magistral (CM)" %}</option>
+                                            <option value="td">{% trans "Travaux dirigés (TD)" %}</option>
+                                            <option value="tp">{% trans "Travaux pratiques (TP)" %}</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group-modal js-groupe-wrap" id="groupeWrap{{ professeur.id }}" hidden>
+                                        <label for="groupe{{ professeur.id }}" class="form-label-modal"><i class="fas fa-users"></i> {% trans "Groupe" %}</label>
+                                        <input type="text" name="groupe" id="groupe{{ professeur.id }}" class="form-control-modal" maxlength="30" placeholder="{% trans 'G1, G2… (vide = toute la classe)' %}">
+                                    </div>
+                                    {% endif %}
                                     <div class="form-group-modal">
                                         <label for="statut{{ professeur.id }}" class="form-label-modal"><i class="fas fa-user-tag"></i> {% trans "Statut" %}</label>
                                         <select name="statut" id="statut{{ professeur.id }}" class="form-control-modal" required>
@@ -257,5 +274,12 @@
     <script src="{% static 'school_admin/js/directeur/affectation_professeurs.js' %}?v=2.0.0"></script>
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+<script>
+document.querySelectorAll('.js-role-ens').forEach(function (sel) {
+    var wrap = document.getElementById('groupeWrap' + sel.dataset.professeurId);
+    function maj() { if (wrap) wrap.hidden = sel.value === 'complet'; }
+    sel.addEventListener('change', maj); maj();
+});
+</script>
 </body>
 </html>

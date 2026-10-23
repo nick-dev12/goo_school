@@ -126,6 +126,12 @@
                             <h2 class="edtd-section-title"><i class="fas fa-table"></i> {% trans "Grille horaire" %}</h2>
                             <p class="edtd-section-hint">{% trans "Défilez horizontalement sur mobile pour voir tous les jours." %}</p>
                         </div>
+                        {% if est_superieur_edt and periodes_semestre %}
+                        <nav class="edtd-semestres" aria-label="{% trans 'Semestre affiché' %}">
+                            {% for p in periodes_semestre %}<a href="?semestre={{ p.id }}" class="edtd-sem {% if semestre_actif and semestre_actif.id == p.id %}is-active{% endif %}">{{ p.nom_periode }}</a>{% endfor %}
+                            <a href="?semestre=tous" class="edtd-sem {% if not semestre_actif %}is-active{% endif %}">{% trans "Toute l'année" %}</a>
+                        </nav>
+                        {% endif %}
                     </div>
                     <div class="emploi-du-temps-wrapper">
                         {% include 'school_admin/directeur/administrateur_etablissement/emploi_du_temps/partials/edtd_grille_cours.html' %}
@@ -312,6 +318,24 @@
               </div>
             </div>
 
+            {% if est_superieur_edt %}
+            <div class="form-row-modal">
+              <div class="form-group-modal">
+                <label for="modalSemestre" class="form-label-modal"><i class="fas fa-calendar-week"></i> {% trans "Semestre" %}</label>
+                <select id="modalSemestre" name="periode_scolaire" class="form-control-modal">
+                  <option value="">{% trans "Toute l'année" %}</option>
+                  {% for p in periodes_semestre %}<option value="{{ p.id }}" {% if creneau_form_data.periode_id == p.id|stringformat:"s" %}selected{% elif not creneau_form_data.periode_id and semestre_actif and semestre_actif.id == p.id %}selected{% endif %}>{{ p.nom_periode }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="form-group-modal">
+                <label for="modalGroupe" class="form-label-modal"><i class="fas fa-users"></i> {% trans "Groupe" %} <span class="optional">{% trans "(TD / TP)" %}</span></label>
+                <select id="modalGroupe" name="groupe" class="form-control-modal">
+                  <option value="">{% trans "Toute la classe" %}</option>
+                  {% for g in groupes_classe %}<option value="{{ g.id }}" {% if creneau_form_data.groupe_id == g.id|stringformat:"s" %}selected{% endif %}>{{ g.libelle }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+            {% endif %}
             <!-- Actions du formulaire -->
             <div class="form-actions-modal">
               <button type="button" class="btn btn-secondary-modal" id="btnAnnulerModal">
@@ -479,6 +503,24 @@
               </div>
             </div>
 
+            {% if est_superieur_edt %}
+            <div class="form-row-modal">
+              <div class="form-group-modal">
+                <label for="modalModifSemestre" class="form-label-modal"><i class="fas fa-calendar-week"></i> {% trans "Semestre" %}</label>
+                <select id="modalModifSemestre" name="periode_scolaire" class="form-control-modal">
+                  <option value="">{% trans "Toute l'année" %}</option>
+                  {% for p in periodes_semestre %}<option value="{{ p.id }}" {% if modifier_creneau_form_data.periode_id == p.id|stringformat:"s" %}selected{% elif not modifier_creneau_form_data.periode_id and semestre_actif and semestre_actif.id == p.id %}selected{% endif %}>{{ p.nom_periode }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="form-group-modal">
+                <label for="modalModifGroupe" class="form-label-modal"><i class="fas fa-users"></i> {% trans "Groupe" %} <span class="optional">{% trans "(TD / TP)" %}</span></label>
+                <select id="modalModifGroupe" name="groupe" class="form-control-modal">
+                  <option value="">{% trans "Toute la classe" %}</option>
+                  {% for g in groupes_classe %}<option value="{{ g.id }}" {% if modifier_creneau_form_data.groupe_id == g.id|stringformat:"s" %}selected{% endif %}>{{ g.libelle }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+            {% endif %}
             <div class="form-actions-modal">
               <button type="button" class="btn btn-secondary-modal" id="btnAnnulerModalModifier">
                 <i class="fas fa-times"></i>

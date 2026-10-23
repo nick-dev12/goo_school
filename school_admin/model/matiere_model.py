@@ -33,7 +33,7 @@ class Matiere(models.Model):
     
     # Informations de base
     nom = models.CharField(max_length=100, verbose_name="Nom de la matière")
-    code = models.CharField(max_length=10, unique=True, verbose_name="Code de la matière")
+    code = models.CharField(max_length=20, verbose_name="Code de la matière")
     description = models.TextField(blank=True, null=True, verbose_name="Description")
     
     # Classification
@@ -109,6 +109,11 @@ class Matiere(models.Model):
   
     
     # Statut
+    # Maquette (supérieur) : volume horaire de l'EC sur le semestre
+    volume_cm = models.PositiveSmallIntegerField(default=0, verbose_name="Heures de cours magistral (CM)")
+    volume_td = models.PositiveSmallIntegerField(default=0, verbose_name="Heures de travaux dirigés (TD)")
+    volume_tp = models.PositiveSmallIntegerField(default=0, verbose_name="Heures de travaux pratiques (TP)")
+    volume_tpe = models.PositiveSmallIntegerField(default=0, verbose_name="Heures de travail personnel (TPE)")
     actif = models.BooleanField(default=True, verbose_name="Actif")
     
     # Métadonnées
@@ -120,6 +125,8 @@ class Matiere(models.Model):
         verbose_name_plural = "Matières"
         ordering = ['nom']
         constraints = [
+            # Code unique dans l'établissement (et non sur toute la plateforme).
+            models.UniqueConstraint(fields=['etablissement', 'code'], name='matiere_code_unique_par_etablissement'),
             # Supérieur avec module : unicité par niveau LMD (même nom autorisé sur L1 et L2)
             models.UniqueConstraint(
                 fields=['nom', 'etablissement', 'department', 'module', 'niveau_lmd_key'],
@@ -227,5 +234,9 @@ class Matiere(models.Model):
     def save(self, *args, **kwargs):
         # Générer le code si pas défini
         if not self.code:
-            self.code = self.nom[:3].upper()
+            base = ''.join(c for c in (self.nom or 'MAT') if c.isalnum())[:3].upper() or 'MAT'
+            code, n = base, 1
+            while Matiere.objects.filter(etablissement_id=self.etablissement_id, code=code).exclude(pk=self.pk).exists():
+                code, n = f'{base}{n}', n + 1
+            self.code = code
         super().save(*args, **kwargs)

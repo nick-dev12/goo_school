@@ -71,6 +71,27 @@ class ModuleClasse(models.Model):
         verbose_name="Période rattachée",
         help_text="Semestre auquel ce module est rattaché pour cette classe.",
     )
+    # Maquette LMD
+    TYPE_UE_CHOICES = [
+        ('fondamentale', 'Fondamentale'),
+        ('methodologique', 'Méthodologique'),
+        ('transversale', 'Transversale'),
+        ('decouverte', 'Découverte'),
+    ]
+    type_ue = models.CharField(max_length=20, choices=TYPE_UE_CHOICES, default='fondamentale',
+                               verbose_name="Type d'UE")
+    optionnelle = models.BooleanField(default=False, verbose_name="UE optionnelle (au choix)")
+    groupe_options = models.CharField(
+        max_length=60, blank=True, default='', verbose_name="Groupe d'options",
+        help_text="Les UE optionnelles d'un même groupe sont au choix (ex. « Option S1 »).",
+    )
+    choix_requis = models.PositiveSmallIntegerField(
+        default=1, verbose_name="Nombre d'UE à choisir dans le groupe",
+    )
+    parcours = models.ForeignKey(
+        'school_admin.Parcours', on_delete=models.SET_NULL, null=True, blank=True, related_name='module_classes',
+        verbose_name="Parcours", help_text="Vide = tronc commun (suivi par tous les étudiants de la classe).",
+    )
 
     class Meta:
         verbose_name = "Module-Classe (crédits)"

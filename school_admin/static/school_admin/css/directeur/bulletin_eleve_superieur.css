@@ -29,7 +29,7 @@
 /* ——— Page écran : conteneur + actions (même esprit que bulletin_eleve.css) ——— */
 .bulletin-eleve-body {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: #f8fafc;
   font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -71,36 +71,36 @@
 }
 
 .bulletin-sup-actions .btn-back {
-  background: linear-gradient(135deg, #64748b, #475569);
+  background: #64748b;
   color: #fff;
 }
 
 .bulletin-sup-actions .btn-back:hover {
-  background: linear-gradient(135deg, #475569, #334155);
+  background: #475569;
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(100, 116, 139, 0.35);
   color: #fff;
 }
 
 .bulletin-sup-actions .btn-calculate {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: #10b981;
   color: #fff;
 }
 
 .bulletin-sup-actions .btn-calculate:hover {
-  background: linear-gradient(135deg, #059669, #047857);
+  background: #059669;
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
   color: #fff;
 }
 
 .bulletin-sup-actions .btn-print {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: #3b82f6;
   color: #fff;
 }
 
 .bulletin-sup-actions .btn-print:hover {
-  background: linear-gradient(135deg, #2563eb, #1e40af);
+  background: #2563eb;
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
   color: #fff;
@@ -138,7 +138,7 @@
   margin: 0 auto 1rem;
   max-width: calc(var(--bsup-page-width) + 2rem);
   box-sizing: border-box;
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  background: #f1f5f9;
   border-radius: 10px;
   border: 1px solid var(--gray-200);
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
@@ -168,23 +168,23 @@
 }
 
 .bsup-print-toolbar .bsup-print-btn--back {
-  background: linear-gradient(135deg, #64748b, #475569);
+  background: #64748b;
   color: #fff;
 }
 
 .bsup-print-toolbar .bsup-print-btn--back:hover {
-  background: linear-gradient(135deg, #475569, #334155);
+  background: #475569;
   transform: translateY(-1px);
   color: #fff;
 }
 
 .bsup-print-toolbar .bsup-print-btn--print {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: #3b82f6;
   color: #fff;
 }
 
 .bsup-print-toolbar .bsup-print-btn--print:hover {
-  background: linear-gradient(135deg, #2563eb, #1e40af);
+  background: #2563eb;
   transform: translateY(-1px);
 }
 
@@ -1437,3 +1437,35 @@
     min-width: 820px;
   }
 }
+
+/* Statuts d'UE issus du moteur LMD (validée / compensée / non validée / éliminatoire) */
+.bsup-recap-table-maquette .bsup-recap-valid-cell.bsup-recap-valid-comp,
+.bsup-recap-valid-comp {
+  background: #b45309 !important;
+  color: #fff !important;
+  text-align: left !important;
+  vertical-align: top !important;
+  padding: 0.25rem 0.35rem 0.4rem !important;
+}
+.bsup-legend-swatch--comp { background: #b45309; }
+.bsup-ue-statut { white-space: nowrap; font-weight: 600; }
+.bsup-ue-statut--validee { color: #15803d; }
+.bsup-ue-statut--compensee { color: #b45309; }
+.bsup-ue-statut--non-validee, .bsup-ue-statut--note-eliminatoire { color: #b91c1c; }
+.bsup-ue-cr { display: block; font-weight: 500; font-size: .72em; color: #64748b; }
+.bsup-decision { display: inline-block; font-weight: 700; padding: .1em .55em; border-radius: 999px; background: #f1f5f9; color: #0f172a; }
+.bsup-decision--admis { background: #dcfce7; color: #166534; }
+.bsup-decision--admis-par-compensation { background: #fef3c7; color: #92400e; }
+.bsup-decision--ajourne, .bsup-decision--incomplet { background: #fee2e2; color: #991b1b; }
+@media print { .bsup-decision { background: none !important; padding: 0; } }
+/* Même taille de texte pour toutes les validations du récapitulatif */
+.bsup-recap-table-maquette .bsup-recap-valid-cell.bsup-recap-valid-non { font-size: 0.55rem !important; }
+
+/* Mobile : le relevé garde sa mise en page A4 et défile horizontalement au lieu d'être écrasé. */
+@media screen and (max-width: 860px) {
+  .bsup-mobile-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 0 16px 8px; }
+  .bsup-mobile-scroll .bulletin-sup { min-width: 790px; }
+  .bsup-mobile-hint { display: flex; align-items: center; gap: .4rem; font-size: .8rem; color: #64748b; margin: 0 0 .5rem; }
+}
+@media screen and (min-width: 861px) { .bsup-mobile-hint { display: none; } }
+@media print { .bsup-mobile-hint { display: none !important; } .bsup-mobile-scroll { overflow: visible; margin: 0; padding: 0; } }

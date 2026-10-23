@@ -10,8 +10,16 @@ Référence store : `docs/feuille-route-ui-directeur.md` (agent store).
 | 3 — Annonces, liaison parents, présences | Livrée |
 | 4 — Personnel, établissement, dashboard | Livrée (2026-09-26) |
 | **5 — Compta élèves / impayés / scolarité (pas CG)** | **Livrée (2026-09-26)** |
+| **6 — Dashboard onglet Absences (KPI + graphiques)** | **Livrée en local (2026-10-02) — [feuille_route_dashboard_absences_directeur.md](feuille_route_dashboard_absences_directeur.md)** |
 
-**Feuille vagues 0–5 : terminée.**
+**Feuille vagues 0–5 : terminée.**  
+**Vague 6 : livrée en local ; déploiement VPS (P5) sur demande.**
+
+## Recette Vague 6 (prévue)
+
+- `/dashboard/directeur/?activite=absences`
+- Cohérence avec `/suivi-presence/` (même année scolaire consultée)
+- Desktop + mobile, Chart.js lazy, F5 + persistance onglet `activite`
 
 ## Recette Vague 5 (`http://127.0.0.1:8047`)
 

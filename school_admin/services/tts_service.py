@@ -1047,7 +1047,13 @@ async def _synthesize_chirp(clean):
     body = {
         'input': {'text': clean},
         'voice': {'languageCode': voice[:5], 'name': voice},
-        'audioConfig': {'audioEncoding': 'LINEAR16', 'sampleRateHertz': 24000},
+        # MP3 : ~12× plus léger que le WAV (LINEAR16) sur le WebSocket — c'est le transfert
+        # vers le navigateur, pas la synthèse, qui retardait chaque phrase en production.
+        'audioConfig': (
+            {'audioEncoding': 'LINEAR16', 'sampleRateHertz': 24000}
+            if _chirp_encoding() == 'wav'
+            else {'audioEncoding': 'MP3', 'sampleRateHertz': 24000}
+        ),
     }
     try:
         response = await _cloud_tts_client().post(
@@ -1064,7 +1070,12 @@ async def _synthesize_chirp(clean):
         return None, None
     if not audio:
         return None, None
-    return audio, 'audio/wav'
+    return audio, ('audio/wav' if _chirp_encoding() == 'wav' else 'audio/mpeg')
+
+
+def _chirp_encoding():
+    """CHIRP_AUDIO_ENCODING : mp3 (défaut) ou wav."""
+    return (getattr(settings, 'CHIRP_AUDIO_ENCODING', '') or 'mp3').strip().lower()
 
 
 async def _synthesize_edge_mp3(clean, voice=None):

@@ -72,11 +72,26 @@ NIVEAUX_SUPERIEUR_CHOICES = [
     ('D2', 'D2 (Doctorat 2)'),
     ('D3', 'D3 (Doctorat 3)'),
     ('LP', 'Licence professionnelle'),
+    ('CPI1', 'Classe préparatoire 1'),
+    ('CPI2', 'Classe préparatoire 2'),
+    ('ING1', 'Ingénieur 1'),
+    ('ING2', 'Ingénieur 2'),
+    ('ING3', 'Ingénieur 3'),
+    ('MBA1', 'MBA 1'),
+    ('MBA2', 'MBA 2'),
+    ('DU', 'Diplôme universitaire'),
+    ('MED1', 'Médecine 1'),
+    ('MED2', 'Médecine 2'),
+    ('MED3', 'Médecine 3'),
+    ('MED4', 'Médecine 4'),
+    ('MED5', 'Médecine 5'),
+    ('MED6', 'Médecine 6'),
+    ('MED7', 'Médecine 7'),
     ('AUTRE', 'Autre (précisez ci-dessous)'),
 ]
 ORDER_NIVEAUX_SUPERIEUR = [
     'L1', 'L2', 'L3', 'BTS1', 'BTS2', 'DUT1', 'DUT2',
-    'M1', 'M2', 'D1', 'D2', 'D3', 'LP', 'AUTRE',
+    'M1', 'M2', 'D1', 'D2', 'D3', 'LP', 'CPI1', 'CPI2', 'ING1', 'ING2', 'ING3', 'MBA1', 'MBA2', 'DU', 'MED1', 'MED2', 'MED3', 'MED4', 'MED5', 'MED6', 'MED7', 'AUTRE',
 ]
 ORDER_NIVEAUX_SUPERIEUR_SORT = {
     code: idx for idx, code in enumerate(ORDER_NIVEAUX_SUPERIEUR, start=1)
@@ -1223,12 +1238,12 @@ class ClasseController:
             for aff in affectations_primaires:
                 matieres_set.update(aff.matieres.all())
             matieres_classe = list(matieres_set)
-        elif etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée']:
+        elif etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée', 'mixte']:
             # Pour les établissements secondaires, récupérer TOUTES les matières de l'établissement
             from ..model.matiere_model import Matiere
             matieres_classe = list(Matiere.objects.filter(
                 etablissement=etablissement,
-                niveau__in=['college', 'lycee', 'tous'],
+                niveau__in=['college', 'lycee', 'tous', classe.niveau],
                 actif=True
             ).order_by('nom'))
         elif etablissement.type_etablissement == 'superieur':
@@ -1302,7 +1317,7 @@ class ClasseController:
                             matiere=matiere,
                             periode_scolaire=periode
                         ).first()
-                    elif etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée']:
+                    elif etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée', 'mixte']:
                         # Pour le secondaire, utiliser Moyenne avec periode = str(periode.id)
                         moyenne_obj = Moyenne.objects.filter(
                             eleve=eleve,
@@ -1340,7 +1355,7 @@ class ClasseController:
                 
                 # Calculer une moyenne temporaire pour le tri (pour les établissements secondaires)
                 moyenne_tri = None
-                if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée', 'superieur']:
+                if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée', 'mixte', 'superieur']:
                     moyennes_valides = [m['moyenne'] for m in moyennes_dict.values() if m.get('moyenne') is not None]
                     if moyennes_valides:
                         moyenne_tri = sum(moyennes_valides) / len(moyennes_valides)
@@ -1353,7 +1368,7 @@ class ClasseController:
                 })
             
             # Trier les élèves par moyenne décroissante (pour les établissements secondaires)
-            if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée', 'superieur']:
+            if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée', 'mixte', 'superieur']:
                 eleves_data.sort(key=lambda x: (x['moyenne_tri'] is None, -x['moyenne_tri'] if x['moyenne_tri'] is not None else 0))
             
             # Toujours ajouter la période

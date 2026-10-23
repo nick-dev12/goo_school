@@ -327,6 +327,23 @@ class ReglesExamen(models.Model):
     compensation_semestrielle = models.BooleanField(
         default=True, verbose_name="Compensation entre UE dans le semestre (LMD)",
     )
+    # Progression annuelle (supérieur, LMD)
+    compensation_annuelle = models.BooleanField(
+        default=False, verbose_name="Compensation annuelle entre les deux semestres",
+        help_text="Si la moyenne de l'année atteint le seuil, toutes les UE de l'année sont acquises.",
+    )
+    pourcentage_passage_conditionnel = models.PositiveSmallIntegerField(
+        default=75, verbose_name="Passage conditionnel à partir de (% des crédits de l'année)",
+        help_text="Ex. 75 % = 45 crédits sur 60 : l'étudiant passe avec des dettes (UE à repasser). 100 = désactivé.",
+    )
+    poids_cc = models.JSONField(
+        default=dict, blank=True, verbose_name="Pondération du contrôle continu par type (%)",
+        help_text="Ex. {\"td\": 30, \"tp\": 20, \"devoir\": 30, \"partiel\": 20}. Vide = types à égalité.",
+    )
+    points_jury_max = models.DecimalField(
+        max_digits=4, decimal_places=2, default=1, verbose_name="Points de jury maximum",
+        help_text="Bonus que le jury peut accorder à la moyenne d'un étudiant lors de la délibération.",
+    )
     date_modification = models.DateTimeField(auto_now=True)
 
     class Meta:

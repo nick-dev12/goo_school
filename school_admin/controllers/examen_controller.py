@@ -277,6 +277,12 @@ def _appliquer_formulaire_session(session, post, etablissement, prefixe_matieres
     return classes, matieres, erreurs
 
 
+def _poids_cc_types(regle):
+    from ..model.evaluation_model import Evaluation
+    poids = regle.poids_cc or {}
+    return [(t, l, poids.get(t, 0)) for t, l in Evaluation.TYPE_EVALUATION_CHOICES]
+
+
 def _creneau_depuis_post(session, post, etablissement, annee_scolaire, champ_date='date_examen'):
     """Construit un créneau (non enregistré) ; renvoie (creneau, erreurs)."""
     date_str = post.get(champ_date) or post.get('jour_semaine') or post.get('date_examen')
@@ -535,6 +541,7 @@ def gestion_examens(request):
 
     context = {
         'regles_examen': _regles_examen(etablissement),
+        'poids_cc_types': _poids_cc_types(_regles_examen(etablissement)),
         'types_session': SessionExamen.TYPE_CHOICES,
         'etablissement': etablissement,
         'periodes': periodes,
@@ -865,6 +872,28 @@ def regles_examens(request):
         return redirect('directeur:gestion_examens')
     r.seuil_validation, r.note_eliminatoire = seuil, elim
     r.compensation_semestrielle = post.get('compensation_semestrielle') == 'on'
+    if 'pourcentage_passage_conditionnel' in post:
+        r.compensation_annuelle = post.get('compensation_annuelle') == 'on'
+        try:
+            pct = int(post.get('pourcentage_passage_conditionnel') or 100)
+            pts = Decimal((post.get('points_jury_max') or '0').replace(',', '.'))
+        except (ValueError, InvalidOperation):
+            messages.error(request, "Valeurs numériques invalides.")
+            return redirect('directeur:gestion_examens')
+        if not (50 <= pct <= 100) or not (0 <= pts <= 2):
+            messages.error(request, "Passage conditionnel entre 50 et 100 % ; points de jury entre 0 et 2.")
+            return redirect('directeur:gestion_examens')
+        r.pourcentage_passage_conditionnel, r.points_jury_max = pct, pts
+        from ..model.evaluation_model import Evaluation
+        poids = {}
+        for t, _ in Evaluation.TYPE_EVALUATION_CHOICES:
+            try:
+                v = int(post.get(f'poids_cc_{t}') or 0)
+            except ValueError:
+                v = 0
+            if v > 0:
+                poids[t] = min(v, 100)
+        r.poids_cc = poids
     r.save()
     messages.success(request, "Règles d'examen enregistrées. Recalculez les moyennes pour les appliquer aux bulletins.")
     return redirect('directeur:gestion_examens')

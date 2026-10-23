@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+{% load static i18n %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Candidature" %} — {{ concours.intitule }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/admissions.css' %}?v=1.0.0" />
+</head>
+<body class="cdt-page">
+    <header class="cdt-entete">
+        <div class="cdt-entete__in">
+            <p>{{ etablissement.nom }}</p>
+            <h1>{{ concours.intitule }}</h1>
+            <div class="cdt-meta">
+                <span><i class="fas fa-calendar"></i> {{ concours.annee_scolaire.libelle }}</span>
+                <span><i class="fas fa-clipboard-check"></i> {{ concours.get_mode_display }}</span>
+                {% if concours.classe_cible %}<span><i class="fas fa-school"></i> {{ concours.classe_cible.nom }}</span>{% endif %}
+                <span><i class="fas fa-users"></i> {{ concours.places }} {% trans "places" %}</span>
+                {% if concours.date_limite %}<span><i class="fas fa-hourglass-half"></i> {% trans "jusqu'au" %} {{ concours.date_limite|date:"d/m/Y" }}</span>{% endif %}
+            </div>
+        </div>
+    </header>
+    <main class="cdt-corps">
+        <div class="cdt-carte">
+            {% if confirmation %}
+                <div class="cdt-alerte cdt-alerte--ok" role="status"><i class="fas fa-circle-check"></i> {% trans "Votre candidature a bien été enregistrée." %}</div>
+                <p>{% trans "Votre numéro de candidature :" %}</p>
+                <p class="cdt-numero">{{ confirmation.numero }}</p>
+                <div class="cdt-recap">
+                    <span><strong>{% trans "Candidat" %} :</strong> {{ confirmation.nom_complet }}</span>
+                    <span><strong>{% trans "Né(e) le" %} :</strong> {{ confirmation.date_naissance|date:"d/m/Y" }} {% trans "à" %} {{ confirmation.lieu_naissance }}</span>
+                    {% if confirmation.serie_bac %}<span><strong>{% trans "Bac" %} :</strong> {{ confirmation.serie_bac }} {{ confirmation.annee_bac|default:"" }}</span>{% endif %}
+                </div>
+                <p style="color:#475569;font-size:.9rem">{% trans "Conservez ce numéro. Présentez-vous avec les pièces originales de votre dossier ; l'établissement vous contactera au numéro indiqué." %}</p>
+            {% elif ferme %}
+                <div class="cdt-alerte cdt-alerte--ko" role="alert"><i class="fas fa-lock"></i> {% trans "Les candidatures pour cette campagne sont closes." %}</div>
+            {% else %}
+                {% if erreur %}<div class="cdt-alerte cdt-alerte--ko" role="alert"><i class="fas fa-triangle-exclamation"></i> {{ erreur }}</div>{% endif %}
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% include 'school_admin/admissions/_champs_candidature.html' %}
+                    <button type="submit" class="cdt-envoyer"><i class="fas fa-paper-plane"></i> {% trans "Déposer ma candidature" %}</button>
+                </form>
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>

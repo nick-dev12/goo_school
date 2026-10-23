@@ -31,6 +31,12 @@
                                     <i class="fas fa-{{ creneau.matiere_icone|default:'book' }}" style="color: {{ creneau.matiere_couleur|default:'#3b82f6' }};"></i>
                                     {{ matiere_nom }}
                                   </div>
+                                  {% if creneau.groupe or creneau.type_cours == 'td' or creneau.type_cours == 'tp' %}
+                                    <div class="edtd-tags">
+                                      {% if creneau.type_cours == 'td' or creneau.type_cours == 'tp' or creneau.type_cours == 'cours' %}<span class="edtd-tag edtd-tag--{{ creneau.type_cours }}">{% if creneau.type_cours == 'cours' %}CM{% else %}{{ creneau.type_cours|upper }}{% endif %}</span>{% endif %}
+                                      {% if creneau.groupe %}<span class="edtd-tag">{{ creneau.groupe.nom }}</span>{% endif %}
+                                    </div>
+                                  {% endif %}
                                   {% if creneau.professeur %}
                                     <div class="exam-teacher">
                                       <i class="fas fa-user-tie"></i>
@@ -58,6 +64,8 @@
                                       data-matiere-id="{{ creneau.matiere.id|default:'' }}"
                                       data-professeur-id="{{ creneau.professeur.id|default:'' }}"
                                       data-salle-id="{{ creneau.salle.id|default:'' }}"
+                                      data-periode-id="{{ creneau.periode_scolaire_id|default:'' }}"
+                                      data-groupe-id="{{ creneau.groupe_id|default:'' }}"
                                       data-type-cours="{{ creneau.type_cours }}"
                                     >
                                       <i class="fas fa-edit"></i>

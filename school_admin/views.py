@@ -31,8 +31,13 @@ logger = logging.getLogger(__name__)
 # Create your views here.
 def inscription_compte_user(request):
     """
-    Gère l'inscription d'un nouvel utilisateur (public)
+    Création d'un compte de l'équipe Aria : réservée aux administrateurs de la plateforme.
     """
+    from .model.compte_user import CompteUser
+
+    if not (isinstance(request.user, CompteUser) and request.user.fonction == 'administrateur'):
+        messages.error(request, "La création de comptes de l'équipe est réservée aux administrateurs.")
+        return redirect('school_admin:connexion_compte_user')
     if request.method == 'POST':
         # Utiliser le contrôleur pour traiter l'inscription
         result = CompteUserController.compte_user_register_view(request)

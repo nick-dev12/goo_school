@@ -86,3 +86,7 @@ from .employe_dossier_model import DocumentEmploye, DossierEmployeComplementaire
 from .sync_action_model import SyncAction
 from .pointage_model import BornePointage, SeanceCours
 from .cahier_texte_model import CahierTexte
+from .deliberation_model import Deliberation, DecisionJury, UECapitalisee
+from .maquette_model import Parcours, GroupeEnseignement, InscriptionPedagogique
+from .service_enseignant_model import ReglesService
+from .admission_model import Concours, EpreuveConcours, Candidature, NoteConcours, Diplome

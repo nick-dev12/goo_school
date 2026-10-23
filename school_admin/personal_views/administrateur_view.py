@@ -450,7 +450,10 @@ def administrateur_update_etablissement(request):
             
             # Mise à jour de l'établissement
             etablissement.nom = data['nom']
-            etablissement.type_etablissement = data['type_etablissement']
+            # Seules les valeurs du modèle sont acceptées (un type inconnu casse toute la logique primaire/secondaire).
+            from ..model.etablissement_model import Etablissement as _Etab
+            if data['type_etablissement'] in dict(_Etab.TYPE_CHOICES):
+                etablissement.type_etablissement = data['type_etablissement']
             
             # Traitement de l'adresse (peut contenir ville et pays)
             if ',' in data['adresse']:

@@ -78,6 +78,21 @@ class Professeur(AbstractUser):
     )
 
     # Informations professionnelles
+    # Supérieur : grade universitaire (référentiel CAMES) et service statutaire en heures équivalent TD
+    GRADE_CHOICES = [
+        ('professeur_titulaire', 'Professeur titulaire'),
+        ('maitre_conferences', 'Maître de conférences'),
+        ('maitre_assistant', 'Maître-assistant'),
+        ('assistant', 'Assistant'),
+        ('charge_cours', 'Chargé de cours / enseignant associé'),
+        ('vacataire', 'Vacataire'),
+    ]
+    grade_universitaire = models.CharField(max_length=24, choices=GRADE_CHOICES, blank=True, default='',
+                                           verbose_name="Grade universitaire")
+    service_statutaire = models.PositiveSmallIntegerField(
+        default=0, verbose_name="Service statutaire (heures éq. TD / an)",
+        help_text="0 = valeur par défaut du grade (règles de service de l'établissement).",
+    )
     numero_employe = models.CharField(max_length=20, unique=True, verbose_name="Numéro d'employé")
     matiere_principale = models.ForeignKey(
         'Matiere',

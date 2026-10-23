@@ -16,6 +16,15 @@ class AffectationProfesseur(models.Model):
         ('principal', 'Professeur Principal'),
         ('classique', 'Professeur Classique'),
     ]
+
+    # Supérieur : une même matière (EC) peut être partagée entre plusieurs enseignants.
+    ROLE_COMPLET = 'complet'
+    ROLE_CHOICES = [
+        ('complet', 'EC complet (CM, TD et TP)'),
+        ('cm', 'Cours magistral (CM)'),
+        ('td', 'Travaux dirigés (TD)'),
+        ('tp', 'Travaux pratiques (TP)'),
+    ]
     
     professeur = models.ForeignKey(
         Professeur,
@@ -52,6 +61,19 @@ class AffectationProfesseur(models.Model):
         default='classique',
         verbose_name="Statut"
     )
+    role_enseignement = models.CharField(
+        max_length=10,
+        choices=ROLE_CHOICES,
+        default=ROLE_COMPLET,
+        verbose_name="Rôle dans la matière",
+    )
+    groupe = models.CharField(
+        max_length=30,
+        blank=True,
+        default='',
+        verbose_name="Groupe",
+        help_text="Groupe de TD / TP (ex. G1, G2). Vide = toute la classe.",
+    )
     date_affectation = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Date d'affectation"
@@ -65,7 +87,7 @@ class AffectationProfesseur(models.Model):
         verbose_name = "Affectation Professeur"
         verbose_name_plural = "Affectations Professeurs"
         # Contrainte unique incluant l'année scolaire pour permettre plusieurs affectations pour différentes années
-        unique_together = ['professeur', 'classe', 'matiere', 'annee_scolaire']
+        unique_together = ['professeur', 'classe', 'matiere', 'annee_scolaire', 'role_enseignement', 'groupe']
         ordering = ['-date_affectation']
         indexes = [
             models.Index(fields=['professeur', 'classe', 'matiere', 'annee_scolaire']),
@@ -74,6 +96,13 @@ class AffectationProfesseur(models.Model):
     
     def __str__(self):
         return f"{self.professeur.nom_complet} - {self.classe.nom} ({self.get_statut_display()})"
+
+    @property
+    def libelle_role(self):
+        """« CM », « TD G1 »… (vide pour un EC complet)."""
+        if self.role_enseignement == self.ROLE_COMPLET:
+            return ''
+        return f"{self.role_enseignement.upper()} {self.groupe}".strip()
     
     def clean(self):
         """
@@ -111,12 +140,31 @@ class AffectationProfesseur(models.Model):
             existing_same_matiere = existing_same_matiere.filter(annee_scolaire__isnull=True)
         existing_same_matiere = existing_same_matiere.exclude(pk=self.pk)
         
+        self.groupe = (self.groupe or '').strip().upper()
+        superieur = getattr(self.classe.etablissement, 'type_etablissement', None) == 'superieur'
+        if not superieur:
+            # Primaire / secondaire : un seul enseignant par matière, rôle non utilisé.
+            self.role_enseignement, self.groupe = self.ROLE_COMPLET, ''
+        elif self.role_enseignement == self.ROLE_COMPLET:
+            self.groupe = ''
+        if superieur and self.role_enseignement != self.ROLE_COMPLET:
+            # Conflit si le même rôle et groupe sont déjà pris, ou si quelqu'un assure tout l'EC.
+            existing_same_matiere = existing_same_matiere.filter(
+                models.Q(role_enseignement=self.ROLE_COMPLET)
+                | models.Q(role_enseignement=self.role_enseignement, groupe=self.groupe)
+            )
         if existing_same_matiere.exists():
-            existing_prof = existing_same_matiere.first()
+            existing = existing_same_matiere.first()
             annee_info = f" pour l'année scolaire {self.annee_scolaire.libelle}" if self.annee_scolaire else ""
+            if superieur:
+                role_txt = existing.libelle_role or "l'EC complet"
+                raise ValidationError(
+                    f"{existing.professeur.nom_complet} assure déjà {role_txt} de {self.matiere.nom} "
+                    f"en {self.classe.nom}{annee_info}. Choisissez un autre rôle (CM, TD, TP) ou un autre groupe."
+                )
             raise ValidationError(
                 f"Il y a déjà un professeur de {self.matiere.nom} "
-                f"({existing_prof.professeur.nom_complet}) affecté à la classe {self.classe.nom}{annee_info}. "
+                f"({existing.professeur.nom_complet}) affecté à la classe {self.classe.nom}{annee_info}. "
                 f"Une classe ne peut avoir qu'un seul enseignant par matière par année scolaire."
             )
         

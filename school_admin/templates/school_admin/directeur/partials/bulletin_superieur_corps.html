@@ -197,7 +197,7 @@
                 –
               {% endif %}
             </td>
-            <td class="num bsup-ue-statut">{{ bloc.statut_ue }}</td>
+            <td class="num bsup-ue-statut bsup-ue-statut--{{ bloc.statut_ue|slugify }}">{{ bloc.statut_ue }}{% if bloc.credits_obtenus is not None and bloc.total_credits %}<small class="bsup-ue-cr">{{ bloc.credits_obtenus|floatformat:"-2" }}/{{ bloc.total_credits|floatformat:"-2" }} cr.</small>{% endif %}</td>
           </tr>
         {% empty %}
           <tr>
@@ -254,7 +254,7 @@
         </tr>
         <tr>
           <td class="bsup-ab-decision" colspan="8">
-            <span class="bsup-ab-decision-part"><span class="bsup-ab-decision-lbl">{% trans "Décision conseil de classe" %}</span> :
+            <span class="bsup-ab-decision-part"><span class="bsup-ab-decision-lbl">{% if est_superieur %}{% trans "Appréciation du jury" %}{% else %}{% trans "Décision conseil de classe" %}{% endif %}</span> :
               {% if complement_info.statut_conseil_label %}
                 {{ complement_info.statut_conseil_label }}
               {% elif complement_info.appreciation_generale_originale %}
@@ -266,7 +266,7 @@
               {% endif %}
             </span>
             <span class="bsup-ab-decision-sep" aria-hidden="true"> / </span>
-            <span class="bsup-ab-decision-part"><span class="bsup-ab-decision-lbl">{% trans "Résultat" %}</span> :
+            <span class="bsup-ab-decision-part"><span class="bsup-ab-decision-lbl">{% trans "Décision du jury" %}</span> :
               {% if complement_info.decision_conseil %}
                 <strong>{{ complement_info.decision_conseil }}</strong>
               {% else %}
@@ -283,17 +283,17 @@
       <table class="bsup-recap-table bsup-recap-table-maquette bsup-recap-table-dual">
         <colgroup>
           <col class="bsup-recap-col-label" />
-          {% for _ in "0123456"|make_list %}<col class="bsup-recap-col-mod" />{% endfor %}
-          {% for _ in "0123456"|make_list %}<col class="bsup-recap-col-mod" />{% endfor %}
+          {% for _ in bsup_bilan_annuel.ue_indexes %}<col class="bsup-recap-col-mod" />{% endfor %}
+          {% for _ in bsup_bilan_annuel.ue_indexes %}<col class="bsup-recap-col-mod" />{% endfor %}
         </colgroup>
         <tbody>
           <tr>
             <td class="bsup-recap-corner" rowspan="2">{% trans "Récapitulatifs des unités" %}</td>
-            <th class="bsup-dual-recap-title-cell" colspan="7">{% trans "Récap du 1er semestre de l'année" %} ({{ bsup_bilan_annuel.periode_s1_nom }})</th>
-            <th class="bsup-dual-recap-title-cell bsup-dual-recap-title-cell--s2" colspan="7">{% trans "Récap du 2e semestre de l'année" %} ({{ bsup_bilan_annuel.periode_s2_nom }})</th>
+            <th class="bsup-dual-recap-title-cell" colspan="{{ bsup_bilan_annuel.ue_indexes|length }}">{% trans "Récap du 1er semestre de l'année" %} ({{ bsup_bilan_annuel.periode_s1_nom }})</th>
+            <th class="bsup-dual-recap-title-cell bsup-dual-recap-title-cell--s2" colspan="{{ bsup_bilan_annuel.ue_indexes|length }}">{% trans "Récap du 2e semestre de l'année" %} ({{ bsup_bilan_annuel.periode_s2_nom }})</th>
           </tr>
           <tr>
-            {% for idx in "0123456"|make_list %}
+            {% for idx in bsup_bilan_annuel.ue_indexes %}
               {% with slot=bsup_bilan_annuel.recap_ue_slots_s1|get_item:idx %}
               <td class="bsup-recap-ue-head" {% if slot and slot.ue_titre %}title="{{ slot.ue_titre|escape }}"{% endif %}>
                 {% if slot and slot.ue_titre %}
@@ -304,7 +304,7 @@
               </td>
               {% endwith %}
             {% endfor %}
-            {% for idx in "0123456"|make_list %}
+            {% for idx in bsup_bilan_annuel.ue_indexes %}
               {% with slot=bsup_bilan_annuel.recap_ue_slots_s2|get_item:idx %}
               <td class="bsup-recap-ue-head {% if forloop.first %}bsup-dual-recap-s2-first{% endif %}" {% if slot and slot.ue_titre %}title="{{ slot.ue_titre|escape }}"{% endif %}>
                 {% if slot and slot.ue_titre %}
@@ -318,7 +318,7 @@
           </tr>
           <tr>
             <th class="bsup-recap-row-label" scope="row">{% trans "Moyennes" %}</th>
-            {% for idx in "0123456"|make_list %}
+            {% for idx in bsup_bilan_annuel.ue_indexes %}
               {% with slot=bsup_bilan_annuel.recap_ue_slots_s1|get_item:idx %}
                 <td class="bsup-recap-moyenne-cell">
                   {% if slot and slot.moyenne is not None %}
@@ -327,7 +327,7 @@
                 </td>
               {% endwith %}
             {% endfor %}
-            {% for idx in "0123456"|make_list %}
+            {% for idx in bsup_bilan_annuel.ue_indexes %}
               {% with slot=bsup_bilan_annuel.recap_ue_slots_s2|get_item:idx %}
                 <td class="bsup-recap-moyenne-cell {% if forloop.first %}bsup-dual-recap-s2-first{% endif %}">
                   {% if slot and slot.moyenne is not None %}
@@ -339,11 +339,11 @@
           </tr>
           <tr>
             <th class="bsup-recap-row-label" scope="row">{% trans "Validations" %}</th>
-            {% for idx in "0123456"|make_list %}
+            {% for idx in bsup_bilan_annuel.ue_indexes %}
               {% with slot=bsup_bilan_annuel.recap_ue_slots_s1|get_item:idx %}
-                <td class="bsup-recap-valid-cell {% if slot and slot.statut == 'Validée' %}bsup-recap-valid-oui{% elif slot %}bsup-recap-valid-non{% endif %}">
+                <td class="bsup-recap-valid-cell {% if slot and slot.statut == 'Validée' %}bsup-recap-valid-oui{% elif slot and slot.statut == 'Compensée' %}bsup-recap-valid-comp{% elif slot %}bsup-recap-valid-non{% endif %}">
                   {% if slot %}
-                    {% if slot.statut == 'Validée' %}
+                    {% if slot.statut == 'Validée' or slot.statut == 'Compensée' %}
                       <span class="bsup-recap-valid-txt">{{ slot.statut }}</span>
                     {% elif slot.statut and slot.statut != '—' %}
                       {{ slot.statut }}
@@ -352,11 +352,11 @@
                 </td>
               {% endwith %}
             {% endfor %}
-            {% for idx in "0123456"|make_list %}
+            {% for idx in bsup_bilan_annuel.ue_indexes %}
               {% with slot=bsup_bilan_annuel.recap_ue_slots_s2|get_item:idx %}
-                <td class="bsup-recap-valid-cell {% if forloop.first %}bsup-dual-recap-s2-first{% endif %} {% if slot and slot.statut == 'Validée' %}bsup-recap-valid-oui{% elif slot %}bsup-recap-valid-non{% endif %}">
+                <td class="bsup-recap-valid-cell {% if forloop.first %}bsup-dual-recap-s2-first{% endif %} {% if slot and slot.statut == 'Validée' %}bsup-recap-valid-oui{% elif slot and slot.statut == 'Compensée' %}bsup-recap-valid-comp{% elif slot %}bsup-recap-valid-non{% endif %}">
                   {% if slot %}
-                    {% if slot.statut == 'Validée' %}
+                    {% if slot.statut == 'Validée' or slot.statut == 'Compensée' %}
                       <span class="bsup-recap-valid-txt">{{ slot.statut }}</span>
                     {% elif slot.statut and slot.statut != '—' %}
                       {{ slot.statut }}
@@ -368,7 +368,7 @@
           </tr>
           <tr>
             <th class="bsup-recap-row-label" scope="row">{% trans "Crédits obtenus" %}</th>
-            {% for idx in "0123456"|make_list %}
+            {% for idx in bsup_bilan_annuel.ue_indexes %}
               {% with slot=bsup_bilan_annuel.recap_ue_slots_s1|get_item:idx %}
                 <td class="bsup-recap-credits-cell">
                   {% if slot and slot.credits is not None %}
@@ -377,7 +377,7 @@
                 </td>
               {% endwith %}
             {% endfor %}
-            {% for idx in "0123456"|make_list %}
+            {% for idx in bsup_bilan_annuel.ue_indexes %}
               {% with slot=bsup_bilan_annuel.recap_ue_slots_s2|get_item:idx %}
                 <td class="bsup-recap-credits-cell {% if forloop.first %}bsup-dual-recap-s2-first{% endif %}">
                   {% if slot and slot.credits is not None %}
@@ -423,8 +423,8 @@
         </tr>
         <tr>
           <td class="bsup-sum-appreciation" colspan="2">
-            <span class="bsup-sum-appreciation-lbl">{% trans "Appréciation conseil de classe" %}&nbsp;:</span>{% if complement_info.decision_conseil %}
-              <span class="bsup-sum-appreciation-txt">{{ complement_info.decision_conseil }}</span>
+            <span class="bsup-sum-appreciation-lbl">{% trans "Décision du jury" %}&nbsp;:</span>{% if complement_info.decision_conseil %}
+              <span class="bsup-sum-appreciation-txt bsup-decision bsup-decision--{{ complement_info.decision_semestre|default:''|slugify }}">{{ complement_info.decision_conseil }}</span>
             {% elif complement_info.appreciation_generale %}
               <span class="bsup-sum-appreciation-txt">{{ complement_info.appreciation_generale }}</span>
             {% else %}
@@ -465,9 +465,9 @@
             <tr>
               <th class="bsup-recap-row-label" scope="row">{% trans "Validations" %}</th>
               {% for slot in recap_ue_slots %}
-                <td class="bsup-recap-valid-cell {% if slot and slot.statut == 'Validée' %}bsup-recap-valid-oui{% elif slot %}bsup-recap-valid-non{% endif %}">
+                <td class="bsup-recap-valid-cell {% if slot and slot.statut == 'Validée' %}bsup-recap-valid-oui{% elif slot and slot.statut == 'Compensée' %}bsup-recap-valid-comp{% elif slot %}bsup-recap-valid-non{% endif %}">
                   {% if slot %}
-                    {% if slot.statut == 'Validée' %}
+                    {% if slot.statut == 'Validée' or slot.statut == 'Compensée' %}
                       <span class="bsup-recap-valid-txt">{{ slot.statut }}</span>
                     {% elif slot.statut and slot.statut != '—' %}
                       {{ slot.statut }}
@@ -524,6 +524,10 @@
                 <span>{% trans "UE validée" %}</span>
               </span>
               <span class="bsup-legend-vrule" aria-hidden="true"></span>
+              <span class="bsup-legend-cell bsup-legend-cell--code">
+                <span class="bsup-legend-swatch bsup-legend-swatch--comp" aria-hidden="true"></span>
+                <span>{% trans "UE compensée" %}</span>
+              </span>              <span class="bsup-legend-vrule" aria-hidden="true"></span>
               <span class="bsup-legend-cell bsup-legend-cell--code">
                 <span class="bsup-legend-swatch bsup-legend-swatch--retake" aria-hidden="true"></span>
                 <span>{% trans "UE validée en rattrapage" %}</span>

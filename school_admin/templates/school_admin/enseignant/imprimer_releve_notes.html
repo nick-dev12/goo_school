@@ -272,7 +272,7 @@
         <button onclick="window.print()" class="btn btn-primary">
             <i class="fas fa-print"></i> Imprimer
         </button>
-        <a href="{% url 'enseignant:voir_releve' classe.id %}?periode={{ periode_active.id }}" class="btn btn-secondary">
+        <a href="{% url 'enseignant:voir_releve' classe.id %}?periode={{ periode_active.id }}{% if matiere %}&matiere={{ matiere.id }}{% endif %}" class="btn btn-secondary">
             <i class="fas fa-times"></i> Fermer
         </a>
     </div>

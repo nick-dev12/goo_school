@@ -41,7 +41,8 @@
             <div class="hb-head__actions">
                 <button type="button" class="cg3-btn cg3-btn--primary" onclick="openModal()"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Nouvelle session" %}</button>
                 <a href="{% url 'directeur:emploi_du_temps_examens' %}" class="cg3-btn"><i class="fas fa-calendar-days" aria-hidden="true"></i>{% trans "Emploi du temps" %}</a>
-                <button type="button" class="cg3-btn" onclick="document.getElementById('reglesModal').classList.add('is-open')"><i class="fas fa-sliders" aria-hidden="true"></i>{% trans "Règles de calcul" %}</button>
+{% if est_superieur %}                <a href="{% url 'directeur:liste_deliberations' %}" class="cg3-btn"><i class="fas fa-gavel" aria-hidden="true"></i>{% trans "Délibérations" %}</a>
+{% endif %}                <button type="button" class="cg3-btn" onclick="document.getElementById('reglesModal').classList.add('is-open')"><i class="fas fa-sliders" aria-hidden="true"></i>{% trans "Règles de calcul" %}</button>
             </div>
         </header>
         <section class="fe-kpis hb-kpis hb-kpis--3 cg3" aria-label="{% trans 'Indicateurs' %}">
@@ -696,6 +697,28 @@
                         </label>
                     </div>
                     <label class="exr-switch"><input type="checkbox" name="compensation_semestrielle" {% if regles_examen.compensation_semestrielle %}checked{% endif %}> <span>{% trans "LMD : compensation entre UE dans le semestre (moyenne ≥ seuil, aucune note éliminatoire)" %}</span></label>
+                    {% if est_superieur %}
+                    <fieldset class="exr-field">
+                        <legend>{% trans "Progression annuelle et jury (LMD)" %}</legend>
+                        <label class="exr-switch"><input type="checkbox" name="compensation_annuelle" {% if regles_examen.compensation_annuelle %}checked{% endif %}> <span>{% trans "Compensation annuelle entre les deux semestres" %}</span></label>
+                        <div class="exr-grid2">
+                            <label>{% trans "Passage conditionnel à partir de (% des crédits)" %}
+                                <input type="number" name="pourcentage_passage_conditionnel" min="50" max="100" step="5" value="{{ regles_examen.pourcentage_passage_conditionnel }}">
+                            </label>
+                            <label>{% trans "Points de jury maximum" %}
+                                <input type="number" name="points_jury_max" min="0" max="2" step="0.25" value="{{ regles_examen.points_jury_max|floatformat:'-2' }}">
+                            </label>
+                        </div>
+                        <p class="exr-help">{% trans "Ex. 75 % = 45 crédits sur 60 : l'étudiant passe en année supérieure avec des UE à repasser (dettes). 100 % désactive le passage conditionnel." %}</p>
+                    </fieldset>
+                    <fieldset class="exr-field">
+                        <legend>{% trans "Pondération du contrôle continu (%)" %}</legend>
+                        <div class="exr-grid4">
+                            {% for t, l, v in poids_cc_types %}<label>{{ l }}<input type="number" min="0" max="100" step="5" name="poids_cc_{{ t }}" value="{{ v }}"></label>{% endfor %}
+                        </div>
+                        <p class="exr-help">{% trans "Calculé sur toutes les évaluations de l'EC (CM, TD, TP, tous enseignants). Les types sans note ne comptent pas ; tout à 0 = types à égalité." %}</p>
+                    </fieldset>
+                    {% endif %}
                 </div>
                 <div class="exr-modal__foot">
                     <button type="button" class="cg3-btn" onclick="this.closest('.exr-modal').classList.remove('is-open')">{% trans "Annuler" %}</button>

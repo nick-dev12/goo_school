@@ -599,7 +599,7 @@ class MatiereController:
                                 base_code = form_data['nom'][:3].upper()
                                 code = base_code
                                 counter = 1
-                                while Matiere.objects.filter(code=code).exists():
+                                while Matiere.objects.filter(etablissement=etablissement, code=code).exists():
                                     code = f"{base_code}{counter}"
                                     counter += 1
                                     if counter > 100:
@@ -646,7 +646,7 @@ class MatiereController:
                             base_code = form_data['nom'][:3].upper()
                             code = base_code
                             counter = 1
-                            while Matiere.objects.filter(code=code).exists():
+                            while Matiere.objects.filter(etablissement=etablissement, code=code).exists():
                                 code = f"{base_code}{counter}"
                                 counter += 1
                                 if counter > 100:
@@ -1116,7 +1116,7 @@ class MatiereController:
                             counter = 1
                             
                             # Vérifier si le code existe déjà (en excluant la matière actuelle)
-                            while Matiere.objects.filter(code=code).exclude(id=matiere.id).exists():
+                            while Matiere.objects.filter(etablissement_id=matiere.etablissement_id, code=code).exclude(id=matiere.id).exists():
                                 code = f"{base_code}{counter}"
                                 counter += 1
                                 if counter > 100:  # Sécurité pour éviter une boucle infinie

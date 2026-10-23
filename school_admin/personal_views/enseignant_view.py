@@ -2,6 +2,7 @@
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.http import Http404, JsonResponse
 from ..decorators import login_required_with_redirect
 from ..model.professeur_model import Professeur
 from ..services.parent_notification_service import ParentNotificationService
@@ -3871,6 +3872,9 @@ def creer_evaluation_enseignant(request, classe_id):
         description = request.POST.get('description', '').strip()
         date_evaluation = request.POST.get('date_evaluation', '')
         bareme = request.POST.get('bareme', '20')
+        type_evaluation = request.POST.get('type_evaluation', '')
+        if type_evaluation not in dict(Evaluation.TYPE_EVALUATION_CHOICES):
+            type_evaluation = ''
         periode_scolaire_id = request.POST.get('periode_scolaire', '')
 
         matiere_pour_periode = (
@@ -3962,6 +3966,7 @@ def creer_evaluation_enseignant(request, classe_id):
                         date_evaluation=date_eval_obj,
                         bareme=bareme_float,
                         periode_scolaire=periode_scolaire,
+                        type_evaluation=type_evaluation,
                         actif=True,
                         annee_scolaire=annee_scolaire_active
                     )
@@ -4025,6 +4030,8 @@ def creer_evaluation_enseignant(request, classe_id):
         nombre_eleves = _get_eleves_classe_par_inscription(classe, professeur.etablissement, annee_scolaire_active).count()
         
         context = {
+            'types_evaluation': Evaluation.TYPE_EVALUATION_CHOICES,
+            'est_superieur_eval': getattr(professeur.etablissement, 'type_etablissement', None) == 'superieur',
             'professeur': professeur,
             'classe': classe,
             'affectation': affectation,
@@ -4069,6 +4076,8 @@ def creer_evaluation_enseignant(request, classe_id):
             form_data_get['periode_scolaire'] = periode_q
 
     context = {
+        'types_evaluation': Evaluation.TYPE_EVALUATION_CHOICES,
+        'est_superieur_eval': getattr(professeur.etablissement, 'type_etablissement', None) == 'superieur',
         'professeur': professeur,
         'classe': classe,
         'affectation': affectation,
@@ -4508,7 +4517,6 @@ def calculer_moyennes_classe(request, classe_id):
     from ..model.inscription_eleve_model import InscriptionEleve
     from ..utils.session_utils import get_session_active
     from django.shortcuts import get_object_or_404
-    from django.http import JsonResponse
     from django.db import transaction
     from decimal import Decimal, InvalidOperation
     import json
@@ -4568,7 +4576,7 @@ def calculer_moyennes_classe(request, classe_id):
     logger.info(f"Colonnes sélectionnées: {colonnes_selectionnees}, Période ID: {periode_id}, Meilleures notes: {nombre_meilleures_notes}")
     
     # Si aucune colonne sélectionnée, retourner une erreur
-    if not colonnes_selectionnees:
+    if not colonnes_selectionnees and not est_superieur:
         return JsonResponse({
             'success': False,
             'error': 'Veuillez sélectionner au moins une colonne pour calculer les moyennes'
@@ -4710,7 +4718,7 @@ def calculer_moyennes_classe(request, classe_id):
                 # encore calculer une moyenne à partir de l'examen seul (ancien comportement).
                 # En supérieur, l'examen n'entre pas dans cette moyenne (il est saisi à part pour le bulletin).
                 if not evaluations_selectionnees:
-                    if est_superieur or not session_examen:
+                    if not est_superieur and not session_examen:
                         continue
                 
                 # Récupérer les notes pour ces évaluations (filtrées par année scolaire active)
@@ -4777,7 +4785,11 @@ def calculer_moyennes_classe(request, classe_id):
                 
                 # Moyenne enregistrée = contrôle continu uniquement, pour tous les types d'établissement :
                 # l'examen est combiné une seule fois, au bulletin, selon la pondération (services/examens.py).
-                if notes.count() == 0:
+                if est_superieur:
+                    from ..services.controle_continu import moyenne_cc as _cc
+                    if _cc(eleve, classe, matiere_enseignee, periode_active, annee_scolaire_active)['moyenne'] is None:
+                        continue
+                elif notes.count() == 0:
                     logger.warning(f"Aucune note continue pour {eleve.nom_complet} (examen exclu de la moyenne de classe)")
                     continue
                 
@@ -4812,6 +4824,16 @@ def calculer_moyennes_classe(request, classe_id):
                 else:
                     moyenne_continu = 0
 
+                # Supérieur : contrôle continu pondéré par type sur TOUTES les évaluations de l'EC
+                # (CM, TD, TP, quel que soit l'enseignant), selon les règles de l'établissement.
+                if est_superieur:
+                    from ..services.controle_continu import moyenne_cc
+                    cc = moyenne_cc(eleve, classe, matiere_enseignee, periode_active, annee_scolaire_active)
+                    if cc['moyenne'] is not None:
+                        moyenne_continu = float(cc['moyenne'])
+                        selection_continues = [{'note_sur_20': moyenne_continu, 'evaluation_id': eid}
+                                               for eid in cc['evaluations']] or selection_continues
+                        evaluations_retenues_ids = cc['evaluations']
                 # Intégration de la note d'examen (collège / lycée) : (continu + examen) / 2.
                 # Supérieur : pas d'examen dans cette moyenne (directeur / bulletin : pondération CC + examen).
                 if est_superieur:
@@ -5140,6 +5162,18 @@ def soumettre_releve_notes(request, classe_id):
     return redirect('enseignant:noter_eleves', classe_id=classe_id)
 
 
+def _affectation_releve(request, professeur, classe):
+    """Affectation du professeur dans la classe et matière du relevé (?matiere=, sinon la première enseignée)."""
+    from ..model.affectation_model import AffectationProfesseur
+
+    qs = AffectationProfesseur.objects.filter(professeur=professeur, classe=classe, actif=True).select_related('matiere')
+    matiere_id = (request.GET.get('matiere') or '').strip()
+    affectation = (qs.filter(matiere_id=matiere_id).first() if matiere_id.isdigit() else None) or qs.order_by('id').first()
+    if affectation is None:
+        raise Http404("Vous n'êtes pas affecté à cette classe.")
+    return affectation, affectation.matiere or professeur.matiere_principale
+
+
 def voir_releve_notes(request, classe_id):
     """
     Page pour afficher le relevé de notes d'une classe pour une période donnée
@@ -5162,12 +5196,7 @@ def voir_releve_notes(request, classe_id):
     
     # Vérifier que la classe existe et que le professeur y est affecté
     classe = get_object_or_404(Classe, id=classe_id)
-    affectation = get_object_or_404(
-        AffectationProfesseur,
-        professeur=professeur,
-        classe=classe,
-        actif=True
-    )
+    affectation, matiere_enseignee = _affectation_releve(request, professeur, classe)
     
     # Récupérer toutes les périodes scolaires
     periodes_scolaires = PeriodeScolaire.objects.filter(
@@ -5199,7 +5228,7 @@ def voir_releve_notes(request, classe_id):
         releve_notes = ReleveNotes.objects.filter(
             classe=classe,
             professeur=professeur,
-            matiere=professeur.matiere_principale,
+            matiere=matiere_enseignee,
             periode_scolaire=periode_active_obj
         ).first()
     
@@ -5219,7 +5248,7 @@ def voir_releve_notes(request, classe_id):
     if periode_active_obj:
         premiere_moyenne = Moyenne.objects.filter(
             classe=classe,
-            matiere=professeur.matiere_principale,
+            matiere=matiere_enseignee,
             periode=str(periode_active_obj.id),
             actif=True
         ).first()
@@ -5254,7 +5283,7 @@ def voir_releve_notes(request, classe_id):
         sessions_possibles = SessionExamen.objects.filter(
             etablissement=professeur.etablissement,
             classes=classe,
-            matieres=professeur.matiere_principale,
+            matieres=matiere_enseignee,
             periode=periode_active_obj,
             actif=True
         ).order_by('-date_debut')
@@ -5263,7 +5292,7 @@ def voir_releve_notes(request, classe_id):
         for session in sessions_possibles:
             notes_count = NoteExamen.objects.filter(
                 session_examen=session,
-                matiere=professeur.matiere_principale,
+                matiere=matiere_enseignee,
                 classe=classe,
                 actif=True
             ).count()
@@ -5291,7 +5320,7 @@ def voir_releve_notes(request, classe_id):
             moyenne_obj = Moyenne.objects.filter(
                 eleve=eleve,
                 classe=classe,
-                matiere=professeur.matiere_principale,
+                matiere=matiere_enseignee,
                 periode=str(periode_active_obj.id),
                 actif=True
             ).first()
@@ -5309,7 +5338,7 @@ def voir_releve_notes(request, classe_id):
                 note_examen_obj = NoteExamen.objects.filter(
                     eleve=eleve,
                     session_examen=session_examen,
-                    matiere=professeur.matiere_principale,
+                    matiere=matiere_enseignee,
                     classe=classe,
                     actif=True
                 ).first()
@@ -5327,7 +5356,7 @@ def voir_releve_notes(request, classe_id):
         'professeur': professeur,
         'classe': classe,
         'affectation': affectation,
-        'matiere': professeur.matiere_principale,
+        'matiere': matiere_enseignee,
         'periode_active': periode_active_obj,
         'periodes_scolaires': periodes_scolaires,
         'releve_notes': releve_notes,
@@ -5394,7 +5423,9 @@ def imprimer_releve_notes_enseignant(request, classe_id):
         )
         if annee_scolaire_active:
             affectation_queryset = affectation_queryset.filter(annee_scolaire=annee_scolaire_active)
-        affectation = get_object_or_404(affectation_queryset)
+        affectation = affectation_queryset.order_by('id').first()
+        if affectation is None:
+            raise Http404("Vous n'êtes pas affecté à cette classe.")
         matiere_enseignee = affectation.matiere if affectation.matiere else professeur.matiere_principale
     
     # Période : uniquement parmi les périodes applicables à cette classe (LMD / collège)
@@ -5764,12 +5795,7 @@ def imprimer_releve_notes(request, classe_id):
     
     # Vérifier que la classe existe et que le professeur y est affecté
     classe = get_object_or_404(Classe, id=classe_id)
-    affectation = get_object_or_404(
-        AffectationProfesseur,
-        professeur=professeur,
-        classe=classe,
-        actif=True
-    )
+    affectation, matiere_enseignee = _affectation_releve(request, professeur, classe)
     
     # Récupérer toutes les périodes scolaires
     periodes_scolaires = PeriodeScolaire.objects.filter(
@@ -5801,7 +5827,7 @@ def imprimer_releve_notes(request, classe_id):
         releve_notes = ReleveNotes.objects.filter(
             classe=classe,
             professeur=professeur,
-            matiere=professeur.matiere_principale,
+            matiere=matiere_enseignee,
             periode_scolaire=periode_active_obj
         ).first()
     
@@ -5819,7 +5845,7 @@ def imprimer_releve_notes(request, classe_id):
     if periode_active_obj:
         premiere_moyenne = Moyenne.objects.filter(
             classe=classe,
-            matiere=professeur.matiere_principale,
+            matiere=matiere_enseignee,
             periode=str(periode_active_obj.id),
             actif=True
         ).first()
@@ -5857,7 +5883,7 @@ def imprimer_releve_notes(request, classe_id):
             moyenne_obj = Moyenne.objects.filter(
                 eleve=eleve,
                 classe=classe,
-                matiere=professeur.matiere_principale,
+                matiere=matiere_enseignee,
                 periode=str(periode_active_obj.id),
                 actif=True
             ).first()
@@ -5886,7 +5912,7 @@ def imprimer_releve_notes(request, classe_id):
         'professeur': professeur,
         'classe': classe,
         'affectation': affectation,
-        'matiere': professeur.matiere_principale,
+        'matiere': matiere_enseignee,
         'periode_active': periode_active_obj,
         'releve_notes': releve_notes,
         'colonnes_devoirs': colonnes_devoirs,  # Colonnes génériques : Devoir 1, Devoir 2, etc.

@@ -320,8 +320,11 @@ def _archiver_inscription_eleve_parent(eleve, parent, etablissement, annee_scola
 @login_required
 def dashboard_secretaire(request):
     """
-    Dashboard pour le secrétaire d'établissement ou le directeur
+    Ancien tableau de bord secrétaire : le personnel utilise désormais le tableau de bord de la direction
+    (avec ses autorisations). On y redirige pour tous les anciens liens.
     """
+    if isinstance(request.user, (PersonnelAdministratif, Etablissement)):
+        return redirect('directeur:dashboard_directeur')
     # Récupérer l'utilisateur connecté
     user = request.user
     
@@ -1599,7 +1602,7 @@ def detail_eleve(request, eleve_id):
     moyennes_par_periode = defaultdict(dict)  # {periode_id: {matiere_id: moyenne_obj}}
     
     # Remplir les données uniquement pour les établissements secondaires
-    if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée']:
+    if etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée', 'mixte']:
         # Utiliser la classe de l'année scolaire active
         classe_eleve_actuelle = classe_eleve_annee if classe_eleve_annee else eleve.classe
         matieres_aff_qs = AffectationProfesseur.objects.filter(
@@ -2271,7 +2274,7 @@ def detail_eleve(request, eleve_id):
         'sanctions_eleve': sanctions_eleve,
         'stats_sanctions': stats_sanctions,
         # Ajouts secondaires
-        'is_secondaire': etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée'],
+        'is_secondaire': etablissement.type_etablissement in ['lycée', 'collège', 'collège_lycée', 'mixte'],
         'matieres_classe': matieres_classe,
         'moyennes_par_matiere': moyennes_par_matiere,
         'periode_active_notes': periode_active_notes,

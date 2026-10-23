@@ -87,16 +87,22 @@
     if (!fieldErrors) {
       return;
     }
-    if (fieldErrors.__all__ || fieldErrors.message) {
+    // Erreur générale : __all__ (formulaires Django) ou non_field_errors (emplois du temps).
+    var general = fieldErrors.__all__ || fieldErrors.non_field_errors || fieldErrors.message;
+    if (general) {
       var alert = document.createElement('div');
       alert.className = 'alert alert-error dynamic-form-alert';
+      alert.setAttribute('role', 'alert');
       alert.innerHTML =
         '<i class="fas fa-exclamation-triangle"></i> ' +
-        escapeHtml(fieldErrors.__all__ || fieldErrors.message);
+        escapeHtml(general);
       form.prepend(alert);
+      if (alert.scrollIntoView) {
+        alert.scrollIntoView({ block: 'nearest' });
+      }
     }
     Object.keys(fieldErrors).forEach(function (field) {
-      if (field === '__all__' || field === 'message') {
+      if (field === '__all__' || field === 'message' || field === 'non_field_errors') {
         return;
       }
       var input = form.querySelector('[name="' + field + '"]');

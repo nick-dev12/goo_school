@@ -443,21 +443,21 @@ def _classe_ids_du_module(module):
     return set(module.classes.values_list('id', flat=True))
 
 
-def _generate_unique_matiere_code(nom):
-    """Code unique pour Matiere (max 10 caractères, champ model)."""
+def _generate_unique_matiere_code(nom, etablissement=None):
+    """Code de matière unique dans l'établissement (max 10 caractères)."""
     raw = re.sub(r'[^a-zA-Z0-9]', '', (nom or '')[:12])
     base = (raw[:3].upper() if len(raw) >= 3 else (raw.upper() + 'MAT')[:3])
     if not base:
         base = 'MAT'
     code = base[:10]
     counter = 1
-    while Matiere.objects.filter(code=code).exists():
+    while Matiere.objects.filter(etablissement=etablissement, code=code).exists():
         suffix = str(counter)
         code = (base[: (10 - len(suffix))] + suffix)[:10]
         counter += 1
         if counter > 500:
             code = f'M{random.randint(10000, 99999)}'[:10]
-            while Matiere.objects.filter(code=code).exists():
+            while Matiere.objects.filter(etablissement=etablissement, code=code).exists():
                 code = f'M{random.randint(10000, 99999)}'[:10]
             break
     return code
@@ -700,7 +700,7 @@ def _creer_matiere_pour_filiere_niveau(
         )
     matiere = Matiere(
         nom=nom_m[:100],
-        code=_generate_unique_matiere_code(nom_m),
+        code=_generate_unique_matiere_code(nom_m, etablissement),
         etablissement=etablissement,
         department=department,
         module=module,
@@ -1222,7 +1222,7 @@ def detail_module(request, module_id):
                         with transaction.atomic():
                             matiere = Matiere(
                                 nom=nom_m[:100],
-                                code=_generate_unique_matiere_code(nom_m),
+                                code=_generate_unique_matiere_code(nom_m, etablissement),
                                 etablissement=etablissement,
                                 department=matiere_department,
                                 module=module,

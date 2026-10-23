@@ -13,6 +13,10 @@ def dashboard_administrateur_etablissement(request):
     # Récupérer l'utilisateur connecté
     user = request.user
     
+    # Ancienne page (chiffres fictifs) : le personnel utilise le tableau de bord de la direction.
+    if isinstance(user, (PersonnelAdministratif, Etablissement)):
+        return redirect('directeur:dashboard_directeur')
+
     # Vérifier que l'utilisateur est du personnel administratif
     if not isinstance(user, PersonnelAdministratif):
         messages.error(request, "Accès non autorisé.")

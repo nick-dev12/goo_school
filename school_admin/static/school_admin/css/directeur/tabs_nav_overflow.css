@@ -140,3 +140,127 @@
     font-size: 0.75rem;
   }
 }
+
+/* ==========================================================================
+   Onglets de tout le site — v2
+   · une seule ligne : les onglets en trop passent dans le menu « Autres … » (tabs_nav_overflow.js) ;
+   · onglets principaux (.ovf-bar--primary) : pleins, actif bleu ;
+   · onglets secondaires (.ovf-bar--secondary) : soulignés, plus discrets, sous une ligne de séparation.
+   Sélecteurs renforcés pour passer devant les anciens styles propres à chaque page.
+   ========================================================================== */
+.ovf-bar.ovf-bar { display: flex !important; align-items: center; gap: 6px; flex-wrap: nowrap !important; width: 100%; min-width: 0; position: relative; }
+.ovf-bar.ovf-bar > [data-ovf-track] {
+  display: flex !important; flex: 0 1 auto !important; flex-wrap: nowrap !important; align-items: center;
+  gap: 6px; min-width: 0; overflow: visible !important; margin: 0; padding: 0; border: 0; background: none; box-shadow: none;
+}
+.ovf-bar.ovf-bar.ovf-bar .ovf-tab.ovf-tab.ovf-cache.ovf-cache { display: none !important; }
+.ovf-bar.ovf-bar .ovf-more-wrap.ovf-more-wrap:not([hidden]) { display: block !important; }
+.ovf-bar .ovf-tab.ovf-tab { flex: 0 0 auto !important; white-space: nowrap !important; width: auto !important; min-width: 0 !important; max-width: 300px !important; overflow: hidden; text-decoration: none; cursor: pointer; }
+/* Libellés longs (chemins de matières…) coupés avec « … » ; le libellé complet est en info-bulle. */
+.ovf-bar .ovf-tab.ovf-tab > span:not([class*="count"]):not(.badge) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ovf-bar .ovf-more-wrap { flex: 0 0 auto; position: relative; }
+.ovf-bar.ovf-bar .ovf-more-wrap.ovf-more-wrap[hidden] { display: none !important; }
+
+/* ---------- Principaux ---------- */
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab {
+  display: inline-flex !important; align-items: center; gap: 8px; height: 42px; min-height: 42px; padding: 0 16px !important; margin: 0 !important;
+  border: 1px solid var(--ax-line-strong, #d0d5dd) !important; border-radius: 12px !important; background: var(--ax-surface, #fff) !important;
+  color: var(--ax-ink-2, #344054) !important; font: 600 0.88rem/1 var(--ax-font, inherit) !important; box-shadow: none !important;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab i { color: var(--ax-brand, #2563eb); }
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab:hover { border-color: var(--ax-brand, #2563eb) !important; color: var(--ax-brand-ink, #1d47b3) !important; }
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab.active,
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab.is-active,
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab[aria-selected="true"],
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab[aria-current="page"] {
+  background: var(--ax-brand, #2563eb) !important; border-color: var(--ax-brand, #2563eb) !important; color: #fff !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25) !important;
+}
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab.active i,
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab.is-active i,
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab[aria-selected="true"] i,
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab[aria-current="page"] i { color: #fff; }
+
+/* ---------- Secondaires ---------- */
+.ovf-bar.ovf-bar--secondary { border-bottom: 1px solid var(--ax-line, #e4e7ec); margin-bottom: 12px; }
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab {
+  display: inline-flex !important; align-items: center; gap: 7px; height: 40px; min-height: 40px; padding: 0 12px !important; margin: 0 0 -1px !important;
+  border: 0 !important; border-bottom: 2px solid transparent !important; border-radius: 0 !important; background: transparent !important;
+  color: var(--ax-muted, #667085) !important; font: 600 0.84rem/1 var(--ax-font, inherit) !important; box-shadow: none !important;
+}
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab i { color: inherit; opacity: 0.8; font-size: 0.82em; }
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab:hover { color: var(--ax-ink, #101828) !important; border-bottom-color: var(--ax-line-strong, #d0d5dd) !important; }
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab.active,
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab.is-active,
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab[aria-selected="true"],
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab[aria-current="page"] {
+  color: var(--ax-brand-ink, #1d47b3) !important; border-bottom-color: var(--ax-brand, #2563eb) !important; background: transparent !important;
+}
+
+/* ---------- Compteurs dans les onglets ---------- */
+.ovf-bar .ovf-tab .tab-count, .ovf-bar .ovf-tab .count, .ovf-bar .ovf-tab .badge, .ovf-bar .ovf-tab b, .ovf-bar .ovf-tab small {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 7px;
+  border-radius: 999px; background: var(--ax-surface-2, #f2f4f7) !important; color: var(--ax-ink-2, #344054) !important;
+  font-size: 0.72rem; font-weight: 700; line-height: 1;
+}
+.ovf-bar.ovf-bar--primary .ovf-tab.active .tab-count, .ovf-bar.ovf-bar--primary .ovf-tab.is-active .tab-count,
+.ovf-bar.ovf-bar--primary .ovf-tab[aria-selected="true"] .tab-count, .ovf-bar.ovf-bar--primary .ovf-tab.active b,
+.ovf-bar.ovf-bar--primary .ovf-tab.is-active b, .ovf-bar.ovf-bar--primary .ovf-tab.active small, .ovf-bar.ovf-bar--primary .ovf-tab.is-active small {
+  background: rgba(255, 255, 255, 0.22) !important; color: #fff !important;
+}
+.ovf-bar.ovf-bar--secondary .ovf-tab.active .tab-count, .ovf-bar.ovf-bar--secondary .ovf-tab.is-active .tab-count,
+.ovf-bar.ovf-bar--secondary .ovf-tab[aria-selected="true"] .tab-count, .ovf-bar.ovf-bar--secondary .ovf-tab.active b,
+.ovf-bar.ovf-bar--secondary .ovf-tab.is-active b {
+  background: var(--ax-brand-soft, #e8efff) !important; color: var(--ax-brand-ink, #1d47b3) !important;
+}
+
+/* ---------- Bouton « Autres … » ---------- */
+.ovf-bar .ovf-more-btn.ovf-more-btn {
+  display: inline-flex !important; align-items: center; gap: 7px; min-width: 0; max-width: none; padding: 0 12px !important; margin: 0;
+  font: 600 0.84rem/1 var(--ax-font, inherit) !important; cursor: pointer; white-space: nowrap; box-shadow: none !important;
+}
+.ovf-bar.ovf-bar--primary .ovf-more-btn.ovf-more-btn {
+  height: 42px; min-height: 42px; border: 1px dashed var(--ax-line-strong, #98a2b3) !important; border-radius: 12px !important;
+  background: var(--ax-surface-2, #f9fafb) !important; color: var(--ax-ink-2, #344054) !important;
+}
+.ovf-bar.ovf-bar--secondary .ovf-more-btn.ovf-more-btn {
+  height: 40px; min-height: 40px; border: 0 !important; border-radius: 8px !important; background: transparent !important; color: var(--ax-brand-ink, #1d47b3) !important;
+}
+.ovf-bar .ovf-more-btn.ovf-more-btn:hover, .ovf-bar .ovf-more-btn.ovf-more-btn[aria-expanded="true"] {
+  border-color: var(--ax-brand, #2563eb) !important; color: var(--ax-brand-ink, #1d47b3) !important; background: var(--ax-brand-soft, #e8efff) !important;
+}
+.ovf-bar .ovf-more-count {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: var(--ax-brand, #2563eb); color: #fff; font-size: 0.72rem; font-weight: 700;
+}
+.ovf-bar .ovf-more-chevron { font-size: 0.7rem; transition: transform 0.15s; }
+.ovf-bar .ovf-more-btn[aria-expanded="true"] .ovf-more-chevron { transform: rotate(180deg); }
+
+/* ---------- Menu des onglets masqués ---------- */
+.ovf-bar .ovf-more-wrap [role="menu"] {
+  position: absolute; top: calc(100% + 6px); left: 0; right: auto; z-index: 1300; min-width: 220px; max-width: min(320px, calc(100vw - 24px));
+  max-height: min(360px, 60vh); overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px;
+  border: 1px solid var(--ax-line, #e4e7ec); border-radius: 12px; background: var(--ax-surface, #fff); box-shadow: 0 12px 32px rgba(16, 24, 40, 0.16);
+}
+.ovf-bar .ovf-more-wrap [role="menu"][hidden] { display: none !important; }
+.ovf-bar .ovf-more-wrap [role="menu"].ovf-menu--right { left: auto; right: 0; }
+.ovf-bar .ovf-menu-item {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 8px 10px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--ax-ink, #101828); font: 600 0.85rem/1.2 var(--ax-font, inherit); text-align: left; cursor: pointer;
+}
+.ovf-bar .ovf-menu-item * { position: static !important; height: auto !important; max-height: none !important; line-height: 1.35 !important;
+  white-space: normal !important; overflow: visible !important; transform: none !important; margin: 0 !important; }
+.ovf-bar .ovf-menu-item { flex: 0 0 auto !important; line-height: 1.35 !important; height: auto !important; align-items: flex-start !important; }
+.ovf-bar .ovf-menu-item:hover { background: var(--ax-surface-2, #f2f4f7); }
+.ovf-bar .ovf-menu-item.is-active { background: var(--ax-brand-soft, #e8efff); color: var(--ax-brand-ink, #1d47b3); }
+.ovf-bar .ovf-menu-item i { width: 16px; color: var(--ax-brand, #2563eb); }
+.ovf-bar .ovf-menu-item .tab-count, .ovf-bar .ovf-menu-item b, .ovf-bar .ovf-menu-item small, .ovf-bar .ovf-menu-item .count {
+  margin-left: auto; padding: 1px 7px; border-radius: 999px; background: var(--ax-surface-2, #f2f4f7); font-size: 0.72rem;
+}
+
+@media (max-width: 520px) {
+  .ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab { height: 40px; min-height: 40px; padding: 0 12px !important; font-size: 0.84rem !important; }
+  .ovf-bar .ovf-more-btn .tabs-overflow-more-label, .ovf-bar .ovf-more-btn .matiere-tabs-more-label, .ovf-bar .ovf-more-btn .cls-cat-more-label { display: none; }
+  .ovf-bar .ovf-more-btn.ovf-more-btn::before { content: "Plus"; }
+}

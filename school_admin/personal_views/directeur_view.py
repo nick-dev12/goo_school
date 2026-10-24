@@ -7125,12 +7125,11 @@ def gestion_periodes_scolaires(request):
                 'label': 'Non rattachés (anciennes données)',
                 'periodes': legacy,
             })
+        # Un onglet par niveau qui a au moins une période (les autres s'ajoutent via « Nouveau semestre »).
         for code, label in NIVEAUX_PERIODE_SUPERIEUR:
-            periodes_tabs.append({
-                'code': code,
-                'label': label,
-                'periodes': [p for p in periodes_list if (p.niveau_lmd or '') == code],
-            })
+            du_niveau = [p for p in periodes_list if (p.niveau_lmd or '') == code]
+            if du_niveau:
+                periodes_tabs.append({'code': code, 'label': label, 'periodes': du_niveau})
 
     semestres_par_niveau_json = json.dumps(
         {k: [[a, b] for a, b in v] for k, v in SEMESTRES_PAR_NIVEAU_LMD.items()},

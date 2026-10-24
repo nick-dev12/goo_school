@@ -1,410 +1,397 @@
-// Overflow générique des barres d'onglets (directeur)
+// Barres d'onglets de tout le site : débordement (« Autres … ») et niveau principal / secondaire.
+//
+// Chaque barre n'affiche que les onglets qui tiennent sur une ligne, suivis d'un bouton qui ouvre
+// la liste des autres. Les onglets en trop restent à leur place dans le DOM (masqués par la classe
+// ovf-cache) : le menu contient des copies qui déclenchent l'onglet d'origine. Les écouteurs posés
+// par les pages, les formulaires et les liens continuent donc de fonctionner.
+//
+// Niveau : une barre placée dans le panneau d'un autre onglet (ou marquée data-tabs-level="secondary")
+// est secondaire et reçoit un style souligné ; les autres sont principales (onglets pleins).
+(function () {
+    'use strict';
 
-var TABS_OVERFLOW_GAP = 6;
-var TABS_OVERFLOW_MORE_WIDTH = 140;
-
-var TAB_BUTTON_SELECTORS = [
-    '.cls-cat-btn',
-    '.matiere-tab-btn',
-    '.edt-cat-btn',
-    '.tab-btn',
-    '.tab-button',
-    '.sub-tab-button'
-];
-
-var OVERFLOW_PRESETS = [
-    {
-        bar: '.cls-cat-nav-bar',
-        track: '.cls-cat-nav-track',
-        menu: '.cls-cat-overflow-menu',
-        moreWrap: '.cls-cat-more-wrap',
-        moreBtn: '.cls-cat-more-btn',
-        label: '.cls-cat-more-label',
-        btn: '.cls-cat-btn'
-    },
-    {
-        bar: '.matiere-tabs-bar',
-        track: '.matiere-tabs-track',
-        menu: '.matiere-tabs-overflow-menu',
-        moreWrap: '.matiere-tabs-more-wrap',
-        moreBtn: '.matiere-tabs-more-btn',
-        label: '.matiere-tabs-more-label',
-        btn: '.matiere-tab-btn, .tab-btn'
-    },
-    {
-        bar: '.tabs-overflow-bar',
-        track: '.tabs-overflow-track',
-        menu: '.tabs-overflow-menu',
-        moreWrap: '.tabs-overflow-more-wrap',
-        moreBtn: '.tabs-overflow-more-btn',
-        label: '.tabs-overflow-more-label',
-        btn: null
+    if (window.__ovfTabsBooted) {
+        return;
     }
-];
+    window.__ovfTabsBooted = true;
 
-function bootTabsNavOverflow() {
-    autoEnhanceTabTracks();
-    OVERFLOW_PRESETS.forEach(function (preset) {
-        document.querySelectorAll(preset.bar).forEach(function (bar) {
-            initTabsOverflowBar(bar, preset);
+    var PRESETS = [
+        {
+            bar: '.matiere-tabs-bar', track: '.matiere-tabs-track', moreWrap: '.matiere-tabs-more-wrap',
+            moreBtn: '.matiere-tabs-more-btn', menu: '.matiere-tabs-overflow-menu', label: '.matiere-tabs-more-label'
+        },
+        {
+            bar: '.cls-cat-nav-bar', track: '.cls-cat-nav-track', moreWrap: '.cls-cat-more-wrap',
+            moreBtn: '.cls-cat-more-btn', menu: '.cls-cat-overflow-menu', label: '.cls-cat-more-label'
+        },
+        {
+            bar: '.tabs-overflow-bar', track: '.tabs-overflow-track', moreWrap: '.tabs-overflow-more-wrap',
+            moreBtn: '.tabs-overflow-more-btn', menu: '.tabs-overflow-menu', label: '.tabs-overflow-more-label'
+        }
+    ];
+    var BAR_SELECTOR = PRESETS.map(function (p) { return p.bar; }).join(',');
+
+    // Conteneurs candidats : ils ne sont retenus que s'ils ne contiennent qu'une suite d'onglets.
+    var CANDIDATS = [
+        '[role="tablist"]', '.tabs-nav', '.sub-tabs', 'nav[class*="tabs"]', 'div[class*="tabs"]',
+        'form[class*="tabs"]', 'nav[class*="tab-bar"]', 'div[class*="tab-bar"]'
+    ].join(',');
+    var ITEM_SELECTOR = ':scope > button, :scope > a, :scope > [role="tab"]';
+    var PANNEAUX = [
+        '[role="tabpanel"]', '[data-main-panel]', '[data-tab-panel]', '.tab-content', '.tab-pane',
+        '[class*="tab-panel"]', '[class*="tab-pane"]', '[class*="tab-content"]'
+    ].join(',');
+
+    function presetOf(bar) {
+        for (var i = 0; i < PRESETS.length; i += 1) {
+            if (bar.matches(PRESETS[i].bar)) {
+                return PRESETS[i];
+            }
+        }
+        return null;
+    }
+
+    function isActive(el) {
+        return el.classList.contains('active') || el.classList.contains('is-active') ||
+            el.getAttribute('aria-selected') === 'true' || el.getAttribute('aria-current') === 'page';
+    }
+
+    function itemsOf(track) {
+        return Array.prototype.filter.call(track.querySelectorAll(ITEM_SELECTOR), function (el) {
+            return !el.hasAttribute('hidden') && !el.matches('[class*="more-btn"], .ovf-more-btn');
         });
-    });
-    wrapGlobalTabSwitchers();
-}
+    }
 
-function wrapGlobalTabSwitchers() {
-    ['switchMainTab', 'showSubTab', 'showTab'].forEach(function (name) {
-        if (typeof window[name] !== 'function' || window[name].__overflowWrapped) {
+    // ---------------------------------------------------------------- niveau principal / secondaire
+    function levelOf(bar) {
+        var explicite = bar.closest('[data-tabs-level]');
+        if (explicite) {
+            return explicite.getAttribute('data-tabs-level') === 'secondary' ? 'secondary' : 'primary';
+        }
+        var track = bar.querySelector('[data-ovf-track]') || bar;
+        if (/subtab|sub-tab/.test(track.className + ' ' + (bar.parentElement ? bar.parentElement.className : ''))) {
+            return 'secondary';
+        }
+        // Dans le panneau d'un onglet, avec une barre placée avant hors de ce panneau : secondaire.
+        var panneau = bar.parentElement ? bar.parentElement.closest(PANNEAUX) : null;
+        var premiere = document.querySelector(BAR_SELECTOR);
+        if (panneau && premiere && premiere !== bar && !panneau.contains(premiere)) {
+            return 'secondary';
+        }
+        return 'primary';
+    }
+
+    // ---------------------------------------------------------------- création d'une barre générique
+    function buildGenericBar(track) {
+        var plural = track.getAttribute('data-overflow-items-label') || 'onglets';
+        var bar = document.createElement('div');
+        bar.className = 'tabs-overflow-bar';
+        bar.setAttribute('data-overflow-items-label', plural);
+        bar.setAttribute('data-overflow-item-label', track.getAttribute('data-overflow-item-label') || 'onglet');
+        track.parentNode.insertBefore(bar, track);
+        bar.appendChild(track);
+        track.classList.add('tabs-overflow-track');
+
+        var wrap = document.createElement('div');
+        wrap.className = 'tabs-overflow-more-wrap';
+        wrap.hidden = true;
+        wrap.innerHTML =
+            '<button type="button" class="tabs-overflow-more-btn" aria-expanded="false" aria-haspopup="true">' +
+            '<span class="tabs-overflow-more-label"></span></button>' +
+            '<div class="tabs-overflow-menu" role="menu" hidden></div>';
+        bar.appendChild(wrap);
+        return bar;
+    }
+
+    function enhanceCandidates(root) {
+        (root || document).querySelectorAll(CANDIDATS).forEach(function (track) {
+            if (track.dataset.ovfTrack || track.getAttribute('data-tabs-overflow') === 'off' ||
+                track.closest(BAR_SELECTOR) || track.closest('[data-tabs-overflow="off"]')) {
+                return;
+            }
+            var items = itemsOf(track);
+            if (items.length < 2) {
+                return;
+            }
+            // Uniquement une suite d'onglets (champs cachés tolérés), pas un bloc de mise en page.
+            var autres = Array.prototype.filter.call(track.children, function (c) {
+                return items.indexOf(c) === -1 && !(c.tagName === 'INPUT' && c.type === 'hidden') &&
+                    c.tagName !== 'SCRIPT' && !c.hasAttribute('hidden');
+            });
+            if (autres.length) {
+                return;
+            }
+            initBar(buildGenericBar(track));
+        });
+        document.querySelectorAll(BAR_SELECTOR).forEach(function (bar) {
+            if (!bar.dataset.ovfInit) {
+                initBar(bar);
+            }
+        });
+    }
+
+    // ---------------------------------------------------------------- mise en page
+    function parts(bar) {
+        var p = presetOf(bar);
+        if (!p) {
+            return null;
+        }
+        var track = bar.querySelector(p.track);
+        var wrap = bar.querySelector(p.moreWrap);
+        var btn = bar.querySelector(p.moreBtn);
+        var menu = bar.querySelector(p.menu);
+        if (!track || !wrap || !btn || !menu) {
+            return null;
+        }
+        return { track: track, wrap: wrap, btn: btn, menu: menu, label: bar.querySelector(p.label) };
+    }
+
+    function closeMenu(bar) {
+        var q = parts(bar);
+        if (q) {
+            q.menu.hidden = true;
+            q.btn.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    function gapOf(track) {
+        var g = parseFloat(window.getComputedStyle(track).columnGap);
+        return isNaN(g) ? 6 : g;
+    }
+
+    function setMoreLabel(bar, q, count) {
+        var plural = bar.getAttribute('data-overflow-items-label') || 'onglets';
+        var singulier = bar.getAttribute('data-overflow-item-label') || 'onglet';
+        var texte = count > 1 ? 'Afficher ' + count + ' autres ' + plural : 'Afficher 1 autre ' + singulier;
+        if (q.label) {
+            q.label.textContent = 'Autres ' + plural;
+        }
+        var badge = q.btn.querySelector('.ovf-more-count');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'ovf-more-count';
+            q.btn.appendChild(badge);
+        }
+        badge.textContent = String(count);
+        if (!q.btn.querySelector('.ovf-more-chevron')) {
+            var chevron = document.createElement('i');
+            chevron.className = 'fas fa-chevron-down ovf-more-chevron';
+            chevron.setAttribute('aria-hidden', 'true');
+            q.btn.appendChild(chevron);
+        }
+        Array.prototype.forEach.call(q.btn.querySelectorAll('i:not(.ovf-more-chevron)'), function (i) {
+            i.remove();
+        });
+        q.btn.setAttribute('aria-label', texte);
+        q.btn.setAttribute('title', texte);
+    }
+
+    function buildMenu(bar, q, caches) {
+        q.menu.innerHTML = '';
+        caches.forEach(function (orig) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'ovf-menu-item' + (isActive(orig) ? ' is-active' : '');
+            item.setAttribute('role', 'menuitem');
+            item.innerHTML = orig.innerHTML;
+            Array.prototype.forEach.call(item.querySelectorAll('[id]'), function (n) { n.removeAttribute('id'); });
+            item.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                closeMenu(bar);
+                orig.click();
+                window.requestAnimationFrame(function () { layout(bar); });
+            });
+            q.menu.appendChild(item);
+        });
+    }
+
+    function layout(bar) {
+        var q = parts(bar);
+        if (!q) {
             return;
         }
-        var original = window[name];
-        window[name] = function () {
-            var result = original.apply(this, arguments);
-            window.layoutTabsOverflowNav();
-            return result;
-        };
-        window[name].__overflowWrapped = true;
-    });
-}
+        var items = itemsOf(q.track);
+        items.forEach(function (el) { el.classList.remove('ovf-cache'); });
+        q.wrap.hidden = true;
+        closeMenu(bar);
+        bar.dataset.ovfActive = String(items.findIndex(isActive));
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootTabsNavOverflow);
-} else {
-    bootTabsNavOverflow();
-}
+        var dispo = bar.clientWidth;
+        if (!dispo || items.length < 2) {
+            return;
+        }
+        var gap = gapOf(q.track);
+        var largeurs = items.map(function (el) { return el.offsetWidth; });
+        var total = largeurs.reduce(function (a, w) { return a + w + gap; }, 0) - gap;
+        if (total <= dispo + 1) {
+            return;
+        }
 
-function resolveTabButtons(container, btnSelector) {
-    if (btnSelector) {
-        return Array.prototype.slice.call(container.querySelectorAll(btnSelector));
+        q.wrap.hidden = false;
+        setMoreLabel(bar, q, items.length);
+        var place = dispo - q.wrap.offsetWidth - gap;
+        var visibles = [];
+        var utilise = 0;
+        for (var i = 0; i < items.length; i += 1) {
+            var w = largeurs[i] + (visibles.length ? gap : 0);
+            if (utilise + w > place && visibles.length) {
+                break;
+            }
+            visibles.push(i);
+            utilise += w;
+        }
+        // L'onglet actif reste toujours visible : on retire les derniers visibles jusqu'à ce qu'il tienne.
+        var actif = items.findIndex(isActive);
+        if (actif >= 0 && visibles.indexOf(actif) === -1) {
+            while (visibles.length && utilise + gap + largeurs[actif] > place) {
+                var retire = visibles.pop();
+                utilise -= largeurs[retire] + (visibles.length ? gap : 0);
+            }
+            visibles.push(actif);
+        }
+        var caches = items.filter(function (el, idx) { return visibles.indexOf(idx) === -1; });
+        if (!caches.length) {
+            q.wrap.hidden = true;
+            return;
+        }
+        caches.forEach(function (el) { el.classList.add('ovf-cache'); });
+        setMoreLabel(bar, q, caches.length);
+        buildMenu(bar, q, caches);
     }
-    var i;
-    for (i = 0; i < TAB_BUTTON_SELECTORS.length; i += 1) {
-        var found = container.querySelectorAll(TAB_BUTTON_SELECTORS[i]);
-        if (found.length) {
-            return Array.prototype.slice.call(found);
+
+    function toggleMenu(bar) {
+        var q = parts(bar);
+        if (!q) {
+            return;
+        }
+        if (!q.menu.hidden) {
+            closeMenu(bar);
+            return;
+        }
+        document.querySelectorAll(BAR_SELECTOR).forEach(function (b) { if (b !== bar) { closeMenu(b); } });
+        q.menu.hidden = false;
+        q.btn.setAttribute('aria-expanded', 'true');
+        // Ouvre vers la gauche si le menu sortirait de l'écran.
+        q.menu.classList.remove('ovf-menu--right');
+        if (q.menu.getBoundingClientRect().right > window.innerWidth - 8) {
+            q.menu.classList.add('ovf-menu--right');
         }
     }
-    return Array.prototype.slice.call(container.querySelectorAll(':scope > button'));
-}
 
-function detectOverflowLabels(track) {
-    var labelled = track.closest('[data-overflow-items-label]');
-    if (labelled) {
-        return {
-            singular: labelled.getAttribute('data-overflow-item-label') || 'élément',
-            plural: labelled.getAttribute('data-overflow-items-label') || 'éléments'
-        };
-    }
-    if (track.closest('.types-tabs, .salles-section')) {
-        return { singular: 'type', plural: 'types' };
-    }
-    if (track.closest('.sub-tabs-container')) {
-        return { singular: 'niveau', plural: 'niveaux' };
-    }
-    if (track.closest('.tabs-container, .tabs-header, .main-content-container, .page-container')) {
-        return { singular: 'niveau', plural: 'niveaux' };
-    }
-    return { singular: 'élément', plural: 'éléments' };
-}
-
-function autoEnhanceTabTracks() {
-    var selectors = [
-        '.types-tabs > .tabs-nav',
-        '.tabs-header > .tabs-nav',
-        '.tabs-container > .tabs-nav',
-        '.sub-tabs-container > .sub-tabs'
-    ];
-
-    selectors.forEach(function (selector) {
-        document.querySelectorAll(selector).forEach(function (track) {
-            enhanceTabTrack(track);
+    function initBar(bar) {
+        var q = parts(bar);
+        if (!q || bar.dataset.ovfInit) {
+            return;
+        }
+        bar.dataset.ovfInit = '1';
+        q.track.dataset.ovfTrack = '1';
+        q.wrap.classList.add('ovf-more-wrap');
+        q.btn.classList.add('ovf-more-btn');
+        bar.classList.add('ovf-bar', 'ovf-bar--' + levelOf(bar));
+        itemsOf(q.track).forEach(function (el) {
+            el.classList.add('ovf-tab');
+            if (!el.getAttribute('title')) {
+                el.setAttribute('title', el.textContent.replace(/\s+/g, ' ').trim());
+            }
         });
-    });
-}
 
-function enhanceTabTrack(track) {
-    if (!track || track.dataset.overflowEnhanced === '1') {
-        return;
-    }
-    if (track.closest('.tabs-overflow-bar, .matiere-tabs-bar, .cls-cat-nav-bar')) {
-        return;
-    }
-    if (track.getAttribute('data-tabs-overflow') === 'off') {
-        return;
-    }
-
-    var buttons = resolveTabButtons(track);
-    if (buttons.length < 2) {
-        return;
-    }
-
-    var labels = detectOverflowLabels(track);
-    var bar = document.createElement('div');
-    bar.className = 'tabs-overflow-bar';
-    bar.setAttribute('data-overflow-item-label', labels.singular);
-    bar.setAttribute('data-overflow-items-label', labels.plural);
-
-    var parent = track.parentNode;
-    parent.insertBefore(bar, track);
-
-    track.classList.add('tabs-overflow-track');
-    bar.appendChild(track);
-
-    var moreWrap = document.createElement('div');
-    moreWrap.className = 'tabs-overflow-more-wrap';
-    moreWrap.hidden = true;
-
-    var moreBtn = document.createElement('button');
-    moreBtn.type = 'button';
-    moreBtn.className = 'tabs-overflow-more-btn';
-    moreBtn.setAttribute('aria-expanded', 'false');
-    moreBtn.setAttribute('aria-haspopup', 'true');
-    moreBtn.innerHTML =
-        '<i class="fas fa-chevron-down" aria-hidden="true"></i>' +
-        '<span class="tabs-overflow-more-label">Autres ' + labels.plural + '</span>';
-
-    var menu = document.createElement('div');
-    menu.className = 'tabs-overflow-menu';
-    menu.setAttribute('role', 'menu');
-    menu.hidden = true;
-
-    moreWrap.appendChild(moreBtn);
-    moreWrap.appendChild(menu);
-    bar.appendChild(moreWrap);
-
-    buttons.forEach(function (btn, index) {
-        if (!btn.getAttribute('data-order')) {
-            btn.setAttribute('data-order', String(index));
+        layout(bar);
+        if (typeof ResizeObserver !== 'undefined') {
+            var largeur = bar.clientWidth;
+            new ResizeObserver(function () {
+                if (bar.clientWidth !== largeur) {
+                    largeur = bar.clientWidth;
+                    layout(bar);
+                }
+            }).observe(bar);
         }
-    });
-
-    track.dataset.overflowEnhanced = '1';
-    initTabsOverflowBar(bar, OVERFLOW_PRESETS[2]);
-}
-
-function getOverflowButtons(bar, preset) {
-    var track = bar.querySelector(preset.track);
-    var menu = bar.querySelector(preset.menu);
-    if (!track || !menu) {
-        return [];
+        // Changement d'onglet piloté par la page (clic, script, URL) : on recalcule si l'actif change.
+        new MutationObserver(function () {
+            var actif = String(itemsOf(q.track).findIndex(isActive));
+            if (actif !== bar.dataset.ovfActive) {
+                window.requestAnimationFrame(function () { layout(bar); });
+            }
+        }).observe(q.track, { subtree: true, attributes: true, attributeFilter: ['class', 'aria-selected', 'aria-current'] });
     }
 
-    var buttons = resolveTabButtons(track, preset.btn);
-    buttons = buttons.concat(resolveTabButtons(menu, preset.btn));
-    buttons.sort(function (a, b) {
-        return parseInt(a.getAttribute('data-order') || '0', 10) - parseInt(b.getAttribute('data-order') || '0', 10);
-    });
-    return buttons;
-}
-
-function closeTabsOverflowMenu(bar, preset) {
-    var menu = bar.querySelector(preset.menu);
-    var moreBtn = bar.querySelector(preset.moreBtn);
-    if (!menu || !moreBtn) {
-        return;
-    }
-    menu.hidden = true;
-    moreBtn.setAttribute('aria-expanded', 'false');
-}
-
-function updateTabsOverflowLabel(bar, preset, overflowCount) {
-    var labelEl = bar.querySelector(preset.label);
-    var moreBtn = bar.querySelector(preset.moreBtn);
-    if (!labelEl || !moreBtn) {
-        return;
-    }
-
-    var singular = bar.getAttribute('data-overflow-item-label') || 'élément';
-    var plural = bar.getAttribute('data-overflow-items-label') || 'éléments';
-    var count = overflowCount || 0;
-
-    labelEl.textContent = 'Autres ' + plural;
-    moreBtn.setAttribute(
-        'aria-label',
-        'Afficher ' + count + ' autre' + (count > 1 ? 's' : '') + ' ' + (count > 1 ? plural : singular)
-    );
-    moreBtn.setAttribute(
-        'title',
-        'Afficher ' + count + ' autre' + (count > 1 ? 's' : '') + ' ' + (count > 1 ? plural : singular)
-    );
-}
-
-function layoutTabsOverflowBar(bar, preset) {
-    var track = bar.querySelector(preset.track);
-    var menu = bar.querySelector(preset.menu);
-    var moreWrap = bar.querySelector(preset.moreWrap);
-    var moreBtn = bar.querySelector(preset.moreBtn);
-    if (!track || !menu || !moreWrap) {
-        return;
-    }
-
-    var allButtons = getOverflowButtons(bar, preset);
-    if (!allButtons.length) {
-        return;
-    }
-
-    allButtons.forEach(function (btn) {
-        track.appendChild(btn);
-    });
-    menu.innerHTML = '';
-    moreWrap.hidden = true;
-    closeTabsOverflowMenu(bar, preset);
-
-    var totalWidth = 0;
-    allButtons.forEach(function (btn) {
-        totalWidth += btn.offsetWidth + TABS_OVERFLOW_GAP;
-    });
-
-    if (totalWidth <= bar.clientWidth) {
-        return;
-    }
-
-    moreWrap.hidden = false;
-    var moreBtnWidth = moreBtn ? moreBtn.offsetWidth + TABS_OVERFLOW_GAP : TABS_OVERFLOW_MORE_WIDTH;
-    var availableWidth = Math.max(bar.clientWidth - moreBtnWidth, 100);
-    var usedWidth = 0;
-    var splitAt = allButtons.length;
-
-    for (var i = 0; i < allButtons.length; i += 1) {
-        var btnWidth = allButtons[i].offsetWidth + TABS_OVERFLOW_GAP;
-        if (i > 0 && usedWidth + btnWidth > availableWidth) {
-            splitAt = i;
-            break;
-        }
-        usedWidth += btnWidth;
-    }
-
-    var activeBtn = allButtons.filter(function (b) {
-        return b.classList.contains('active');
-    })[0];
-    var activeIndex = activeBtn ? allButtons.indexOf(activeBtn) : 0;
-
-    if (activeIndex >= splitAt && splitAt > 0) {
-        var lastVisible = allButtons[splitAt - 1];
-        var active = allButtons[activeIndex];
-        allButtons[splitAt - 1] = active;
-        allButtons[activeIndex] = lastVisible;
-    }
-
-    var visibleButtons = allButtons.slice(0, splitAt);
-    var overflowButtons = allButtons.slice(splitAt);
-
-    visibleButtons.forEach(function (btn) {
-        track.appendChild(btn);
-    });
-
-    if (overflowButtons.length) {
-        overflowButtons.forEach(function (btn) {
-            menu.appendChild(btn);
-        });
-        moreWrap.hidden = false;
-        updateTabsOverflowLabel(bar, preset, overflowButtons.length);
-    } else {
-        moreWrap.hidden = true;
-    }
-}
-
-function resolveOverflowPreset(bar) {
-    var i;
-    for (i = 0; i < OVERFLOW_PRESETS.length; i += 1) {
-        if (bar.matches(OVERFLOW_PRESETS[i].bar)) {
-            return OVERFLOW_PRESETS[i];
-        }
-    }
-    return null;
-}
-
-function toggleTabsOverflowMenu(bar, preset) {
-    var menu = bar.querySelector(preset.menu);
-    var moreBtn = bar.querySelector(preset.moreBtn);
-    if (!menu || !moreBtn) {
-        return;
-    }
-    if (!menu.hidden) {
-        closeTabsOverflowMenu(bar, preset);
-    } else {
-        menu.hidden = false;
-        moreBtn.setAttribute('aria-expanded', 'true');
-    }
-}
-
-function initTabsOverflowBar(bar, preset) {
-    if (bar.dataset.overflowInit === '1') {
-        layoutTabsOverflowBar(bar, preset);
-        return;
-    }
-
-    var moreBtn = bar.querySelector(preset.moreBtn);
-    var menu = bar.querySelector(preset.menu);
-    if (!moreBtn || !menu) {
-        return;
-    }
-
-    bar.dataset.overflowInit = '1';
-    layoutTabsOverflowBar(bar, preset);
-
-    if (typeof ResizeObserver !== 'undefined') {
-        var observer = new ResizeObserver(function () {
-            layoutTabsOverflowBar(bar, preset);
-        });
-        observer.observe(bar);
-    } else {
-        window.addEventListener('resize', function () {
-            layoutTabsOverflowBar(bar, preset);
-        });
-    }
-
-    bar.addEventListener('click', function (event) {
-        var btnSelector = preset.btn || TAB_BUTTON_SELECTORS.join(',');
-        if (event.target.closest(btnSelector)) {
-            closeTabsOverflowMenu(bar, preset);
-            window.requestAnimationFrame(function () {
-                layoutTabsOverflowBar(bar, preset);
-            });
-        }
-    });
-
+    // ---------------------------------------------------------------- événements globaux
     document.addEventListener('click', function (event) {
-        if (!bar.contains(event.target)) {
-            closeTabsOverflowMenu(bar, preset);
+        var btn = event.target.closest('.ovf-more-btn');
+        if (btn) {
+            var bar = btn.closest(BAR_SELECTOR);
+            if (bar) {
+                event.preventDefault();
+                event.stopPropagation();
+                toggleMenu(bar);
+            }
+            return;
         }
-    });
+        document.querySelectorAll(BAR_SELECTOR).forEach(function (b) {
+            if (!b.contains(event.target)) {
+                closeMenu(b);
+            }
+        });
+    }, true);
 
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
-            closeTabsOverflowMenu(bar, preset);
+            document.querySelectorAll(BAR_SELECTOR).forEach(closeMenu);
         }
     });
-}
 
-if (!window.__tabsOverflowCaptureBound) {
-    window.__tabsOverflowCaptureBound = true;
-    document.addEventListener('click', function (event) {
-        var moreBtn = event.target.closest('.matiere-tabs-more-btn, .tabs-overflow-more-btn, .cls-cat-more-btn');
-        if (!moreBtn) {
-            return;
+    window.addEventListener('resize', function () {
+        if (typeof ResizeObserver === 'undefined') {
+            window.layoutTabsOverflowNav();
         }
-        var bar = moreBtn.closest('.matiere-tabs-bar, .tabs-overflow-bar, .cls-cat-nav-bar');
-        if (!bar) {
-            return;
-        }
-        var preset = resolveOverflowPreset(bar);
-        if (!preset) {
-            return;
-        }
-        event.preventDefault();
-        event.stopPropagation();
-        toggleTabsOverflowMenu(bar, preset);
-    }, true);
-}
+    });
 
-window.layoutTabsOverflowNav = function () {
-    OVERFLOW_PRESETS.forEach(function (preset) {
-        document.querySelectorAll(preset.bar).forEach(function (bar) {
-            layoutTabsOverflowBar(bar, preset);
+    function wrapGlobalTabSwitchers() {
+        ['switchMainTab', 'showSubTab', 'showTab'].forEach(function (name) {
+            if (typeof window[name] !== 'function' || window[name].__overflowWrapped) {
+                return;
+            }
+            var original = window[name];
+            window[name] = function () {
+                var result = original.apply(this, arguments);
+                window.layoutTabsOverflowNav();
+                return result;
+            };
+            window[name].__overflowWrapped = true;
         });
-    });
-};
+    }
 
-window.layoutMatiereTabsNav = window.layoutTabsOverflowNav;
-window.layoutClassesCategoryNav = window.layoutTabsOverflowNav;
+    window.layoutTabsOverflowNav = function () {
+        enhanceCandidates(document);
+        document.querySelectorAll(BAR_SELECTOR).forEach(layout);
+    };
+    window.layoutMatiereTabsNav = window.layoutTabsOverflowNav;
+    window.layoutClassesCategoryNav = window.layoutTabsOverflowNav;
+
+    function boot() {
+        enhanceCandidates(document);
+        wrapGlobalTabSwitchers();
+        // Contenu remplacé en direct (temps réel, partiels) : nouvelles barres à équiper.
+        var attente = null;
+        new MutationObserver(function (mutations) {
+            var ajout = mutations.some(function (m) { return m.addedNodes.length; });
+            if (!ajout || attente) {
+                return;
+            }
+            attente = window.setTimeout(function () {
+                attente = null;
+                enhanceCandidates(document);
+            }, 150);
+        }).observe(document.body, { childList: true, subtree: true });
+        // Les polices (icônes) changent la largeur des onglets après le premier calcul.
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(function () { document.querySelectorAll(BAR_SELECTOR).forEach(layout); });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
+})();

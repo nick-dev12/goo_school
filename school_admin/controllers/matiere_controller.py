@@ -34,6 +34,30 @@ def _index_modules_par_filiere(modules_list, department_ids):
     return indexed
 
 
+def _sx_enrichir_matieres(etablissement, matieres_avec_coefficients):
+    """Écran v4 (hors supérieur) : enseignants et classes de chaque matière.
+
+    Enseignants = affectations du secondaire, ou maître de la classe au primaire (matières confiées).
+    """
+    if etablissement.type_etablissement == 'superieur':
+        return
+    from ..model.affectation_model import AffectationProfesseur
+    from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
+
+    matieres = [item['matiere'] for item in matieres_avec_coefficients]
+    profs = {}
+    for aff in AffectationProfesseur.objects.filter(matiere__in=matieres, actif=True).select_related('professeur'):
+        profs.setdefault(aff.matiere_id, set()).add(f"{aff.professeur.prenom} {aff.professeur.nom}")
+    if etablissement.type_etablissement == 'primary':
+        for aff in AffectationProfesseurPrimaire.objects.filter(
+                classe__etablissement=etablissement, actif=True).select_related('professeur').prefetch_related('matieres'):
+            for m in aff.matieres.all():
+                profs.setdefault(m.id, set()).add(f"{aff.professeur.prenom} {aff.professeur.nom}")
+    for m in matieres:
+        m.sx_profs = sorted(profs.get(m.id, []))
+        m.sx_classes = list(m.classes.all().order_by('nom'))
+
+
 def enrich_liste_matieres_superieur_context(request, etablissement, context, matieres_main_tab=None):
     """Ajoute l'onglet modules et les données associées pour les établissements supérieurs."""
     if not context.get('est_superieur'):
@@ -53,6 +77,27 @@ def enrich_liste_matieres_superieur_context(request, etablissement, context, mat
     context['matieres_main_tab'] = matieres_main_tab
     context['modules'] = mods['modules']
     context['modules_par_filiere'] = mods['modules_par_filiere']
+    # Écran v4 : EC, enseignants, semestres et alertes sous chaque UE (mêmes objets que les listes par niveau).
+    from ..services.structure_v4 import enrichir_modules
+    vus = {}
+    for i, item in enumerate(mods['modules_par_filiere']):
+        item['sx_cle'] = str(i)
+        for j, niv in enumerate(item.get('niveaux') or []):
+            niv['sx_cle'] = f'{i}-{j}'
+            for mod in niv.get('modules') or []:
+                vus.setdefault(mod.id, []).append(mod)
+        for mod in item.get('modules') or []:
+            vus.setdefault(mod.id, []).append(mod)
+    for mod in mods.get('modules') or []:
+        if mod.id not in vus:
+            vus[mod.id] = [mod]
+        elif not any(x is mod for x in vus[mod.id]):  # même UE, autre instance Python
+            vus[mod.id].append(mod)
+    enrichis = {m.id: m for m in enrichir_modules([lst[0] for lst in vus.values()])}
+    for mid, lst in vus.items():
+        for mod in lst[1:]:
+            for attr in ('sx_ec', 'sx_nb_ec', 'sx_semestres', 'sx_classes', 'sx_numero', 'sx_credits', 'sx_alertes', 'sx_texte'):
+                setattr(mod, attr, getattr(enrichis[mid], attr))
     context['modules_stats'] = mods['stats']
     context['show_modal_ajouter'] = mods.get('show_modal_ajouter', False)
     context['modal_form_data'] = mods.get('modal_form_data', {})
@@ -339,6 +384,7 @@ class MatiereController:
             
             matieres_avec_coefficients.append(matiere_data)
 
+        _sx_enrichir_matieres(etablissement, matieres_avec_coefficients)
         matieres_groupes = []
         for type_matiere, label in Matiere.TYPE_MATIERE_CHOICES:
             groupe_items = [
@@ -789,6 +835,7 @@ class MatiereController:
             if count > 0:
                 stats['par_niveau'][label] = count
 
+        _sx_enrichir_matieres(etablissement, matieres_avec_coefficients)
         matieres_groupes = []
         for type_matiere, label in Matiere.TYPE_MATIERE_CHOICES:
             groupe_items = [

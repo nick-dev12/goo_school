@@ -14,8 +14,6 @@
         var root = document.querySelector('[data-classes-main-tabs]');
         if (!root) return;
 
-        var addFiliereHeader = document.getElementById('addFiliereBtnHeader');
-        var addClasseHeader = document.getElementById('addClasseBtn');
 
         function activateTab(target) {
             var buttons = root.querySelectorAll('.gcl-main-tab');
@@ -33,8 +31,6 @@
                 panel.hidden = !show;
             });
 
-            if (addFiliereHeader) addFiliereHeader.hidden = target !== 'specialites';
-            if (addClasseHeader) addClasseHeader.hidden = target !== 'classes';
 
             if (target === 'classes') {
                 window.requestAnimationFrame(layoutOverflow);
@@ -80,6 +76,7 @@
     function initSpecialitesModals() {
         var addFiliereBtn = document.getElementById('addFiliereBtnHeader');
         var addFiliereBtnEmpty = document.getElementById('addFiliereBtnEmpty');
+        var addFiliereBtnCard = document.getElementById('addFiliereBtnCard');
         var filiereModal = document.getElementById('addFiliereModal');
         var modifierFiliereModal = document.getElementById('modifierFiliereModal');
         var formModifierFiliere = document.getElementById('formModifierFiliere');
@@ -128,6 +125,7 @@
 
         if (addFiliereBtn) addFiliereBtn.addEventListener('click', openFiliereModal);
         if (addFiliereBtnEmpty) addFiliereBtnEmpty.addEventListener('click', openFiliereModal);
+        if (addFiliereBtnCard) addFiliereBtnCard.addEventListener('click', openFiliereModal);
         if (closeFiliereModal) closeFiliereModal.addEventListener('click', closeFiliereModalFunc);
         if (cancelFiliere) cancelFiliere.addEventListener('click', closeFiliereModalFunc);
         if (filiereModal) {

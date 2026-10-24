@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Fermer le modal avec la touche Escape
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && addClasseModal.classList.contains('active')) {
+        if (e.key === 'Escape' && addClasseModal && addClasseModal.classList.contains('active')) {
             closeModalFunc();
         }
     });

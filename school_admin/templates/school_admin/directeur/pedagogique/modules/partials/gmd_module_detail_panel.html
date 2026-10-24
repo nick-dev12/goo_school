@@ -1,13 +1,10 @@
 {% load i18n %}
 {% if filiere_panels %}
 <section class="gml-main-panel" data-gmd-detail-zone>
-    <p class="gml-panel-hint">
-        <i class="fas fa-info-circle"></i>
-        {% trans "Choisissez une filière, puis un niveau LMD pour gérer les matières du module." %}
-    </p>
+
 
     <div class="gml-filiere-zone" data-gml-filiere-zone>
-        <div class="gml-filiere-nav">
+        <div class="gml-filiere-nav"{% if filiere_panels|length < 2 %} hidden{% endif %}>
             <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'filière' %}" data-overflow-items-label="{% trans 'filières' %}">
                 <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Filières' %}">
                     {% for panel in filiere_panels %}
@@ -39,7 +36,7 @@
              role="tabpanel"
              {% if not forloop.first %}hidden{% endif %}>
             <div class="gml-niveau-zone" data-gml-niveau-zone>
-                <div class="gml-niveau-nav">
+                <div class="gml-niveau-nav"{% if panel.niveaux_cards|length < 2 %} hidden{% endif %}>
                     <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
                         <div class="matiere-tabs-track" role="tablist">
                             {% for item in panel.niveaux_cards %}
@@ -69,56 +66,44 @@
                      data-niveau-key="{{ item.niveau_key }}"
                      role="tabpanel"
                      {% if not forloop.first %}hidden{% endif %}>
-                    <div class="gml-panel-stats">
-                        <span class="gml-panel-stat"><strong>{{ item.matieres_pour_niveau|length }}</strong> {% trans "Matière(s)" %}</span>
-                        <span class="gml-panel-stat"><strong>{{ item.nb_classes }}</strong> {% trans "Classe(s)" %}</span>
-                        <span class="gml-panel-stat"><strong>{{ item.credits_total }}</strong> {% trans "Crédits" %}</span>
+                    <div class="sx-strip">
+                        <span><i class="fas fa-hashtag" aria-hidden="true"></i>{% if item.numeros_ue %}{{ item.numeros_ue|join:", " }}{% else %}{% trans "N° d’UE non défini" %}{% endif %}</span>
+                        <span><i class="fas fa-calendar" aria-hidden="true"></i>{% for periode in item.periodes %}{{ periode.nom_periode }}{% if not forloop.last %}, {% endif %}{% empty %}{% trans "Semestre non défini" %}{% endfor %}</span>
+                        <span><i class="fas fa-coins" aria-hidden="true"></i><b>{{ item.credits_total|floatformat:"-2" }}</b> ECTS</span>
+                        <span><i class="fas fa-book" aria-hidden="true"></i><b>{{ item.matieres_pour_niveau|length }}</b> EC</span>
+                        <span><i class="fas fa-chalkboard" aria-hidden="true"></i>{% for classe in item.classes %}<a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}">{{ classe.nom }}</a>{% if not forloop.last %}, {% endif %}{% empty %}{% trans "Aucune promotion" %}{% endfor %}</span>
                     </div>
-                    <div class="gmd-niveau-meta">
-                        {% if item.numeros_ue %}
-                        <span class="gml-badge gml-badge--info">UE {{ item.numeros_ue|join:", " }}</span>
-                        {% endif %}
-                        {% for periode in item.periodes %}
-                        <span class="gml-badge gml-badge--muted">{{ periode.nom_periode }}</span>
-                        {% endfor %}
-                    </div>
-                    {% if item.classes %}
-                    <div class="gmd-classes-links">
-                        {% for classe in item.classes %}
-                        <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="gmd-classe-link">{{ classe.nom }}</a>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
 
                     {% if item.matieres_pour_niveau %}
-                    <div class="gml-list-scroll table-responsive">
-                        <div class="gml-list gml-list--matieres">
-                            <div class="gml-list-header">
-                                <div class="gml-list-cell gml-list-cell--title">{% trans "Matière" %}</div>
-                                <div class="gml-list-cell">{% trans "Coef." %}</div>
-                                <div class="gml-list-cell">{% trans "Créd." %}</div>
-                                <div class="gml-list-cell gml-list-cell--actions">{% trans "Actions" %}</div>
-                            </div>
-                            {% for m in item.matieres_pour_niveau %}
-                                {% include 'school_admin/directeur/pedagogique/modules/partials/gmd_matiere_list_row.html' with matiere=m module=module niveau_key=item.niveau_key department_id=panel.department.id %}
-                            {% endfor %}
-                        </div>
-                    </div>
+                    <div class="sx-table-wrap"><table class="sx-table">
+                        <thead><tr><th>{% trans "Élément constitutif (EC)" %}</th><th class="sx-num">{% trans "Coef." %}</th><th class="sx-num">{% trans "Crédits" %}</th><th>{% trans "Enseignant(s)" %}</th><th class="sx-act"><span class="sr-only">{% trans "Actions" %}</span></th></tr></thead>
+                        <tbody>{% for m in item.matieres_pour_niveau %}<tr>
+                            <td class="sx-cell-main"><div class="sx-name"><span class="sx-name__ico"><i class="fas fa-book" aria-hidden="true"></i></span><div class="sx-name__txt"><a href="{% url 'matiere:detail_matiere' m.id %}">{{ m.nom }}</a></div></div></td>
+                            <td class="sx-num" data-label="{% trans 'Coef.' %}">{{ m.coefficient|floatformat:"-2" }}</td>
+                            <td class="sx-num" data-label="{% trans 'Crédits' %}">{% if m.credits %}{{ m.credits|floatformat:"-2" }}{% else %}—{% endif %}</td>
+                            <td data-label="{% trans 'Enseignant(s)' %}">{% for p in m.sx_profs %}<span class="sx-pill sx-pill--info" style="margin:2px">{{ p }}</span>{% empty %}<a class="sx-pill sx-pill--warn" style="text-decoration:none" href="{% url 'affectation:affectation_professeurs' %}">{% trans "À affecter" %}</a>{% endfor %}</td>
+                            <td class="sx-act">
+                                <form method="post" action="{% url 'matiere:detail_module' module.id %}" style="margin:0">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="retirer_matiere_niveau">
+                                    <input type="hidden" name="matiere_id" value="{{ m.id }}">
+                                    <input type="hidden" name="niveau_key" value="{{ item.niveau_key }}">
+                                    <input type="hidden" name="department_id" value="{{ panel.department.id }}">
+                                    <button type="submit" class="sx-btn sx-btn--sm" data-sx-confirm="{% trans 'Retirer cet EC de l’UE pour ce niveau ? La matière n’est pas supprimée.' %}"><i class="fas fa-xmark" aria-hidden="true"></i>{% trans "Retirer" %}</button>
+                                </form>
+                            </td>
+                        </tr>{% endfor %}</tbody>
+                    </table></div>
                     {% else %}
-                    <div class="gml-empty-state">
-                        <i class="fas fa-book"></i>
-                        <p>{% trans "Aucune matière liée à ce niveau pour l'instant." %}</p>
-                    </div>
+                    <div class="sx-empty"><i class="fas fa-book" aria-hidden="true"></i><h3>{% trans "Aucun EC pour ce niveau" %}</h3><p>{% trans "Ajoutez les éléments constitutifs de l’UE : nom, coefficient et crédits." %}</p></div>
                     {% endif %}
 
-                    <div class="gmd-add-row">
-                        <button type="button" class="gmd-add-btn btn-open-modal-matiere"
-                                data-department-id="{{ panel.department.id }}"
-                                data-niveau-key="{{ item.niveau_key }}"
-                                data-niveau-label="{{ item.niveau_label|escape }}">
-                            <i class="fas fa-plus-circle"></i> {% trans "Ajouter une matière" %}
-                        </button>
-                    </div>
+                    <button type="button" class="sx-btn sx-btn--ghost sx-btn--block btn-open-modal-matiere" style="margin-top:10px"
+                            data-department-id="{{ panel.department.id }}"
+                            data-niveau-key="{{ item.niveau_key }}"
+                            data-niveau-label="{{ item.niveau_label|escape }}">
+                        <i class="fas fa-plus" aria-hidden="true"></i>{% blocktrans with n=item.niveau_label %}Ajouter un EC ({{ n }}){% endblocktrans %}
+                    </button>
                 </div>
                 {% endfor %}
             </div>

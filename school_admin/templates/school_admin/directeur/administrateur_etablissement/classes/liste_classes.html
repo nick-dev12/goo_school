@@ -18,8 +18,9 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.0.0">
 </head>
-<body class="gcl-page-body gv3 cg3" data-live-page="classes">
+<body class="gcl-page-body gv3 cg3 sx" data-live-page="classes">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container gcl-page">
@@ -30,7 +31,7 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_etab_url %}
         </div>
 
-        {% if est_superieur %}{% trans "Promotions et spécialités" as t %}{% trans "Spécialités, promotions (L1, M1…) et classes d’examens." as st %}{% else %}{% trans "Classes" as t %}{% trans "Niveaux, effectifs, capacités et enseignants de chaque classe." as st %}{% endif %}
+        {% if est_superieur %}{% trans "Filières et promotions" as t %}{% trans "Chaque filière regroupe ses promotions par niveau (L1, L2, M1…). Ouvrez une filière pour voir son cursus." as st %}{% else %}{% trans "Classes" as t %}{% trans "Toutes les classes par niveau, avec leurs effectifs, enseignants et statut." as st %}{% endif %}
         {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-chalkboard' v3_tone='blue' v3_actions_tpl='school_admin/directeur/partials/v3_actions/classes.html' %}
 
         {% if est_superieur %}
@@ -40,12 +41,12 @@
                     <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Sections' %}">
                         <button type="button" role="tab" class="matiere-tab-btn gcl-main-tab {% if classes_main_tab == 'specialites' %}active{% endif %}" data-main-tab="specialites" aria-selected="{% if classes_main_tab == 'specialites' %}true{% else %}false{% endif %}">
                             <i class="fas fa-sitemap"></i>
-                            <span>{% trans "Spécialités" %}</span>
+                            <span>{% trans "Filières" %}</span>
                             <span class="tab-count">{{ filieres|length }}</span>
                         </button>
                         <button type="button" role="tab" class="matiere-tab-btn gcl-main-tab {% if classes_main_tab == 'classes' %}active{% endif %}" data-main-tab="classes" aria-selected="{% if classes_main_tab == 'classes' %}true{% else %}false{% endif %}">
                             <i class="fas fa-chalkboard"></i>
-                            <span>{% trans "Classes" %}</span>
+                            <span>{% trans "Toutes les promotions" %}</span>
                             <span class="tab-count">{{ stats.total }}</span>
                         </button>
                         <button type="button" role="tab" class="matiere-tab-btn gcl-main-tab {% if classes_main_tab == 'examens-concours' %}active{% endif %}" data-main-tab="examens-concours" aria-selected="{% if classes_main_tab == 'examens-concours' %}true{% else %}false{% endif %}">
@@ -65,11 +66,11 @@
             </div>
 
             <div class="gcl-main-tab-panel {% if classes_main_tab == 'specialites' %}active{% endif %}" data-classes-main-panel="specialites" role="tabpanel" {% if classes_main_tab != 'specialites' %}hidden{% endif %}>
-                {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/specialites_panel.html' %}
+                {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/sx_filieres.html' %}
             </div>
 
             <div class="gcl-main-tab-panel {% if classes_main_tab == 'classes' %}active{% endif %}" data-classes-main-panel="classes" role="tabpanel" {% if classes_main_tab != 'classes' %}hidden{% endif %}>
-                {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/gcl_classes_list_panel.html' %}
+                {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/sx_promotions.html' %}
             </div>
 
             <div class="gcl-main-tab-panel {% if classes_main_tab == 'examens-concours' %}active{% endif %}" data-classes-main-panel="examens-concours" role="tabpanel" {% if classes_main_tab != 'examens-concours' %}hidden{% endif %}>
@@ -78,7 +79,7 @@
         </section>
         {% else %}
         <section class="gcl-main-panel">
-            {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/gcl_classes_list_panel.html' %}
+            {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/sx_promotions.html' %}
         </section>
         {% endif %}
     </div>
@@ -87,182 +88,17 @@
     {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/specialites_modals.html' %}
     {% endif %}
 
-    <!-- Modal d'ajout de classe -->
-    <div class="modal-overlay classe-add-modal {% if show_modal %}active{% endif %}" id="addClasseModal">
-      <div class="modal-container">
-        <div class="modal-header">
-          <h2 class="modal-title">
-            <i class="fas fa-plus"></i>
-            {% trans "Ajouter une nouvelle classe" %}
-          </h2>
-          <button type="button" class="modal-close" id="closeModal" aria-label="{% trans 'Fermer' %}">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        
-        <form method="post" action="{% url 'administrateur_etablissement:ajouter_classe' %}" class="modal-form" id="addClasseForm">
-          {% csrf_token %}
-          
-          {% if field_errors %}
-            <div class="alert alert-error">
-              <i class="fas fa-exclamation-triangle"></i>
-              <strong>{% trans "Erreurs détectées :" %}</strong> {% trans "Veuillez corriger les champs marqués en rouge." %}
-            </div>
-          {% endif %}
-          
-          {% if est_superieur %}
-          <input type="hidden" name="niveau" value="superieur">
-
-          <div class="cam-section">
-            <div class="cam-section-header">
-              <div class="cam-section-icon cam-section-icon--acad"><i class="fas fa-university"></i></div>
-              <div class="cam-section-titles">
-                <h3>{% trans "Contexte académique (LMD)" %}</h3>
-                <p>{% trans "Filière et niveau du cycle principal — ex. QHSE, Licence 2." %}</p>
-              </div>
-            </div>
-            <div class="cam-form-grid cam-form-grid--2">
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" for="department">{% trans "Filière / spécialité *" %}</label>
-                <select class="form-control {% if field_errors.department %}is-invalid{% endif %}" id="department" name="department" required>
-                  <option value="">{% trans "— Choisir —" %}</option>
-                  {% if not departments %}
-                  <option value="" disabled>{% trans "Créez d'abord une spécialité." %}</option>
-                  {% endif %}
-                  {% for dept in departments %}
-                  <option value="{{ dept.id }}" {% if form_data.department == dept.id|stringformat:"d" %}selected{% endif %}>{{ dept.nom }}</option>
-                  {% endfor %}
-                </select>
-                {% if field_errors.department %}<div class="invalid-feedback">{{ field_errors.department }}</div>{% endif %}
-              </div>
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" for="niveau_lmd">{% trans "Niveau LMD / formation *" %}</label>
-                <select class="form-control {% if field_errors.niveau_lmd %}is-invalid{% endif %}" id="niveau_lmd" name="niveau_lmd" required>
-                  {% for niveau_code, niveau_label in niveau_lmd_choices %}
-                  <option value="{{ niveau_code }}" {% if form_data.niveau_lmd == niveau_code or niveau_code == 'L1' and not form_data.niveau_lmd %}selected{% endif %}>{{ niveau_label }}</option>
-                  {% endfor %}
-                </select>
-                {% if field_errors.niveau_lmd %}<div class="invalid-feedback">{{ field_errors.niveau_lmd }}</div>{% endif %}
-              </div>
-            </div>
-            <div class="form-group niveau-libelle-group" id="niveauLibelleGroup" style="margin-top:1rem;margin-bottom:0;{% if form_data.niveau_lmd != 'AUTRE' %}display:none{% endif %}">
-              <label class="form-label" for="niveau_libelle">{% trans "Précision si « Autre » *" %}</label>
-              <input type="text" class="form-control {% if field_errors.niveau_libelle %}is-invalid{% endif %}" id="niveau_libelle" name="niveau_libelle" value="{{ form_data.niveau_libelle }}" placeholder="{% trans 'Ex: Formation certifiante 6 mois' %}">
-              {% if field_errors.niveau_libelle %}<div class="invalid-feedback">{{ field_errors.niveau_libelle }}</div>{% endif %}
-            </div>
-          </div>
-
-          <div class="cam-section">
-            <div class="cam-section-header">
-              <div class="cam-section-icon cam-section-icon--id"><i class="fas fa-signature"></i></div>
-              <div class="cam-section-titles">
-                <h3>{% trans "Nom de la classe" %}</h3>
-                <p>{% trans "Section, groupe ou intitulé affiché (ex. QHSE A)." %}</p>
-              </div>
-            </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label" for="nom">{% trans "Nom *" %}</label>
-              <input type="text" class="form-control {% if field_errors.nom %}is-invalid{% endif %}" id="nom" name="nom" value="{{ form_data.nom }}" placeholder="{% trans 'Ex: QHSE A, Section B' %}" required>
-              {% if field_errors.nom %}<div class="invalid-feedback">{{ field_errors.nom }}</div>{% endif %}
-            </div>
-          </div>
-
-          <div class="cam-section cam-section--parcours">
-            <div class="cam-section-header">
-              <div class="cam-section-icon cam-section-icon--parcours"><i class="fas fa-route"></i></div>
-              <div class="cam-section-titles">
-                <h3>{% trans "Examens & concours accessibles" %}</h3>
-                <p>{% trans "Sélection multiple : concours BTS, BT, DUT, certifications… en complément du parcours LMD." %}</p>
-              </div>
-            </div>
-            <div class="cam-hint-banner">
-              <i class="fas fa-info-circle"></i>
-              <span>{% trans "Exemple : une Licence 2 QHSE peut préparer concours BTS ou BT sans quitter le cadre LMD. Aucune sélection = parcours standard uniquement." %}</span>
-            </div>
-            {% for grp in catalogue_examens_groupes %}
-            <div class="cam-examen-categorie">
-              <p class="cam-examen-categorie-title">{{ grp.label }}</p>
-              <div class="cam-examen-grid">
-                {% for op in grp.items %}
-                <label class="cam-examen-card" for="ec-{{ op.id }}">
-                  <input type="checkbox" name="examens_concours_ids" value="{{ op.id }}" id="ec-{{ op.id }}"
-                    {% with sid=op.id|stringformat:"s" %}{% if sid in form_data.examens_concours_ids %}checked{% endif %}{% endwith %}>
-                  <span class="cam-examen-card-body">
-                    <span class="cam-examen-check"><i class="fas fa-check"></i></span>
-                    <span class="cam-examen-text">
-                      <strong>{{ op.libelle }}</strong>
-                      {% if op.description %}<small>{{ op.description }}</small>{% endif %}
-                    </span>
-                  </span>
-                </label>
-                {% endfor %}
-              </div>
-            </div>
-            {% empty %}
-            <p class="text-muted" style="font-size:.875rem;">{% trans "Catalogue vide — contactez l'administrateur." %}</p>
-            {% endfor %}
-          </div>
-
-          {% else %}
-          <div class="form-group">
-            <label class="form-label" for="nom">{% trans "Nom de la classe *" %}</label>
-            <input type="text" class="form-control {% if field_errors.nom %}is-invalid{% endif %}" id="nom" name="nom" value="{{ form_data.nom }}" placeholder="{% trans "Ex: 6ème A, Terminale S, etc." %}" required>
-            {% if field_errors.nom %}<div class="invalid-feedback">{{ field_errors.nom }}</div>{% endif %}
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="niveau">{% trans "Niveau *" %}</label>
-            <select class="form-control {% if field_errors.niveau %}is-invalid{% endif %}" id="niveau" name="niveau" required>
-              {% for niveau_code, niveau_label in niveau_choices %}
-                <option value="{{ niveau_code }}" {% if form_data.niveau == niveau_code or niveau_code == niveau_defaut and not form_data.niveau %}selected{% endif %}>{{ niveau_label }}</option>
-              {% endfor %}
-            </select>
-            {% if field_errors.niveau %}<div class="invalid-feedback">{{ field_errors.niveau }}</div>{% endif %}
-          </div>
-          {% endif %}
-
-          <div class="cam-section">
-            <div class="cam-section-header">
-              <div class="cam-section-icon cam-section-icon--org"><i class="fas fa-users-cog"></i></div>
-              <div class="cam-section-titles">
-                <h3>{% trans "Capacité et informations" %}</h3>
-                <p>{% trans "Effectif maximal et remarques internes." %}</p>
-              </div>
-            </div>
-            <div class="cam-form-grid cam-form-grid--2">
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" for="capacite_max">{% trans "Capacité max. *" %}</label>
-                <input type="number" class="form-control {% if field_errors.capacite_max %}is-invalid{% endif %}" id="capacite_max" name="capacite_max" value="{{ form_data.capacite_max }}" min="1" max="100" placeholder="30" required>
-                {% if field_errors.capacite_max %}<div class="invalid-feedback">{{ field_errors.capacite_max }}</div>{% endif %}
-              </div>
-            </div>
-            <div class="form-group" style="margin-top:1rem;margin-bottom:0;">
-              <label class="form-label" for="description">{% trans "Description (optionnel)" %}</label>
-              <textarea class="form-control" id="description" name="description" rows="3" placeholder="{% trans 'Notes, particularités…' %}">{{ form_data.description }}</textarea>
-            </div>
-          </div>
-          
-          <div class="modal-actions">
-            <button type="button" class="btn-cancel" id="cancelAdd">
-              <i class="fas fa-times"></i>
-              <span>{% trans "Annuler" %}</span>
-            </button>
-            <button type="submit" class="btn-submit" id="submitAddClasse">
-              <i class="fas fa-save"></i>
-              <span>{% trans "Ajouter la classe" %}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/modal_ajout_classe.html' %}
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
-    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.2.0" defer></script>
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.0.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
     <script src="{% static 'school_admin/js/directeur/classes_liste_page.js' %}?v=2.0.2"></script>
     <script src="{% static 'school_admin/js/directeur/classes_liste_tabs.js' %}?v=2.0.2"></script>
     <script src="{% static 'school_admin/js/directeur/liste_classes_realtime.js' %}?v=2.0.2"></script>
     {% if est_superieur %}
-    <script src="{% static 'school_admin/js/directeur/classes_specialites.js' %}?v=2.0.2"></script>
+    <script src="{% static 'school_admin/js/directeur/classes_specialites.js' %}?v=2.0.3"></script>
     {% endif %}
 </body>
 </html>

@@ -1,156 +1,102 @@
 <!DOCTYPE html>
-{% load static %}
-{% load i18n %}
-{% load classe_tags %}
+{% load static i18n %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "Classes de la spécialité" %} {{ specialite_filter.nom }} - {{ etablissement.nom }}</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.4"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/classes_clean.css' %}?v=1.5.3"
-    />
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ specialite_filter.nom }} — {% trans "Filière" %} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.4">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/classes_liste.css' %}?v=2.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/classe_add_modal.css' %}?v=1.0.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.0.0">
+</head>
+<body class="gcl-page-body gv3 cg3 sx" data-live-page="classes">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <div class="content-container">
-      <div class="container">
-        <div class="page-header">
-          {% include 'school_admin/directeur/partials/page_header_back.html' %}
-          <div class="page-title-section">
-            <a href="{% url 'administrateur_etablissement:liste_classes' %}?tab=specialites" class="back-link" style="display:inline-flex;align-items:center;gap:0.5rem;color:var(--text-secondary);text-decoration:none;font-size:0.875rem;margin-bottom:0.5rem;transition:color 0.2s;">
-              <i class="fas fa-arrow-left"></i>
-              {% trans "Retour aux spécialités" %}
-            </a>
-            <h1 class="page-title">
-              <i class="fas fa-chalkboard"></i>
-              {% trans "Classes de la spécialité" %} : {{ specialite_filter.nom }}
-            </h1>
-            <p class="page-subtitle">
-              {% trans "Gérez les classes de" %} {{ etablissement.nom }}
-            </p>
-          </div>
-          <div class="page-actions">
-            <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-add-filiere btn-secondary" title="{% trans 'Voir toutes les classes' %}">
-              <i class="fas fa-list"></i>
-              <span>{% trans "Toutes les classes" %}</span>
-            </a>
-            <button class="btn-add-classe" id="addClasseBtn">
-              <i class="fas fa-plus"></i>
-              <span>{% trans "Ajouter une classe" %}</span>
-            </button>
-          </div>
-        </div>
-
+    <div class="content-container gcl-page">
         {% include 'school_admin/partials/messages.html' %}
 
-        <div class="stats-section">
-          <div class="stats-grid">
-            <div class="stat-card stat-primary">
-              <div class="stat-icon"><i class="fas fa-chalkboard"></i></div>
-              <div class="stat-content">
-                <div class="stat-number">{{ stats.total }}</div>
-                <div class="stat-label">{% trans "Total Classes" %}</div>
-              </div>
-            </div>
-            <div class="stat-card stat-success">
-              <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
-              <div class="stat-content">
-                <div class="stat-number">{{ stats.actives }}</div>
-                <div class="stat-label">{% trans "Actives" %}</div>
-              </div>
-            </div>
-            <div class="stat-card stat-primary">
-              <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
-              <div class="stat-content">
-                <div class="stat-number">{{ stats.total_enseignants_affectes }}</div>
-                <div class="stat-label">{% trans "Enseignants Affectés" %}</div>
-              </div>
-            </div>
-          </div>
+        <nav class="sx-crumb" aria-label="{% trans 'Fil d’Ariane' %}">
+            <a href="{% url 'directeur:gestion_etablissement' %}">{% trans "Établissement" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+            <a href="{% url 'administrateur_etablissement:liste_classes' %}?tab=specialites">{% trans "Filières et promotions" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+            <span>{{ specialite_filter.nom }}</span>
+        </nav>
+
+        <div class="v3-zone">
+            <header class="hb-head">
+                <span class="hb-head__icon fe-tone-blue"><i class="fas fa-sitemap" aria-hidden="true"></i></span>
+                <div class="hb-head__text">
+                    <p class="fe-hero__kicker">{% trans "Filière" %}{% if specialite_filter.sigle %} · {{ specialite_filter.sigle }}{% endif %}{% if annee_scolaire_active %} · {{ annee_scolaire_active.libelle }}{% endif %}</p>
+                    <h1 class="hb-head__title">{{ specialite_filter.nom }}</h1>
+                    <p class="fe-hero__sub">{% if specialite_filter.mention %}{% trans "Mention" %} {{ specialite_filter.mention }}{% endif %}{% if specialite_filter.mention and specialite_filter.domaine %} · {% endif %}{% if specialite_filter.domaine %}{% trans "Domaine" %} {{ specialite_filter.domaine }}{% endif %}{% if not specialite_filter.mention and not specialite_filter.domaine %}{% trans "Promotions de la filière, rangées par niveau du cursus." %}{% endif %}</p>
+                </div>
+                <div class="hb-head__actions">
+                    <button type="button" class="cg3-btn btn-filiere-modifier" data-filiere-id="{{ specialite_filter.id }}" data-filiere-nom="{{ specialite_filter.nom }}" data-filiere-sigle="{{ specialite_filter.sigle|default:'' }}" data-filiere-domaine="{{ specialite_filter.domaine|default:'' }}" data-filiere-mention="{{ specialite_filter.mention|default:'' }}"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier la filière" %}</button>
+                    <button type="button" class="cg3-btn cg3-btn--primary" data-sx-open="#addClasseModal" data-sx-set='{"department": "{{ specialite_filter.id }}"}'><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Nouvelle promotion" %}</button>
+                </div>
+            </header>
+            <section class="fe-kpis hb-kpis hb-kpis--4" aria-label="{% trans 'Indicateurs' %}">
+                <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Promotions" %}</span><span class="fe-kpi__icon"><i class="fas fa-chalkboard" aria-hidden="true"></i></span></div><p class="fe-kpi__value{% if sx_stats.inactives %} is-text{% endif %}">{{ sx_stats.total }}{% if sx_stats.inactives %} <small style="font-size:.8rem;font-weight:600">· {{ sx_stats.inactives }} {% trans "inactive(s)" %}</small>{% endif %}</p></div>
+                <div class="fe-kpi fe-tone-teal"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Étudiants" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-graduate" aria-hidden="true"></i></span></div><p class="fe-kpi__value is-text">{{ sx_stats.etudiants }} / {{ sx_stats.capacite }}</p>{% if sx_stats.capacite %}<div class="fe-bar"><span style="width: {{ sx_stats.pct_barre }}%"></span></div>{% endif %}</div>
+                <div class="fe-kpi fe-tone-violet"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Affectations d’enseignants" %}</span><span class="fe-kpi__icon"><i class="fas fa-chalkboard-user" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ sx_stats.enseignants }}</p></div>
+                <div class="fe-kpi fe-tone-orange"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Niveaux ouverts" %}</span><span class="fe-kpi__icon"><i class="fas fa-layer-group" aria-hidden="true"></i></span></div><p class="fe-kpi__value is-text">{{ sx_stats.niveaux_ouverts }} / {{ sx_cursus|length }}</p></div>
+            </section>
         </div>
 
-        <div class="classes-section">
-          {% if classes_grouped %}
-            <div class="tabs-content">
-              {% for filiere_nom, filiere_data in classes_grouped.items %}
-                <div class="tab-panel active">
-                  <div class="classes-niveau-tabs-inner">
-                    <p class="classes-niveau-tabs-hint"><i class="fas fa-layer-group"></i> {% trans "Niveau d'études" %}</p>
-                    <div class="classes-niveau-tabs-row">
-                      {% for niveau_code, data in filiere_data.niveaux %}
-                      <button type="button" class="classes-niveau-tab-btn {% if forloop.first %}active{% endif %}" data-niveau-idx="{{ forloop.counter0 }}">
-                        <span>{{ niveau_code|libelle_niveau_lmd_key }}</span>
-                        <span class="tab-count">({{ data.classes|length }})</span>
-                      </button>
-                      {% endfor %}
+        <section class="sx-card">
+            <div class="sx-card__head">
+                <h2 class="sx-card__title"><i class="fas fa-route" aria-hidden="true"></i>{% trans "Cursus de la filière" %}</h2>
+                <p class="sx-card__hint">{% trans "Une colonne par niveau. Cliquez sur une promotion pour gérer ses étudiants, ses modules et son emploi du temps." %}</p>
+            </div>
+            <div class="sx-board">
+                {% for col in sx_cursus %}
+                <div class="sx-col" id="niveau-{{ col.code }}">
+                    <div class="sx-col__head">
+                        <h3 title="{{ col.label }}">{{ col.label }}</h3>
+                        <small>{% if col.lignes %}{{ col.lignes|length }} · {{ col.etudiants }} {% trans "étud." %}{% else %}{% trans "vide" %}{% endif %}</small>
                     </div>
-                    <div class="classes-niveau-panels-wrap">
-                      {% for niveau_code, data in filiere_data.niveaux %}
-                      <div class="classes-niveau-panel {% if forloop.first %}active{% endif %}" data-niveau-idx="{{ forloop.counter0 }}" data-niveau-key="{{ niveau_code }}">
-                        <div class="category-header">
-                          <div class="category-stats">
-                            <div class="stat-item"><span class="stat-number">{{ data.total_eleves }}</span> <span class="stat-label">{% trans "Étudiants" %}</span></div>
-                            <div class="stat-item"><span class="stat-number">{{ data.total_enseignants }}</span> <span class="stat-label">{% trans "Enseignants" %}</span></div>
-                            <div class="stat-item"><span class="stat-number">{{ data.total_capacite }}</span> <span class="stat-label">{% trans "Capacité" %}</span></div>
-                          </div>
+                    {% for l in col.lignes %}
+                    <article class="sx-pcard">
+                        <div class="sx-pcard__top">
+                            <a href="{% url 'administrateur_etablissement:detail_classe' l.classe.id %}">{{ l.classe.nom }}</a>
+                            {% if l.classe.actif %}<span class="sx-pill sx-pill--ok">{% trans "Active" %}</span>{% else %}<span class="sx-pill sx-pill--off">{% trans "Inactive" %}</span>{% endif %}
                         </div>
-                        <div class="classes-grid">
-                          {% for classe_data in data.classes %}
-                          {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/classe_card_liste.html' with classe=classe_data.classe classe_data=classe_data est_superieur=True libelle_eleves=libelle_eleves %}
-                          {% endfor %}
+                        <div class="sx-meter" title="{{ l.pct }} % {% trans 'de la capacité' %}"><span class="sx-meter__txt">{{ l.effectif }} / {{ l.capacite }}</span><span class="sx-meter__bar"><span class="{{ l.niveau_etat }}" style="width: {{ l.pct_barre }}%"></span></span></div>
+                        <div class="sx-pcard__meta">
+                            <span><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{% if l.enseignants %}{{ l.enseignants }} {% trans "affectation(s)" %}{% else %}<strong style="color:var(--ax-warn)">{% trans "Aucun enseignant" %}</strong>{% endif %}</span>
+                            <span><i class="fas fa-hashtag" aria-hidden="true"></i>{{ l.classe.code_classe }}</span>
                         </div>
-                      </div>
-                      {% endfor %}
-                    </div>
-                  </div>
+                        <a class="sx-btn sx-btn--sm sx-btn--primary sx-btn--block" href="{% url 'administrateur_etablissement:detail_classe' l.classe.id %}">{% trans "Ouvrir la promotion" %}</a>
+                    </article>
+                    {% endfor %}
+                    {% if col.ajout_possible %}
+                    <button type="button" class="sx-btn sx-btn--sm sx-btn--ghost sx-btn--block" data-sx-open="#addClasseModal"
+                            data-sx-set='{"department": "{{ specialite_filter.id }}", "niveau_lmd": "{{ col.code }}", "nom": "{{ specialite_filter.sigle|default:specialite_filter.nom|upper }} {{ col.code }} {{ col.suffixe }}"}'>
+                        <i class="fas fa-plus" aria-hidden="true"></i>{% if col.lignes %}{% trans "Ajouter une promotion" %}{% else %}{% blocktrans with n=col.court %}Ouvrir le niveau {{ n }}{% endblocktrans %}{% endif %}
+                    </button>
+                    {% endif %}
                 </div>
-              {% endfor %}
+                {% endfor %}
             </div>
-          {% else %}
-            <div class="empty-state">
-              <div class="empty-icon">
-                <i class="fas fa-chalkboard"></i>
-              </div>
-              <h3>{% trans "Aucune classe dans cette spécialité" %}</h3>
-              <p>{% trans "Ajoutez des classes à la spécialité" %} « {{ specialite_filter.nom }} »</p>
-              <a href="{% url 'administrateur_etablissement:liste_classes' %}" class="btn-add-classe">
-                <i class="fas fa-plus"></i>
-                <span>{% trans "Ajouter une classe" %}</span>
-              </a>
-            </div>
-          {% endif %}
-        </div>
-      </div>
+        </section>
     </div>
 
-    <script src="{% static 'school_admin/js/directeur/classes_liste_tabs.js' %}?v=1.2.1"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const addClasseBtn = document.getElementById('addClasseBtn');
-        if (addClasseBtn) {
-          addClasseBtn.addEventListener('click', function() {
-            window.location.href = "{% url 'administrateur_etablissement:liste_classes' %}";
-          });
-        }
-      });
-    </script>
+    {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/specialites_modals.html' %}
+    {% include 'school_admin/directeur/administrateur_etablissement/classes/partials/modal_ajout_classe.html' %}
 
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
-  </body>
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/classes_liste_page.js' %}?v=2.0.2"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_classes_realtime.js' %}?v=2.0.2"></script>
+    <script src="{% static 'school_admin/js/directeur/classes_specialites.js' %}?v=2.0.3"></script>
+</body>
 </html>

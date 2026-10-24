@@ -1,3 +1,12 @@
 {% load i18n %}
 <button type="button" class="cg3-btn cg3-btn--primary" id="btnModifierClasse"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier" %}</button>
-<button type="button" class="cg3-btn" id="btnSupprimerClasse"><i class="fas fa-trash" aria-hidden="true"></i>{% trans "Supprimer" %}</button>
+<a class="cg3-btn" href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" {% if classe.actif %}data-sx-confirm="{% trans 'Désactiver cette classe ? Elle ne sera plus visible pour les enseignants et les élèves.' %}"{% endif %}><i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}" aria-hidden="true"></i>{% if classe.actif %}{% trans "Désactiver" %}{% else %}{% trans "Activer" %}{% endif %}</a>
+<div class="sx-menu">
+  <button type="button" class="cg3-btn sx-menu__toggle" aria-haspopup="true" aria-expanded="false" aria-label="{% trans 'Autres actions' %}"><i class="fas fa-ellipsis" aria-hidden="true"></i></button>
+  <div class="sx-menu__list" role="menu" hidden>
+    <a class="sx-menu__item" role="menuitem" href="{% url 'administrateur_etablissement:detail_emploi_du_temps' classe.id %}"><i class="fas fa-calendar-week" aria-hidden="true"></i>{% trans "Emploi du temps" %}</a>
+    <a class="sx-menu__item" role="menuitem" href="{% url 'directeur:imprimer_liste_nominative' classe.id %}" target="_blank" rel="noopener"><i class="fas fa-print" aria-hidden="true"></i>{% trans "Imprimer la liste" %}</a>
+    <div class="sx-menu__sep"></div>
+    <button type="button" class="sx-menu__item sx-menu__item--danger" role="menuitem" id="btnSupprimerClasse"><i class="fas fa-trash" aria-hidden="true"></i>{% trans "Supprimer la classe" %}</button>
+  </div>
+</div>

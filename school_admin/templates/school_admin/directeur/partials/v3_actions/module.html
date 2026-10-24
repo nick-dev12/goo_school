@@ -1,4 +1,11 @@
 {% load i18n %}
-{% if filiere_panels %}<button type="button" class="cg3-btn cg3-btn--primary" id="btnAjouterMatiereModule"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter une matière" %}</button>{% endif %}
-<button type="button" class="cg3-btn" id="btnModifierModule"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier" %}</button>
-<form method="post" action="{% url 'matiere:supprimer_module' module.id %}" style="margin:0" onsubmit="return confirm('{% trans "Supprimer ce module ? Les matières seront retirées du module." %}');">{% csrf_token %}<button type="submit" class="cg3-btn"><i class="fas fa-trash" aria-hidden="true"></i>{% trans "Supprimer" %}</button></form>
+{% if filiere_panels %}<button type="button" class="cg3-btn cg3-btn--primary" id="btnAjouterMatiereModule"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter un EC" %}</button>{% endif %}
+<button type="button" class="cg3-btn" id="btnModifierModule"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier l’UE" %}</button>
+<div class="sx-menu">
+  <button type="button" class="cg3-btn sx-menu__toggle" aria-haspopup="true" aria-expanded="false" aria-label="{% trans 'Autres actions' %}"><i class="fas fa-ellipsis" aria-hidden="true"></i></button>
+  <div class="sx-menu__list" role="menu" hidden>
+    <a class="sx-menu__item" role="menuitem" href="{% url 'affectation:affectation_professeurs' %}"><i class="fas fa-user-plus" aria-hidden="true"></i>{% trans "Affecter des enseignants" %}</a>
+    <div class="sx-menu__sep"></div>
+    <form method="post" action="{% url 'matiere:supprimer_module' module.id %}">{% csrf_token %}<button type="submit" class="sx-menu__item sx-menu__item--danger" role="menuitem" data-sx-confirm="{% trans 'Supprimer cette UE ? Ses EC seront détachés (ils ne sont pas supprimés).' %}"><i class="fas fa-trash" aria-hidden="true"></i>{% trans "Supprimer l’UE" %}</button></form>
+  </div>
+</div>

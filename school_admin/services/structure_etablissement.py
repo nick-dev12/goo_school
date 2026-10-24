@@ -94,13 +94,20 @@ def controle_classes(etab, annee):
         if sans_niveau:
             alertes.append(_alerte('warn', 'fa-layer-group', f"{len(sans_niveau)} promotion(s) sans niveau LMD (L1, M1…) : semestres et crédits impossibles.",
                                    details=[c.nom for c in sans_niveau[:8]]))
+    inactives = list(Classe.objects.filter(etablissement=etab, actif=False).order_by('nom'))
+    nb_inactives = len(inactives)
+    if inactives:
+        mot = 'promotion(s)' if sup else 'classe(s)'
+        alertes.append(_alerte('warn', 'fa-circle-pause', f"{nb_inactives} {mot} désactivée(s) : invisibles pour les enseignants et les {'étudiants' if sup else 'élèves'}.",
+                               details=[c.nom for c in inactives[:8]]))
     if vides and nb:
         alertes.append(_alerte('info', 'fa-user-graduate', f"{len(vides)} classe(s) sans aucun élève inscrit.",
                                details=[c.nom for c in vides[:8]]))
 
     taux = round(100 * nb_eleves / capacite) if capacite else None
     kpis = [
-        {'label': 'Promotions' if sup else 'Classes', 'value': nb, 'icon': 'fa-chalkboard', 'tone': 'blue',
+        {'label': 'Promotions actives' if sup else 'Classes actives', 'value': f"{nb}/{nb + nb_inactives}" if nb_inactives else nb,
+         'texte': bool(nb_inactives), 'icon': 'fa-chalkboard', 'tone': 'blue',
          'caption': f"{nb_eleves} {'étudiants' if sup else 'élèves'}"},
         {'label': 'Remplissage', 'value': f"{taux} %" if taux is not None else '—', 'icon': 'fa-people-group', 'tone': 'teal', 'texte': True,
          'pct': taux, 'caption': f"{nb_eleves} / {capacite} places"},

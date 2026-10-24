@@ -140,6 +140,33 @@ class ClasseController:
         ]
 
     @staticmethod
+    def _contexte_v4(classes_with_teachers, est_superieur, departments):
+        """Lignes de classes, cartes de filières et filtres des écrans v4."""
+        from ..services import structure_v4 as sv4
+
+        lignes = sv4.lignes_classes(classes_with_teachers, est_superieur, ClasseController.extract_categorie_from_nom)
+        est_primaire = bool(lignes) and lignes[0]['classe'].etablissement.type_etablissement == 'primary'
+        if est_primaire:
+            # Au primaire, la classe est confiée à un maître (affectation primaire), pas matière par matière.
+            from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
+
+            maitres = {}
+            for aff in AffectationProfesseurPrimaire.objects.filter(
+                    classe_id__in=[l['classe'].id for l in lignes], actif=True).select_related('professeur'):
+                maitres.setdefault(aff.classe_id, []).append(f"{aff.professeur.prenom} {aff.professeur.nom}")
+            for l in lignes:
+                noms = maitres.get(l['classe'].id, [])
+                l['maitre'] = ', '.join(noms)
+                l['enseignants'] = max(l['enseignants'], len(noms))
+        return {
+            'sx_primaire': est_primaire,
+            'sx_lignes': lignes,
+            'sx_filieres': sv4.filieres(departments, lignes) if est_superieur else [],
+            'sx_niveaux': sv4.niveaux_presents(lignes) if est_superieur else [],
+            'sx_groupes': [] if est_superieur else list(dict.fromkeys(l['groupe'] for l in lignes)),
+        }
+
+    @staticmethod
     def _build_filieres_avec_nb_classes(etablissement):
         """Liste des spécialités avec le nombre de classes rattachées."""
         filieres = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
@@ -473,6 +500,8 @@ class ClasseController:
                 classes_main_tab = 'specialites'
             elif tab_param in ('examens-concours', 'examens_concours'):
                 classes_main_tab = 'examens-concours'
+            elif tab_param != 'classes':
+                classes_main_tab = 'specialites'
         context = {
             'classes': classes,
             'classes_with_teachers': classes_with_teachers,
@@ -497,7 +526,8 @@ class ClasseController:
             'form_data': {'examens_concours_ids': []},
             'field_errors': {},
         }
-        
+        context.update(ClasseController._contexte_v4(classes_with_teachers, est_superieur, departments))
+
         from ..services.structure_etablissement import enrichir as _enrichir_structure
         _enrichir_structure(request, context, 'classes')
         return render(request, 'school_admin/directeur/administrateur_etablissement/classes/liste_classes.html', context)
@@ -848,6 +878,7 @@ class ClasseController:
                 'catalogue_examens_groupes': catalogue_examens_concours_groupes() if est_superieur_ctx else [],
                 'show_modal': True,  # Flag pour ouvrir le modal
             })
+            context.update(ClasseController._contexte_v4(classes_with_teachers, est_superieur_ctx, departments))
             
             from ..services.structure_etablissement import enrichir as _enrichir_structure
             _enrichir_structure(request, context, 'classes')
@@ -976,7 +1007,24 @@ class ClasseController:
             'field_errors': {},
             'specialite_filter': department,
             'libelle_eleves': 'Étudiants',
+            'catalogue_examens_groupes': catalogue_examens_concours_groupes(),
         }
+        from ..services import structure_v4 as sv4
+        lignes = sv4.lignes_classes(classes_with_teachers, True)
+        colonnes = sv4.cursus(lignes)
+        capacite = sum(l['capacite'] for l in lignes)
+        etudiants = sum(l['effectif'] for l in lignes)
+        context.update({
+            'sx_lignes': lignes,
+            'sx_cursus': colonnes,
+            'sx_stats': {
+                'total': len(lignes), 'inactives': sum(1 for l in lignes if not l['classe'].actif),
+                'etudiants': etudiants, 'capacite': capacite,
+                'pct_barre': min(100, round(100 * etudiants / capacite)) if capacite else 0,
+                'enseignants': sum(l['enseignants'] for l in lignes),
+                'niveaux_ouverts': sum(1 for c in colonnes if c['lignes']),
+            },
+        })
         return render(request, 'school_admin/directeur/administrateur_etablissement/classes/liste_classes_specialite.html', context)
 
     @staticmethod
@@ -1401,6 +1449,12 @@ class ClasseController:
             'est_superieur': est_superieur_ctx,
             'catalogue_examens_groupes': catalogue_examens_concours_groupes() if est_superieur_ctx else [],
             'examens_concours_ids_selected': examens_concours_ids_selected,
+            'maitres_primaire': list(
+                __import__('school_admin.model.affectation_professeur_primaire_model', fromlist=['x'])
+                .AffectationProfesseurPrimaire.objects.filter(classe=classe, actif=True)
+                .select_related('professeur').prefetch_related('matieres')
+            ) if etablissement.type_etablissement == 'primary' else [],
+            'sx_effectif_pct': min(100, round(100 * classe.nombre_eleves / classe.capacite_max)) if classe.capacite_max else 0,
         }
         
         from ..services.structure_etablissement import enrichir as _enrichir_structure

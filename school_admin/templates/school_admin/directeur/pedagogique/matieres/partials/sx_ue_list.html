@@ -1,0 +1,67 @@
+{% load i18n classe_tags %}
+{% comment %}UE dépliables : en-tête (code, nom, semestre, crédits, EC, alertes) et, dessous, les EC avec leurs enseignants.
+Variables : ue_list (modules enrichis par services.structure_v4.enrichir_modules), ue_cle (identifiant unique de la liste).{% endcomment %}
+{% if ue_list %}
+<div class="sx-toolbar" data-sx-filter="#sxUe-{{ ue_cle }}">
+  <label class="sx-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+    <input type="search" class="sx-search__input" data-sx-q placeholder="{% trans 'Rechercher une UE ou un EC…' %}" aria-label="{% trans 'Rechercher une UE ou un EC' %}"></label>
+  <button type="button" class="sx-btn sx-btn--sm" data-sx-deplier="#sxUe-{{ ue_cle }}"><i class="fas fa-up-down" aria-hidden="true"></i>{% trans "Tout déplier" %}</button>
+  <button type="button" class="sx-toolbar__reset" data-sx-reset hidden>{% trans "Effacer" %}</button>
+  <span class="sx-toolbar__count" data-sx-count="{% trans 'UE' %}"></span>
+</div>
+<div class="sx-ues" id="sxUe-{{ ue_cle }}">
+  {% for module in ue_list %}
+  <details class="sx-ue" data-sx-item data-sx-text="{{ module.sx_texte }}">
+    <summary class="sx-ue__head">
+      <i class="fas fa-chevron-right sx-ue__chev" aria-hidden="true"></i>
+      <span class="sx-ue__code">{{ module.sx_numero|default:module.code }}</span>
+      <span class="sx-ue__title">
+        <strong>{{ module.nom }}</strong>
+        <small>{% if module.sx_numero %}{{ module.code }} · {% endif %}{% if module.sx_semestres %}{{ module.sx_semestres|join:", " }}{% else %}{% trans "Semestre non défini" %}{% endif %}{% if module.is_shared %} · {% trans "Mutualisée" %}{% endif %}</small>
+      </span>
+      <span class="sx-ue__facts">
+        <span title="{% trans 'Crédits ECTS' %}"><b>{{ module.sx_credits|floatformat:"-2" }}</b> ECTS</span>
+        <span title="{% trans 'Éléments constitutifs' %}"><b>{{ module.sx_nb_ec }}</b> EC</span>
+        <span title="{% trans 'Promotions' %}"><b>{{ module.sx_classes|length }}</b> {% trans "promo." %}</span>
+      </span>
+      <span class="sx-ue__flags">
+        {% for a in module.sx_alertes %}<span class="sx-pill sx-pill--warn">{{ a }}</span>{% empty %}<span class="sx-pill sx-pill--ok"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Complète" %}</span>{% endfor %}
+        {% if not module.actif %}<span class="sx-pill sx-pill--off">{% trans "Inactive" %}</span>{% endif %}
+      </span>
+    </summary>
+    <div class="sx-ue__body">
+      {% if module.sx_ec %}
+      <div class="sx-table-wrap"><table class="sx-table sx-table--compact">
+        <thead><tr><th>{% trans "Élément constitutif (EC)" %}</th><th class="sx-num">{% trans "Coef." %}</th><th class="sx-num">{% trans "Crédits" %}</th><th>{% trans "Enseignant(s)" %}</th></tr></thead>
+        <tbody>{% for ec in module.sx_ec %}<tr>
+          <td class="sx-cell-main"><div class="sx-name"><span class="sx-name__ico"><i class="fas fa-book" aria-hidden="true"></i></span><div class="sx-name__txt"><strong>{{ ec.matiere.nom }}</strong>{% if ec.matiere.code %}<small>{{ ec.matiere.code }}</small>{% endif %}</div></div></td>
+          <td class="sx-num" data-label="{% trans 'Coef.' %}">{{ ec.coefficient|floatformat:"-2"|default:"—" }}</td>
+          <td class="sx-num" data-label="{% trans 'Crédits' %}">{{ ec.credits|floatformat:"-2"|default:"—" }}</td>
+          <td data-label="{% trans 'Enseignant(s)' %}">{% for p in ec.enseignants %}<span class="sx-pill sx-pill--info" style="margin:2px">{{ p }}</span>{% empty %}<span class="sx-pill sx-pill--warn">{% trans "À affecter" %}</span>{% endfor %}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+      {% else %}
+      <p class="sx-ue__vide"><i class="fas fa-circle-info" aria-hidden="true"></i>{% trans "Cette UE ne contient encore aucun élément constitutif (EC). Ajoutez-en depuis la fiche de l’UE." %}</p>
+      {% endif %}
+      {% if module.sx_classes %}<p class="sx-ue__classes"><i class="fas fa-chalkboard" aria-hidden="true"></i>{% trans "Enseignée en" %} : {% for c in module.sx_classes %}<a href="{% url 'administrateur_etablissement:detail_classe' c.id %}">{{ c.nom }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+      <div class="sx-ue__actions">
+        <a class="sx-btn sx-btn--sm sx-btn--primary" href="{% url 'matiere:detail_module' module.id %}"><i class="fas fa-arrow-right" aria-hidden="true"></i>{% trans "Gérer l’UE" %}</a>
+        <a class="sx-btn sx-btn--sm" href="{% url 'matiere:detail_module' module.id %}#ajouter-ec"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter un EC" %}</a>
+        <form method="post" action="{% url 'matiere:supprimer_module' module.id %}" style="margin:0 0 0 auto">
+          {% csrf_token %}
+          <button type="submit" class="sx-btn sx-btn--sm" style="color:var(--ax-bad)" data-sx-confirm="{% trans 'Supprimer cette UE ? Ses EC seront détachés (ils ne sont pas supprimés).' %}"><i class="fas fa-trash" aria-hidden="true"></i>{% trans "Supprimer" %}</button>
+        </form>
+      </div>
+    </div>
+  </details>
+  {% endfor %}
+  <div class="sx-empty" data-sx-none hidden><i class="fas fa-magnifying-glass" aria-hidden="true"></i><h3>{% trans "Aucune UE ne correspond" %}</h3></div>
+</div>
+{% else %}
+<div class="sx-empty">
+  <i class="fas fa-cubes" aria-hidden="true"></i>
+  <h3>{% trans "Aucune UE pour ce niveau" %}</h3>
+  <p>{% trans "Créez une unité d’enseignement (UE), puis ajoutez-y ses éléments constitutifs (EC) avec leurs crédits." %}</p>
+  <button type="button" class="sx-btn sx-btn--primary" onclick="var b=document.getElementById('addModuleBtnHeader'); if (b) { b.click(); }"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Nouvelle UE" %}</button>
+</div>
+{% endif %}

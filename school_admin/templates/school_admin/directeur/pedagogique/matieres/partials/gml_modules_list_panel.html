@@ -1,10 +1,7 @@
 {% load i18n classe_tags %}
 {% if modules_par_filiere %}
 <section class="gml-main-panel" data-gml-modules-zone>
-    <p class="gml-panel-hint">
-        <i class="fas fa-info-circle"></i>
-        {% trans "Choisissez une filière, puis un niveau LMD pour afficher les modules." %}
-    </p>
+
 
     <div class="gml-filiere-zone" data-gml-filiere-zone>
         <div class="gml-filiere-nav">
@@ -67,60 +64,12 @@
                      data-niveau-idx="{{ forloop.counter0 }}"
                      role="tabpanel"
                      {% if not forloop.first %}hidden{% endif %}>
-                    {% with module_count=niv.modules|length %}
-                    <div class="gml-panel-stats">
-                        <span class="gml-panel-stat"><strong>{{ module_count }}</strong> {% trans "Module(s)" %}</span>
-                        <span class="gml-panel-stat"><strong>{{ niv.niveau_label }}</strong> {% trans "Niveau" %}</span>
-                    </div>
-                    {% if niv.modules %}
-                    <div class="gml-list-scroll table-responsive">
-                        <div class="gml-list gml-list--modules">
-                            <div class="gml-list-header">
-                                <div class="gml-list-cell gml-list-cell--title">{% trans "Module" %}</div>
-                                <div class="gml-list-cell">{% trans "Filière" %}</div>
-                                <div class="gml-list-cell">{% trans "Mat." %}</div>
-                                <div class="gml-list-cell">{% trans "Créd." %}</div>
-                                <div class="gml-list-cell">{% trans "Cl." %}</div>
-                                <div class="gml-list-cell">{% trans "Statut" %}</div>
-                                <div class="gml-list-cell gml-list-cell--actions">{% trans "Actions" %}</div>
-                            </div>
-                            {% for module in niv.modules %}
-                                {% include 'school_admin/directeur/pedagogique/matieres/partials/gml_module_list_row.html' with module=module %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="gml-empty-state">
-                        <i class="fas fa-cube"></i>
-                        <p>{% trans "Aucun module pour ce niveau." %}</p>
-                    </div>
-                    {% endif %}
-                    {% endwith %}
+                    {% include 'school_admin/directeur/pedagogique/matieres/partials/sx_ue_list.html' with ue_list=niv.modules ue_cle=niv.sx_cle %}
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <div class="gml-panel-stats">
-                <span class="gml-panel-stat"><strong>{{ item.modules|length }}</strong> {% trans "Module(s)" %}</span>
-            </div>
-            {% if item.modules %}
-            <div class="gml-list-scroll table-responsive">
-                <div class="gml-list gml-list--modules">
-                    <div class="gml-list-header">
-                        <div class="gml-list-cell gml-list-cell--title">{% trans "Module" %}</div>
-                        <div class="gml-list-cell">{% trans "Filière" %}</div>
-                        <div class="gml-list-cell">{% trans "Mat." %}</div>
-                        <div class="gml-list-cell">{% trans "Créd." %}</div>
-                        <div class="gml-list-cell">{% trans "Cl." %}</div>
-                        <div class="gml-list-cell">{% trans "Statut" %}</div>
-                        <div class="gml-list-cell gml-list-cell--actions">{% trans "Actions" %}</div>
-                    </div>
-                    {% for module in item.modules %}
-                        {% include 'school_admin/directeur/pedagogique/matieres/partials/gml_module_list_row.html' with module=module %}
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
+            {% include 'school_admin/directeur/pedagogique/matieres/partials/sx_ue_list.html' with ue_list=item.modules ue_cle=item.sx_cle %}
             {% endif %}
         </div>
         {% endfor %}
@@ -128,22 +77,7 @@
 </section>
 {% elif modules %}
 <section class="gml-main-panel">
-    <div class="gml-list-scroll table-responsive">
-        <div class="gml-list gml-list--modules">
-            <div class="gml-list-header">
-                <div class="gml-list-cell gml-list-cell--title">{% trans "Module" %}</div>
-                <div class="gml-list-cell">{% trans "Filière" %}</div>
-                <div class="gml-list-cell">{% trans "Mat." %}</div>
-                <div class="gml-list-cell">{% trans "Créd." %}</div>
-                <div class="gml-list-cell">{% trans "Cl." %}</div>
-                <div class="gml-list-cell">{% trans "Statut" %}</div>
-                <div class="gml-list-cell gml-list-cell--actions">{% trans "Actions" %}</div>
-            </div>
-            {% for module in modules %}
-                {% include 'school_admin/directeur/pedagogique/matieres/partials/gml_module_list_row.html' with module=module %}
-            {% endfor %}
-        </div>
-    </div>
+    {% include 'school_admin/directeur/pedagogique/matieres/partials/sx_ue_list.html' with ue_list=modules ue_cle='tous' %}
 </section>
 {% else %}
 <div class="gml-empty-state">

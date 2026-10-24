@@ -1,0 +1,67 @@
+{% load i18n %}
+{% comment %}Supérieur : une carte par filière (niveaux couverts, effectifs) avec une action principale « Ouvrir ».{% endcomment %}
+{% if sx_filieres %}
+<div class="sx-toolbar" data-sx-filter="#sxFilieres">
+  <label class="sx-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+    <input type="search" class="sx-search__input" data-sx-q placeholder="{% trans 'Rechercher une filière, un sigle, une mention…' %}" aria-label="{% trans 'Rechercher une filière' %}"></label>
+  <button type="button" class="sx-toolbar__reset" data-sx-reset hidden>{% trans "Effacer" %}</button>
+  <span class="sx-toolbar__count" data-sx-count="{% trans 'filières' %}"></span>
+</div>
+<div class="sx-grid" id="sxFilieres">
+  {% for f in sx_filieres %}
+  <article class="sx-fcard" data-sx-item data-sx-text="{{ f.texte }}">
+    <div class="sx-fcard__head">
+      <span class="sx-sigle">{{ f.department.sigle|default:f.department.nom|slice:":4"|upper }}</span>
+      <div class="sx-fcard__title">
+        <h3>{{ f.department.nom }}</h3>
+        <p>{% if f.department.mention %}{{ f.department.mention }}{% endif %}{% if f.department.mention and f.department.domaine %} · {% endif %}{% if f.department.domaine %}{{ f.department.domaine }}{% endif %}{% if not f.department.mention and not f.department.domaine %}{% trans "Mention et domaine non renseignés" %}{% endif %}</p>
+      </div>
+      <div class="sx-menu">
+        <button type="button" class="sx-btn sx-btn--sm sx-menu__toggle" aria-haspopup="true" aria-expanded="false" aria-label="{% trans 'Autres actions' %}"><i class="fas fa-ellipsis" aria-hidden="true"></i></button>
+        <div class="sx-menu__list" role="menu" hidden>
+          <button type="button" class="sx-menu__item btn-filiere-modifier" role="menuitem" data-filiere-id="{{ f.department.id }}" data-filiere-nom="{{ f.department.nom }}" data-filiere-sigle="{{ f.department.sigle|default:'' }}" data-filiere-domaine="{{ f.department.domaine|default:'' }}" data-filiere-mention="{{ f.department.mention|default:'' }}"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier la filière" %}</button>
+          <button type="button" class="sx-menu__item" role="menuitem" data-sx-open="#addClasseModal" data-sx-set='{"department": "{{ f.department.id }}"}'><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter une promotion" %}</button>
+          <div class="sx-menu__sep"></div>
+          <form method="post" action="{% url 'administrateur_etablissement:supprimer_filiere' f.department.id %}" class="specialite-delete-form" data-filiere-nom="{{ f.department.nom }}">
+            {% csrf_token %}
+            <button type="submit" class="sx-menu__item sx-menu__item--danger" role="menuitem" {% if f.nb_classes %}disabled title="{% trans 'Supprimez ou déplacez d’abord ses promotions.' %}"{% endif %}><i class="fas fa-trash" aria-hidden="true"></i>{% trans "Supprimer la filière" %}</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="sx-fcard__levels" aria-label="{% trans 'Niveaux couverts' %}">
+      {% for n in f.niveaux %}
+      <a class="sx-level" href="{% url 'administrateur_etablissement:liste_classes_specialite' f.department.id %}#niveau-{{ n.code }}" title="{{ n.label }} — {{ n.nb }} {% trans 'promotion(s)' %}">{{ n.court }} <b>{{ n.nb }}</b></a>
+      {% empty %}
+      <span class="sx-level sx-level--empty">{% trans "Aucune promotion pour l’instant" %}</span>
+      {% endfor %}
+    </div>
+
+    <div class="sx-fcard__stats">
+      <div><strong>{{ f.nb_classes }}</strong><span>{% trans "Promotions" %}</span></div>
+      <div><strong>{{ f.etudiants }}</strong><span>{% trans "Étudiants" %}</span></div>
+      <div><strong>{{ f.enseignants }}</strong><span>{% trans "Enseignants" %}</span></div>
+    </div>
+
+    <div class="sx-fcard__foot">
+      <a class="sx-btn sx-btn--primary" href="{% url 'administrateur_etablissement:liste_classes_specialite' f.department.id %}"><i class="fas fa-arrow-right" aria-hidden="true"></i>{% trans "Ouvrir la filière" %}</a>
+      {% if f.nb_inactives %}<span class="sx-pill sx-pill--warn" title="{% trans 'Promotions désactivées : invisibles pour les enseignants et les étudiants' %}">{{ f.nb_inactives }} {% trans "inactive(s)" %}</span>{% endif %}
+    </div>
+  </article>
+  {% endfor %}
+  <button type="button" class="sx-fcard sx-empty" id="addFiliereBtnCard" style="cursor:pointer">
+    <i class="fas fa-plus" aria-hidden="true"></i>
+    <h3>{% trans "Nouvelle filière" %}</h3>
+    <p>{% trans "Ex. Sciences juridiques (DRT), Informatique (INF). Vous y ajouterez ensuite les promotions L1, L2…" %}</p>
+  </button>
+</div>
+<div class="sx-empty" data-sx-none hidden style="margin-top:12px"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><h3>{% trans "Aucune filière ne correspond" %}</h3></div>
+{% else %}
+<div class="sx-empty">
+  <i class="fas fa-sitemap" aria-hidden="true"></i>
+  <h3>{% trans "Commencez par créer une filière" %}</h3>
+  <p>{% trans "Une filière (ou spécialité) regroupe les promotions d’un même parcours : Sciences juridiques, Informatique… Vous y ajouterez ensuite les promotions L1, L2, M1…" %}</p>
+  <button type="button" class="sx-btn sx-btn--primary" id="addFiliereBtnEmpty"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Créer la première filière" %}</button>
+</div>
+{% endif %}

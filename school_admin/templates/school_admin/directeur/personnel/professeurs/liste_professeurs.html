@@ -1,255 +1,119 @@
 <!DOCTYPE html>
-{% load static %}
-{% load i18n %}
+{% load static i18n %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Liste des Professeurs - {{ etablissement.nom }}</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet"
-    />
-    <link
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-        rel="stylesheet"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/header_directeur.css' %}"
-    />
-    <link
-        rel="stylesheet"
-        href="{% static 'school_admin/css/directeur/liste_professeurs.css' %}?v=1.1.0"
-    />
+    <title>{% trans "Enseignants" %} - {{ etablissement.nom }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.4" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.0.0">
 </head>
-<body data-live-page="professeurs">
-    <!-- Header -->
+<body class="gv3 cg3 sx" data-live-page="professeurs">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
-    <!-- Main Content -->
-    <div class="main-content-container">
-        <!-- Page Header -->
-        <div class="page-header">
-            {% include 'school_admin/directeur/partials/page_header_back.html' %}
-<div class="header-background">
-                <div class="header-content">
-                    <div class="page-title-section">
-                        <div class="title-icon">
-                            <i class="fas fa-chalkboard-teacher"></i>
-                        </div>
-                        <div class="title-text">
-                            <h1 class="page-title">{% trans "Liste des Professeurs" %}</h1>
-                            <p class="page-subtitle">
-                                Gestion des professeurs de {{ etablissement.nom }}
-                            </p>
-                        </div>
-                    </div>
-                    <div class="page-actions">
-                        <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-primary btn-gradient">
-                            <i class="fas fa-plus"></i>
-                            <span>{% trans "Ajouter un professeur" %}</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="content-container">
+        {% include 'school_admin/partials/messages.html' %}
 
-        <!-- Statistics -->
-        <div class="stats-container">
-            <div class="stat-card stat-primary">
-                <div class="stat-icon">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ stats.total }}</h3>
-                    <p>{% trans "Total des professeurs" %}</p>
-                    <div class="stat-trend">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+15%</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="stat-card stat-success">
-                <div class="stat-icon">
-                    <i class="fas fa-user-check"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ stats.actifs }}</h3>
-                    <p>{% trans "Professeurs actifs" %}</p>
-                    <div class="stat-trend">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+8%</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="stat-card stat-info">
-                <div class="stat-icon">
-                    <i class="fas fa-graduation-cap"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ stats.par_niveau|length }}</h3>
-                    <p>{% trans "Niveaux d'enseignement" %}</p>
-                    <div class="stat-trend">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+3%</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="stat-card stat-warning">
-                <div class="stat-icon">
-                    <i class="fas fa-chart-line"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>95%</h3>
-                    <p>{% trans "Taux de satisfaction" %}</p>
-                    <div class="stat-trend">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+5%</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <nav class="sx-crumb" aria-label="{% trans 'Fil d’Ariane' %}">
+            <a href="{% url 'directeur:gestion_pedagogique' %}">{% trans "Pédagogie" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+            <span>{% trans "Enseignants" %}</span>
+        </nav>
 
-        <!-- Professeurs List -->
-        <div class="professeurs-container">
-            <div class="professeurs-header">
-                <div class="professeurs-title">
-                    <div class="title-icon">
-                        <i class="fas fa-list"></i>
-                    </div>
-                    <h2>{% trans "Liste des Professeurs" %}</h2>
-                </div>
-                <div class="search-container">
-                    <div class="search-box">
-                        <input type="text" placeholder="{% trans "Rechercher un professeur..." %}" class="search-input">
-                        <i class="fas fa-search search-icon"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Onglets par matière -->
-            <div class="matiere-tabs-container">
-                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'matière' %}" data-overflow-items-label="{% trans 'matières' %}">
-                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Filtrer par matière' %}">
-                        <button type="button" role="tab" class="matiere-tab-btn active" data-matiere="all" data-order="0" aria-selected="true">
-                            <i class="fas fa-th"></i>
-                            <span>{% trans "Tous" %}</span>
-                            <span class="tab-count">{{ stats.total }}</span>
-                        </button>
-                        {% for item in matieres_avec_compteurs %}
-                            {% if item.count > 0 %}
-                                <button type="button" role="tab" class="matiere-tab-btn" data-matiere="{{ item.matiere.id }}" data-order="{{ forloop.counter }}" aria-selected="false">
-                                    <i class="fas fa-book"></i>
-                                    <span>{{ item.matiere.nom }}</span>
-                                    <span class="tab-count">{{ item.count }}</span>
-                                </button>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                    <div class="matiere-tabs-more-wrap" hidden>
-                        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Afficher les autres matières' %}">
-                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                            <span class="matiere-tabs-more-label">{% trans "Autres matières" %}</span>
-                        </button>
-                        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
-                    </div>
-                </div>
+        {% if sx_superieur %}{% trans "Enseignants" as t %}{% trans "Corps enseignant : grades, contrats, éléments (EC) et promotions affectés." as st %}{% elif sx_primaire %}{% trans "Enseignants" as t %}{% trans "Maîtres et maîtresses : classe confiée, matières et contrat." as st %}{% else %}{% trans "Enseignants" as t %}{% trans "Professeurs : matières et classes affectées, contrat et statut." as st %}{% endif %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-chalkboard-user' v3_tone='blue' v3_actions_tpl='school_admin/directeur/partials/v3_actions/professeurs.html' %}
+
+        <section class="sx-card">
+            {% if sx_lignes_profs %}
+            <div class="sx-toolbar" data-sx-filter="#sxProfs">
+                <label class="sx-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                    <input type="search" class="sx-search__input" data-sx-q placeholder="{% trans 'Nom, téléphone, matière, classe…' %}" aria-label="{% trans 'Rechercher un enseignant' %}"></label>
+                <select data-sx-f="mat" aria-label="{% trans 'Matière' %}">
+                    <option value="">{% trans "Toutes les matières" %}</option>
+                    {% for m in sx_matieres_filtre %}<option value="{{ m.id }}">{{ m.nom }}</option>{% endfor %}
+                </select>
+                <select data-sx-f="affecte" aria-label="{% trans 'Affectation' %}">
+                    <option value="">{% trans "Affectation : tous" %}</option>
+                    <option value="oui">{% trans "Avec classes" %}</option>
+                    <option value="non">{% trans "Sans classe" %}</option>
+                </select>
+                {% if sx_grades %}
+                <select data-sx-f="grade" aria-label="{% trans 'Grade' %}">
+                    <option value="">{% trans "Tous les grades" %}</option>
+                    {% for g in sx_grades %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
+                </select>
+                {% endif %}
+                <select data-sx-f="statut" aria-label="{% trans 'Statut' %}">
+                    <option value="">{% trans "Actifs et inactifs" %}</option>
+                    <option value="actif">{% trans "Actifs" %}</option>
+                    <option value="inactif">{% trans "Inactifs" %}</option>
+                </select>
+                <button type="button" class="sx-toolbar__reset" data-sx-reset hidden>{% trans "Effacer les filtres" %}</button>
+                <span class="sx-toolbar__count" data-sx-count="{% trans 'enseignants' %}"></span>
             </div>
 
-            {% if professeurs %}
-                <div class="professeurs-grid">
-                    {% for professeur in professeurs %}
-                        <div class="professeur-card" data-professeur="{{ professeur.nom_complet|lower }}" data-status="{% if professeur.actif %}actif{% else %}inactif{% endif %}" data-matiere="{{ professeur.matiere_principale.id }}">
-                            <div class="professeur-header">
-                                <div class="professeur-avatar">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="professeur-info">
-                                    <h3 class="professeur-nom">{{ professeur.nom_complet }}</h3>
-                                    <p class="professeur-matiere">{{ professeur.matiere_display }}</p>
-                                </div>
-                                <div class="professeur-actions">
-                                    <a href="{% url 'professeur:detail_professeur' professeur.id %}" class="btn-action btn-view" title="{% trans "Voir les détails" %}">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <button class="btn-action btn-edit" title="{% trans "Modifier" %}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn-action btn-delete" title="{% trans "Supprimer" %}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="professeur-details">
-                                <div class="detail-item">
-                                    <div class="detail-icon">
-                                        <i class="fas fa-graduation-cap"></i>
-                                    </div>
-                                    <div class="detail-content">
-                                        <span class="detail-label">{% trans "Niveau" %}</span>
-                                        <span class="detail-value">{{ professeur.niveau_display }}</span>
-                                    </div>
-                                </div>
-                                <div class="detail-item">
-                                    <div class="detail-icon">
-                                        <i class="fas fa-envelope"></i>
-                                    </div>
-                                    <div class="detail-content">
-                                        <span class="detail-label">{% trans "Email" %}</span>
-                                        <span class="detail-value">{{ professeur.email }}</span>
+            <div class="sx-table-wrap">
+                <table class="sx-table" id="sxProfs">
+                    <thead><tr>
+                        <th>{% trans "Enseignant" %}</th>
+                        <th>{% if sx_superieur %}{% trans "Éléments (EC)" %}{% else %}{% trans "Matières" %}{% endif %}</th>
+                        <th>{% if sx_superieur %}{% trans "Promotions" %}{% elif sx_primaire %}{% trans "Classe confiée" %}{% else %}{% trans "Classes" %}{% endif %}</th>
+                        {% if not sx_primaire %}<th>{% if sx_superieur %}{% trans "Grade" %}{% else %}{% trans "Niveau" %}{% endif %}</th>{% endif %}
+                        <th>{% trans "Contrat" %}</th>
+                        <th>{% trans "Statut" %}</th>
+                        <th class="sx-act"><span class="sr-only">{% trans "Actions" %}</span></th>
+                    </tr></thead>
+                    <tbody>
+                        {% for l in sx_lignes_profs %}{% with p=l.prof %}
+                        <tr data-sx-item data-sx-text="{{ l.texte }}" data-sx-mat="{{ l.mat_ids }}" data-sx-affecte="{% if l.affecte %}oui{% else %}non{% endif %}"
+                            data-sx-grade="{{ l.grade }}" data-sx-statut="{% if p.actif %}actif{% else %}inactif{% endif %}">
+                            <td class="sx-cell-main">
+                                <div class="sx-name"><span class="sx-name__ico sx-avatar">{{ p.prenom|slice:":1"|upper }}{{ p.nom|slice:":1"|upper }}</span>
+                                    <div class="sx-name__txt"><a href="{% url 'professeur:detail_professeur' p.id %}">{{ p.prenom }} {{ p.nom }}</a><small>{{ p.telephone|default:"" }}{% if p.telephone and p.email %} · {% endif %}{{ p.email|default:"" }}</small></div></div>
+                            </td>
+                            <td data-label="{% if sx_superieur %}{% trans 'Éléments (EC)' %}{% else %}{% trans 'Matières' %}{% endif %}">{% for m in l.matieres|slice:":3" %}<span class="sx-pill sx-pill--info" style="margin:2px">{{ m }}</span>{% empty %}<span class="sx-pill sx-pill--off">—</span>{% endfor %}{% if l.matieres|length > 3 %}<span class="sx-pill sx-pill--off" title="{{ l.matieres|join:', ' }}">+{{ l.matieres|length|add:"-3" }}</span>{% endif %}</td>
+                            <td data-label="{% if sx_superieur %}{% trans 'Promotions' %}{% else %}{% trans 'Classes' %}{% endif %}">{% if l.classes %}<span title="{{ l.classes|join:', ' }}">{{ l.classes|slice:":3"|join:", " }}{% if l.nb_classes > 3 %} <span class="sx-pill sx-pill--off">+{{ l.nb_classes|add:"-3" }}</span>{% endif %}</span>{% else %}<span class="sx-pill sx-pill--warn">{% trans "Aucune" %}</span>{% endif %}</td>
+{% if not sx_primaire %}<td data-label="{% if sx_superieur %}{% trans 'Grade' %}{% else %}{% trans 'Niveau' %}{% endif %}">{% if sx_superieur %}{{ l.grade|default:"—" }}{% else %}{{ p.niveau_display }}{% endif %}</td>{% endif %}
+                            <td data-label="{% trans 'Contrat' %}"><span class="sx-pill {% if l.contrat_code == 'permanent' %}sx-pill--ok{% else %}sx-pill--off{% endif %}">{{ l.contrat }}</span></td>
+                            <td data-label="{% trans 'Statut' %}">{% if p.actif %}<span class="sx-pill sx-pill--ok">{% trans "Actif" %}</span>{% else %}<span class="sx-pill sx-pill--off">{% trans "Inactif" %}</span>{% endif %}</td>
+                            <td class="sx-act">
+                                <a class="sx-btn sx-btn--sm sx-btn--primary" href="{% url 'professeur:detail_professeur' p.id %}">{% trans "Ouvrir" %}</a>
+                                <div class="sx-menu">
+                                    <button type="button" class="sx-btn sx-btn--sm sx-menu__toggle" aria-haspopup="true" aria-expanded="false" aria-label="{% trans 'Autres actions' %}"><i class="fas fa-ellipsis" aria-hidden="true"></i></button>
+                                    <div class="sx-menu__list" role="menu" hidden>
+                                        <a class="sx-menu__item" role="menuitem" href="{% url 'professeur:modifier_professeur' p.id %}"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier la fiche" %}</a>
+                                        <a class="sx-menu__item" role="menuitem" href="{% url 'affectation:affectation_professeurs' %}"><i class="fas fa-user-plus" aria-hidden="true"></i>{% trans "Gérer ses affectations" %}</a>
+                                        <div class="sx-menu__sep"></div>
+                                        <a class="sx-menu__item{% if p.actif %} sx-menu__item--danger{% endif %}" role="menuitem" href="{% url 'professeur:toggle_actif' p.id %}" {% if p.actif %}data-sx-confirm="{% trans 'Désactiver cet enseignant ? Il ne pourra plus se connecter.' %}"{% endif %}><i class="fas fa-{% if p.actif %}user-slash{% else %}user-check{% endif %}" aria-hidden="true"></i>{% if p.actif %}{% trans "Désactiver" %}{% else %}{% trans "Réactiver" %}{% endif %}</a>
                                     </div>
                                 </div>
-                                <div class="detail-item">
-                                    <div class="detail-icon">
-                                        <i class="fas fa-phone"></i>
-                                    </div>
-                                    <div class="detail-content">
-                                        <span class="detail-label">{% trans "Téléphone" %}</span>
-                                        <span class="detail-value">{{ professeur.telephone }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="professeur-footer">
-                                <div class="professeur-status">
-                                    <span class="status-badge {% if professeur.actif %}status-active{% else %}status-inactive{% endif %}">
-                                        <i class="fas {% if professeur.actif %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
-                                        {% if professeur.actif %}Actif{% else %}Inactif{% endif %}
-                                    </span>
-                                </div>
-                                <div class="professeur-date">
-                                    <i class="fas fa-calendar"></i>
-                                    <span>{{ professeur.date_creation|date:"d/m/Y" }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
+                            </td>
+                        </tr>
+                        {% endwith %}{% endfor %}
+                        <tr class="sx-empty-row" data-sx-none hidden><td colspan="7">{% trans "Aucun enseignant avec ces filtres." %}</td></tr>
+                    </tbody>
+                </table>
+            </div>
             {% else %}
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                    </div>
-                    <h3>{% trans "Aucun professeur trouvé" %}</h3>
-                    <p>{% trans "Commencez par ajouter votre premier professeur pour constituer votre équipe pédagogique." %}</p>
-                    <a href="{% url 'professeur:ajouter_professeur' %}" class="btn-primary btn-gradient">
-                        <i class="fas fa-plus"></i>
-                        <span>{% trans "Ajouter un professeur" %}</span>
-                    </a>
-                </div>
+            <div class="sx-empty">
+                <i class="fas fa-chalkboard-user" aria-hidden="true"></i>
+                <h3>{% trans "Aucun enseignant pour l’instant" %}</h3>
+                <p>{% trans "Ajoutez vos enseignants : ils recevront leurs identifiants, puis vous leur affecterez des matières et des classes." %}</p>
+                <a class="sx-btn sx-btn--primary" href="{% url 'professeur:ajouter_professeur' %}"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter un enseignant" %}</a>
+            </div>
             {% endif %}
-        </div>
+        </section>
     </div>
 
-    <!-- Scripts -->
-    <script src="{% static 'school_admin/js/directeur/liste_professeurs.js' %}?v=1.1.0"></script>
-
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.0.0"></script>
 </body>
 </html>

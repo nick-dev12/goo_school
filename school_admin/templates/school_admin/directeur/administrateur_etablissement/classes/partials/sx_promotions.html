@@ -1,0 +1,82 @@
+{% load i18n %}
+{% comment %}Toutes les classes / promotions dans un seul tableau : recherche + filtres au lieu de plusieurs niveaux d'onglets.{% endcomment %}
+{% if sx_lignes %}
+<div class="sx-toolbar" data-sx-filter="#sxPromotions">
+  <label class="sx-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+    <input type="search" class="sx-search__input" data-sx-q placeholder="{% if est_superieur %}{% trans 'Rechercher une promotion…' %}{% else %}{% trans 'Rechercher une classe…' %}{% endif %}" aria-label="{% trans 'Rechercher' %}"></label>
+  {% if est_superieur %}
+  <select data-sx-f="filiere" aria-label="{% trans 'Filière' %}">
+    <option value="">{% trans "Toutes les filières" %}</option>
+    {% for f in sx_filieres %}<option value="{{ f.department.id }}">{{ f.department.nom }}</option>{% endfor %}
+    <option value="0">{% trans "Sans filière" %}</option>
+  </select>
+  <select data-sx-f="niveau" aria-label="{% trans 'Niveau' %}">
+    <option value="">{% trans "Tous les niveaux" %}</option>
+    {% for code, label in sx_niveaux %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+  </select>
+  {% else %}
+  <select data-sx-f="groupe" aria-label="{% trans 'Niveau' %}">
+    <option value="">{% trans "Tous les niveaux" %}</option>
+    {% for g in sx_groupes %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <select data-sx-f="statut" aria-label="{% trans 'Statut' %}">
+    <option value="">{% trans "Actives et inactives" %}</option>
+    <option value="active">{% trans "Actives" %}</option>
+    <option value="inactive">{% trans "Inactives" %}</option>
+  </select>
+  <button type="button" class="sx-toolbar__reset" data-sx-reset hidden>{% trans "Effacer les filtres" %}</button>
+  <span class="sx-toolbar__count" data-sx-count="{% if est_superieur %}{% trans 'promotions' %}{% else %}{% trans 'classes' %}{% endif %}"></span>
+</div>
+
+<div class="sx-table-wrap">
+  <table class="sx-table" id="sxPromotions">
+    <thead><tr>
+      <th>{% if est_superieur %}{% trans "Promotion" %}{% else %}{% trans "Classe" %}{% endif %}</th>
+      {% if est_superieur %}<th>{% trans "Filière" %}</th><th>{% trans "Niveau" %}</th>{% endif %}
+      <th>{% if est_superieur %}{% trans "Étudiants" %}{% else %}{% trans "Élèves" %}{% endif %}</th>
+      {% if sx_primaire %}<th>{% trans "Maître(sse)" %}</th>{% else %}<th class="sx-num">{% trans "Enseignants" %}</th>{% endif %}
+      <th>{% trans "Statut" %}</th>
+      <th class="sx-act"><span class="sr-only">{% trans "Actions" %}</span></th>
+    </tr></thead>
+    <tbody>
+      {% for l in sx_lignes %}
+      {% if not est_superieur %}{% ifchanged l.groupe %}<tr class="sx-table__group" data-sx-group="{{ l.groupe }}"><td colspan="6">{{ l.groupe }} <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--ax-muted)">· {{ l.niveau_label }}</span></td></tr>{% endifchanged %}{% endif %}
+      <tr data-sx-item data-sx-text="{{ l.classe.nom }} {{ l.classe.code_classe }}{% if est_superieur %} {{ l.filiere_nom }} {{ l.niveau_label }}{% endif %}"
+          data-sx-statut="{% if l.classe.actif %}active{% else %}inactive{% endif %}"
+          {% if est_superieur %}data-sx-filiere="{{ l.filiere_id }}" data-sx-niveau="{{ l.niveau_code }}"{% else %}data-sx-groupe="{{ l.groupe }}" data-sx-in="{{ l.groupe }}"{% endif %}>
+        <td class="sx-cell-main">
+          <div class="sx-name"><span class="sx-name__ico"><i class="fas fa-chalkboard" aria-hidden="true"></i></span>
+            <div class="sx-name__txt"><a href="{% url 'administrateur_etablissement:detail_classe' l.classe.id %}">{{ l.classe.nom }}</a><small>{{ l.classe.code_classe }}</small></div></div>
+        </td>
+        {% if est_superieur %}
+        <td data-label="{% trans 'Filière' %}">{% if l.filiere_id %}<a class="sx-pill sx-pill--info" href="{% url 'administrateur_etablissement:liste_classes_specialite' l.filiere_id %}" style="text-decoration:none">{{ l.filiere_sigle|default:l.filiere_nom }}</a>{% else %}<span class="sx-pill sx-pill--warn">{% trans "Sans filière" %}</span>{% endif %}</td>
+        <td data-label="{% trans 'Niveau' %}" title="{{ l.niveau_label }}">{{ l.niveau_court }}</td>
+        {% endif %}
+        <td data-label="{% if est_superieur %}{% trans 'Étudiants' %}{% else %}{% trans 'Élèves' %}{% endif %}">
+          <div class="sx-meter" title="{{ l.pct }} % {% trans 'de la capacité' %}"><span class="sx-meter__txt">{{ l.effectif }} / {{ l.capacite }}</span><span class="sx-meter__bar"><span class="{{ l.niveau_etat }}" style="width: {{ l.pct_barre }}%"></span></span></div>
+        </td>
+        {% if sx_primaire %}
+        <td data-label="{% trans 'Maître(sse)' %}">{% if l.maitre %}{{ l.maitre }}{% else %}<span class="sx-pill sx-pill--warn">{% trans "Non affecté" %}</span>{% endif %}</td>
+        {% else %}
+        <td class="sx-num" data-label="{% trans 'Enseignants' %}">{% if l.enseignants %}{{ l.enseignants }}{% else %}<span class="sx-pill sx-pill--warn">{% trans "Aucun" %}</span>{% endif %}</td>
+        {% endif %}
+        <td data-label="{% trans 'Statut' %}">{% if l.classe.actif %}<span class="sx-pill sx-pill--ok">{% trans "Active" %}</span>{% else %}<span class="sx-pill sx-pill--off">{% trans "Inactive" %}</span>{% endif %}</td>
+        <td class="sx-act">
+          <a class="sx-btn sx-btn--sm sx-btn--primary" href="{% url 'administrateur_etablissement:detail_classe' l.classe.id %}">{% trans "Ouvrir" %}</a>
+          <a class="sx-btn sx-btn--sm" href="{% url 'administrateur_etablissement:toggle_actif' l.classe.id %}" {% if l.classe.actif %}data-sx-confirm="{% trans 'Désactiver cette classe ? Elle ne sera plus visible pour les enseignants et les élèves.' %}"{% endif %}>{% if l.classe.actif %}{% trans "Désactiver" %}{% else %}{% trans "Activer" %}{% endif %}</a>
+        </td>
+      </tr>
+      {% endfor %}
+      <tr class="sx-empty-row" data-sx-none hidden><td colspan="7">{% trans "Aucun résultat avec ces filtres." %}</td></tr>
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="sx-empty">
+  <i class="fas fa-chalkboard" aria-hidden="true"></i>
+  <h3>{% if est_superieur %}{% trans "Aucune promotion" %}{% else %}{% trans "Aucune classe" %}{% endif %}</h3>
+  <p>{% if est_superieur %}{% trans "Créez une promotion (ex. DRT L1 A) dans une filière : elle recevra ses étudiants, ses modules et son emploi du temps." %}{% else %}{% trans "Créez vos classes (ex. 6ème A, Terminale S1) : elles recevront élèves, matières et emploi du temps." %}{% endif %}</p>
+  <button type="button" class="sx-btn sx-btn--primary" id="addClasseBtnEmpty"><i class="fas fa-plus" aria-hidden="true"></i>{% if est_superieur %}{% trans "Créer la première promotion" %}{% else %}{% trans "Créer la première classe" %}{% endif %}</button>
+</div>
+{% endif %}

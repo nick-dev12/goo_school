@@ -20,21 +20,22 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.0.0">
 </head>
-<body class="gml-page-body gmd-page gv3 cg3">
+<body class="gml-page-body gmd-page gv3 cg3 sx">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container gml-page">
         {% include 'school_admin/partials/messages.html' %}
 
-        <div class="page-header page-header-minimal">
-            {% url 'matiere:liste_matieres' as back_matieres_url %}
-            {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_matieres_url %}
-        </div>
-
-        <p class="fe-crumbs" style="margin-bottom:10px"><a href="{% url 'matiere:liste_matieres' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{% trans "Modules" %}</a></p>
-        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=module.nom v3_sous_titre=module.code v3_icone='fa-cube' v3_tone='teal' v3_actions_tpl='school_admin/directeur/partials/v3_actions/module.html' %}
-        {% if linked_departments %}<p class="fe-alert fe-alert--info" style="margin-bottom:14px"><i class="fas fa-building" aria-hidden="true"></i><span>{% if is_module_shared %}{% trans "Module mutualisé" %} — {% for dep in linked_departments %}{{ dep.nom }}{% if dep.sigle %} ({{ dep.sigle }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}{% trans "Spécialité" %} : {{ linked_departments.0.nom }}{% if linked_departments.0.sigle %} ({{ linked_departments.0.sigle }}){% endif %}{% endif %}</span></p>{% endif %}
+        <nav class="sx-crumb" aria-label="{% trans 'Fil d’Ariane' %}">
+            <a href="{% url 'directeur:gestion_pedagogique' %}">{% trans "Pédagogie" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+            <a href="{% url 'matiere:liste_matieres' %}">{% trans "Modules (UE) et matières (EC)" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+            {% if linked_departments|length == 1 %}<span>{{ linked_departments.0.nom }}</span><i class="fas fa-chevron-right" aria-hidden="true"></i>{% endif %}
+            <span>{{ module.nom }}</span>
+        </nav>
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=module.nom v3_sous_titre=sx_sous_titre_module v3_icone='fa-cube' v3_tone='teal' v3_actions_tpl='school_admin/directeur/partials/v3_actions/module.html' %}
+        {% if is_module_shared %}<p class="fe-alert fe-alert--info" style="margin-bottom:14px"><i class="fas fa-building" aria-hidden="true"></i><span>{% if is_module_shared %}{% trans "Module mutualisé" %} — {% for dep in linked_departments %}{{ dep.nom }}{% if dep.sigle %} ({{ dep.sigle }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}{% trans "Spécialité" %} : {{ linked_departments.0.nom }}{% if linked_departments.0.sigle %} ({{ linked_departments.0.sigle }}){% endif %}{% endif %}</span></p>{% endif %}
 
         {% include 'school_admin/directeur/pedagogique/modules/partials/gmd_module_detail_panel.html' %}
     </div>
@@ -143,12 +144,22 @@
         </div>
     </div>
 
-    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.2.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
     <script src="{% static 'school_admin/js/directeur/matieres_modules.js' %}?v=2.4.0"></script>
     <script src="{% static 'school_admin/js/directeur/matieres_liste_tabs.js' %}?v=2.0.0"></script>
     <script src="{% static 'school_admin/js/directeur/detail_module_tabs.js' %}?v=2.0.0"></script>
     <script src="{% static 'school_admin/js/directeur/detail_module_matiere.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.0.0"></script>
+    <script>
+        // Lien « Ajouter un EC » depuis la liste des UE : ouvre directement le formulaire.
+        window.addEventListener('load', function () {
+            if (window.location.hash === '#ajouter-ec') {
+                var b = document.getElementById('btnAjouterMatiereModule');
+                if (b) { b.click(); }
+            }
+        });
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             if (window.initDetailModuleMatiereModal) {

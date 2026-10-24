@@ -34,6 +34,8 @@
       if (first && first.querySelector('th')) heads = first.querySelectorAll('th');
     }
     if (!heads.length) return;
+    // Les tableaux sx- (structure v4) gèrent eux-mêmes leurs libellés et leur affichage mobile.
+    if (table.classList.contains('sx-table')) return;
     var libelles = [];
     heads.forEach(function (th) {
       var span = parseInt(th.getAttribute('colspan') || '1', 10);

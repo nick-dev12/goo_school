@@ -1465,6 +1465,21 @@ def detail_module(request, module_id):
         'modal_niveaux_par_filiere': all_niveaux,
         'modal_periodes_par_niveau': periodes_par_niveau_edit,
     }
+    # Écran v4 : enseignants de chaque EC, semestres et promotions de l'UE.
+    from ..services.structure_v4 import enrichir_modules
+    enrichir_modules([module])
+    context['sx_profs_ec'] = {ec['matiere'].id: ec['enseignants'] for ec in module.sx_ec}
+    morceaux = [module.code or '']
+    if module.sx_semestres:
+        morceaux.append(', '.join(module.sx_semestres))
+    if module.sx_credits:
+        morceaux.append(f"{format(module.sx_credits.normalize(), 'f').replace('.', ',')} ECTS")
+    morceaux.append(f"{module.sx_nb_ec} EC")
+    context['sx_sous_titre_module'] = ' · '.join(m for m in morceaux if m)
+    for panel in filiere_panels:
+        for item in panel.get('niveaux_cards') or []:
+            for m in item.get('matieres_pour_niveau') or []:
+                m.sx_profs = context['sx_profs_ec'].get(m.id, [])
     from ..services.structure_etablissement import enrichir as _enrichir_structure
     _enrichir_structure(request, context, 'module', module)
     return render(request, 'school_admin/directeur/pedagogique/modules/detail_module.html', context)

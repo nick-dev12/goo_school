@@ -425,8 +425,78 @@ class ProfesseurController:
             'etablissement': etablissement,
             'stats': stats,
         }
-        
+        context.update(ProfesseurController._contexte_liste_v4(etablissement, professeurs, matieres))
+
         return render(request, 'school_admin/directeur/personnel/professeurs/liste_professeurs.html', context)
+
+    @staticmethod
+    def _contexte_liste_v4(etablissement, professeurs, matieres):
+        """Lignes de la liste v4 : matières et classes réellement affectées, indicateurs et points d'attention."""
+        from django.urls import reverse
+
+        from ..model.affectation_model import AffectationProfesseur
+        from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
+        sup = etablissement.type_etablissement == 'superieur'
+        primaire = etablissement.type_etablissement == 'primary'
+        mats, classes = {}, {}
+        for aff in AffectationProfesseur.objects.filter(professeur__in=professeurs, actif=True).select_related('matiere', 'classe'):
+            if aff.matiere_id:
+                mats.setdefault(aff.professeur_id, {})[aff.matiere_id] = aff.matiere.nom
+            classes.setdefault(aff.professeur_id, {})[aff.classe_id] = aff.classe.nom
+        if primaire:
+            for aff in AffectationProfesseurPrimaire.objects.filter(professeur__in=professeurs, actif=True).select_related('classe').prefetch_related('matieres'):
+                classes.setdefault(aff.professeur_id, {})[aff.classe_id] = aff.classe.nom
+                for m in aff.matieres.all():
+                    mats.setdefault(aff.professeur_id, {})[m.id] = m.nom
+        lignes = []
+        for p in professeurs:
+            les_mats = sorted(mats.get(p.id, {}).values())
+            les_classes = sorted(classes.get(p.id, {}).values())
+            if not les_mats and p.matiere_principale_id:
+                les_mats_affichees = [p.matiere_principale.nom]
+            else:
+                les_mats_affichees = les_mats
+            lignes.append({
+                'prof': p, 'matieres': les_mats_affichees, 'affecte': bool(les_classes),
+                'classes': les_classes, 'nb_classes': len(les_classes),
+                'grade': p.get_grade_universitaire_display() if sup and p.grade_universitaire else '',
+                'contrat': p.get_type_contrat_display().split(' (')[0],
+                'contrat_code': p.type_contrat,
+                'mat_ids': '|' + '|'.join(str(i) for i in (list(mats.get(p.id, {}).keys()) or [p.matiere_principale_id or ''])) + '|',
+                'texte': ' '.join([p.nom_complet, p.email or '', p.telephone or ''] + les_mats_affichees + les_classes),
+            })
+        lignes.sort(key=lambda l: (not l['prof'].actif, l['prof'].nom.lower(), l['prof'].prenom.lower()))
+        actifs = [l for l in lignes if l['prof'].actif]
+        sans = [l for l in actifs if not l['affecte']]
+        couvertes = {mid for d in mats.values() for mid in d}
+        nb_mat = len(matieres)
+        kpis = [
+            {'label': 'Enseignants actifs', 'value': f"{len(actifs)}/{len(lignes)}" if len(actifs) != len(lignes) else len(lignes),
+             'texte': len(actifs) != len(lignes), 'icon': 'fa-chalkboard-user', 'tone': 'blue'},
+            {'label': 'Avec affectation', 'value': f"{len(actifs) - len(sans)}/{len(actifs)}", 'texte': True, 'icon': 'fa-link',
+             'tone': 'teal', 'pct': round(100 * (len(actifs) - len(sans)) / len(actifs)) if actifs else None},
+            {'label': 'Matières couvertes', 'value': f"{len(couvertes)}/{nb_mat}", 'texte': True, 'icon': 'fa-book-open',
+             'tone': 'violet', 'pct': round(100 * len(couvertes) / nb_mat) if nb_mat else None},
+            {'label': 'Permanents / vacataires', 'value': f"{sum(1 for l in actifs if l['contrat_code'] == 'permanent')} / {sum(1 for l in actifs if l['contrat_code'] != 'permanent')}",
+             'texte': True, 'icon': 'fa-file-signature', 'tone': 'orange'},
+        ]
+        alertes = []
+        lien_aff = reverse('affectation:affectation_professeurs')
+        if sans:
+            alertes.append({'tone': 'warn', 'icon': 'fa-user-clock', 'texte': f"{len(sans)} enseignant(s) actif(s) sans aucune classe affectée.",
+                            'url': lien_aff, 'action': 'Affecter', 'details': [l['prof'].nom_complet for l in sans[:8]]})
+        non_couvertes = [m.nom for m in matieres if m.id not in couvertes and m.actif]
+        if non_couvertes:
+            alertes.append({'tone': 'info', 'icon': 'fa-book', 'texte': f"{len(non_couvertes)} matière(s) sans enseignant affecté.",
+                            'url': lien_aff, 'action': 'Affecter', 'details': non_couvertes[:8]})
+        return {
+            'sx_lignes_profs': lignes,
+            'sx_superieur': sup,
+            'sx_primaire': primaire,
+            'sx_matieres_filtre': [m for m in matieres if m.id in couvertes or any(m.id == l['prof'].matiere_principale_id for l in lignes)],
+            'sx_grades': [g for g in dict.fromkeys(l['grade'] for l in lignes) if g],
+            'controle': {'kpis': kpis, 'alertes': alertes},
+        }
 
     @staticmethod
     def build_ajouter_form_context(etablissement, form_data=None, field_errors=None, is_valid=True):

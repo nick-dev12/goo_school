@@ -137,6 +137,16 @@
             return null;
         }
         var track = bar.querySelector(p.track);
+        if (track && !bar.querySelector(p.moreWrap)) {
+            // Barre écrite sans bouton « Autres » : on l'ajoute avec les classes attendues par le modèle.
+            var cls = function (sel) { return sel.replace(/^\./, ''); };
+            var ajout = document.createElement('div');
+            ajout.className = cls(p.moreWrap);
+            ajout.hidden = true;
+            ajout.innerHTML = '<button type="button" class="' + cls(p.moreBtn) + '" aria-expanded="false" aria-haspopup="true">' +
+                '<span class="' + cls(p.label) + '"></span></button><div class="' + cls(p.menu) + '" role="menu" hidden></div>';
+            bar.appendChild(ajout);
+        }
         var wrap = bar.querySelector(p.moreWrap);
         var btn = bar.querySelector(p.moreBtn);
         var menu = bar.querySelector(p.menu);

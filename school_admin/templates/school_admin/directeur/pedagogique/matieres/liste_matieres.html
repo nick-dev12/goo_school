@@ -31,8 +31,9 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.0.0">
 </head>
-<body class="gml-page-body mat-page-body gv3 cg3" data-live-page="matieres">
+<body class="gml-page-body mat-page-body gv3 cg3 sx" data-live-page="matieres">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container gml-page mat-page">
@@ -40,7 +41,7 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
         </div>
 
-        {% if est_superieur %}{% trans "Modules et matières" as t %}{% trans "Unités d’enseignement par spécialité et niveau LMD, avec leurs matières et crédits ECTS." as st %}{% else %}{% trans "Matières" as t %}{% trans "Programme, coefficients et classes concernées." as st %}{% endif %}
+        {% if est_superieur %}{% trans "Modules (UE) et matières (EC)" as t %}{% trans "Choisissez une filière puis un niveau : chaque UE se déplie pour montrer ses EC, leurs crédits et leurs enseignants." as st %}{% else %}{% trans "Matières" as t %}{% trans "Toutes les matières, leurs coefficients, les classes concernées et leurs enseignants." as st %}{% endif %}
         {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-book-open' v3_tone='violet' v3_actions_tpl='school_admin/directeur/partials/v3_actions/matieres.html' %}
 
         {% if est_superieur %}
@@ -321,22 +322,6 @@
             </div>
         </div>
 
-        {% if not est_superieur and matieres %}
-        <div class="mat-toolbar">
-            <label class="mat-search-wrap">
-                <i class="fas fa-search" aria-hidden="true"></i>
-                <input type="search" id="matSearchInput" class="mat-search-input" placeholder="{% trans 'Rechercher une matière…' %}" autocomplete="off" />
-            </label>
-            {% if not est_superieur %}
-            <div class="mat-filter-group" role="group" aria-label="{% trans 'Filtrer par type' %}">
-                <button type="button" class="mat-filter-btn active" data-mat-filter="all">{% trans "Toutes" %}</button>
-                <button type="button" class="mat-filter-btn" data-mat-filter="obligatoire">{% trans "Obligatoires" %}</button>
-                <button type="button" class="mat-filter-btn" data-mat-filter="optionnelle">{% trans "Optionnelles" %}</button>
-            </div>
-            {% endif %}
-        </div>
-        <p class="mat-results-line" id="matResultsLine" aria-live="polite"></p>
-        {% endif %}
 
         <div class="mat-list-wrap">
             {% if est_superieur and matieres_par_filiere %}
@@ -442,32 +427,7 @@
                     </div>
                 </div>
             {% elif matieres %}
-                <div class="mat-types-nav">
-                    <div class="tabs-container mat-types-tabs-wrap">
-                        <div class="tabs-nav" role="tablist" aria-label="{% trans 'Types de matière' %}">
-                            {% for groupe in matieres_groupes %}
-                            <button type="button" role="tab" class="tab-btn mat-type-tab-btn {% if forloop.first %}active{% endif %}"
-                                    data-type-tab="{{ groupe.type }}"
-                                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
-                                <span>{{ groupe.label }}</span>
-                                <span class="tab-count">{{ groupe.matieres|length }}</span>
-                            </button>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                <div class="mat-types-content">
-                    {% for groupe in matieres_groupes %}
-                    <div class="mat-type-pane {% if forloop.first %}active{% endif %}" data-type-pane="{{ groupe.type }}" role="tabpanel">
-                        <div class="mat-cards-grid">
-                            {% for matiere_data in groupe.matieres %}
-                                {% include 'school_admin/directeur/pedagogique/matieres/partials/matiere_card.html' with matiere=matiere_data.matiere matiere_data=matiere_data %}
-                            {% endfor %}
-                        </div>
-                        <p class="mat-pane-empty mat-type-empty" hidden>{% trans "Aucune matière ne correspond à votre recherche." %}</p>
-                    </div>
-                    {% endfor %}
-                </div>
+                {% include 'school_admin/directeur/pedagogique/matieres/partials/sx_matieres_table.html' %}
             {% else %}
                 <div class="mat-empty-state">
                     <i class="fas fa-book-open"></i>
@@ -689,7 +649,8 @@
     </style>
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
-    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.2.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.0.0"></script>
 </body>
 </html>

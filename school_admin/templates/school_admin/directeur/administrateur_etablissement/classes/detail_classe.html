@@ -38,8 +38,9 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.0.0">
 </head>
-  <body class="gv3 cg3">
+  <body class="gv3 cg3 sx">
     <!-- Header -->
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
@@ -47,7 +48,16 @@
     <div class="content-container">
       <div class="container">
         <!-- Page Header -->
-        <p class="fe-crumbs" style="margin-bottom:10px"><a href="{% url 'administrateur_etablissement:liste_classes' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{% if classe.niveau == 'superieur' %}{% trans "Promotions" %}{% else %}{% trans "Classes" %}{% endif %}</a></p>
+        <nav class="sx-crumb" aria-label="{% trans 'Fil d’Ariane' %}">
+          <a href="{% url 'directeur:gestion_etablissement' %}">{% trans "Établissement" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+          {% if est_superieur %}
+          <a href="{% url 'administrateur_etablissement:liste_classes' %}?tab=specialites">{% trans "Filières et promotions" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+          {% if classe.department %}<a href="{% url 'administrateur_etablissement:liste_classes_specialite' classe.department.id %}">{{ classe.department.nom }}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>{% endif %}
+          {% else %}
+          <a href="{% url 'administrateur_etablissement:liste_classes' %}">{% trans "Classes" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+          {% endif %}
+          <span>{{ classe.nom }}</span>
+        </nav>
         {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=classe.nom v3_sous_titre=v3_sous_titre_classe v3_icone='fa-chalkboard' v3_tone='blue' v3_actions_tpl='school_admin/directeur/partials/v3_actions/classe.html' %}
         {% if messages %}
           {% for message in messages %}
@@ -208,269 +218,106 @@
           </div>
         </div>
 
-        <!-- Classe Overview Card -->
-        <div class="classe-overview-card">
-          <div class="classe-header">
-            <div class="classe-icon">
-              <i class="fas fa-{% if classe.niveau == 'maternelle' %}baby{% elif classe.niveau == 'primaire' %}child{% elif classe.niveau == 'college' %}graduation-cap{% elif classe.niveau == 'lycee' %}university{% else %}book{% endif %}"></i>
-            </div>
-            <div class="classe-info">
-              <h2 class="classe-nom">{{ classe.nom }}</h2>
-              <p class="classe-niveau-detail">
-                <span class="classe-badge niveau-{{ classe.niveau }}">{{ classe.get_niveau_display }}</span>
-                {% if classe.niveau == 'superieur' %}
-                <span class="classe-niveau-libelle">{% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}</span>
-                {% elif classe.academic_level %}
-                <span class="classe-niveau-libelle classe-niveau-academic">{{ classe.academic_level.code }} — {{ classe.academic_level.nom }}</span>
-                {% endif %}
-              </p>
-            </div>
-            <div class="classe-status">
-              <div class="status-badge status-{% if classe.actif %}active{% else %}inactive{% endif %}">
-                <i class="fas fa-{% if classe.actif %}check-circle{% else %}times-circle{% endif %}"></i>
-                <span>{% if classe.actif %}Active{% else %}Inactive{% endif %}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick Stats -->
-          <div class="quick-stats quick-stats--hero" role="region" aria-label="{% trans 'Indicateurs de la classe' %}">
-            <div class="stat-item">
-              <div class="stat-icon">
-                <i class="fas fa-user-graduate"></i>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">{{ stats_eleves.total }}</div>
-                <div class="stat-label">{% trans "Élèves" %}</div>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon">
-                <i class="fas fa-chalkboard-teacher"></i>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">{{ nombre_enseignants }}</div>
-                <div class="stat-label">{% trans "Enseignants" %}</div>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon">
-                <i class="fas fa-chart-pie"></i>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">{{ classe.taux_occupation }}%</div>
-                <div class="stat-label">{% trans "Occupation" %}</div>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon">
-                <i class="fas fa-calendar-plus"></i>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">{{ classe.date_creation|date:"d/m/Y" }}</div>
-                <div class="stat-label">{% trans "Créée le" %}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tabs Navigation -->
-        <div class="tabs-container">
+        <!-- Onglets de la classe -->
+        <div class="tabs-container sx-card">
           <div class="tabs-nav">
             <button class="tab-btn active" data-tab="overview">
-              <i class="fas fa-info-circle"></i>
+              <i class="fas fa-circle-info"></i>
               <span>{% trans "Vue d'ensemble" %}</span>
-            </button>
-            <button class="tab-btn" data-tab="enseignants">
-              <i class="fas fa-chalkboard-teacher"></i>
-              <span>Enseignants ({{ nombre_enseignants }})</span>
             </button>
             <button class="tab-btn" data-tab="eleves">
               <i class="fas fa-user-graduate"></i>
-              <span>Élèves ({{ stats_eleves.total }})</span>
+              <span>{% if est_superieur %}{% trans "Étudiants" %}{% else %}{% trans "Élèves" %}{% endif %}</span>
+              <span class="tab-count">{{ stats_eleves.total }}</span>
             </button>
-            <button class="tab-btn" data-tab="statistiques">
-              <i class="fas fa-chart-bar"></i>
-              <span>{% trans "Statistiques" %}</span>
+            <button class="tab-btn" data-tab="enseignants">
+              <i class="fas fa-chalkboard-user"></i>
+              <span>{% if maitres_primaire %}{% trans "Maître(sse)" %}{% else %}{% trans "Enseignants" %}{% endif %}</span>
+              <span class="tab-count">{% if maitres_primaire %}{{ maitres_primaire|length }}{% else %}{{ nombre_enseignants }}{% endif %}</span>
             </button>
             <button class="tab-btn" data-tab="releve-notes">
               <i class="fas fa-clipboard-list"></i>
               <span>{% trans "Relevé de notes" %}</span>
             </button>
+            <button class="tab-btn" data-tab="statistiques">
+              <i class="fas fa-chart-column"></i>
+              <span>{% trans "Statistiques" %}</span>
+            </button>
           </div>
 
           <!-- Tab Content -->
           <div class="tabs-content">
-            <!-- Overview Tab -->
+            <!-- Vue d'ensemble -->
             <div class="tab-panel active" id="overview">
-              <div class="panel-content">
-                <div class="info-grid">
-                  <div class="info-card">
-                    <h3 class="card-title">
-                      <i class="fas fa-info-circle"></i>
-                      {% trans "Informations Générales" %}
-                    </h3>
-                    <div class="info-list">
-                      <div class="info-item">
-                        <i class="fas fa-code"></i>
-                        <span class="info-label">{% trans "Code:" %}</span>
-                        <span class="info-value">{{ classe.code_classe }}</span>
-                      </div>
-                      <div class="info-item">
-                        <i class="fas fa-users"></i>
-                        <span class="info-label">{% trans "Capacité:" %}</span>
-                        <span class="info-value">{{ classe.capacite_max }} élèves</span>
-                      </div>
-                      <div class="info-item">
-                        <i class="fas fa-chart-pie"></i>
-                        <span class="info-label">{% trans "Occupation:" %}</span>
-                        <span class="info-value">{{ classe.taux_occupation }}%</span>
-                      </div>
-                      <div class="info-item">
-                        <i class="fas fa-calendar-edit"></i>
-                        <span class="info-label">{% trans "Modifiée:" %}</span>
-                        <span class="info-value">{{ classe.date_modification|date:"d/m/Y" }}</span>
-                      </div>
-                    </div>
+              <div class="sx-overview">
+                <section class="sx-overview__info">
+                  <h3 class="sx-card__title"><i class="fas fa-id-card" aria-hidden="true"></i>{% trans "Identité de la classe" %}</h3>
+                  <dl class="sx-dl">
+                    <div><dt>{% trans "Statut" %}</dt><dd>{% if classe.actif %}<span class="sx-pill sx-pill--ok">{% trans "Active" %}</span>{% else %}<span class="sx-pill sx-pill--off">{% trans "Inactive" %}</span> <small>{% trans "invisible pour les enseignants et les élèves" %}</small>{% endif %}</dd></div>
+                    {% if est_superieur %}
+                    <div><dt>{% trans "Filière" %}</dt><dd>{% if classe.department %}<a href="{% url 'administrateur_etablissement:liste_classes_specialite' classe.department.id %}">{{ classe.department.nom }}</a>{% else %}—{% endif %}</dd></div>
+                    <div><dt>{% trans "Niveau" %}</dt><dd>{% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}</dd></div>
+                    {% else %}
+                    <div><dt>{% trans "Cycle" %}</dt><dd>{{ classe.get_niveau_display }}</dd></div>
+                    {% endif %}
+                    <div><dt>{% trans "Code" %}</dt><dd><code>{{ classe.code_classe }}</code></dd></div>
+                    <div><dt>{% if est_superieur %}{% trans "Étudiants" %}{% else %}{% trans "Élèves" %}{% endif %}</dt><dd>
+                      <div class="sx-meter"><span class="sx-meter__txt">{{ classe.nombre_eleves }} / {{ classe.capacite_max }}</span><span class="sx-meter__bar"><span class="{% if sx_effectif_pct >= 100 %}is-full{% elif sx_effectif_pct >= 90 %}is-high{% endif %}" style="width: {{ sx_effectif_pct }}%"></span></span></div>
+                    </dd></div>
+                    <div><dt>{% trans "Créée le" %}</dt><dd>{{ classe.date_creation|date:"d/m/Y" }} <small>· {% trans "modifiée le" %} {{ classe.date_modification|date:"d/m/Y" }}</small></dd></div>
+                    {% if classe.description %}<div class="sx-dl__full"><dt>{% trans "Description" %}</dt><dd>{{ classe.description }}</dd></div>{% endif %}
+                  </dl>
+                </section>
+                <section class="sx-overview__links">
+                  <h3 class="sx-card__title"><i class="fas fa-bolt" aria-hidden="true"></i>{% trans "Accès rapides" %}</h3>
+                  <div class="sx-quick">
+                    <a class="sx-quick__item" href="{% url 'administrateur_etablissement:detail_emploi_du_temps' classe.id %}"><i class="fas fa-calendar-week" aria-hidden="true"></i><span><strong>{% trans "Emploi du temps" %}</strong><small>{% trans "Créneaux, salles et enseignants" %}</small></span></a>
+                    {% if est_superieur %}
+                    <a class="sx-quick__item" href="{% url 'directeur:maquette_classe' classe.id %}"><i class="fas fa-layer-group" aria-hidden="true"></i><span><strong>{% trans "Maquette (UE et EC)" %}</strong><small>{% trans "Modules, crédits, volumes horaires" %}</small></span></a>
+                    {% endif %}
+                    <a class="sx-quick__item" href="{% url 'affectation:affectation_professeurs' %}"><i class="fas fa-user-plus" aria-hidden="true"></i><span><strong>{% trans "Affecter des enseignants" %}</strong><small>{% if maitres_primaire %}{% trans "Maître de la classe" %}{% else %}{% trans "Une matière, un enseignant" %}{% endif %}</small></span></a>
+                    <a class="sx-quick__item" href="{% url 'directeur:bulletins_notes' %}?classe={{ classe.id }}"><i class="fas fa-file-lines" aria-hidden="true"></i><span><strong>{% trans "Bulletins" %}</strong><small>{% trans "Calcul, publication, impression" %}</small></span></a>
+                    <a class="sx-quick__item" href="{% url 'directeur:imprimer_liste_nominative' classe.id %}" target="_blank" rel="noopener"><i class="fas fa-print" aria-hidden="true"></i><span><strong>{% trans "Liste nominative" %}</strong><small>{% trans "À imprimer" %}</small></span></a>
+                    <button type="button" class="sx-quick__item" data-sx-tab="eleves"><i class="fas fa-user-graduate" aria-hidden="true"></i><span><strong>{% if est_superieur %}{% trans "Voir les étudiants" %}{% else %}{% trans "Voir les élèves" %}{% endif %}</strong><small>{{ stats_eleves.total }} {% trans "inscrit(s)" %}</small></span></button>
                   </div>
-
-                  <div class="info-card">
-                    <h3 class="card-title">
-                      <i class="fas fa-school"></i>
-                      {% trans "Établissement" %}
-                    </h3>
-                    <div class="etablissement-info">
-                      <div class="etablissement-card">
-                        <div class="etablissement-icon">
-                          <i class="fas fa-school"></i>
-                        </div>
-                        <div class="etablissement-details">
-                          <h4>{{ etablissement.nom }}</h4>
-                          <p>{{ etablissement.get_type_etablissement_display }}</p>
-                          <span class="etablissement-code">{{ etablissement.code_etablissement }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {% if classe.description %}
-                  <div class="info-card full-width">
-                    <h3 class="card-title">
-                      <i class="fas fa-align-left"></i>
-                      {% trans "Description" %}
-                    </h3>
-                    <div class="description-content">
-                      <p>{{ classe.description }}</p>
-                    </div>
-                  </div>
-                {% endif %}
+                </section>
               </div>
             </div>
 
-            <!-- Enseignants Tab -->
+            <!-- Enseignants -->
             <div class="tab-panel" id="enseignants">
-              <div class="panel-content">
-                {% if affectations %}
-                  <div class="enseignants-section">
-                    <!-- Enseignants Principaux -->
-                    {% if enseignants_principaux %}
-                      <div class="enseignants-group">
-                        <h3 class="group-title">
-                          <i class="fas fa-crown"></i>
-                          {% trans "Professeurs Principaux" %}
-                        </h3>
-                        <div class="enseignants-grid">
-                          {% for affectation in enseignants_principaux %}
-                            <div class="enseignant-card principal">
-                              <div class="enseignant-header">
-                                <div class="enseignant-avatar">
-                                  <i class="fas fa-user"></i>
-                                </div>
-                                <div class="enseignant-info">
-                                  <h4 class="enseignant-nom">{{ affectation.professeur.nom_complet }}</h4>
-                                  <p class="enseignant-matiere">{% if affectation.matiere %}{{ affectation.matiere.nom }}{% else %}{{ affectation.professeur.matiere_principale.nom }}{% endif %}</p>
-                                </div>
-                                <div class="enseignant-status">
-                                  <span class="status-badge principal">{% trans "Principal" %}</span>
-                                </div>
-                              </div>
-                              <div class="enseignant-details">
-                                <div class="detail-item">
-                                  <i class="fas fa-envelope"></i>
-                                  <span>{{ affectation.professeur.email }}</span>
-                                </div>
-                                <div class="detail-item">
-                                  <i class="fas fa-phone"></i>
-                                  <span>{{ affectation.professeur.telephone }}</span>
-                                </div>
-                                <div class="detail-item">
-                                  <i class="fas fa-calendar"></i>
-                                  <span>Affecté le {{ affectation.date_affectation|date:"d/m/Y" }}</span>
-                                </div>
-                              </div>
-                            </div>
-                          {% endfor %}
-                        </div>
-                      </div>
-                    {% endif %}
-
-                    <!-- Enseignants Classiques -->
-                    {% if enseignants_classiques %}
-                      <div class="enseignants-group">
-                        <h3 class="group-title">
-                          <i class="fas fa-chalkboard"></i>
-                          {% trans "Professeurs Classiques" %}
-                        </h3>
-                        <div class="enseignants-grid">
-                          {% for affectation in enseignants_classiques %}
-                            <div class="enseignant-card classique">
-                              <div class="enseignant-header">
-                                <div class="enseignant-avatar">
-                                  <i class="fas fa-user"></i>
-                                </div>
-                                <div class="enseignant-info">
-                                  <h4 class="enseignant-nom">{{ affectation.professeur.nom_complet }}</h4>
-                                  <p class="enseignant-matiere">{% if affectation.matiere %}{{ affectation.matiere.nom }}{% else %}{{ affectation.professeur.matiere_principale.nom }}{% endif %}</p>
-                                </div>
-                                <div class="enseignant-status">
-                                  <span class="status-badge classique">{% trans "Classique" %}</span>
-                                </div>
-                              </div>
-                              <div class="enseignant-details">
-                                <div class="detail-item">
-                                  <i class="fas fa-envelope"></i>
-                                  <span>{{ affectation.professeur.email }}</span>
-                                </div>
-                                <div class="detail-item">
-                                  <i class="fas fa-phone"></i>
-                                  <span>{{ affectation.professeur.telephone }}</span>
-                                </div>
-                                <div class="detail-item">
-                                  <i class="fas fa-calendar"></i>
-                                  <span>Affecté le {{ affectation.date_affectation|date:"d/m/Y" }}</span>
-                                </div>
-                              </div>
-                            </div>
-                          {% endfor %}
-                        </div>
-                      </div>
-                    {% endif %}
-                  </div>
-                {% else %}
-                  <div class="empty-state">
-                    <div class="empty-icon">
-                      <i class="fas fa-chalkboard-teacher"></i>
-                    </div>
-                    <h3>{% trans "Aucun enseignant affecté" %}</h3>
-                    <p>{% trans "Cette classe n'a pas encore d'enseignants affectés." %}</p>
-                    <a href="{% url 'affectation:affectation_professeurs' %}" class="btn-primary">
-                      <i class="fas fa-plus"></i>
-                      {% trans "Affecter des enseignants" %}
-                    </a>
-                  </div>
-                {% endif %}
+              <div class="sx-card__head" style="margin-top:4px">
+                <h3 class="sx-card__title"><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{% if maitres_primaire %}{% trans "Maître(sse) de la classe" %}{% else %}{% trans "Enseignants de la classe" %}{% endif %}</h3>
+                <a class="sx-btn sx-btn--primary sx-btn--sm" href="{% url 'affectation:affectation_professeurs' %}"><i class="fas fa-user-plus" aria-hidden="true"></i>{% trans "Gérer les affectations" %}</a>
               </div>
+              {% if maitres_primaire %}
+              <div class="sx-table-wrap"><table class="sx-table">
+                <thead><tr><th>{% trans "Enseignant" %}</th><th>{% trans "Matières confiées" %}</th><th>{% trans "Contact" %}</th></tr></thead>
+                <tbody>{% for aff in maitres_primaire %}<tr>
+                  <td class="sx-cell-main"><div class="sx-name"><span class="sx-name__ico"><i class="fas fa-user" aria-hidden="true"></i></span><div class="sx-name__txt"><strong>{{ aff.professeur.prenom }} {{ aff.professeur.nom }}</strong><small>{% trans "Maître(sse) de la classe" %}</small></div></div></td>
+                  <td data-label="{% trans 'Matières confiées' %}">{% for m in aff.matieres.all %}<span class="sx-pill sx-pill--info" style="margin:2px">{{ m.nom }}</span>{% empty %}{% trans "Toutes" %}{% endfor %}</td>
+                  <td data-label="{% trans 'Contact' %}">{{ aff.professeur.telephone|default:"—" }}<br><small>{{ aff.professeur.email }}</small></td>
+                </tr>{% endfor %}</tbody>
+              </table></div>
+              {% elif affectations %}
+              <div class="sx-table-wrap"><table class="sx-table">
+                <thead><tr><th>{% trans "Enseignant" %}</th><th>{% if est_superieur %}{% trans "Élément (EC)" %}{% else %}{% trans "Matière" %}{% endif %}</th><th>{% trans "Rôle" %}</th><th>{% trans "Contact" %}</th><th>{% trans "Depuis" %}</th></tr></thead>
+                <tbody>{% for aff in affectations %}<tr>
+                  <td class="sx-cell-main"><div class="sx-name"><span class="sx-name__ico"><i class="fas fa-user" aria-hidden="true"></i></span><div class="sx-name__txt"><a href="{% url 'professeur:detail_professeur' aff.professeur.id %}">{{ aff.professeur.nom_complet }}</a>{% if aff.statut == 'principal' %}<small>{% trans "Professeur principal" %}</small>{% endif %}</div></div></td>
+                  <td data-label="{% if est_superieur %}{% trans 'Élément (EC)' %}{% else %}{% trans 'Matière' %}{% endif %}">{% if aff.matiere %}{{ aff.matiere.nom }}{% else %}{{ aff.professeur.matiere_principale.nom }}{% endif %}</td>
+                  <td data-label="{% trans 'Rôle' %}">{% if aff.libelle_role %}<span class="sx-pill sx-pill--info">{{ aff.libelle_role }}</span>{% elif aff.statut == 'principal' %}<span class="sx-pill sx-pill--ok">{% trans "Principal" %}</span>{% else %}<span class="sx-pill sx-pill--off">{% if est_superieur %}{% trans "EC complet" %}{% else %}{% trans "Titulaire" %}{% endif %}</span>{% endif %}</td>
+                  <td data-label="{% trans 'Contact' %}">{{ aff.professeur.telephone|default:"—" }}<br><small style="color:var(--ax-muted)">{{ aff.professeur.email }}</small></td>
+                  <td data-label="{% trans 'Depuis' %}">{{ aff.date_affectation|date:"d/m/Y" }}</td>
+                </tr>{% endfor %}</tbody>
+              </table></div>
+              {% else %}
+              <div class="sx-empty">
+                <i class="fas fa-chalkboard-user" aria-hidden="true"></i>
+                <h3>{% trans "Aucun enseignant affecté" %}</h3>
+                <p>{% if est_superieur %}{% trans "Affectez un enseignant à chaque élément (EC) de la promotion : CM, TD ou TP." %}{% else %}{% trans "Affectez un enseignant à chaque matière de la classe." %}{% endif %}</p>
+                <a class="sx-btn sx-btn--primary" href="{% url 'affectation:affectation_professeurs' %}"><i class="fas fa-user-plus" aria-hidden="true"></i>{% trans "Affecter des enseignants" %}</a>
+              </div>
+              {% endif %}
             </div>
 
             <!-- Élèves Tab -->
@@ -1406,17 +1253,11 @@
           </div>
         </div>
 
-        <!-- Actions -->
-        <div class="classe-actions">
-          <a href="{% url 'administrateur_etablissement:toggle_actif' classe.id %}" class="btn-action btn-toggle {% if classe.actif %}active{% endif %}">
-            <i class="fas fa-{% if classe.actif %}pause{% else %}play{% endif %}"></i>
-            <span>{% if classe.actif %}Désactiver{% else %}Activer{% endif %}</span>
-          </a>
-        </div>
+</div>
       </div>
     </div>
 
-    <script src="{% static 'school_admin/js/directeur/classes.js' %}"></script>
+    <script src="{% static 'school_admin/js/directeur/classes.js' %}?v=1.1.0"></script>
     <script>
       // Tab functionality
       document.addEventListener('DOMContentLoaded', function() {
@@ -1698,7 +1539,8 @@
       });
     </script>
   
-    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.1.0" defer></script>
+    <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.2.0" defer></script>
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.0.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

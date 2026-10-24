@@ -1,0 +1,45 @@
+{% load i18n classe_tags notes_tags %}
+{% comment %}Collège / lycée / primaire : toutes les matières dans un tableau groupé par type, avec recherche et filtres.{% endcomment %}
+<div class="sx-toolbar" data-sx-filter="#sxMatieres">
+  <label class="sx-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+    <input type="search" class="sx-search__input" data-sx-q placeholder="{% trans 'Rechercher une matière, une classe, un enseignant…' %}" aria-label="{% trans 'Rechercher' %}"></label>
+  <select data-sx-f="type" aria-label="{% trans 'Type de matière' %}">
+    <option value="">{% trans "Tous les types" %}</option>
+    {% for groupe in matieres_groupes %}<option value="{{ groupe.type }}">{{ groupe.label }}</option>{% endfor %}
+  </select>
+  <select data-sx-f="prof" aria-label="{% trans 'Enseignant' %}">
+    <option value="">{% trans "Affectation : toutes" %}</option>
+    <option value="oui">{% trans "Affectées" %}</option>
+    <option value="non">{% trans "À affecter" %}</option>
+  </select>
+  <button type="button" class="sx-toolbar__reset" data-sx-reset hidden>{% trans "Effacer les filtres" %}</button>
+  <span class="sx-toolbar__count" data-sx-count="{% trans 'matières' %}"></span>
+</div>
+<div class="sx-table-wrap">
+  <table class="sx-table" id="sxMatieres">
+    <thead><tr>
+      <th>{% trans "Matière" %}</th>
+      {% if etablissement.type_etablissement != 'primary' %}<th class="sx-num">{% trans "Coefficient" %}</th>{% endif %}
+      <th>{% trans "Classes" %}</th>
+      <th>{% trans "Enseignants affectés" %}</th>
+      <th class="sx-act"><span class="sr-only">{% trans "Actions" %}</span></th>
+    </tr></thead>
+    <tbody>
+      {% for groupe in matieres_groupes %}
+      <tr class="sx-table__group" data-sx-group="{{ groupe.type }}"><td colspan="5">{{ groupe.label }} <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--ax-muted)">· {{ groupe.matieres|length }}</span></td></tr>
+      {% for item in groupe.matieres %}{% with m=item.matiere %}
+      <tr data-sx-item data-sx-in="{{ groupe.type }}" data-sx-type="{{ groupe.type }}" data-sx-prof="{% if m.sx_profs %}oui{% else %}non{% endif %}"
+          data-sx-text="{{ m.nom }} {% for c in m.sx_classes %}{{ c.nom }} {% endfor %}{{ m.sx_profs|join:' ' }}">
+        <td class="sx-cell-main"><div class="sx-name"><span class="sx-name__ico"><i class="fas fa-book" aria-hidden="true"></i></span>
+          <div class="sx-name__txt"><a href="{% url 'matiere:detail_matiere' m.id %}">{{ m.nom }}</a><small>{{ m.type_display }}{% if m.niveau_display %} · {{ m.niveau_display }}{% endif %}</small></div></div></td>
+{% if etablissement.type_etablissement != 'primary' %}        <td class="sx-num" data-label="{% trans 'Coefficient' %}">{% if est_lycee and item.coefficients_par_groupe %}<span class="sx-pill sx-pill--info" title="{% for g, v in item.coefficients_par_groupe.items %}{{ g }} : {{ v }}  {% endfor %}">{% trans "Par série" %}</span>{% else %}<strong>{{ m.coefficient|floatformat:"-2" }}</strong>{% endif %}</td>{% endif %}
+        <td data-label="{% trans 'Classes' %}">{% if m.sx_classes %}{% with groupes=m.sx_classes|group_classes %}{% for g in groupes|slice:":8" %}<span class="sx-pill sx-pill--off" style="margin:2px">{{ g.nom }}{% if g.count > 1 %} ×{{ g.count }}{% endif %}</span>{% endfor %}{% if groupes|length > 8 %}<span class="sx-pill sx-pill--off">+{{ groupes|length|add:"-8" }}</span>{% endif %}{% endwith %}{% else %}<span class="sx-pill sx-pill--warn">{% trans "Aucune classe" %}</span>{% endif %}</td>
+        <td data-label="{% trans 'Enseignants affectés' %}">{% for p in m.sx_profs %}<span class="sx-pill sx-pill--info" style="margin:2px">{{ p }}</span>{% empty %}<span class="sx-pill sx-pill--warn">{% trans "Non affectée" %}</span>{% endfor %}</td>
+        <td class="sx-act"><a class="sx-btn sx-btn--sm sx-btn--primary" href="{% url 'matiere:detail_matiere' m.id %}">{% trans "Ouvrir" %}</a></td>
+      </tr>
+      {% endwith %}{% endfor %}
+      {% endfor %}
+      <tr class="sx-empty-row" data-sx-none hidden><td colspan="5">{% trans "Aucune matière avec ces filtres." %}</td></tr>
+    </tbody>
+  </table>
+</div>

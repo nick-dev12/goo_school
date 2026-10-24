@@ -135,7 +135,10 @@ def group_classes(classes):
     
     # Retourner la liste des noms de groupes avec le nombre de classes
     result = []
-    for groupe_nom, classes_list in sorted(groupes.items()):
+    from school_admin.services.structure_v4 import rang_scolaire
+
+    # Ordre scolaire (CI…CM2, 6e…3e, 2nde, 1re, Terminale), puis alphabétique.
+    for groupe_nom, classes_list in sorted(groupes.items(), key=lambda kv: (rang_scolaire(kv[0]), kv[0])):
         result.append({
             'nom': groupe_nom,
             'count': len(classes_list)

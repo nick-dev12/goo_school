@@ -216,7 +216,7 @@
             {% include 'school_admin/partials/messages.html' %}
 
             <!-- Page Header -->
-{% if etablissement.type_etablissement == 'superieur' %}{% trans "Réinscriptions" as t %}{% trans "Étudiants de l’année précédente à réinscrire dans leur nouvelle promotion." as st %}{% else %}{% trans "Réinscriptions" as t %}{% trans "Élèves de l’année précédente à réinscrire dans leur nouvelle classe." as st %}{% endif %}
+{% if etablissement.type_etablissement == 'superieur' %}{% trans "Réinscriptions" as t %}{% trans "Étudiants de l’année précédente à réinscrire dans leur nouvelle classe." as st %}{% else %}{% trans "Réinscriptions" as t %}{% trans "Élèves de l’année précédente à réinscrire dans leur nouvelle classe." as st %}{% endif %}
         {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-rotate' v3_tone='teal' %}
             {% if annee_scolaire_active %}
             <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">

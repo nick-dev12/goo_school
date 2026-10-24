@@ -71,7 +71,7 @@
                         <span><i class="fas fa-calendar" aria-hidden="true"></i>{% for periode in item.periodes %}{{ periode.nom_periode }}{% if not forloop.last %}, {% endif %}{% empty %}{% trans "Semestre non défini" %}{% endfor %}</span>
                         <span><i class="fas fa-coins" aria-hidden="true"></i><b>{{ item.credits_total|floatformat:"-2" }}</b> ECTS</span>
                         <span><i class="fas fa-book" aria-hidden="true"></i><b>{{ item.matieres_pour_niveau|length }}</b> EC</span>
-                        <span><i class="fas fa-chalkboard" aria-hidden="true"></i>{% for classe in item.classes %}<a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}">{{ classe.nom }}</a>{% if not forloop.last %}, {% endif %}{% empty %}{% trans "Aucune promotion" %}{% endfor %}</span>
+                        <span><i class="fas fa-chalkboard" aria-hidden="true"></i>{% for classe in item.classes %}<a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}">{{ classe.nom }}</a>{% if not forloop.last %}, {% endif %}{% empty %}{% trans "Aucune classe" %}{% endfor %}</span>
                     </div>
 
                     {% if item.matieres_pour_niveau %}

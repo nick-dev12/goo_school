@@ -934,7 +934,7 @@ def spoken_from_enseignant_tool(name, result):
         return f"{nb} évaluation{'s' if nb > 1 else ''} pour {classe}."
     if name == 'get_modules_classe' and result.get('modules') is not None:
         nb = result.get('nb', len(result.get('modules') or []))
-        classe = result.get('classe') or 'cette promotion'
+        classe = result.get('classe') or 'cette classe'
         credits = result.get('credits_total')
         if credits is not None:
             return f"{nb} module(s) pour {classe}, {credits} credits ECTS au total."

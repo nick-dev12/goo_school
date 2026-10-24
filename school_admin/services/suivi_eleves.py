@@ -16,7 +16,7 @@ from school_admin.services.structure_etablissement import _alerte, _sur, _url
 def _lib(etab):
     sup = etab.type_etablissement == 'superieur'
     return {'eleves': 'étudiants' if sup else 'élèves', 'Eleves': 'Étudiants' if sup else 'Élèves',
-            'classes': 'promotions' if sup else 'classes'}
+            'classes': 'classes' if sup else 'classes'}
 
 
 def _kpi(label, value, icon, tone, texte=False, pct=None, bad=False):

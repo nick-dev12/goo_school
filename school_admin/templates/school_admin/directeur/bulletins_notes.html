@@ -30,7 +30,7 @@
         {% include 'school_admin/directeur/partials/page_header_back.html' %}
       </div>
 
-      {% if etablissement.type_etablissement == 'superieur' %}{% trans "Relevés et bulletins" as t %}{% trans "Calcul des moyennes, crédits, publication et impression par promotion." as st %}{% else %}{% trans "Bulletins" as t %}{% trans "Calcul des moyennes, rangs, publication et impression par classe." as st %}{% endif %}
+      {% if etablissement.type_etablissement == 'superieur' %}{% trans "Relevés et bulletins" as t %}{% trans "Calcul des moyennes, crédits, publication et impression par classe." as st %}{% else %}{% trans "Bulletins" as t %}{% trans "Calcul des moyennes, rangs, publication et impression par classe." as st %}{% endif %}
         {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-file-lines' v3_tone='violet' v3_actions_tpl='school_admin/directeur/partials/v3_actions/bulletins.html' %}
 
       {% if periodes_nav and not est_superieur %}

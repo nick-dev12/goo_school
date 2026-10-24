@@ -53,7 +53,7 @@ def _nettoyer(sections):
 def _type_libelles(etab):
     sup = etab.type_etablissement == 'superieur'
     return {'eleves': 'étudiants' if sup else 'élèves', 'Eleves': 'Étudiants' if sup else 'Élèves',
-            'classes': 'promotions' if sup else 'classes', 'periodes': 'semestres' if sup else 'trimestres'}
+            'classes': 'classes' if sup else 'classes', 'periodes': 'semestres' if sup else 'trimestres'}
 
 
 # --------------------------------------------------------------------------- établissement

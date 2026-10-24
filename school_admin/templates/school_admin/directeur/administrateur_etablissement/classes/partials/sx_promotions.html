@@ -1,9 +1,9 @@
 {% load i18n %}
-{% comment %}Toutes les classes / promotions dans un seul tableau : recherche + filtres au lieu de plusieurs niveaux d'onglets.{% endcomment %}
+{% comment %}Toutes les classes dans un seul tableau : recherche + filtres au lieu de plusieurs niveaux d'onglets.{% endcomment %}
 {% if sx_lignes %}
 <div class="sx-toolbar" data-sx-filter="#sxPromotions">
   <label class="sx-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-    <input type="search" class="sx-search__input" data-sx-q placeholder="{% if est_superieur %}{% trans 'Rechercher une promotion…' %}{% else %}{% trans 'Rechercher une classe…' %}{% endif %}" aria-label="{% trans 'Rechercher' %}"></label>
+    <input type="search" class="sx-search__input" data-sx-q placeholder="{% if est_superieur %}{% trans 'Rechercher une classe…' %}{% else %}{% trans 'Rechercher une classe…' %}{% endif %}" aria-label="{% trans 'Rechercher' %}"></label>
   {% if est_superieur %}
   <select data-sx-f="filiere" aria-label="{% trans 'Filière' %}">
     <option value="">{% trans "Toutes les filières" %}</option>
@@ -26,13 +26,13 @@
     <option value="inactive">{% trans "Inactives" %}</option>
   </select>
   <button type="button" class="sx-toolbar__reset" data-sx-reset hidden>{% trans "Effacer les filtres" %}</button>
-  <span class="sx-toolbar__count" data-sx-count="{% if est_superieur %}{% trans 'promotions' %}{% else %}{% trans 'classes' %}{% endif %}"></span>
+  <span class="sx-toolbar__count" data-sx-count="{% if est_superieur %}{% trans 'classes' %}{% else %}{% trans 'classes' %}{% endif %}"></span>
 </div>
 
 <div class="sx-table-wrap">
   <table class="sx-table" id="sxPromotions">
     <thead><tr>
-      <th>{% if est_superieur %}{% trans "Promotion" %}{% else %}{% trans "Classe" %}{% endif %}</th>
+      <th>{% if est_superieur %}{% trans "Classe" %}{% else %}{% trans "Classe" %}{% endif %}</th>
       {% if est_superieur %}<th>{% trans "Filière" %}</th><th>{% trans "Niveau" %}</th>{% endif %}
       <th>{% if est_superieur %}{% trans "Étudiants" %}{% else %}{% trans "Élèves" %}{% endif %}</th>
       {% if sx_primaire %}<th>{% trans "Maître(sse)" %}</th>{% else %}<th class="sx-num">{% trans "Enseignants" %}</th>{% endif %}
@@ -75,8 +75,8 @@
 {% else %}
 <div class="sx-empty">
   <i class="fas fa-chalkboard" aria-hidden="true"></i>
-  <h3>{% if est_superieur %}{% trans "Aucune promotion" %}{% else %}{% trans "Aucune classe" %}{% endif %}</h3>
-  <p>{% if est_superieur %}{% trans "Créez une promotion (ex. DRT L1 A) dans une filière : elle recevra ses étudiants, ses modules et son emploi du temps." %}{% else %}{% trans "Créez vos classes (ex. 6ème A, Terminale S1) : elles recevront élèves, matières et emploi du temps." %}{% endif %}</p>
-  <button type="button" class="sx-btn sx-btn--primary" id="addClasseBtnEmpty"><i class="fas fa-plus" aria-hidden="true"></i>{% if est_superieur %}{% trans "Créer la première promotion" %}{% else %}{% trans "Créer la première classe" %}{% endif %}</button>
+  <h3>{% if est_superieur %}{% trans "Aucune classe" %}{% else %}{% trans "Aucune classe" %}{% endif %}</h3>
+  <p>{% if est_superieur %}{% trans "Créez une classe (ex. DRT L1 A) dans une filière : elle recevra ses étudiants, ses modules et son emploi du temps." %}{% else %}{% trans "Créez vos classes (ex. 6ème A, Terminale S1) : elles recevront élèves, matières et emploi du temps." %}{% endif %}</p>
+  <button type="button" class="sx-btn sx-btn--primary" id="addClasseBtnEmpty"><i class="fas fa-plus" aria-hidden="true"></i>{% if est_superieur %}{% trans "Créer la première classe" %}{% else %}{% trans "Créer la première classe" %}{% endif %}</button>
 </div>
 {% endif %}

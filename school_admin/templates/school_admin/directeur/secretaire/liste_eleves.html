@@ -60,7 +60,7 @@
         {% include 'school_admin/directeur/partials/page_header_back.html' %}
       </div>
 
-      {% if etablissement.type_etablissement == 'superieur' %}{% trans "Étudiants" as t %}{% trans "Inscriptions, fiches et dossiers des étudiants, par filière et promotion." as st %}{% else %}{% trans "Élèves" as t %}{% trans "Inscriptions, fiches et dossiers des élèves, par niveau et par classe." as st %}{% endif %}
+      {% if etablissement.type_etablissement == 'superieur' %}{% trans "Étudiants" as t %}{% trans "Inscriptions, fiches et dossiers des étudiants, par filière et classe." as st %}{% else %}{% trans "Élèves" as t %}{% trans "Inscriptions, fiches et dossiers des élèves, par niveau et par classe." as st %}{% endif %}
         {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-user-graduate' v3_tone='green' v3_actions_tpl='school_admin/directeur/partials/v3_actions/liste_eleves.html' %}
 
       {% if not annee_scolaire_active %}

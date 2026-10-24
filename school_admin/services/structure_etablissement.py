@@ -89,15 +89,15 @@ def controle_classes(etab, annee):
         sans_filiere = list(classes.filter(department__isnull=True))
         sans_niveau = list(classes.filter(Q(niveau_lmd__isnull=True) | Q(niveau_lmd='')))
         if sans_filiere:
-            alertes.append(_alerte('warn', 'fa-sitemap', f"{len(sans_filiere)} promotion(s) sans spécialité.",
+            alertes.append(_alerte('warn', 'fa-sitemap', f"{len(sans_filiere)} classe(s) sans spécialité.",
                                    details=[c.nom for c in sans_filiere[:8]]))
         if sans_niveau:
-            alertes.append(_alerte('warn', 'fa-layer-group', f"{len(sans_niveau)} promotion(s) sans niveau LMD (L1, M1…) : semestres et crédits impossibles.",
+            alertes.append(_alerte('warn', 'fa-layer-group', f"{len(sans_niveau)} classe(s) sans niveau LMD (L1, M1…) : semestres et crédits impossibles.",
                                    details=[c.nom for c in sans_niveau[:8]]))
     inactives = list(Classe.objects.filter(etablissement=etab, actif=False).order_by('nom'))
     nb_inactives = len(inactives)
     if inactives:
-        mot = 'promotion(s)' if sup else 'classe(s)'
+        mot = 'classe(s)' if sup else 'classe(s)'
         alertes.append(_alerte('warn', 'fa-circle-pause', f"{nb_inactives} {mot} désactivée(s) : invisibles pour les enseignants et les {'étudiants' if sup else 'élèves'}.",
                                details=[c.nom for c in inactives[:8]]))
     if vides and nb:
@@ -106,7 +106,7 @@ def controle_classes(etab, annee):
 
     taux = round(100 * nb_eleves / capacite) if capacite else None
     kpis = [
-        {'label': 'Promotions actives' if sup else 'Classes actives', 'value': f"{nb}/{nb + nb_inactives}" if nb_inactives else nb,
+        {'label': 'Classes actives' if sup else 'Classes actives', 'value': f"{nb}/{nb + nb_inactives}" if nb_inactives else nb,
          'texte': bool(nb_inactives), 'icon': 'fa-chalkboard', 'tone': 'blue',
          'caption': f"{nb_eleves} {'étudiants' if sup else 'élèves'}"},
         {'label': 'Remplissage', 'value': f"{taux} %" if taux is not None else '—', 'icon': 'fa-people-group', 'tone': 'teal', 'texte': True,
@@ -185,7 +185,7 @@ def controle_matieres(etab, annee):
             alertes.append(_alerte('warn', 'fa-cubes', f"{len(sans_module)} matière(s) hors module (UE) : elles ne comptent pas dans les crédits ECTS.",
                                    details=[m.nom for m in sans_module[:8]]))
         if sans_credits:
-            alertes.append(_alerte('warn', 'fa-coins', f"{len(sans_credits)} module(s) sans crédits ECTS définis pour leurs promotions.",
+            alertes.append(_alerte('warn', 'fa-coins', f"{len(sans_credits)} module(s) sans crédits ECTS définis pour leurs classes.",
                                    details=[m.nom for m in sans_credits[:8]]))
         if modules_vides:
             alertes.append(_alerte('info', 'fa-box-open', f"{len(modules_vides)} module(s) sans aucune matière.",
@@ -313,13 +313,13 @@ def controle_classe(classe, annee):
                                _url('administrateur_etablissement:liste_emplois_du_temps'), 'Créer'))
     if sup:
         if not classe.department_id:
-            alertes.append(_alerte('warn', 'fa-sitemap', "Promotion sans spécialité."))
+            alertes.append(_alerte('warn', 'fa-sitemap', "Classe sans spécialité."))
         if not classe.niveau_lmd:
             alertes.append(_alerte('warn', 'fa-layer-group', "Niveau LMD non défini : semestres et crédits impossibles."))
         sans_cred = _sur(lambda: list(classe.module_classe_credits.filter(Q(credits__isnull=True) | Q(credits=0))
                                       .select_related('module')), [])
         if sans_cred:
-            alertes.append(_alerte('warn', 'fa-coins', f"{len(sans_cred)} module(s) sans crédits ECTS pour cette promotion.",
+            alertes.append(_alerte('warn', 'fa-coins', f"{len(sans_cred)} module(s) sans crédits ECTS pour cette classe.",
                                    details=[mc.module.nom for mc in sans_cred]))
     pct = round(100 * effectif / classe.capacite_max) if classe.capacite_max else None
     kpis = [
@@ -342,18 +342,18 @@ def controle_module(module):
     if not matieres:
         alertes.append(_alerte('warn', 'fa-box-open', "Aucune matière dans ce module : ajoutez-en depuis cette page."))
     if not sup_classes:
-        alertes.append(_alerte('warn', 'fa-chalkboard', "Module rattaché à aucune promotion."))
+        alertes.append(_alerte('warn', 'fa-chalkboard', "Module rattaché à aucune classe."))
     sans_cred = _sur(lambda: [mc.classe.nom for mc in module.module_classes.select_related('classe')
                               if not mc.credits], [])
     if sans_cred:
-        alertes.append(_alerte('warn', 'fa-coins', f"Crédits ECTS non définis pour {len(sans_cred)} promotion(s).", details=sans_cred))
+        alertes.append(_alerte('warn', 'fa-coins', f"Crédits ECTS non définis pour {len(sans_cred)} classe(s).", details=sans_cred))
     sans_coef = [m.nom for m in matieres if not m.coefficient and not m.credits]
     if sans_coef:
         alertes.append(_alerte('info', 'fa-scale-unbalanced', f"{len(sans_coef)} matière(s) sans coefficient ni crédit.", details=sans_coef))
     kpis = [
         {'label': 'Matières', 'value': len(matieres), 'icon': 'fa-book-open', 'tone': 'violet', 'caption': 'dans le module'},
         {'label': 'Crédits ECTS', 'value': getattr(module, 'total_credits', None) or 0, 'icon': 'fa-coins', 'tone': 'orange', 'caption': 'total'},
-        {'label': 'Promotions', 'value': len(sup_classes), 'icon': 'fa-chalkboard', 'tone': 'blue', 'caption': 'concernées'},
+        {'label': 'Classes', 'value': len(sup_classes), 'icon': 'fa-chalkboard', 'tone': 'blue', 'caption': 'concernées'},
     ]
     return {'kpis': kpis, 'alertes': alertes}
 

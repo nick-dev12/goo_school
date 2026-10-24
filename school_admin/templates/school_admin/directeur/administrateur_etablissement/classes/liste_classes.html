@@ -31,7 +31,7 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_etab_url %}
         </div>
 
-        {% if est_superieur %}{% trans "Filières et promotions" as t %}{% trans "Chaque filière regroupe ses promotions par niveau (L1, L2, M1…). Ouvrez une filière pour voir son cursus." as st %}{% else %}{% trans "Classes" as t %}{% trans "Toutes les classes par niveau, avec leurs effectifs, enseignants et statut." as st %}{% endif %}
+        {% if est_superieur %}{% trans "Filières et classes" as t %}{% trans "Chaque filière regroupe ses classes par niveau (L1, L2, M1…). Ouvrez une filière pour voir son cursus." as st %}{% else %}{% trans "Classes" as t %}{% trans "Toutes les classes par niveau, avec leurs effectifs, enseignants et statut." as st %}{% endif %}
         {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-chalkboard' v3_tone='blue' v3_actions_tpl='school_admin/directeur/partials/v3_actions/classes.html' %}
 
         {% if est_superieur %}
@@ -46,7 +46,7 @@
                         </button>
                         <button type="button" role="tab" class="matiere-tab-btn gcl-main-tab {% if classes_main_tab == 'classes' %}active{% endif %}" data-main-tab="classes" aria-selected="{% if classes_main_tab == 'classes' %}true{% else %}false{% endif %}">
                             <i class="fas fa-chalkboard"></i>
-                            <span>{% trans "Toutes les promotions" %}</span>
+                            <span>{% trans "Toutes les classes" %}</span>
                             <span class="tab-count">{{ stats.total }}</span>
                         </button>
                         <button type="button" role="tab" class="matiere-tab-btn gcl-main-tab {% if classes_main_tab == 'examens-concours' %}active{% endif %}" data-main-tab="examens-concours" aria-selected="{% if classes_main_tab == 'examens-concours' %}true{% else %}false{% endif %}">

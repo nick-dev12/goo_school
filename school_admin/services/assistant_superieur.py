@@ -357,7 +357,7 @@ def tool_ects_etudiant(ctx, args):
     if not eleve:
         return {'erreur': 'Indique l’étudiant dont tu veux les crédits ECTS.'}
     if not eleve.classe_id:
-        return {'erreur': f'{eleve.nom_complet} n’est rattaché à aucune promotion.'}
+        return {'erreur': f'{eleve.nom_complet} n’est rattaché à aucune classe.'}
     niveau = normalize_niveau_lmd(args.get('niveau_lmd')) or eleve.classe.niveau_lmd
     periode = None
     if args.get('periode'):
@@ -383,7 +383,7 @@ def tool_ects_classe(ctx, args):
     args = args if isinstance(args, dict) else {}
     classe = _find_classe(ctx, args.get('classe') or args.get('query') or '')
     if not classe:
-        return {'erreur': 'Indique la promotion dont tu veux la maquette ECTS.'}
+        return {'erreur': 'Indique la classe dont tu veux la maquette ECTS.'}
     niveau = normalize_niveau_lmd(args.get('niveau_lmd')) or classe.niveau_lmd
     periode = None
     if args.get('periode'):
@@ -422,7 +422,7 @@ def tool_modules_classe(ctx, args):
     args = args if isinstance(args, dict) else {}
     classe = _find_classe(ctx, args.get('classe') or args.get('query') or '')
     if not classe:
-        return {'erreur': 'Indique la promotion dont tu veux les modules.'}
+        return {'erreur': 'Indique la classe dont tu veux les modules.'}
     items = [
         _serialize_module_classe(mc)
         for mc in _maquette_qs(classe).order_by('numero_ue', 'module__nom')[:MODULES_LIMIT]
@@ -450,7 +450,7 @@ def tool_releve_ects(ctx, args):
         if not eleve:
             return {'erreur': f'Aucun étudiant trouvé pour « {query} ».'}
         if not eleve.classe_id:
-            return {'erreur': f'{eleve.nom_complet} n’est rattaché à aucune promotion.'}
+            return {'erreur': f'{eleve.nom_complet} n’est rattaché à aucune classe.'}
         totaux = tool_ects_etudiant(ctx, {'query': query, 'periode': args.get('periode')})
         url = _reverse('directeur:voir_bulletin_eleve', args=[eleve.classe_id, eleve.id])
         return {
@@ -466,7 +466,7 @@ def tool_releve_ects(ctx, args):
     if classe_label:
         classe = _find_classe(ctx, classe_label)
         if not classe:
-            return {'erreur': f'Promotion introuvable pour « {classe_label} ».'}
+            return {'erreur': f'Classe introuvable pour « {classe_label} ».'}
         url = _reverse('directeur:imprimer_releve_notes', args=[classe.id])
         return {
             'classe': classe.nom,
@@ -475,7 +475,7 @@ def tool_releve_ects(ctx, args):
             'url': url,
             'message': f'Ouverture du relevé de notes de {classe.nom}.',
         }
-    return {'erreur': 'Indique un étudiant ou une promotion pour le relevé ECTS.'}
+    return {'erreur': 'Indique un étudiant ou une classe pour le relevé ECTS.'}
 
 
 def tool_structure_superieur(ctx, args):
@@ -546,7 +546,7 @@ def prepare_affecter_module_classe(ctx, args):
         return _incomplete(
             'affecter_module_classe',
             ['classe'],
-            f'À quelle promotion rattacher « {module.nom} » ?',
+            f'À quelle classe rattacher « {module.nom} » ?',
         )
     credits = _parse_credits(args.get('credits'))
     if credits is None:
@@ -609,7 +609,7 @@ def apply_affecter_module_classe(ctx, draft):
         pk=draft.get('classe_id'), etablissement=ctx.etablissement
     ).first()
     if not module or not classe:
-        return _err('Module ou promotion introuvable.')
+        return _err('Module ou classe introuvable.')
     credits = _parse_credits(draft.get('credits'))
     if credits is None:
         return _err('Crédits ECTS invalides.')
@@ -652,7 +652,7 @@ def prepare_fixer_credits_module(ctx, args):
             return _incomplete(
                 'fixer_credits_module',
                 ['classe'],
-                f'Pour quelle promotion fixer les crédits de {module.nom} ?',
+                f'Pour quelle classe fixer les crédits de {module.nom} ?',
             )
     credits = _parse_credits(args.get('credits'))
     if credits is None:
@@ -699,7 +699,7 @@ def apply_fixer_credits_module(ctx, draft):
     ).first()
     credits = _parse_credits(draft.get('credits'))
     if not module or not classe or credits is None:
-        return _err('Module, promotion ou crédits manquants.')
+        return _err('Module, classe ou crédits manquants.')
     mc = ModuleClasse.objects.filter(module=module, classe=classe).first()
     if not mc:
         return _err(f'{module.nom} n’est pas affecté à {classe.nom}.')
@@ -714,7 +714,7 @@ def apply_fixer_credits_module(ctx, draft):
 
 register_action(ActionSpec(
     'affecter_module_classe',
-    'Affecte un module LMD à une promotion (crédits, UE, semestre).',
+    'Affecte un module LMD à une classe (crédits, UE, semestre).',
     {
         'module': _STR,
         'query': _STR,
@@ -732,7 +732,7 @@ register_action(ActionSpec(
 
 register_action(ActionSpec(
     'fixer_credits_module',
-    'Met à jour les crédits ECTS d’un module pour une promotion (ModuleClasse.credits).',
+    'Met à jour les crédits ECTS d’un module pour une classe (ModuleClasse.credits).',
     {
         'module': _STR,
         'query': _STR,
@@ -773,7 +773,7 @@ VAGUE4_READ_SCHEMA = [
         'function': {
             'name': 'get_ects_classe',
             'description': (
-                'Maquette ECTS d’une promotion (modules, UE, crédits, semestre) '
+                'Maquette ECTS d’une classe (modules, UE, crédits, semestre) '
                 'et validation par étudiant. N’invente aucun crédit.'
             ),
             'parameters': {
@@ -792,7 +792,7 @@ VAGUE4_READ_SCHEMA = [
         'function': {
             'name': 'get_modules_classe',
             'description': (
-                'Modules d’une promotion : nom, crédits, numéro d’UE, semestre.'
+                'Modules d’une classe : nom, crédits, numéro d’UE, semestre.'
             ),
             'parameters': {
                 'type': 'object',
@@ -808,7 +808,7 @@ VAGUE4_READ_SCHEMA = [
             'description': (
                 'Résume et ouvre le relevé ECTS / bulletin d’un étudiant '
                 '(URL existante, pas de PDF magique). Avec une classe : '
-                'ouvre l’impression du relevé de la promotion.'
+                'ouvre l’impression du relevé de la classe.'
             ),
             'parameters': {
                 'type': 'object',

@@ -503,7 +503,7 @@ def prompt_addendum_for(ctx):
     elif getattr(ctx, 'est_superieur', False):
         parts.append(
             "\nType d’établissement : enseignement supérieur.\n"
-            "- Parle d’étudiants, de promotions, de semestres LMD, de filières et de modules.\n"
+            "- Parle d’étudiants, de classes, de semestres LMD, de filières et de modules.\n"
             "- Les périodes sont des semestres rattachés à un niveau (L1, M1…).\n"
             "- ECTS : get_ects_etudiant, get_ects_classe. N’invente aucun crédit : "
             "inscrits = maquette, validés seulement s’ils sont déjà calculés.\n"

@@ -813,7 +813,7 @@ def _suggestions_after_read_enseignant(tool_results, refs=None, ctx=None):
         items = [
             {
                 'label': 'Modules',
-                'value': f'Quels modules en {classe} ?' if classe else 'Modules de ma promotion.',
+                'value': f'Quels modules en {classe} ?' if classe else 'Modules de ma classe.',
             },
             {'label': 'Crédits', 'value': 'Crédits d’un étudiant.'},
             {'label': 'Évaluation', 'value': f'Créer une évaluation en {classe}.' if classe else 'Créer une évaluation.'},
@@ -2391,7 +2391,7 @@ TOOLS_SCHEMA = [
         'type': 'function',
         'function': {
             'name': 'rechercher_classes',
-            'description': 'Liste ou recherche les classes / promotions.',
+            'description': 'Liste ou recherche les classes.',
             'parameters': {
                 'type': 'object',
                 'properties': {

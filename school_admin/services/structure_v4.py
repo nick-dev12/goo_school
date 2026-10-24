@@ -1,5 +1,5 @@
 """
-Données des écrans de structure v4 (classes / filières) : lignes de promotions prêtes à afficher,
+Données des écrans de structure v4 (classes / filières) : lignes de classes prêtes à afficher,
 cartes de filières et tableau de cursus (une colonne par niveau LMD).
 """
 from __future__ import annotations
@@ -95,7 +95,7 @@ def niveaux_presents(lignes):
 
 
 def filieres(departments, lignes):
-    """Cartes de filières : niveaux couverts (avec nombre de promotions), étudiants, enseignants."""
+    """Cartes de filières : niveaux couverts (avec nombre de classes), étudiants, enseignants."""
     cartes = []
     for dep in departments:
         les_siennes = [l for l in lignes if l['filiere_id'] == dep.id]
@@ -138,7 +138,7 @@ def cursus(lignes):
 
 
 def enrichir_modules(modules):
-    """Ajoute à chaque module (UE) : EC avec enseignants, semestres, promotions et points d'attention.
+    """Ajoute à chaque module (UE) : EC avec enseignants, semestres, classes et points d'attention.
 
     Attributs posés : sx_ec (liste), sx_semestres, sx_classes, sx_credits, sx_nb_ec, sx_alertes, sx_texte.
     """

@@ -67,7 +67,7 @@
         {% if est_superieur %}
         <div class="gex-alert gex-alert-info">
             <i class="fas fa-graduation-cap"></i>
-            <span>{% trans "Enseignement supérieur : rattachez chaque session à un semestre, choisissez une filière puis cochez les promotions concernées." %}</span>
+            <span>{% trans "Enseignement supérieur : rattachez chaque session à un semestre, choisissez une filière puis cochez les classes concernées." %}</span>
         </div>
         {% endif %}
 
@@ -346,7 +346,7 @@
                                     <h3>{% trans "Public concerné" %}</h3>
                                     <p class="exam-section-desc">
                                       {% if est_superieur %}
-                                        {% trans "Choisissez d'abord une filière, puis cochez une ou plusieurs promotions. Vous pouvez enchaîner plusieurs filières." %}
+                                        {% trans "Choisissez d'abord une filière, puis cochez une ou plusieurs classes. Vous pouvez enchaîner plusieurs filières." %}
                                       {% else %}
                                         {% trans "Sélectionnez les groupes de classes (niveaux) inclus dans cette session." %}
                                       {% endif %}
@@ -370,7 +370,7 @@
                                         </div>
                                     </div>
                                     <div class="exam-filiere-step exam-filiere-step--promotions">
-                                        <div class="exam-filiere-step-title">{% trans "Étape 2 — Promotions concernées" %}</div>
+                                        <div class="exam-filiere-step-title">{% trans "Étape 2 — Classes concernées" %}</div>
                                         <p class="exam-filiere-help">{% trans "Choisissez d'abord la filière ci-dessus. Ensuite, cochez les classes de cette filière que cette session concerne. Répétez pour chaque autre filière si besoin." %}</p>
                                         <div class="exam-selection-badge" role="status" aria-live="polite">
                                             <i class="fas fa-layer-group" aria-hidden="true"></i>
@@ -381,11 +381,11 @@
                                             {% if groupes_classes %}
                                             <div class="exam-filiere-placeholder js-filiere-placeholder">
                                                 <i class="fas fa-user-graduate"></i>
-                                                {% trans "Sélectionnez une filière à l'étape 1 pour afficher les promotions à cocher ici." %}
+                                                {% trans "Sélectionnez une filière à l'étape 1 pour afficher les classes à cocher ici." %}
                                             </div>
                                             {% for cle, groupe in groupes_classes.items %}
                                             <div class="exam-filiere-panel js-filiere-panel-examen" data-groupe-key="{{ cle }}">
-                                                <p class="exam-section-desc exam-filiere-panel-intro"><strong>{{ groupe.label }}</strong> — {% trans "cochez une ou plusieurs promotions." %}</p>
+                                                <p class="exam-section-desc exam-filiere-panel-intro"><strong>{{ groupe.label }}</strong> — {% trans "cochez une ou plusieurs classes." %}</p>
                                                 <div class="exam-class-grid">
                                                     {% for classe in groupe.classes %}
                                                     <label class="exam-checkbox-card js-exam-cb-card">
@@ -436,9 +436,9 @@
                             <label class="exam-label">{% trans "Matières" %} <span class="required">*</span></label>
                             {% if est_superieur %}
                             {{ matieres_session_superieur_meta|json_script:"exam-matieres-superieur-data" }}
-                            <p class="exam-filiere-help" style="margin-top:0;">{% trans "Cochez d'abord les promotions à l'étape 3 : seules les matières rattachées à ces classes apparaissent, avec le niveau correspondant." %}</p>
+                            <p class="exam-filiere-help" style="margin-top:0;">{% trans "Cochez d'abord les classes à l'étape 3 : seules les matières rattachées à ces classes apparaissent, avec le niveau correspondant." %}</p>
                             <div class="exam-scroll-list js-exam-matieres-superieur-mount" id="create_matieres_superieur" data-input-name="matieres" role="group" aria-label="{% trans 'Matières' %}"></div>
-                            <p class="exam-filiere-placeholder js-exam-matieres-superieur-empty" style="display:none;">{% trans "Aucune matière pour les classes sélectionnées. Vérifiez les affectations matières / classes ou sélectionnez d'autres promotions." %}</p>
+                            <p class="exam-filiere-placeholder js-exam-matieres-superieur-empty" style="display:none;">{% trans "Aucune matière pour les classes sélectionnées. Vérifiez les affectations matières / classes ou sélectionnez d'autres classes." %}</p>
                             {% else %}
                             <div class="exam-scroll-list">
                                 {% for matiere in matieres %}
@@ -558,7 +558,7 @@
                                 <div>
                                     <h3>{% trans "Public concerné" %}</h3>
                                     {% if est_superieur %}
-                                    <p class="exam-section-desc">{% trans "Choisissez une filière, puis les promotions concernées." %}</p>
+                                    <p class="exam-section-desc">{% trans "Choisissez une filière, puis les classes concernées." %}</p>
                                     {% endif %}
                                 </div>
                             </div>
@@ -578,7 +578,7 @@
                                         </div>
                                     </div>
                                     <div class="exam-filiere-step exam-filiere-step--promotions">
-                                        <div class="exam-filiere-step-title">{% trans "Étape 2 — Promotions" %}</div>
+                                        <div class="exam-filiere-step-title">{% trans "Étape 2 — Classes" %}</div>
                                         <p class="exam-filiere-help">{% trans "Sélectionnez la filière puis cochez les classes concernées." %}</p>
                                         <div class="exam-selection-badge" role="status" aria-live="polite">
                                             <i class="fas fa-layer-group"></i>
@@ -588,7 +588,7 @@
                                         <div class="exam-filiere-panels exam-filiere-panels-scroll">
                                             <div class="exam-filiere-placeholder js-filiere-placeholder">
                                                 <i class="fas fa-user-graduate"></i>
-                                                {% trans "Choisissez une filière pour afficher les promotions." %}
+                                                {% trans "Choisissez une filière pour afficher les classes." %}
                                             </div>
                                             {% for cle, groupe in groupes_classes.items %}
                                             <div class="exam-filiere-panel js-filiere-panel-examen" data-groupe-key="{{ cle }}">
@@ -631,7 +631,7 @@
                                 <div><h3>{% trans "Matières" %}</h3></div>
                             </div>
                             {% if est_superieur %}
-                            <p class="exam-filiere-help" style="margin-top:0;">{% trans "Les matières affichées suivent les promotions cochées ; le niveau (LMD, etc.) est rappelé à côté du nom." %}</p>
+                            <p class="exam-filiere-help" style="margin-top:0;">{% trans "Les matières affichées suivent les classes cochées ; le niveau (LMD, etc.) est rappelé à côté du nom." %}</p>
                             <div class="exam-scroll-list js-exam-matieres-superieur-mount" id="edit_matieres" data-input-name="matieres_ids" role="group" aria-label="{% trans 'Matières' %}"></div>
                             <p class="exam-filiere-placeholder js-exam-matieres-superieur-empty" style="display:none;">{% trans "Aucune matière pour les classes sélectionnées." %}</p>
                             {% else %}

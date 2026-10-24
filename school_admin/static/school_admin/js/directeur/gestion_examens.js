@@ -68,7 +68,7 @@ function renderMatieresSuperieurMount(modal, preselectedMatiereIds) {
         p.style.margin = '0';
         p.innerHTML =
             '<i class="fas fa-layer-group"></i> ' +
-            'Sélectionnez au moins une promotion à l’étape 3 pour afficher les matières.';
+            'Sélectionnez au moins une classe à l’étape 3 pour afficher les matières.';
         mount.appendChild(p);
         if (emptyHint) emptyHint.style.display = 'none';
         return;

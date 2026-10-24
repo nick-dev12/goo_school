@@ -1465,7 +1465,7 @@ def detail_module(request, module_id):
         'modal_niveaux_par_filiere': all_niveaux,
         'modal_periodes_par_niveau': periodes_par_niveau_edit,
     }
-    # Écran v4 : enseignants de chaque EC, semestres et promotions de l'UE.
+    # Écran v4 : enseignants de chaque EC, semestres et classes de l'UE.
     from ..services.structure_v4 import enrichir_modules
     enrichir_modules([module])
     context['sx_profs_ec'] = {ec['matiere'].id: ec['enseignants'] for ec in module.sx_ec}

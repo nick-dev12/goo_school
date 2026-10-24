@@ -51,7 +51,7 @@
         <nav class="sx-crumb" aria-label="{% trans 'Fil d’Ariane' %}">
           <a href="{% url 'directeur:gestion_etablissement' %}">{% trans "Établissement" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
           {% if est_superieur %}
-          <a href="{% url 'administrateur_etablissement:liste_classes' %}?tab=specialites">{% trans "Filières et promotions" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+          <a href="{% url 'administrateur_etablissement:liste_classes' %}?tab=specialites">{% trans "Filières et classes" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
           {% if classe.department %}<a href="{% url 'administrateur_etablissement:liste_classes_specialite' classe.department.id %}">{{ classe.department.nom }}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>{% endif %}
           {% else %}
           <a href="{% url 'administrateur_etablissement:liste_classes' %}">{% trans "Classes" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
@@ -314,7 +314,7 @@
               <div class="sx-empty">
                 <i class="fas fa-chalkboard-user" aria-hidden="true"></i>
                 <h3>{% trans "Aucun enseignant affecté" %}</h3>
-                <p>{% if est_superieur %}{% trans "Affectez un enseignant à chaque élément (EC) de la promotion : CM, TD ou TP." %}{% else %}{% trans "Affectez un enseignant à chaque matière de la classe." %}{% endif %}</p>
+                <p>{% if est_superieur %}{% trans "Affectez un enseignant à chaque élément (EC) de la classe : CM, TD ou TP." %}{% else %}{% trans "Affectez un enseignant à chaque matière de la classe." %}{% endif %}</p>
                 <a class="sx-btn sx-btn--primary" href="{% url 'affectation:affectation_professeurs' %}"><i class="fas fa-user-plus" aria-hidden="true"></i>{% trans "Affecter des enseignants" %}</a>
               </div>
               {% endif %}

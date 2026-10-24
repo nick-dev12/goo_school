@@ -1,5 +1,5 @@
 """
-Tools LMD lecture seule pour l'assistant enseignant (promotions affectees).
+Tools LMD lecture seule pour l'assistant enseignant (classes affectees).
 """
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def tool_get_modules_classe(ctx, args):
     args = args if isinstance(args, dict) else {}
     classe = find_classe_prof(ctx, args.get('classe') or args.get('query') or '')
     if not classe:
-        return {'erreur': 'Indiquez une de vos promotions.'}
+        return {'erreur': 'Indiquez une de vos classes.'}
     if err := ensure_classe_access(ctx, classe):
         return err
     periode = None
@@ -70,7 +70,7 @@ def tool_get_credits_etudiant(ctx, args):
         return {'erreur': 'Indiquez l’étudiant dont vous voulez les crédits.'}
     eleve = find_eleve_prof(ctx, query)
     if not eleve:
-        return {'erreur': f'Étudiant « {query} » introuvable dans vos promotions.'}
+        return {'erreur': f'Étudiant « {query} » introuvable dans vos classes.'}
     if err := ensure_eleve_access(ctx, eleve):
         return err
     classe = eleve.classe
@@ -109,7 +109,7 @@ ENSEIGNANT_SUPERIEUR_TOOLS_SCHEMA = [
         'function': {
             'name': 'get_modules_classe',
             'description': (
-                'Modules LMD d’une de vos promotions : nom, crédits ECTS, '
+                'Modules LMD d’une de vos classes : nom, crédits ECTS, '
                 'numéro d’UE, semestre. Lecture seule, périmètre professeur.'
             ),
             'parameters': {
@@ -131,7 +131,7 @@ ENSEIGNANT_SUPERIEUR_TOOLS_SCHEMA = [
         'function': {
             'name': 'get_credits_etudiant',
             'description': (
-                'Crédits ECTS d’un étudiant de vos promotions : inscrits, validés, '
+                'Crédits ECTS d’un étudiant de vos classes : inscrits, validés, '
                 'restants, détail par semestre. Ne jamais inventer de crédits.'
             ),
             'parameters': {

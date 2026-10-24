@@ -230,3 +230,16 @@ body .sx-search input.sx-search__input { width: 100%; min-height: 40px; padding-
 @media (max-width: 760px) {
   .sx-table td .sx-pill { white-space: normal; max-width: 100%; }
 }
+
+/* ---------- Onglets sx (stylés par tabs_nav_overflow.css via .ovf-bar) ---------- */
+.sx-tabs { display: flex; gap: 6px; margin: 0 0 12px; }
+.sx-tabpanel[hidden] { display: none !important; }
+.sx-tab { display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 14px; border: 1px solid var(--ax-line-strong, #d0d5dd); border-radius: 12px; background: var(--ax-surface, #fff); color: var(--ax-ink-2, #344054); font: 600 0.86rem var(--ax-font, inherit); cursor: pointer; white-space: nowrap; }
+.sx-tab.active { background: var(--ax-brand, #2563eb); border-color: var(--ax-brand, #2563eb); color: #fff; }
+.sx-tab .tab-count { padding: 1px 7px; border-radius: 999px; background: var(--ax-surface-2, #f2f4f7); color: var(--ax-ink-2, #344054); font-size: 0.72rem; }
+.sx-tab.active .tab-count { background: rgba(255,255,255,.22); color: #fff; }
+.sx-mat-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; padding: 12px 14px; border-radius: 12px; background: var(--ax-surface-2, #f6f7f9); border: 1px solid var(--ax-line, #e4e7ec); }
+.sx-mat-head h3 { margin: 0; font-size: 1rem; color: var(--ax-ink, #101828); }
+.sx-mat-head p { margin: 2px 0 0; font-size: 0.8rem; color: var(--ax-muted, #667085); }
+.sx-coef { display: inline-grid; place-items: center; min-width: 36px; height: 28px; padding: 0 8px; border-radius: 8px; background: var(--ax-brand-soft, #e8efff); color: var(--ax-brand-ink, #1d47b3); font-weight: 800; font-variant-numeric: tabular-nums; }
+.ovf-bar:has(> .sx-tabs) { margin-bottom: 12px; }

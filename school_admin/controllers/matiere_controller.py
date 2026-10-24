@@ -53,9 +53,31 @@ def _sx_enrichir_matieres(etablissement, matieres_avec_coefficients):
                 classe__etablissement=etablissement, actif=True).select_related('professeur').prefetch_related('matieres'):
             for m in aff.matieres.all():
                 profs.setdefault(m.id, set()).add(f"{aff.professeur.prenom} {aff.professeur.nom}")
+    # Enseignant par (matière, classe) pour l'onglet de chaque matière.
+    par_classe = {}
+    for aff in AffectationProfesseur.objects.filter(matiere__in=matieres, actif=True).select_related('professeur'):
+        par_classe.setdefault((aff.matiere_id, aff.classe_id), set()).add(f"{aff.professeur.prenom} {aff.professeur.nom}")
+    if etablissement.type_etablissement == 'primary':
+        for aff in AffectationProfesseurPrimaire.objects.filter(
+                classe__etablissement=etablissement, actif=True).select_related('professeur').prefetch_related('matieres'):
+            for m in aff.matieres.all():
+                par_classe.setdefault((m.id, aff.classe_id), set()).add(f"{aff.professeur.prenom} {aff.professeur.nom}")
+    from ..services.structure_v4 import rang_scolaire
+    from .classe_controller import ClasseController
+
+    par_groupe = etablissement.type_etablissement in ('lycée', 'collège_lycée', 'mixte', 'collège')
     for m in matieres:
         m.sx_profs = sorted(profs.get(m.id, []))
         m.sx_classes = list(m.classes.all().order_by('nom'))
+        lignes = []
+        for c in m.sx_classes:
+            groupe = ClasseController.extract_categorie_from_nom(c.nom)
+            coef = CoefficientMatiereGroupe.get_coefficient_for_classe(m, c) if par_groupe else m.coefficient
+            lignes.append({'classe': c, 'groupe': groupe, 'coefficient': coef,
+                           'specifique': par_groupe and coef is not None and m.coefficient is not None and coef != m.coefficient,
+                           'enseignants': sorted(par_classe.get((m.id, c.id), []))})
+        lignes.sort(key=lambda l: (rang_scolaire(l['groupe']), l['classe'].nom))
+        m.sx_lignes_classes = lignes
 
 
 def enrich_liste_matieres_superieur_context(request, etablissement, context, matieres_main_tab=None):

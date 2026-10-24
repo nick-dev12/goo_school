@@ -1,11 +1,22 @@
 {% load i18n %}
 {% comment %}Toutes les classes dans un seul tableau : recherche + filtres au lieu de plusieurs niveaux d'onglets.{% endcomment %}
 {% if sx_lignes %}
+{% if est_superieur %}
+<div class="sx-tabs" role="tablist" data-sx-tabs="filieres" data-overflow-items-label="filières" data-overflow-item-label="filière" aria-label="{% trans 'Filières' %}">
+  <button type="button" role="tab" class="sx-tab active" data-sx-key="" data-sx-set="#sxFFiliere|"><i class="fas fa-layer-group" aria-hidden="true"></i>{% trans "Toutes" %}<span class="tab-count">{{ sx_lignes|length }}</span></button>
+  {% for f in sx_filieres %}{% if f.nb_classes %}<button type="button" role="tab" class="sx-tab" data-sx-key="{{ f.department.id }}" data-sx-set="#sxFFiliere|{{ f.department.id }}" title="{{ f.department.nom }}"><i class="fas fa-graduation-cap" aria-hidden="true"></i>{{ f.department.sigle|default:f.department.nom }}<span class="tab-count">{{ f.nb_classes }}</span></button>{% endif %}{% endfor %}
+</div>
+{% else %}
+<div class="sx-tabs" role="tablist" data-sx-tabs="niveaux" data-overflow-items-label="niveaux" data-overflow-item-label="niveau" aria-label="{% trans 'Niveaux' %}">
+  <button type="button" role="tab" class="sx-tab active" data-sx-key="" data-sx-set="#sxFGroupe|"><i class="fas fa-layer-group" aria-hidden="true"></i>{% trans "Toutes" %}<span class="tab-count">{{ sx_lignes|length }}</span></button>
+  {% for g in sx_groupes_comptes %}<button type="button" role="tab" class="sx-tab" data-sx-key="{{ g.nom }}" data-sx-set="#sxFGroupe|{{ g.nom }}">{{ g.nom }}<span class="tab-count">{{ g.nb }}</span></button>{% endfor %}
+</div>
+{% endif %}
 <div class="sx-toolbar" data-sx-filter="#sxPromotions">
   <label class="sx-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
     <input type="search" class="sx-search__input" data-sx-q placeholder="{% if est_superieur %}{% trans 'Rechercher une classe…' %}{% else %}{% trans 'Rechercher une classe…' %}{% endif %}" aria-label="{% trans 'Rechercher' %}"></label>
   {% if est_superieur %}
-  <select data-sx-f="filiere" aria-label="{% trans 'Filière' %}">
+  <select data-sx-f="filiere" id="sxFFiliere" hidden aria-hidden="true" tabindex="-1">
     <option value="">{% trans "Toutes les filières" %}</option>
     {% for f in sx_filieres %}<option value="{{ f.department.id }}">{{ f.department.nom }}</option>{% endfor %}
     <option value="0">{% trans "Sans filière" %}</option>
@@ -15,7 +26,7 @@
     {% for code, label in sx_niveaux %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
   </select>
   {% else %}
-  <select data-sx-f="groupe" aria-label="{% trans 'Niveau' %}">
+  <select data-sx-f="groupe" id="sxFGroupe" hidden aria-hidden="true" tabindex="-1">
     <option value="">{% trans "Tous les niveaux" %}</option>
     {% for g in sx_groupes %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
   </select>
@@ -41,10 +52,11 @@
     </tr></thead>
     <tbody>
       {% for l in sx_lignes %}
+      {% if est_superieur %}{% ifchanged l.filiere_id l.niveau_code %}<tr class="sx-table__group" data-sx-group="{{ l.filiere_id }}-{{ l.niveau_code }}"><td colspan="7">{{ l.niveau_label }} <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--ax-muted)">· {{ l.filiere_nom }}</span></td></tr>{% endifchanged %}{% endif %}
       {% if not est_superieur %}{% ifchanged l.groupe %}<tr class="sx-table__group" data-sx-group="{{ l.groupe }}"><td colspan="6">{{ l.groupe }} <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--ax-muted)">· {{ l.niveau_label }}</span></td></tr>{% endifchanged %}{% endif %}
       <tr data-sx-item data-sx-text="{{ l.classe.nom }} {{ l.classe.code_classe }}{% if est_superieur %} {{ l.filiere_nom }} {{ l.niveau_label }}{% endif %}"
           data-sx-statut="{% if l.classe.actif %}active{% else %}inactive{% endif %}"
-          {% if est_superieur %}data-sx-filiere="{{ l.filiere_id }}" data-sx-niveau="{{ l.niveau_code }}"{% else %}data-sx-groupe="{{ l.groupe }}" data-sx-in="{{ l.groupe }}"{% endif %}>
+          {% if est_superieur %}data-sx-filiere="{{ l.filiere_id }}" data-sx-niveau="{{ l.niveau_code }}" data-sx-in="{{ l.filiere_id }}-{{ l.niveau_code }}"{% else %}data-sx-groupe="{{ l.groupe }}" data-sx-in="{{ l.groupe }}"{% endif %}>
         <td class="sx-cell-main">
           <div class="sx-name"><span class="sx-name__ico"><i class="fas fa-chalkboard" aria-hidden="true"></i></span>
             <div class="sx-name__txt"><a href="{% url 'administrateur_etablissement:detail_classe' l.classe.id %}">{{ l.classe.nom }}</a><small>{{ l.classe.code_classe }}</small></div></div>

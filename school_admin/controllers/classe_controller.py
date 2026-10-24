@@ -164,6 +164,9 @@ class ClasseController:
             'sx_filieres': sv4.filieres(departments, lignes) if est_superieur else [],
             'sx_niveaux': sv4.niveaux_presents(lignes) if est_superieur else [],
             'sx_groupes': [] if est_superieur else list(dict.fromkeys(l['groupe'] for l in lignes)),
+            'sx_groupes_comptes': [] if est_superieur else [
+                {'nom': g, 'nb': sum(1 for l in lignes if l['groupe'] == g)}
+                for g in dict.fromkeys(l['groupe'] for l in lignes)],
         }
 
     @staticmethod

@@ -1,5 +1,11 @@
 {% load i18n classe_tags notes_tags %}
 {% comment %}Collège / lycée / primaire : toutes les matières dans un tableau groupé par type, avec recherche et filtres.{% endcomment %}
+<div class="sx-tabs" role="tablist" data-sx-tabs="matieres" data-overflow-items-label="matières" data-overflow-item-label="matière" aria-label="{% trans 'Matières' %}">
+  <button type="button" role="tab" class="sx-tab active" data-sx-key="" data-sx-panel="sxMatPanel-all"><i class="fas fa-table-list" aria-hidden="true"></i>{% trans "Vue d'ensemble" %}</button>
+  {% for groupe in matieres_groupes %}{% for item in groupe.matieres %}<button type="button" role="tab" class="sx-tab" data-sx-key="{{ item.matiere.id }}" data-sx-panel="sxMatPanel-{{ item.matiere.id }}">{{ item.matiere.nom }}<span class="tab-count">{{ item.matiere.sx_lignes_classes|length }}</span></button>{% endfor %}{% endfor %}
+</div>
+<div class="sx-tabpanels">
+<div class="sx-tabpanel" id="sxMatPanel-all" role="tabpanel">
 <div class="sx-toolbar" data-sx-filter="#sxMatieres">
   <label class="sx-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
     <input type="search" class="sx-search__input" data-sx-q placeholder="{% trans 'Rechercher une matière, une classe, un enseignant…' %}" aria-label="{% trans 'Rechercher' %}"></label>
@@ -42,4 +48,43 @@
       <tr class="sx-empty-row" data-sx-none hidden><td colspan="5">{% trans "Aucune matière avec ces filtres." %}</td></tr>
     </tbody>
   </table>
+</div>
+</div>
+{% for groupe in matieres_groupes %}{% for item in groupe.matieres %}{% with m=item.matiere %}
+<div class="sx-tabpanel" id="sxMatPanel-{{ m.id }}" role="tabpanel" hidden>
+  <div class="sx-mat-head">
+    <div>
+      <h3>{{ m.nom }}</h3>
+      <p>{{ m.type_display }}{% if m.niveau_display %} · {{ m.niveau_display }}{% endif %} · {{ m.sx_lignes_classes|length }} {% trans "classe(s)" %}{% if etablissement.type_etablissement != 'primary' %} · {% trans "coefficient par défaut" %} <strong>{{ m.coefficient|floatformat:"-2" }}</strong>{% endif %}</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="sx-btn sx-btn--sm" href="{% url 'affectation:affectation_professeurs' %}"><i class="fas fa-user-plus" aria-hidden="true"></i>{% trans "Affecter" %}</a>
+      <a class="sx-btn sx-btn--sm sx-btn--primary" href="{% url 'matiere:detail_matiere' m.id %}"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Ouvrir la matière" %}</a>
+    </div>
+  </div>
+  {% if m.sx_lignes_classes %}
+  <div class="sx-table-wrap"><table class="sx-table">
+    <thead><tr>
+      <th>{% trans "Classe" %}</th>
+      {% if etablissement.type_etablissement != 'primary' %}<th class="sx-num">{% trans "Coefficient" %}</th>{% endif %}
+      <th>{% trans "Enseignant(s)" %}</th>
+      <th class="sx-act"><span class="sr-only">{% trans "Actions" %}</span></th>
+    </tr></thead>
+    <tbody>
+      {% for l in m.sx_lignes_classes %}
+      {% ifchanged l.groupe %}<tr class="sx-table__group"><td colspan="4">{{ l.groupe }}</td></tr>{% endifchanged %}
+      <tr>
+        <td class="sx-cell-main"><div class="sx-name"><span class="sx-name__ico"><i class="fas fa-chalkboard" aria-hidden="true"></i></span><div class="sx-name__txt"><a href="{% url 'administrateur_etablissement:detail_classe' l.classe.id %}">{{ l.classe.nom }}</a><small>{{ l.classe.get_niveau_display }}</small></div></div></td>
+        {% if etablissement.type_etablissement != 'primary' %}<td class="sx-num" data-label="{% trans 'Coefficient' %}"><span class="sx-coef" {% if l.specifique %}title="{% trans 'Coefficient propre à ce groupe de classes' %}" style="background:var(--ax-warn-soft);color:var(--ax-warn)"{% endif %}>{{ l.coefficient|floatformat:"-2"|default:"—" }}</span></td>{% endif %}
+        <td data-label="{% trans 'Enseignant(s)' %}">{% for p in l.enseignants %}<span class="sx-pill sx-pill--info" style="margin:2px">{{ p }}</span>{% empty %}<span class="sx-pill sx-pill--warn">{% trans "Non affectée" %}</span>{% endfor %}</td>
+        <td class="sx-act"><a class="sx-btn sx-btn--sm" href="{% url 'administrateur_etablissement:detail_classe' l.classe.id %}">{% trans "Voir la classe" %}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class="sx-empty"><i class="fas fa-chalkboard" aria-hidden="true"></i><h3>{% trans "Aucune classe ne suit cette matière" %}</h3><p>{% trans "Ouvrez la matière pour choisir les classes concernées." %}</p></div>
+  {% endif %}
+</div>
+{% endwith %}{% endfor %}{% endfor %}
 </div>

@@ -59,7 +59,7 @@
         var qInput = bar.querySelector('[data-sx-q]');
         var q = normaliser(qInput ? qInput.value : '').trim();
         var filtres = Array.prototype.map.call(bar.querySelectorAll('[data-sx-f]'), function (s) {
-            return { champ: s.getAttribute('data-sx-f'), val: s.value };
+            return { champ: s.getAttribute('data-sx-f'), val: s.value, onglet: s.hidden };
         }).filter(function (f) { return f.val !== ''; });
         var visibles = 0;
         var items = cible.querySelectorAll('[data-sx-item]');
@@ -88,7 +88,8 @@
             compte.textContent = visibles + ' / ' + items.length + ' ' + unite;
         }
         var reset = bar.querySelector('[data-sx-reset]');
-        if (reset) { reset.hidden = !q && !filtres.length; }
+        // Les filtres pilotés par des onglets (sélecteurs masqués) ne comptent pas : l'onglet reste choisi.
+        if (reset) { reset.hidden = !q && !filtres.filter(function (f) { return !f.onglet; }).length; }
     }
 
     function initFiltres() {
@@ -100,7 +101,7 @@
             var reset = bar.querySelector('[data-sx-reset]');
             if (reset) {
                 reset.addEventListener('click', function () {
-                    bar.querySelectorAll('[data-sx-q], [data-sx-f]').forEach(function (c) { c.value = ''; });
+                    bar.querySelectorAll('[data-sx-q], [data-sx-f]:not([hidden])').forEach(function (c) { c.value = ''; });
                     appliquer(bar);
                 });
             }
@@ -137,6 +138,57 @@
         if (premier) { window.setTimeout(function () { premier.focus(); }, 60); }
     });
 
+    // ---------------------------------------------------------------- onglets sx
+    // <div class="sx-tabs" role="tablist" data-sx-tabs="cle"> avec des boutons .sx-tab :
+    //   data-sx-panel="id"            → affiche le panneau #id (les autres panneaux du même groupe sont masqués) ;
+    //   data-sx-set="#select|valeur"  → règle un filtre de la barre d'outils (onglets qui filtrent un tableau).
+    // Le dernier onglet choisi est retenu pour la page (confort, sans conséquence s'il est perdu).
+    function activerOnglet(btn, memoriser) {
+        var barre = btn.closest('.sx-tabs');
+        if (!barre) { return; }
+        barre.querySelectorAll('.sx-tab').forEach(function (b) {
+            var actif = b === btn;
+            b.classList.toggle('active', actif);
+            b.setAttribute('aria-selected', actif ? 'true' : 'false');
+        });
+        var panneau = btn.getAttribute('data-sx-panel');
+        if (panneau) {
+            var cible = document.getElementById(panneau);
+            if (cible && cible.parentElement) {
+                Array.prototype.forEach.call(cible.parentElement.children, function (p) {
+                    if (p.classList.contains('sx-tabpanel')) { p.hidden = p !== cible; }
+                });
+            }
+        }
+        var reglage = btn.getAttribute('data-sx-set');
+        if (reglage) {
+            var parts = reglage.split('|');
+            var champ = document.querySelector(parts[0]);
+            if (champ) {
+                champ.value = parts.slice(1).join('|');
+                champ.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+        if (memoriser && barre.getAttribute('data-sx-tabs')) {
+            try { window.sessionStorage.setItem('sx-tab:' + location.pathname + ':' + barre.getAttribute('data-sx-tabs'), btn.getAttribute('data-sx-key') || ''); } catch (e) { /* stockage indisponible */ }
+        }
+    }
+    document.addEventListener('click', function (event) {
+        var btn = event.target.closest('.sx-tab');
+        if (btn) {
+            event.preventDefault();
+            activerOnglet(btn, true);
+        }
+    });
+    function initOnglets() {
+        document.querySelectorAll('.sx-tabs[data-sx-tabs]').forEach(function (barre) {
+            var cle = null;
+            try { cle = window.sessionStorage.getItem('sx-tab:' + location.pathname + ':' + barre.getAttribute('data-sx-tabs')); } catch (e) { cle = null; }
+            var btn = (cle && barre.querySelector('.sx-tab[data-sx-key="' + CSS.escape(cle) + '"]')) || barre.querySelector('.sx-tab.active') || barre.querySelector('.sx-tab');
+            if (btn) { activerOnglet(btn, false); }
+        });
+    }
+
     // ---------------------------------------------------------------- tout déplier / replier (<details>)
     document.addEventListener('click', function (event) {
         var btn = event.target.closest('[data-sx-deplier]');
@@ -171,10 +223,14 @@
         if (window.location.hash.length > 1) { ouvrirOnglet(window.location.hash.slice(1)); }
     });
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initFiltres);
-    } else {
+    function demarrer() {
         initFiltres();
+        initOnglets();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', demarrer);
+    } else {
+        demarrer();
     }
     window.sxInitFiltres = initFiltres;
 })();

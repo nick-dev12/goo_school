@@ -269,7 +269,7 @@
                         </div>
                         <div class="section-title-wrapper">
                             <h2 class="section-title-modern">{% trans "Parent / Tuteur" %}</h2>
-                            <p class="section-subtitle-modern">{% trans "Informations de la personne responsable" %}</p>
+                            <p class="section-subtitle-modern">{% trans "Facultatif : vous pourrez compléter ces informations plus tard." %}</p>
                         </div>
                         <div class="section-number">03</div>
                     </div>
@@ -283,7 +283,7 @@
                         <div class="form-group-modern">
                             <label class="label-modern" for="parent_nom">
                                 <i class="fas fa-id-card"></i>
-                                {% trans "Nom du parent/tuteur <span class=\"required-star\">*</span>" %}
+                                {% trans "Nom du parent/tuteur" %}
                             </label>
                             <input type="text" 
                                    class="input-modern {% if field_errors.parent_nom %}input-error{% endif %}" 
@@ -291,7 +291,7 @@
                                    name="parent_nom" 
                                    value="{{ form_data.parent_nom }}"
                                    placeholder="{% trans "Nom de famille" %}"
-                                   required>
+                                   >
                             {% if field_errors.parent_nom %}
                                 <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_nom }}</span>
                             {% endif %}
@@ -300,7 +300,7 @@
                         <div class="form-group-modern">
                             <label class="label-modern" for="parent_prenom">
                                 <i class="fas fa-user"></i>
-                                {% trans "Prénom du parent/tuteur <span class=\"required-star\">*</span>" %}
+                                {% trans "Prénom du parent/tuteur" %}
                             </label>
                             <input type="text" 
                                    class="input-modern {% if field_errors.parent_prenom %}input-error{% endif %}" 
@@ -308,7 +308,7 @@
                                    name="parent_prenom" 
                                    value="{{ form_data.parent_prenom }}"
                                    placeholder="{% trans "Prénom" %}"
-                                   required>
+                                   >
                             {% if field_errors.parent_prenom %}
                                 <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_prenom }}</span>
                             {% endif %}
@@ -318,7 +318,7 @@
                     <div class="form-group-modern">
                         <label class="label-modern" for="parent_telephone">
                             <i class="fas fa-phone"></i>
-                            {% trans "Téléphone du parent/tuteur <span class=\"required-star\">*</span>" %}
+                            {% trans "Téléphone du parent/tuteur" %}
                         </label>
                         <input type="tel" 
                                class="input-modern {% if field_errors.parent_telephone %}input-error{% endif %}" 
@@ -326,7 +326,7 @@
                                name="parent_telephone" 
                                value="{{ form_data.parent_telephone }}"
                                placeholder=""
-                               required>
+                               >
                         <input type="hidden" name="parent_telephone_full" id="parent_telephone_full">
                         {% if field_errors.parent_telephone %}
                             <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.parent_telephone }}</span>
@@ -354,12 +354,12 @@
                         <div class="form-group-modern">
                             <label class="label-modern" for="parent_lien">
                                 <i class="fas fa-link"></i>
-                                {% trans "Lien avec l'élève <span class=\"required-star\">*</span>" %}
+                                {% trans "Lien avec l'élève" %}
                             </label>
                             <select class="input-modern {% if field_errors.parent_lien %}input-error{% endif %}" 
                                     id="parent_lien" 
                                     name="parent_lien" 
-                                    required>
+                                    >
                                 <option value="">{% trans "Sélectionner le lien" %}</option>
                                 <option value="pere" {% if form_data.parent_lien == 'pere' %}selected{% endif %}>{% trans "Père" %}</option>
                                 <option value="mere" {% if form_data.parent_lien == 'mere' %}selected{% endif %}>{% trans "Mère" %}</option>

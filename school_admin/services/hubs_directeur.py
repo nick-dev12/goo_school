@@ -252,7 +252,12 @@ def hub_eleves(user, etab, annee):
     preins = _sur(lambda: __import__('school_admin.model.preinscription_model', fromlist=['PreinscriptionEleve'])
                   .PreinscriptionEleve.objects.filter(etablissement=etab, statut='en_attente').count(), 0)
 
+    sans_contact = _sur(lambda: eleves.filter(Q(parent_telephone__isnull=True) | Q(parent_telephone='')).count(), 0)
     alertes = []
+    if sans_contact and _peut(user, 'eleves_modifier'):
+        alertes.append({'tone': 'warn', 'icon': 'fa-user-clock',
+                        'texte': f"{sans_contact} dossier(s) sans contact parent à compléter.",
+                        'url': _url('directeur:contacts_parents'), 'action': 'Compléter'})
     if preins:
         alertes.append({'tone': 'info', 'icon': 'fa-inbox', 'texte': f"{preins} préinscription(s) en attente de traitement.",
                         'url': _url('directeur:liste_preinscriptions'), 'action': 'Traiter'})
@@ -262,9 +267,14 @@ def hub_eleves(user, etab, annee):
 
     sections = [
         {'titre': 'Inscriptions', 'desc': f"Arrivée des {lib['eleves']} et renouvellement d’une année sur l’autre.", 'liens': [
-            _peut(user, 'eleves_inscrire') and _lien(f"Inscrire un {'étudiant' if lib['eleves'] == 'étudiants' else 'élève'}", 'Nouvelle inscription avec compte parent',
+            _peut(user, 'eleves_inscrire') and _lien(f"Inscrire un {'étudiant' if lib['eleves'] == 'étudiants' else 'élève'}", 'Inscription individuelle (parent facultatif)',
                                                       _url('secretaire:liste_eleves', suffixe='?inscrire=1'), 'fa-user-plus', 'green',
                                                       nouveaux, 'ce mois-ci'),
+            _peut(user, 'eleves_inscrire') and _lien('Inscription en masse', f"Importer les {lib['eleves']} déjà présents (Excel ou saisie rapide)",
+                                                      _url('directeur:inscription_masse'), 'fa-users-line', 'blue'),
+            _peut(user, 'eleves_modifier') and _lien('Contacts parents à compléter', 'Téléphone du parent et compte parent',
+                                                      _url('directeur:contacts_parents'), 'fa-address-book', 'violet',
+                                                      sans_contact or None, 'dossier(s)', 'À compléter' if sans_contact else None),
             _peut(user, 'eleves_liste') and _lien(f"Liste des {lib['eleves']}", 'Recherche, fiches et dossiers', _url('secretaire:liste_eleves'),
                                                    'fa-users', 'blue', nb, 'inscrit(s)'),
             _peut(user, 'eleves_reinscrire') and _lien('Réinscriptions', 'Passage à l’année suivante', _url('directeur:liste_reinscription'),

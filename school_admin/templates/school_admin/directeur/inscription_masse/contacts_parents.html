@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+{% load static i18n %}
+<html lang="fr">
+<head>
+    <title>{% trans "Contacts parents à compléter" %} - {{ etablissement.nom }}</title>
+    {% include 'school_admin/directeur/inscription_masse/_head.html' %}
+</head>
+<body class="gv3 cg3 sx">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container">
+        {% include 'school_admin/partials/messages.html' %}
+        <nav class="sx-crumb" aria-label="{% trans 'Fil d’Ariane' %}">
+            <a href="{% url 'directeur:gestion_eleves' %}">{% trans "Élèves" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+            <span>{% trans "Contacts parents à compléter" %}</span>
+        </nav>
+        <div class="v3-zone">
+            <header class="hb-head">
+                <span class="hb-head__icon fe-tone-violet"><i class="fas fa-address-book" aria-hidden="true"></i></span>
+                <div class="hb-head__text">
+                    <p class="fe-hero__kicker">{{ etablissement.nom }}{% if annee_scolaire_active %} · {{ annee_scolaire_active.libelle }}{% endif %}</p>
+                    <h1 class="hb-head__title">{% trans "Contacts parents à compléter" %}</h1>
+                    <p class="fe-hero__sub">{% blocktrans %}{{ total }} {{ mot_eleves }} sans téléphone de parent. Saisissez au moins le téléphone : le compte parent est créé et relié automatiquement.{% endblocktrans %}</p>
+                </div>
+            </header>
+        </div>
+
+        <section class="sx-card">
+            {% if groupes %}
+            <div class="sx-tabs" role="tablist" data-sx-tabs="classes" data-overflow-items-label="classes" data-overflow-item-label="classe">
+                {% for classe, eleves in groupes %}
+                <button type="button" role="tab" class="sx-tab {% if forloop.first and not classe_choisie or classe and classe_choisie == classe.id|stringformat:'s' %}active{% endif %}" data-sx-key="{{ classe.id|default:'0' }}" data-sx-panel="cpClasse{{ classe.id|default:'0' }}">{{ classe.nom|default:"Sans classe" }}<span class="tab-count">{{ eleves|length }}</span></button>
+                {% endfor %}
+            </div>
+            <div class="sx-tabpanels">
+                {% for classe, eleves in groupes %}
+                <div class="sx-tabpanel" id="cpClasse{{ classe.id|default:'0' }}" role="tabpanel" {% if not forloop.first %}hidden{% endif %}>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="classe" value="{{ classe.id|default:'' }}">
+                        <div class="sx-table-wrap im-grille-wrap">
+                            <table class="im-grille im-contacts">
+                                <thead><tr><th>{% trans "Élève" %}</th><th>{% trans "Téléphone du parent" %}</th><th>{% trans "Nom du parent" %}</th><th>{% trans "Prénom du parent" %}</th><th>{% trans "Lien" %}</th></tr></thead>
+                                <tbody>
+                                    {% for e in eleves %}
+                                    <tr>
+                                        <td style="min-width:180px"><input type="hidden" name="eleve" value="{{ e.id }}"><strong>{{ e.nom }} {{ e.prenom }}</strong><br><small style="color:var(--ax-muted)">{{ e.matricule_eleve|default:"" }}</small></td>
+                                        <td><input type="text" name="tel_{{ e.id }}" inputmode="tel" placeholder="77 123 45 67" value="{{ e.parent_telephone|default:'' }}"></td>
+                                        <td><input type="text" name="nom_{{ e.id }}" value="{{ e.parent_nom|default:'' }}"></td>
+                                        <td><input type="text" name="prenom_{{ e.id }}" value="{{ e.parent_prenom|default:'' }}"></td>
+                                        <td><select name="lien_{{ e.id }}"><option value=""></option>{% for code, libelle in liens %}<option value="{{ code }}" {% if e.parent_lien == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}</select></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="im-grille-actions">
+                            <span class="sx-toolbar__count">{% blocktrans count n=eleves|length %}{{ n }} élève{% plural %}{{ n }} élèves{% endblocktrans %}</span>
+                            <button type="submit" class="sx-btn sx-btn--primary"><i class="fas fa-floppy-disk" aria-hidden="true"></i>{% blocktrans with c=classe.nom|default:"Sans classe" %}Enregistrer les contacts — {{ c }}{% endblocktrans %}</button>
+                        </div>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="sx-empty"><i class="fas fa-circle-check" aria-hidden="true"></i><h3>{% trans "Tous les dossiers ont un contact parent" %}</h3><p>{% trans "Rien à compléter pour l’instant." %}</p></div>
+            {% endif %}
+        </section>
+    </div>
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.1.0"></script>
+</body>
+</html>

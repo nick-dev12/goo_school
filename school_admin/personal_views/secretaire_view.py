@@ -511,12 +511,8 @@ def inscription_eleves(request):
             field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
             is_valid = False
     
-    # Validation des champs parent/tuteur
-    parent_required = ['parent_nom', 'parent_prenom', 'parent_telephone', 'parent_lien']
-    for field in parent_required:
-        if not form_data[field]:
-            field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
-            is_valid = False
+    # Parent / tuteur facultatif : l'élève peut être inscrit et son contact complété plus tard
+    # (dossier « contact parent à compléter »). Si un parent est saisi, son téléphone permet de créer son compte.
     
     # Validation de la date de naissance
     if form_data['date_naissance']:
@@ -602,8 +598,8 @@ def inscription_eleves(request):
         field_errors['statut'] = "Le type d'inscription sélectionné n'est pas valide."
         is_valid = False
     
-    # Validation du lien parent/tuteur
-    if form_data['parent_lien'] not in ['pere', 'mere', 'grand_parent', 'oncle_tante', 'frere_soeur', 'autre_famille', 'tuteur_legal', 'autre']:
+    # Validation du lien parent/tuteur (seulement s'il est renseigné)
+    if form_data['parent_lien'] and form_data['parent_lien'] not in ['pere', 'mere', 'grand_parent', 'oncle_tante', 'frere_soeur', 'autre_famille', 'tuteur_legal', 'autre']:
         field_errors['parent_lien'] = "Le lien avec l'élève sélectionné n'est pas valide."
         is_valid = False
     
@@ -686,15 +682,24 @@ def inscription_eleves(request):
                 from ..model.lien_familial_model import LienFamilial
                 from django.contrib.auth.hashers import make_password
                 
-                # Vérifier si un parent avec ce téléphone existe déjà
+                # Compte parent : seulement si un parent est saisi (téléphone ou nom). Sinon, dossier à compléter.
+                parent_saisi = bool(form_data['parent_telephone'] or form_data['parent_nom'])
+                if not form_data['parent_lien']:
+                    form_data['parent_lien'] = 'pere' if parent_saisi else ''
+                    eleve.parent_lien = form_data['parent_lien']
+                    eleve.save(update_fields=['parent_lien'])
                 parent_existant = None
-                if form_data['parent_telephone']:
+                if parent_saisi and form_data['parent_telephone']:
                     parent_existant = Parent.objects.filter(
                         telephone=form_data['parent_telephone'],
                         etablissement=etablissement
                     ).first()
                 
-                if parent_existant:
+                if not parent_saisi:
+                    parent = None
+                    form_data['matricule_parent'] = ''
+                    form_data['mot_de_passe_parent'] = ''
+                elif parent_existant:
                     # Utiliser le parent existant et créer le lien
                     parent = parent_existant
                     print(f"[INFO] Parent existant trouvé : {parent.nom_complet}")
@@ -721,16 +726,16 @@ def inscription_eleves(request):
                     parent.save()
                     print(f"[INFO] Nouveau parent créé : {parent.nom_complet}")
                 
-                # Créer le lien familial
-                lien = LienFamilial.objects.create(
-                    parent=parent,
-                    eleve=eleve,
-                    type_lien=form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
-                    statut='valide',
-                    est_inscripteur=True,
-                    actif=True
-                )
-                print(f"[INFO] Lien familial créé : {parent.nom_complet} -> {eleve.nom_complet}")
+                # Créer le lien familial (si un parent a été saisi)
+                if parent is not None:
+                    LienFamilial.objects.create(
+                        parent=parent,
+                        eleve=eleve,
+                        type_lien=form_data['parent_lien'] if form_data['parent_lien'] in ['mere', 'pere', 'tuteur'] else 'tuteur',
+                        statut='valide',
+                        est_inscripteur=True,
+                        actif=True
+                    )
                 
                 # Stocker les informations du parent dans form_data pour le reçu
                 form_data['parent_cree'] = parent
@@ -1889,12 +1894,7 @@ def detail_eleve(request, eleve_id):
                     field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
                     is_valid = False
 
-            # Validation des champs parent/tuteur
-            parent_required = ['parent_nom', 'parent_prenom', 'parent_telephone', 'parent_lien']
-            for field in parent_required:
-                if not form_data[field]:
-                    field_errors[field] = f"Le champ {field.replace('_', ' ').title()} est obligatoire."
-                    is_valid = False
+            # Parent / tuteur facultatif (voir l'inscription).
 
             # Validation de la date de naissance
             if form_data['date_naissance']:

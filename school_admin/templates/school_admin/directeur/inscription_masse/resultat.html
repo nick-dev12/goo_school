@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+{% load static i18n %}
+<html lang="fr">
+<head>
+    <title>{% trans "Élèves inscrits" %} - {{ etablissement.nom }}</title>
+    {% include 'school_admin/directeur/inscription_masse/_head.html' %}
+</head>
+<body class="gv3 cg3 sx">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="v3-zone">
+            <header class="hb-head">
+                <span class="hb-head__icon fe-tone-green"><i class="fas fa-circle-check" aria-hidden="true"></i></span>
+                <div class="hb-head__text">
+                    <p class="fe-hero__kicker">{{ etablissement.nom }} · {{ annee_scolaire_active.libelle }}</p>
+                    <h1 class="hb-head__title">{% blocktrans count n=crees|length %}{{ n }} inscription enregistrée{% plural %}{{ n }} inscriptions enregistrées{% endblocktrans %}</h1>
+                    <p class="fe-hero__sub">{% trans "Voici les identifiants de connexion. Imprimez-les maintenant : les mots de passe provisoires sont à changer à la première connexion." %}</p>
+                </div>
+                <div class="hb-head__actions">
+                    <button type="button" class="cg3-btn cg3-btn--primary" onclick="window.print()"><i class="fas fa-print" aria-hidden="true"></i>{% trans "Imprimer les identifiants" %}</button>
+                </div>
+            </header>
+        </div>
+
+        <ol class="im-etapes">
+            <li class="is-fait"><span><i class="fas fa-check"></i></span>{% trans "Préparer la liste" %}</li>
+            <li class="is-fait"><span><i class="fas fa-check"></i></span>{% trans "Vérifier l’aperçu" %}</li>
+            <li class="is-fait"><span><i class="fas fa-check"></i></span>{% trans "Confirmer l’inscription" %}</li>
+        </ol>
+
+        {% if sans_parent %}
+        <section class="hb-todo">
+            <ul><li class="hb-todo__item hb-todo__item--warn"><i class="fas fa-user-clock" aria-hidden="true"></i><span>{% blocktrans count n=sans_parent %}{{ n }} élève inscrit sans contact parent : dossier à compléter.{% plural %}{{ n }} élèves inscrits sans contact parent : dossiers à compléter.{% endblocktrans %}</span><a class="cg3-btn cg3-btn--sm" href="{% url 'directeur:contacts_parents' %}">{% trans "Compléter les contacts" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a></li></ul>
+        </section>
+        {% endif %}
+
+        <section class="sx-card im-imprimable">
+            <div class="sx-card__head">
+                <h2 class="sx-card__title"><i class="fas fa-key" aria-hidden="true"></i>{% trans "Identifiants de connexion" %}</h2>
+                <p class="sx-card__hint">{% if parents_crees %}{% blocktrans %}{{ parents_crees }} compte(s) parent créé(s).{% endblocktrans %}{% endif %} {{ etablissement.nom }} · {{ annee_scolaire_active.libelle }}</p>
+            </div>
+            <div class="sx-table-wrap">
+                <table class="sx-table">
+                    <thead><tr><th>{% trans "Élève" %}</th><th>{% trans "Classe" %}</th><th>{% trans "Identifiant" %}</th><th>{% trans "Mot de passe" %}</th><th>{% trans "Compte parent" %}</th></tr></thead>
+                    <tbody>
+                        {% for c in crees %}
+                        <tr>
+                            <td class="sx-cell-main"><strong>{{ c.eleve.nom }} {{ c.eleve.prenom }}</strong></td>
+                            <td data-label="{% trans 'Classe' %}">{{ c.classe.nom }}</td>
+                            <td data-label="{% trans 'Identifiant' %}"><span class="im-ident">{{ c.matricule }}</span></td>
+                            <td data-label="{% trans 'Mot de passe' %}"><span class="im-ident">{{ c.mot_de_passe }}</span></td>
+                            <td data-label="{% trans 'Compte parent' %}">{% if c.parent_cree %}<span class="im-ident">{{ c.parent.matricule_parental }}</span> / <span class="im-ident">{{ c.parent_mot_de_passe }}</span>{% elif c.parent %}{% trans "Compte existant" %} ({{ c.parent.matricule_parental }}){% else %}<span class="sx-pill sx-pill--warn">{% trans "À compléter" %}</span>{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="im-grille-actions im-pas-imprimer">
+            <a class="sx-btn" href="{% url 'directeur:inscription_masse' %}"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Importer d’autres élèves" %}</a>
+            <a class="sx-btn sx-btn--primary" href="{% url 'secretaire:liste_eleves' %}"><i class="fas fa-users" aria-hidden="true"></i>{% trans "Voir la liste des élèves" %}</a>
+        </div>
+    </div>
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.1.0"></script>
+</body>
+</html>

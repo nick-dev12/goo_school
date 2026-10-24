@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+{% load static i18n %}
+<html lang="fr">
+<head>
+    <title>{% trans "Inscription en masse" %} - {{ etablissement.nom }}</title>
+    {% include 'school_admin/directeur/inscription_masse/_head.html' %}
+</head>
+<body class="gv3 cg3 sx">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container">
+        {% include 'school_admin/partials/messages.html' %}
+        <nav class="sx-crumb" aria-label="{% trans 'Fil d’Ariane' %}">
+            <a href="{% url 'directeur:gestion_eleves' %}">{% if est_superieur %}{% trans "Étudiants" %}{% else %}{% trans "Élèves" %}{% endif %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+            <span>{% trans "Inscription en masse" %}</span>
+        </nav>
+
+        <div class="v3-zone">
+            <header class="hb-head">
+                <span class="hb-head__icon fe-tone-blue"><i class="fas fa-users-line" aria-hidden="true"></i></span>
+                <div class="hb-head__text">
+                    <p class="fe-hero__kicker">{{ etablissement.nom }} · {{ annee_scolaire_active.libelle }}</p>
+                    <h1 class="hb-head__title">{% trans "Inscription en masse" %}</h1>
+                    <p class="fe-hero__sub">{% blocktrans %}Inscrivez d’un coup les {{ mot_eleves }} déjà présents : par fichier Excel ou en saisie rapide. Le contact du parent est facultatif.{% endblocktrans %}</p>
+                </div>
+                <div class="hb-head__actions">
+                    <a class="cg3-btn" href="{% url 'secretaire:inscription_eleves' %}"><i class="fas fa-user-plus" aria-hidden="true"></i>{% trans "Inscription individuelle" %}</a>
+                    <a class="cg3-btn cg3-btn--primary" href="{% url 'directeur:modele_inscription_masse' %}"><i class="fas fa-file-excel" aria-hidden="true"></i>{% trans "Télécharger le modèle Excel" %}</a>
+                </div>
+            </header>
+        </div>
+
+        <ol class="im-etapes" aria-label="{% trans 'Étapes' %}">
+            <li class="is-actif"><span>1</span>{% trans "Préparer la liste" %}</li>
+            <li><span>2</span>{% trans "Vérifier l’aperçu" %}</li>
+            <li><span>3</span>{% trans "Confirmer l’inscription" %}</li>
+        </ol>
+
+        <section class="sx-card">
+            <div class="sx-tabs" role="tablist" data-sx-tabs="mode">
+                <button type="button" role="tab" class="sx-tab {% if onglet != 'grille' %}active{% endif %}" data-sx-key="fichier" data-sx-panel="imFichier"><i class="fas fa-file-arrow-up" aria-hidden="true"></i>{% trans "Importer un fichier Excel" %}</button>
+                <button type="button" role="tab" class="sx-tab {% if onglet == 'grille' %}active{% endif %}" data-sx-key="grille" data-sx-panel="imGrille"><i class="fas fa-table-cells" aria-hidden="true"></i>{% trans "Saisie rapide" %}</button>
+            </div>
+            <div class="sx-tabpanels">
+                <!-- Fichier -->
+                <div class="sx-tabpanel" id="imFichier" role="tabpanel" {% if onglet == 'grille' %}hidden{% endif %}>
+                    <form method="post" enctype="multipart/form-data" class="im-fichier">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="analyser_fichier">
+                        <label class="im-depot" id="imDepot">
+                            <input type="file" name="fichier" accept=".xlsx,.xlsm,.csv" required id="imInput">
+                            <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>
+                            <strong id="imNomFichier">{% trans "Glissez votre fichier ici ou cliquez pour le choisir" %}</strong>
+                            <small>{% trans "Excel (.xlsx) ou CSV — jusqu’à 2 000 lignes" %}</small>
+                        </label>
+                        <div class="im-colonnes">
+                            <p><strong>{% trans "Colonnes attendues" %}</strong> — {% trans "le modèle Excel les contient déjà, avec des listes déroulantes :" %}</p>
+                            <ul>
+                                {% for cle, libelle, oblig, aide in colonnes %}<li class="{% if oblig %}is-oblig{% endif %}">{{ libelle }}{% if oblig %} *{% endif %}{% if aide %} <small>({{ aide }})</small>{% endif %}</li>{% endfor %}
+                            </ul>
+                            <p class="im-note"><i class="fas fa-circle-info" aria-hidden="true"></i>{% trans "Rien n’est enregistré à cette étape : vous verrez d’abord un aperçu ligne par ligne." %}</p>
+                        </div>
+                        <button type="submit" class="sx-btn sx-btn--primary"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i>{% trans "Analyser le fichier" %}</button>
+                    </form>
+                </div>
+
+                <!-- Grille -->
+                <div class="sx-tabpanel" id="imGrille" role="tabpanel" {% if onglet != 'grille' %}hidden{% endif %}>
+                    <form method="post" id="imFormGrille">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="analyser_grille">
+                        <input type="hidden" name="grille" id="imGrilleJson">
+                        <div class="im-grille-tete">
+                            <label class="im-champ">{% trans "Classe de ces élèves" %} *
+                                <select name="classe_defaut" required>
+                                    <option value="">{% trans "— Choisir —" %}</option>
+                                    {% for c in classes %}<option value="{{ c.id }}">{{ c.nom }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <p class="im-note"><i class="fas fa-keyboard" aria-hidden="true"></i>{% trans "Tab pour passer à la case suivante, Entrée pour une nouvelle ligne. Vous pouvez aussi coller plusieurs lignes copiées depuis Excel (Nom, Prénom, Sexe, Date…)." %}</p>
+                        </div>
+                        <div class="sx-table-wrap im-grille-wrap">
+                            <table class="im-grille" id="imGrille">
+                                <thead><tr>
+                                    <th>#</th><th>{% trans "Nom" %} *</th><th>{% trans "Prénom" %} *</th><th>{% trans "Sexe" %} *</th><th>{% trans "Date de naissance" %} *</th>
+                                    <th>{% trans "Téléphone du parent" %}</th><th>{% trans "Nom du parent" %}</th><th></th>
+                                </tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="im-grille-actions">
+                            <button type="button" class="sx-btn sx-btn--sm" id="imAjouter"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter 5 lignes" %}</button>
+                            <span class="sx-toolbar__count" id="imCompte"></span>
+                            <button type="submit" class="sx-btn sx-btn--primary"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i>{% trans "Vérifier la saisie" %}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/inscription_masse.js' %}?v=1.0.0"></script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+{% load static i18n %}
+<html lang="fr">
+<head>
+    <title>{% trans "Aperçu de l’inscription" %} - {{ etablissement.nom }}</title>
+    {% include 'school_admin/directeur/inscription_masse/_head.html' %}
+</head>
+<body class="gv3 cg3 sx">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container">
+        {% include 'school_admin/partials/messages.html' %}
+        <nav class="sx-crumb" aria-label="{% trans 'Fil d’Ariane' %}">
+            <a href="{% url 'directeur:gestion_eleves' %}">{% if est_superieur %}{% trans "Étudiants" %}{% else %}{% trans "Élèves" %}{% endif %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+            <a href="{% url 'directeur:inscription_masse' %}">{% trans "Inscription en masse" %}</a><i class="fas fa-chevron-right" aria-hidden="true"></i>
+            <span>{% trans "Aperçu" %}</span>
+        </nav>
+        <div class="v3-zone">
+            <header class="hb-head">
+                <span class="hb-head__icon fe-tone-blue"><i class="fas fa-list-check" aria-hidden="true"></i></span>
+                <div class="hb-head__text">
+                    <p class="fe-hero__kicker">{{ source }}</p>
+                    <h1 class="hb-head__title">{% trans "Vérifiez avant d’inscrire" %}</h1>
+                    <p class="fe-hero__sub">{% trans "Les lignes prêtes seront inscrites. Les lignes à corriger sont ignorées : corrigez-les dans votre fichier et importez-les ensuite." %}</p>
+                </div>
+            </header>
+            <section class="fe-kpis hb-kpis hb-kpis--4">
+                <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Lignes lues" %}</span><span class="fe-kpi__icon"><i class="fas fa-list" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ analyse.lignes|length }}</p></div>
+                <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Prêtes à inscrire" %}</span><span class="fe-kpi__icon"><i class="fas fa-check" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ analyse.nb_ok }}</p></div>
+                <div class="fe-kpi fe-tone-orange"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "À corriger (ignorées)" %}</span><span class="fe-kpi__icon"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></span></div><p class="fe-kpi__value{% if analyse.nb_erreurs %} is-warn{% endif %}">{{ analyse.nb_erreurs }}</p></div>
+                <div class="fe-kpi fe-tone-violet"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Sans contact parent" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-clock" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ analyse.nb_sans_parent }}</p></div>
+            </section>
+        </div>
+
+        <ol class="im-etapes">
+            <li class="is-fait"><span><i class="fas fa-check"></i></span>{% trans "Préparer la liste" %}</li>
+            <li class="is-actif"><span>2</span>{% trans "Vérifier l’aperçu" %}</li>
+            <li><span>3</span>{% trans "Confirmer l’inscription" %}</li>
+        </ol>
+
+        <section class="sx-card">
+            <div class="sx-tabs" role="tablist" data-sx-tabs="etat">
+                <button type="button" role="tab" class="sx-tab active" data-sx-key="" data-sx-set="#imFEtat|">{% trans "Toutes" %}<span class="tab-count">{{ analyse.lignes|length }}</span></button>
+                <button type="button" role="tab" class="sx-tab" data-sx-key="ok" data-sx-set="#imFEtat|ok"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Prêtes" %}<span class="tab-count">{{ analyse.nb_ok }}</span></button>
+                <button type="button" role="tab" class="sx-tab" data-sx-key="ko" data-sx-set="#imFEtat|ko"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{% trans "À corriger" %}<span class="tab-count">{{ analyse.nb_erreurs }}</span></button>
+            </div>
+            <div class="sx-toolbar" data-sx-filter="#imApercu">
+                <label class="sx-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><input type="search" class="sx-search__input" data-sx-q placeholder="{% trans 'Rechercher un nom, une classe…' %}" aria-label="{% trans 'Rechercher' %}"></label>
+                <select data-sx-f="etat" id="imFEtat" hidden aria-hidden="true" tabindex="-1"><option value=""></option><option value="ok"></option><option value="ko"></option></select>
+                <span class="sx-toolbar__count" data-sx-count="{% trans 'lignes' %}"></span>
+            </div>
+            <div class="sx-table-wrap">
+                <table class="sx-table" id="imApercu">
+                    <thead><tr><th>{% trans "Ligne" %}</th><th>{% trans "Élève" %}</th><th>{% trans "Sexe" %}</th><th>{% trans "Né(e) le" %}</th><th>{% trans "Classe" %}</th><th>{% trans "Parent" %}</th><th>{% trans "État" %}</th></tr></thead>
+                    <tbody>
+                        {% for l in analyse.lignes %}
+                        <tr data-sx-item data-sx-etat="{% if l.ok %}ok{% else %}ko{% endif %}" data-sx-text="{{ l.nom }} {{ l.prenom }} {{ l.classe_nom }}" class="{% if not l.ok %}im-ko{% endif %}">
+                            <td data-label="{% trans 'Ligne' %}">{{ l.ligne }}</td>
+                            <td class="sx-cell-main"><strong>{{ l.nom|default:"—" }} {{ l.prenom }}</strong></td>
+                            <td data-label="{% trans 'Sexe' %}">{{ l.sexe|default:"—" }}</td>
+                            <td data-label="{% trans 'Né(e) le' %}">{{ l.date_affichee|default:"—" }}</td>
+                            <td data-label="{% trans 'Classe' %}">{{ l.classe_nom|default:"—" }}</td>
+                            <td data-label="{% trans 'Parent' %}">{% if l.parent_telephone or l.parent_nom %}{{ l.parent_nom }} {{ l.parent_prenom }}<br><small style="color:var(--ax-muted)">{{ l.parent_telephone }}</small>{% else %}—{% endif %}</td>
+                            <td data-label="{% trans 'État' %}"><div class="im-etat">
+                                {% for e in l.erreurs %}<span class="sx-pill sx-pill--bad">{{ e }}</span>{% endfor %}
+                                {% if l.ok %}{% for a in l.avertissements %}<span class="sx-pill sx-pill--warn">{{ a }}</span>{% endfor %}{% endif %}
+                                {% if l.ok and not l.avertissements %}<span class="sx-pill sx-pill--ok"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Prête" %}</span>{% endif %}
+                            </div></td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="sx-empty-row" data-sx-none hidden><td colspan="7">{% trans "Aucune ligne." %}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <form method="post" class="im-confirmer">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="confirmer">
+                <label class="im-champ">{% trans "Type d’inscription" %}
+                    <select name="statut">
+                        <option value="nouvelle">{% trans "Nouvelle inscription" %}</option>
+                        <option value="reinscription">{% trans "Réinscription (élève déjà présent l’an passé)" %}</option>
+                        <option value="transfert">{% trans "Transfert d’un autre établissement" %}</option>
+                    </select>
+                </label>
+                {% if module_comptabilite %}
+                <label class="im-case"><input type="checkbox" name="creer_frais" value="1"> {% trans "Créer aussi les frais d’inscription (à cocher seulement s’ils n’ont pas déjà été payés)" %}</label>
+                {% endif %}
+                <a class="sx-btn" href="{% url 'directeur:inscription_masse' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{% trans "Recommencer" %}</a>
+                <button type="submit" class="sx-btn sx-btn--primary" {% if not analyse.nb_ok %}disabled{% endif %} data-sx-confirm="{% blocktrans with n=analyse.nb_ok %}Inscrire {{ n }} élève(s) maintenant ?{% endblocktrans %}"><i class="fas fa-user-check" aria-hidden="true"></i>{% blocktrans with n=analyse.nb_ok %}Inscrire {{ n }} élève(s){% endblocktrans %}</button>
+            </form>
+        </section>
+    </div>
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.1.0"></script>
+</body>
+</html>

@@ -54,6 +54,7 @@ class InscriptionEleve(models.Model):
     )
     
     lieu_naissance = models.CharField(
+        blank=True,
         max_length=100,
         verbose_name="Lieu de naissance",
         help_text="Lieu de naissance de l'élève"
@@ -71,6 +72,7 @@ class InscriptionEleve(models.Model):
     )
     
     nationalite = models.CharField(
+        blank=True,
         max_length=100,
         verbose_name="Nationalité",
         help_text="Nationalité de l'élève"
@@ -150,18 +152,21 @@ class InscriptionEleve(models.Model):
     
     # Informations du parent/tuteur
     parent_nom = models.CharField(
+        blank=True,
         max_length=100,
         verbose_name="Nom du parent/tuteur",
         help_text="Nom de famille du parent ou tuteur"
     )
     
     parent_prenom = models.CharField(
+        blank=True,
         max_length=100,
         verbose_name="Prénom du parent/tuteur",
         help_text="Prénom du parent ou tuteur"
     )
     
     parent_telephone = models.CharField(
+        blank=True,
         max_length=20,
         verbose_name="Téléphone du parent/tuteur",
         help_text="Numéro de téléphone du parent ou tuteur"
@@ -200,6 +205,7 @@ class InscriptionEleve(models.Model):
         ('autre', 'Autre'),
     ]
     parent_lien = models.CharField(
+        blank=True,
         max_length=20,
         choices=LIEN_PARENT_CHOICES,
         verbose_name="Lien avec l'élève",
@@ -393,16 +399,9 @@ class InscriptionEleve(models.Model):
         """Validation personnalisée"""
         from django.core.exceptions import ValidationError
         
-        # Validation du parent/tuteur
-        if not self.parent_nom:
-            raise ValidationError("Le nom du parent/tuteur est obligatoire.")
-        if not self.parent_prenom:
-            raise ValidationError("Le prénom du parent/tuteur est obligatoire.")
-        if not self.parent_telephone:
-            raise ValidationError("Le téléphone du parent/tuteur est obligatoire.")
-        if not self.parent_lien:
-            raise ValidationError("Le lien avec l'élève est obligatoire.")
-        
+        # Parent / tuteur facultatif : un dossier sans contact est « à compléter » (inscription en masse,
+        # élèves déjà présents à l'ouverture de l'établissement).
+
         # Vérifier que l'établissement correspond à celui de l'année scolaire
         if self.annee_scolaire and self.etablissement:
             if self.annee_scolaire.etablissement != self.etablissement:

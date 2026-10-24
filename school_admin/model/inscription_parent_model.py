@@ -40,6 +40,7 @@ class InscriptionParent(models.Model):
     )
     
     prenom = models.CharField(
+        blank=True,
         max_length=100,
         verbose_name="Prénom"
     )

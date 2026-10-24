@@ -12,6 +12,21 @@ from django.utils import timezone
 from .etablissement_model import Etablissement
 from .classe_model import Classe
 
+import threading
+from contextlib import contextmanager
+
+_FACTURATION = threading.local()
+
+
+@contextmanager
+def facturation_differee():
+    """Inscriptions en masse : la facturation de l'établissement est recalculée une seule fois, à la fin."""
+    _FACTURATION.differee = True
+    try:
+        yield
+    finally:
+        _FACTURATION.differee = False
+
 try:
     import qrcode
 except ImportError:  # pragma: no cover - gestion au moment de la génération
@@ -43,6 +58,7 @@ class Eleve(AbstractUser):
     )
     
     lieu_naissance = models.CharField(
+        blank=True,
         max_length=100,
         verbose_name="Lieu de naissance",
         help_text="Lieu de naissance de l'élève"
@@ -60,6 +76,7 @@ class Eleve(AbstractUser):
     )
     
     nationalite = models.CharField(
+        blank=True,
         max_length=100,
         verbose_name="Nationalité",
         help_text="Nationalité de l'élève"
@@ -209,18 +226,21 @@ class Eleve(AbstractUser):
     
     # Informations du parent/tuteur
     parent_nom = models.CharField(
+        blank=True,
         max_length=100,
         verbose_name="Nom du parent/tuteur",
         help_text="Nom de famille du parent ou tuteur"
     )
     
     parent_prenom = models.CharField(
+        blank=True,
         max_length=100,
         verbose_name="Prénom du parent/tuteur",
         help_text="Prénom du parent ou tuteur"
     )
     
     parent_telephone = models.CharField(
+        blank=True,
         max_length=20,
         verbose_name="Téléphone du parent/tuteur",
         help_text="Numéro de téléphone du parent ou tuteur"
@@ -259,6 +279,7 @@ class Eleve(AbstractUser):
         ('autre', 'Autre'),
     ]
     parent_lien = models.CharField(
+        blank=True,
         max_length=20,
         choices=LIEN_PARENT_CHOICES,
         verbose_name="Lien avec l'élève",
@@ -665,15 +686,9 @@ class Eleve(AbstractUser):
         """Validation personnalisée"""
         from django.core.exceptions import ValidationError
         
-        # Validation du parent/tuteur
-        if not self.parent_nom:
-            raise ValidationError("Le nom du parent/tuteur est obligatoire.")
-        if not self.parent_prenom:
-            raise ValidationError("Le prénom du parent/tuteur est obligatoire.")
-        if not self.parent_telephone:
-            raise ValidationError("Le téléphone du parent/tuteur est obligatoire.")
-        if not self.parent_lien:
-            raise ValidationError("Le lien avec l'élève est obligatoire.")
+        # Parent / tuteur facultatif : sans contact, le dossier est « à compléter »
+        # (voir directeur:contacts_parents). Rien à valider ici.
+        return None
         
     def get_absolute_url(self):
         """Retourne l'URL de détail de l'élève"""
@@ -860,8 +875,8 @@ class Eleve(AbstractUser):
             self._generate_qr_code(previous_image_path)
             super().save(update_fields=['qr_code_data', 'qr_code_image', 'qr_code_generated_at'])
         
-        # Mettre à jour la facturation de l'établissement actuel
-        if self.etablissement:
+        # Mettre à jour la facturation de l'établissement actuel (sauf pendant un import en masse)
+        if self.etablissement and not getattr(_FACTURATION, 'differee', False):
             self.etablissement.recalculer_facturation()
         
         # Si l'établissement a changé, mettre à jour aussi l'ancien établissement

@@ -1793,12 +1793,11 @@ def justifications_notes_enseignant(request):
                     if entry_type == 'examen' and note_examen_obj:
                         session_examen = note_examen_obj.session_examen
                         creneau = note_examen_obj.creneau_examen
-                        session_label = session_examen.nom if session_examen else "Examen"
-                        if creneau:
-                            session_label += f" - {creneau.nom}"
+                        session_label = session_examen.nom_examen if session_examen else "Examen"
                         label = f"Examen: {session_label} ({note_examen_obj.note if note_examen_obj.note is not None else 'N/A'}/{note_examen_obj.bareme})"
-                        if session_examen and session_examen.date_debut:
-                            label += f" - {date_format(session_examen.date_debut, 'd/m/Y')}"
+                        date_epreuve = creneau.date_examen if creneau else (session_examen.date_debut if session_examen else None)
+                        if date_epreuve:
+                            label += f" - {date_format(date_epreuve, 'd/m/Y')}"
                         matiere_obj = note_examen_obj.matiere
                         eleve_payload.append({
                             'id': note_examen_obj.id,

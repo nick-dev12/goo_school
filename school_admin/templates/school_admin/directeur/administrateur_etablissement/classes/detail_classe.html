@@ -39,6 +39,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.2.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/recherche_filtres.css' %}?v=1.1.6">
 </head>
   <body class="gv3 cg3 sx">
     <!-- Header -->
@@ -508,30 +509,29 @@
                     </div>
                     
                     <!-- Barre de recherche et filtres pour établissements secondaires -->
-                    <div class="search-filter-container" id="search-filter-eleves-{{ classe.id }}" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                        <div class="search-box" style="position: relative; margin-bottom: 16px;">
-                            <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 16px;"></i>
+                    <div class="search-filter-container" id="search-filter-eleves-{{ classe.id }}">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
                             <input type="text" 
                                    class="search-input" 
                                    id="search-input-eleves-{{ classe.id }}" 
                                    placeholder="{% trans "Rechercher un élève (nom, prénom, matricule...)" %}"
-                                   oninput="filterClasseEleves('{{ classe.id }}')"
-                                   style="width: 100%; padding: 12px 48px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.3s;">
+                                   oninput="filterClasseEleves('{{ classe.id }}')">
                             <button class="clear-search" 
                                     id="clear-search-eleves-{{ classe.id }}" 
                                     onclick="clearClasseSearch('{{ classe.id }}')" 
-                                    style="display: none; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                    style="display: none; align-items: center; justify-content: center; cursor: pointer;">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                         
-                        <div class="filters-box" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-                            <div class="filter-group" style="flex: 1; min-width: 180px;">
-                                <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                        <div class="filters-box">
+                            <div class="filter-group">
+                                <label class="filter-label">
                                     <i class="fas fa-user-tag"></i>
                                     {% trans "Statut" %}
                                 </label>
-                                <select class="filter-select" id="filter-statut-eleves-{{ classe.id }}" onchange="filterClasseEleves('{{ classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                <select class="filter-select" id="filter-statut-eleves-{{ classe.id }}" onchange="filterClasseEleves('{{ classe.id }}')">
                                     <option value="">{% trans "Tous les statuts" %}</option>
                                     <option value="nouvelle">{% trans "Nouvelle inscription" %}</option>
                                     <option value="transfert">{% trans "Transfert" %}</option>
@@ -539,25 +539,25 @@
                                 </select>
                             </div>
                             
-                            <div class="filter-group" style="flex: 1; min-width: 180px;">
-                                <label class="filter-label" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px;">
+                            <div class="filter-group">
+                                <label class="filter-label">
                                     <i class="fas fa-venus-mars"></i>
                                     {% trans "Sexe" %}
                                 </label>
-                                <select class="filter-select" id="filter-sexe-eleves-{{ classe.id }}" onchange="filterClasseEleves('{{ classe.id }}')" style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; cursor: pointer; background: white;">
+                                <select class="filter-select" id="filter-sexe-eleves-{{ classe.id }}" onchange="filterClasseEleves('{{ classe.id }}')">
                                     <option value="">{% trans "Tous" %}</option>
                                     <option value="M">{% trans "Masculin" %}</option>
                                     <option value="F">{% trans "Féminin" %}</option>
                                 </select>
                             </div>
                             
-                            <button class="btn-reset-filters" onclick="resetClasseFilters('{{ classe.id }}')" style="padding: 10px 16px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <button class="btn-reset-filters" onclick="resetClasseFilters('{{ classe.id }}')">
                                 <i class="fas fa-redo"></i>
                                 {% trans "Réinitialiser" %}
                             </button>
                         </div>
                         
-                        <div class="filter-results" id="filter-results-eleves-{{ classe.id }}" style="display: none; margin-top: 12px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px; font-size: 14px; color: #1e40af; font-weight: 600;">
+                        <div class="filter-results" id="filter-results-eleves-{{ classe.id }}" style="display: none;">
                             <span id="results-count-eleves-{{ classe.id }}">0</span> {% trans "résultat(s) trouvé(s)" %}
                         </div>
                     </div>

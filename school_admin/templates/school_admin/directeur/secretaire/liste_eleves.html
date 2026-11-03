@@ -49,6 +49,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.2.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/recherche_filtres.css' %}?v=1.1.6">
 </head>
   <body class="ele-page-body gv3 cg3" data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2" data-initial-niveau="{{ initial_niveau_key|default:'' }}" data-initial-classe="{{ initial_classe_id|default:'' }}"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -160,15 +161,6 @@
                       <i class="fas fa-print"></i> {% trans "Imprimer" %}
                     </a>
                   </div>
-                  <p class="ele-classe-label">
-                    <i class="fas fa-chalkboard"></i>
-                    {% if est_superieur %}
-                      {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
-                    {% else %}
-                      {{ classe_data.classe.nom }} — {{ classe_data.classe.get_niveau_display }}
-                    {% endif %}
-                  </p>
-
                   <div class="ele-toolbar search-filter-container" id="search-filter-{{ classe_data.classe.id }}">
                     <label class="ele-search-wrap">
                       <i class="fas fa-search" aria-hidden="true"></i>

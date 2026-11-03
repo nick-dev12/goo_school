@@ -1,11 +1,7 @@
 {% load i18n %}
 {# Étape 3 de la fenêtre « Inscription en masse » : identifiants des comptes créés, à imprimer. #}
 <div class="im-modal" data-im-etape="resultat">
-    <ol class="im-etapes">
-        <li class="is-fait"><span><i class="fas fa-check"></i></span>{% trans "Préparer la liste" %}</li>
-        <li class="is-fait"><span><i class="fas fa-check"></i></span>{% trans "Vérifier l’aperçu" %}</li>
-        <li class="is-fait"><span><i class="fas fa-check"></i></span>{% trans "Confirmer l’inscription" %}</li>
-    </ol>
+    {% include 'school_admin/directeur/inscription_masse/_etapes.html' with etape=4 %}
 
     <p class="im-succes" role="status"><i class="fas fa-circle-check" aria-hidden="true"></i>
         {% blocktrans count n=crees|length %}{{ n }} inscription enregistrée.{% plural %}{{ n }} inscriptions enregistrées.{% endblocktrans %}
@@ -18,7 +14,7 @@
     </p>
     {% endif %}
 
-    <section class="im-imprimable">
+    <section class="im-imprimable im-card">
         <div class="sx-card__head">
             <h3 class="sx-card__title"><i class="fas fa-key" aria-hidden="true"></i>{% trans "Identifiants de connexion" %}</h3>
             <p class="sx-card__hint">{% if parents_crees %}{% blocktrans %}{{ parents_crees }} compte(s) parent créé(s).{% endblocktrans %}{% endif %} {{ etablissement.nom }} · {{ annee_scolaire_active.libelle }}</p>

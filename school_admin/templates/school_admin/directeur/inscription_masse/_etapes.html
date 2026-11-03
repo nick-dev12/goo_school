@@ -1,0 +1,7 @@
+{% load i18n %}
+{# Barre d'étapes de la fenêtre « Inscription en masse ». Paramètre : etape (1, 2 ou 3 ; 4 = tout terminé). #}
+<ol class="im-etapes" aria-label="{% trans 'Étapes' %}">
+    <li class="{% if etape == 1 %}is-actif{% elif etape > 1 %}is-fait{% endif %}"><span>{% if etape > 1 %}<i class="fas fa-check" aria-hidden="true"></i>{% else %}1{% endif %}</span>{% trans "Préparer la liste" %}</li>
+    <li class="{% if etape == 2 %}is-actif{% elif etape > 2 %}is-fait{% endif %}"><span>{% if etape > 2 %}<i class="fas fa-check" aria-hidden="true"></i>{% else %}2{% endif %}</span>{% trans "Vérifier" %}</li>
+    <li class="{% if etape == 3 %}is-actif{% elif etape > 3 %}is-fait{% endif %}"><span>{% if etape > 3 %}<i class="fas fa-check" aria-hidden="true"></i>{% else %}3{% endif %}</span>{% trans "Inscrire" %}</li>
+</ol>

@@ -177,6 +177,7 @@
         corpsModal.innerHTML = '<p class="im-chargement"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Chargement…</p>';
         fetch(url + '?mode=' + encodeURIComponent(mode || 'fichier'), {
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            cache: 'no-store',  // liste des classes toujours à jour
             credentials: 'same-origin'
         }).then(function (r) {
             if (!r.ok) { throw new Error(String(r.status)); }

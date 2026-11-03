@@ -1,11 +1,7 @@
 {% load i18n %}
 {# Étape 2 de la fenêtre « Inscription en masse » : aperçu ligne par ligne, puis confirmation. #}
 <div class="im-modal" data-im-etape="apercu">
-    <ol class="im-etapes">
-        <li class="is-fait"><span><i class="fas fa-check"></i></span>{% trans "Préparer la liste" %}</li>
-        <li class="is-actif"><span>2</span>{% trans "Vérifier l’aperçu" %}</li>
-        <li><span>3</span>{% trans "Confirmer l’inscription" %}</li>
-    </ol>
+    {% include 'school_admin/directeur/inscription_masse/_etapes.html' with etape=2 %}
 
     <section class="fe-kpis hb-kpis hb-kpis--4">
         <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Lignes lues" %}</span><span class="fe-kpi__icon"><i class="fas fa-list" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ analyse.lignes|length }}</p></div>
@@ -14,6 +10,7 @@
         <div class="fe-kpi fe-tone-violet"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Sans contact parent" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-clock" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ analyse.nb_sans_parent }}</p></div>
     </section>
 
+    <div class="im-card">
     <div class="sx-tabs" role="tablist" data-sx-tabs="im-etat">
         <button type="button" role="tab" class="sx-tab active" data-sx-key="" data-sx-set="#imFEtat|">{% trans "Toutes" %}<span class="tab-count">{{ analyse.lignes|length }}</span></button>
         <button type="button" role="tab" class="sx-tab" data-sx-key="ok" data-sx-set="#imFEtat|ok"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Prêtes" %}<span class="tab-count">{{ analyse.nb_ok }}</span></button>
@@ -46,6 +43,8 @@
                 <tr class="sx-empty-row" data-sx-none hidden><td colspan="7">{% trans "Aucune ligne." %}</td></tr>
             </tbody>
         </table>
+    </div>
+
     </div>
 
     <form method="post" action="{% url 'directeur:inscription_masse' %}" class="im-confirmer" data-im-form>

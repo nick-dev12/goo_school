@@ -1,66 +1,84 @@
 {% load i18n %}
 {# Étape 1 de la fenêtre « Inscription en masse » (liste des élèves) : fichier Excel ou saisie rapide. #}
 <div class="im-modal" data-im-etape="saisie">
-    <ol class="im-etapes" aria-label="{% trans 'Étapes' %}">
-        <li class="is-actif"><span>1</span>{% trans "Préparer la liste" %}</li>
-        <li><span>2</span>{% trans "Vérifier l’aperçu" %}</li>
-        <li><span>3</span>{% trans "Confirmer l’inscription" %}</li>
-    </ol>
+    {% include 'school_admin/directeur/inscription_masse/_etapes.html' with etape=1 %}
 
     {% if erreur %}<p class="im-erreur" role="alert"><i class="fas fa-circle-exclamation" aria-hidden="true"></i>{{ erreur }}</p>{% endif %}
 
-    <div class="sx-tabs" role="tablist" data-sx-tabs="im-mode">
-        <button type="button" role="tab" class="sx-tab {% if onglet != 'grille' %}active{% endif %}" data-sx-key="fichier" data-sx-panel="imFichier"><i class="fas fa-file-arrow-up" aria-hidden="true"></i>{% trans "Importer un fichier Excel" %}</button>
-        <button type="button" role="tab" class="sx-tab {% if onglet == 'grille' %}active{% endif %}" data-sx-key="grille" data-sx-panel="imGrillePanneau"><i class="fas fa-table-cells" aria-hidden="true"></i>{% trans "Saisie rapide" %}</button>
+    <div class="sx-tabs im-modes" role="tablist" data-sx-tabs="im-mode" data-tabs-overflow="off">
+        <button type="button" role="tab" class="sx-tab im-mode {% if onglet != 'grille' %}active{% endif %}" data-sx-key="fichier" data-sx-panel="imFichier">
+            <i class="fas fa-file-excel" aria-hidden="true"></i>
+            <span><strong>{% trans "Fichier Excel" %}</strong><small>{% trans "Pour une liste déjà prête" %}</small></span>
+        </button>
+        <button type="button" role="tab" class="sx-tab im-mode {% if onglet == 'grille' %}active{% endif %}" data-sx-key="grille" data-sx-panel="imGrillePanneau">
+            <i class="fas fa-table-cells" aria-hidden="true"></i>
+            <span><strong>{% trans "Saisie rapide" %}</strong><small>{% trans "Taper ou coller depuis Excel" %}</small></span>
+        </button>
     </div>
+
     <div class="sx-tabpanels">
         <div class="sx-tabpanel" id="imFichier" role="tabpanel" {% if onglet == 'grille' %}hidden{% endif %}>
-            <form method="post" action="{% url 'directeur:inscription_masse' %}" enctype="multipart/form-data" class="im-fichier" data-im-form>
+            <form method="post" action="{% url 'directeur:inscription_masse' %}" enctype="multipart/form-data" class="im-fichier im-card" data-im-form>
                 {% csrf_token %}
                 <input type="hidden" name="action" value="analyser_fichier">
-                <label class="im-depot" id="imDepot">
-                    <input type="file" name="fichier" accept=".xlsx,.xlsm,.csv" required id="imInput">
-                    <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>
-                    <strong id="imNomFichier">{% trans "Glissez votre fichier ici ou cliquez pour le choisir" %}</strong>
-                    <small>{% trans "Excel (.xlsx) ou CSV — jusqu’à 2 000 lignes" %}</small>
-                </label>
-                <div class="im-colonnes">
-                    <p><strong>{% trans "Colonnes attendues" %}</strong> — {% trans "le modèle Excel les contient déjà, avec des listes déroulantes :" %}</p>
-                    <ul>
-                        {% for cle, libelle, oblig, aide in colonnes %}<li class="{% if oblig %}is-oblig{% endif %}">{{ libelle }}{% if oblig %} *{% endif %}{% if aide %} <small>({{ aide }})</small>{% endif %}</li>{% endfor %}
-                    </ul>
-                    <a class="sx-btn sx-btn--sm" href="{% url 'directeur:modele_inscription_masse' %}"><i class="fas fa-file-excel" aria-hidden="true"></i>{% trans "Télécharger le modèle Excel" %}</a>
-                    <p class="im-note"><i class="fas fa-circle-info" aria-hidden="true"></i>{% trans "Rien n’est enregistré à cette étape : vous verrez d’abord un aperçu ligne par ligne." %}</p>
+                <ol class="im-guide">
+                    <li>
+                        <span class="im-guide__num">1</span>
+                        <div><strong>{% trans "Téléchargez le modèle" %}</strong>
+                            <a class="im-lien" href="{% url 'directeur:modele_inscription_masse' %}"><i class="fas fa-download" aria-hidden="true"></i>{% trans "Modèle Excel (.xlsx)" %}</a></div>
+                    </li>
+                    <li>
+                        <span class="im-guide__num">2</span>
+                        <div><strong>{% trans "Une ligne par élève" %}</strong>
+                            <div class="im-cols">
+                                {% for cle, libelle, oblig, aide in colonnes %}{% if oblig %}<span class="im-col is-oblig" title="{{ aide }}">{{ libelle }}</span>{% endif %}{% endfor %}
+                                {% for cle, libelle, oblig, aide in colonnes %}{% if not oblig %}<span class="im-col" title="{{ aide }}">{{ libelle }}</span>{% endif %}{% endfor %}
+                            </div>
+                            <small class="im-legende"><span class="im-col is-oblig">{% trans "obligatoire" %}</span> <span class="im-col">{% trans "facultatif" %}</span></small>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="im-guide__num">3</span>
+                        <div><strong>{% trans "Déposez le fichier" %}</strong><small>{% trans "Rien n’est enregistré avant l’aperçu." %}</small></div>
+                    </li>
+                </ol>
+                <div class="im-depot-zone">
+                    <label class="im-depot" id="imDepot">
+                        <input type="file" name="fichier" accept=".xlsx,.xlsm,.csv" required id="imInput">
+                        <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>
+                        <strong id="imNomFichier">{% trans "Glissez le fichier ici" %}</strong>
+                        <small>{% trans "ou cliquez pour le choisir · .xlsx ou .csv, 2 000 lignes max." %}</small>
+                    </label>
+                    <button type="submit" class="sx-btn sx-btn--primary im-plein"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i>{% trans "Analyser le fichier" %}</button>
                 </div>
-                <button type="submit" class="sx-btn sx-btn--primary"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i>{% trans "Analyser le fichier" %}</button>
             </form>
         </div>
 
         <div class="sx-tabpanel" id="imGrillePanneau" role="tabpanel" {% if onglet != 'grille' %}hidden{% endif %}>
-            <form method="post" action="{% url 'directeur:inscription_masse' %}" id="imFormGrille" data-im-form>
+            <form method="post" action="{% url 'directeur:inscription_masse' %}" id="imFormGrille" class="im-card" data-im-form>
                 {% csrf_token %}
                 <input type="hidden" name="action" value="analyser_grille">
                 <input type="hidden" name="grille" id="imGrilleJson">
                 <div class="im-grille-tete">
-                    <label class="im-champ">{% if est_superieur %}{% trans "Classe de ces étudiants" %}{% else %}{% trans "Classe de ces élèves" %}{% endif %} *
+                    <label class="im-champ"><span>{% if est_superieur %}{% trans "Classe de ces étudiants" %}{% else %}{% trans "Classe de ces élèves" %}{% endif %} <span class="if-req">*</span></span>
                         <select name="classe_defaut" required>
-                            <option value="">{% trans "— Choisir —" %}</option>
+                            <option value="">{% trans "Choisir la classe" %}</option>
                             {% for c in classes %}<option value="{{ c.id }}">{{ c.nom }}</option>{% endfor %}
                         </select>
                     </label>
-                    <p class="im-note"><i class="fas fa-keyboard" aria-hidden="true"></i>{% trans "Tab pour passer à la case suivante, Entrée pour une nouvelle ligne. Vous pouvez aussi coller plusieurs lignes copiées depuis Excel (Nom, Prénom, Sexe, Date…)." %}</p>
+                    <p class="im-note"><i class="fas fa-keyboard" aria-hidden="true"></i>{% trans "Tab : case suivante · Entrée : ligne suivante · Ctrl+V : coller plusieurs lignes depuis Excel." %}</p>
                 </div>
-                <div class="sx-table-wrap im-grille-wrap">
+                <div class="im-grille-wrap">
                     <table class="im-grille" id="imGrille">
                         <thead><tr>
-                            <th>#</th><th>{% trans "Nom" %} *</th><th>{% trans "Prénom" %} *</th><th>{% trans "Sexe" %} *</th><th>{% trans "Date de naissance" %} *</th>
-                            <th>{% trans "Téléphone du parent" %}</th><th>{% trans "Nom du parent" %}</th><th></th>
+                            <th>#</th><th>{% trans "Nom" %} <span class="if-req">*</span></th><th>{% trans "Prénom" %} <span class="if-req">*</span></th><th>{% trans "Sexe" %} <span class="if-req">*</span></th><th>{% trans "Né(e) le" %} <span class="if-req">*</span></th>
+                            <th>{% trans "Tél. parent" %}</th><th>{% trans "Nom du parent" %}</th><th></th>
                         </tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
                 <div class="im-grille-actions">
-                    <button type="button" class="sx-btn sx-btn--sm" id="imAjouter"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter 5 lignes" %}</button>
+                    <button type="button" class="sx-btn sx-btn--sm" id="imAjouter"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "5 lignes" %}</button>
                     <span class="sx-toolbar__count" id="imCompte"></span>
                     <button type="submit" class="sx-btn sx-btn--primary"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i>{% trans "Vérifier la saisie" %}</button>
                 </div>

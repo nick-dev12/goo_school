@@ -51,7 +51,8 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/recherche_filtres.css' %}?v=1.1.6">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.1.0">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_masse.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_masse.css' %}?v=2.0.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_formulaire.css' %}?v=1.0.2">
 </head>
   <body class="ele-page-body gv3 cg3" data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2" data-initial-niveau="{{ initial_niveau_key|default:'' }}" data-initial-classe="{{ initial_classe_id|default:'' }}"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}{% if open_masse_modal %} data-open-masse-modal="{{ open_masse_modal }}"{% endif %}>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -319,29 +320,27 @@
     </div>
 
     <!-- Modal inscription élève (plein écran) -->
-    <div id="modalInscriptionEleve" class="modal-creneau-fullscreen personnel-form-modal">
+    <div id="modalInscriptionEleve" class="modal-creneau-fullscreen personnel-form-modal if-modal">
       <div class="modal-creneau-overlay" onclick="closeModalInscriptionEleve()"></div>
       <div class="modal-creneau-content modal-creneau-content-wide">
         <div class="modal-creneau-header">
-          <h2><i class="fas fa-user-graduate"></i> {% trans "Inscription d'un élève" %}</h2>
+          <h2><i class="fas fa-user-plus" aria-hidden="true"></i><span>{% if est_superieur %}{% trans "Inscrire un étudiant" %}{% else %}{% trans "Inscrire un élève" %}{% endif %}<small>{% trans "Les champs marqués * sont obligatoires." %}</small></span></h2>
           <button type="button" class="modal-creneau-close" onclick="closeModalInscriptionEleve()" aria-label="{% trans 'Fermer' %}">
             <i class="fas fa-times"></i>
           </button>
         </div>
         <div class="modal-creneau-body">
-          <div class="form-container-modern">
-            {% include 'school_admin/directeur/secretaire/partials/form_inscription_eleve_inner.html' %}
-          </div>
+          {% include 'school_admin/directeur/secretaire/partials/form_inscription_eleve_inner.html' %}
         </div>
       </div>
     </div>
 
     <!-- Modal inscription en masse : étapes chargées depuis directeur:inscription_masse -->
-    <div id="modalInscriptionMasse" class="modal-creneau-fullscreen personnel-form-modal" data-im-url="{% url 'directeur:inscription_masse' %}">
+    <div id="modalInscriptionMasse" class="modal-creneau-fullscreen personnel-form-modal if-modal" data-im-url="{% url 'directeur:inscription_masse' %}">
       <div class="modal-creneau-overlay" onclick="closeModalInscriptionMasse()"></div>
       <div class="modal-creneau-content modal-creneau-content-wide">
         <div class="modal-creneau-header">
-          <h2><i class="fas fa-users-line"></i> {% trans "Inscription en masse" %}</h2>
+          <h2><i class="fas fa-users-line" aria-hidden="true"></i><span>{% trans "Inscription en masse" %}<small>{% trans "Fichier Excel ou saisie rapide, avec un aperçu avant d’enregistrer." %}</small></span></h2>
           <button type="button" class="modal-creneau-close" onclick="closeModalInscriptionMasse()" aria-label="{% trans 'Fermer' %}">
             <i class="fas fa-times"></i>
           </button>
@@ -463,15 +462,6 @@
         0% { background: rgba(16, 185, 129, 0.25); }
         100% { background: transparent; }
       }
-      #modalInscriptionEleve .modal-creneau-content {
-        max-width: 980px;
-      }
-      #modalInscriptionEleve .form-container-modern {
-        box-shadow: none;
-        padding: 0;
-        margin: 0;
-        max-width: none;
-      }
       .country-search-wrapper { position: relative; width: 100%; }
       .country-search-icon {
         position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
@@ -545,7 +535,7 @@
     <script src="{% static 'school_admin/js/directeur/liste_eleves.js' %}?v=2.2.0"></script>
     <script src="{% static 'school_admin/js/directeur/liste_eleves_live.js' %}?v=1.1.0"></script>
     <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.1.0"></script>
-    <script src="{% static 'school_admin/js/directeur/inscription_masse.js' %}?v=1.1.1"></script>
+    <script src="{% static 'school_admin/js/directeur/inscription_masse.js' %}?v=1.2.0"></script>
   
     <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.2.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

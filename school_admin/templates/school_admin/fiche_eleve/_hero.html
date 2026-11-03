@@ -7,7 +7,6 @@
     {% if peut_photo %}<button type="button" class="fe-avatar__edit" data-fe-open="fe-photo" aria-label="{% trans 'Changer la photo' %}"><i class="fas fa-camera" aria-hidden="true"></i></button>{% endif %}
   </div>
   <div class="fe-hero__id">
-    <p class="fe-hero__kicker">{% if fiche.type_etab == 'superieur' %}{% trans "Étudiant" %}{% else %}{% trans "Élève" %}{% endif %}{% if fiche.classe %} · {{ fiche.classe.nom }}{% endif %}</p>
     <h1 class="fe-hero__name">{{ eleve.nom_complet }}</h1>
     <p class="fe-hero__sub">
       {% if fiche.classe %}{{ fiche.classe.get_niveau_display|default:"" }}{% else %}{% trans "Sans classe cette année" %}{% endif %}

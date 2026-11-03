@@ -30,7 +30,6 @@
         <header class="hb-head">
             <span class="hb-head__icon fe-tone-red"><i class="fas fa-clock" aria-hidden="true"></i></span>
             <div class="hb-head__text">
-                <p class="fe-hero__kicker">{{ session.get_type_session_display }} · {{ session.periode.nom_periode }}{% if not session.compte_bulletin %} · {% trans "hors bulletin" %}{% endif %}</p>
                 <h1 class="hb-head__title">{{ session.nom_examen }}</h1>
                 <p class="fe-hero__sub">{% blocktrans with d=session.date_debut|date:"d/m/Y" f=session.date_fin|date:"d/m/Y" %}Du {{ d }} au {{ f }}{% endblocktrans %} · {{ session.classes_str }}</p>
             </div>

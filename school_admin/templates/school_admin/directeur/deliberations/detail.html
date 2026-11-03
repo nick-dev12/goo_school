@@ -27,7 +27,6 @@
         <header class="hb-head">
             <span class="hb-head__icon fe-tone-red"><i class="fas fa-gavel" aria-hidden="true"></i></span>
             <div class="hb-head__text">
-                <p class="fe-hero__kicker">{% trans "Délibération" %} · {{ d.annee_scolaire.libelle }}{% if d.classe.department %} · {{ d.classe.department.nom }}{% endif %}</p>
                 <h1 class="hb-head__title">{{ d.classe.nom }} — {{ d.libelle_portee }}</h1>
                 <p class="fe-hero__sub">
                     <span class="dlb-statut dlb-statut--{{ d.statut }}" style="vertical-align:middle"><i class="fas fa-{% if cloturee %}lock{% else %}pen{% endif %}"></i> {{ d.get_statut_display }}</span>

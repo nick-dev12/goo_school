@@ -23,7 +23,6 @@
       {% if is_personnel_administratif %}
       <div class="fe-avatar" aria-hidden="true">{{ personnel.prenom.0|upper }}{{ personnel.nom.0|upper }}</div>
       <div class="fe-hero__id">
-        <p class="fe-hero__kicker">{% trans "Mon profil" %} · {{ etablissement.nom }}</p>
         <h1 class="fe-hero__name">{{ personnel.nom_complet }}</h1>
         <p class="fe-hero__sub">{{ personnel.get_fonction_display }}</p>
         <div class="fe-hero__chips">
@@ -36,7 +35,6 @@
         {% if etablissement.logo %}<img src="{{ etablissement.logo.url }}" alt="{% trans 'Logo' %} {{ etablissement.nom }}" style="object-fit:contain;background:#fff">{% else %}<i class="fas fa-school" aria-hidden="true"></i>{% endif %}
       </div>
       <div class="fe-hero__id">
-        <p class="fe-hero__kicker">{% trans "Profil de l’établissement" %}</p>
         <h1 class="fe-hero__name">{{ etablissement.nom }}</h1>
         <p class="fe-hero__sub">{{ etablissement.get_type_etablissement_display }} · {{ etablissement.ville }}, {{ etablissement.pays }}</p>
         <div class="fe-hero__chips">

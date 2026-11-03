@@ -17,7 +17,6 @@
         <header class="hb-head">
             <span class="hb-head__icon fe-tone-green"><i class="fas fa-door-open" aria-hidden="true"></i></span>
             <div class="hb-head__text">
-                <p class="fe-hero__kicker">{{ concours.get_mode_display }} · {{ concours.get_statut_display }}{% if concours.classe_cible %} · {{ concours.classe_cible.nom }}{% endif %}</p>
                 <h1 class="hb-head__title">{{ concours.intitule }}</h1>
                 <p class="fe-hero__sub">{{ concours.places }} {% trans "places" %} · {{ concours.places_attente }} {% trans "en liste d'attente" %} · {% trans "note minimale" %} {{ concours.seuil_admission|floatformat:"-2" }}/20{% if concours.date_epreuves %} · {% trans "épreuves le" %} {{ concours.date_epreuves|date:"d/m/Y" }}{% endif %}</p>
             </div>

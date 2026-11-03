@@ -25,7 +25,6 @@
     <header class="fe-hero">
       <div class="fe-avatar" aria-hidden="true">{{ personnel.prenom.0|upper }}{{ personnel.nom.0|upper }}<span class="fe-avatar__dot{% if not personnel.actif %} is-off{% endif %}"></span></div>
       <div class="fe-hero__id">
-        <p class="fe-hero__kicker">{% trans "Personnel administratif" %}</p>
         <h1 class="fe-hero__name">{{ personnel.nom_complet }}</h1>
         <p class="fe-hero__sub">{{ personnel.get_fonction_display }} · {{ personnel.etablissement.nom }}{% if fiche.anciennete %} · {% blocktrans with a=fiche.anciennete %}{{ a }} d’ancienneté{% endblocktrans %}{% endif %}</p>
         <div class="fe-hero__chips">

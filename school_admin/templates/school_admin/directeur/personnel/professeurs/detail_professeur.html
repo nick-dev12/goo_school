@@ -31,7 +31,6 @@
     <header class="fe-hero">
       <div class="fe-avatar" aria-hidden="true">{{ professeur.prenom.0|upper }}{{ professeur.nom.0|upper }}<span class="fe-avatar__dot{% if not professeur.actif %} is-off{% endif %}"></span></div>
       <div class="fe-hero__id">
-        <p class="fe-hero__kicker">{% if fiche.type_etab == 'primary' %}{% trans "Enseignant du primaire" %}{% elif fiche.type_etab == 'superieur' %}{% trans "Enseignant du supérieur" %}{% else %}{% trans "Professeur" %}{% endif %}</p>
         <h1 class="fe-hero__name">{{ professeur.nom_complet }}</h1>
         <p class="fe-hero__sub">
           {% if fiche.type_etab == 'primary' %}{% trans "Enseignant polyvalent" %}{% else %}{{ professeur.matiere_display|default:_("Matière non définie") }}{% endif %}

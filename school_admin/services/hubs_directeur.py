@@ -108,8 +108,6 @@ def hub_etablissement(user, etab, annee):
                                 'fa-book-open', 'violet', nb_matieres, 'matière(s)', None if nb_matieres else 'À créer'),
             structure and _lien('Salles', 'Salles de cours et capacités', _url('salle:liste_salles'),
                                 'fa-door-open', 'teal', nb_salles, 'salle(s)'),
-        ]},
-        {'titre': 'Finances', 'desc': 'Suivi financier de l’établissement.', 'liens': [
             cg and _lien('Comptabilité générale', 'SYSCOHADA : journaux, grand livre, états financiers', _url('directeur:cg_hub_directeur'),
                          'fa-scale-balanced', 'violet'),
         ]},

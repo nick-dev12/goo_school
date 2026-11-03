@@ -1,11 +1,8 @@
 """
-Inscription des élèves en masse : modèle Excel, import de fichier ou saisie en grille, aperçu, confirmation,
-puis complément des contacts parents laissés vides.
+Inscription des élèves en masse : modèle Excel, import de fichier ou saisie en grille, aperçu, confirmation.
 """
 import json
-from datetime import date
 
-from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -131,77 +128,3 @@ def modele_inscription_masse(request):
     reponse = HttpResponse(contenu, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     reponse['Content-Disposition'] = 'attachment; filename="modele_inscription_eleves.xlsx"'
     return reponse
-
-
-@require_permission('eleves_modifier')
-def contacts_parents(request):
-    """Élèves sans contact parent, classe par classe, avec une saisie rapide du parent."""
-    from ..model.eleve_model import Eleve
-    from ..model.lien_familial_model import LienFamilial
-    from ..model.parent_model import Parent
-
-    from ..utils.decorators_permissions import _get_user_etablissement
-    from ..utils.session_utils import get_session_active
-
-    etablissement = _get_user_etablissement(request, 'eleves_modifier')[0]
-    if etablissement is None:
-        return redirect('directeur:dashboard_directeur')
-    annee = get_session_active(request, etablissement)
-
-    if request.method == 'POST':
-        n_maj, n_comptes = 0, 0
-        ids = [i for i in request.POST.getlist('eleve') if i.isdigit()]
-        for eleve in Eleve.objects.filter(etablissement=etablissement, id__in=ids):
-            p = lambda champ: (request.POST.get(f'{champ}_{eleve.id}') or '').strip()  # noqa: E731
-            tel = svc._telephone(p('tel'))
-            nom, prenom, lien = svc._nom(p('nom')), svc._prenom(p('prenom')), p('lien')
-            if not (tel or nom):
-                continue
-            eleve.parent_nom, eleve.parent_prenom = nom or eleve.parent_nom, prenom or eleve.parent_prenom
-            eleve.parent_telephone = tel or eleve.parent_telephone
-            eleve.parent_lien = lien or eleve.parent_lien or 'pere'
-            eleve.save(update_fields=['parent_nom', 'parent_prenom', 'parent_telephone', 'parent_lien'])
-            n_maj += 1
-            if tel and not LienFamilial.objects.filter(eleve=eleve, actif=True).exists():
-                parent = Parent.objects.filter(telephone=tel, etablissement=etablissement).first()
-                if parent is None:
-                    matricule = Parent.generer_matricule_parent(etablissement)
-                    mdp = Parent.generer_mot_de_passe()
-                    parent = Parent(matricule_parental=matricule, username=matricule,
-                                    type_parent=eleve.parent_lien if eleve.parent_lien in ('mere', 'pere') else 'tuteur',
-                                    nom=nom or eleve.nom, prenom=prenom or '', telephone=tel, email='', adresse='', profession='',
-                                    etablissement=etablissement, mot_de_passe_provisoire=mdp, mot_de_passe_modifie=False,
-                                    is_active=True)
-                    parent.set_password(mdp)
-                    parent.save()
-                    n_comptes += 1
-                LienFamilial.objects.get_or_create(parent=parent, eleve=eleve, defaults={
-                    'type_lien': eleve.parent_lien if eleve.parent_lien in ('mere', 'pere') else 'tuteur',
-                    'statut': 'valide', 'est_inscripteur': True, 'actif': True})
-        if n_maj:
-            messages.success(request, f"{n_maj} contact(s) parent enregistré(s)" + (f", {n_comptes} compte(s) parent créé(s)." if n_comptes else "."))
-        else:
-            messages.info(request, "Aucun contact saisi.")
-        suite = reverse('directeur:contacts_parents')
-        if request.POST.get('classe'):
-            suite += f"?classe={request.POST['classe']}"
-        return redirect(suite)
-
-    from django.db.models import Q
-    from ..services.structure_v4 import rang_scolaire
-
-    manquants = (Eleve.objects.filter(etablissement=etablissement, actif=True)
-                 .filter(Q(parent_telephone__isnull=True) | Q(parent_telephone=''))
-                 .select_related('classe').order_by('nom', 'prenom'))
-    par_classe = {}
-    for e in manquants:
-        par_classe.setdefault(e.classe, []).append(e)
-    groupes = sorted(par_classe.items(), key=lambda kv: (rang_scolaire(kv[0].nom if kv[0] else 'zz'), kv[0].nom if kv[0] else ''))
-    classe_choisie = request.GET.get('classe')
-    return render(request, 'school_admin/directeur/inscription_masse/contacts_parents.html', {
-        'etablissement': etablissement, 'annee_scolaire_active': annee, 'groupes': groupes,
-        'total': manquants.count(), 'classe_choisie': classe_choisie,
-        'mot_eleves': 'étudiants' if etablissement.type_etablissement == 'superieur' else 'élèves',
-        'liens': [('pere', 'Père'), ('mere', 'Mère'), ('tuteur_legal', 'Tuteur'), ('grand_parent', 'Grand-parent'),
-                  ('oncle_tante', 'Oncle / Tante'), ('frere_soeur', 'Frère / Sœur'), ('autre', 'Autre')],
-    })

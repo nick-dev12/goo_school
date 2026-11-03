@@ -117,7 +117,6 @@ urlpatterns = [
     path('maquette/', maquette_controller.liste_maquettes, name='liste_maquettes'),
     path('eleves/inscription-en-masse/', inscription_masse_controller.inscription_masse, name='inscription_masse'),
     path('eleves/inscription-en-masse/modele.xlsx', inscription_masse_controller.modele_inscription_masse, name='modele_inscription_masse'),
-    path('eleves/contacts-parents/', inscription_masse_controller.contacts_parents, name='contacts_parents'),
     path('admissions/', admission_controller.liste_concours, name='liste_concours'),
     path('admissions/<int:concours_id>/', admission_controller.detail_concours, name='detail_concours'),
     path('diplomes/', diplome_controller.liste_diplomes, name='liste_diplomes'),

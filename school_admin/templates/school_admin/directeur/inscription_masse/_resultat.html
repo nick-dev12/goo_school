@@ -14,8 +14,7 @@
 
     {% if sans_parent %}
     <p class="im-note im-note--warn"><i class="fas fa-user-clock" aria-hidden="true"></i>
-        {% blocktrans count n=sans_parent %}{{ n }} élève inscrit sans contact parent : dossier à compléter.{% plural %}{{ n }} élèves inscrits sans contact parent : dossiers à compléter.{% endblocktrans %}
-        <a href="{% url 'directeur:contacts_parents' %}">{% trans "Compléter les contacts" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+        {% blocktrans count n=sans_parent %}{{ n }} élève inscrit sans contact parent : à compléter depuis sa fiche.{% plural %}{{ n }} élèves inscrits sans contact parent : à compléter depuis leur fiche.{% endblocktrans %}
     </p>
     {% endif %}
 

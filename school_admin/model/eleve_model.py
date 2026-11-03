@@ -686,8 +686,8 @@ class Eleve(AbstractUser):
         """Validation personnalisée"""
         from django.core.exceptions import ValidationError
         
-        # Parent / tuteur facultatif : sans contact, le dossier est « à compléter »
-        # (voir directeur:contacts_parents). Rien à valider ici.
+        # Parent / tuteur facultatif : sans contact, le dossier se complète depuis la fiche de l'élève.
+        # Rien à valider ici.
         return None
         
     def get_absolute_url(self):

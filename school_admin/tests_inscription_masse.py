@@ -140,7 +140,7 @@ class Pages(Base):
         self.assertEqual(Eleve.objects.count(), 0)  # rien avant confirmation
         r = self.client.post(url, {'action': 'confirmer', 'statut': 'reinscription'}, HTTP_X_REQUESTED_WITH=AJAX)
         self.assertContains(r, 'Identifiants de connexion')
-        self.assertContains(r, 'Compléter les contacts')
+        self.assertContains(r, 'à compléter depuis sa fiche')
         e = Eleve.objects.get(etablissement=self.etab)
         self.assertEqual((e.nom, e.statut), ('DIOP', 'reinscription'))
 
@@ -164,20 +164,7 @@ class Pages(Base):
         hub = self.client.get(reverse('directeur:gestion_eleves'))
         self.assertNotContains(hub, 'Inscription individuelle (parent facultatif)')
         self.assertNotContains(hub, reverse('directeur:inscription_masse'))
-
-    def test_contacts_parents(self):
-        self.connecter()
-        e = _make_eleve_simple(self.etab, self.c6a, 'Kane', 'Bineta', 'F', f'k{self.etab.pk}')
-        Eleve.objects.filter(id=e.id).update(parent_telephone='', parent_nom='', parent_prenom='')
-        r = self.client.get(reverse('directeur:contacts_parents'))
-        self.assertContains(r, 'KANE')
-        self.client.post(reverse('directeur:contacts_parents'), {'eleve': [e.id], f'tel_{e.id}': '76 555 44 33',
-                                                                 f'nom_{e.id}': 'kane', f'lien_{e.id}': 'mere'})
-        e.refresh_from_db()
-        self.assertEqual((e.parent_telephone, e.parent_nom, e.parent_lien), ('765554433', 'KANE', 'mere'))
-        self.assertTrue(LienFamilial.objects.filter(eleve=e, parent__telephone='765554433').exists())
-        liste = self.client.get(reverse('secretaire:liste_eleves'))
-        self.assertContains(liste, 'Inscription en masse')
+        self.assertNotContains(hub, 'Contacts parents à compléter')
 
     def test_inscription_individuelle_sans_parent(self):
         self.connecter()

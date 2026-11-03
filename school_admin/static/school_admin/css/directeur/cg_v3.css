@@ -174,8 +174,9 @@ body.cg3 { max-width: none; }
 /* ---------- Indicateurs ---------- */
 .cg3-kpis {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px;
   margin-bottom: 16px;
 }
 
@@ -183,9 +184,9 @@ body.cg3 { max-width: none; }
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
-  padding: 18px;
+  padding: 10px 12px;
   border: 1px solid var(--ax-line);
   border-radius: var(--ax-radius);
   background: var(--ax-surface);
@@ -198,21 +199,21 @@ a.cg3-kpi:hover { border-color: var(--ax-line-strong); box-shadow: 0 8px 20px rg
 
 .cg3-kpi__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 
-.cg3-kpi__label { margin: 0; font-size: 0.84rem; font-weight: 600; color: var(--ax-ink-2); }
+.cg3-kpi__label { margin: 0; font-size: 0.74rem; font-weight: 600; color: var(--ax-ink-2); }
 
 .cg3-kpi__icon {
-  width: 38px;
-  height: 38px;
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
-  border-radius: 11px;
+  border-radius: 8px;
   color: #fff;
-  font-size: 0.92rem;
+  font-size: 0.74rem;
 }
 
 .cg3-kpi__value {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -783,10 +784,6 @@ a.cg3-kpi:hover { border-color: var(--ax-line-strong); box-shadow: 0 8px 20px rg
 .cg3 .cg-badge-historique { background: var(--ax-warn-soft); color: var(--ax-warn); border: 0; }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 1199.98px) {
-  .cg3-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
 @media (max-width: 899.98px) {
   .cg3-statement { grid-template-columns: 1fr; }
   .cg3-entry-form__top { grid-template-columns: 1fr 1fr; }
@@ -794,9 +791,9 @@ a.cg3-kpi:hover { border-color: var(--ax-line-strong); box-shadow: 0 8px 20px rg
 
 @media (max-width: 639.98px) {
   .cg3-head__title { font-size: 1.3rem; }
-  .cg3-kpis { gap: 10px; }
-  .cg3-kpi { padding: 14px; }
-  .cg3-kpi__value { font-size: 1.2rem; }
+  .cg3-kpis { gap: 8px; grid-auto-columns: minmax(124px, 1fr); overflow-x: auto; scrollbar-width: thin; }
+  .cg3-kpi { padding: 8px 10px; }
+  .cg3-kpi__value { font-size: 1.1rem; }
   .cg3-nav__title { display: none; }
   .cg3-result__sep { display: none; }
   .cg3-entry-form__top { grid-template-columns: 1fr; }

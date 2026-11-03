@@ -1,19 +1,20 @@
 .fin-kpis {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0.6rem;
   margin: 0 0 1rem;
 }
 .fin-kpi {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  padding: 0.9rem 1rem;
+  padding: 0.6rem 0.8rem;
   min-width: 0;
 }
 .fin-kpi-num {
   display: block;
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 700;
   line-height: 1.2;
   color: #1f2937;
@@ -21,8 +22,8 @@
 }
 .fin-kpi-lbl {
   display: block;
-  margin-top: 0.2rem;
-  font-size: 0.8125rem;
+  margin-top: 0.15rem;
+  font-size: 0.74rem;
   color: #6b7280;
 }
 .fin-kpi-def {
@@ -88,15 +89,12 @@
 .fin-compte p { margin: 0; font-size: 0.8125rem; color: #6b7280; }
 .fin-compte-solde { margin-top: 0.45rem; font-size: 1.2rem; font-weight: 700; color: #1d4ed8; }
 .fin-compte-solde.fin-decouvert { color: #b91c1c; }
-@media (max-width: 1024px) {
-  .fin-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 @media (max-width: 768px) {
-  .fin-kpis { grid-template-columns: 1fr; }
-  .fin-kpi-num { font-size: 1.25rem; }
+  .fin-kpis { grid-auto-columns: minmax(124px, 1fr); overflow-x: auto; scrollbar-width: thin; }
+  .fin-kpi-num { font-size: 1.05rem; }
   .cg-hero-title { font-size: 1.35rem; }
 }
 @media (max-width: 430px) {
   .content-container.cg-page { padding: 0.75rem 0.75rem 5rem; }
-  .fin-kpi { padding: 0.75rem; }
+  .fin-kpi { padding: 0.55rem 0.7rem; }
 }

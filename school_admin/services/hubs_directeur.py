@@ -96,7 +96,6 @@ def hub_etablissement(user, etab, annee):
                         'url': _url('directeur:profil_etablissement'), 'action': 'Compléter'})
 
     structure = _peut(user, 'classes_liste')
-    finances = etab.module_comptabilite and _peut(user, 'comptabilite_voir')
     cg = etab.module_comptabilite and _peut(user, 'comptabilite_bilans')
     sections = [
         {'titre': 'Structure de l’établissement', 'desc': 'À configurer dans cet ordre en début d’année.', 'liens': [
@@ -109,12 +108,8 @@ def hub_etablissement(user, etab, annee):
                                 'fa-book-open', 'violet', nb_matieres, 'matière(s)', None if nb_matieres else 'À créer'),
             structure and _lien('Salles', 'Salles de cours et capacités', _url('salle:liste_salles'),
                                 'fa-door-open', 'teal', nb_salles, 'salle(s)'),
-            structure and _lien('Profil de l’établissement', 'Identité, logo, coordonnées et modules', _url('directeur:profil_etablissement'),
-                                'fa-id-card', 'green', None, '', 'À compléter' if profil_manquants else None),
         ]},
         {'titre': 'Finances', 'desc': 'Suivi financier de l’établissement.', 'liens': [
-            finances and _lien('Finances', 'Situation, encaissements, dépenses et trésorerie', _url('directeur:finances_situation'),
-                               'fa-wallet', 'green'),
             cg and _lien('Comptabilité générale', 'SYSCOHADA : journaux, grand livre, états financiers', _url('directeur:cg_hub_directeur'),
                          'fa-scale-balanced', 'violet'),
         ]},
@@ -129,7 +124,7 @@ def hub_etablissement(user, etab, annee):
         {'label': 'Salles', 'value': nb_salles, 'icon': 'fa-door-open', 'tone': 'teal', 'caption': 'actives'},
     ]
     return {'titre': 'Établissement', 'icone': 'fa-building', 'tone': 'blue',
-            'sous_titre': 'Structure de l’année scolaire, profil et finances.', 'kpis': kpis,
+            'sous_titre': 'Structure de l’année scolaire : périodes, classes, matières et salles.', 'kpis': kpis,
             'alertes': alertes, 'sections': _nettoyer(sections)}
 
 

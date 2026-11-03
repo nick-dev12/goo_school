@@ -1075,8 +1075,8 @@ class ClasseController:
             return ClasseController._redirect_liste_classes_tab('specialites')
         nom = (request.POST.get('nom_filiere') or '').strip()
         sigle_raw = request.POST.get('sigle_filiere', '')
-        domaine = (request.POST.get('domaine') or '').strip() or None
-        mention = (request.POST.get('mention') or '').strip() or None
+        domaine = (request.POST.get('domaine') or '').strip()
+        mention = (request.POST.get('mention') or '').strip()
         if not nom:
             messages.error(request, "Le nom de la spécialité est obligatoire.")
             return ClasseController._redirect_liste_classes_tab('specialites')
@@ -1131,8 +1131,8 @@ class ClasseController:
             return ClasseController._redirect_liste_classes_tab('specialites')
         nom = (request.POST.get('nom_filiere') or '').strip()
         sigle_raw = request.POST.get('sigle_filiere', '')
-        domaine = (request.POST.get('domaine') or '').strip() or None
-        mention = (request.POST.get('mention') or '').strip() or None
+        domaine = (request.POST.get('domaine') or '').strip()
+        mention = (request.POST.get('mention') or '').strip()
         if not nom:
             messages.error(request, "Le nom de la spécialité est obligatoire.")
             return ClasseController._redirect_liste_classes_tab('specialites')

@@ -67,6 +67,20 @@ class StructureTests(TestCase):
         m = se.controle_matieres(self.etab, self.annee)
         self.assertTrue(any('hors module' in a['texte'] for a in m['alertes']))
 
+    def test_filiere_sans_domaine_ni_mention(self):
+        # Domaine et mention sont facultatifs : laissés vides, ils ne doivent pas faire échouer l'enregistrement.
+        from school_admin.model.academic_structure_model import Department
+
+        self._monter('superieur', 'stf', 'superieur')
+        self.client.post(reverse('administrateur_etablissement:ajouter_filiere'),
+                         {'nom_filiere': 'Informatique', 'sigle_filiere': 'INFO', 'domaine': '', 'mention': ''})
+        filiere = Department.objects.get(etablissement=self.etab, nom='Informatique')
+        self.assertEqual((filiere.domaine, filiere.mention), ('', ''))
+        self.client.post(reverse('administrateur_etablissement:modifier_filiere', args=[filiere.id]),
+                         {'nom_filiere': 'Informatique de gestion', 'sigle_filiere': 'INFO', 'domaine': '', 'mention': ''})
+        filiere.refresh_from_db()
+        self.assertEqual(filiere.nom, 'Informatique de gestion')
+
     def test_periodes(self):
         self._monter('collège', 'stc', 'college')
         p = se.controle_periodes(self.etab, self.annee)

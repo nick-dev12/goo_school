@@ -260,11 +260,6 @@ def hub_eleves(user, etab, annee):
 
     sections = [
         {'titre': 'Inscriptions', 'desc': f"Arrivée des {lib['eleves']} et renouvellement d’une année sur l’autre.", 'liens': [
-            _peut(user, 'eleves_inscrire') and _lien(f"Inscrire un {'étudiant' if lib['eleves'] == 'étudiants' else 'élève'}", 'Inscription individuelle (parent facultatif)',
-                                                      _url('secretaire:liste_eleves', suffixe='?inscrire=1'), 'fa-user-plus', 'green',
-                                                      nouveaux, 'ce mois-ci'),
-            _peut(user, 'eleves_inscrire') and _lien('Inscription en masse', f"Importer les {lib['eleves']} déjà présents (Excel ou saisie rapide)",
-                                                      _url('directeur:inscription_masse'), 'fa-users-line', 'blue'),
             _peut(user, 'eleves_modifier') and _lien('Contacts parents à compléter', 'Téléphone du parent et compte parent',
                                                       _url('directeur:contacts_parents'), 'fa-address-book', 'violet',
                                                       sans_contact or None, 'dossier(s)', 'À compléter' if sans_contact else None),

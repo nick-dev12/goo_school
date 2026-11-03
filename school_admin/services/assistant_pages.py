@@ -335,6 +335,12 @@ PAGE_CATALOG = (
         'mots': 'inscription nouvel élève',
     },
     {
+        'key': 'inscription_masse',
+        'titre': 'Inscription en masse',
+        'route': 'directeur:inscription_masse',
+        'mots': 'importer élèves excel inscription groupée plusieurs élèves',
+    },
+    {
         'key': 'cartes_identite',
         'titre': 'Cartes d’identité élèves',
         'route': 'secretaire:cartes_identite_eleves',

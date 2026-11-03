@@ -142,6 +142,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     form.addEventListener('submit', function (e) {
+      // Pays tapé en entier sans cliquer sur la suggestion : on le retient.
+      if (!countrySelect.value && countrySearchInput.value.trim()) {
+        const tape = countrySearchInput.value.trim().toLowerCase();
+        const trouve = allCountries.find(function (c) { return c.text.toLowerCase() === tape; });
+        if (trouve) { countrySelect.value = trouve.value; }
+      }
       if (!countrySelect.value) {
         e.preventDefault();
         countrySearchInput.focus();

@@ -1,0 +1,50 @@
+{% load i18n %}
+{# Étape 3 de la fenêtre « Inscription en masse » : identifiants des comptes créés, à imprimer. #}
+<div class="im-modal" data-im-etape="resultat">
+    <ol class="im-etapes">
+        <li class="is-fait"><span><i class="fas fa-check"></i></span>{% trans "Préparer la liste" %}</li>
+        <li class="is-fait"><span><i class="fas fa-check"></i></span>{% trans "Vérifier l’aperçu" %}</li>
+        <li class="is-fait"><span><i class="fas fa-check"></i></span>{% trans "Confirmer l’inscription" %}</li>
+    </ol>
+
+    <p class="im-succes" role="status"><i class="fas fa-circle-check" aria-hidden="true"></i>
+        {% blocktrans count n=crees|length %}{{ n }} inscription enregistrée.{% plural %}{{ n }} inscriptions enregistrées.{% endblocktrans %}
+        {% trans "Imprimez les identifiants maintenant : les mots de passe provisoires ne seront plus affichés." %}
+    </p>
+
+    {% if sans_parent %}
+    <p class="im-note im-note--warn"><i class="fas fa-user-clock" aria-hidden="true"></i>
+        {% blocktrans count n=sans_parent %}{{ n }} élève inscrit sans contact parent : dossier à compléter.{% plural %}{{ n }} élèves inscrits sans contact parent : dossiers à compléter.{% endblocktrans %}
+        <a href="{% url 'directeur:contacts_parents' %}">{% trans "Compléter les contacts" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+    </p>
+    {% endif %}
+
+    <section class="im-imprimable">
+        <div class="sx-card__head">
+            <h3 class="sx-card__title"><i class="fas fa-key" aria-hidden="true"></i>{% trans "Identifiants de connexion" %}</h3>
+            <p class="sx-card__hint">{% if parents_crees %}{% blocktrans %}{{ parents_crees }} compte(s) parent créé(s).{% endblocktrans %}{% endif %} {{ etablissement.nom }} · {{ annee_scolaire_active.libelle }}</p>
+        </div>
+        <div class="sx-table-wrap">
+            <table class="sx-table">
+                <thead><tr><th>{% trans "Élève" %}</th><th>{% trans "Classe" %}</th><th>{% trans "Identifiant" %}</th><th>{% trans "Mot de passe" %}</th><th>{% trans "Compte parent" %}</th></tr></thead>
+                <tbody>
+                    {% for c in crees %}
+                    <tr>
+                        <td class="sx-cell-main"><strong>{{ c.eleve.nom }} {{ c.eleve.prenom }}</strong></td>
+                        <td data-label="{% trans 'Classe' %}">{{ c.classe.nom }}</td>
+                        <td data-label="{% trans 'Identifiant' %}"><span class="im-ident">{{ c.matricule }}</span></td>
+                        <td data-label="{% trans 'Mot de passe' %}"><span class="im-ident">{{ c.mot_de_passe }}</span></td>
+                        <td data-label="{% trans 'Compte parent' %}">{% if c.parent_cree %}<span class="im-ident">{{ c.parent.matricule_parental }}</span> / <span class="im-ident">{{ c.parent_mot_de_passe }}</span>{% elif c.parent %}{% trans "Compte existant" %} ({{ c.parent.matricule_parental }}){% else %}<span class="sx-pill sx-pill--warn">{% trans "À compléter" %}</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="im-grille-actions im-pas-imprimer">
+        <button type="button" class="sx-btn" data-im-recommencer><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Importer d’autres élèves" %}</button>
+        <button type="button" class="sx-btn" onclick="window.print()"><i class="fas fa-print" aria-hidden="true"></i>{% trans "Imprimer les identifiants" %}</button>
+        <button type="button" class="sx-btn sx-btn--primary" data-im-terminer><i class="fas fa-check" aria-hidden="true"></i>{% trans "Terminer" %}</button>
+    </div>
+</div>

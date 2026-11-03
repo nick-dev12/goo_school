@@ -114,21 +114,31 @@ class Import(Base):
         self.assertEqual(Eleve.objects.get(nom='DIOP').parent_lien, 'mere')
 
 
+AJAX = 'XMLHttpRequest'
+
+
 class Pages(Base):
     def test_fichier_apercu_confirmation(self):
         self.connecter()
         url = reverse('directeur:inscription_masse')
-        self.assertEqual(self.client.get(url).status_code, 200)
+        # Visite directe : la fenêtre s'ouvre sur la liste des élèves.
+        r = self.client.get(url)
+        self.assertRedirects(r, reverse('secretaire:liste_eleves') + '?masse=fichier', fetch_redirect_response=False)
+        liste = self.client.get(reverse('secretaire:liste_eleves') + '?masse=fichier')
+        self.assertContains(liste, 'id="modalInscriptionMasse"')
+        self.assertContains(liste, 'data-open-masse-modal="fichier"')
+        # Étapes de la fenêtre, chargées en AJAX.
+        self.assertContains(self.client.get(url, HTTP_X_REQUESTED_WITH=AJAX), 'data-im-etape="saisie"')
         self.assertEqual(self.client.get(reverse('directeur:modele_inscription_masse')).status_code, 200)
         fichier = SimpleUploadedFile('eleves.xlsx', _classeur([
             ['Diop', 'Awa', 'F', '14/03/2013', '6ème A', '', ''],
             ['Sow', 'Khady', '', '14/03/2013', '6ème A', '', ''],
         ]))
-        r = self.client.post(url, {'action': 'analyser_fichier', 'fichier': fichier})
-        self.assertContains(r, 'Vérifiez avant d’inscrire')
+        r = self.client.post(url, {'action': 'analyser_fichier', 'fichier': fichier}, HTTP_X_REQUESTED_WITH=AJAX)
+        self.assertContains(r, 'data-im-etape="apercu"')
         self.assertContains(r, 'Sexe à indiquer')
         self.assertEqual(Eleve.objects.count(), 0)  # rien avant confirmation
-        r = self.client.post(url, {'action': 'confirmer', 'statut': 'reinscription'})
+        r = self.client.post(url, {'action': 'confirmer', 'statut': 'reinscription'}, HTTP_X_REQUESTED_WITH=AJAX)
         self.assertContains(r, 'Identifiants de connexion')
         self.assertContains(r, 'Compléter les contacts')
         e = Eleve.objects.get(etablissement=self.etab)
@@ -139,10 +149,21 @@ class Pages(Base):
         grille = [{'nom': 'Ba', 'prenom': 'Ali', 'sexe': 'M', 'date_naissance': '01/01/2013', 'parent_telephone': '', 'parent_nom': ''},
                   {'nom': '', 'prenom': '', 'sexe': '', 'date_naissance': '', 'parent_telephone': '', 'parent_nom': ''}]
         r = self.client.post(reverse('directeur:inscription_masse'), {'action': 'analyser_grille', 'grille': json.dumps(grille),
-                                                                      'classe_defaut': self.c6b.id})
+                                                                      'classe_defaut': self.c6b.id}, HTTP_X_REQUESTED_WITH=AJAX)
         self.assertContains(r, 'Prête')
-        self.client.post(reverse('directeur:inscription_masse'), {'action': 'confirmer', 'statut': 'nouvelle'})
+        self.client.post(reverse('directeur:inscription_masse'), {'action': 'confirmer', 'statut': 'nouvelle'}, HTTP_X_REQUESTED_WITH=AJAX)
         self.assertEqual(Eleve.objects.get(etablissement=self.etab).classe, self.c6b)
+
+    def test_inscription_individuelle_dans_la_liste(self):
+        # L'ancienne adresse d'inscription ouvre la fenêtre sur la liste ; le hub n'a plus de cartes d'inscription.
+        self.connecter()
+        r = self.client.get(reverse('secretaire:inscription_eleves'))
+        self.assertRedirects(r, reverse('secretaire:liste_eleves') + '?inscrire=1', fetch_redirect_response=False)
+        liste = self.client.get(reverse('secretaire:liste_eleves') + '?inscrire=1')
+        self.assertContains(liste, 'data-open-inscription-modal="1"')
+        hub = self.client.get(reverse('directeur:gestion_eleves'))
+        self.assertNotContains(hub, 'Inscription individuelle (parent facultatif)')
+        self.assertNotContains(hub, reverse('directeur:inscription_masse'))
 
     def test_contacts_parents(self):
         self.connecter()
@@ -155,8 +176,8 @@ class Pages(Base):
         e.refresh_from_db()
         self.assertEqual((e.parent_telephone, e.parent_nom, e.parent_lien), ('765554433', 'KANE', 'mere'))
         self.assertTrue(LienFamilial.objects.filter(eleve=e, parent__telephone='765554433').exists())
-        hub = self.client.get(reverse('directeur:gestion_eleves'))
-        self.assertContains(hub, 'Inscription en masse')
+        liste = self.client.get(reverse('secretaire:liste_eleves'))
+        self.assertContains(liste, 'Inscription en masse')
 
     def test_inscription_individuelle_sans_parent(self):
         self.connecter()

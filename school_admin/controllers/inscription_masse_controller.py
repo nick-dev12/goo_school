@@ -45,17 +45,36 @@ def _contexte(etablissement, annee, **extra):
     return ctx
 
 
+FRAGMENTS = 'school_admin/directeur/inscription_masse/'
+
+
+def _liste_avec_modal(mode='fichier'):
+    """L'inscription en masse se fait dans une fenêtre de la liste des élèves : on y renvoie."""
+    return redirect(reverse('secretaire:liste_eleves') + f'?masse={mode}')
+
+
 @require_permission('eleves_inscrire')
 def inscription_masse(request):
+    """
+    Étapes de la fenêtre « Inscription en masse » (liste des élèves), chargées en AJAX :
+    saisie (fichier ou grille) → aperçu → résultat avec les identifiants.
+    Une visite directe de l'adresse ouvre la liste des élèves avec la fenêtre.
+    """
     etablissement, annee = _acces(request)
     if etablissement is None:
         return redirect('directeur:dashboard_directeur')
+    if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        return _liste_avec_modal(request.GET.get('mode') if request.GET.get('mode') == 'grille' else 'fichier')
+
+    def saisie(erreur=None, onglet='fichier'):
+        return render(request, FRAGMENTS + '_saisie.html', _contexte(etablissement, annee, onglet=onglet, erreur=erreur))
+
     if annee is None:
-        messages.error(request, "Définissez d'abord l'année scolaire active avant d'inscrire des élèves.")
-        return redirect('directeur:gestion_eleves')
+        return saisie("Définissez d'abord l'année scolaire active avant d'inscrire des élèves.")
 
     action = request.POST.get('action') if request.method == 'POST' else None
     if action in ('analyser_fichier', 'analyser_grille'):
+        onglet = 'grille' if action == 'analyser_grille' else 'fichier'
         try:
             if action == 'analyser_fichier':
                 fichier = request.FILES.get('fichier')
@@ -71,25 +90,20 @@ def inscription_masse(request):
                     raise svc.ImportErreur("La grille est vide : saisissez au moins un élève.")
                 source = 'saisie rapide'
         except svc.ImportErreur as exc:
-            messages.error(request, str(exc))
-            return render(request, 'school_admin/directeur/inscription_masse/inscription_masse.html',
-                          _contexte(etablissement, annee, onglet='grille' if action == 'analyser_grille' else 'fichier'))
+            return saisie(str(exc), onglet)
         except (ValueError, TypeError):
-            messages.error(request, "La saisie n'a pas pu être lue. Réessayez.")
-            return redirect('directeur:inscription_masse')
+            return saisie("La saisie n'a pas pu être lue. Réessayez.", onglet)
         classe_defaut = None
         if request.POST.get('classe_defaut'):
             classe_defaut = Classe.objects.filter(etablissement=etablissement, id=request.POST['classe_defaut']).first()
         analyse = svc.analyser(etablissement, lignes, classe_defaut)
         request.session[CLE_SESSION] = {'lignes': analyse['lignes'], 'source': source}
-        return render(request, 'school_admin/directeur/inscription_masse/apercu.html',
-                      _contexte(etablissement, annee, analyse=analyse, source=source))
+        return render(request, FRAGMENTS + '_apercu.html', _contexte(etablissement, annee, analyse=analyse, source=source))
 
     if action == 'confirmer':
         donnees = request.session.get(CLE_SESSION)
         if not donnees:
-            messages.error(request, "L'aperçu a expiré : relancez l'import.")
-            return redirect('directeur:inscription_masse')
+            return saisie("L'aperçu a expiré : relancez l'import.")
         statut = request.POST.get('statut') if request.POST.get('statut') in ('nouvelle', 'reinscription', 'transfert') else 'nouvelle'
         creer_frais = request.POST.get('creer_frais') == '1'
         try:
@@ -98,18 +112,14 @@ def inscription_masse(request):
             import logging
 
             logging.getLogger(__name__).exception("Import en masse des élèves")
-            messages.error(request, "L'import a échoué : aucun élève n'a été enregistré. Vérifiez le fichier et réessayez.")
-            return redirect('directeur:inscription_masse')
+            return saisie("L'import a échoué : aucun élève n'a été enregistré. Vérifiez le fichier et réessayez.")
         request.session.pop(CLE_SESSION, None)
         sans_parent = sum(1 for c in crees if not c['eleve'].parent_telephone)
-        messages.success(request, f"{len(crees)} {'étudiant(s)' if etablissement.type_etablissement == 'superieur' else 'élève(s)'} inscrit(s).")
-        return render(request, 'school_admin/directeur/inscription_masse/resultat.html',
+        return render(request, FRAGMENTS + '_resultat.html',
                       _contexte(etablissement, annee, crees=crees, sans_parent=sans_parent,
                                 parents_crees=sum(1 for c in crees if c['parent_cree'])))
 
-    onglet = request.GET.get('mode') if request.GET.get('mode') in ('fichier', 'grille') else 'fichier'
-    return render(request, 'school_admin/directeur/inscription_masse/inscription_masse.html',
-                  _contexte(etablissement, annee, onglet=onglet))
+    return saisie(onglet=request.GET.get('mode') if request.GET.get('mode') == 'grille' else 'fichier')
 
 
 @require_permission('eleves_inscrire')

@@ -1,6 +1,7 @@
 import logging
 
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -423,14 +424,14 @@ def dashboard_secretaire(request):
 @login_required
 def inscription_eleves(request):
     """
-    Traite l'inscription des élèves (POST JSON). GET redirige vers la liste.
+    Traite l'inscription des élèves (POST JSON). GET ouvre la fenêtre d'inscription sur la liste des élèves.
     """
     user, etablissement, denied = _resolve_eleves_access(request, permission_inscrire=True)
     if denied:
         return denied
 
     if request.method == 'GET':
-        return redirect('secretaire:liste_eleves')
+        return redirect(reverse('secretaire:liste_eleves') + '?inscrire=1')
 
     if isinstance(user, Etablissement):
         annee_scolaire_active = get_session_consultee(request, etablissement)
@@ -808,7 +809,6 @@ def inscription_eleves(request):
                     'eleve.inscrit',
                     {'event': 'eleve.inscrit', 'item': item},
                 )
-                from django.urls import reverse
                 recu_url = reverse('secretaire:reçu_inscription_eleve', args=[eleve.id])
                 if wants_json_response(request):
                     return json_ok(item=item, recu_url=recu_url)
@@ -824,7 +824,7 @@ def inscription_eleves(request):
             return json_fail(field_errors=field_errors)
         request.session['inscription_form_data'] = form_data
         request.session['inscription_field_errors'] = field_errors
-        return redirect('secretaire:liste_eleves?inscrire=1')
+        return redirect(reverse('secretaire:liste_eleves') + '?inscrire=1')
 
     return redirect('secretaire:liste_eleves')
 
@@ -872,6 +872,7 @@ def liste_eleves(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': etablissement.type_etablissement == 'superieur',
         'open_inscription_modal': request.GET.get('inscrire') == '1' or bool(session_field_errors),
+        'open_masse_modal': request.GET.get('masse') if request.GET.get('masse') in ('fichier', 'grille') else '',
         'initial_niveau_key': initial_niveau_key,
         'initial_classe_id': initial_classe_id,
         **inscription_ctx,

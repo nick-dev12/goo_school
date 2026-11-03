@@ -50,8 +50,10 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.2.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/recherche_filtres.css' %}?v=1.1.6">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_masse.css' %}?v=1.1.0">
 </head>
-  <body class="ele-page-body gv3 cg3" data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2" data-initial-niveau="{{ initial_niveau_key|default:'' }}" data-initial-classe="{{ initial_classe_id|default:'' }}"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}>
+  <body class="ele-page-body gv3 cg3" data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2" data-initial-niveau="{{ initial_niveau_key|default:'' }}" data-initial-classe="{{ initial_classe_id|default:'' }}"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}{% if open_masse_modal %} data-open-masse-modal="{{ open_masse_modal }}"{% endif %}>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container ele-page">
@@ -334,6 +336,20 @@
       </div>
     </div>
 
+    <!-- Modal inscription en masse : étapes chargées depuis directeur:inscription_masse -->
+    <div id="modalInscriptionMasse" class="modal-creneau-fullscreen personnel-form-modal" data-im-url="{% url 'directeur:inscription_masse' %}">
+      <div class="modal-creneau-overlay" onclick="closeModalInscriptionMasse()"></div>
+      <div class="modal-creneau-content modal-creneau-content-wide">
+        <div class="modal-creneau-header">
+          <h2><i class="fas fa-users-line"></i> {% trans "Inscription en masse" %}</h2>
+          <button type="button" class="modal-creneau-close" onclick="closeModalInscriptionMasse()" aria-label="{% trans 'Fermer' %}">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-creneau-body sx" id="imModalCorps" aria-live="polite"></div>
+      </div>
+    </div>
+
     <!-- Modal reçu d'inscription -->
     <div id="modalRecuEleve" class="modal-creneau-fullscreen personnel-form-modal">
       <div class="modal-creneau-overlay" onclick="closeModalRecuEleve()"></div>
@@ -528,6 +544,8 @@
     <script src="{% static 'school_admin/js/realtime_page.js' %}?v=1.0.2"></script>
     <script src="{% static 'school_admin/js/directeur/liste_eleves.js' %}?v=2.2.0"></script>
     <script src="{% static 'school_admin/js/directeur/liste_eleves_live.js' %}?v=1.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/inscription_masse.js' %}?v=1.1.1"></script>
   
     <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.2.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

@@ -4,7 +4,6 @@
 {% block icon %}fa-book-open{% endblock %}
 {% block tone %}teal{% endblock %}
 {% block heading %}{% trans "Grand livre" %}{% endblock %}
-{% block subheading %}<p class="cg3-head__sub">{% trans "Chaque mouvement, compte par compte, avec le solde après chaque opération." %}</p>{% endblock %}
 {% block actions %}
   <a class="cg3-btn" href="?{% if compte_choisi %}compte={{ compte_choisi.pk }}&{% endif %}{% if du %}du={{ du|date:'Y-m-d' }}&{% endif %}{% if au %}au={{ au|date:'Y-m-d' }}&{% endif %}export=csv"><i class="fas fa-file-csv" aria-hidden="true"></i>{% trans "Exporter" %}</a>
 {% endblock %}

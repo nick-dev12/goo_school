@@ -29,8 +29,8 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_etab_url %}
         </div>
 
-        {% if etablissement.type_etablissement == 'superieur' %}{% trans "Années et semestres" as t %}{% trans "Années universitaires et semestres par niveau LMD." as st %}{% else %}{% trans "Années et périodes" as t %}{% trans "Années scolaires et découpage en trimestres ou semestres." as st %}{% endif %}
-        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-calendar-days' v3_tone='orange' v3_actions_tpl='school_admin/directeur/partials/v3_actions/periodes.html' %}
+        {% if etablissement.type_etablissement == 'superieur' %}{% trans "Années et semestres" as t %}{% else %}{% trans "Années et périodes" as t %}{% endif %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_icone='fa-calendar-days' v3_tone='orange' v3_actions_tpl='school_admin/directeur/partials/v3_actions/periodes.html' %}
 
         {% if not annee_scolaire_active %}
         <div class="gps-alert gps-alert-warn">

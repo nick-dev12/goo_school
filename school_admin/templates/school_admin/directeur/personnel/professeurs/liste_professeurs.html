@@ -27,8 +27,8 @@
             <span>{% trans "Enseignants" %}</span>
         </nav>
 
-        {% if sx_superieur %}{% trans "Enseignants" as t %}{% trans "Corps enseignant : grades, contrats, éléments (EC) et classes affectés." as st %}{% elif sx_primaire %}{% trans "Enseignants" as t %}{% trans "Maîtres et maîtresses : classe confiée, matières et contrat." as st %}{% else %}{% trans "Enseignants" as t %}{% trans "Professeurs : matières et classes affectées, contrat et statut." as st %}{% endif %}
-        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-chalkboard-user' v3_tone='blue' v3_actions_tpl='school_admin/directeur/partials/v3_actions/professeurs.html' %}
+        {% if sx_superieur %}{% trans "Enseignants" as t %}{% elif sx_primaire %}{% trans "Enseignants" as t %}{% else %}{% trans "Enseignants" as t %}{% endif %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_icone='fa-chalkboard-user' v3_tone='blue' v3_actions_tpl='school_admin/directeur/partials/v3_actions/professeurs.html' %}
 
         <section class="sx-card">
             {% if sx_lignes_profs %}

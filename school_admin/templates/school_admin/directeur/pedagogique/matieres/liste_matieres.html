@@ -41,8 +41,8 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
         </div>
 
-        {% if est_superieur %}{% trans "Modules (UE) et matières (EC)" as t %}{% trans "Choisissez une filière puis un niveau : chaque UE se déplie pour montrer ses EC, leurs crédits et leurs enseignants." as st %}{% else %}{% trans "Matières" as t %}{% trans "Toutes les matières, leurs coefficients, les classes concernées et leurs enseignants." as st %}{% endif %}
-        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-book-open' v3_tone='violet' v3_actions_tpl='school_admin/directeur/partials/v3_actions/matieres.html' %}
+        {% if est_superieur %}{% trans "Modules (UE) et matières (EC)" as t %}{% else %}{% trans "Matières" as t %}{% endif %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_icone='fa-book-open' v3_tone='violet' v3_actions_tpl='school_admin/directeur/partials/v3_actions/matieres.html' %}
 
         {% if est_superieur %}
             {% include 'school_admin/directeur/pedagogique/matieres/partials/gml_modules_list_panel.html' %}

@@ -4,7 +4,6 @@
 {% block icon %}fa-clipboard-check{% endblock %}
 {% block tone %}teal{% endblock %}
 {% block heading %}{% trans "Contrôle des cours" %}{% endblock %}
-{% block subheading %}<p class="cg3-head__sub">{% trans "Qui fait cours en ce moment, quels cours n’ont pas commencé, et les séances à vérifier avant la paie." %}</p>{% endblock %}
 {% block actions %}
   <form method="get" class="cg3-exo"><label for="pt-jour"><i class="fas fa-calendar-day" aria-hidden="true"></i>{% trans "Jour" %}</label><input id="pt-jour" type="date" name="jour" value="{{ jour|date:'Y-m-d' }}" onchange="this.form.submit()" class="pt-date"></form>
   <a class="cg3-btn" href="?jour={{ jour_precedent|date:'Y-m-d' }}" aria-label="{% trans 'Jour précédent' %}"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>

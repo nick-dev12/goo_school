@@ -31,8 +31,8 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_etab_url %}
         </div>
 
-        {% if est_superieur %}{% trans "Filières et classes" as t %}{% trans "Chaque filière regroupe ses classes par niveau (L1, L2, M1…). Ouvrez une filière pour voir son cursus." as st %}{% else %}{% trans "Classes" as t %}{% trans "Toutes les classes par niveau, avec leurs effectifs, enseignants et statut." as st %}{% endif %}
-        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-chalkboard' v3_tone='blue' v3_actions_tpl='school_admin/directeur/partials/v3_actions/classes.html' %}
+        {% if est_superieur %}{% trans "Filières et classes" as t %}{% else %}{% trans "Classes" as t %}{% endif %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_icone='fa-chalkboard' v3_tone='blue' v3_actions_tpl='school_admin/directeur/partials/v3_actions/classes.html' %}
 
         {% if est_superieur %}
         <section class="gcl-main-panel" data-classes-main-tabs data-initial-tab="{{ classes_main_tab }}">

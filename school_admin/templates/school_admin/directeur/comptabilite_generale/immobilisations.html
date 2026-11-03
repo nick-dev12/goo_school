@@ -4,7 +4,6 @@
 {% block icon %}fa-building{% endblock %}
 {% block tone %}slate{% endblock %}
 {% block heading %}{% trans "Immobilisations et amortissements" %}{% endblock %}
-{% block subheading %}<p class="cg3-head__sub">{% trans "Bâtiments, bus, ordinateurs, mobilier : leur valeur et leur usure année après année (amortissement linéaire)." %}</p>{% endblock %}
 {% block actions %}
   {% if exercice.statut == 'ouvert' and biens %}
   <form method="post">{% csrf_token %}<input type="hidden" name="action" value="amortir_tout"><button type="submit" class="cg3-btn"><i class="fas fa-calculator" aria-hidden="true"></i>{% trans "Passer toutes les dotations" %} {{ exercice.libelle }}</button></form>

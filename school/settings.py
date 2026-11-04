@@ -152,6 +152,7 @@ TEMPLATES = [
                 'school_admin.context_processors.prof_nav_trail',
                 'school_admin.utils.context_processors.permissions',
                 'school_admin.context_processors.seo_context',
+                'school_admin.context_processors.options_interface',
             ],
         },
     },
@@ -220,6 +221,10 @@ TEMPLATES[0]['OPTIONS']['context_processors'].extend([
 
 # Configuration de l'encodage pour les formulaires
 FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
+
+# Section « À vérifier » / « À faire » (points d'attention) en haut des pages de la direction.
+# Masquée pour l'instant ; passer à True (ou AFFICHER_POINTS_A_VERIFIER=1 dans l'environnement) pour la réactiver.
+AFFICHER_POINTS_A_VERIFIER = os.environ.get('AFFICHER_POINTS_A_VERIFIER', '0') == '1'
 
 
 # Static files (CSS, JavaScript, Images)

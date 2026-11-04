@@ -242,3 +242,10 @@ def seo_context(request) -> Dict[str, object]:
 
     overrides = getattr(request, "seo_overrides", None)
     return {"seo": resolve_seo(request, overrides)}
+
+
+def options_interface(request) -> Dict[str, object]:
+    """Sections de l'interface activables par réglage (settings.AFFICHER_POINTS_A_VERIFIER)."""
+    from django.conf import settings
+
+    return {"afficher_points_a_verifier": getattr(settings, "AFFICHER_POINTS_A_VERIFIER", False)}

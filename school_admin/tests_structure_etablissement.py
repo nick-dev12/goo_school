@@ -1,7 +1,7 @@
 """Pages de structure (classes, matières, modules, périodes) pour tous les types d'établissement."""
 from datetime import date
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from school_admin.model.classe_model import Classe
@@ -16,6 +16,8 @@ from school_admin.tests.test_assistant_directeur_tools import (
 )
 
 
+# Les points d'attention (« À vérifier ») sont masqués par défaut ; ces tests vérifient leur contenu.
+@override_settings(AFFICHER_POINTS_A_VERIFIER=True)
 class StructureTests(TestCase):
     def _monter(self, type_etab, prefix, niveau):
         self.etab = _make_etablissement_type(type_etab, prefix)
@@ -93,3 +95,18 @@ class StructureTests(TestCase):
         p = se.controle_periodes(self.etab, self.annee)
         self.assertFalse(any('Aucune période' in a['texte'] for a in p['alertes']))
         self.assertEqual(p['kpis'][0]['value'], 1)
+
+
+class PointsAVerifierMasquesTests(TestCase):
+    """Par défaut, la section « À vérifier » n'apparaît pas (elle sera activée plus tard)."""
+
+    _monter = StructureTests._monter
+
+    @override_settings(AFFICHER_POINTS_A_VERIFIER=False)
+    def test_section_masquee_par_defaut(self):
+        self._monter('collège', 'stm', 'college')
+        r = self.client.get(reverse('directeur:gestion_periodes_scolaires'))
+        self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, 'class="hb-todo"')
+        self.assertNotContains(r, 'Aucune période pour cette année')
+

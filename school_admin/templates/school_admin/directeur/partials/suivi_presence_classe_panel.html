@@ -78,8 +78,8 @@
         </div>
     </div>
 
-    <div class="presence-table-container sp-table-wrap">
-        <table class="presence-results-table presence-results-table--large">
+    <div class="presence-table-container sp-table-wrap" data-rl-conteneur>
+        <table class="presence-results-table presence-results-table--large" data-rl data-rl-mobile="1,4,5" data-rl-actions="6">
             <thead>
                 <tr>
                     <th>{% trans "Élève" %}</th>
@@ -141,7 +141,7 @@
         </table>
     </div>
 
-    <div class="presence-cards-container" id="presence-cards-{{ classe_data.classe.id }}">
+    <div class="presence-cards-container" data-rl-masquer id="presence-cards-{{ classe_data.classe.id }}">
         {% for eleve_data in classe_data.eleves_presences %}
             <div class="presence-student-card student-row"
                  data-eleve-id="{{ eleve_data.eleve.id }}"

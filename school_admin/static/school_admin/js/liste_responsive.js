@@ -2,11 +2,14 @@
 //
 // Activation sur le conteneur de la liste (un <table> ou une liste en <div>) :
 //   data-rl                 active le composant
-//   data-rl-mobile="1,2,4"  colonnes (numérotées à partir de 1) gardées sur mobile — trois au plus
-//   data-rl-actions="6"     colonne des boutons ("last" = dernière) ; masquée sur mobile, reprise dans la fenêtre
+//   data-rl-mobile="1,2,4"  colonnes (numérotées à partir de 1, -1 = dernière) gardées sur mobile — trois au plus
+//   data-rl-actions="6"     colonne des boutons ("last" ou -1 = dernière) ; masquée sur mobile, reprise dans la fenêtre
 // Liste en <div> : l'en-tête est l'enfant [data-rl-head] ou .list-header, les lignes [data-rl-row] ou .list-row.
 // Sur une ligne (facultatif) : data-rl-titre="Nom complet" (titre de la fenêtre) et, dans une cellule, des éléments
 // <span hidden data-rl-extra data-rl-label="Sexe">…</span> : informations en plus, montrées seulement dans la fenêtre.
+//
+//   data-rl-conteneur       (sur l'enveloppe du tableau) la garde visible sur mobile
+//   data-rl-masquer         (sur un bloc de cartes « mobile » en double) le masque : la liste compacte le remplace
 //
 // Ordinateur et tablette : tableau complet ; un bouton qui n'a qu'une icône reçoit son libellé (title / aria-label).
 // Mobile : liste compacte (trois informations) ; un appui sur la ligne ouvre une fenêtre plein écran
@@ -18,8 +21,12 @@
     var INTERACTIF = 'a, button, input, select, textarea, label, [role="button"], [onclick]';
 
     function texte(el) { return (el && el.textContent || '').replace(/\s+/g, ' ').trim(); }
-    function indices(valeur) {
-        return (valeur || '').split(',').map(function (v) { return parseInt(v, 10) - 1; }).filter(function (n) { return n >= 0; });
+    // "1,2,-1" → index 0, 1 et la dernière colonne (les négatifs comptent depuis la fin).
+    function indices(valeur, nb) {
+        return (valeur || '').split(',').map(function (v) {
+            var n = parseInt(v, 10);
+            return n < 0 ? nb + n : n - 1;
+        }).filter(function (n) { return n >= 0 && n < nb; });
     }
 
     function enTetes(liste) {
@@ -84,9 +91,13 @@
         var actions = liste.getAttribute('data-rl-actions');
         liste._rl = {
             nb: tetes.length,
-            libelles: tetes.map(texte),
-            mobile: indices(liste.getAttribute('data-rl-mobile') || '1,2,3').slice(0, 3),
-            actions: actions === 'last' ? tetes.length - 1 : (actions ? parseInt(actions, 10) - 1 : -1)
+            libelles: tetes.map(function (t) {
+                var c = t.cloneNode(true);
+                c.querySelectorAll('button, a, .sr-only').forEach(function (n) { n.remove(); });
+                return texte(c);
+            }),
+            mobile: indices(liste.getAttribute('data-rl-mobile') || '1,2,3', tetes.length).slice(0, 3),
+            actions: actions === 'last' ? tetes.length - 1 : (actions ? indices(actions, tetes.length)[0] : -1)
         };
         liste.classList.add(liste.tagName === 'TABLE' ? 'rl-table' : 'rl-div');
         liste.style.setProperty('--rl-cols', 'minmax(0, 1.8fr)' + new Array(liste._rl.mobile.length).join(' minmax(0, 1fr)'));
@@ -134,6 +145,12 @@
         var html = copieCellule(cellule).innerHTML.trim();
         return html ? html : '—';
     }
+    // Titre de la fenêtre : l'élément « nom » de la cellule s'il existe (sans le matricule affiché dessous).
+    function titreDe(cellule) {
+        var c = copieCellule(cellule);
+        var nom = c.querySelector('[class*="name"], [class*="nom"], strong, h4, b');
+        return texte(nom) || texte(c);
+    }
     function ajouterInfo(dl, libelle, html) {
         var bloc = document.createElement('div');
         bloc.innerHTML = '<dt></dt><dd></dd>';
@@ -148,7 +165,7 @@
         if (!fenetre) { creerFenetre(); }
         var cel = cellules(ligne);
         var info = liste._rl;
-        var titre = ligne.getAttribute('data-rl-titre') || texte(copieCellule(cel[info.mobile[0]] || cel[0]));
+        var titre = ligne.getAttribute('data-rl-titre') || titreDe(cel[info.mobile[0]] || cel[0]);
         fenetre.querySelector('.rl-modal__titre').textContent = titre;
         var dl = fenetre.querySelector('.rl-modal__infos');
         dl.innerHTML = '';

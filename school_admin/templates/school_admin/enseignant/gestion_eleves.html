@@ -137,8 +137,8 @@
                                 {% if classe_data.eleves %}
                                     <!-- Liste des élèves -->
                                     <div class="table-responsive{% if hub_prof_ui %} prof-primaire-searchable{% endif %}">
-                                        <div class="presence-list">
-                                            <div class="presence-header">
+                                        <div class="presence-list" data-rl data-rl-mobile="2,4,5" data-rl-actions="6">
+                                            <div class="presence-header" data-rl-head>
                                                 <div class="col-numero">#</div>
                                                 <div class="col-nom">Nom complet</div>
                                                 <div class="col-sexe">Sexe</div>
@@ -148,7 +148,7 @@
                                             </div>
                                             
                                             {% for eleve_data in classe_data.eleves %}
-                                                <div class="presence-row">
+                                                <div class="presence-row" data-rl-row data-rl-titre="{{ eleve_data.eleve.nom_complet }}">
                                                 <div class="col-numero">{{ forloop.counter }}</div>
                                                 <div class="col-nom">
                                                     <div class="eleve-avatar-small">

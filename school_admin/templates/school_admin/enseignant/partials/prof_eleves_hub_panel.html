@@ -88,8 +88,8 @@
 
                 {% if cd.eleves %}
                     <div class="table-responsive prof-primaire-searchable">
-                        <div class="presence-list prof-eleves-presence-list">
-                            <div class="presence-header">
+                        <div class="presence-list prof-eleves-presence-list" data-rl data-rl-mobile="2,4,5" data-rl-actions="6">
+                            <div class="presence-header" data-rl-head>
                                 <div class="col-numero">#</div>
                                 <div class="col-nom">Élève</div>
                                 <div class="col-sexe">Sexe</div>
@@ -98,13 +98,17 @@
                                 <div class="col-actions">Actions</div>
                             </div>
                             {% for eleve_data in cd.eleves %}
-                                <div class="presence-row">
+                                <div class="presence-row" data-rl-row data-rl-titre="{{ eleve_data.eleve.nom_complet }}">
                                     <div class="col-numero">{{ forloop.counter }}</div>
                                     <div class="col-nom">
                                         <div class="eleve-avatar-small">{{ eleve_data.eleve.nom.0 }}{{ eleve_data.eleve.prenom.0 }}</div>
                                         <div class="eleve-info">
                                             <span class="eleve-nom-complet">{{ eleve_data.eleve.nom_complet }}</span>
                                             <span class="eleve-matricule">{{ eleve_data.eleve.numero_matricule_complet }}</span>
+                                            <span hidden data-rl-extra data-rl-label="Matricule">{{ eleve_data.eleve.numero_matricule_complet }}</span>
+                                            <span hidden data-rl-extra data-rl-label="Né(e) le">{{ eleve_data.eleve.date_naissance|date:"d/m/Y" }}</span>
+                                            <span hidden data-rl-extra data-rl-label="Parent">{% if eleve_data.eleve.parent_nom or eleve_data.eleve.parent_prenom %}{{ eleve_data.eleve.parent_prenom }} {{ eleve_data.eleve.parent_nom }}{% endif %}</span>
+                                            <span hidden data-rl-extra data-rl-label="Téléphone parent">{% if eleve_data.eleve.parent_telephone %}<a href="tel:{{ eleve_data.eleve.parent_telephone }}">{{ eleve_data.eleve.parent_telephone }}</a>{% endif %}</span>
                                         </div>
                                     </div>
                                     <div class="col-sexe">

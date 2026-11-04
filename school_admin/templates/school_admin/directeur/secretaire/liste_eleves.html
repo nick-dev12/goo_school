@@ -53,6 +53,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.1.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_masse.css' %}?v=2.0.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_formulaire.css' %}?v=1.0.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/liste_responsive.css' %}?v=1.1.0">
 </head>
   <body class="ele-page-body gv3 cg3" data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2" data-initial-niveau="{{ initial_niveau_key|default:'' }}" data-initial-classe="{{ initial_classe_id|default:'' }}"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}{% if open_masse_modal %} data-open-masse-modal="{{ open_masse_modal }}"{% endif %}>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -215,7 +216,7 @@
                   <div class="students-section ele-list-section">
                   {% if classe_data.eleves %}
                     <div class="ele-list-scroll">
-                    <div class="students-list ele-list">
+                    <div class="students-list ele-list" data-rl data-rl-mobile="1,2,4" data-rl-actions="6">
                       <div class="list-header ele-list-header">
                         <div class="list-cell header-cell ele-list-cell--student">{% trans "Élève" %}</div>
                         <div class="list-cell header-cell">{% trans "Numéro" %}</div>
@@ -235,7 +236,8 @@
                              data-statut="{{ eleve_data.eleve.statut }}"
                              data-sexe="{{ eleve_data.eleve.sexe }}"
                              data-absences="{{ eleve_data.nombre_absences }}"
-                             data-actif="{{ eleve_data.eleve.actif|yesno:'true,false' }}">
+                             data-actif="{{ eleve_data.eleve.actif|yesno:'true,false' }}"
+                             data-rl-titre="{{ eleve_data.eleve.nom_complet }}">
                           <div class="list-cell ele-list-cell ele-list-cell--student student-cell">
                             <div class="student-avatar-small">
                               <i class="fas fa-user"></i>
@@ -252,6 +254,12 @@
                                 </span>
                                 <span class="student-name-mobile">{{ eleve_data.eleve.nom|premier_nom }} {{ eleve_data.eleve.prenom|premier_prenom }}</span>
                               </h4>
+                              {# Informations en plus, montrées dans la fenêtre « élève » sur mobile (liste_responsive.js). #}
+                              <span hidden data-rl-extra data-rl-label="{% trans 'Sexe' %}">{{ eleve_data.eleve.get_sexe_display }}</span>
+                              <span hidden data-rl-extra data-rl-label="{% trans 'Né(e) le' %}">{{ eleve_data.eleve.date_naissance|date:"d/m/Y" }}{% if eleve_data.eleve.lieu_naissance %} · {{ eleve_data.eleve.lieu_naissance }}{% endif %}</span>
+                              <span hidden data-rl-extra data-rl-label="{% trans 'Statut' %}">{{ eleve_data.eleve.get_statut_display }}</span>
+                              <span hidden data-rl-extra data-rl-label="{% trans 'Parent' %}">{% if eleve_data.eleve.parent_nom or eleve_data.eleve.parent_prenom %}{{ eleve_data.eleve.parent_prenom }} {{ eleve_data.eleve.parent_nom }}{% endif %}</span>
+                              <span hidden data-rl-extra data-rl-label="{% trans 'Téléphone parent' %}">{% if eleve_data.eleve.parent_telephone %}<a href="tel:{{ eleve_data.eleve.parent_telephone }}">{{ eleve_data.eleve.parent_telephone }}</a>{% endif %}</span>
                             </div>
                           </div>
                           
@@ -536,6 +544,7 @@
     <script src="{% static 'school_admin/js/directeur/liste_eleves_live.js' %}?v=1.1.0"></script>
     <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.1.0"></script>
     <script src="{% static 'school_admin/js/directeur/inscription_masse.js' %}?v=1.2.0"></script>
+    <script src="{% static 'school_admin/js/liste_responsive.js' %}?v=1.1.0"></script>
   
     <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.2.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

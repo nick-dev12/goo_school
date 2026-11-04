@@ -1,0 +1,105 @@
+/* Listes d'élèves responsive (voir js/liste_responsive.js).
+   Ordinateur / tablette : tableau complet, boutons libellés. Mobile : liste compacte de trois colonnes
+   et fenêtre plein écran au toucher d'une ligne. Les règles mobiles battent les « cartes » propres à chaque page. */
+
+/* ---------- Boutons libellés (toutes tailles) ---------- */
+[data-rl] .rl-btn-libelle {
+  display: inline-flex !important; align-items: center; justify-content: center; gap: 6px;
+  width: auto !important; min-width: 0 !important; height: auto; min-height: 30px; padding: 5px 10px !important;
+  border-radius: 8px; white-space: nowrap; text-decoration: none;
+}
+[data-rl] .rl-btn-txt { font-size: 0.76rem; font-weight: 600; line-height: 1.2; }
+[data-rl] .rl-btn-libelle i { font-size: 0.78rem; }
+
+/* ---------- Ordinateur et tablette : tableau classique, toutes les colonnes ---------- */
+@media (min-width: 761px) {
+  html:not(#rl) body table[data-rl] { display: table !important; width: 100% !important; }
+  html:not(#rl) body table[data-rl] thead { display: table-header-group !important; }
+  html:not(#rl) body table[data-rl] tbody { display: table-row-group !important; }
+  html:not(#rl) body table[data-rl] tr { display: table-row !important; }
+  html:not(#rl) body table[data-rl] th, html:not(#rl) body table[data-rl] td { display: table-cell !important; }
+  html:not(#rl) body table[data-rl] td::before { display: none !important; content: none !important; }
+  html:not(#rl) body .rl-div > .rl-row, html:not(#rl) body .rl-div > [data-rl-head], html:not(#rl) body .rl-div > .list-header {
+    display: grid !important; grid-template-columns: var(--rl-cols-all) !important; align-items: center; column-gap: 12px;
+  }
+  html:not(#rl) body .rl-div > .rl-row > *, html:not(#rl) body .rl-div > [data-rl-head] > *, html:not(#rl) body .rl-div > .list-header > * { grid-column: auto !important; grid-row: auto !important; order: 0 !important; width: auto !important; min-width: 0 !important; }
+  html:not(#rl) body .rl-div > .rl-row > *::before { display: none !important; content: none !important; }
+}
+/* Tablette : on retire l'aspect « carte » que certaines pages donnent aux lignes. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  html:not(#rl) body .rl-div > .rl-row { margin: 0 !important; padding: 10px 12px !important; border: 0 !important; border-bottom: 1px solid var(--ax-line, #eef0f3) !important; border-radius: 0 !important; box-shadow: none !important; }
+  html:not(#rl) body .rl-div > [data-rl-head], html:not(#rl) body .rl-div > .list-header { display: grid !important; padding: 8px 12px !important; }
+  html:not(#rl) body table[data-rl] thead { position: static !important; visibility: visible !important; height: auto !important; }
+}
+
+/* ---------- Mobile : liste compacte ---------- */
+@media (max-width: 760px) {
+  html:not(#rl) body [data-rl] [data-rl-cache] { display: none !important; }
+  html:not(#rl) body [data-rl] .rl-row { cursor: pointer; -webkit-tap-highlight-color: rgba(37, 99, 235, .08); }
+  html:not(#rl) body [data-rl] .rl-row [class*="avatar"] { display: none !important; }
+  html:not(#rl) body [data-rl] .rl-row:active { background: var(--ax-brand-soft, #eef4ff) !important; }
+  html:not(#rl) body [data-rl] .rl-dernier { position: relative; padding-right: 22px !important; }
+  html:not(#rl) body [data-rl] .rl-row .rl-dernier::after {
+    content: "\f054"; position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 0.66rem; color: var(--ax-muted, #98a2b3);
+  }
+
+  /* Tableau */
+  html:not(#rl) body table[data-rl] { display: table !important; width: 100% !important; min-width: 0 !important; table-layout: auto; border-collapse: collapse; }
+  html:not(#rl) body table[data-rl] thead { display: table-header-group !important; }
+  html:not(#rl) body table[data-rl] tbody { display: table-row-group !important; }
+  html:not(#rl) body table[data-rl] tr { display: table-row !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent; }
+  html:not(#rl) body table[data-rl] th, html:not(#rl) body table[data-rl] td {
+    display: table-cell !important; width: auto !important; padding: 9px 8px !important; border: 0 !important;
+    border-bottom: 1px solid var(--ax-line, #eef0f3) !important; text-align: left !important; vertical-align: middle; font-size: 0.8rem;
+  }
+  html:not(#rl) body table[data-rl] th { padding-top: 7px !important; padding-bottom: 7px !important; font-size: 0.68rem; }
+  html:not(#rl) body table[data-rl] td::before { display: none !important; content: none !important; }
+  html:not(#rl) body table[data-rl] [data-rl-cache] { display: none !important; }
+
+  /* Liste en <div> */
+  html:not(#rl) body .rl-div > .rl-row, html:not(#rl) body .rl-div > [data-rl-head], html:not(#rl) body .rl-div > .list-header {
+    display: grid !important; grid-template-columns: var(--rl-cols, minmax(0, 1.8fr) minmax(0, 1fr) minmax(0, 1fr)) !important;
+    align-items: center; gap: 8px; margin: 0 !important; padding: 9px 10px !important; min-height: 0 !important;
+    border: 0 !important; border-bottom: 1px solid var(--ax-line, #eef0f3) !important; border-radius: 0 !important; box-shadow: none !important;
+  }
+  html:not(#rl) body .rl-div > [data-rl-head], html:not(#rl) body .rl-div > .list-header { padding-top: 7px !important; padding-bottom: 7px !important; font-size: 0.68rem; }
+  html:not(#rl) body .rl-div > .rl-row > *, html:not(#rl) body .rl-div > [data-rl-head] > *, html:not(#rl) body .rl-div > .list-header > * {
+    display: block; grid-column: auto !important; grid-row: auto !important; order: 0 !important;
+    width: auto !important; min-width: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important;
+    font-size: 0.8rem; text-align: left !important; overflow: hidden; text-overflow: ellipsis;
+  }
+  html:not(#rl) body .rl-div > .rl-row > *::before { display: none !important; content: none !important; }
+  html:not(#rl) body .rl-div > .rl-row > [data-rl-cache], html:not(#rl) body .rl-div > [data-rl-head] > [data-rl-cache], html:not(#rl) body .rl-div > .list-header > [data-rl-cache] { display: none !important; }
+  html:not(#rl) body .rl-div { min-width: 0 !important; }
+}
+
+/* ---------- Fenêtre plein écran ---------- */
+.rl-modal { position: fixed; inset: 0; z-index: 10050; display: flex; flex-direction: column; background: var(--ax-surface, #fff); }
+.rl-modal[hidden] { display: none; }
+html.rl-modal-ouverte, html.rl-modal-ouverte body { overflow: hidden; }
+.rl-modal__tete { display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--ax-line, #e4e7ec); }
+.rl-modal__retour {
+  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border: 0; border-radius: 9px;
+  background: var(--ax-surface-2, #f2f4f7); font: inherit; font-size: 0.86rem; font-weight: 600; color: var(--ax-ink-2, #344054); cursor: pointer;
+}
+.rl-modal__corps { flex: 1; overflow-y: auto; padding: 16px; }
+.rl-modal__titre { margin: 0 0 14px !important; font-size: 1.12rem; font-weight: 700; line-height: 1.3; color: var(--ax-ink, #101828); }
+.rl-modal__infos { margin: 0; border: 1px solid var(--ax-line, #e4e7ec); border-radius: 12px; overflow: hidden; }
+.rl-modal__infos > div { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr); gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--ax-line, #eef0f3); }
+.rl-modal__infos > div:last-child { border-bottom: 0; }
+.rl-modal__infos dt { margin: 0; font-size: 0.76rem; font-weight: 600; color: var(--ax-muted, #667085); }
+.rl-modal__infos dd { margin: 0; font-size: 0.86rem; color: var(--ax-ink, #101828); overflow-wrap: anywhere; }
+.rl-modal__infos dd * { max-width: 100%; font-size: inherit !important; }
+.rl-modal__infos dd i { font-size: 0.8em !important; }
+.rl-modal__actions {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--ax-line, #e4e7ec); background: var(--ax-surface, #fff);
+}
+.rl-modal__actions[hidden] { display: none; }
+.rl-modal__btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 14px;
+  border: 1px solid var(--ax-line-strong, #d0d5dd); border-radius: 10px; background: var(--ax-surface, #fff);
+  font: inherit; font-size: 0.86rem; font-weight: 600; color: var(--ax-ink-2, #344054); text-decoration: none; cursor: pointer;
+}
+.rl-modal__btn:first-child { border-color: var(--ax-brand, #2563eb); background: var(--ax-brand, #2563eb); color: #fff; }

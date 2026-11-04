@@ -3379,3 +3379,26 @@ p {
     }
 }
 
+
+/* Ligne d'élève cliquable : ouvre ses présences et absences */
+.presence-results-table tr.student-row[data-eleve-id] { cursor: pointer; }
+.presence-results-table tr.student-row[data-eleve-id]:hover td { background: var(--ax-brand-soft, #eef4ff); }
+
+/* Fenêtre « Présences et absences » : actions de l'élève */
+.historique-actions { align-items: center; }
+.historique-actions .btn-cancel { margin-right: auto; }
+.btn-historique-action {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 16px; border: 0; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.btn-historique-action[hidden] { display: none; }
+.btn-historique-sanction { background: #fff7ed; color: #c2410c; box-shadow: inset 0 0 0 1px #fed7aa; }
+.btn-historique-sanction:hover { background: #ffedd5; }
+.btn-historique-justifier { background: #10b981; color: #fff; }
+.btn-historique-justifier:hover { background: #059669; }
+@media (max-width: 768px) {
+    .historique-actions .btn-cancel { margin-right: 0; order: 1; }
+    .historique-actions > button { flex: 1 1 100%; justify-content: center; }
+    .historique-actions .btn-historique-justifier { order: -2; }
+    .historique-actions .btn-historique-sanction { order: -1; }
+}

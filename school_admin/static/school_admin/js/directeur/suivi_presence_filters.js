@@ -279,6 +279,15 @@
             }).join('');
         }
 
+        // Élève affiché : repris par les boutons « Justifier une absence » et « Ajouter une sanction ».
+        modal.dataset.eleveId = eleveId;
+        modal.dataset.classeId = classeId;
+        modal.dataset.eleveNom = eleveNom;
+        var btnJustifier = document.getElementById('historiqueBtnJustifier');
+        if (btnJustifier) {
+            btnJustifier.hidden = !presences.some(function (p) { return p.statut === 'absent'; });
+        }
+
         modal.classList.add('is-visible');
         modal.style.display = 'flex';
     };
@@ -342,6 +351,33 @@
                 filterPresenceStudents(classeId);
             }
         });
+    });
+
+    // Clic sur la ligne d'un élève : ses présences et absences (les boutons de la ligne gardent leur action).
+    document.addEventListener('click', function (event) {
+        var ligne = event.target.closest('.presence-results-table tr.student-row[data-eleve-id]');
+        if (!ligne || event.target.closest('a, button, input, select, label')) {
+            return;
+        }
+        ouvrirModalHistoriquePresence(ligne.getAttribute('data-eleve-id'), ligne.getAttribute('data-classe-id'),
+            ligne.getAttribute('data-eleve-nom'));
+    });
+
+    function eleveDeLaFenetre() {
+        var modal = document.getElementById('modalHistoriquePresence');
+        return modal ? { id: modal.dataset.eleveId, classe: modal.dataset.classeId, nom: modal.dataset.eleveNom } : null;
+    }
+    document.addEventListener('click', function (event) {
+        var e;
+        if (event.target.closest('#historiqueBtnJustifier')) {
+            e = eleveDeLaFenetre();
+            fermerModalHistoriquePresence();
+            ouvrirModalJustification(e.id, e.nom, e.classe);
+        } else if (event.target.closest('#historiqueBtnSanction')) {
+            e = eleveDeLaFenetre();
+            fermerModalHistoriquePresence();
+            if (window.ouvrirModalSanction) { ouvrirModalSanction(e.id, e.nom, e.classe); }
+        }
     });
 
     window.addEventListener('click', function (event) {

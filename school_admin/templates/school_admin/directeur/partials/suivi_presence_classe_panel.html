@@ -79,7 +79,7 @@
     </div>
 
     <div class="presence-table-container sp-table-wrap" data-rl-conteneur>
-        <table class="presence-results-table presence-results-table--large" data-rl data-rl-mobile="1,4,5" data-rl-actions="6">
+        <table class="presence-results-table presence-results-table--large" data-rl data-rl-mobile="1,4,5" data-rl-actions="6" data-rl-sans-fenetre>
             <thead>
                 <tr>
                     <th>{% trans "Élève" %}</th>
@@ -98,7 +98,10 @@
                         data-prenom="{{ eleve_data.eleve.prenom|lower }}"
                         data-matricule="{{ eleve_data.eleve.numero_eleve|lower }}"
                         data-absents="{{ eleve_data.absents|default:'0' }}"
-                        data-retards="{{ eleve_data.retards|default:'0' }}">
+                        data-retards="{{ eleve_data.retards|default:'0' }}"
+                        data-classe-id="{{ classe_data.classe.id }}"
+                        data-eleve-nom="{{ eleve_data.eleve.nom|upper }} {{ eleve_data.eleve.prenom }}"
+                        title="{% trans 'Voir les présences et absences' %}">
                         <td class="eleve-cell">
                             <div class="eleve-info">
                                 <div class="eleve-avatar"><i class="fas fa-user"></i></div>
@@ -111,17 +114,6 @@
                         <td class="retards-cell"><span class="retards-badge">{{ eleve_data.retards }}</span></td>
                         <td class="actions-cell">
                             <div class="actions-buttons">
-                                <button type="button" class="btn-action-mini info"
-                                        title="{% trans 'Voir les présences et absences' %}"
-                                        onclick="ouvrirModalHistoriquePresence({{ eleve_data.eleve.id }}, {{ classe_data.classe.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}')">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button type="button" class="btn-action-mini success btn-justify-absence"
-                                        title="{% trans 'Justifier une absence' %}"
-                                        style="{% if not eleve_data.absences_details %}display:none;{% endif %}"
-                                        onclick="ouvrirModalJustification({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }})">
-                                    <i class="fas fa-check-circle"></i>
-                                </button>
                                 <button type="button" class="btn-action-mini warning" title="{% trans 'Ajouter une sanction' %}"
                                         onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom|upper|escapejs }} {{ eleve_data.eleve.prenom|escapejs }}', {{ classe_data.classe.id }})">
                                     <i class="fas fa-gavel"></i>

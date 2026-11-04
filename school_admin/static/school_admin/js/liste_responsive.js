@@ -8,6 +8,7 @@
 // Sur une ligne (facultatif) : data-rl-titre="Nom complet" (titre de la fenêtre) et, dans une cellule, des éléments
 // <span hidden data-rl-extra data-rl-label="Sexe">…</span> : informations en plus, montrées seulement dans la fenêtre.
 //
+//   data-rl-sans-fenetre    pas de fenêtre « élève » : la page gère elle-même le clic sur la ligne
 //   data-rl-conteneur       (sur l'enveloppe du tableau) la garde visible sur mobile
 //   data-rl-masquer         (sur un bloc de cartes « mobile » en double) le masque : la liste compacte le remplace
 //
@@ -212,6 +213,7 @@
         if (!MOBILE.matches) { return; }
         var ligne = e.target.closest('[data-rl] .rl-row');
         if (!ligne || e.target.closest(INTERACTIF)) { return; }
+        if (ligne.closest('[data-rl-sans-fenetre]')) { return; }  // la page gère elle-même le clic sur la ligne
         ouvrir(ligne);
     });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { fermer(); } });

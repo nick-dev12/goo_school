@@ -1363,3 +1363,30 @@ a.axd-list__main:hover strong {
   .axd-mini .axd-mini__value { font-size: 1.1rem !important; }
   .axd-mini .axd-mini__label { font-size: 0.7rem !important; }
 }
+
+/* ---------- Indicateurs clés (axd-kpi) : même modèle compact que les mini-cartes ----------
+   Une ligne : icône, titre, chiffre au bout à droite ; dessous, la barre ou la courbe s'il y en a une.
+   Petits textes retirés ; sans données, « — » (raison au survol). */
+.axd-kpis {
+  display: grid !important; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: 10px !important; margin: 0 0 14px !important; padding: 0 !important; overflow: visible !important;
+}
+.axd-kpis .axd-kpi {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "icone titre valeur" "barre barre barre";
+  align-items: center; column-gap: 10px; row-gap: 8px; flex: none; padding: 12px 14px; border-radius: 12px; box-shadow: none;
+}
+.axd-kpis .axd-kpi__top { display: contents; }
+.axd-kpis .axd-kpi__icon { grid-area: icone; width: 30px; height: 30px; border-radius: 9px; font-size: 0.78rem; }
+.axd-kpis .axd-kpi__label { grid-area: titre; margin: 0; font-size: 0.78rem; font-weight: 600; color: var(--ax-ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.axd-kpis .axd-kpi__value { grid-area: valeur; justify-self: end; margin: 0; font-size: 1.3rem; line-height: 1.1; white-space: nowrap; }
+.axd-kpis .axd-kpi__value small { font-size: 0.74rem; }
+.axd-kpis .axd-kpi__value--vide { color: var(--ax-muted); cursor: help; }
+.axd-kpis .axd-kpi__meta, .axd-kpis .axd-kpi__foot, .axd-kpis .axd-kpi__empty { display: none !important; }
+.axd-kpis .axd-meter, .axd-kpis .axd-spark { grid-area: barre; margin: 0; }
+.axd-kpis .axd-spark { height: 28px !important; }
+@media (max-width: 640px) {
+  .axd-kpis .axd-kpi { padding: 10px 12px; }
+  .axd-kpis .axd-kpi__icon { width: 24px; height: 24px; border-radius: 7px; font-size: 0.66rem; }
+  .axd-kpis .axd-kpi__value { font-size: 1.1rem; }
+  .axd-kpis .axd-kpi__label { font-size: 0.72rem; }
+}

@@ -10,7 +10,7 @@
     {% include 'school_admin/partials/seo_head.html' %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="{% static 'school_admin/css/fcm_notifications.css' %}?v=1.0.0" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=20261104b" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=20261104c" />
   </head>
   <body data-live-page="dashboard" class="axd-page">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -120,7 +120,7 @@
             <h2 class="axd-kpi__label">{% trans "Présence · 7 jours" %}</h2>
           </div>
           {% if t.rate_7 == None %}
-          <p class="axd-kpi__empty">{{ t.empty_reason|default:_("Pas encore d’appels cette semaine.") }}</p>
+          <p class="axd-kpi__value axd-kpi__value--vide" title="{{ t.empty_reason|default:_("Pas encore d’appels cette semaine.") }}">—</p>
           {% else %}
           <p class="axd-kpi__value">{{ t.rate_7|floatformat:1 }}<small>%</small></p>
           <p class="axd-kpi__meta">
@@ -142,7 +142,7 @@
             <h2 class="axd-kpi__label">{% trans "Recouvrement" %}</h2>
           </div>
           {% if m.empty %}
-          <p class="axd-kpi__empty">{{ m.empty_reason }}</p>
+          <p class="axd-kpi__value axd-kpi__value--vide" title="{{ m.empty_reason }}">—</p>
           {% else %}
           <p class="axd-kpi__value">{{ m.value|floatformat:1 }}<small>%</small></p>
           <p class="axd-kpi__meta">
@@ -198,7 +198,7 @@
             <h2 class="axd-kpi__label">{% trans "Occupation des classes" %}</h2>
           </div>
           {% if o.taux == None %}
-          <p class="axd-kpi__empty">{% trans "Capacités non renseignées." %}</p>
+          <p class="axd-kpi__value axd-kpi__value--vide" title="{% trans "Capacités non renseignées." %}">—</p>
           {% else %}
           <p class="axd-kpi__value">{{ o.taux|floatformat:0 }}<small>%</small></p>
           <p class="axd-kpi__meta">{{ o.places_libres }} {% trans "places libres" %}</p>

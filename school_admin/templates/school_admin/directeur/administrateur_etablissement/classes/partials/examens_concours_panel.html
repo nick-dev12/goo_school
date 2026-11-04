@@ -1,55 +1,48 @@
 {% load i18n %}
-<div class="examens-concours-section">
-  {% if classes_examens_concours %}
-    <div class="ec-section-header">
-      <p class="ec-section-intro">
-        <i class="fas fa-info-circle"></i>
-        {% trans "Classes préparant des examens ou concours (BTS, BT, certifications…)" %}
-      </p>
-      <span class="ec-total-pill">{{ nb_classes_avec_examens_concours }} {% trans "classe" %}{{ nb_classes_avec_examens_concours|pluralize }}</span>
-    </div>
-    <div class="ec-grid">
-      {% for item in classes_examens_concours %}
-      {% with classe=item.classe %}
-      <article class="ec-card">
-        <div class="ec-card-top">
-          <h2>{{ classe.nom }}</h2>
-          <div class="ec-meta">
-            {% if classe.department %}<i class="fas fa-sitemap"></i> {{ classe.department.nom }}{% endif %}
-            {% if classe.department %} · {% endif %}
-            <i class="fas fa-graduation-cap"></i> {{ classe.get_libelle_niveau_superieur_complet }}
-          </div>
-        </div>
-        <div class="ec-card-body">
-          <div class="classe-card-examens ec-card-examens">
-            <div class="classe-card-examens-label"><i class="fas fa-flag-checkered"></i> {% trans "Examens & concours visés" %}</div>
-            <div class="classe-card-examens-tags">
-              {% for lien in classe.liens_examens_concours.all %}
-              <span class="classe-examen-tag" title="{{ lien.option.description }}"><i class="fas fa-star"></i> {{ lien.option.libelle }}</span>
-              {% endfor %}
-            </div>
-          </div>
-          <div class="ec-card-actions">
-            <a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="btn-action btn-detail ec-btn-detail">
-              <i class="fas fa-eye"></i> {% trans "Détails" %}
-            </a>
-          </div>
-        </div>
-      </article>
-      {% endwith %}
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="empty-state ec-empty-state">
-      <div class="empty-icon">
-        <i class="fas fa-clipboard-list"></i>
-      </div>
-      <h3>{% trans "Aucune classe avec parcours examen/concours" %}</h3>
-      <p>{% trans "Lors de la création d'une classe, cochez les examens ou concours concernés." %}</p>
-      <button type="button" class="btn-add-classe" id="addClasseBtnFromExamens">
-        <i class="fas fa-plus"></i>
-        <span>{% trans "Ajouter une classe" %}</span>
-      </button>
-    </div>
-  {% endif %}
+{# Onglet « Examens & concours » de la page des classes : classes qui préparent un examen ou un concours (composants sx-). #}
+{% if classes_examens_concours %}
+<div class="sx-toolbar" data-sx-filter="#sxExamensConcours">
+  <label class="sx-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+    <input type="search" class="sx-search__input" data-sx-q placeholder="{% trans 'Rechercher une classe, un examen…' %}" aria-label="{% trans 'Rechercher' %}"></label>
+  <button type="button" class="sx-toolbar__reset" data-sx-reset hidden>{% trans "Effacer les filtres" %}</button>
+  <span class="sx-toolbar__count" data-sx-count="{% trans 'classes' %}"></span>
 </div>
+<div class="sx-table-wrap">
+  <table class="sx-table" id="sxExamensConcours" data-rl data-rl-mobile="1,4" data-rl-actions="-1">
+    <thead>
+      <tr>
+        <th>{% trans "Classe" %}</th>
+        <th>{% trans "Filière" %}</th>
+        <th>{% trans "Niveau" %}</th>
+        <th>{% trans "Examens & concours visés" %}</th>
+        <th class="sx-act">{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in classes_examens_concours %}{% with classe=item.classe %}
+      <tr data-sx-item data-sx-text="{{ classe.nom }} {{ classe.department.nom|default:'' }}{% for lien in classe.liens_examens_concours.all %} {{ lien.option.libelle }}{% endfor %}">
+        <td class="sx-cell-main"><strong>{{ classe.nom }}</strong></td>
+        <td data-label="{% trans 'Filière' %}">{% if classe.department %}<a class="sx-pill sx-pill--info" href="{% url 'administrateur_etablissement:liste_classes_specialite' classe.department_id %}" style="text-decoration:none">{{ classe.department.sigle|default:classe.department.nom }}</a>{% else %}<span class="sx-pill sx-pill--warn">{% trans "Sans filière" %}</span>{% endif %}</td>
+        <td data-label="{% trans 'Niveau' %}">{{ classe.get_libelle_niveau_superieur_complet|default:"—" }}</td>
+        <td data-label="{% trans 'Examens & concours' %}">
+          <div class="ec-pills">
+            {% for lien in classe.liens_examens_concours.all %}<span class="sx-pill sx-pill--ok" title="{{ lien.option.description }}"><i class="fas fa-flag-checkered" aria-hidden="true"></i>{{ lien.option.libelle }}</span>{% endfor %}
+          </div>
+        </td>
+        <td class="sx-act">
+          <a class="sx-btn sx-btn--sm sx-btn--primary" href="{% url 'administrateur_etablissement:detail_classe' classe.id %}"><i class="fas fa-eye" aria-hidden="true"></i>{% trans "Ouvrir la classe" %}</a>
+        </td>
+      </tr>
+      {% endwith %}{% endfor %}
+      <tr class="sx-empty-row" data-sx-none hidden><td colspan="5">{% trans "Aucun résultat avec cette recherche." %}</td></tr>
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="sx-empty">
+  <i class="fas fa-flag-checkered" aria-hidden="true"></i>
+  <h3>{% trans "Aucune classe ne prépare un examen ou un concours" %}</h3>
+  <p>{% trans "Pour une classe qui prépare un BTS, un BT, une certification ou un concours, ouvrez « Nouvelle classe » (ou modifiez la classe) et cochez les examens et concours concernés." %}</p>
+  <button type="button" class="sx-btn sx-btn--primary" id="addClasseBtnFromExamens"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter une classe" %}</button>
+</div>
+{% endif %}

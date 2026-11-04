@@ -1236,6 +1236,12 @@ button.px-tab {
 .px-stat__icon { flex: 0 0 30px; width: 30px; height: 30px; border-radius: 9px; font-size: 0.78rem; }
 .px-stat strong { font-size: 1.2rem; }
 .px-stat small { display: block; font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Icône à gauche, chiffre au bout à droite, titre dessous (comme les mini-cartes des tableaux de bord) */
+.px-stat { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "icone valeur" "titre titre"; align-items: center; row-gap: 4px; }
+.px-stat > div { display: contents; }
+.px-stat__icon { grid-area: icone; }
+.px-stat strong { grid-area: valeur; justify-self: end; text-align: right; }
+.px-stat small { grid-area: titre; }
 /* Tableau de bord parent : statistiques de chaque enfant */
 .px-child__stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .px-child__stats > div { padding: 8px 10px; border-radius: 10px; }

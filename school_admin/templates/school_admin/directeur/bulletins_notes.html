@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletins_notes.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletins_notes.css' %}?v=2.1.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=2.0.4" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
@@ -188,7 +188,7 @@
                         </div>
 
                       <div class="table-responsive">
-                        <table class="students-table {% if classe_data.bulletins.moyennes_calculees %}with-moyennes{% endif %}" data-rl data-rl-mobile="2,3,4" data-rl-actions="7">
+                        <table class="students-table {% if classe_data.bulletins.moyennes_calculees %}with-moyennes{% endif %}" data-rl data-rl-mobile="2,-3,-2" data-rl-actions="-1">
                           <thead>
                             <tr>
                               <th class="checkbox-header" title="{% trans "Visibilité" %}">
@@ -223,13 +223,13 @@
                                 </td>
 
                                 <td class="student-cell">
-                                  <div class="student-avatar-small">
-                                    <i class="fas fa-user"></i>
+                                  <div class="bul-eleve">
+                                    <span class="student-avatar-small"><i class="fas fa-user"></i></span>
+                                    <span class="student-name">
+                                      <span class="student-name-full">{{ eleve.nom }} {{ eleve.prenom }}</span>
+                                      <span class="student-name-mobile">{{ eleve.nom|premier_nom }} {{ eleve.prenom|premier_prenom }}</span>
+                                    </span>
                                   </div>
-                                    <h4 class="student-name">
-                                        <span class="student-name-full">{{ eleve.nom }} {{ eleve.prenom }}</span>
-                                        <span class="student-name-mobile">{{ eleve.nom|premier_nom }} {{ eleve.prenom|premier_prenom }}</span>
-                                    </h4>
                                 </td>
                                 
                               
@@ -298,8 +298,8 @@
 
                                 <td class="actions-cell">
                                   <div class="student-actions-compact">
-                                    <a href="{{ eleve.bulletin_url }}" class="btn-action-small btn-view" title="{% trans "Voir le bulletin" %}" {% if not eleve.bulletin_valide %}data-status="pending"{% endif %}>
-                                      <i class="fas fa-eye"></i>
+                                    <a href="{{ eleve.bulletin_url }}" class="btn-action-small btn-view bul-btn-voir" title="{% trans "Voir le bulletin" %}" {% if not eleve.bulletin_valide %}data-status="pending"{% endif %}>
+                                      <i class="fas fa-eye"></i><span>{% trans "Voir le bulletin" %}</span>
                                     </a>
                                   </div>
                                 </td>

@@ -1862,3 +1862,27 @@ p {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Tableau des bulletins : compact ---------- */
+body .students-table th { padding: 8px 10px !important; font-size: 0.68rem !important; }
+body .students-table td { padding: 7px 10px !important; font-size: 0.82rem; vertical-align: middle; }
+body .students-table .checkbox-header, body .students-table .checkbox-cell { width: 44px; text-align: center; }
+/* Élève : avatar et nom sur la même ligne */
+.students-table .bul-eleve { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.students-table .bul-eleve .student-avatar-small {
+  display: inline-grid !important; place-items: center; flex: none; width: 26px !important; height: 26px !important;
+  margin: 0 !important; font-size: 0.68rem !important;
+}
+.students-table .bul-eleve .student-name { margin: 0; font-size: 0.84rem; font-weight: 600; line-height: 1.25; }
+body .students-table .status-badge { padding: 3px 8px !important; font-size: 0.68rem !important; gap: 5px; border-radius: 6px; }
+body .students-table .status-badge i { font-size: 0.66rem; }
+/* Bouton « Voir le bulletin » libellé */
+body .students-table .bul-btn-voir {
+  display: inline-flex !important; align-items: center; gap: 6px; width: auto !important; height: 30px !important;
+  padding: 0 10px !important; border-radius: 8px !important; font-size: 0.76rem !important; font-weight: 600; white-space: nowrap; text-decoration: none;
+}
+body .students-table .bul-btn-voir i { font-size: 0.74rem; }
+/* Textes d'information au-dessus du tableau : discrets (11 px) */
+.bul-visibility-tip, .bul-visibility-warn { padding: 6px 10px !important; gap: 7px !important; }
+.bul-visibility-tip p, .bul-visibility-warn p { margin: 0 !important; font-size: 11px !important; line-height: 1.4; }
+.bul-visibility-tip i, .bul-visibility-warn i { font-size: 11px !important; }

@@ -285,7 +285,10 @@
         modal.dataset.eleveNom = eleveNom;
         var btnJustifier = document.getElementById('historiqueBtnJustifier');
         if (btnJustifier) {
-            btnJustifier.hidden = !presences.some(function (p) { return p.statut === 'absent'; });
+            // Toujours visible ; désactivé s'il n'y a aucune absence à justifier sur la période choisie.
+            var aJustifier = presences.some(function (p) { return p.statut === 'absent'; });
+            btnJustifier.disabled = !aJustifier;
+            btnJustifier.title = aJustifier ? '' : 'Aucune absence à justifier sur cette période';
         }
 
         modal.classList.add('is-visible');
@@ -369,7 +372,8 @@
     }
     document.addEventListener('click', function (event) {
         var e;
-        if (event.target.closest('#historiqueBtnJustifier')) {
+        var btnJ = event.target.closest('#historiqueBtnJustifier');
+        if (btnJ && !btnJ.disabled) {
             e = eleveDeLaFenetre();
             fermerModalHistoriquePresence();
             ouvrirModalJustification(e.id, e.nom, e.classe);

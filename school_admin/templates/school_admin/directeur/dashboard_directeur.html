@@ -97,9 +97,6 @@
           <div class="axd-mini__body">
             <h2 class="axd-mini__label">{{ c.label }}</h2>
             <p class="axd-mini__value">{% if c.value == None %}—{% else %}{{ c.value|floatformat:"-1g" }}{% if c.unit %}<small>{{ c.unit }}</small>{% endif %}{% endif %}</p>
-            <p class="axd-mini__caption{% if c.trend == 'up' %} is-up{% elif c.trend == 'down' %} is-down{% endif %}">
-              {% if c.trend == 'up' %}<i class="fas fa-arrow-trend-up" aria-hidden="true"></i>{% elif c.trend == 'down' %}<i class="fas fa-arrow-trend-down" aria-hidden="true"></i>{% endif %}{{ c.caption }}
-            </p>
             {% if c.gender %}
             <div class="axd-mini__split" role="img" aria-label="{% blocktrans with f=c.gender.female m=c.gender.male %}{{ f }} filles et {{ m }} garçons{% endblocktrans %}">
               <span class="axd-split__bar"><span class="axd-split__f" style="width: {{ c.gender.female_pct }}%"></span><span class="axd-split__m" style="width: {{ c.gender.male_pct }}%"></span></span>

@@ -18,8 +18,8 @@
   {% endif %}
   {# Jetons de couleur partagés avec l'espace direction, puis styles du tableau de bord. #}
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/aria_shell.css' %}?v=1.0.0">
-  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=1.0.0">
-  <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/dashboard_enseignant_v3.css' %}?v=1.0.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=20261104">
+  <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/dashboard_enseignant_v3.css' %}?v=20261104">
 </head>
 <body class="axd-page axd-page--prof">
   {% if tdash.is_primaire %}
@@ -75,9 +75,6 @@
         <div class="axd-mini__body">
           <h2 class="axd-mini__label">{{ c.label }}</h2>
           <p class="axd-mini__value">{% if c.value == None %}—{% else %}{{ c.value|floatformat:"-1g" }}{% if c.unit %}<small>{{ c.unit }}</small>{% endif %}{% endif %}</p>
-          <p class="axd-mini__caption{% if c.trend == 'up' %} is-up{% elif c.trend == 'down' %} is-down{% endif %}">
-            {% if c.trend == 'up' %}<i class="fas fa-circle-check" aria-hidden="true"></i>{% elif c.trend == 'down' %}<i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{% endif %}{{ c.caption }}
-          </p>
           {% if c.gender %}
           <div class="axd-mini__split" role="img" aria-label="{% blocktrans with f=c.gender.female_pct m=c.gender.male_pct %}{{ f }} % de filles et {{ m }} % de garçons{% endblocktrans %}">
             <span class="axd-split__bar"><span class="axd-split__f" style="width: {{ c.gender.female_pct }}%"></span><span class="axd-split__m" style="width: {{ c.gender.male_pct }}%"></span></span>

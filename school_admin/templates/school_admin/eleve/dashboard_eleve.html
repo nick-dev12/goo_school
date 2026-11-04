@@ -84,7 +84,6 @@
           <p class="axd-mini__value{% if c.bad %} is-bad{% endif %}">{% if c.value == None %}—{% else %}{{ c.value|floatformat:"-2" }}{% if c.unit %}<small>{{ c.unit }}</small>{% endif %}{% endif %}
             {% if c.delta != None and c.delta != 0 %}<span class="ex-delta {% if c.delta > 0 %}is-up{% else %}is-down{% endif %}"><i class="fas {% if c.delta > 0 %}fa-arrow-trend-up{% else %}fa-arrow-trend-down{% endif %}" aria-hidden="true"></i>{% if c.delta > 0 %}+{% endif %}{{ c.delta|floatformat:"-2" }}</span>{% endif %}
           </p>
-          <p class="axd-mini__caption">{{ c.caption }}</p>
         </div>
       </article>
       {% endfor %}

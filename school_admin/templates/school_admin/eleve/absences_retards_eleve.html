@@ -27,7 +27,6 @@
         <div class="axd-mini__body">
           <h2 class="axd-mini__label">{% trans "Assiduité" %}</h2>
           <p class="axd-mini__value{% if spres.taux != None and spres.taux < 85 %} is-bad{% endif %}">{% if spres.taux != None %}{{ spres.taux|floatformat:"-1" }}<small>%</small>{% else %}—{% endif %}</p>
-          <p class="axd-mini__caption">{% blocktrans with n=total_jours %}sur {{ n }} appels{% endblocktrans %}</p>
         </div>
       </article>
       <article class="axd-mini__card">
@@ -35,7 +34,6 @@
         <div class="axd-mini__body">
           <h2 class="axd-mini__label">{% trans "Absences" %}</h2>
           <p class="axd-mini__value{% if absences_non_justifiees %} is-bad{% endif %}">{{ total_absences }}</p>
-          <p class="axd-mini__caption">{{ absences_non_justifiees }} {% trans "non justifiée(s)" %}</p>
         </div>
       </article>
       <article class="axd-mini__card">
@@ -43,7 +41,6 @@
         <div class="axd-mini__body">
           <h2 class="axd-mini__label">{% trans "Justifiées" %}</h2>
           <p class="axd-mini__value">{{ absences_justifiees }}</p>
-          <p class="axd-mini__caption">{% trans "Justificatif reçu" %}</p>
         </div>
       </article>
       <article class="axd-mini__card">
@@ -51,7 +48,6 @@
         <div class="axd-mini__body">
           <h2 class="axd-mini__label">{% trans "Retards" %}</h2>
           <p class="axd-mini__value">{{ total_retards }}</p>
-          <p class="axd-mini__caption">{% trans "Depuis la rentrée" %}</p>
         </div>
       </article>
     </section>

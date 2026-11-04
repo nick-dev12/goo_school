@@ -74,22 +74,18 @@
             <div>
               <dt>{% trans "Moyenne" %}</dt>
               <dd class="{% if e.moyenne != None and e.moyenne < 10 %}is-bad{% endif %}">{% if e.moyenne != None %}{{ e.moyenne|floatformat:2 }}<small>/20</small>{% else %}—{% endif %}</dd>
-              <span>{% if e.moyenne_periode %}{{ e.moyenne_periode }}{% else %}{% trans "Bulletin non publié" %}{% endif %}</span>
             </div>
             <div>
               <dt>{% trans "Assiduité" %}</dt>
               <dd class="{% if e.assiduite != None and e.assiduite < 85 %}is-warn{% endif %}">{% if e.assiduite != None %}{{ e.assiduite }}<small>%</small>{% else %}—{% endif %}</dd>
-              <span>{% trans "des appels" %}</span>
             </div>
             <div>
               <dt>{% trans "Absences" %}</dt>
               <dd class="{% if e.total_absences > 0 %}is-warn{% endif %}">{{ e.total_absences }}</dd>
-              <span>{% if e.retards %}{{ e.retards }} {% trans "retard(s)" %}{% else %}{% trans "cette année" %}{% endif %}</span>
             </div>
             <div>
               <dt>{% trans "À payer" %}</dt>
-              <dd class="{% if e.dette and e.dette.reste > 0 %}is-bad{% else %}is-good{% endif %}">{% if e.dette and e.dette.reste > 0 %}{{ e.dette.reste|floatformat:"0g" }}{% else %}0{% endif %}</dd>
-              <span>{% if e.dette and e.dette.reste > 0 %}{{ e.devise }}{% else %}{% trans "À jour" %}{% endif %}</span>
+              <dd class="{% if e.dette and e.dette.reste > 0 %}is-bad{% else %}is-good{% endif %}">{% if e.dette and e.dette.reste > 0 %}{{ e.dette.reste|floatformat:"0g" }}<small> {{ e.devise }}</small>{% else %}0{% endif %}</dd>
             </div>
           </dl>
 

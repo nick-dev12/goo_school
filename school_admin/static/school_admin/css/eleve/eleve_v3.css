@@ -826,3 +826,42 @@
 
 .ex-alert-static { cursor: default; }
 .ex-subject__empty { margin: 0 16px 14px; }
+
+/* ---------- Mini-cartes (axd-mini) : modèle compact commun à la direction, aux enseignants et aux élèves ----------
+   Icône et chiffre sur la même ligne, titre dessous, pas de petit texte. Même rendu partout. */
+.axd-mini { gap: 10px !important; margin-bottom: 14px; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+.axd-mini .axd-mini__card {
+  display: grid !important; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "icone valeur" "titre titre" "detail detail";
+  align-items: center; column-gap: 10px; row-gap: 4px; padding: 12px 14px !important; border-radius: 12px; box-shadow: none !important;
+}
+.axd-mini .axd-mini__body { display: contents; }
+.axd-mini .axd-mini__icon {
+  grid-area: icone; position: static !important; flex: none; width: 30px !important; height: 30px !important;
+  border-radius: 9px; font-size: 0.78rem !important;
+}
+.axd-mini .axd-mini__value { grid-area: valeur; margin: 0 !important; font-size: 1.3rem !important; line-height: 1.1; }
+.axd-mini .axd-mini__value small { font-size: 0.74rem !important; }
+.axd-mini .axd-mini__label {
+  grid-area: titre; margin: 0 !important; padding: 0 !important; font-size: 0.76rem !important; font-weight: 600;
+  color: var(--ax-ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.axd-mini .axd-mini__caption { display: none !important; }
+.axd-mini .axd-mini__split { grid-area: detail; margin-top: 2px !important; }
+.axd-mini .axd-mini__split-legend { margin-top: 4px; gap: 2px 10px; font-size: 0.66rem !important; }
+
+/* Tablette : quatre par ligne, plus serrées */
+@media (min-width: 641px) and (max-width: 1199.98px) {
+  .axd-mini { gap: 8px !important; }
+  .axd-mini .axd-mini__card { padding: 10px 12px !important; column-gap: 8px; }
+  .axd-mini .axd-mini__icon { width: 26px !important; height: 26px !important; font-size: 0.7rem !important; }
+  .axd-mini .axd-mini__value { font-size: 1.15rem !important; }
+  .axd-mini .axd-mini__label { font-size: 0.72rem !important; }
+}
+/* Mobile : deux par ligne */
+@media (max-width: 640px) {
+  .axd-mini { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+  .axd-mini .axd-mini__card { padding: 10px !important; column-gap: 8px; }
+  .axd-mini .axd-mini__icon { width: 24px !important; height: 24px !important; border-radius: 7px; font-size: 0.66rem !important; }
+  .axd-mini .axd-mini__value { font-size: 1.1rem !important; }
+  .axd-mini .axd-mini__label { font-size: 0.7rem !important; }
+}

@@ -1228,3 +1228,24 @@ button.px-tab {
 .px-receipts strong {
   white-space: nowrap;
 }
+
+/* ---------- Mini-cartes compactes (même modèle que les tableaux de bord) ---------- */
+/* Résumés (convocations, devoirs, sanctions) : icône et chiffre sur la même ligne */
+.px-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.px-stat { gap: 10px; padding: 10px 12px; border-radius: 12px; }
+.px-stat__icon { flex: 0 0 30px; width: 30px; height: 30px; border-radius: 9px; font-size: 0.78rem; }
+.px-stat strong { font-size: 1.2rem; }
+.px-stat small { display: block; font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Tableau de bord parent : statistiques de chaque enfant */
+.px-child__stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.px-child__stats > div { padding: 8px 10px; border-radius: 10px; }
+.px-child__stats dt { font-size: 0.68rem; }
+.px-child__stats dd { margin: 2px 0 0; font-size: 1.15rem; }
+.px-child__stats dd small { font-size: 0.68rem; }
+@media (max-width: 640px) {
+  .px-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .px-stat { padding: 8px 10px; gap: 8px; }
+  .px-stat__icon { flex-basis: 24px; width: 24px; height: 24px; border-radius: 7px; font-size: 0.66rem; }
+  .px-stat strong { font-size: 1.05rem; }
+  .px-child__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

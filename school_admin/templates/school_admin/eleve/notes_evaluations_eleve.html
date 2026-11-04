@@ -32,10 +32,8 @@
           <h2 class="axd-mini__label">{% if n.moyenne %}{% trans "Moyenne générale" %}{% else %}{% trans "Moyenne des notes" %}{% endif %}</h2>
           {% if n.moyenne %}
           <p class="axd-mini__value{% if n.moyenne.valeur < n.seuil %} is-bad{% endif %}">{{ n.moyenne.valeur|floatformat:"-2" }}<small>/20</small>{% if n.moyenne.delta %}<span class="ex-delta {% if n.moyenne.delta > 0 %}is-up{% else %}is-down{% endif %}">{% if n.moyenne.delta > 0 %}+{% endif %}{{ n.moyenne.delta|floatformat:"-2" }}</span>{% endif %}</p>
-          <p class="axd-mini__caption">{{ n.moyenne.periode }}{% if n.moyenne.rang %} · {% trans "rang" %} {{ n.moyenne.rang }}{% endif %}</p>
           {% else %}
           <p class="axd-mini__value{% if n.moyenne_notes != None and n.moyenne_notes < n.seuil %} is-bad{% endif %}">{% if n.moyenne_notes != None %}{{ n.moyenne_notes|floatformat:"-2" }}<small>/20</small>{% else %}—{% endif %}</p>
-          <p class="axd-mini__caption">{% trans "Moyenne simple des notes publiées" %}</p>
           {% endif %}
         </div>
       </article>
@@ -44,7 +42,6 @@
         <div class="axd-mini__body">
           <h2 class="axd-mini__label">{% trans "Point fort" %}</h2>
           <p class="axd-mini__value ex-mini__text">{% if n.meilleure %}{{ n.meilleure.matiere }}{% else %}—{% endif %}</p>
-          <p class="axd-mini__caption">{% if n.meilleure %}{{ n.meilleure.moyenne|floatformat:"-2" }}/20 {% trans "de moyenne" %}{% endif %}</p>
         </div>
       </article>
       <article class="axd-mini__card">
@@ -52,7 +49,6 @@
         <div class="axd-mini__body">
           <h2 class="axd-mini__label">{% trans "À travailler" %}</h2>
           <p class="axd-mini__value ex-mini__text">{% if n.a_travailler and n.matieres|length > 1 %}{{ n.a_travailler.matiere }}{% else %}—{% endif %}</p>
-          <p class="axd-mini__caption">{% if n.a_travailler and n.matieres|length > 1 %}{{ n.a_travailler.moyenne|floatformat:"-2" }}/20 {% trans "de moyenne" %}{% endif %}</p>
         </div>
       </article>
       <article class="axd-mini__card">
@@ -60,7 +56,6 @@
         <div class="axd-mini__body">
           <h2 class="axd-mini__label">{% trans "Évaluations à venir" %}</h2>
           <p class="axd-mini__value">{{ n.evaluations|length }}</p>
-          <p class="axd-mini__caption">{% if n.evaluations %}{% trans "La prochaine" %} {{ n.evaluations.0.quand }}{% else %}{% trans "Rien de prévu" %}{% endif %}</p>
         </div>
       </article>
     </section>

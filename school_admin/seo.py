@@ -289,9 +289,8 @@ DEFAULT_PRIVATE = SeoMeta(
 )
 
 
-# Règles détaillées (regex sur le chemin, première correspondance gagne)
-_PATH_RULES: list[tuple[re.Pattern[str], SeoMeta]] = [
-    # Public
+# Pages publiques (regex sur le chemin, première correspondance gagne)
+_PUBLIC_RULES: list[tuple[re.Pattern[str], SeoMeta]] = [
     (re.compile(r"^/connexion/"), PUBLIC_CONNEXION),
     (re.compile(r"^/inscription/"), PUBLIC_INSCRIPTION),
     (re.compile(r"^/conditions-utilisation/"), PUBLIC_CONDITIONS),
@@ -301,22 +300,29 @@ _PATH_RULES: list[tuple[re.Pattern[str], SeoMeta]] = [
     (re.compile(r"^/password-reset/"), PUBLIC_PASSWORD_RESET),
     (re.compile(r"^/preinscription/"), PUBLIC_PREINSCRIPTION),
     (re.compile(r"^/connexion/professeurs/otp"), PUBLIC_CONNEXION),
-    # Sous-pages métier (descriptions spécifiques, toujours noindex)
-    (re.compile(r".*/bulletin"), _replace(ZONE_ELEVE, title=_title("Bulletins scolaires", "Espace Élève", SITE_NAME),
-        description="Consultation des bulletins et relevés de notes sur l'espace élève ARIA.")),
-    (re.compile(r".*/notes"), _replace(ZONE_ENSEIGNANT, title=_title("Notes et évaluations", "Espace Enseignant", SITE_NAME),
-        description="Saisie et gestion des notes, moyennes et évaluations des élèves avec ARIA.")),
-    (re.compile(r".*/emploi-du-temps"), _replace(ZONE_ELEVE, title=_title("Emploi du temps", SITE_NAME),
-        description="Emploi du temps scolaire en ligne pour élèves, enseignants et administration.")),
-    (re.compile(r".*/gestion-eleves"), _replace(ZONE_DIRECTEUR, title=_title("Gestion des élèves", "Espace Directeur", SITE_NAME),
-        description="Inscription, réinscription et suivi complet des élèves de l'établissement.")),
-    (re.compile(r".*/bulletins"), _replace(ZONE_DIRECTEUR, title=_title("Bulletins et résultats", "Espace Directeur", SITE_NAME),
-        description="Génération des bulletins, moyennes et résultats scolaires par classe.")),
-    (re.compile(r".*/comptabilite"), _replace(ZONE_DIRECTEUR, title=_title("Comptabilité scolaire", SITE_NAME),
-        description="Suivi des frais de scolarité, paiements et facturation des élèves.")),
-    (re.compile(r".*/annonces"), _replace(ZONE_PARENT, title=_title("Annonces", "Espace Parent", SITE_NAME),
-        description="Annonces et communications de l'établissement vers les parents d'élèves.")),
-    # Zones principales
+]
+
+# Sous-pages métier : libellé et description seulement. L'espace (« Espace Élève », « Espace Parent »…)
+# vient de la zone de l'adresse, pour qu'une page d'annonces élève ne s'intitule pas « Espace Parent ».
+_SOUS_PAGES: list[tuple[re.Pattern[str], str, str]] = [
+    (re.compile(r".*/bulletins/"), "Bulletins et résultats",
+        "Génération des bulletins, moyennes et résultats scolaires par classe."),
+    (re.compile(r".*/bulletin"), "Bulletins scolaires",
+        "Consultation des bulletins et relevés de notes sur ARIA."),
+    (re.compile(r".*/notes"), "Notes et évaluations",
+        "Notes, moyennes et évaluations des élèves avec ARIA."),
+    (re.compile(r".*/emploi-du-temps"), "Emploi du temps",
+        "Emploi du temps scolaire en ligne pour élèves, enseignants et administration."),
+    (re.compile(r".*/gestion-eleves"), "Gestion des élèves",
+        "Inscription, réinscription et suivi complet des élèves de l'établissement."),
+    (re.compile(r".*/comptabilite"), "Comptabilité scolaire",
+        "Suivi des frais de scolarité, paiements et facturation des élèves."),
+    (re.compile(r".*/annonces"), "Annonces",
+        "Annonces et communications de l'établissement."),
+]
+
+# Zones principales (préfixe de l'adresse)
+_ZONE_RULES: list[tuple[re.Pattern[str], SeoMeta]] = [
     (re.compile(r"^/dashboard/directeur/"), ZONE_DIRECTEUR),
     (re.compile(r"^/gestion-"), ZONE_DIRECTEUR),
     (re.compile(r"^/bulletins/"), ZONE_DIRECTEUR),
@@ -339,18 +345,26 @@ _PATH_RULES: list[tuple[re.Pattern[str], SeoMeta]] = [
 ]
 
 
+def _meta_pour(path: str) -> SeoMeta:
+    for pattern, meta in _PUBLIC_RULES:
+        if pattern.search(path):
+            return meta
+    zone = next((meta for pattern, meta in _ZONE_RULES if pattern.search(path)), None)
+    for pattern, libelle, description in _SOUS_PAGES:
+        if pattern.search(path):
+            base = zone or DEFAULT_PRIVATE
+            espace = base.title.split(" – ")[0] if zone else ""
+            return _replace(base, title=_title(libelle, espace, SITE_NAME), description=description)
+    return zone or DEFAULT_PRIVATE
+
+
 def resolve_seo(request, overrides: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     Résout les métadonnées SEO pour la requête courante.
     Les vues peuvent passer seo_overrides dans le contexte template.
     """
     path = request.path if request else "/"
-    meta = DEFAULT_PRIVATE
-
-    for pattern, zone_meta in _PATH_RULES:
-        if pattern.search(path):
-            meta = zone_meta
-            break
+    meta = _meta_pour(path)
 
     ctx = meta.to_context(request)
 

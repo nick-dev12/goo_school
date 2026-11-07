@@ -339,12 +339,21 @@ class MoyenneMatierePrimaire(models.Model):
             moyenne = None
             nombre_notes = 0
         
+        # Année scolaire : celle de la période (le bulletin ne lit que les moyennes de l'année active).
+        annee_scolaire = getattr(periode_scolaire, 'annee_scolaire_fk', None)
+        if annee_scolaire is None:
+            from .annee_scolaire_model import AnneeScolaire
+            annee_scolaire = AnneeScolaire.objects.filter(
+                etablissement=eleve.etablissement, est_active=True
+            ).first()
+
         # Créer ou mettre à jour la moyenne
         moyenne_obj, created = cls.objects.update_or_create(
             eleve=eleve,
             matiere=matiere,
             periode_scolaire=periode_scolaire,
             defaults={
+                'annee_scolaire': annee_scolaire,
                 'classe': eleve.classe,
                 'moyenne': moyenne,
                 'nombre_notes': len(evaluations_utilisees),

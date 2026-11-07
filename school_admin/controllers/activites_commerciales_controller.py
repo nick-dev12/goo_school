@@ -9,10 +9,27 @@ from ..model.compte_rendu_model import CompteRendu
 from ..model.compte_user import CompteUser
 
 
+from functools import wraps
+
+from django.http import HttpResponseForbidden
+
+
+def reserve_equipe_commerciale(vue):
+    """Suivi commercial de la plateforme : administrateurs et commerciaux Aria uniquement (pas le personnel des écoles)."""
+    @wraps(vue)
+    def verifiee(request, *args, **kwargs):
+        user = request.user
+        if not (isinstance(user, CompteUser) and getattr(user, 'fonction', None) in ('administrateur', 'commercial')):
+            return HttpResponseForbidden("Accès réservé à l'équipe Aria.")
+        return vue(request, *args, **kwargs)
+    return verifiee
+
+
 class ActivitesCommercialesController:
     
     @staticmethod
     @login_required
+    @reserve_equipe_commerciale
     def liste_prospects(request):
         """
         Vue pour afficher la liste des prospects avec vue d'ensemble
@@ -112,6 +129,7 @@ class ActivitesCommercialesController:
     
     @staticmethod
     @login_required
+    @reserve_equipe_commerciale
     def detail_prospect(request, prospect_id):
         """
         Vue pour afficher les détails complets d'un prospect
@@ -155,6 +173,7 @@ class ActivitesCommercialesController:
     
     @staticmethod
     @login_required
+    @reserve_equipe_commerciale
     def analyse_performances(request):
         """
         Vue pour analyser les performances des commerciaux

@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "Attestations de réussite" %} - {{ etablissement.nom }}</title>
+    <title>{% trans "Attestations de conduite" %} - {{ etablissement.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
@@ -30,7 +30,7 @@
 
         <header class="acd-hero">
             <div class="acd-hero-text">
-                <h1 class="acd-hero-title"><i class="fas fa-trophy"></i> {% trans "Attestations de réussite" %}</h1>
+                <h1 class="acd-hero-title"><i class="fas fa-award"></i> {% trans "Attestations de conduite" %}</h1>
             </div>
             <div class="acd-hero-stats">
                 <div class="acd-stat-pill">
@@ -128,7 +128,7 @@
                                                 {{ classe_data.classe.nom }} — {{ classe_data.classe.get_niveau_display }}
                                             {% endif %}
                                         </h2>
-                                        <p class="acd-classe-desc">{% if classe_data.classe.description %}{{ classe_data.classe.description }}{% else %}{% trans "Sélectionnez un élève pour générer son attestation de réussite." %}{% endif %}</p>
+                                        <p class="acd-classe-desc">{% if classe_data.classe.description %}{{ classe_data.classe.description }}{% else %}{% trans "Sélectionnez un élève pour générer son attestation de conduite." %}{% endif %}</p>
                                     </div>
                                     <div class="acd-classe-meta">
                                         <span class="acd-mini-stat"><strong>{{ classe_data.nombre_eleves }}</strong> {% trans "élève(s)" %}</span>
@@ -206,7 +206,7 @@
                                                         <div class="list-cell">
                                                             <a href="{% url 'directeur:generer_attestation_conduite' eleve.id %}"
                                                                class="acd-att-btn"
-                                                               title="{% trans "Générer attestation de réussite" %}"
+                                                               title="{% trans "Générer attestation de conduite" %}"
                                                                target="_blank" rel="noopener">
                                                                 <i class="fas fa-trophy"></i>
                                                                 <span>{% trans "Générer" %}</span>

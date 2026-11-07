@@ -6782,27 +6782,34 @@ def historique_presence_eleve(request, eleve_id):
     if etablissement:
         annee_scolaire_active = get_session_active(request, etablissement)
     
+    # Espace d'où vient la demande (secondaire ou primaire) pour les retours.
+    ns = getattr(request.resolver_match, 'namespace', '') or 'enseignant'
+    if ns not in ('enseignant', 'enseignant_primaire'):
+        ns = 'enseignant'
+
     # Récupérer la classe active de l'élève pour l'année scolaire active
     classe = _get_classe_eleve_active(eleve, annee_scolaire_active, etablissement)
-    
+
     if not classe:
         messages.error(request, "Cet élève n'est pas inscrit dans une classe pour l'année scolaire active.")
-        return redirect('enseignant:gestion_eleves')
-    
+        return redirect(f'{ns}:gestion_eleves')
+
     # Vérifier que le professeur est affecté à cette classe pour l'année scolaire active
+    # (affectation par matière au secondaire, titulaire de la classe au primaire).
     from ..model.affectation_model import AffectationProfesseur
-    affectation_queryset = AffectationProfesseur.objects.filter(
-        professeur=professeur,
-        classe=classe,
-        actif=True
-    )
-    if annee_scolaire_active:
-        affectation_queryset = affectation_queryset.filter(annee_scolaire=annee_scolaire_active)
-    affectation = affectation_queryset.first()
-    
+    from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
+    affectation = None
+    for modele in (AffectationProfesseur, AffectationProfesseurPrimaire):
+        affectation_queryset = modele.objects.filter(professeur=professeur, classe=classe, actif=True)
+        if annee_scolaire_active:
+            affectation_queryset = affectation_queryset.filter(annee_scolaire=annee_scolaire_active)
+        affectation = affectation_queryset.first()
+        if affectation:
+            break
+
     if not affectation:
         messages.error(request, "Vous n'êtes pas affecté à cette classe pour l'année scolaire active.")
-        return redirect('enseignant:gestion_eleves')
+        return redirect(f'{ns}:gestion_eleves')
     
     # Récupérer toutes les présences de l'élève (par défaut: année scolaire)
     # Pour l'année scolaire sénégalaise: septembre → juin

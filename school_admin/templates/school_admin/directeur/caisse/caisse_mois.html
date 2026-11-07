@@ -86,6 +86,7 @@
                                     <th>{% trans "Date" %}</th>
                                     <th>{% trans "Élève" %}</th>
                                     <th>{% trans "Nature" %}</th>
+                                    <th>{% trans "Reçu" %}</th>
                                     <th class="num">{% trans "Montant" %}</th>
                                 </tr>
                             </thead>
@@ -95,11 +96,12 @@
                                     <td>{{ paiement.date_paiement|date:"d/m/Y" }}</td>
                                     <td>{{ paiement.eleve.nom }} {{ paiement.eleve.prenom }}</td>
                                     <td>{{ paiement.get_type_paiement_display }}</td>
+                                    <td>{% if paiement.numero_recu %}<a href="{% url 'directeur:recu_paiement_directeur' paiement.id %}" target="_blank" rel="noopener">{{ paiement.numero_recu }}</a>{% else %}—{% endif %}</td>
                                     <td class="num">{{ paiement.montant|floatformat:0 }}</td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="4" class="caisse-empty">{% trans "Aucun paiement encaissé ce mois-ci." %}</td>
+                                    <td colspan="5" class="caisse-empty">{% trans "Aucun paiement encaissé ce mois-ci." %}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

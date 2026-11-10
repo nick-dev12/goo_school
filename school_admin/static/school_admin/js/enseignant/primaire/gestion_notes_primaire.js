@@ -33,7 +33,11 @@
     var changed = false;
     FIELDS.forEach(function (name) {
       if ((!next.has(name) || next.get(name) === '') && stored[name]) {
-        next.set(name, String(stored[name]));
+        var value = String(stored[name]);
+        if (name === 'vue' && value === 'evaluations') {
+          value = 'releve';
+        }
+        next.set(name, value);
         changed = true;
       }
     });
@@ -54,10 +58,13 @@
 
   function filterReleveRows() {
     var input = document.getElementById('notesHubSearchInput');
-    var table = document.querySelector('#notesReleveTable tbody');
-    if (!input || !table) return;
+    if (!input) return;
     var term = input.value.trim().toLowerCase();
-    table.querySelectorAll('tr').forEach(function (row) {
+    var rows = document.querySelectorAll('#notesReleveTable .notes-list-row, #notesReleveTable tbody tr');
+    if (!rows.length) {
+      rows = document.querySelectorAll('.notes-list .notes-list-row');
+    }
+    rows.forEach(function (row) {
       var text = row.textContent.toLowerCase();
       row.hidden = term.length > 0 && text.indexOf(term) === -1;
     });
@@ -140,7 +147,7 @@
   document.addEventListener('prof-hub-panel-loaded', initNotesHubPanel);
 
   document.addEventListener('DOMContentLoaded', function () {
-    if (restoreFromStore()) {
+    if (document.body.getAttribute('data-live-page') === 'notes-gestion' && restoreFromStore()) {
       return;
     }
     initNotesHubPanel();

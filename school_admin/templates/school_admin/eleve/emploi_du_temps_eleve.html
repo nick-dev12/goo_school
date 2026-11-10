@@ -21,7 +21,42 @@
       </div>
     </header>
 
+    <div class="prof-hub-filters ex-period-filters">
+      <section class="prof-hub-filter-block prof-hub-filter-block--vue" aria-label="{% trans 'Vue' %}">
+        <p class="prof-hub-filter-label"><i class="fas fa-layer-group" aria-hidden="true"></i> {% trans "Vue" %}</p>
+        <nav class="prof-primaire-hub-nav" aria-label="{% trans 'Vue de l’emploi du temps' %}">
+          <div class="matiere-tabs-bar prof-primaire-vues-bar" data-tabs-level="primary" data-overflow-item-label="vue" data-overflow-items-label="vues">
+            <div class="matiere-tabs-track" role="tablist">
+              <a role="tab"
+                 class="matiere-tab-btn prof-primaire-tab-link prof-hub-nav-link{% if vue_edt == 'jour' %} active{% endif %}"
+                 aria-selected="{% if vue_edt == 'jour' %}true{% else %}false{% endif %}"
+                 href="?vue=jour">
+                <i class="fas fa-calendar-day" aria-hidden="true"></i>
+                <span>{% trans "Cours du jour" %}</span>
+                <span class="tab-count">{{ cours_du_jour|length }}</span>
+              </a>
+              <a role="tab"
+                 class="matiere-tab-btn prof-primaire-tab-link prof-hub-nav-link{% if vue_edt == 'semaine' %} active{% endif %}"
+                 aria-selected="{% if vue_edt == 'semaine' %}true{% else %}false{% endif %}"
+                 href="?vue=semaine">
+                <i class="fas fa-calendar-week" aria-hidden="true"></i>
+                <span>{% trans "Emploi complet" %}</span>
+              </a>
+            </div>
+            <div class="matiere-tabs-more-wrap" hidden>
+              <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres vues' %}">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                <span class="matiere-tabs-more-label">{% trans "Autres vues" %}</span>
+              </button>
+              <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+            </div>
+          </div>
+        </nav>
+      </section>
+    </div>
+
     {% if sedt.publie %}
+      {% if vue_edt == 'jour' %}
       {% if sedt.en_cours or sedt.prochain %}
       <section class="ex-alerts">
         {% if sedt.en_cours %}
@@ -39,12 +74,37 @@
       </section>
       {% endif %}
 
+      <section class="axd-card ex-today" aria-label="{% trans 'Cours du jour' %}">
+        <header class="axd-card__head">
+          <div>
+            <h2 class="axd-card__title">{% trans "Cours du jour" %}</h2>
+            <p class="axd-card__sub">{{ date_du_jour|date:"l j F"|capfirst }}</p>
+          </div>
+        </header>
+        {% if cours_du_jour %}
+        <ol class="ex-timeline">
+          {% for c in cours_du_jour %}
+          <li class="ex-course{% if c.etat == 'passe' %} is-past{% elif c.etat == 'en_cours' %} is-now{% endif %}">
+            <div class="ex-course__time"><strong>{{ c.debut_txt }}</strong><small>{{ c.fin_txt }}</small></div>
+            <span class="ex-course__icon ax-tone-{{ c.tone }}"><i class="fas {{ c.icon }}" aria-hidden="true"></i></span>
+            <div class="ex-course__body">
+              <p class="ex-course__title">{{ c.matiere }}{% if c.type %} <span class="px-badge px-badge--gray">{{ c.type }}</span>{% endif %}{% if c.etat == 'en_cours' %} <span class="ex-live" aria-label="{% trans 'en cours' %}"></span>{% endif %}</p>
+              <p class="ex-course__meta">{% if c.prof %}<span><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{{ c.prof }}</span>{% endif %}{% if c.salle %}<span><i class="fas fa-door-open" aria-hidden="true"></i>{% trans "Salle" %} {{ c.salle }}</span>{% endif %}</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ol>
+        {% else %}
+          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-mug-hot' message=_("Aucun cours aujourd’hui.") %}
+        {% endif %}
+      </section>
+      {% else %}
       {# Vue semaine (ordinateur, tablette) #}
       <section class="ex-week" style="--days: {{ sedt.jours|length }}" aria-label="{% trans 'Semaine' %}">
         {% for j in sedt.jours %}
         <div class="ex-week__col{% if j.est_aujourdhui %} is-today{% endif %}">
           <header class="ex-week__head">
-            <span>{{ j.court }}</span><b>{{ j.date|date:"j" }}</b>
+            <span>{{ j.date|date:"l"|capfirst }}</span><b>{{ j.date|date:"j" }}</b>
             {% if j.est_aujourdhui %}<em>{% trans "Aujourd’hui" %}</em>{% endif %}
           </header>
           {% for c in j.cours %}
@@ -63,7 +123,7 @@
 
       {# Vue jour (mobile) #}
       <section class="axd-card ex-dayview">
-        <div class="ex-days" role="tablist" aria-label="{% trans 'Jours de la semaine' %}">
+        <div class="ex-days" role="tablist" aria-label="{% trans 'Jours de la semaine' %}" data-tabs-overflow="off">
           {% for j in sedt.jours %}
           <button type="button" class="ex-day{% if j.est_aujourdhui %} is-active{% endif %}" role="tab" aria-selected="{% if j.est_aujourdhui %}true{% else %}false{% endif %}" aria-controls="ex-day-{{ j.code }}">
             <span>{{ j.court }}</span><b>{{ j.date|date:"j" }}</b>{% if j.cours %}<i class="ex-day__dot" aria-hidden="true"></i>{% endif %}
@@ -91,6 +151,7 @@
         </div>
         {% endfor %}
       </section>
+      {% endif %}
     {% else %}
       <div class="px-empty-inline">
         <i class="fas {% if emploi_non_publie %}fa-eye-slash{% else %}fa-calendar-xmark{% endif %}" aria-hidden="true"></i>

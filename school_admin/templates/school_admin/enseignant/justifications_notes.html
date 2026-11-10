@@ -1,5 +1,5 @@
 {% load static %}
-{% load notes_tags %}
+{% load notes_tags aria_tabs %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -10,24 +10,18 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}?v=1.0.3">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/justifications_notes.css' %}?v=1.0.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/notes_workspace.css' %}?v=1.0.9">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/justifications_notes.css' %}?v=1.1.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.0">
     {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
 </head>
-<body data-live-page="justifications"{% if hub_prof_ui %} data-prof-hub-nav-live="1"{% endif %}{% if hub_v4 %} data-prof-hub-key="professeur:lmd-justifications" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-justifications" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
+<body data-live-page="justifications"{% if hub_prof_ui %} data-prof-hub-nav-live="1"{% endif %}{% if hub_v4 %} data-prof-hub-key="professeur:lmd-justifications" data-prof-hub-fields="periode,classe,matiere" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-justifications" data-prof-hub-fields="periode,classe,matiere" data-initial-classe="{{ initial_classe_id }}"{% endif %}>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
     <div class="main-content-container">
-        <div class="page-header">
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-scale-balanced"></i>
-                    Justification des notes
-                </h1>
-            </div>
-        </div>
-
-        {% if stats.total_classes > 0 %}
+        {% if hub_prof_ui %}
+            {% include 'school_admin/enseignant/partials/justifications_notes_enseignant_hub_swap.html' %}
+        {% elif False and stats.total_classes > 0 %}
             <div class="stats-container">
                 <div class="stat-card">
                     <div class="stat-icon primary">
@@ -49,28 +43,11 @@
                 </div>
             </div>
 
-            {% if hub_prof_ui %}
-            <div id="prof-hub-chrome">
-                {% if hub_v3 %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
-                {% elif hub_v4 %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un étudiant…" %}
-                {% endif %}
-            </div>
-            <div id="prof-hub-panel">
-                {% include 'school_admin/enseignant/partials/justifications_notes_enseignant_hub_panel.html' %}
-            </div>
             {% else %}
             {% if hub_v3 %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
+            {% aria_prof_filters search_placeholder="Rechercher un élève…" search_target=".notes-list .notes-list-row" %}
             {% elif hub_v4 %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un étudiant…" %}
+            {% aria_prof_filters show_periodes=False search_placeholder="Rechercher un étudiant…" search_target=".notes-list .notes-list-row" %}
             {% endif %}
 
             {% if periodes and not hub_prof_ui %}
@@ -346,7 +323,7 @@
         </div>
     </div>
 
-    <script src="{% static 'school_admin/js/enseignant/justifications_notes.js' %}"></script>
+    <script src="{% static 'school_admin/js/enseignant/justifications_notes.js' %}?v=1.1.0"></script>
     <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
     {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_scripts.html' %}{% endif %}
 

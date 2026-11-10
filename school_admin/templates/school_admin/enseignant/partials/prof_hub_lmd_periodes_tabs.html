@@ -1,27 +1,28 @@
 {% if periodes_nav %}
-<nav class="prof-primaire-hub-nav prof-hub-lmd-periodes" aria-label="Périodes module">
-    <div class="matiere-tabs-bar prof-primaire-periodes-bar" data-overflow-item-label="Période" data-overflow-items-label="périodes">
-        <div class="matiere-tabs-track" role="tablist">
-            {% for nav in periodes_nav %}
-                <a role="tab"
-                   class="matiere-tab-btn prof-primaire-tab-link prof-hub-lmd-periode-link {% if nav.active %}active{% endif %}"
-                   aria-selected="{% if nav.active %}true{% else %}false{% endif %}"
-                   href="{{ request.path }}?{% if initial_classe_id %}classe={{ initial_classe_id }}&{% endif %}{{ nav.query }}">
-                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                    <span>{{ nav.periode.libelle_affichage_superieur }}</span>
-                    {% if nav.periode.est_en_cours %}
-                        <span class="tab-count" style="background:#28a745;">En cours</span>
-                    {% endif %}
-                </a>
-            {% endfor %}
-        </div>
-        <div class="matiere-tabs-more-wrap" hidden>
-            <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres périodes">
-                <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                <span class="matiere-tabs-more-label">Autres périodes</span>
-            </button>
-            <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
-        </div>
+<section class="aria-filter-tabs__group prof-hub-filter-block prof-hub-filter-block--period" data-kind="period" aria-label="Période du module">
+  <p class="aria-filter-tabs__label prof-hub-filter-label">
+    <i class="fas fa-calendar-days" aria-hidden="true"></i> Période du module
+  </p>
+  <nav class="aria-filter-tabs__nav prof-primaire-hub-nav" aria-label="Période du module">
+    <div class="aria-filter-tabs__list matiere-tabs-bar prof-primaire-periodes-bar"
+         data-tabs-level="primary"
+         data-aria-tabs-kind="period"
+         data-overflow-item-label="période"
+         data-overflow-items-label="périodes">
+      <div class="matiere-tabs-track" role="tablist">
+        {% for nav in periodes_nav %}
+        <a role="tab"
+           class="aria-filter-tabs__tab matiere-tab-btn{% if nav.active %} active{% endif %}"
+           href="{{ request.path }}?{% if initial_classe_id %}classe={{ initial_classe_id }}&amp;{% endif %}{{ nav.query }}"
+           {% if nav.active %}aria-current="page" aria-selected="true"{% else %}aria-selected="false"{% endif %}
+           title="{{ nav.periode.libelle_affichage_superieur }}">
+          <span>{{ nav.periode.libelle_affichage_superieur }}</span>
+          {% if nav.periode.est_en_cours %}<span class="tab-count aria-filter-tabs__count">En cours</span>{% endif %}
+        </a>
+        {% endfor %}
+      </div>
+      {% include 'school_admin/enseignant/partials/prof_tabs_more_wrap.html' with items_label="périodes" %}
     </div>
-</nav>
+  </nav>
+</section>
 {% endif %}

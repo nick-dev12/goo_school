@@ -32,70 +32,23 @@
                 </div>
             </header>
 
-            <section class="prof-presence-section" aria-labelledby="prof-presence-actions-title">
-                <h3 id="prof-presence-actions-title" class="prof-presence-section-title">
-                    <i class="fas fa-bolt"></i> Actions rapides
-                </h3>
-                <div class="prof-presence-link-grid">
+            <section class="prof-presence-section prof-presence-list-section" aria-labelledby="prof-presence-list-title">
+                <h3 id="prof-presence-list-title" class="visually-hidden">Présence de la classe</h3>
+                <div class="prof-presence-toolbar">
                     {% if prof_presence_hub_mode == 'primaire' %}
-                        <a href="{% url 'enseignant_primaire:liste_presence' cd.classe.id %}" class="prof-presence-link-card primary-action">
-                            <span class="prof-presence-link-icon info"><i class="fas fa-clipboard-check"></i></span>
-                            <span class="prof-presence-link-text">
-                                <strong>Faire l’appel</strong>
-                                <small>Liste de présence du jour</small>
-                            </span>
-                        </a>
-                        <a href="{% url 'enseignant_primaire:imprimer_tableau_presence' cd.classe.id %}" class="prof-presence-link-card" target="_blank" rel="noopener">
-                            <span class="prof-presence-link-icon success"><i class="fas fa-print"></i></span>
-                            <span class="prof-presence-link-text">
-                                <strong>Imprimer le tableau</strong>
-                                <small>Feuille hebdomadaire</small>
-                            </span>
-                        </a>
-                        <a href="{% url 'enseignant_primaire:gestion_eleves' %}?classe={{ cd.classe.id }}" class="prof-presence-link-card">
-                            <span class="prof-presence-link-icon secondary"><i class="fas fa-user-graduate"></i></span>
-                            <span class="prof-presence-link-text">
-                                <strong>Voir les élèves</strong>
-                                <small>Fiche et sanctions</small>
-                            </span>
+                        <a href="{% url 'enseignant_primaire:liste_presence' cd.classe.id %}" class="prof-presence-appel">
+                            <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+                            <span>Faire l’appel</span>
                         </a>
                     {% else %}
-                        <button type="button" class="prof-presence-link-card primary-action prof-presence-link-button"
+                        <button type="button" class="prof-presence-appel"
                                 data-open-presence-modal
                                 data-classe-id="{{ cd.classe.id }}"
                                 data-matiere-id="{% if cd.matiere %}{{ cd.matiere.id }}{% endif %}">
-                            <span class="prof-presence-link-icon info"><i class="fas fa-clipboard-check"></i></span>
-                            <span class="prof-presence-link-text">
-                                <strong>Faire l’appel</strong>
-                                <small>Ouvrir la feuille d’appel</small>
-                            </span>
+                            <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+                            <span>Faire l’appel</span>
                         </button>
-                        <a href="{% url 'enseignant:imprimer_tableau_presence' cd.classe.id %}{% if cd.matiere %}?matiere={{ cd.matiere.id }}{% endif %}" class="prof-presence-link-card" target="_blank" rel="noopener">
-                            <span class="prof-presence-link-icon success"><i class="fas fa-print"></i></span>
-                            <span class="prof-presence-link-text">
-                                <strong>Imprimer le tableau</strong>
-                                <small>Feuille hebdomadaire</small>
-                            </span>
-                        </a>
-                        <a href="{% url 'enseignant:gestion_eleves' %}?classe={{ cd.classe.id }}" class="prof-presence-link-card">
-                            <span class="prof-presence-link-icon secondary"><i class="fas fa-user-graduate"></i></span>
-                            <span class="prof-presence-link-text">
-                                <strong>Voir les élèves</strong>
-                                <small>Liste de la classe</small>
-                            </span>
-                        </a>
                     {% endif %}
-                </div>
-            </section>
-
-            <section class="prof-presence-section prof-presence-list-section" aria-labelledby="prof-presence-list-title">
-                <div class="prof-presence-list-head">
-                    <h3 id="prof-presence-list-title" class="prof-presence-section-title">
-                        <i class="fas fa-table"></i> Synthèse par élève
-                    </h3>
-                    <p class="prof-presence-list-hint">
-                        Statistiques depuis septembre · « Jours » = nombre de dates d’appel enregistrées.
-                    </p>
                 </div>
 
                 {% if cd.eleves %}

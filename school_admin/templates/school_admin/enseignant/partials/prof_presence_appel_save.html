@@ -1,0 +1,33 @@
+<footer class="prof-appel-save{% if save_placement == 'end' %} prof-appel-save--end{% endif %}">
+    <p class="prof-appel-save-text">
+        <strong><span data-appel-count="present">0</span> présent(s)</strong>
+        · <span data-appel-count="absent">0</span> absent(s)
+    </p>
+    <div class="prof-appel-save-actions">
+        {% if presence_appel_mode == 'primaire' %}
+            {% if not liste_presence.validee %}
+            <button type="submit" class="prof-appel-submit">
+                <i class="fas fa-check" aria-hidden="true"></i>
+                Valider l’appel n°{{ numero_appel_actuel }}
+            </button>
+            {% elif nombre_appels_valides < 3 %}
+            <a href="?appel={{ numero_appel_actuel|add:1 }}" class="prof-appel-submit is-link">
+                <i class="fas fa-plus" aria-hidden="true"></i>
+                Nouvel appel ({{ nombre_appels_valides|add:1 }}/3)
+            </a>
+            {% endif %}
+        {% else %}
+            {% if not formulaire_desactive and not liste_presence.validee %}
+            <button type="submit" class="prof-appel-submit">
+                <i class="fas fa-check" aria-hidden="true"></i>
+                Valider la liste
+            </button>
+            {% endif %}
+            {% if modal_mode %}
+            <button type="button" class="prof-appel-cancel" data-close-presence-modal>
+                Fermer
+            </button>
+            {% endif %}
+        {% endif %}
+    </div>
+</footer>

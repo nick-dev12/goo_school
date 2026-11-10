@@ -469,13 +469,90 @@ html.ax-sheet-open body {
   overflow: visible;
 }
 
+.ax-sheet .ax-nav__group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ax-sheet .ax-nav__title {
+  grid-column: 1 / -1;
+  margin: 12px 4px 0;
+}
+
 .ax-sheet .ax-nav__link {
-  padding: 12px 10px;
-  font-size: 0.95rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 5.5rem;
+  margin: 0;
+  padding: 12px 8px 10px;
+  border: 1px solid var(--ax-line);
+  border-radius: 16px;
+  background: var(--ax-surface);
+  color: var(--ax-ink);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(16, 24, 40, 0.06);
+}
+
+.ax-sheet .ax-nav__link .ax-dock__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  box-shadow: 0 4px 10px rgba(16, 24, 40, 0.14);
+}
+
+.ax-sheet .ax-nav__link i {
+  width: auto;
+  color: #fff;
+  font-size: inherit;
+}
+
+.ax-sheet .ax-nav__link:hover {
+  background: var(--ax-surface-2);
+  color: var(--ax-ink);
+}
+
+.ax-sheet .ax-nav__link:hover i {
+  color: #fff;
+}
+
+.ax-sheet .ax-nav__link.is-active {
+  background: var(--ax-surface-2);
+  color: var(--ax-brand);
+  box-shadow: inset 0 0 0 2px var(--ax-brand);
+}
+
+.ax-sheet .ax-nav__link.is-active i {
+  color: #fff;
 }
 
 .ax-sheet .ax-nav__link.is-active::before {
   display: none;
+}
+
+.ax-sheet .ax-nav__badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin: 0;
+}
+
+.ax-sheet .ax-nav__link[hidden],
+.ax-sheet .ax-nav__group[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 479.98px) {
+  .ax-sheet .ax-nav__group {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------- Points de rupture ---------- */
@@ -737,7 +814,7 @@ body:has(.ax-dock) {
   }
 }
 
-/* Tablette et téléphone : 4 raccourcis + « Menu ». */
+/* Tablette et téléphone : 5 raccourcis + « Menu ». */
 @media (max-width: 1023.98px) {
   :root {
     --ax-dock-h: 92px;
@@ -774,9 +851,9 @@ body:has(.ax-dock) {
   .ax-dock__item {
     min-width: 0;
     width: 100%;
-    gap: 6px;
-    padding: 2px 2px 10px;
-    font-size: 0.74rem;
+    gap: 4px;
+    padding: 2px 0 8px;
+    font-size: 0.68rem;
   }
 
   .ax-dock__label {
@@ -786,17 +863,17 @@ body:has(.ax-dock) {
   }
 
   .ax-dock__icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 13px;
-    font-size: 1.02rem;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    font-size: 0.95rem;
   }
 
   .ax-dock__item.is-active .ax-dock__icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 15px;
-    font-size: 1.15rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    font-size: 1.05rem;
     transform: translateY(-4px);
   }
 

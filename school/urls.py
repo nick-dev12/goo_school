@@ -18,8 +18,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from school_admin.health_views import ready
 
 urlpatterns = [
+    path('health/ready/', ready, name='health_ready'),
     path('admin/', admin.site.urls),
     path('', include('school_admin.urls', namespace='school_admin')),
     path('', include('school_admin.personal_url.directeur_url', namespace='directeur')),

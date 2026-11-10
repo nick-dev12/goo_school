@@ -1,0 +1,45 @@
+/* La navigation des enseignants réutilise les composants de la direction. */
+body:has(.ax-dock) .dashboard {
+  display: block;
+  z-index: auto;
+}
+
+body:has(.ax-dock) .main-content {
+  max-width: none;
+  min-width: 0;
+  overflow: visible;
+}
+
+body:has(.ax-dock) .ax-topbar {
+  width: 100%;
+}
+
+body:has(.ax-dock) .ax-topbar__school {
+  max-width: min(30vw, 280px);
+}
+
+body:has(.ax-dock) .ax-topbar__school-name {
+  white-space: nowrap;
+}
+
+body:has(.ax-dock) .ax-user {
+  text-decoration: none;
+}
+
+body:has(.ax-dock) .ax-dock,
+body:has(.ax-dock) .ax-sheet {
+  font-family: var(--ax-font);
+}
+
+@media (max-width: 479.98px) {
+  body:has(.ax-dock) .ax-topbar__school {
+    padding-left: 0;
+    margin-left: 0;
+    border-left: 0;
+    max-width: min(55vw, 225px);
+  }
+
+  body:has(.ax-dock) .ax-topbar__school .ax-school-mark {
+    display: none;
+  }
+}

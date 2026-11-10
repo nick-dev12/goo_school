@@ -4,7 +4,7 @@ Vues pour l'espace élève
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.urls import reverse
 from django.core.files.base import ContentFile
 from decimal import Decimal, ROUND_HALF_UP
@@ -182,6 +182,42 @@ def get_classe_eleve_active(eleve, annee_scolaire_active, etablissement=None):
     return eleve.classe
 
 
+def _periodes_nav_eleve(request, etablissement, annee, classe, extra=None):
+    """Onglets des périodes configurées (GET ?periode=) pour l’espace élève."""
+    from urllib.parse import urlencode
+
+    from school_admin.utils.prof_periodes import ensure_query_params, load_periodes, select_periode
+
+    periodes = load_periodes(etablissement, annee, classe)
+    selected = select_periode(request, periodes)
+    params = dict(extra or {})
+    if selected:
+        params['periode'] = selected.id
+    redir = ensure_query_params(request, **params) if params else None
+    nav = []
+    for periode in periodes:
+        query = dict(extra or {})
+        query['periode'] = periode.id
+        nav.append({
+            'id': periode.id,
+            'nom': periode.nom_periode,
+            'en_cours': bool(periode.est_en_cours),
+            'active': selected is not None and periode.id == selected.id,
+            'url': '?' + urlencode(query),
+        })
+    return periodes, selected, nav, redir
+
+
+def _filtre_periode(qs, periode, field, fk='periode_scolaire'):
+    """Garde les enregistrements de la période, ou datés dans l’intervalle s’ils n’ont pas de période."""
+    from school_admin.utils.prof_periodes import apply_date_range
+
+    if not periode:
+        return qs
+    dated = apply_date_range(qs.filter(**{f'{fk}__isnull': True}), periode, field=field)
+    return qs.filter(**{fk: periode}) | dated
+
+
 def dashboard_eleve(request):
     """
     Tableau de bord principal de l'élève (V3).
@@ -293,9 +329,16 @@ def devoirs_eleve(request):
     debut_semaine = date_aujourdhui - timedelta(days=date_aujourdhui.weekday())
     fin_semaine = debut_semaine + timedelta(days=6)
 
-    # Récupérer les paramètres de l'onglet et de la période
-    onglet_actif = request.GET.get('onglet', 'exercices')  # 'evaluations' ou 'exercices'
-    periode_selectionnee = request.GET.get('periode', 'all')
+    onglet_actif = request.GET.get('onglet', 'exercices')
+    if onglet_actif not in ('exercices', 'evaluations'):
+        onglet_actif = 'exercices'
+    _, periode_sel, periodes_nav, redir_periodes = _periodes_nav_eleve(
+        request, etablissement_inscription or eleve.etablissement, annee_scolaire_active, classe_active,
+        extra={'onglet': onglet_actif},
+    )
+    if redir_periodes:
+        return redir_periodes
+    periode_selectionnee = periode_sel.id if periode_sel else ''
 
     # ========== GESTION DES ÉVALUATIONS ==========
     # Utiliser EvaluationPrimaire pour les établissements primaires
@@ -317,45 +360,8 @@ def devoirs_eleve(request):
             evaluations_base = evaluations_base.filter(annee_scolaire=annee_scolaire_active)
         evaluations_base = evaluations_base.select_related('matiere', 'professeur', 'periode_scolaire').order_by('date_evaluation')
 
-    total_evaluations = evaluations_base.count()
-
-    # Récupérer toutes les périodes pour les évaluations
-    periodes_evaluations = [{
-        'id': 'all',
-        'nom': 'Toutes les périodes',
-        'total': total_evaluations,
-    }]
-    total_sans_periode_eval = evaluations_base.filter(periode_scolaire__isnull=True).count()
-    if total_sans_periode_eval:
-        periodes_evaluations.append({
-            'id': 'none',
-            'nom': 'Sans période',
-            'total': total_sans_periode_eval,
-        })
-    
-    periodes_stats_eval = evaluations_base.filter(periode_scolaire__isnull=False).values(
-        'periode_scolaire_id',
-        'periode_scolaire__nom_periode'
-    ).annotate(total=Count('id')).order_by('periode_scolaire__date_debut', 'periode_scolaire__nom_periode')
-
-    for stat in periodes_stats_eval:
-        periodes_evaluations.append({
-            'id': str(stat['periode_scolaire_id']),
-            'nom': stat['periode_scolaire__nom_periode'],
-            'total': stat['total'],
-        })
-
-    # Filtrer les évaluations par période
-    evaluations_filtres = evaluations_base
-    if periode_selectionnee != 'all' and onglet_actif == 'evaluations':
-        if periode_selectionnee == 'none':
-            evaluations_filtres = evaluations_filtres.filter(periode_scolaire__isnull=True)
-        else:
-            try:
-                periode_id = int(periode_selectionnee)
-                evaluations_filtres = evaluations_filtres.filter(periode_scolaire_id=periode_id)
-            except (TypeError, ValueError):
-                pass
+    evaluations_filtres = _filtre_periode(evaluations_base, periode_sel, 'date_evaluation')
+    total_evaluations = evaluations_filtres.count()
 
     evaluations_list = []
     for evaluation in evaluations_filtres:
@@ -403,47 +409,10 @@ def devoirs_eleve(request):
         exercices_base = exercices_base.filter(annee_scolaire=annee_scolaire_active)
     exercices_base = exercices_base.select_related('matiere', 'professeur', 'periode_scolaire').order_by('date_rendu')
 
-    total_exercices = exercices_base.count()
-    total_semaine = exercices_base.filter(date_rendu__range=(debut_semaine, fin_semaine)).count()
-    total_a_venir = exercices_base.filter(date_rendu__gte=date_aujourdhui).count()
-
-    # Récupérer toutes les périodes pour les exercices
-    periodes_exercices = [{
-        'id': 'all',
-        'nom': 'Toutes les périodes',
-        'total': total_exercices,
-    }]
-    total_sans_periode_ex = exercices_base.filter(periode_scolaire__isnull=True).count()
-    if total_sans_periode_ex:
-        periodes_exercices.append({
-            'id': 'none',
-            'nom': 'Sans période',
-            'total': total_sans_periode_ex,
-        })
-
-    periodes_stats_ex = exercices_base.filter(periode_scolaire__isnull=False).values(
-        'periode_scolaire_id',
-        'periode_scolaire__nom_periode'
-    ).annotate(total=Count('id')).order_by('periode_scolaire__date_debut', 'periode_scolaire__nom_periode')
-
-    for stat in periodes_stats_ex:
-        periodes_exercices.append({
-            'id': str(stat['periode_scolaire_id']),
-            'nom': stat['periode_scolaire__nom_periode'],
-            'total': stat['total'],
-        })
-
-    # Filtrer les exercices par période
-    exercices_filtres = exercices_base
-    if periode_selectionnee != 'all' and onglet_actif == 'exercices':
-        if periode_selectionnee == 'none':
-            exercices_filtres = exercices_filtres.filter(periode_scolaire__isnull=True)
-        else:
-            try:
-                periode_id = int(periode_selectionnee)
-                exercices_filtres = exercices_filtres.filter(periode_scolaire_id=periode_id)
-            except (TypeError, ValueError):
-                pass
+    exercices_filtres = _filtre_periode(exercices_base, periode_sel, 'date_rendu')
+    total_exercices = exercices_filtres.count()
+    total_semaine = exercices_filtres.filter(date_rendu__range=(debut_semaine, fin_semaine)).count()
+    total_a_venir = exercices_filtres.filter(date_rendu__gte=date_aujourdhui).count()
 
     exercices_list = []
     for exercice in exercices_filtres:
@@ -488,8 +457,7 @@ def devoirs_eleve(request):
         'est_parent': est_parent,
         'onglet_actif': onglet_actif,
         'periode_selectionnee': periode_selectionnee,
-        'periodes_evaluations': periodes_evaluations,
-        'periodes_exercices': periodes_exercices,
+        'periodes_nav': periodes_nav,
         'evaluations': evaluations_list,
         'exercices': exercices_list,
         'total_evaluations': total_evaluations,
@@ -534,6 +502,18 @@ def _semaine_eleve(classe, annee, eleve=None):
     return semaine(classe, annee, now.date(), now.time(), eleve=eleve)
 
 
+def _vue_edt_eleve(request, sedt):
+    """Onglets GET de l'emploi du temps élève : cours du jour ou semaine complète."""
+    vue_edt = request.GET.get('vue', 'jour')
+    if vue_edt not in ('jour', 'semaine'):
+        vue_edt = 'jour'
+    return {
+        'vue_edt': vue_edt,
+        'date_du_jour': timezone.localtime().date(),
+        'cours_du_jour': list(sedt.get('aujourdhui') or []),
+    }
+
+
 def emploi_du_temps_eleve(request):
     """
     Affiche l'emploi du temps de la classe de l'élève
@@ -575,6 +555,7 @@ def emploi_du_temps_eleve(request):
     
     # Si pas d'emploi du temps, afficher un message
     if not emploi_du_temps:
+        sedt = _semaine_eleve(classe, annee_scolaire_active, eleve)
         context = {
             'eleve': eleve,
             'classe': classe,
@@ -586,9 +567,10 @@ def emploi_du_temps_eleve(request):
             'creneaux_par_jour': {},
             'emploi_non_publie': emplois_actifs.exists(),
             'est_parent': est_parent,
-            'sedt': _semaine_eleve(classe, annee_scolaire_active, eleve),
+            'sedt': sedt,
             'page_title': 'Emploi du temps',
         }
+        context.update(_vue_edt_eleve(request, sedt))
         return render(request, 'school_admin/eleve/emploi_du_temps_eleve.html', context)
     
     # Organiser les créneaux en grille comme pour le directeur et les professeurs (nouvelle structure)
@@ -744,18 +726,32 @@ def emploi_du_temps_eleve(request):
         'sedt': _semaine_eleve(classe, annee_scolaire_active, eleve),
         'page_title': 'Emploi du temps',
     }
+    context.update(_vue_edt_eleve(request, context['sedt']))
     
     return render(request, 'school_admin/eleve/emploi_du_temps_eleve.html', context)
 
 
-def _notes_v3(eleve, classe, annee, etablissement):
-    """Notes publiées regroupées par matière, évolution et évaluations à venir (V3)."""
+def _dans_periode(periode, periode_id, date_item):
+    if not periode:
+        return True
+    if periode_id:
+        return periode_id == periode.id
+    if date_item and periode.date_debut and periode.date_fin:
+        return periode.date_debut <= date_item <= periode.date_fin
+    return False
+
+
+def _notes_v3(eleve, classe, annee, etablissement, periode=None):
+    """Notes publiées regroupées par matière, pour la période choisie."""
     from collections import OrderedDict
+
+    from school_admin.model.moyenne_periode_model import MoyennePeriode
 
     from ..services.dashboard import student as sd
 
     primaire = getattr(etablissement, 'type_etablissement', '') in ('primaire', 'primary', 'ecole_primaire')
-    notes = sd.notes_publiees(eleve, annee, primaire)
+    notes = [n for n in sd.notes_publiees(eleve, annee, primaire)
+             if _dans_periode(periode, n.get('periode_id'), n.get('date'))]
     groupes = OrderedDict()
     for n in reversed(notes):
         groupes.setdefault(n['matiere'], []).append(n)
@@ -769,16 +765,26 @@ def _notes_v3(eleve, classe, annee, etablissement):
     moyenne_notes = round(sum(n['sur20'] for n in notes) / len(notes), 2) if notes else None
     meilleure = max(matieres, key=lambda m: m['moyenne']) if matieres else None
     a_travailler = min(matieres, key=lambda m: m['moyenne']) if matieres else None
+    moyenne = None
+    if periode:
+        rec = MoyennePeriode.objects.filter(
+            eleve=eleve, periode=periode, est_moyenne_generale=True, moyenne_generale__isnull=False
+        ).order_by('-updated_at').first()
+        if rec:
+            moyenne = {'valeur': float(rec.moyenne_generale), 'delta': None,
+                       'periode': periode.nom_periode}
+    if moyenne is None and not periode:
+        moyenne = sd.moyenne_publiee(eleve)
+    evaluations = [
+        e for e in sd.evaluations_a_venir(classe, annee, timezone.localdate(), primaire)
+        if _dans_periode(periode, e.get('periode_id'), e.get('date'))
+    ]
     return {
         'notes': notes, 'nb': len(notes), 'matieres': matieres, 'moyenne_notes': moyenne_notes,
-        'moyenne': sd.moyenne_publiee(eleve), 'meilleure': meilleure, 'a_travailler': a_travailler,
-        'evaluations': sd.evaluations_a_venir(classe, annee, timezone.localdate(), primaire),
+        'moyenne': moyenne, 'meilleure': meilleure, 'a_travailler': a_travailler,
+        'evaluations': evaluations,
         'seuil': sd.SEUIL,
-        'charts': {'evolution': {
-            'labels': [n['date'].strftime('%d/%m') if n['date'] else '' for n in notes[-25:]],
-            'values': [n['sur20'] for n in notes[-25:]],
-            'details': [f"{n['matiere']} · {n['titre']}" for n in notes[-25:]],
-        }},
+        'periode': periode,
     }
 
 
@@ -805,7 +811,12 @@ def notes_evaluations_eleve(request):
     
     # Récupérer la classe de l'élève pour l'année scolaire active
     classe_active = get_classe_eleve_active(eleve, annee_scolaire_active, etablissement)
-    
+    _, periode_sel, periodes_nav, redir_periodes = _periodes_nav_eleve(
+        request, etablissement, annee_scolaire_active, classe_active
+    )
+    if redir_periodes:
+        return redir_periodes
+
     from ..model.periode_model import PeriodeScolaire
     from ..model.moyenne_model import Moyenne
     from ..model.moyenne_periode_model import MoyennePeriode
@@ -1643,7 +1654,9 @@ def notes_evaluations_eleve(request):
         'page_title': 'Notes & évaluations',
         'moyenne_periode_active': moyenne_periode_active,
         'nombre_matieres_suivies': len(matieres_avec_notes) if matieres_avec_notes else 0,
-        'snotes': _notes_v3(eleve, classe_active, annee_scolaire_active, etablissement),
+        'snotes': _notes_v3(eleve, classe_active, annee_scolaire_active, etablissement, periode=periode_sel),
+        'periodes_nav': periodes_nav,
+        'periode_selectionnee': periode_sel,
     }
 
     return render(request, 'school_admin/eleve/notes_evaluations_eleve.html', context)
@@ -1936,140 +1949,47 @@ def absences_retards_eleve(request):
     
     # Récupérer la classe de l'élève pour l'année scolaire active
     classe_active = get_classe_eleve_active(eleve, annee_scolaire_active, etablissement)
-    
-    from ..model.periode_model import PeriodeScolaire
-    from django.db.models import Count, Q
-    from datetime import timedelta
-    
-    # Récupérer la période active
-    periode_query = PeriodeScolaire.objects.filter(
-        etablissement=etablissement,
-        est_active=True
+    _, periode_sel, periodes_nav, redir_periodes = _periodes_nav_eleve(
+        request, etablissement, annee_scolaire_active, classe_active
     )
-    if annee_scolaire_active:
-        periode_query = periode_query.filter(annee_scolaire_fk=annee_scolaire_active)
-    periode_active = periode_query.order_by('-date_debut').first()
-    
-    # Calculer les statistiques globales
-    presences_totales = Presence.objects.filter(eleve=eleve)
-    if annee_scolaire_active:
-        presences_totales = presences_totales.filter(annee_scolaire=annee_scolaire_active)
-    
-    total_jours = presences_totales.count()
-    total_presences = presences_totales.filter(statut='present').count()
-    total_absences = presences_totales.filter(Q(statut='absent') | Q(statut='absent_justifie')).count()
-    total_retards = presences_totales.filter(statut='retard').count()
-    absences_justifiees = presences_totales.filter(statut='absent_justifie').count()
-    absences_non_justifiees = presences_totales.filter(statut='absent').count()
-    
-    # Calculer le taux de présence
-    taux_presence = 0
-    if total_jours > 0:
-        taux_presence = round((total_presences / total_jours) * 100, 1)
-    
-    # Récupérer les absences et retards par période et par mois
-    periodes_query = PeriodeScolaire.objects.filter(
-        etablissement=etablissement,
-        est_active=True
-    )
-    if annee_scolaire_active:
-        periodes_query = periodes_query.filter(annee_scolaire_fk=annee_scolaire_active)
-    periodes = periodes_query.order_by('date_debut')
-    
-    from collections import defaultdict
-    from datetime import date as date_cls
-    from django.utils.formats import date_format
+    if redir_periodes:
+        return redir_periodes
 
-    periodes_data = []
-    for periode in periodes:
-        presences_periode_query = Presence.objects.filter(
-            eleve=eleve,
-            date__gte=periode.date_debut,
-            date__lte=periode.date_fin
-        )
-        if annee_scolaire_active:
-            presences_periode_query = presences_periode_query.filter(annee_scolaire=annee_scolaire_active)
-        presences_periode = presences_periode_query
-        
-        absences_periode = presences_periode.filter(Q(statut='absent') | Q(statut='absent_justifie')).order_by('-date')
-        retards_periode = presences_periode.filter(statut='retard').order_by('-date')
-        
-        # Regrouper par mois
-        mois_data = defaultdict(lambda: {'absences': [], 'retards': []})
-        
-        for absence in absences_periode:
-            mois_key = absence.date.strftime('%Y-%m')
-            mois_data[mois_key]['mois_nom'] = date_format(
-                date_cls(absence.date.year, absence.date.month, 1),
-                'F Y',
-            )
-            mois_data[mois_key]['mois_numero'] = absence.date.month
-            mois_data[mois_key]['annee'] = absence.date.year
-            mois_data[mois_key]['absences'].append(absence)
-        
-        for retard in retards_periode:
-            mois_key = retard.date.strftime('%Y-%m')
-            if not mois_data[mois_key].get('mois_nom'):
-                mois_data[mois_key]['mois_nom'] = date_format(
-                    date_cls(retard.date.year, retard.date.month, 1),
-                    'F Y',
-                )
-            mois_data[mois_key]['mois_numero'] = retard.date.month
-            mois_data[mois_key]['annee'] = retard.date.year
-            mois_data[mois_key]['retards'].append(retard)
-        
-        # Convertir en liste triée par date (plus récent d'abord)
-        mois_liste = []
-        for mois_key in sorted(mois_data.keys(), reverse=True):
-            data = mois_data[mois_key]
-            mois_liste.append({
-                'mois_key': mois_key,
-                'mois_nom': data['mois_nom'],
-                'mois_numero': data['mois_numero'],
-                'annee': data['annee'],
-                'absences': data['absences'],
-                'retards': data['retards'],
-                'nb_absences': len(data['absences']),
-                'nb_retards': len(data['retards']),
-            })
-        
-        periodes_data.append({
-            'periode': periode,
-            'est_active': periode.est_en_cours,
-            'absences': absences_periode,
-            'retards': retards_periode,
-            'nb_absences': absences_periode.count(),
-            'nb_retards': retards_periode.count(),
-            'mois_liste': mois_liste,
+    from school_admin.utils.prof_periodes import apply_date_range
+
+    presences = Presence.objects.filter(eleve=eleve)
+    if annee_scolaire_active:
+        presences = presences.filter(annee_scolaire=annee_scolaire_active)
+    presences = apply_date_range(presences, periode_sel)
+
+    total_jours = presences.count()
+    total_presences = presences.filter(statut='present').count()
+    total_absences = presences.filter(Q(statut='absent') | Q(statut='absent_justifie')).count()
+    total_retards = presences.filter(statut='retard').count()
+    absences_justifiees = presences.filter(statut='absent_justifie').count()
+    absences_non_justifiees = presences.filter(statut='absent').count()
+    taux_presence = round((total_presences / total_jours) * 100, 1) if total_jours else None
+
+    evenements = []
+    for p in presences.filter(
+        Q(statut='absent') | Q(statut='absent_justifie') | Q(statut='retard')
+    ).select_related('matiere').order_by('-date', '-id'):
+        evenements.append({
+            'date': p.date,
+            'kind': 'retard' if p.statut == 'retard' else 'absence',
+            'justifiee': p.statut == 'absent_justifie',
+            'matiere': p.matiere.nom if p.matiere_id else '',
+            'remarque': (p.remarque or '').strip(),
+            'statut': p.statut,
         })
-    
-    # Récupérer les absences et retards récents (30 derniers jours)
-    date_limite = timezone.now().date() - timedelta(days=30)
-    
-    absences_recentes_query = Presence.objects.filter(
-        Q(statut='absent') | Q(statut='absent_justifie'),
-        eleve=eleve,
-        date__gte=date_limite
-    )
-    if annee_scolaire_active:
-        absences_recentes_query = absences_recentes_query.filter(annee_scolaire=annee_scolaire_active)
-    absences_recentes = absences_recentes_query.order_by('-date')[:10]
-    
-    retards_recents_query = Presence.objects.filter(
-        eleve=eleve,
-        statut='retard',
-        date__gte=date_limite
-    )
-    if annee_scolaire_active:
-        retards_recents_query = retards_recents_query.filter(annee_scolaire=annee_scolaire_active)
-    retards_recents = retards_recents_query.order_by('-date')[:10]
-    
+
     context = {
         'eleve': eleve,
         'est_parent': est_parent,
         'etablissement': etablissement,
-        'periode_active': periode_active,
-        'periodes_data': periodes_data,
+        'periode_active': periode_sel,
+        'periodes_nav': periodes_nav,
+        'periode_selectionnee': periode_sel,
         'total_jours': total_jours,
         'total_presences': total_presences,
         'total_absences': total_absences,
@@ -2077,13 +1997,11 @@ def absences_retards_eleve(request):
         'absences_justifiees': absences_justifiees,
         'absences_non_justifiees': absences_non_justifiees,
         'taux_presence': taux_presence,
-        'absences_recentes': absences_recentes,
-        'retards_recents': retards_recents,
+        'evenements': evenements,
         'today': timezone.now().date(),
         'annee_scolaire_active': annee_scolaire_active,
         'classe': classe_active,
         'page_title': 'Absences & retards',
-        'spres': _presence_v3(eleve, annee_scolaire_active),
     }
 
     return render(request, 'school_admin/eleve/absences_retards_eleve.html', context)

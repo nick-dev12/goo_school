@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.2.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.1.1">
 </head>
@@ -65,9 +65,6 @@
                         <th>{% trans "Enseignant" %}</th>
                         <th>{% if sx_superieur %}{% trans "Éléments (EC)" %}{% else %}{% trans "Matières" %}{% endif %}</th>
                         <th>{% if sx_superieur %}{% trans "Classes" %}{% elif sx_primaire %}{% trans "Classe confiée" %}{% else %}{% trans "Classes" %}{% endif %}</th>
-                        {% if not sx_primaire %}<th>{% if sx_superieur %}{% trans "Grade" %}{% else %}{% trans "Niveau" %}{% endif %}</th>{% endif %}
-                        <th>{% trans "Contrat" %}</th>
-                        <th>{% trans "Statut" %}</th>
                         <th class="sx-act"><span class="sr-only">{% trans "Actions" %}</span></th>
                     </tr></thead>
                     <tbody>
@@ -80,9 +77,6 @@
                             </td>
                             <td data-label="{% if sx_superieur %}{% trans 'Éléments (EC)' %}{% else %}{% trans 'Matières' %}{% endif %}">{% for m in l.matieres|slice:":3" %}<span class="sx-pill sx-pill--info" style="margin:2px">{{ m }}</span>{% empty %}<span class="sx-pill sx-pill--off">—</span>{% endfor %}{% if l.matieres|length > 3 %}<span class="sx-pill sx-pill--off" title="{{ l.matieres|join:', ' }}">+{{ l.matieres|length|add:"-3" }}</span>{% endif %}</td>
                             <td data-label="{% if sx_superieur %}{% trans 'Classes' %}{% else %}{% trans 'Classes' %}{% endif %}">{% if l.classes %}<span title="{{ l.classes|join:', ' }}">{{ l.classes|slice:":3"|join:", " }}{% if l.nb_classes > 3 %} <span class="sx-pill sx-pill--off">+{{ l.nb_classes|add:"-3" }}</span>{% endif %}</span>{% else %}<span class="sx-pill sx-pill--warn">{% trans "Aucune" %}</span>{% endif %}</td>
-{% if not sx_primaire %}<td data-label="{% if sx_superieur %}{% trans 'Grade' %}{% else %}{% trans 'Niveau' %}{% endif %}">{% if sx_superieur %}{{ l.grade|default:"—" }}{% else %}{{ p.niveau_display }}{% endif %}</td>{% endif %}
-                            <td data-label="{% trans 'Contrat' %}"><span class="sx-pill {% if l.contrat_code == 'permanent' %}sx-pill--ok{% else %}sx-pill--off{% endif %}">{{ l.contrat }}</span></td>
-                            <td data-label="{% trans 'Statut' %}">{% if p.actif %}<span class="sx-pill sx-pill--ok">{% trans "Actif" %}</span>{% else %}<span class="sx-pill sx-pill--off">{% trans "Inactif" %}</span>{% endif %}</td>
                             <td class="sx-act">
                                 <a class="sx-btn sx-btn--sm sx-btn--primary" href="{% url 'professeur:detail_professeur' p.id %}">{% trans "Ouvrir" %}</a>
                                 <div class="sx-menu">
@@ -97,7 +91,7 @@
                             </td>
                         </tr>
                         {% endwith %}{% endfor %}
-                        <tr class="sx-empty-row" data-sx-none hidden><td colspan="7">{% trans "Aucun enseignant avec ces filtres." %}</td></tr>
+                        <tr class="sx-empty-row" data-sx-none hidden><td colspan="4">{% trans "Aucun enseignant avec ces filtres." %}</td></tr>
                     </tbody>
                 </table>
             </div>

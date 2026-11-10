@@ -1,0 +1,30 @@
+---
+description: Boutons enseignant — largeur du texte, hauteur des onglets, pas d’étirement mobile
+globs: school_admin/templates/school_admin/enseignant/**/*.html,school_admin/static/school_admin/css/enseignant/**/*.css
+alwaysApply: false
+---
+
+# Boutons de l’espace enseignant
+
+Référence détaillée : `school_admin/static/school_admin/css/enseignant/README-DESIGN-BOUTONS.md`
+
+## Forme (obligatoire)
+
+- Hauteur `2.05rem` (comme `.ovf-tab` / `.matiere-tab-btn`)
+- Largeur `auto` : proportionnelle au texte, jamais pleine ligne
+- Padding `0 0.7rem`, rayon `8px`, police `0.75rem` / `600`
+- `white-space: nowrap`
+- Interdit : `width: 100%`, `flex: 1`, `min-width`/`max-width` imposés, grille qui étire les boutons
+- Mobile : `flex-wrap`, chaque bouton garde sa largeur naturelle
+
+## Couleurs (sans dégradé)
+
+- Neutre : fond blanc, bordure `#e5e7eb`
+- Primaire : `#3b82f6` texte blanc
+- Succès : `#10b981` texte blanc
+- Info : fond bleu très clair, texte `#1d4ed8`
+- Danger : `#ef4444` texte blanc (Supprimer, Élèves en difficulté)
+
+Pas de `transform` ni d’ombre au hover. Formulaires via `action` Django, JS seulement pour affichage.
+
+Index design : `school_admin/static/school_admin/css/enseignant/README.md`

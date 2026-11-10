@@ -1,0 +1,432 @@
+/* Actions, stats et tableau du hub Notes.
+   Boutons calés sur les onglets classe (hauteur 2.05rem, largeur du texte). */
+
+.prof-notes-hub-shell .prof-notes-hub-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.65rem;
+}
+
+.prof-notes-hub-shell .prof-notes-hub-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.prof-notes-hub-shell .prof-notes-quick-link,
+.prof-notes-hub-shell .action-buttons .btn-action {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 2.05rem !important;
+  min-height: 2.05rem !important;
+  padding: 0 0.7rem !important;
+  border-radius: 8px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+  box-shadow: none !important;
+  transform: none !important;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.prof-notes-hub-shell .prof-notes-quick-link i,
+.prof-notes-hub-shell .action-buttons .btn-action i {
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.prof-notes-hub-shell .prof-notes-quick-link {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+}
+
+.prof-notes-hub-shell .prof-notes-quick-link:hover,
+.prof-notes-hub-shell .prof-notes-quick-link:focus-visible {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.prof-notes-hub-shell .prof-notes-quick-link-warn,
+body[data-enseignant-space="primaire"][data-live-page="notes-gestion"] .prof-notes-quick-link-warn {
+  background: var(--accent, #ef4444) !important;
+  border-color: var(--accent, #ef4444) !important;
+  color: #fff !important;
+}
+
+.prof-notes-hub-shell .prof-notes-quick-link-warn:hover,
+.prof-notes-hub-shell .prof-notes-quick-link-warn:focus-visible,
+body[data-enseignant-space="primaire"][data-live-page="notes-gestion"] .prof-notes-quick-link-warn:hover,
+body[data-enseignant-space="primaire"][data-live-page="notes-gestion"] .prof-notes-quick-link-warn:focus-visible {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #fff !important;
+}
+
+.prof-notes-hub-shell .classe-header-actions {
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+}
+
+.prof-notes-hub-shell .action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  width: auto;
+}
+
+.prof-notes-hub-shell .action-buttons .btn-action {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  color: var(--text-primary, #1f2937);
+}
+
+.prof-notes-hub-shell .action-buttons .btn-action:hover,
+.prof-notes-hub-shell .action-buttons .btn-action:focus-visible {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.prof-notes-hub-shell .action-buttons .btn-action.success {
+  background: var(--success, #10b981);
+  border-color: var(--success, #10b981);
+  color: #fff;
+}
+
+.prof-notes-hub-shell .action-buttons .btn-action.success:hover,
+.prof-notes-hub-shell .action-buttons .btn-action.success:focus-visible {
+  background: #059669;
+  border-color: #059669;
+  color: #fff;
+}
+
+.prof-notes-hub-shell .action-buttons .btn-action.info {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.prof-notes-hub-shell .action-buttons .btn-action.info:hover,
+.prof-notes-hub-shell .action-buttons .btn-action.info:focus-visible {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.prof-notes-hub-shell .action-buttons .btn-action.secondary {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  color: var(--gray-700, #374151);
+}
+
+.prof-notes-hub-shell .action-buttons .btn-action.secondary:hover,
+.prof-notes-hub-shell .action-buttons .btn-action.secondary:focus-visible {
+  background: var(--gray-50, #f9fafb);
+  border-color: #d1d5db;
+}
+
+.prof-notes-hub-shell .action-buttons .btn-action:disabled,
+.prof-notes-hub-shell .action-buttons .btn-action[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Trois indicateurs toujours sur une ligne */
+.prof-notes-hub-shell .class-stats {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.prof-notes-hub-shell .class-stats .stat-box {
+  min-width: 0;
+  padding: 0.55rem 0.6rem;
+}
+
+.prof-notes-hub-shell .class-stats .stat-label {
+  font-size: 0.68rem;
+  line-height: 1.25;
+  overflow: hidden;
+}
+
+.prof-notes-hub-shell .class-stats .stat-value,
+.prof-notes-hub-shell .class-stats .stat-value-small {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tableau : nom + prénom sur une ligne, sans avatar, colonnes chiffres serrées */
+.prof-notes-hub-shell .releve-table .eleve-avatar-tiny,
+.prof-notes-hub-shell .releve-table .eleve-avatar {
+  display: none !important;
+}
+
+.prof-notes-hub-shell .releve-table .eleve-info {
+  gap: 0;
+}
+
+.prof-notes-hub-shell .releve-table .eleve-name,
+.prof-notes-hub-shell .releve-table .eleve-nom {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: baseline;
+  gap: 0.3rem;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.prof-notes-hub-shell .releve-table .eleve-name .nom,
+.prof-notes-hub-shell .releve-table .eleve-name .prenom {
+  display: inline;
+  white-space: nowrap;
+}
+
+.prof-notes-hub-shell .releve-table .col-eleve,
+.prof-notes-hub-shell .releve-table .col-eleve-releve {
+  width: auto;
+  min-width: 9.5rem;
+  max-width: none;
+}
+
+.prof-notes-hub-shell .releve-table .col-numero {
+  width: 2.1rem !important;
+  min-width: 2.1rem !important;
+  max-width: 2.1rem !important;
+  padding-left: 0.35rem !important;
+  padding-right: 0.35rem !important;
+}
+
+.prof-notes-hub-shell .releve-table .col-evaluation,
+.prof-notes-hub-shell .releve-table .col-evaluation-note,
+.prof-notes-hub-shell .releve-table .col-examen,
+.prof-notes-hub-shell .releve-table .col-moyenne,
+.prof-notes-hub-shell .releve-table .eval-col,
+.prof-notes-hub-shell .releve-table .note-cell,
+.prof-notes-hub-shell .releve-table .moyenne-col,
+.prof-notes-hub-shell .releve-table .moyenne-cell {
+  width: 3.15rem !important;
+  min-width: 3.15rem !important;
+  max-width: 3.15rem !important;
+  padding-left: 0.2rem !important;
+  padding-right: 0.2rem !important;
+  text-align: center;
+}
+
+.prof-notes-hub-shell .releve-table .note-badge,
+.prof-notes-hub-shell .releve-table .moyenne-badge,
+.prof-notes-hub-shell .releve-table .note-value {
+  padding: 0 !important;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+}
+
+.prof-notes-hub-shell .releve-table .eval-header-cell {
+  gap: 0.1rem;
+}
+
+.prof-notes-hub-shell .releve-table .eval-title {
+  max-width: 3.15rem;
+}
+
+.prof-notes-hub-shell .releve-section-inline {
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.prof-notes-hub-shell .releve-section-inline .releve-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.prof-notes-hub-shell .releve-section-inline .releve-header h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #1f2937;
+}
+
+.prof-notes-hub-shell .releve-section-inline .releve-header h2 i {
+  color: #3b82f6;
+}
+
+.prof-notes-hub-shell .releve-section-inline .releve-subtitle {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.prof-notes-hub-shell .releve-section-inline .releve-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prof-notes-hub-shell .releve-section-inline .releve-actions .btn,
+.prof-notes-hub-shell .releve-section-inline .releve-actions .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.625rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 10px;
+  background: #3b82f6;
+  border: 1px solid #3b82f6;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.prof-notes-hub-shell .releve-section-inline .releve-actions .btn:hover,
+.prof-notes-hub-shell .releve-section-inline .releve-actions .btn-primary:hover,
+.prof-notes-hub-shell .releve-section-inline .releve-actions .btn:focus-visible,
+.prof-notes-hub-shell .releve-section-inline .releve-actions .btn-primary:focus-visible {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+  box-shadow: none;
+  transform: none;
+}
+
+.prof-notes-hub-shell .releve-section-inline .releve-actions .notes-hub-btn-warn {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.prof-notes-hub-shell .releve-section-inline .releve-actions .notes-hub-btn-warn:hover,
+.prof-notes-hub-shell .releve-section-inline .releve-actions .notes-hub-btn-warn:focus-visible {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+body[data-live-page="notes-gestion"] #prof-hub-header:not(:has(*)) {
+  display: none;
+}
+
+.prof-notes-hub-shell .releve-section-inline .notes-eval-block {
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.prof-notes-hub-shell .releve-section-inline .empty-class-state {
+  padding: 1.25rem 1.1rem;
+}
+
+@media (max-width: 1024px) {
+  .prof-notes-hub-shell .classe-header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .prof-notes-hub-shell .action-buttons {
+    width: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .prof-notes-hub-shell .releve-section-inline .releve-header {
+    padding: 0.95rem 1rem;
+  }
+
+  .prof-notes-hub-shell .releve-section-inline .releve-actions,
+  .prof-notes-hub-shell .releve-section-inline .releve-actions .btn,
+  .prof-notes-hub-shell .releve-section-inline .releve-actions .btn-primary {
+    width: 100%;
+  }
+
+  .prof-notes-hub-shell .releve-section-inline .notes-eval-block {
+    padding: 0.85rem 0.85rem 1rem;
+  }
+}
+
+/* Cartes Évaluations — mêmes puces que Notes, largeur du texte */
+.eval-page .eval-btn,
+.eval-card__actions .eval-btn,
+.eval-hero__actions .eval-btn,
+.eval-empty .eval-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+  height: 2.05rem !important;
+  min-height: 2.05rem !important;
+  padding: 0 0.7rem !important;
+  border-radius: 8px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.eval-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+@media (max-width: 768px) {
+  .prof-notes-hub-shell .class-stats .stat-box {
+    padding: 0.45rem 0.4rem;
+  }
+
+  .prof-notes-hub-shell .class-stats .stat-label {
+    font-size: 0.62rem;
+  }
+
+  .prof-notes-hub-shell .class-stats .stat-value,
+  .prof-notes-hub-shell .class-stats .stat-value-small {
+    font-size: 0.82rem;
+  }
+}

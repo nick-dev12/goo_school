@@ -344,6 +344,10 @@ body.modal-enseignant-open {
   font-size: 1.35rem;
 }
 
+#modalPresenceAppel .prof-appel-chrome {
+  display: none;
+}
+
 /* Responsive — tablette */
 @media (max-width: 1024px) {
   .enseignant-form-modal .modal-creneau-content {
@@ -418,6 +422,30 @@ body.modal-enseignant-open {
   .enseignant-form-modal .btn.btn-primary {
     width: 100%;
   }
+}
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9998;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-overlay .modal-container {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
 }
 
 @media (max-width: 480px) {

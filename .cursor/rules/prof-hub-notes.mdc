@@ -11,8 +11,10 @@ alwaysApply: false
 Utiliser `#prof-hub-swap-root.prof-notes-hub-shell` via `prof_notes_hub_swap_root.html` :
 
 1. `#prof-hub-header` → `prof_notes_hub_header.html` (titre contextuel + liens difficulté / évaluations)
-2. `#prof-hub-chrome` → filtres regroupés (`prof-notes-hub-filters`) : Période, Classe, Matière (primaire), Affichage (Relevé / Saisie / Évaluations)
+2. `#prof-hub-chrome` → filtres regroupés (`prof-notes-hub-filters`) : Période, Classe, Matière (primaire), Affichage (Relevé / Saisie)
 3. `#prof-hub-panel` → `.prof-notes-hub-panel` (toolbar actions + contenu relevé)
+
+Les évaluations (création, liste, modification) vivent sur `liste_evaluations`, pas sur le hub Notes.
 
 Réponse `hub_partial=hub` : même arbre (`*_hub_swap.html`).
 
@@ -28,3 +30,5 @@ Sur `.prof-notes-hub-panel`, ne pas appliquer `activateClassePanels` pour cacher
 
 - Primaire : chrome `gestion_notes_primaire_hub_chrome.html`, panel dédié relevé multi-matières.
 - Secondaire hub V3 : chrome `gestion_notes_enseignant_hub_chrome.html`, panel via `gestion_notes_live_inner.html` filtré.
+
+Relevé : liste `.notes-list` (pas de tableau). Voir `README-DESIGN-LISTES.md` et `design-listes-enseignant.mdc`.

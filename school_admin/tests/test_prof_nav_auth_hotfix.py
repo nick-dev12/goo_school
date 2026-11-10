@@ -194,13 +194,14 @@ class ProfBottomNavSessionTests(TestCase):
 
     def _assert_stays_on_page(self, url_name, extra=None):
         params = extra or {}
-        resp = self.client.get(reverse(url_name), params)
+        resp = self.client.get(reverse(url_name), params, follow=True)
         self.assertEqual(
             resp.status_code,
             200,
             f'{url_name} → {resp.status_code} Location={resp.get("Location")}',
         )
         self.assertNotIn('/connexion/', resp.get('Location', ''))
+        self.assertFalse(any('/connexion/' in url for url, _ in resp.redirect_chain))
         return resp
 
     def test_dashboard_then_each_bottom_item(self):
@@ -209,13 +210,14 @@ class ProfBottomNavSessionTests(TestCase):
             'enseignant:gestion_classes',
             'enseignant:gestion_eleves',
             'enseignant:gestion_notes',
+            'enseignant:liste_evaluations',
             'enseignant:exercices_maison',
             'enseignant:gestion_presence',
             'enseignant:justifications_notes',
             'enseignant:parametres_profil',
         ):
             extra = {}
-            if 'notes' in name or 'exercices' in name:
+            if 'notes' in name or 'exercices' in name or 'evaluations' in name:
                 extra = {'classe': str(self.classe.id), 'periode': str(self.periode.id)}
             elif name.endswith('gestion_classes') or name.endswith('gestion_eleves') or name.endswith('gestion_presence'):
                 extra = {'classe': str(self.classe.id)}
@@ -303,6 +305,7 @@ class ProfPrimaireHubChromeTests(TestCase):
             'enseignant_primaire:gestion_classes',
             'enseignant_primaire:gestion_eleves',
             'enseignant_primaire:gestion_notes',
+            'enseignant_primaire:liste_evaluations',
             'enseignant_primaire:exercices_maison',
             'enseignant_primaire:gestion_presence',
         ):
@@ -324,6 +327,7 @@ class ProfPrimaireHubChromeTests(TestCase):
         resp = self.client.get(
             reverse('enseignant_primaire:exercices_maison'),
             {'periode': str(self.periode.id), 'classe': str(self.classe.id)},
+            follow=True,
         )
         self.assertEqual(resp.status_code, 200)
         body = resp.content.decode('utf-8')
@@ -375,20 +379,8 @@ class ProfHubCssHideLegacyTabsTests(TestCase):
         )
 
     def test_presence_panel_hides_legacy_tabs_nav(self):
-        from pathlib import Path
-        from django.conf import settings
-
-        panel = (
-            Path(settings.BASE_DIR)
-            / 'school_admin'
-            / 'templates'
-            / 'school_admin'
-            / 'enseignant'
-            / 'primaire'
-            / 'partials'
-            / 'gestion_presence_primaire_hub_panel.html'
-        )
-        text = panel.read_text(encoding='utf-8')
+        from django.template.loader import render_to_string
+        text = render_to_string('school_admin/enseignant/primaire/partials/gestion_presence_primaire_hub_panel.html')
         self.assertNotIn('class="tabs-nav"', text)
         self.assertNotIn('classes-tabs', text)
-        self.assertIn('data-classe-panel', text)
+        self.assertIn('prof-presence-hub-panel', text)

@@ -4,15 +4,13 @@
     {# ---------- Poste et matières ---------- #}
     <article class="fe-card fe-tone-blue">
       <header class="fe-card__head">
-        <div><h2 class="fe-card__title"><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{% trans "Poste et matières" %}</h2>
-        <p class="fe-card__sub">{% trans "Ce que l’enseignant est habilité à enseigner, et ce qu’il enseigne réellement d’après l’emploi du temps." %}</p></div>
+        <div><h2 class="fe-card__title"><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{% trans "Poste et matières" %}</h2></div>
       </header>
+      {% if fiche.type_etab == 'primary' %}
       <dl class="fe-dl">
-        <div><dt>{% trans "Niveau d’enseignement" %}</dt><dd>{{ professeur.niveau_display|default:"—" }}</dd></div>
-        {% if fiche.type_etab == 'primary' %}
         <div><dt>{% trans "Profil" %}</dt><dd>{% trans "Enseignant polyvalent (toutes les matières de ses classes)" %}</dd></div>
-        {% endif %}
       </dl>
+      {% endif %}
       {% if fiche.type_etab != 'primary' %}
       <p class="fe-label">{% trans "Matière principale" %}</p>
       <div class="fe-tags">

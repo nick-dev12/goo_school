@@ -23,14 +23,15 @@ echo ""
 echo "==> Installation des services systemd (Daphne + Celery)"
 cp "$PROJECT_DIR/deploy/systemd/aria-daphne.service" /etc/systemd/system/
 cp "$PROJECT_DIR/deploy/systemd/aria-celery.service" /etc/systemd/system/
+cp "$PROJECT_DIR/deploy/systemd/aria-celery-beat.service" /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable aria-daphne aria-celery
+systemctl enable aria-daphne aria-celery aria-celery-beat
 
 echo ""
 echo "==> Étapes manuelles restantes :"
 echo "1. Créer /etc/aria/env depuis deploy/env.production.example"
-echo "2. systemctl start aria-daphne aria-celery"
-echo "3. Intégrer deploy/nginx/aria-websocket.conf dans votre site Nginx"
+echo "2. systemctl start aria-daphne aria-celery aria-celery-beat"
+echo "3. Inclure aria-upstream.conf dans http {}, puis aria-websocket.conf dans server {}"
 echo "4. nginx -t && systemctl reload nginx"
 echo ""
 echo "Variables d'environnement : voir deploy/env.production.example"

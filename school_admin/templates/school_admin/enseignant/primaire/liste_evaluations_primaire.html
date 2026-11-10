@@ -1,92 +1,82 @@
-{% load static %}
+{% load static l10n notes_tags %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste des Évaluations - Enseignant Primaire</title>
+    <title>Évaluations - Enseignant Primaire</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/liste_evaluations.css' %}">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}?v=1.1.6">
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/creer_evaluation.css' %}?v=1.0.4">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.3">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/evaluations_hub.css' %}?v=1.0.9">
+    <link rel="stylesheet" href="{% static 'school_admin/css/shared/aria_filter_tabs.css' %}?v=1.1.3">
 </head>
-<body data-live-page="evaluations-liste">
+<body data-live-page="evaluations-liste" data-enseignant-space="primaire" data-etab-type="{{ professeur.etablissement.type_etablissement|default:'primary' }}"
+      data-prof-hub-nav-live="1"
+      data-prof-hub-key="professeur:evaluations-primaire"
+      data-prof-hub-fields="periode,classe,matiere"
+      {% if open_evaluation %} data-open-evaluation-modal="1" data-eval-classe-id="{{ eval_classe_id }}" data-eval-matiere-id="{{ eval_matiere_id }}" data-eval-periode-id="{{ eval_periode_id }}"{% endif %}>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/notes_workspace.css' %}?v=1.0.8">
 
-    <div class="page-container">
-        <div class="page-header">
-            <div class="header-content">
-                <h1><i class="fas fa-list"></i> Mes Évaluations</h1>
-                <p>{{ total_evaluations }} évaluations créées</p>
-            </div>
-        </div>
-
-        <!-- Filtres -->
-        <div class="filters-container">
-            <select onchange="window.location.href='?matiere=' + this.value + '&periode={{ periode_selectionnee.id }}&classe={{ classe_selectionnee.id }}'">
-                <option value="">Toutes les matières</option>
-                {% for matiere in matieres %}
-                    <option value="{{ matiere.id }}" {% if matiere.id == matiere_selectionnee.id %}selected{% endif %}>{{ matiere.nom }}</option>
-                {% endfor %}
-            </select>
-            
-            <select onchange="window.location.href='?matiere={{ matiere_selectionnee.id }}&periode=' + this.value + '&classe={{ classe_selectionnee.id }}'">
-                <option value="">Toutes les périodes</option>
-                {% for periode in periodes %}
-                    <option value="{{ periode.id }}" {% if periode.id == periode_selectionnee.id %}selected{% endif %}>{{ periode.nom_periode }}</option>
-                {% endfor %}
-            </select>
-            
-            <select onchange="window.location.href='?matiere={{ matiere_selectionnee.id }}&periode={{ periode_selectionnee.id }}&classe=' + this.value">
-                <option value="">Toutes les classes</option>
-                {% for classe in classes %}
-                    <option value="{{ classe.id }}" {% if classe.id == classe_selectionnee.id %}selected{% endif %}>{{ classe.nom }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <!-- Liste des évaluations -->
-        <div class="evaluations-grid">
-            {% for evaluation in evaluations %}
-                <div class="evaluation-card">
-                    <div class="evaluation-header">
-                        <span class="matiere-badge">{{ evaluation.matiere.code }}</span>
-                    </div>
-                    <h3>{{ evaluation.titre }}</h3>
-                    <div class="evaluation-details">
-                        <div class="detail-item">
-                            <i class="fas fa-chalkboard"></i>
-                            <span>{{ evaluation.classe.nom }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <i class="fas fa-calendar"></i>
-                            <span>{{ evaluation.date_evaluation|date:"d/m/Y" }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <i class="fas fa-star"></i>
-                            <span>{{ evaluation.bareme }} points</span>
-                        </div>
-                    </div>
-                    <div class="evaluation-actions">
-                        <a href="{% url 'enseignant_primaire:noter_eleves' evaluation.classe.id %}?evaluation={{ evaluation.id }}" class="btn-primary">
-                            <i class="fas fa-edit"></i> Noter
-                        </a>
-                    </div>
-                </div>
-            {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <h3>Aucune évaluation</h3>
-                    <p>Vous n'avez pas encore créé d'évaluations</p>
-                </div>
-            {% endfor %}
+    <div class="main-content-container">
+        {% csrf_token %}
+        <div class="eval-page">
+        {% include 'school_admin/enseignant/partials/prof_notes_hub_swap_root.html' with prof_notes_hub_chrome_template='school_admin/enseignant/primaire/partials/liste_evaluations_primaire_hub_chrome.html' prof_notes_hub_panel_template='school_admin/enseignant/primaire/partials/liste_evaluations_primaire_hub_panel.html' %}
         </div>
     </div>
 
+    <div id="modalCreerEvaluation" class="modal-creneau-fullscreen enseignant-form-modal">
+        <div class="modal-creneau-overlay"></div>
+        <div class="modal-creneau-content">
+            <div class="modal-creneau-header">
+                <h2><i class="fas fa-plus-circle"></i> Créer une évaluation</h2>
+                <button type="button" class="modal-creneau-close" onclick="closeModalEnseignant('modalCreerEvaluation')" aria-label="Fermer">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-creneau-body" id="modalCreerEvaluationBody"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalModificationEvalHub" hidden style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;align-items:center;justify-content:center;padding:1rem;">
+        <div class="modal-container" id="modalModificationEvalHubContent" style="background:#fff;border-radius:12px;max-width:900px;width:100%;max-height:90vh;overflow:auto;"></div>
+    </div>
+
     <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+    <script src="{% static 'school_admin/js/directeur/tabs_nav_overflow.js' %}?v=2.0.5"></script>
+    <script src="{% static 'school_admin/js/enseignant/professeur_tab_storage.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/enseignant/prof_hub_nav_live.js' %}?v=1.0.7"></script>
+    <script src="{% static 'school_admin/js/enseignant/prof_primaire_hub.js' %}?v=1.1.0"></script>
+    <script src="{% static 'school_admin/js/enseignant/primaire/gestion_notes_primaire.js' %}?v=1.0.6"></script>
+    <script>
+      window.ouvrirModalModificationEvalHub = function (evaluationId) {
+        var modal = document.getElementById('modalModificationEvalHub');
+        var content = document.getElementById('modalModificationEvalHubContent');
+        if (!modal || !content) return;
+        modal.hidden = false;
+        modal.style.display = 'flex';
+        content.innerHTML = '<p style="padding:1.5rem"><i class="fas fa-spinner fa-spin"></i> Chargement…</p>';
+        fetch('/enseignant/primaire/modifier-evaluation/' + evaluationId + '/', {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.html) content.innerHTML = data.html;
+          });
+      };
+      window.fermerModalModificationEvalHub = function () {
+        var modal = document.getElementById('modalModificationEvalHub');
+        if (modal) { modal.hidden = true; modal.style.display = 'none'; }
+      };
+    </script>
 
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
 {% include 'school_admin/partials/enseignant_live_scripts.html' %}
 </body>
 </html>
-

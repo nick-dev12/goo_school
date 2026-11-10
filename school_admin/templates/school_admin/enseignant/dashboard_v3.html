@@ -17,9 +17,9 @@
     {% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}
   {% endif %}
   {# Jetons de couleur partagés avec l'espace direction, puis styles du tableau de bord. #}
-  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/aria_shell.css' %}?v=1.0.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/aria_shell.css' %}?v=1.0.2">
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=20261104c">
-  <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/dashboard_enseignant_v3.css' %}?v=20261104b">
+  <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/dashboard_enseignant_v3.css' %}?v=20261108b">
 </head>
 <body class="axd-page axd-page--prof">
   {% if tdash.is_primaire %}
@@ -38,34 +38,6 @@
         <i class="fas fa-check-circle" aria-hidden="true"></i> {% trans "Notifications activées avec succès." %}
       </div>
     </div>
-
-    {# ---------- Bandeau d'accueil (bleu uni) ---------- #}
-    <section class="axd-hero axd-hero--prof">
-      <div class="axd-hero__row">
-        <div class="axd-hero__text">
-          <p class="axd-hero__date">
-            {% now "l j F Y" as aujourdhui %}{{ aujourdhui|capfirst }}
-            {% if annee_scolaire_active %}<span class="axd-dot" aria-hidden="true"></span>{% trans "Année" %} {{ annee_scolaire_active.libelle }}{% endif %}
-            {% if periode_active %}<span class="axd-dot" aria-hidden="true"></span>{{ periode_active.nom_periode }}{% endif %}
-          </p>
-          <h1 class="axd-hero__title">{% trans "Bonjour" %} {{ professeur.prenom|default:professeur.nom_complet }}</h1>
-          <p class="axd-hero__sub">
-            {{ professeur.etablissement.nom }}
-            {% if not t.is_primaire and professeur.matiere_display %} · {{ professeur.matiere_display }}{% endif %}
-          </p>
-        </div>
-        <div class="axd-hero__actions">
-          <a class="axd-hero__btn" href="{% url t.ns|add:':pointage' %}"><i class="fas fa-qrcode" aria-hidden="true"></i>{% trans "Pointage" %}</a>
-          <a class="axd-hero__btn" href="{% url t.ns|add:':cahier_texte' %}"><i class="fas fa-book-open" aria-hidden="true"></i>{% trans "Cahier de texte" %}</a>
-          <a class="axd-hero__btn" href="{% url t.ns|add:':emploi_du_temps' %}"><i class="fas fa-calendar-week" aria-hidden="true"></i>{% trans "Emploi du temps" %}</a>
-          <a class="axd-hero__btn" href="{% url t.ns|add:':liste_evaluations' %}"><i class="fas fa-clipboard-list" aria-hidden="true"></i>{% trans "Évaluations" %}</a>
-          <a class="axd-hero__btn axd-hero__btn--quiet" href="{% url 'school_admin:deconnexion_compte_administrateur' %}"><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i>{% trans "Déconnexion" %}</a>
-        </div>
-      </div>
-      {% if not annee_scolaire_active %}
-      <p class="axd-hero__warn"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{% trans "Aucune année scolaire active : les chiffres peuvent ne pas correspondre à la session en cours." %}</p>
-      {% endif %}
-    </section>
 
     {# ---------- Cartes indicatives ---------- #}
     <section class="axd-mini" aria-label="{% trans 'Vue d’ensemble' %}">

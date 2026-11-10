@@ -52,7 +52,7 @@ def _lib_periode(p):
 
 
 # --------------------------------------------------------------------------- notes
-def notes_eleve(eleve, annee, primaire, matiere_ids=None, publiees_seulement=False):
+def notes_eleve(eleve, annee, primaire, matiere_ids=None, publiees_seulement=False, periode=None):
     """Toutes les notes de l'année (y compris non publiées pour le personnel), par période et matière."""
     rows = []
     if primaire:
@@ -65,6 +65,8 @@ def notes_eleve(eleve, annee, primaire, matiere_ids=None, publiees_seulement=Fal
                                                        evaluation_primaire__annee_scolaire=annee))
         if matiere_ids is not None:
             qs = qs.filter(evaluation_primaire__matiere_id__in=matiere_ids)
+        if periode:
+            qs = qs.filter(evaluation_primaire__periode_scolaire=periode)
         for n in qs:
             ev = n.evaluation_primaire
             rows.append((n, ev, ev.matiere, ev.periode_scolaire))
@@ -77,6 +79,8 @@ def notes_eleve(eleve, annee, primaire, matiere_ids=None, publiees_seulement=Fal
             qs = qs.filter(Q(annee_scolaire=annee) | Q(annee_scolaire__isnull=True, evaluation__annee_scolaire=annee))
         if matiere_ids is not None:
             qs = qs.filter(Q(matiere_id__in=matiere_ids) | Q(matiere__isnull=True, evaluation__matiere_id__in=matiere_ids))
+        if periode:
+            qs = qs.filter(evaluation__periode_scolaire=periode)
         for n in qs:
             ev = n.evaluation
             rows.append((n, ev, n.matiere or ev.matiere, ev.periode_scolaire))
@@ -132,13 +136,15 @@ def synthese_notes(notes):
     return result
 
 
-def moyennes_officielles(eleve, annee, publiees_seulement=False):
+def moyennes_officielles(eleve, annee, publiees_seulement=False, periode=None):
     """Moyennes générales calculées pour les bulletins (une par période)."""
     from school_admin.model.moyenne_periode_model import MoyennePeriode
 
     qs = MoyennePeriode.objects.filter(eleve=eleve, est_moyenne_generale=True, moyenne_generale__isnull=False)
     if annee:
         qs = qs.filter(annee_scolaire=annee)
+    if periode:
+        qs = qs.filter(periode=periode)
     if publiees_seulement:
         qs = qs.filter(est_publie=True)
     return [{'periode': _lib_periode(m.periode), 'moyenne': float(m.moyenne_generale), 'rang': m.rang,
@@ -148,13 +154,19 @@ def moyennes_officielles(eleve, annee, publiees_seulement=False):
 
 
 # --------------------------------------------------------------------------- vie scolaire
-def presences_eleve(eleve, annee, classe=None, limit=12):
+def presences_eleve(eleve, annee, classe=None, limit=12, periode=None):
     from school_admin.model.presence_model import Presence
+    from school_admin.utils.prof_periodes import apply_date_range
 
     qs = Presence.objects.filter(eleve=eleve)
     if annee:
         qs = qs.filter(annee_scolaire=annee)
-    stats = stats_presence(eleve, annee, timezone.localdate())
+    qs = apply_date_range(qs, periode)
+    stats = stats_presence(
+        eleve, annee, timezone.localdate(),
+        date_debut=getattr(periode, 'date_debut', None),
+        date_fin=getattr(periode, 'date_fin', None),
+    )
     justifiees = qs.filter(statut='absent_justifie').count()
     recentes = list(qs.exclude(statut='present').select_related('classe', 'professeur').order_by('-date')[:limit])
     for p in recentes:
@@ -165,14 +177,16 @@ def presences_eleve(eleve, annee, classe=None, limit=12):
     return stats
 
 
-def sanctions_eleve(eleve, annee, classe=None):
+def sanctions_eleve(eleve, annee, classe=None, periode=None):
     from school_admin.model.sanction_model import Sanction
+    from school_admin.utils.prof_periodes import apply_date_range
 
     qs = Sanction.objects.filter(eleve=eleve)
     if annee:
         qs = qs.filter(annee_scolaire=annee)
     if classe is not None:
         qs = qs.filter(classe=classe)
+    qs = apply_date_range(qs, periode, field='date_sanction')
     items = list(qs.select_related('professeur').order_by('-date_sanction', '-date_creation'))
     return {'items': items, 'total': len(items),
             'graves': sum(1 for s in items if s.gravite in ('grave', 'tres_grave')),
@@ -253,19 +267,20 @@ def convocations(eleve, annee):
 
 
 # --------------------------------------------------------------------------- assemblage
-def construire(eleve, classe, etablissement, annee, vue='direction', professeur=None, matieres_prof=None):
+def construire(eleve, classe, etablissement, annee, vue='direction', professeur=None, matieres_prof=None, periode=None):
     """
     vue='direction' : dossier complet (notes brouillons comprises, finances, documents).
     vue='enseignant' : notes des matières de l'enseignant (toutes) + moyennes générales publiées.
+    periode : si fournie, notes / présences / sanctions / moyennes sont limitées à cette période.
     """
     primaire = est_primaire(etablissement)
     today = timezone.localdate()
     matiere_ids = [m.id for m in matieres_prof] if matieres_prof is not None else None
-    notes = notes_eleve(eleve, annee, primaire, matiere_ids=matiere_ids)
+    notes = notes_eleve(eleve, annee, primaire, matiere_ids=matiere_ids, periode=periode)
     synth = synthese_notes(notes)
-    officielles = moyennes_officielles(eleve, annee, publiees_seulement=(vue != 'direction'))
-    pres = presences_eleve(eleve, annee, classe)
-    sanc = sanctions_eleve(eleve, annee, classe if vue == 'enseignant' else None)
+    officielles = moyennes_officielles(eleve, annee, publiees_seulement=(vue != 'direction'), periode=periode)
+    pres = presences_eleve(eleve, annee, classe, periode=periode)
+    sanc = sanctions_eleve(eleve, annee, classe if vue == 'enseignant' else None, periode=periode)
     fam = famille(eleve)
     docs = documents_eleve(eleve)
 

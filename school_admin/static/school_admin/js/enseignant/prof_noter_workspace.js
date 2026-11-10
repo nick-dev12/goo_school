@@ -2,6 +2,9 @@
  * UI workspace saisie notes (compteur, tout cocher / décocher)
  */
 (function () {
+    if (window.__notesWorkspaceBound) return;
+    window.__notesWorkspaceBound = true;
+
     function panelRoot() {
         return document.querySelector('.prof-noter-panel');
     }
@@ -31,51 +34,71 @@
         updateCounter();
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    function colorInputs() {
         const root = panelRoot();
-        if (!root) return;
-
-        root.querySelectorAll('.eval-checkbox').forEach(function (cb) {
-            cb.addEventListener('change', updateCounter);
+        if (!root || typeof window.colorNote !== 'function') return;
+        root.querySelectorAll('.note-input, .moyenne-input').forEach(function (input) {
+            window.colorNote(input);
         });
+    }
 
-        root.querySelectorAll('.js-prof-noter-select-all').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                setAll(true);
-            });
-        });
-
-        root.querySelectorAll('.js-prof-noter-select-none').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                setAll(false);
-            });
-        });
-
+    function boot() {
         updateCounter();
+        colorInputs();
+    }
 
-        root.querySelectorAll('.js-prof-noter-open-eval-modal').forEach(function (link) {
-            link.addEventListener('click', function (event) {
-                var modalBody = document.getElementById('modalCreerEvaluationBody');
-                if (!modalBody || typeof window.loadEvaluationFormModal !== 'function') {
-                    return;
-                }
-                event.preventDefault();
-                var classeId =
-                    link.getAttribute('data-classe-id') ||
-                    (link.pathname.match(/\/creer\/(\d+)\//) || [])[1];
-                if (!classeId) {
-                    window.location.assign(link.href);
-                    return;
-                }
-                var opened = window.loadEvaluationFormModal(
-                    classeId,
-                    link.getAttribute('data-matiere-id'),
-                    link.getAttribute('data-periode-id')
-                );
-                if (opened === false) {
-                    window.location.assign(link.href);
-                }
-            });
-        });
+    document.addEventListener('click', function (event) {
+        if (event.target.closest('.js-prof-noter-select-all')) {
+            setAll(true);
+            return;
+        }
+        if (event.target.closest('.js-prof-noter-select-none')) {
+            setAll(false);
+            return;
+        }
+        var link = event.target.closest('.js-prof-noter-open-eval-modal');
+        if (!link) return;
+        var modalBody = document.getElementById('modalCreerEvaluationBody');
+        if (!modalBody || typeof window.loadEvaluationFormModal !== 'function') {
+            return;
+        }
+        event.preventDefault();
+        var classeId =
+            link.getAttribute('data-classe-id') ||
+            (link.pathname.match(/\/creer\/(\d+)\//) || [])[1];
+        if (!classeId) {
+            window.location.assign(link.href);
+            return;
+        }
+        var opened = window.loadEvaluationFormModal(
+            classeId,
+            link.getAttribute('data-matiere-id'),
+            link.getAttribute('data-periode-id')
+        );
+        if (opened === false) {
+            window.location.assign(link.href);
+        }
     });
+
+    document.addEventListener('change', function (event) {
+        if (!event.target.closest('.prof-noter-panel')) return;
+        if (event.target.closest('.eval-checkbox')) {
+            updateCounter();
+            var item = event.target.closest('.notes-noter-select__item');
+            if (item) item.classList.toggle('is-checked', event.target.checked);
+        }
+    });
+
+    document.addEventListener('input', function (event) {
+        var input = event.target.closest('.note-input');
+        if (input && typeof window.colorNote === 'function') window.colorNote(input);
+    });
+
+    document.addEventListener('prof-hub-panel-loaded', boot);
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
 })();

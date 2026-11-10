@@ -22,11 +22,7 @@
         </p>
         <h1 class="axd-hero__title">{% if est_parent %}{% trans "Suivi de" %} {{ eleve.prenom }}{% else %}{% trans "Bonjour" %} {{ eleve.prenom }}{% endif %}</h1>
         <p class="px-hero__sub">{% if classe %}{{ classe.nom }} · {% endif %}{{ eleve.etablissement.nom }}</p>
-        <div class="px-hero__actions ex-hero__actions">
-          <a class="px-hero__btn" href="{% url 'eleve:emploi_du_temps' %}"><i class="fas fa-calendar-week" aria-hidden="true"></i>{% trans "Emploi du temps" %}</a>
-          <a class="px-hero__btn px-hero__btn--quiet" href="{% url 'eleve:notes_evaluations' %}"><i class="fas fa-chart-line" aria-hidden="true"></i>{% if est_parent %}{% trans "Notes" %}{% else %}{% trans "Mes notes" %}{% endif %}</a>
-          <button id="fcm-enable-btn" class="px-hero__btn px-hero__btn--quiet" type="button" style="display: none;" onclick="activerNotifications()"><i class="fas fa-bell" aria-hidden="true"></i>{% trans "Activer les notifications" %}</button>
-        </div>
+        <button id="fcm-enable-btn" class="px-hero__btn px-hero__btn--quiet" type="button" style="display: none;" onclick="activerNotifications()"><i class="fas fa-bell" aria-hidden="true"></i>{% trans "Activer les notifications" %}</button>
         <p id="fcm-success-message" class="px-hero__ok" style="display: none;"><i class="fas fa-circle-check" aria-hidden="true"></i>{% trans "Notifications activées." %}</p>
       </div>
 
@@ -62,18 +58,6 @@
       </aside>
     </section>
 
-    {# ---------- Alertes ---------- #}
-    {% if s.alertes %}
-    <section class="ex-alerts" aria-label="{% trans 'À ne pas manquer' %}">
-      {% for a in s.alertes %}
-      <article class="ex-alert ex-alert--{{ a.tone }}">
-        <span class="ex-alert__icon"><i class="fas {{ a.icon }}" aria-hidden="true"></i></span>
-        <div class="ex-alert__text"><strong>{% if a.live %}<span class="ex-live" aria-hidden="true"></span>{% endif %}{{ a.titre }}</strong><small>{{ a.texte }}</small></div>
-      </article>
-      {% endfor %}
-    </section>
-    {% endif %}
-
     {# ---------- Indicateurs ---------- #}
     <section class="axd-mini ex-mini" aria-label="{% trans 'Mes indicateurs' %}">
       {% for c in s.mini %}
@@ -91,18 +75,18 @@
 
     {# ---------- Emploi du temps + à faire ---------- #}
     <section class="axd-grid">
-      <article class="axd-card axd-span-7" id="ex-edt">
-        <header class="axd-card__head">
+      <article class="axd-card axd-span-7 ex-edt" id="ex-edt">
+        <header class="axd-card__head ex-edt__head">
           <div>
             <h2 class="axd-card__title">{% trans "Emploi du temps" %}</h2>
             <p class="axd-card__sub">{% if s.edt.publie %}{% blocktrans with h=s.edt.heures_semaine %}{{ h }} h de cours par semaine{% endblocktrans %}{% else %}{% trans "Semaine en cours" %}{% endif %}</p>
           </div>
-          <a class="axd-link" href="{% url 'eleve:emploi_du_temps' %}">{% trans "Voir tout" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+          <a class="axd-link" href="{% url 'eleve:emploi_du_temps' %}?vue=semaine">{% trans "Voir tout" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
         </header>
         {% if s.edt.publie %}
-        <div class="ex-days" role="tablist" aria-label="{% trans 'Jours de la semaine' %}">
+        <div class="ex-days" role="tablist" aria-label="{% trans 'Jours de la semaine' %}" data-tabs-overflow="off">
           {% for j in s.edt.jours %}
-          <button type="button" class="ex-day{% if j.est_aujourdhui %} is-active{% endif %}" role="tab" aria-selected="{% if j.est_aujourdhui %}true{% else %}false{% endif %}" aria-controls="ex-day-{{ j.code }}" data-day="{{ j.code }}">
+          <button type="button" class="ex-day{% if j.est_aujourdhui %} is-active is-today{% endif %}" role="tab" aria-selected="{% if j.est_aujourdhui %}true{% else %}false{% endif %}" aria-controls="ex-day-{{ j.code }}" data-day="{{ j.code }}">
             <span>{{ j.court }}</span><b>{{ j.date|date:"j" }}</b>{% if j.cours %}<i class="ex-day__dot" aria-hidden="true"></i>{% endif %}
           </button>
           {% endfor %}
@@ -114,10 +98,10 @@
             {% for c in j.cours %}
             <li class="ex-course{% if c.etat == 'passe' %} is-past{% elif c.etat == 'en_cours' %} is-now{% endif %}">
               <div class="ex-course__time"><strong>{{ c.debut_txt }}</strong><small>{{ c.fin_txt }}</small></div>
-              <span class="ex-course__icon ax-tone-{{ c.tone }}"><i class="fas {{ c.icon }}" aria-hidden="true"></i></span>
+              <span class="ex-course__rail ax-tone-{{ c.tone }}" aria-hidden="true"></span>
               <div class="ex-course__body">
                 <p class="ex-course__title">{{ c.matiere }}{% if c.type %} <span class="px-badge px-badge--gray">{{ c.type }}</span>{% endif %}</p>
-                <p class="ex-course__meta">{% if c.prof %}<span><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{{ c.prof }}</span>{% endif %}{% if c.salle %}<span><i class="fas fa-door-open" aria-hidden="true"></i>{% trans "Salle" %} {{ c.salle }}</span>{% endif %}<span><i class="fas fa-clock" aria-hidden="true"></i>{{ c.duree }} min</span></p>
+                {% if c.prof %}<p class="ex-course__meta">{{ c.prof }}</p>{% endif %}
               </div>
               {% if c.etat == 'en_cours' %}<span class="px-badge px-badge--blue ex-course__state"><span class="ex-live" aria-hidden="true"></span>{% trans "En cours" %}</span>
               {% elif c.etat == 'passe' %}<span class="ex-course__state ex-course__done" aria-label="{% trans 'Terminé' %}"><i class="fas fa-check" aria-hidden="true"></i></span>{% endif %}
@@ -222,9 +206,9 @@
       </article>
     </section>
 
-    {# ---------- Notes, présence, annonces ---------- #}
+    {# ---------- Notes, présence ---------- #}
     <section class="axd-grid">
-      <article class="axd-card axd-span-5">
+      <article class="axd-card axd-span-7">
         <header class="axd-card__head">
           <div><h2 class="axd-card__title">{% trans "Dernières notes" %}</h2></div>
           <a class="axd-link" href="{% url 'eleve:notes_evaluations' %}">{% trans "Toutes" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
@@ -243,7 +227,7 @@
         {% endif %}
       </article>
 
-      <article class="axd-card axd-span-4">
+      <article class="axd-card axd-span-5">
         <header class="axd-card__head">
           <div>
             <h2 class="axd-card__title">{% trans "Présence" %}</h2>
@@ -261,22 +245,6 @@
           <div><dt>{% trans "Retards" %}</dt><dd class="{% if s.presence.retards %}is-warn{% endif %}">{{ s.presence.retards }}</dd></div>
           <div><dt>{% trans "Appels" %}</dt><dd>{{ s.presence.total }}</dd></div>
         </dl>
-      </article>
-
-      <article class="axd-card axd-span-3">
-        <header class="axd-card__head">
-          <div><h2 class="axd-card__title">{% trans "Annonces" %}</h2></div>
-          <a class="axd-link" href="{% url 'eleve:annonces_eleve' %}">{% trans "Toutes" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
-        </header>
-        {% if annonces %}
-        <ul class="axd-list">
-          {% for a in annonces %}
-          <li><a class="axd-list__main" href="{% url 'eleve:annonces_eleve' %}"><span class="axd-avatar-sm px-icon-orange" aria-hidden="true"><i class="fas fa-bullhorn"></i></span><span><strong>{{ a.titre }}</strong><small>{{ a.date_publication|date:"d/m/Y" }}</small></span></a></li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <p class="axd-muted">{% trans "Pas de nouvelle annonce." %}</p>
-        {% endif %}
       </article>
     </section>
   </main>

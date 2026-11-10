@@ -1,0 +1,473 @@
+/* Onglets hub — compact + overflow Plus.
+   Référence : school_admin/static/school_admin/css/README-DESIGN-ONGLETS.md
+   Règle Cursor : .cursor/rules/design-onglets.mdc */
+
+.prof-hub-filters,
+.prof-notes-hub-filters,
+.prof-exercices-hub-filters.prof-exercices-hub-filters,
+.prof-noter-filters,
+.fe-period-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.fe-period-filters {
+  margin: 0 0 0.75rem;
+}
+
+.prof-classe-detail-shell .prof-hub-filter-block {
+  margin-bottom: 0.5rem;
+}
+
+.prof-hub-filter-block,
+.prof-notes-filter-block,
+.eval-filters,
+.notes-eval-filter,
+.prof-exercices-filter-block,
+.prof-noter-filter-group {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.prof-hub-filter-label,
+.prof-notes-filter-label,
+.prof-exercices-filter-label,
+.prof-noter-filter-label,
+.eval-filters h2,
+.eval-filters h3,
+.notes-eval-filter h2,
+.notes-eval-filter h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.prof-hub-filter-block--period .prof-hub-filter-label,
+.prof-hub-filter-block--period .prof-hub-filter-label i,
+.prof-notes-filter-block--period .prof-notes-filter-label,
+.prof-notes-filter-block--period .prof-notes-filter-label i,
+.prof-exercices-filter-block--period .prof-exercices-filter-label,
+.prof-exercices-filter-block--period .prof-exercices-filter-label i,
+.prof-noter-filter-group--period .prof-noter-filter-label,
+.prof-noter-filter-group--period .prof-noter-filter-label i {
+  color: #b45309;
+}
+
+.prof-hub-filter-block--classe .prof-hub-filter-label,
+.prof-hub-filter-block--classe .prof-hub-filter-label i,
+.prof-notes-filter-block--classe .prof-notes-filter-label,
+.prof-notes-filter-block--classe .prof-notes-filter-label i,
+.prof-exercices-filter-block--classe .prof-exercices-filter-label,
+.prof-exercices-filter-block--classe .prof-exercices-filter-label i {
+  color: #1d4ed8;
+}
+
+.prof-hub-filter-block--matiere .prof-hub-filter-label,
+.prof-hub-filter-block--matiere .prof-hub-filter-label i,
+.prof-notes-filter-block--matiere .prof-notes-filter-label,
+.prof-notes-filter-block--matiere .prof-notes-filter-label i,
+.prof-exercices-filter-block--matiere .prof-exercices-filter-label,
+.prof-exercices-filter-block--matiere .prof-exercices-filter-label i,
+.prof-noter-filter-group--matiere .prof-noter-filter-label,
+.prof-noter-filter-group--matiere .prof-noter-filter-label i {
+  color: #6d28d9;
+}
+
+.prof-hub-filter-block--vue .prof-hub-filter-label,
+.prof-hub-filter-block--vue .prof-hub-filter-label i,
+.prof-notes-filter-block--vue .prof-notes-filter-label,
+.prof-notes-filter-block--vue .prof-notes-filter-label i {
+  color: #0f766e;
+}
+
+.prof-primaire-hub-nav,
+.prof-hub-filter-block .prof-primaire-hub-nav,
+.prof-notes-filter-block .prof-primaire-hub-nav,
+.eval-filters .prof-primaire-hub-nav,
+.notes-eval-filter .prof-primaire-hub-nav,
+.prof-exercices-filter-block .prof-primaire-hub-nav,
+.prof-noter-filters .prof-primaire-hub-nav {
+  margin: 0 !important;
+}
+
+.prof-primaire-hub-nav .matiere-tabs-bar,
+.prof-primaire-hub-nav .ovf-bar,
+.notes-hub-nav .matiere-tabs-bar,
+.prof-hub-filter-block .matiere-tabs-bar,
+.prof-notes-filter-block .matiere-tabs-bar,
+.eval-filters .matiere-tabs-bar,
+.notes-eval-filter .matiere-tabs-bar,
+.prof-exercices-filter-block .matiere-tabs-bar,
+.prof-noter-filters .matiere-tabs-bar,
+.prof-classe-detail-shell .matiere-tabs-bar {
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.prof-primaire-hub-nav .ovf-bar.ovf-bar > [data-ovf-track],
+.prof-noter-filters .ovf-bar.ovf-bar > [data-ovf-track],
+.prof-classe-detail-shell .ovf-bar.ovf-bar > [data-ovf-track] {
+  overflow: hidden !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+.prof-primaire-hub-nav a.matiere-tab-btn,
+.prof-primaire-hub-nav button.matiere-tab-btn,
+.prof-primaire-hub-nav .ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab,
+.prof-noter-filters a.matiere-tab-btn,
+.prof-noter-filters .ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab,
+.prof-classe-detail-shell a.matiere-tab-btn,
+.prof-classe-detail-shell .ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab {
+  display: inline-flex !important;
+  align-items: center;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  max-width: none !important;
+  gap: 0.35rem;
+  height: 2.05rem !important;
+  min-height: 2.05rem !important;
+  padding: 0 0.7rem !important;
+  border-radius: 8px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  background: #fff !important;
+  border: 1px solid #e5e7eb !important;
+  color: #4b5563 !important;
+}
+
+.prof-primaire-hub-nav .prof-primaire-periodes-bar.ovf-bar .ovf-tab.ovf-tab,
+.prof-hub-filter-block--period .ovf-bar .ovf-tab.ovf-tab,
+.prof-notes-filter-block--period .ovf-bar .ovf-tab.ovf-tab,
+.prof-exercices-filter-block--period .ovf-bar .ovf-tab.ovf-tab,
+.prof-noter-filter-group--period .ovf-bar .ovf-tab.ovf-tab {
+  background: #fff !important;
+  border: 1px solid #fcd34d !important;
+  color: #92400e !important;
+}
+
+.prof-primaire-hub-nav .prof-primaire-periodes-bar.ovf-bar .ovf-tab.ovf-tab.active,
+.prof-primaire-hub-nav .prof-primaire-periodes-bar.ovf-bar .ovf-tab.ovf-tab[aria-selected="true"],
+.prof-hub-filter-block--period .ovf-bar .ovf-tab.ovf-tab.active,
+.prof-notes-filter-block--period .ovf-bar .ovf-tab.ovf-tab.active,
+.prof-exercices-filter-block--period .ovf-bar .ovf-tab.ovf-tab.active,
+.prof-noter-filter-group--period .ovf-bar .ovf-tab.ovf-tab.active {
+  background: #d97706 !important;
+  border-color: #d97706 !important;
+  color: #fff !important;
+}
+
+.prof-primaire-hub-nav .prof-primaire-classes-bar.ovf-bar .ovf-tab.ovf-tab,
+.prof-hub-filter-block--classe .ovf-bar .ovf-tab.ovf-tab,
+.prof-notes-filter-block--classe .ovf-bar .ovf-tab.ovf-tab,
+.prof-exercices-filter-block--classe .ovf-bar .ovf-tab.ovf-tab {
+  background: #fff !important;
+  border: 1px solid #bfdbfe !important;
+  color: #1e40af !important;
+}
+
+.prof-primaire-hub-nav .prof-primaire-classes-bar.ovf-bar .ovf-tab.ovf-tab.active,
+.prof-primaire-hub-nav .prof-primaire-classes-bar.ovf-bar .ovf-tab.ovf-tab[aria-selected="true"],
+.prof-hub-filter-block--classe .ovf-bar .ovf-tab.ovf-tab.active,
+.prof-notes-filter-block--classe .ovf-bar .ovf-tab.ovf-tab.active,
+.prof-exercices-filter-block--classe .ovf-bar .ovf-tab.ovf-tab.active {
+  background: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+  color: #fff !important;
+}
+
+.prof-primaire-hub-nav .prof-exercices-matieres-bar.ovf-bar .ovf-tab.ovf-tab,
+.prof-primaire-hub-nav .notes-subject-bar.ovf-bar .ovf-tab.ovf-tab,
+.prof-primaire-hub-nav .prof-primaire-matieres-bar.ovf-bar .ovf-tab.ovf-tab,
+.prof-hub-filter-block--matiere .ovf-bar .ovf-tab.ovf-tab,
+.prof-noter-filter-group--matiere .ovf-bar .ovf-tab.ovf-tab {
+  background: #fff !important;
+  border: 1px solid #ddd6fe !important;
+  color: #5b21b6 !important;
+}
+
+.prof-primaire-hub-nav .prof-exercices-matieres-bar.ovf-bar .ovf-tab.ovf-tab.active,
+.prof-primaire-hub-nav .notes-subject-bar.ovf-bar .ovf-tab.ovf-tab.active,
+.prof-primaire-hub-nav .prof-primaire-matieres-bar.ovf-bar .ovf-tab.ovf-tab.active,
+.prof-hub-filter-block--matiere .ovf-bar .ovf-tab.ovf-tab.active,
+.prof-noter-filter-group--matiere .ovf-bar .ovf-tab.ovf-tab.active {
+  background: #7c3aed !important;
+  border-color: #7c3aed !important;
+  color: #fff !important;
+}
+
+.prof-hub-filter-block--period a.matiere-tab-btn,
+.prof-primaire-periodes-bar a.matiere-tab-btn {
+  background: #fff !important;
+  border: 1px solid #fcd34d !important;
+  color: #92400e !important;
+}
+
+.prof-hub-filter-block--period a.matiere-tab-btn.active,
+.prof-hub-filter-block--period a.matiere-tab-btn[aria-selected="true"],
+.prof-primaire-periodes-bar a.matiere-tab-btn.active,
+.prof-primaire-periodes-bar a.matiere-tab-btn[aria-selected="true"] {
+  background: #d97706 !important;
+  border-color: #d97706 !important;
+  color: #fff !important;
+}
+
+.prof-hub-filter-block--classe a.matiere-tab-btn,
+.prof-primaire-classes-bar a.matiere-tab-btn {
+  background: #fff !important;
+  border: 1px solid #bfdbfe !important;
+  color: #1e40af !important;
+}
+
+.prof-hub-filter-block--classe a.matiere-tab-btn.active,
+.prof-hub-filter-block--classe a.matiere-tab-btn[aria-selected="true"],
+.prof-primaire-classes-bar a.matiere-tab-btn.active,
+.prof-primaire-classes-bar a.matiere-tab-btn[aria-selected="true"] {
+  background: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+  color: #fff !important;
+}
+
+.prof-hub-filter-block--matiere a.matiere-tab-btn,
+.prof-primaire-matieres-bar a.matiere-tab-btn,
+.prof-exercices-matieres-bar a.matiere-tab-btn {
+  background: #fff !important;
+  border: 1px solid #ddd6fe !important;
+  color: #5b21b6 !important;
+}
+
+.prof-hub-filter-block--matiere a.matiere-tab-btn.active,
+.prof-hub-filter-block--matiere a.matiere-tab-btn[aria-selected="true"],
+.prof-primaire-matieres-bar a.matiere-tab-btn.active,
+.prof-exercices-matieres-bar a.matiere-tab-btn.active {
+  background: #7c3aed !important;
+  border-color: #7c3aed !important;
+  color: #fff !important;
+}
+
+.prof-primaire-hub-nav .prof-primaire-vues-bar.ovf-bar .ovf-tab.ovf-tab,
+.prof-hub-filter-block--vue .ovf-bar .ovf-tab.ovf-tab,
+.prof-notes-filter-block--vue .ovf-bar .ovf-tab.ovf-tab,
+.prof-hub-filter-block--vue a.matiere-tab-btn,
+.prof-primaire-vues-bar a.matiere-tab-btn {
+  background: #fff !important;
+  border: 1px solid #99f6e4 !important;
+  color: #0f766e !important;
+}
+
+.prof-primaire-hub-nav .prof-primaire-vues-bar.ovf-bar .ovf-tab.ovf-tab.active,
+.prof-primaire-hub-nav .prof-primaire-vues-bar.ovf-bar .ovf-tab.ovf-tab[aria-selected="true"],
+.prof-hub-filter-block--vue .ovf-bar .ovf-tab.ovf-tab.active,
+.prof-notes-filter-block--vue .ovf-bar .ovf-tab.ovf-tab.active,
+.prof-hub-filter-block--vue a.matiere-tab-btn.active,
+.prof-hub-filter-block--vue a.matiere-tab-btn[aria-selected="true"],
+.prof-primaire-vues-bar a.matiere-tab-btn.active,
+.prof-primaire-vues-bar a.matiere-tab-btn[aria-selected="true"] {
+  background: #0d9488 !important;
+  border-color: #0d9488 !important;
+  color: #fff !important;
+}
+
+.prof-primaire-periodes-bar .ovf-tab.ovf-tab.active i,
+.prof-primaire-classes-bar .ovf-tab.ovf-tab.active i,
+.prof-exercices-matieres-bar .ovf-tab.ovf-tab.active i,
+.prof-primaire-matieres-bar .ovf-tab.ovf-tab.active i,
+.prof-primaire-vues-bar .ovf-tab.ovf-tab.active i,
+.prof-primaire-hub-nav a.matiere-tab-btn.active i {
+  color: #fff !important;
+}
+
+.prof-primaire-periodes-bar a.matiere-tab-btn:not(.active) i,
+.prof-primaire-periodes-bar .ovf-tab:not(.active) i {
+  color: #d97706 !important;
+}
+
+.prof-primaire-classes-bar a.matiere-tab-btn:not(.active) i,
+.prof-primaire-classes-bar .ovf-tab:not(.active) i {
+  color: #3b82f6 !important;
+}
+
+.prof-exercices-matieres-bar a.matiere-tab-btn:not(.active) i,
+.prof-primaire-matieres-bar a.matiere-tab-btn:not(.active) i {
+  color: #7c3aed !important;
+}
+
+.prof-primaire-vues-bar a.matiere-tab-btn:not(.active) i,
+.prof-primaire-vues-bar .ovf-tab:not(.active) i,
+.prof-hub-filter-block--vue a.matiere-tab-btn:not(.active) i {
+  color: #0d9488 !important;
+}
+
+.prof-hub-filter-block .tab-count,
+.prof-notes-filter-block .tab-count,
+.prof-primaire-hub-nav .tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.prof-hub-filter-block a.matiere-tab-btn.active .tab-count,
+.prof-hub-filter-block a.matiere-tab-btn[aria-selected="true"] .tab-count,
+.prof-primaire-hub-nav a.matiere-tab-btn.active .tab-count {
+  background: #fff;
+  color: #0f766e;
+}
+
+.prof-hub-filter-block--period a.matiere-tab-btn.active .tab-count {
+  color: #b45309;
+}
+
+.prof-hub-filter-block--classe a.matiere-tab-btn.active .tab-count {
+  color: #1d4ed8;
+}
+
+.prof-hub-filter-block--matiere a.matiere-tab-btn.active .tab-count {
+  color: #6d28d9;
+}
+
+.prof-primaire-hub-nav .ovf-more-btn.ovf-more-btn,
+.prof-noter-filters .ovf-more-btn.ovf-more-btn,
+.prof-classe-detail-shell .ovf-more-btn.ovf-more-btn,
+.ovf-bar.ovf-bar--primary .ovf-more-btn.ovf-more-btn {
+  height: 2.05rem !important;
+  min-height: 2.05rem !important;
+  padding: 0 0.7rem !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: #4b5563 !important;
+  font-size: 0.72rem !important;
+}
+
+.prof-primaire-hub-nav .ovf-more-btn .matiere-tabs-more-label,
+.prof-noter-filters .ovf-more-btn .matiere-tabs-more-label,
+.prof-classe-detail-shell .ovf-more-btn .matiere-tabs-more-label,
+.prof-primaire-hub-nav .ovf-more-btn .tabs-overflow-more-label {
+  display: none;
+}
+
+.prof-primaire-hub-nav .ovf-more-btn.ovf-more-btn::before,
+.prof-noter-filters .ovf-more-btn.ovf-more-btn::before,
+.prof-classe-detail-shell .ovf-more-btn.ovf-more-btn::before {
+  content: "Plus";
+  font-weight: 700;
+}
+
+.prof-primaire-hub-nav .ovf-tab.ovf-cache,
+.prof-primaire-hub-nav .ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab.ovf-cache,
+.prof-noter-filters .ovf-tab.ovf-cache,
+.prof-classe-detail-shell .ovf-tab.ovf-cache,
+.prof-hub-filter-block .ovf-tab.ovf-cache,
+.prof-notes-filter-block .ovf-tab.ovf-cache,
+.eval-filters .ovf-tab.ovf-cache {
+  display: none !important;
+}
+
+#prof-hub-header:not(:has(*)) {
+  display: none;
+}
+
+.prof-hub-filter-block .prof-eleves-search-wrap,
+.prof-hub-filter-block .prof-primaire-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 2.05rem;
+  margin: 0.65rem 0 0;
+  padding: 0 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #6b7280;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1025px) {
+  .prof-hub-filter-block--classe {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+    align-items: end;
+    column-gap: 1rem;
+    row-gap: 0.35rem;
+  }
+
+  .prof-hub-filter-block--classe .prof-hub-filter-label {
+    grid-column: 1 / -1;
+  }
+
+  .prof-hub-filter-block--classe .prof-primaire-hub-nav {
+    grid-column: 1;
+    min-width: 0;
+  }
+
+  .prof-hub-filter-block--classe .prof-eleves-search-wrap,
+  .prof-hub-filter-block--classe .prof-primaire-search-wrap {
+    grid-column: 2;
+    margin: 0;
+    width: 100%;
+    max-width: 22rem;
+    justify-self: end;
+  }
+}
+
+.prof-hub-filter-block .prof-eleves-search-wrap i,
+.prof-hub-filter-block .prof-primaire-search-wrap i {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.prof-hub-filter-block .prof-primaire-search-input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #111827;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.prof-hub-filter-block .prof-primaire-search-input::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

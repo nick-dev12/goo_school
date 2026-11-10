@@ -81,11 +81,24 @@
     panel.classList.toggle('prof-hub-panel-loading', loading);
   }
 
+  function hideReleveModalIfClosing(link) {
+    if (
+      !link.classList.contains('btn-close-modal') &&
+      !link.classList.contains('releve-modal-backdrop')
+    ) {
+      return;
+    }
+    document.querySelectorAll('.releve-modal, .releve-modal-backdrop').forEach(function (el) {
+      el.style.display = 'none';
+    });
+  }
+
   function navigateHub(link) {
     var fetchUrl = buildFetchUrl(link);
     if (!fetchUrl) {
       return false;
     }
+    hideReleveModalIfClosing(link);
     setLoading(true);
     fetch(fetchUrl.toString(), {
       method: 'GET',

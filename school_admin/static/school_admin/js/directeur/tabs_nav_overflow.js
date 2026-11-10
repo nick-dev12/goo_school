@@ -226,21 +226,22 @@
         q.wrap.hidden = true;
         closeMenu(bar);
         bar.dataset.ovfActive = String(items.findIndex(isActive));
+        bar.removeAttribute('data-ovf-overflow');
 
-        var dispo = bar.clientWidth;
+        var dispo = Math.floor(bar.getBoundingClientRect().width || bar.clientWidth);
         if (!dispo || items.length < 2) {
             return;
         }
         var gap = gapOf(q.track);
-        var largeurs = items.map(function (el) { return el.offsetWidth; });
+        var largeurs = items.map(function (el) { return Math.ceil(el.getBoundingClientRect().width || el.offsetWidth); });
         var total = largeurs.reduce(function (a, w) { return a + w + gap; }, 0) - gap;
-        if (total <= dispo + 1) {
+        if (total <= dispo) {
             return;
         }
 
         q.wrap.hidden = false;
         setMoreLabel(bar, q, items.length);
-        var place = dispo - q.wrap.offsetWidth - gap;
+        var place = dispo - Math.ceil(q.wrap.getBoundingClientRect().width || q.wrap.offsetWidth) - gap;
         var visibles = [];
         var utilise = 0;
         for (var i = 0; i < items.length; i += 1) {
@@ -268,6 +269,7 @@
         caches.forEach(function (el) { el.classList.add('ovf-cache'); });
         setMoreLabel(bar, q, caches.length);
         buildMenu(bar, q, caches);
+        bar.setAttribute('data-ovf-overflow', '1');
     }
 
     function toggleMenu(bar) {
@@ -282,10 +284,10 @@
         document.querySelectorAll(BAR_SELECTOR).forEach(function (b) { if (b !== bar) { closeMenu(b); } });
         q.menu.hidden = false;
         q.btn.setAttribute('aria-expanded', 'true');
-        // Ouvre vers la gauche si le menu sortirait de l'écran.
-        q.menu.classList.remove('ovf-menu--right');
-        if (q.menu.getBoundingClientRect().right > window.innerWidth - 8) {
-            q.menu.classList.add('ovf-menu--right');
+        // Le menu s'ouvre vers la gauche (ancré à droite du bouton, en bout de barre).
+        q.menu.classList.add('ovf-menu--right');
+        if (q.menu.getBoundingClientRect().left < 8) {
+            q.menu.classList.remove('ovf-menu--right');
         }
     }
 

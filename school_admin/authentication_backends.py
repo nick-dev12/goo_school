@@ -282,7 +282,6 @@ class MultiUserBackend(BaseBackend):
         
         logger = logging.getLogger(__name__)
         
-        print(f"\n[GET_USER] Recherche utilisateur avec ID: {user_id}")
         logger.debug(f"get_user appelé avec user_id: {user_id}")
         
         # Récupérer le type d'utilisateur depuis le thread-local (passé par le middleware)
@@ -292,39 +291,34 @@ class MultiUserBackend(BaseBackend):
             logger.debug(f"Type d'utilisateur trouvé dans le contexte: {user_type}")
             # Chercher directement dans la bonne table selon le type
             user = self._get_user_by_type(user_id, user_type, logger)
-            if user:
-                return user
-            else:
-                logger.warning(f"Utilisateur de type {user_type} avec ID {user_id} non trouvé, recherche dans toutes les tables")
+            return user if self.user_can_authenticate(user) else None
         
         # Fallback sans type : un seul match = OK. Plusieurs tables peuvent
         # partager le même PK — ne jamais renvoyer le premier au hasard
         # (sinon hash de session invalide → flush → /connexion/?next=…).
         # Si la session est dispo, reconstruire via le hash d’auth Django.
-        candidates = self._collect_users_by_id(user_id, logger)
+        candidates = [user for user in self._collect_users_by_id(user_id, logger)
+                      if self.user_can_authenticate(user)]
         if len(candidates) == 1:
             user = candidates[0]
-            print(f"[GET_USER] [OK] unique match {type(user).__name__} ID {user_id}")
             return user
         if len(candidates) > 1:
             matched = self._match_candidate_by_session_hash(candidates, logger)
             if matched is not None:
-                print(
-                    f"[GET_USER] [OK] collision resolue via hash -> "
-                    f"{type(matched).__name__} ID {user_id}"
-                )
                 return matched
             logger.warning(
                 "get_user(%s): %s candidats sans _auth_user_type — refus pour éviter un flush de session",
                 user_id,
                 [type(u).__name__ for u in candidates],
             )
-            print(f"[GET_USER] [SKIP] collision ID {user_id}: {[type(u).__name__ for u in candidates]}")
             return None
 
         logger.warning(f"[ERREUR] Aucun utilisateur trouve avec l'ID: {user_id} dans AUCUNE table")
-        print(f"[GET_USER] [ERREUR] Aucun utilisateur avec ID {user_id} dans aucune des 6 tables")
         return None
+
+    @staticmethod
+    def user_can_authenticate(user):
+        return user is not None and bool(getattr(user, 'is_active', True)) and bool(getattr(user, 'actif', True))
 
     def _match_candidate_by_session_hash(self, candidates, logger):
         """Choisit le bon modèle lors d’une collision PK grâce au hash de session."""

@@ -17,8 +17,10 @@ class ListeResponsiveTests(TestCase):
         for url in (reverse('enseignant:gestion_eleves'), reverse('enseignant:detail_classe', args=[self.classe.id])):
             r = self.client.get(url, follow=True)
             self.assertEqual(r.status_code, 200, url)
-            self.assertContains(r, 'js/liste_responsive.js', msg_prefix=url)
-            self.assertContains(r, 'data-rl data-rl-mobile=', msg_prefix=url)
+            self.assertContains(r, 'notes-list--eleves', msg_prefix=url)
+            self.assertNotContains(r, 'class="eleves-table"', msg_prefix=url)
+            self.assertNotContains(r, 'Féminin', msg_prefix=url)
+            self.assertNotContains(r, 'Masculin', msg_prefix=url)
 
     def test_liste_eleves_direction(self):
         self.client.force_login(self.etab)

@@ -144,59 +144,70 @@
 /* ==========================================================================
    Onglets de tout le site — v2
    · une seule ligne : les onglets en trop passent dans le menu « Autres … » (tabs_nav_overflow.js) ;
-   · onglets principaux (.ovf-bar--primary) : pleins, actif bleu ;
-   · onglets secondaires (.ovf-bar--secondary) : soulignés, plus discrets, sous une ligne de séparation.
+   · onglets principaux et secondaires : pastilles du composant aria-filter-tabs
+     (2.05rem, rayon 8px). Les couleurs par kind viennent de aria_filter_tabs.css.
    Sélecteurs renforcés pour passer devant les anciens styles propres à chaque page.
    ========================================================================== */
 .ovf-bar.ovf-bar { display: flex !important; align-items: center; gap: 6px; flex-wrap: nowrap !important; width: 100%; min-width: 0; position: relative; }
 .ovf-bar.ovf-bar > [data-ovf-track] {
-  display: flex !important; flex: 0 1 auto !important; flex-wrap: nowrap !important; align-items: center;
-  gap: 6px; min-width: 0; overflow: visible !important; margin: 0; padding: 0; border: 0; background: none; box-shadow: none;
+  display: flex !important; flex: 1 1 auto !important; flex-wrap: nowrap !important; align-items: center;
+  gap: 6px; min-width: 0; overflow: hidden !important; margin: 0; padding: 0; border: 0; background: none; box-shadow: none;
 }
-.ovf-bar.ovf-bar.ovf-bar .ovf-tab.ovf-tab.ovf-cache.ovf-cache { display: none !important; }
-.ovf-bar.ovf-bar .ovf-more-wrap.ovf-more-wrap:not([hidden]) { display: block !important; }
+body .ovf-bar.ovf-bar.ovf-bar .ovf-tab.ovf-tab.ovf-cache.ovf-cache {
+  display: none !important; visibility: hidden !important; position: absolute !important;
+  width: 0 !important; min-width: 0 !important; max-width: 0 !important; height: 0 !important; min-height: 0 !important;
+  padding: 0 !important; margin: 0 !important; border: 0 !important; overflow: hidden !important; pointer-events: none !important;
+}
+.ovf-bar.ovf-bar .ovf-more-wrap.ovf-more-wrap:not([hidden]) {
+  display: block !important; flex: 0 0 auto; margin-left: auto; position: relative;
+}
 .ovf-bar .ovf-tab.ovf-tab { flex: 0 0 auto !important; white-space: nowrap !important; width: auto !important; min-width: 0 !important; max-width: 300px !important; overflow: hidden; text-decoration: none; cursor: pointer; }
 /* Libellés longs (chemins de matières…) coupés avec « … » ; le libellé complet est en info-bulle. */
 .ovf-bar .ovf-tab.ovf-tab > span:not([class*="count"]):not(.badge) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ovf-bar .ovf-more-wrap { flex: 0 0 auto; position: relative; }
 .ovf-bar.ovf-bar .ovf-more-wrap.ovf-more-wrap[hidden] { display: none !important; }
 
-/* ---------- Principaux ---------- */
-.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab {
-  display: inline-flex !important; align-items: center; gap: 8px; height: 42px; min-height: 42px; padding: 0 16px !important; margin: 0 !important;
-  border: 1px solid var(--ax-line-strong, #d0d5dd) !important; border-radius: 12px !important; background: var(--ax-surface, #fff) !important;
-  color: var(--ax-ink-2, #344054) !important; font: 600 0.88rem/1 var(--ax-font, inherit) !important; box-shadow: none !important;
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+/* ---------- Pastilles (composant aria-filter-tabs) ---------- */
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab,
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab {
+  display: inline-flex !important; align-items: center; gap: 0.35rem;
+  height: 2.05rem !important; min-height: 2.05rem !important;
+  padding: 0 0.7rem !important; margin: 0 !important;
+  border: 1px solid var(--aria-tabs-border, #e5e7eb) !important;
+  border-radius: 8px !important; background: #fff !important;
+  color: var(--aria-tabs-text, #4b5563) !important;
+  font: 600 0.75rem/1 var(--ax-font, inherit) !important; box-shadow: none !important;
 }
-.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab i { color: var(--ax-brand, #2563eb); }
-.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab:hover { border-color: var(--ax-brand, #2563eb) !important; color: var(--ax-brand-ink, #1d47b3) !important; }
+.ovf-bar.ovf-bar--secondary { border-bottom: 0; margin-bottom: 0; }
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab i,
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab i { color: inherit; }
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab:hover,
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab:hover {
+  background: var(--aria-tabs-hover, #f8fafc) !important;
+  border-color: var(--aria-tabs-border, #e5e7eb) !important;
+  color: var(--aria-tabs-text, #4b5563) !important;
+}
 .ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab.active,
 .ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab.is-active,
 .ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab[aria-selected="true"],
-.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab[aria-current="page"] {
-  background: var(--ax-brand, #2563eb) !important; border-color: var(--ax-brand, #2563eb) !important; color: #fff !important;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25) !important;
-}
-.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab.active i,
-.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab.is-active i,
-.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab[aria-selected="true"] i,
-.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab[aria-current="page"] i { color: #fff; }
-
-/* ---------- Secondaires ---------- */
-.ovf-bar.ovf-bar--secondary { border-bottom: 1px solid var(--ax-line, #e4e7ec); margin-bottom: 12px; }
-.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab {
-  display: inline-flex !important; align-items: center; gap: 7px; height: 40px; min-height: 40px; padding: 0 12px !important; margin: 0 0 -1px !important;
-  border: 0 !important; border-bottom: 2px solid transparent !important; border-radius: 0 !important; background: transparent !important;
-  color: var(--ax-muted, #667085) !important; font: 600 0.84rem/1 var(--ax-font, inherit) !important; box-shadow: none !important;
-}
-.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab i { color: inherit; opacity: 0.8; font-size: 0.82em; }
-.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab:hover { color: var(--ax-ink, #101828) !important; border-bottom-color: var(--ax-line-strong, #d0d5dd) !important; }
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab[aria-current="page"],
 .ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab.active,
 .ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab.is-active,
 .ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab[aria-selected="true"],
 .ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab[aria-current="page"] {
-  color: var(--ax-brand-ink, #1d47b3) !important; border-bottom-color: var(--ax-brand, #2563eb) !important; background: transparent !important;
+  background: var(--aria-tabs-active, #3b82f6) !important;
+  border-color: var(--aria-tabs-active, #3b82f6) !important;
+  color: #fff !important;
+  box-shadow: none !important;
 }
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab.active i,
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab.is-active i,
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab[aria-selected="true"] i,
+.ovf-bar.ovf-bar--primary .ovf-tab.ovf-tab[aria-current="page"] i,
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab.active i,
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab.is-active i,
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab[aria-selected="true"] i,
+.ovf-bar.ovf-bar--secondary .ovf-tab.ovf-tab[aria-current="page"] i { color: #fff; }
 
 /* ---------- Compteurs dans les onglets ---------- */
 .ovf-bar .ovf-tab .tab-count, .ovf-bar .ovf-tab .count, .ovf-bar .ovf-tab .badge, .ovf-bar .ovf-tab b, .ovf-bar .ovf-tab small {
@@ -212,7 +223,7 @@
 .ovf-bar.ovf-bar--secondary .ovf-tab.active .tab-count, .ovf-bar.ovf-bar--secondary .ovf-tab.is-active .tab-count,
 .ovf-bar.ovf-bar--secondary .ovf-tab[aria-selected="true"] .tab-count, .ovf-bar.ovf-bar--secondary .ovf-tab.active b,
 .ovf-bar.ovf-bar--secondary .ovf-tab.is-active b {
-  background: var(--ax-brand-soft, #e8efff) !important; color: var(--ax-brand-ink, #1d47b3) !important;
+  background: #fff !important; color: var(--aria-tabs-active, #3b82f6) !important;
 }
 
 /* ---------- Bouton « Autres … » ---------- */
@@ -220,12 +231,14 @@
   display: inline-flex !important; align-items: center; gap: 7px; min-width: 0; max-width: none; padding: 0 12px !important; margin: 0;
   font: 600 0.84rem/1 var(--ax-font, inherit) !important; cursor: pointer; white-space: nowrap; box-shadow: none !important;
 }
-.ovf-bar.ovf-bar--primary .ovf-more-btn.ovf-more-btn {
-  height: 42px; min-height: 42px; border: 1px dashed var(--ax-line-strong, #98a2b3) !important; border-radius: 12px !important;
-  background: var(--ax-surface-2, #f9fafb) !important; color: var(--ax-ink-2, #344054) !important;
-}
+.ovf-bar.ovf-bar--primary .ovf-more-btn.ovf-more-btn,
 .ovf-bar.ovf-bar--secondary .ovf-more-btn.ovf-more-btn {
-  height: 40px; min-height: 40px; border: 0 !important; border-radius: 8px !important; background: transparent !important; color: var(--ax-brand-ink, #1d47b3) !important;
+  height: 2.05rem; min-height: 2.05rem;
+  border: 1px dashed var(--aria-tabs-border, #e5e7eb) !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: var(--aria-tabs-text, #4b5563) !important;
+  font: 600 0.72rem/1 var(--ax-font, inherit) !important;
 }
 .ovf-bar .ovf-more-btn.ovf-more-btn:hover, .ovf-bar .ovf-more-btn.ovf-more-btn[aria-expanded="true"] {
   border-color: var(--ax-brand, #2563eb) !important; color: var(--ax-brand-ink, #1d47b3) !important; background: var(--ax-brand-soft, #e8efff) !important;

@@ -4,223 +4,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste de présence - {{ classe.nom }}</title>
+    <title>Faire l’appel - {{ classe.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/liste_presence_primaire.css' %}?v=1.0.4">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}?v=1.0.4">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/prof_presence_appel.css' %}?v=1.0.4">
     {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
 </head>
-<body data-live-page="presence-liste">
+<body data-live-page="presence-liste" data-enseignant-space="primaire">
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
-    <!-- Main Content -->
-    <div class="main-content-wrapper">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="header-content">
-                <h1 class="page-title">
-                    <i class="fas fa-clipboard-list"></i>
-                    Liste de présence
-                </h1>
-                <p class="page-subtitle">{{ classe.nom }} - {{ nombre_eleves }} élèves - {{ today|date:"d/m/Y" }}</p>
-            </div>
-        </div>
-
-        <!-- Limite atteinte -->
-        {% if limite_atteinte %}
-            <div class="limite-atteinte-banner">
-                <i class="fas fa-exclamation-triangle"></i>
-                <h3>Limite d'appels atteinte</h3>
-                <p>Vous avez effectué les 3 appels maximum pour aujourd'hui. Consultez l'historique ci-dessous.</p>
-            </div>
-        {% endif %}
-
-        <!-- Historique des appels validés -->
-        {% if appels_du_jour %}
-            <div class="historique-appels">
-                <div class="historique-titre">
-                    <i class="fas fa-history"></i>
-                    Appels effectués aujourd'hui ({{ nombre_appels_valides }}/3)
-                </div>
-                <div class="appels-list">
-                    {% for appel in appels_du_jour %}
-                        <div class="appel-card">
-                            <div class="appel-card-header">
-                                <div class="appel-card-numero">
-                                    <i class="fas fa-check-circle"></i> Appel {{appel.numero_appel }}
-                                </div>
-                                <div class="appel-card-heure">
-                                    {{ appel.date_validation|date:"H:i" }}
-                                </div>
-                            </div>
-                            <div class="appel-card-stats">
-                                <div class="appel-card-stat">
-                                    <i class="fas fa-user-check"></i>
-                                    {{ appel.nombre_presents }} présent(s)
-                                </div>
-                                <div class="appel-card-stat">
-                                    <i class="fas fa-user-times"></i>
-                                    {{ appel.nombre_absents }} absent(s)
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endif %}
-
-        <!-- En-tête de l'appel en cours -->
-        {% if liste_presence and not limite_atteinte %}
-            <div class="appel-header">
-                <div class="appel-info">
-                    <div class="appel-numero">
-                        <i class="fas fa-clipboard-check"></i> Appel n°{{ numero_appel_actuel }}
-                    </div>
-                    <div class="appel-statut">
-                        {% if liste_presence.validee %}
-                            <i class="fas fa-lock"></i> Validé
-                        {% else %}
-                            <i class="fas fa-edit"></i> En cours
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="appel-actions">
-                    {% if liste_presence.validee and nombre_appels_valides < 3 %}
-                        <a href="?appel={{ numero_appel_actuel|add:1 }}" class="btn-nouvel-appel">
-                            <i class="fas fa-plus-circle"></i>
-                            Nouvel appel ({{ nombre_appels_valides|add:1 }}/3)
-                        </a>
-                    {% elif nombre_appels_valides >= 3 %}
-                        <span class="btn-nouvel-appel disabled">
-                            <i class="fas fa-ban"></i>
-                            Limite atteinte (3/3)
-                        </span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Formulaire de présence -->
-            <form method="post" action="{% url 'enseignant_primaire:valider_presence' classe.id %}" id="presence-form">
-                {% csrf_token %}
-                <input type="hidden" name="classe_id" value="{{ classe.id }}">
-                <input type="hidden" name="numero_appel" value="{{ numero_appel_actuel }}">
-                
-                <!-- Actions buttons (top) -->
-                {% if not liste_presence.validee %}
-                    <div class="actions-container top-actions">
-                        <button type="submit" class="btn-valider" onclick="return confirm('Êtes-vous sûr de vouloir valider l\'appel n°{{ numero_appel_actuel }} ? Cette action est définitive.');">
-                            <i class="fas fa-check-circle"></i>
-                            Valider l'appel n°{{ numero_appel_actuel }}
-                        </button>
-                    </div>
-                {% endif %}
-
-                <!-- Table de présence -->
-                <div class="presence-table-container table-responsive">
-                    <table class="presence-table">
-                        <thead>
-                            <tr>
-                                <th class="col-eleve">Élève</th>
-                                <th class="col-statut" colspan="4">Statut de présence</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in eleves_avec_presence %}
-                                <tr class="{% cycle 'row-even' 'row-odd' %}">
-                                    <td class="col-eleve">
-                                        <div class="eleve-info">
-                                            <div class="eleve-avatar">
-                                                {{ item.eleve.nom.0 }}{{ item.eleve.prenom.0 }}
-                                            </div>
-                                            <div class="eleve-details">
-                                                <div class="eleve-nom">{{ item.eleve.nom_complet }}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td colspan="4" class="col-statut-container">
-                                        <div class="statut-buttons">
-                                            {% if item.statut_legacy %}
-                                            <p class="presence-legacy-hint" role="status">
-                                                <i class="fas fa-info-circle" aria-hidden="true"></i>
-                                                {{ item.statut_legacy }}
-                                            </p>
-                                            {% endif %}
-                                            <label class="statut-option present {% if item.statut_saisie == 'present' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
-                                                <input type="radio" 
-                                                       name="presence_{{ item.eleve.id }}" 
-                                                       value="present" 
-                                                       {% if item.statut_saisie == 'present' %}checked{% endif %}
-                                                       {% if liste_presence.validee %}disabled{% endif %}
-                                                       required>
-                                                <span class="statut-icon">
-                                                    <i class="fas fa-check-circle"></i>
-                                                </span>
-                                                <span class="statut-label">Présent</span>
-                                            </label>
-                                            
-                                            <label class="statut-option absent {% if item.statut_saisie == 'absent' %}active{% endif %}" {% if liste_presence.validee %}disabled{% endif %}>
-                                                <input type="radio" 
-                                                       name="presence_{{ item.eleve.id }}" 
-                                                       value="absent" 
-                                                       {% if item.statut_saisie == 'absent' %}checked{% endif %}
-                                                       {% if liste_presence.validee %}disabled{% endif %}
-                                                       required>
-                                                <span class="statut-icon">
-                                                    <i class="fas fa-times-circle"></i>
-                                                </span>
-                                                <span class="statut-label">Absent</span>
-                                            </label>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Actions buttons (bottom) -->
-                {% if not liste_presence.validee %}
-                    <div class="actions-container bottom-actions">
-                        <button type="submit" class="btn-valider" onclick="return confirm('Êtes-vous sûr de vouloir valider l\'appel n°{{ numero_appel_actuel }} ? Cette action est définitive.');">
-                            <i class="fas fa-check-circle"></i>
-                            Valider l'appel n°{{ numero_appel_actuel }}
-                        </button>
-                    </div>
-                {% else %}
-                    <div class="actions-container bottom-actions">
-                        {% if nombre_appels_valides < 3 %}
-                            <a href="?appel={{ numero_appel_actuel|add:1 }}" class="btn-nouvel-appel" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
-                                <i class="fas fa-plus-circle"></i>
-                                Faire un nouvel appel ({{ nombre_appels_valides|add:1 }}/3)
-                            </a>
-                        {% endif %}
-                    </div>
-                {% endif %}
-            </form>
-        {% endif %}
+    <div class="main-content-container">
+        {% include 'school_admin/enseignant/partials/prof_presence_appel_inner.html' with presence_appel_mode='primaire' %}
     </div>
 
-    <script type="application/json" id="presence-offline-context">
-    {
-      "niveau": "primaire",
-      "classe_id": {{ classe.id }},
-      "classe_nom": "{{ classe.nom|escapejs }}",
-      "matiere_id": null,
-      "numero_appel": {{ numero_appel_actuel|default:1 }},
-      "date": "{{ today|date:'Y-m-d' }}",
-      "eleves": [
-        {% for item in eleves_avec_presence %}
-        {"id": {{ item.eleve.id }}, "server_id": {{ item.eleve.id }}, "nom": "{{ item.eleve.nom|escapejs }}", "prenom": "{{ item.eleve.prenom|escapejs }}", "nom_complet": "{{ item.eleve.nom_complet|escapejs }}", "matricule": "{{ item.eleve.matricule|escapejs }}", "classe_id": {{ classe.id }}}{% if not forloop.last %},{% endif %}
-        {% endfor %}
-      ]
-    }
-    </script>
-    <script src="{% static 'school_admin/js/enseignant/professeur_tab_storage.js' %}?v=1.0.0"></script>
-    <script src="{% static 'school_admin/js/enseignant/primaire/liste_presence_primaire.js' %}?v=1.0.1"></script>
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_scripts.html' %}
+    <script src="{% static 'school_admin/js/enseignant/liste_presence.js' %}?v=1.1.1"></script>
     <script src="{% static 'school_admin/js/enseignant/presence_offline.js' %}"></script>
-
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
-{% include 'school_admin/partials/enseignant_live_scripts.html' %}
+    {% include 'school_admin/partials/enseignant_live_scripts.html' %}
 </body>
 </html>

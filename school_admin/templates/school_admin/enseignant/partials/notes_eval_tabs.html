@@ -1,0 +1,52 @@
+<section class="notes-eval-switch aria-filter-tabs__group prof-hub-filter-block prof-hub-filter-block--vue" data-kind="view" aria-label="{{ switch_label|default:'Relevé' }}">
+    {% if switch_label %}
+    <h4 class="notes-eval-switch__label"><i class="fas fa-table-list" aria-hidden="true"></i> {{ switch_label }}</h4>
+    {% endif %}
+    {% if not hide_moyenne_mode %}
+    <div class="notes-view-modes" data-tabs-overflow="off">
+        <button type="button" class="notes-view-mode notes-view-mode--moyenne" data-view="moyenne" aria-selected="false" title="Notes retenues et moyenne">
+            <i class="fas fa-calculator" aria-hidden="true"></i>
+            <span>Moyenne</span>
+        </button>
+    </div>
+    {% endif %}
+    {% if evaluations or has_examen %}
+    <nav class="aria-filter-tabs__nav prof-primaire-hub-nav notes-eval-tabs" aria-label="Choisir une évaluation">
+        <div class="aria-filter-tabs__list matiere-tabs-bar notes-eval-tabs-bar" data-tabs-level="primary" data-aria-tabs-kind="view" data-overflow-item-label="Évaluation" data-overflow-items-label="évaluations">
+            <div class="matiere-tabs-track" role="tablist">
+                {% for eval_item in evaluations %}
+                    <button type="button"
+                            role="tab"
+                            class="aria-filter-tabs__tab matiere-tab-btn notes-eval-tab{% if forloop.first %} active{% endif %}"
+                            data-view="eval"
+                            data-eval-id="{{ eval_item.evaluation.id }}"
+                            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                            title="{{ eval_item.evaluation.titre }}">
+                        <i class="fas fa-file-lines" aria-hidden="true"></i>
+                        <span>{{ eval_item.evaluation.titre }}</span>
+                    </button>
+                {% endfor %}
+                {% if has_examen %}
+                    <button type="button"
+                            role="tab"
+                            class="aria-filter-tabs__tab matiere-tab-btn notes-eval-tab{% if not evaluations %} active{% endif %}"
+                            data-view="eval"
+                            data-eval-id="examen"
+                            aria-selected="{% if not evaluations %}true{% else %}false{% endif %}"
+                            title="Examen">
+                        <i class="fas fa-graduation-cap" aria-hidden="true"></i>
+                        <span>Examen</span>
+                    </button>
+                {% endif %}
+            </div>
+            <div class="matiere-tabs-more-wrap" hidden>
+                <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres évaluations">
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    <span class="matiere-tabs-more-label">Autres évaluations</span>
+                </button>
+                <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+</section>

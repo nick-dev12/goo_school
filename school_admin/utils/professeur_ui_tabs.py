@@ -5,7 +5,7 @@ from .directeur_ui_tabs import resolve_main_section_tab
 
 STATUTS_PRESENCE_SAISIE = ('present', 'absent')
 
-NOTES_PRIMAIRE_VUE_CHOICES = ('releve', 'saisie', 'evaluations')
+NOTES_PRIMAIRE_VUE_CHOICES = ('releve', 'saisie')
 
 
 def enseignant_est_hub_v3_collège_lycée(professeur):

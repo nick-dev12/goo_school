@@ -10,6 +10,66 @@ from ..model.affectation_professeur_primaire_model import AffectationProfesseurP
 
 register = template.Library()
 
+def _eval_item_id(item):
+    if item is None:
+        return None
+    if isinstance(item, dict):
+        evaluation = item.get('evaluation')
+        if evaluation is not None:
+            return getattr(evaluation, 'id', None)
+        return item.get('id')
+    return getattr(item, 'id', None)
+
+
+def _as_int(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+@register.filter
+def evals_incluses_moyenne(evaluations, eleves):
+    """
+    Évaluations réellement retenues dans le calcul des moyennes de la classe.
+    Si aucune moyenne n'a encore été calculée, retourne toutes les évaluations.
+    """
+    evaluations = list(evaluations or [])
+    ids = set()
+    has_moyenne = False
+    for eleve_data in eleves or []:
+        moyenne = eleve_data.get('moyenne') if isinstance(eleve_data, dict) else None
+        used = getattr(moyenne, 'evaluations_utilisees', None)
+        if not used and isinstance(moyenne, dict):
+            used = moyenne.get('evaluations_utilisees')
+        if not used:
+            continue
+        has_moyenne = True
+        for value in used:
+            parsed = _as_int(value)
+            if parsed is not None:
+                ids.add(parsed)
+    if not has_moyenne or not ids:
+        return evaluations
+    filtered = []
+    for item in evaluations:
+        eval_id = _as_int(_eval_item_id(item))
+        if eval_id in ids:
+            filtered.append(item)
+    return filtered or evaluations
+
+
+@register.filter
+def eval_in_moyenne(eval_id, moy_evals):
+    target = _as_int(eval_id)
+    if target is None:
+        return False
+    for item in moy_evals or []:
+        if _as_int(_eval_item_id(item)) == target:
+            return True
+    return False
+
+
 @register.filter
 def get_item(d, key):
     """
@@ -56,39 +116,83 @@ def format_note(value):
     except (ValueError, TypeError):
         return ''
 
+def _note_ratio(note_value, bareme):
+    if note_value is None or note_value == '' or bareme is None:
+        return None
+    try:
+        note = float(str(note_value).replace(',', '.'))
+        bareme_float = float(str(bareme).replace(',', '.'))
+        if bareme_float <= 0:
+            return None
+        return max(0.0, min(1.0, note / bareme_float))
+    except (ValueError, TypeError):
+        return None
+
+
+def _note_hsl(note_value, bareme):
+    """HSL : < 10/20 toujours rouge (teintes), >= 10/20 jaune-vert → vert."""
+    ratio = _note_ratio(note_value, bareme)
+    if ratio is None:
+        return None
+    sur20 = ratio * 20.0
+    if sur20 < 10:
+        t = sur20 / 10.0
+        hue = t * 4
+        sat = 90 - t * 10
+        light = 22 + t * 26
+        return hue, sat, light
+    t = (sur20 - 10.0) / 10.0
+    hue = 78 + t * 42
+    sat = 76
+    light = 32
+    return hue, sat, light
+
+
+@register.filter
+def note_hue(note_value, bareme):
+    """Teinte HSL. Sous 10/20 : rouge (0–8). Au-dessus : vert."""
+    hsl = _note_hsl(note_value, bareme)
+    if hsl is None:
+        return ''
+    return str(int(round(hsl[0])))
+
+
+@register.filter
+def note_color_css(note_value, bareme):
+    """Couleur CSS hsl() rouge variable sous 10/20, vert au-dessus."""
+    hsl = _note_hsl(note_value, bareme)
+    if hsl is None:
+        return ''
+    hue, sat, light = hsl
+    return f'hsl({hue:.0f}, {sat:.0f}%, {light:.0f}%)'
+
+
+@register.filter
+def note_sort_attr(value):
+    """Valeur numérique stable (point) pour le tri décroissant."""
+    if value is None or value == '':
+        return ''
+    try:
+        return f"{float(str(value).replace(',', '.')):.4f}".rstrip('0').rstrip('.')
+    except (ValueError, TypeError):
+        return ''
+
+
 @register.filter
 def get_note_color_class(note_value, bareme):
     """
-    Retourne la classe CSS selon la performance de la note
-    note_value : la note obtenue
-    bareme : le barème de l'évaluation (10 ou 20)
+    Retourne la classe CSS selon la performance de la note.
+    Échelle rouge → vert, sans bleu.
     """
-    if note_value is None or note_value == '' or bareme is None:
+    ratio = _note_ratio(note_value, bareme)
+    if ratio is None:
         return ''
-    
-    try:
-        # Convertir en float
-        note = float(note_value)
-        bareme_float = float(bareme)
-        
-        # Calculer le pourcentage
-        if bareme_float > 0:
-            pourcentage = (note / bareme_float) * 100
-        else:
-            return ''
-        
-        # Déterminer la classe selon le pourcentage
-        if pourcentage < 40:  # < 8/20
-            return 'note-faible'
-        elif pourcentage < 50:  # 8-10/20
-            return 'note-moyenne-faible'
-        elif pourcentage < 70:  # 10-14/20
-            return 'note-bonne'
-        else:  # >= 14/20
-            return 'note-excellente'
-            
-    except (ValueError, TypeError):
-        return ''
+    pourcentage = ratio * 100
+    if pourcentage < 50:
+        return 'note-faible' if pourcentage < 25 else 'note-moyenne-faible'
+    if pourcentage < 70:
+        return 'note-bonne'
+    return 'note-excellente'
 
 @register.filter
 def classes_niveaux_lmd(classes):

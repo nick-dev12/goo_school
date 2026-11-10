@@ -1,0 +1,19 @@
+[Unit]
+Description=Aria — planificateur Celery unique
+After=network.target redis-server.service postgresql.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=nick
+Group=nick
+WorkingDirectory=/home/nick/aria/goo_school
+EnvironmentFile=/etc/aria/env
+StateDirectory=aria-celery-beat
+ExecStart=/home/nick/aria/goo_school/venv/bin/celery -A school beat -l info --schedule=/var/lib/aria-celery-beat/schedule
+Restart=on-failure
+RestartSec=10
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

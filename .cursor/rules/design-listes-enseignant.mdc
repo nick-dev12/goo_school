@@ -1,0 +1,19 @@
+---
+description: Listes enseignant (notes, élèves, présence, justifications) — colonnes partout, pas de tableau HTML ni de cartes mobile
+globs: school_admin/templates/school_admin/enseignant/**/*.html,school_admin/static/school_admin/css/enseignant/**/*.css,school_admin/static/school_admin/js/enseignant/prof_notes_list.js
+alwaysApply: false
+---
+
+# Listes enseignant (ex-tableaux)
+
+Lire **en entier** : `school_admin/static/school_admin/css/enseignant/README-DESIGN-LISTES.md`
+
+## Règles
+
+- Pas de `<table>` à l’écran (notes, relevés, élèves, justifications, présence). Impression / PDF : tableaux OK.
+- Pas de cartes empilées. Colonnes type PC sur **tous** les écrans + scroll horizontal si besoin.
+- **PC** : toujours **toutes** les colonnes (pas d’onglets pour en masquer). **Mobile / tablette seulement** : s’il n’y a pas assez de place, onglets au-dessus de la liste (identité élève + la donnée choisie). Ne pas utiliser ce mode sur PC. Exemple hub Classe : Absences / Sanctions. Voir README §1 point 6 et §4.3.
+- Index `forloop.counter` = **colonne gauche**, séparé du nom. Nom compact (`~0.81rem` mobile).
+- Relevé Notes : bouton **Moyenne** puis **onglets par évaluation**. Pas de Vue globale, pas de bouton Évaluation, pas de `.repartition-container`.
+- Colonnes = structure de données **de la page** (voir le README §3 et §4). Réutiliser `prof_notes_list.css` / `.notes-list`.
+- `{% load notes_tags %}` dans chaque include. JS seulement onglets / overflow / infobulle. Pas de dégradé.

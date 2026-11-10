@@ -226,9 +226,9 @@ class SalleController:
         # Statistiques de la salle
         stats_salle = {
             'capacite_actuelle': salle.capacite_actuelle,
-            'taux_occupation': 0,  # TODO: Calculer le taux d'occupation réel
-            'jours_utilisee': 0,   # TODO: Calculer les jours d'utilisation
-            'derniere_utilisation': None,  # TODO: Récupérer la dernière utilisation
+            'taux_occupation': None,  # Aucun historique d'occupation réelle disponible.
+            'jours_utilisee': None,
+            'derniere_utilisation': None,
         }
         
         context = {

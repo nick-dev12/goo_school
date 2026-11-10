@@ -25,15 +25,14 @@ class UserTypeMiddleware:
         # via le hash d’auth (même ID dans plusieurs tables).
         _user_type_context.session = request.session
 
-        response = self.get_response(request)
-
-        # Nettoyer le thread-local après la requête
-        if hasattr(_user_type_context, 'user_type'):
-            delattr(_user_type_context, 'user_type')
-        if hasattr(_user_type_context, 'session'):
-            delattr(_user_type_context, 'session')
-
-        return response
+        try:
+            return self.get_response(request)
+        finally:
+            # Nettoyer aussi si une vue lève une exception.
+            if hasattr(_user_type_context, 'user_type'):
+                delattr(_user_type_context, 'user_type')
+            if hasattr(_user_type_context, 'session'):
+                delattr(_user_type_context, 'session')
 
 MODULES_INTERNES = ('administrateur_view', 'commercial_view', 'comptable_view', 'administrateur_compte_controller')
 VUES_INTERNES = {'inscription_compte_user', 'dashboard_support', 'dashboard_developpeur', 'dashboard_marketing',
@@ -105,14 +104,13 @@ class AuthenticationMiddleware:
         ]
 
         technical_urls = {
+            '/health/ready/',
             '/service-worker.js',
             '/firebase-messaging-sw.js',
             '/manifest.json',
             '/favicon.ico',
         }
         
-        print(f"\n[MIDDLEWARE] Path: {request.path}, User: {request.user}, Type: {type(request.user).__name__}, Authenticated: {request.user.is_authenticated}")
-        logger.info(f"[MIDDLEWARE] Path: {request.path}, User: {request.user}, Authenticated: {request.user.is_authenticated}")
         
         # Vérifier si l'URL correspond à un pattern public
         is_public_pattern = any(request.path.startswith(pattern) for pattern in public_url_patterns)
@@ -155,7 +153,6 @@ class AuthenticationMiddleware:
                     {'ok': False, 'error': 'Non authentifié'},
                     status=401,
                 )
-            print(f"[MIDDLEWARE] User not authenticated, redirecting to login from {request.path}")
             logger.warning(f"[MIDDLEWARE] User not authenticated, redirecting to login from {request.path}")
             # Sauvegarder l'URL actuelle pour rediriger l'utilisateur après connexion
             next_url = request.path
@@ -257,6 +254,7 @@ class SessionActiveMiddleware:
         # URLs à exclure de la vérification de session
         creation_obligatoire_path = reverse('directeur:creer_annee_scolaire_obligatoire')
         excluded_paths = [
+            '/health/ready/',
             '/admin/',
             '/static/',
             '/media/',

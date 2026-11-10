@@ -103,7 +103,7 @@ def hub_etablissement(user, etab, annee):
                                 'fa-calendar-days', 'orange', nb_periodes, 'période(s)',
                                 None if nb_periodes else 'À créer'),
             structure and _lien(lib['classes'].capitalize(), f"Niveaux, effectifs et capacités", _url('administrateur_etablissement:liste_classes'),
-                                'fa-chalkboard', 'blue', nb_classes, f"{nb_eleves} {lib['eleves']}"),
+                                'fa-chalkboard', 'blue', nb_classes, f"classe(s) · {nb_eleves} {lib['eleves']}"),
             structure and _lien('Matières', 'Programme, coefficients et rattachement aux classes', _url('matiere:liste_matieres'),
                                 'fa-book-open', 'violet', nb_matieres, 'matière(s)', None if nb_matieres else 'À créer'),
             structure and _lien('Salles', 'Salles de cours et capacités', _url('salle:liste_salles'),

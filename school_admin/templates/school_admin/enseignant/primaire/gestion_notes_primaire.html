@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}?v=1.1.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}?v=1.1.6">
     {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/creer_evaluation.css' %}?v=1.0.4">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1">
@@ -24,10 +24,11 @@
       data-notes-vue="{{ initial_notes_vue }}"
       {% if open_evaluation %} data-open-evaluation-modal="1" data-eval-classe-id="{{ eval_classe_id }}" data-eval-matiere-id="{{ eval_matiere_id }}" data-eval-periode-id="{{ eval_periode_id }}"{% endif %}>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/notes_workspace.css' %}?v=1.0.8">
 
     <div class="main-content-container">
         {% csrf_token %}
-        {% include 'school_admin/enseignant/partials/prof_notes_hub_swap_root.html' with prof_notes_hub_chrome_template='school_admin/enseignant/primaire/partials/gestion_notes_primaire_hub_chrome.html' prof_notes_hub_panel_template='school_admin/enseignant/primaire/partials/gestion_notes_primaire_hub_panel.html' %}
+        {% include 'school_admin/enseignant/primaire/partials/gestion_notes_primaire_hub_swap.html' %}
     </div>
 
     <div id="modalCreerEvaluation" class="modal-creneau-fullscreen enseignant-form-modal">
@@ -48,11 +49,11 @@
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
-    <script src="{% static 'school_admin/js/directeur/tabs_nav_overflow.js' %}?v=2.0.4"></script>
+    <script src="{% static 'school_admin/js/directeur/tabs_nav_overflow.js' %}?v=2.0.5"></script>
     <script src="{% static 'school_admin/js/enseignant/professeur_tab_storage.js' %}?v=1.0.0"></script>
     <script src="{% static 'school_admin/js/enseignant/prof_hub_nav_live.js' %}?v=1.0.7"></script>
-    <script src="{% static 'school_admin/js/enseignant/prof_primaire_hub.js' %}?v=1.0.6"></script>
-    <script src="{% static 'school_admin/js/enseignant/primaire/gestion_notes_primaire.js' %}?v=1.0.5"></script>
+    <script src="{% static 'school_admin/js/enseignant/prof_primaire_hub.js' %}?v=1.1.0"></script>
+    <script src="{% static 'school_admin/js/enseignant/primaire/gestion_notes_primaire.js' %}?v=1.0.7"></script>
     <script>
       window.ouvrirModalModificationEvalHub = function (evaluationId) {
         var modal = document.getElementById('modalModificationEvalHub');

@@ -1,0 +1,116 @@
+{% load notes_tags %}
+{% with variant=eleves_list_variant|default:'hub' ns=eleves_ns|default:'enseignant' %}
+{% if variant == 'hub' %}
+<div class="notes-eleves-block" data-view="liste">
+    <div class="notes-eleves-switch" data-tabs-overflow="off" aria-label="Vues de la liste">
+        <button type="button" class="notes-eleves-view notes-eleves-view--absences" data-view="absences" aria-pressed="false">
+            <i class="fas fa-calendar-xmark" aria-hidden="true"></i>
+            <span>Absences</span>
+        </button>
+        <button type="button" class="notes-eleves-view notes-eleves-view--sanctions" data-view="sanctions" aria-pressed="false">
+            <i class="fas fa-gavel" aria-hidden="true"></i>
+            <span>Sanctions</span>
+        </button>
+    </div>
+{% endif %}
+<div class="notes-list notes-list--eleves notes-list--eleves-{{ variant }}{% if variant == 'hub' %} prof-primaire-searchable{% endif %}" role="list"{% if variant == 'hub' %} data-view="liste"{% endif %}>
+    <div class="notes-list-head">
+        <span class="notes-list-head__index" aria-hidden="true"></span>
+        <span class="notes-list-head__eleve">Élève</span>
+        <span class="notes-list-head__sexe">Sexe</span>
+        {% if variant == 'hub' %}
+        <span class="notes-list-head__stat for-absences">Absences</span>
+        <span class="notes-list-head__stat for-sanctions">Sanctions</span>
+        <span class="notes-list-head__actions for-liste">Actions</span>
+        {% elif variant == 'detail-primaire' %}
+        <span class="notes-list-head__stat">Absences</span>
+        <span class="notes-list-head__stat">Retards</span>
+        <span class="notes-list-head__stat">Sanctions</span>
+        <span class="notes-list-head__stat">Notes</span>
+        <span class="notes-list-head__actions">Actions</span>
+        {% elif variant == 'detail-secondaire' %}
+        <span class="notes-list-head__stat">Absences</span>
+        <span class="notes-list-head__stat">Moyenne</span>
+        <span class="notes-list-head__stat">Notes</span>
+        <span class="notes-list-head__actions">Actions</span>
+        {% endif %}
+    </div>
+    {% for eleve_data in eleves_rows %}
+    <article class="notes-list-row" role="listitem" data-eleve-name="{{ eleve_data.eleve.nom }} {{ eleve_data.eleve.prenom }} {{ eleve_data.eleve.numero_matricule_complet }}">
+        <span class="notes-list-row__index">{{ forloop.counter }}</span>
+        <div class="notes-list-row__eleve">
+            <div class="notes-list-row__name">
+                <span class="nom">{{ eleve_data.eleve.nom|upper }}</span>
+                <span class="prenom">{{ eleve_data.eleve.prenom }}</span>
+            </div>
+        </div>
+        <span class="notes-list-row__sexe {% if eleve_data.eleve.sexe == 'M' %}is-garcon{% else %}is-fille{% endif %}">
+            {% if eleve_data.eleve.sexe == 'M' %}Garçon{% else %}Fille{% endif %}
+        </span>
+        {% if variant == 'hub' %}
+        <span class="notes-list-row__stat for-absences{% if eleve_data.nombre_absences > 0 %} is-warn{% endif %}">{{ eleve_data.nombre_absences|default:0 }}</span>
+        <span class="notes-list-row__stat for-sanctions{% if eleve_data.nombre_sanctions > 0 %} is-warn{% endif %}">{{ eleve_data.nombre_sanctions|default:0 }}</span>
+        {% elif variant == 'detail-primaire' %}
+        <span class="notes-list-row__stat{% if eleve_data.nombre_absences > 0 %} is-warn{% endif %}">{{ eleve_data.nombre_absences|default:0 }}</span>
+        <span class="notes-list-row__stat{% if eleve_data.nombre_retards > 0 %} is-warn{% endif %}">{{ eleve_data.nombre_retards|default:0 }}</span>
+        <span class="notes-list-row__stat{% if eleve_data.nombre_sanctions > 0 %} is-warn{% endif %}">{{ eleve_data.nombre_sanctions|default:0 }}</span>
+        <span class="notes-list-row__stat">{{ eleve_data.nombre_notes|default:0 }}</span>
+        {% elif variant == 'detail-secondaire' %}
+        <span class="notes-list-row__stat{% if eleve_data.nombre_absences > 0 %} is-warn{% endif %}">{{ eleve_data.nombre_absences|default:0 }}</span>
+        <span class="notes-list-row__stat notes-list-row__moyenne">
+            {% if eleve_data.derniere_moyenne %}
+                {% with moy=eleve_data.derniere_moyenne color=eleve_data.derniere_moyenne|note_color_css:20 %}
+                    <span class="notes-chip__value {{ moy|get_note_color_class:20 }}"{% if color %} style="color: {{ color }};"{% endif %}>{{ moy|floatformat:2 }}<small>/20</small></span>
+                {% endwith %}
+            {% else %}
+                <span class="notes-chip__value muted">—</span>
+            {% endif %}
+        </span>
+        <span class="notes-list-row__stat">{{ eleve_data.nombre_notes|default:0 }}</span>
+        {% endif %}
+        <div class="notes-list-row__actions{% if variant == 'hub' %} for-liste{% endif %}">
+            {% if ns == 'enseignant_primaire' %}
+                <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=informations" class="notes-list-action notes-list-action--primary">
+                    <i class="fas fa-user" aria-hidden="true"></i> Profil
+                </a>
+                {% if variant == 'hub' %}
+                <button type="button" class="notes-list-action notes-list-action--warn" title="Ajouter une sanction"
+                        onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom_complet|escapejs }}', {{ eleves_classe_id }})">
+                    <i class="fas fa-gavel" aria-hidden="true"></i> Sanction
+                </button>
+                {% else %}
+                <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=presences" class="notes-list-action notes-list-action--ghost">
+                    <i class="fas fa-calendar-check" aria-hidden="true"></i> Présence
+                </a>
+                <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=notes" class="notes-list-action notes-list-action--success">
+                    <i class="fas fa-clipboard-check" aria-hidden="true"></i> Notes
+                </a>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'enseignant:detail_eleve' eleve_data.eleve.id %}?onglet=informations" class="notes-list-action notes-list-action--primary">
+                    <i class="fas fa-user" aria-hidden="true"></i> Profil
+                </a>
+                {% if variant == 'hub' %}
+                <button type="button" class="notes-list-action notes-list-action--warn" title="Ajouter une sanction"
+                        onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom_complet|escapejs }}', {{ eleves_classe_id }})">
+                    <i class="fas fa-gavel" aria-hidden="true"></i> Sanction
+                </button>
+                {% else %}
+                <a href="{% url 'enseignant:detail_eleve' eleve_data.eleve.id %}?onglet=presences" class="notes-list-action notes-list-action--ghost">
+                    <i class="fas fa-calendar-check" aria-hidden="true"></i> Présence
+                </a>
+                <a href="{% url 'enseignant:detail_eleve' eleve_data.eleve.id %}?onglet=notes" class="notes-list-action notes-list-action--success">
+                    <i class="fas fa-clipboard-check" aria-hidden="true"></i> Notes
+                </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </article>
+    {% empty %}
+    <p class="notes-list-empty">Aucun élève</p>
+    {% endfor %}
+</div>
+{% if variant == 'hub' %}
+</div>
+{% endif %}
+{% endwith %}

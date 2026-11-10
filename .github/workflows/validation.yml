@@ -1,0 +1,53 @@
+name: Validation Django
+on: [push, pull_request]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: 'False'
+      SECRET_KEY: 'cle-reservee-aux-tests-ci-sans-donnees-reelles-0123456789-abcdefghijklmnopqrstuvwxyz'
+      DB_PASSWORD: 'ci-only-not-a-production-secret'
+      USE_CELERY: 'False'
+      USE_REDIS_CACHE: 'False'
+      REDIS_URL: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: mkdir -p logs
+      - run: pip install -r requirements.txt
+      - run: python manage.py check --deploy --fail-level WARNING
+      - run: python manage.py test school_admin --top-level-directory . --settings=school.test_settings --noinput --buffer
+  migrations-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: aria_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-local-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    env:
+      DEBUG: 'False'
+      SECRET_KEY: 'cle-reservee-aux-tests-ci-sans-donnees-reelles-0123456789-abcdefghijklmnopqrstuvwxyz'
+      DB_NAME: aria_ci
+      DB_USER: postgres
+      DB_PASSWORD: ci-local-only
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      USE_CELERY: 'False'
+      USE_REDIS_CACHE: 'False'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: mkdir -p logs
+      - run: pip install -r requirements.txt
+      - run: python manage.py test school_admin.tests.test_preproduction_security --settings=school.postgres_test_settings --noinput --buffer

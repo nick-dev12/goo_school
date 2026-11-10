@@ -6,13 +6,41 @@
   'use strict';
 
   var root = document.documentElement;
+
+  function isVisible(el) {
+    return !!(el && el.getClientRects().length);
+  }
+
+  function syncSheetWithDock() {
+    var dock = document.querySelector('.ax-dock');
+    var sheet = document.getElementById('axSheet');
+    if (!dock || !sheet) return;
+    var shown = Object.create(null);
+    dock.querySelectorAll('a.ax-dock__item').forEach(function (item) {
+      if (!isVisible(item)) return;
+      shown[item.pathname] = true;
+    });
+    sheet.querySelectorAll('a.ax-nav__link, a.ex-tile').forEach(function (link) {
+      if (shown[link.pathname]) link.setAttribute('hidden', '');
+      else link.removeAttribute('hidden');
+    });
+    sheet.querySelectorAll('.ax-nav__group').forEach(function (group) {
+      if (group.querySelector('a.ax-nav__link:not([hidden])')) group.removeAttribute('hidden');
+      else group.setAttribute('hidden', '');
+    });
+  }
+
   function openSheet() {
+    syncSheetWithDock();
     root.classList.add('ax-sheet-open');
     var btn = document.getElementById('axMoreBtn');
     if (btn) btn.setAttribute('aria-expanded', 'true');
     var sheet = document.getElementById('axSheet');
     if (sheet) sheet.setAttribute('aria-hidden', 'false');
-    var first = sheet && sheet.querySelector('a, button');
+    var first = sheet && (
+      sheet.querySelector('.ax-nav a.ax-nav__link:not([hidden]), .ex-sheet-grid a.ex-tile:not([hidden])') ||
+      sheet.querySelector('button')
+    );
     if (first) first.focus({ preventScroll: true });
   }
 
@@ -27,6 +55,8 @@
   document.addEventListener('DOMContentLoaded', function () {
     var moreBtn = document.getElementById('axMoreBtn');
     if (moreBtn) moreBtn.addEventListener('click', openSheet);
+    syncSheetWithDock();
+    window.addEventListener('resize', syncSheetWithDock);
     document.querySelectorAll('[data-ax-sheet-close]').forEach(function (el) {
       el.addEventListener('click', closeSheet);
     });

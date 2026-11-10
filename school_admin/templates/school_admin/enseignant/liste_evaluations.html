@@ -1,664 +1,106 @@
 <!DOCTYPE html>
-{% load static %}
+{% load static notes_tags %}
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mes Évaluations - Espace Enseignant</title>
+    <title>Évaluations - Espace Enseignant</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/liste_evaluations.css' %}">
-    <style>
-        /* Modal de modification */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 9998;
-            backdrop-filter: blur(4px);
-        }
-        
-        .modal-overlay.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-        }
-        
-        .modal-container {
-            background: white;
-            border-radius: 16px;
-            width: 100%;
-            max-width: 900px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: var(--shadow-lg);
-            position: relative;
-            animation: modalSlideIn 0.3s ease;
-        }
-        
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .modal-header {
-            padding: 1.5rem 2rem;
-            border-bottom: 2px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            background: white;
-            z-index: 10;
-            border-radius: 16px 16px 0 0;
-        }
-        
-        .modal-header h2 {
-            font-size: 1.5rem;
-            color: var(--text-primary);
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-        }
-        
-        .modal-close:hover {
-            background: var(--gray-100);
-            color: var(--text-primary);
-        }
-        
-        .modal-body {
-            padding: 2rem;
-        }
-        
-        .form-group-modal {
-            margin-bottom: 1.5rem;
-        }
-        
-        .form-group-modal label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .form-group-modal label .required {
-            color: var(--accent);
-        }
-        
-        .form-group-modal input,
-        .form-group-modal select,
-        .form-group-modal textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-        
-        .form-group-modal input:focus,
-        .form-group-modal select:focus,
-        .form-group-modal textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-light);
-        }
-        
-        .form-group-modal textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-        
-        .form-grid-modal {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-        
-        .form-actions-modal {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 2px solid var(--border-color);
-        }
-        
-        .btn-modal {
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .btn-modal-cancel {
-            background: var(--gray-200);
-            color: var(--text-primary);
-        }
-        
-        .btn-modal-cancel:hover {
-            background: var(--gray-300);
-        }
-        
-        .btn-modal-submit {
-            background: var(--primary);
-            color: white;
-        }
-        
-        .btn-modal-submit:hover {
-            background: var(--directeur-secondary);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow);
-        }
-        
-        .help-text-modal {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 0.25rem;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}?v=1.1.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_notes_primaire.css' %}?v=1.1.6">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/emploi_du_temps_modal.css' %}?v=1.0.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/creer_evaluation.css' %}?v=1.0.4">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/enseignant_modals.css' %}?v=1.0.3">
+    {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% endif %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/evaluations_hub.css' %}?v=1.0.9">
+    <link rel="stylesheet" href="{% static 'school_admin/css/shared/aria_filter_tabs.css' %}?v=1.1.3">
 </head>
-<body data-live-page="evaluations-liste">
+<body data-live-page="evaluations-liste" data-etab-type="{{ professeur.etablissement.type_etablissement }}"{% if hub_prof_ui %} data-prof-hub-nav-live="1"{% endif %}{% if hub_v4 %} data-prof-hub-key="professeur:lmd-evaluations" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}"{% elif hub_v3 %} data-prof-hub-key="professeur:secondaire-evaluations" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}"{% endif %}{% if open_evaluation %} data-open-evaluation-modal="1" data-eval-classe-id="{{ eval_classe_id }}" data-eval-matiere-id="{{ eval_matiere_id }}" data-eval-periode-id="{{ eval_periode_id }}"{% endif %}>
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
-    <!-- Main Content -->
     <div class="main-content-container">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title-section">
-                <h1 class="page-title">
-                    <i class="fas fa-calendar-alt"></i>
-                    Évaluations programmées
-                </h1>
-                <p class="page-subtitle">
-                    {{ stats.total_evaluations }} évaluation{{ stats.total_evaluations|pluralize }} pour {{ stats.total_classes }} classe{{ stats.total_classes|pluralize }}
-                </p>
-            </div>
-        </div>
-
-        {% if stats.total_evaluations > 0 %}
-            <!-- Statistiques globales -->
-            <div class="stats-container">
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #667eea;">
-                        <i class="fas fa-clipboard-list"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value">{{ stats.total_evaluations }}</span>
-                        <span class="stat-label">Évaluation{{ stats.total_evaluations|pluralize }}</span>
-                        {% if periode_active %}
-                            <span class="stat-subtitle">{{ periode_active.nom_periode }}</span>
-                        {% elif est_superieur %}
-                            <span class="stat-subtitle">Filtrage par classe</span>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #10b981;">
-                        <i class="fas fa-chalkboard"></i>
-                    </div>
-                    <div class="stat-content">
-                        <span class="stat-value">{{ stats.total_classes }}</span>
-                        <span class="stat-label">Classe{{ stats.total_classes|pluralize }}</span>
-                    </div>
-                </div>
-            </div>
-
-            {% if not est_superieur and periodes_scolaires %}
-            <div class="periodes-tabs-container">
-                <div class="periodes-tabs-nav">
-                    <a href="{% url 'enseignant:liste_evaluations' %}?periode=toutes" 
-                       class="periode-tab-btn {% if request.GET.periode == 'toutes' %}active{% endif %}"
-                       title="Toutes les périodes">
-                        <i class="fas fa-list"></i>
-                        <span>Toutes</span>
-                    </a>
-                    {% for periode in periodes_scolaires %}
-                        <a href="{% url 'enseignant:liste_evaluations' %}?periode={{ periode.id }}" 
-                           class="periode-tab-btn {% if periode_active and periode_active.id == periode.id %}active{% endif %}"
-                           title="{{ periode.nom_periode }}">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>{{ periode.nom_periode }}</span>
-                        </a>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Onglets par catégorie -->
-            <div class="tabs-container">
-                <div class="tabs-nav">
-                    {% for categorie, data in evaluations_grouped.items %}
-                        <button class="tab-btn {% if forloop.first %}active{% endif %}" 
-                                data-tab="tab-{{ forloop.counter }}"
-                                onclick="switchTab('tab-{{ forloop.counter }}')">
-                            <span class="tab-title">{{ categorie }}</span>
-                        </button>
-                    {% endfor %}
-                </div>
-
-                <!-- Contenu des onglets -->
-                {% for categorie, data in evaluations_grouped.items %}
-                    <div class="tab-content-panel {% if forloop.first %}active{% endif %}" id="tab-{{ forloop.counter }}">
-                        <!-- Sous-onglets par classe -->
-                        <div class="classes-tabs">
-                            {% for classe_data in data.classes %}
-                                <button class="classe-tab-btn {% if forloop.first %}active{% endif %}"
-                                        data-classe="classe-{{ categorie }}-{{ forloop.counter }}"
-                                        onclick="showClasse('classe-{{ categorie }}-{{ forloop.counter }}', 'tab-{{ forloop.parentloop.counter }}')">
-                                    <div class="classe-tab-icon">
-                                        <i class="fas fa-chalkboard"></i>
-                                    </div>
-                                    <div class="classe-tab-content">
-                                        <span class="classe-tab-name">{{ classe_data.classe.nom }}</span>
-                                        {% if classe_data.matiere %}
-                                            <span class="classe-tab-matiere">{{ classe_data.matiere.nom }}</span>
-                                        {% endif %}
-                                    </div>
-                                    <span class="classe-tab-count">{{ classe_data.nombre_evaluations }}</span>
-                                </button>
-                            {% endfor %}
-                        </div>
-
-                        <!-- Contenu de chaque classe -->
-                        {% for classe_data in data.classes %}
-                            <div class="classe-content {% if forloop.first %}active{% endif %}" id="classe-{{ categorie }}-{{ forloop.counter }}">
-                                {% if est_superieur and classe_data.periodes_nav %}
-                                <div class="periodes-tabs-container" style="margin-bottom: 1rem;">
-                                    <div class="periodes-tabs-nav" style="flex-wrap: wrap;">
-                                        {% for nav in classe_data.periodes_nav %}
-                                        <a href="{% url 'enseignant:liste_evaluations' %}?{{ nav.query }}"
-                                           class="periode-tab-btn {% if nav.active %}active{% endif %}"
-                                           title="{{ nav.periode.libelle_affichage_superieur }}">
-                                            <i class="fas fa-calendar-alt"></i>
-                                            <span>{{ nav.periode.libelle_affichage_superieur }}</span>
-                                        </a>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                {% endif %}
-                                {% if classe_data.evaluations %}
-                                    <!-- Grille des évaluations -->
-                                    <div class="evaluations-grid">
-                                        {% for evaluation in classe_data.evaluations %}
-                                            <div class="evaluation-card">
-                                                <!-- Header -->
-                                                <div class="eval-header">
-                                                    <div class="eval-icon" style="background: #667eea;">
-                                                        <i class="fas fa-file-alt"></i>
-                                                    </div>
-                                                    <div class="eval-info">
-                                                        <h3 class="eval-titre">{{ evaluation.titre }}</h3>
-                                                        <div class="eval-badges">
-                                                            <span class="badge {% if evaluation.est_passe %}passe{% elif evaluation.est_a_venir %}a-venir{% else %}aujourdhui{% endif %}">
-                                                                {% if evaluation.est_passe %}
-                                                                    <i class="fas fa-check"></i> Passée
-                                                                {% elif evaluation.est_a_venir %}
-                                                                    <i class="fas fa-clock"></i> À venir
-                                                                {% else %}
-                                                                    <i class="fas fa-calendar-day"></i> Aujourd'hui
-                                                                {% endif %}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Informations -->
-                                                <div class="eval-details">
-                                                    {% if evaluation.matiere %}
-                                                        <div class="detail-item">
-                                                            <i class="fas fa-book"></i>
-                                                            <span>{{ evaluation.matiere.nom }}</span>
-                                                        </div>
-                                                    {% endif %}
-                                                    {% if evaluation.periode_scolaire %}
-                                                        <div class="detail-item">
-                                                            <i class="fas fa-calendar-week"></i>
-                                                            <span>{{ evaluation.periode_scolaire.nom_periode }}</span>
-                                                        </div>
-                                                    {% endif %}
-                                                    <div class="detail-item">
-                                                        <i class="fas fa-calendar"></i>
-                                                        <span>{{ evaluation.date_evaluation|date:"d/m/Y" }}</span>
-                                                    </div>
-                                                    <div class="detail-item">
-                                                        <i class="fas fa-calculator"></i>
-                                                        <span>{{ evaluation.bareme }} points</span>
-                                                    </div>
-                                                </div>
-
-                                                {% if evaluation.description %}
-                                                    <div class="eval-description">
-                                                        <p>{{ evaluation.description|truncatewords:20 }}</p>
-                                                    </div>
-                                                {% endif %}
-
-                                                <!-- Actions -->
-                                                <div class="eval-actions">
-                                                    <a href="{% url 'enseignant:noter_eleves' classe_data.classe.id %}" class="action-btn primary" title="Noter">
-                                                        <i class="fas fa-edit"></i>
-                                                        <span>Noter</span>
-                                                    </a>
-                                                    <button type="button" 
-                                                            class="action-btn secondary" 
-                                                            title="Modifier"
-                                                            onclick="ouvrirModalModification({{ evaluation.id }})">
-                                                        <i class="fas fa-pen"></i>
-                                                        <span>Modifier</span>
-                                                    </button>
-                                                    <button type="button" 
-                                                            class="action-btn danger" 
-                                                            title="Supprimer"
-                                                            onclick="supprimerEvaluation({{ evaluation.id }}, '{{ evaluation.titre|escapejs }}', this)">
-                                                        <i class="fas fa-trash"></i>
-                                                        <span>Supprimer</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    <div class="empty-class-state">
-                                        <i class="fas fa-clipboard"></i>
-                                        <p>Aucune évaluation programmée pour cette classe</p>
-                                        <a href="{% url 'enseignant:creer_evaluation' classe_data.classe.id %}" class="btn btn-primary">
-                                            <i class="fas fa-plus"></i>
-                                            Créer une évaluation
-                                        </a>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endfor %}
-            </div>
+        {% csrf_token %}
+        <div class="eval-page">
+        {% if hub_prof_ui %}
+            {% include 'school_admin/enseignant/partials/prof_notes_hub_swap_root.html' with prof_notes_hub_chrome_template='school_admin/enseignant/partials/liste_evaluations_enseignant_hub_chrome.html' prof_notes_hub_panel_template='school_admin/enseignant/partials/liste_evaluations_enseignant_hub_panel.html' %}
         {% else %}
-            <!-- État vide -->
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <i class="fas fa-calendar-alt"></i>
-                </div>
-                <h3>Aucune évaluation programmée</h3>
-                <p>Vous n'avez encore créé aucune évaluation. Commencez par créer votre première évaluation.</p>
-            </div>
+            {% include 'school_admin/enseignant/partials/prof_notes_hub_header.html' %}
+            {% include 'school_admin/enseignant/partials/liste_evaluations_enseignant_hub_chrome.html' %}
+            {% include 'school_admin/enseignant/partials/liste_evaluations_enseignant_hub_panel.html' %}
         {% endif %}
+        </div>
     </div>
 
-    <!-- Modal de modification -->
     <div class="modal-overlay" id="modalModification">
-        <div class="modal-container" id="modalContent">
-            <!-- Le contenu sera chargé dynamiquement -->
+        <div class="modal-container" id="modalContent"></div>
+    </div>
+
+    <div id="modalCreerEvaluation" class="modal-creneau-fullscreen enseignant-form-modal">
+        <div class="modal-creneau-overlay"></div>
+        <div class="modal-creneau-content">
+            <div class="modal-creneau-header">
+                <h2><i class="fas fa-plus-circle"></i> Créer une évaluation</h2>
+                <button type="button" class="modal-creneau-close" onclick="closeModalEnseignant('modalCreerEvaluation')" aria-label="Fermer">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-creneau-body" id="modalCreerEvaluationBody"></div>
         </div>
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant.js' %}"></script>
+    {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_scripts.html' %}{% endif %}
     <script>
-        // Fonction pour changer d'onglet principal
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-content-panel').forEach(panel => {
-                panel.classList.remove('active');
-            });
-            
-            const selectedBtn = document.querySelector(`[data-tab="${tabId}"]`);
-            const selectedPanel = document.getElementById(tabId);
-            
-            if (selectedBtn && selectedPanel) {
-                selectedBtn.classList.add('active');
-                selectedPanel.classList.add('active');
-            }
-        }
-        
-        // Fonction pour afficher une classe spécifique
-        function showClasse(classeId, tabId) {
-            const tabPanel = document.getElementById(tabId);
-            if (tabPanel) {
-                tabPanel.querySelectorAll('.classe-tab-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                tabPanel.querySelectorAll('.classe-content').forEach(content => {
-                    content.classList.remove('active');
-                });
-                
-                const selectedBtn = tabPanel.querySelector(`[data-classe="${classeId}"]`);
-                const selectedContent = document.getElementById(classeId);
-                
-                if (selectedBtn && selectedContent) {
-                    selectedBtn.classList.add('active');
-                    selectedContent.classList.add('active');
-                }
-            }
-        }
-        
-        // Fonction pour ouvrir le modal de modification
         function ouvrirModalModification(evaluationId) {
             const modal = document.getElementById('modalModification');
             const modalContent = document.getElementById('modalContent');
-            
-            // Afficher le modal avec un loader
             modal.classList.add('active');
-            modalContent.innerHTML = `
-                <div class="modal-header">
-                    <h2><i class="fas fa-spinner fa-spin"></i> Chargement...</h2>
-                    <button class="modal-close" onclick="fermerModal()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
-            
-            // Charger le formulaire via AJAX
-            fetch(`/enseignant/modifier-evaluation/${evaluationId}/`, {
+            modal.style.display = 'flex';
+            modalContent.innerHTML = '<div class="modal-header"><h2><i class="fas fa-spinner fa-spin"></i> Chargement...</h2></div>';
+            fetch('/enseignant/modifier-evaluation/' + evaluationId + '/', {
                 method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.html) {
-                    modalContent.innerHTML = data.html;
-                } else {
-                    modalContent.innerHTML = `
-                        <div class="modal-header">
-                            <h2><i class="fas fa-exclamation-triangle"></i> Erreur</h2>
-                            <button class="modal-close" onclick="fermerModal()">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Erreur lors du chargement du formulaire.</p>
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                modalContent.innerHTML = `
-                    <div class="modal-header">
-                        <h2><i class="fas fa-exclamation-triangle"></i> Erreur</h2>
-                        <button class="modal-close" onclick="fermerModal()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Erreur lors du chargement du formulaire.</p>
-                    </div>
-                `;
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (data.html) modalContent.innerHTML = data.html;
             });
         }
-        
+
         function fermerModal() {
             const modal = document.getElementById('modalModification');
             modal.classList.remove('active');
+            modal.style.display = 'none';
         }
-        
-        // Fermer le modal en cliquant sur l'overlay
-        document.getElementById('modalModification').addEventListener('click', function(e) {
-            if (e.target === this) {
-                fermerModal();
-            }
+
+        document.getElementById('modalModification').addEventListener('click', function (e) {
+            if (e.target === this) fermerModal();
         });
-        
-        // Gérer la soumission du formulaire
-        document.addEventListener('submit', function(e) {
-            if (e.target.classList.contains('form-modifier-evaluation')) {
-                e.preventDefault();
-                
-                const form = e.target;
-                const formData = new FormData(form);
-                const evaluationId = formData.get('evaluation_id');
-                
-                // Désactiver le bouton de soumission
-                const submitBtn = form.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
-                
-                fetch(`/enseignant/modifier-evaluation/${evaluationId}/`, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Afficher un message de succès
-                        alert(data.message);
-                        // Rediriger ou recharger la page
-                        if (data.redirect_url) {
-                            window.location.href = data.redirect_url;
-                        } else {
-                            window.location.reload();
-                        }
-                    } else {
-                        // Afficher l'erreur
-                        alert(data.message || 'Erreur lors de la modification.');
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalText;
-                    }
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    alert('Erreur lors de la modification de l\'évaluation.');
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
-                });
-            }
-        });
-        
-        // Fonction pour supprimer une évaluation
-        function supprimerEvaluation(evaluationId, titreEvaluation, buttonElement) {
-            if (!confirm(`Êtes-vous sûr de vouloir supprimer l'évaluation "${titreEvaluation}" ?\n\nCette action est irréversible.`)) {
-                return;
-            }
-            
-            // Utiliser l'élément bouton passé en paramètre ou le trouver
-            let deleteBtn = buttonElement;
-            if (!deleteBtn) {
-                deleteBtn = document.querySelector(`button[onclick*="supprimerEvaluation(${evaluationId}"]`);
-            }
-            if (!deleteBtn) {
-                // Fallback : chercher via le conteneur parent
-                const evaluationCard = document.querySelector(`.evaluation-card`);
-                if (evaluationCard) {
-                    deleteBtn = evaluationCard.querySelector('.action-btn.danger');
-                }
-            }
-            if (!deleteBtn) {
-                alert('Erreur : impossible de trouver le bouton de suppression.');
-                return;
-            }
-            
-            const originalContent = deleteBtn.innerHTML;
-            deleteBtn.disabled = true;
-            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Suppression...</span>';
-            
-            // Envoyer la requête de suppression
-            fetch(`/enseignant/supprimer-evaluation/${evaluationId}/`, {
+
+        document.addEventListener('submit', function (e) {
+            if (!e.target.classList.contains('form-modifier-evaluation')) return;
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const evaluationId = formData.get('evaluation_id');
+            fetch('/enseignant/modifier-evaluation/' + evaluationId + '/', {
                 method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
             })
-            .then(response => response.json())
-            .then(data => {
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
                 if (data.success) {
-                    // Afficher un message de succès
-                    const cardElement = deleteBtn.closest('.evaluation-card');
-                    if (cardElement) {
-                        // Animation de disparition
-                        cardElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                        cardElement.style.opacity = '0';
-                        cardElement.style.transform = 'translateX(-20px)';
-                        
-                        setTimeout(() => {
-                            cardElement.remove();
-                            
-                            // Vérifier s'il reste des évaluations
-                            const evaluationsGrid = document.querySelector('.evaluations-grid');
-                            if (evaluationsGrid && evaluationsGrid.children.length === 0) {
-                                // Recharger la page si plus d'évaluations
-                                window.location.reload();
-                            }
-                        }, 300);
-                    } else {
-                        // Si on ne trouve pas la carte, recharger la page
-                        window.location.reload();
-                    }
+                    if (data.redirect_url) window.location.href = data.redirect_url;
+                    else window.location.reload();
                 } else {
-                    alert('Erreur : ' + (data.message || 'Une erreur est survenue lors de la suppression.'));
-                    deleteBtn.disabled = false;
-                    deleteBtn.innerHTML = originalContent;
+                    window.alert(data.message || 'Erreur lors de la modification.');
                 }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                alert('Une erreur est survenue lors de la suppression. Veuillez réessayer.');
-                deleteBtn.disabled = false;
-                deleteBtn.innerHTML = originalContent;
             });
-        }
-        
-        // Fonction pour récupérer le token CSRF
+        });
+
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -673,10 +115,29 @@
             }
             return cookieValue;
         }
+
+        function supprimerEvaluation(evaluationId, titre, btn) {
+            if (!window.confirm('Supprimer « ' + titre + ' » ?')) return;
+            fetch('/enseignant/supprimer-evaluation/' + evaluationId + '/', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    if (data.redirect_url) window.location.href = data.redirect_url;
+                    else window.location.reload();
+                } else {
+                    window.alert(data.message || 'Erreur lors de la suppression.');
+                }
+            });
+        }
     </script>
 
     {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
 {% include 'school_admin/partials/enseignant_live_scripts.html' %}
 </body>
 </html>
-

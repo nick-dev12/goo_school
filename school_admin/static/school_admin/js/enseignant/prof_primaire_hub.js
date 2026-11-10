@@ -23,13 +23,14 @@
 
     var params = new URLSearchParams(window.location.search);
     var needsMerge = fields.some(function (name) {
-      return !params.has(name) || params.get(name) === '';
+      return !params.has(name);
     });
     if (needsMerge) {
       var stored = window.professeurTabStorage.readStore(key);
       var changed = false;
       fields.forEach(function (name) {
-        if ((!params.has(name) || params.get(name) === '') && stored[name]) {
+        /* Une clé présente mais vide (ex. matiere=) est un choix explicite : ne pas restaurer. */
+        if (!params.has(name) && stored[name]) {
           params.set(name, String(stored[name]));
           changed = true;
         }
@@ -50,7 +51,7 @@
   function filterSearchRows() {
     var input = document.getElementById('profPrimaireSearchInput');
     if (!input) return;
-    var selector = input.getAttribute('data-prof-search-target') || '.prof-primaire-searchable tbody tr';
+    var selector = input.getAttribute('data-prof-search-target') || '.prof-primaire-searchable tbody tr, .prof-primaire-searchable .notes-list-row';
     var term = input.value.trim().toLowerCase();
     document.querySelectorAll(selector).forEach(function (row) {
       if (row.querySelector('.empty-row')) return;

@@ -35,12 +35,8 @@
             <button class="btn btn-primary" onclick="document.getElementById('addExpenseModal').style.display='block'">
               <i class="fas fa-plus"></i> Nouvelle Dépense
             </button>
-            <button class="btn btn-success" onclick="generateExpenseReport()">
-              <i class="fas fa-file-excel"></i> Rapport Dépenses
-            </button>
-            <button class="btn btn-warning" onclick="openBudgetModal()">
-              <i class="fas fa-chart-pie"></i> Budget
-            </button>
+
+
           </div>
         </div>
 
@@ -165,12 +161,8 @@
             <div class="panel-header">
               <h3>Liste des Dépenses</h3>
               <div class="panel-actions">
-                <button class="btn btn-success" onclick="exportExpensesList()">
-                  <i class="fas fa-download"></i> Exporter
-                </button>
-                <button class="btn btn-warning" onclick="bulkApprove()">
-                  <i class="fas fa-check"></i> Confirmer Sélection
-                </button>
+
+
               </div>
             </div>
 
@@ -261,12 +253,7 @@
             <div class="panel-header">
               <h3>Gestion des Catégories</h3>
               <div class="panel-actions">
-                <button
-                  class="btn btn-primary"
-                  onclick="openAddCategoryModal()"
-                >
-                  <i class="fas fa-plus"></i> Nouvelle Catégorie
-                </button>
+
               </div>
             </div>
 
@@ -297,9 +284,7 @@
                   <button class="btn-action" onclick="filterByCategory('{{ categorie }}')" title="Filtrer par catégorie">
                     <i class="fas fa-filter"></i>
                   </button>
-                  <button class="btn-action" onclick="viewCategoryDetails('{{ categorie }}')" title="Voir détails">
-                    <i class="fas fa-eye"></i>
-                  </button>
+
                 </div>
               </div>
               {% endfor %}
@@ -358,12 +343,8 @@
                     <span class="progress-text">{{ budget.get_montant_depense|floatformat:0 }} / {{ budget.montant_alloue|floatformat:0 }}</span>
                   </div>
                   <div class="budget-actions">
-                    <button class="btn-action" onclick="editBudget({{ budget.id }})" title="Modifier">
-                      <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-action" onclick="deleteBudget({{ budget.id }})" title="Supprimer">
-                      <i class="fas fa-trash"></i>
-                    </button>
+
+
                   </div>
                 </div>
                 {% empty %}
@@ -382,12 +363,7 @@
             <div class="panel-header">
               <h3>Rapports de Dépenses</h3>
               <div class="panel-actions">
-                <button
-                  class="btn btn-success"
-                  onclick="generateExpenseReport()"
-                >
-                  <i class="fas fa-file-pdf"></i> Générer Rapport
-                </button>
+
               </div>
             </div>
 
@@ -409,9 +385,7 @@
                       <option>Cette année</option>
                     </select>
                   </div>
-                  <button class="btn btn-primary" onclick="analyzeTrends()">
-                    <i class="fas fa-chart-line"></i> Analyser
-                  </button>
+
                 </div>
               </div>
 
@@ -432,9 +406,7 @@
                       <option>Maintenance</option>
                     </select>
                   </div>
-                  <button class="btn btn-primary" onclick="compareBudget()">
-                    <i class="fas fa-balance-scale"></i> Comparer
-                  </button>
+
                 </div>
               </div>
 
@@ -451,9 +423,7 @@
                       <option>PDF (.pdf)</option>
                     </select>
                   </div>
-                  <button class="btn btn-primary" onclick="exportData()">
-                    <i class="fas fa-download"></i> Exporter
-                  </button>
+
                 </div>
               </div>
             </div>
@@ -797,11 +767,11 @@
       function openAddExpenseModal() {
         document.getElementById('addExpenseModal').style.display = 'block';
       }
-      
+
       function closeModal(modalId) {
         document.getElementById(modalId).style.display = 'none';
       }
-      
+
       // Fermer le modal en cliquant à l'extérieur
       window.onclick = function(event) {
         const modals = document.querySelectorAll('.modal');
@@ -811,24 +781,24 @@
           }
         });
       }
-      
+
       // Gestion des onglets
       function switchTab(tabId) {
         // Masquer tous les panneaux
         const panels = document.querySelectorAll('.tab-panel');
         panels.forEach(panel => panel.classList.remove('active'));
-        
+
         // Désactiver tous les boutons d'onglets
         const buttons = document.querySelectorAll('.tab-btn');
         buttons.forEach(button => button.classList.remove('active'));
-        
+
         // Afficher le panneau sélectionné
         document.getElementById(tabId).classList.add('active');
-        
+
         // Activer le bouton correspondant
         event.target.classList.add('active');
       }
-      
+
       // Fonctions de filtrage
       function filterByCategory(category) {
         const form = document.getElementById('filterForm');
@@ -836,7 +806,7 @@
         categorySelect.value = category;
         form.submit();
       }
-      
+
       function clearSearch() {
         document.getElementById('searchInput').value = '';
         // Optionnel: soumettre le formulaire pour effacer les filtres
@@ -845,74 +815,7 @@
           form.submit();
         }
       }
-      
-      // Fonctions pour les rapports (à implémenter)
-      function generateExpenseReport() {
-        alert('Fonction de génération de rapport à implémenter');
-      }
-      
-      function openBudgetModal() {
-        alert('Fonction de budget à implémenter');
-      }
-      
-      function exportExpensesList() {
-        alert('Fonction d\'export à implémenter');
-      }
-      
-      function bulkApprove() {
-        alert('Fonction d\'approbation en lot à implémenter');
-      }
-      
-      function editExpense(id) {
-        alert('Fonction d\'édition à implémenter pour l\'ID: ' + id);
-      }
-      
-      function viewExpenseDetails(id) {
-        alert('Fonction de détails à implémenter pour l\'ID: ' + id);
-      }
-      
-      function downloadInvoice(id) {
-        alert('Fonction de téléchargement à implémenter pour l\'ID: ' + id);
-      }
-      
-      function openAddCategoryModal() {
-        alert('Fonction d\'ajout de catégorie à implémenter');
-      }
-      
-      function editCategory(id) {
-        alert('Fonction d\'édition de catégorie à implémenter pour l\'ID: ' + id);
-      }
-      
-      function viewCategoryDetails(category) {
-        alert('Fonction de détails de catégorie à implémenter pour: ' + category);
-      }
-      
-      function analyzeTrends() {
-        alert('Fonction d\'analyse des tendances à implémenter');
-      }
-      
-      function compareBudget() {
-        alert('Fonction de comparaison de budget à implémenter');
-      }
-      
-      function exportData() {
-        alert('Fonction d\'export de données à implémenter');
-      }
-      
-      // Fonctions pour la gestion des budgets
-      function editBudget(budgetId) {
-        // Remplir le formulaire de modification avec les données du budget
-        // Cette fonction sera appelée depuis le serveur avec les données
-        document.getElementById('editBudgetModal').style.display = 'block';
-        // TODO: Charger les données du budget via AJAX
-      }
-      
-      function deleteBudget(budgetId) {
-        if (confirm('Êtes-vous sûr de vouloir supprimer ce budget ?')) {
-          // TODO: Implémenter la suppression
-          alert('Fonction de suppression à implémenter pour l\'ID: ' + budgetId);
-        }
-      }
+
     </script>
   </body>
 </html>

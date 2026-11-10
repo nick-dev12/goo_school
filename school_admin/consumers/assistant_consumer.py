@@ -1266,8 +1266,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             session_store,
             personnel=self.personnel,
             professeur=self.professeur,
-            parent=self.parent,
-            eleve=self.eleve,
+            parent=getattr(self, 'parent', None),
+            eleve=getattr(self, 'eleve', None),
             persona=self.persona,
         )
 

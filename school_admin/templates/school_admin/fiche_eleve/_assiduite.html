@@ -5,7 +5,7 @@
     <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-user-check" aria-hidden="true"></i>{% trans "Bilan de l’année" %}</h2></header>
     <div class="fe-money">
       <div class="is-total"><span>{% trans "Taux de présence" %}</span><b>{% if fiche.presence.taux != None %}{{ fiche.presence.taux|floatformat:"-1" }} %{% else %}—{% endif %}</b></div>
-      <div><span>{% trans "Appels" %}</span><b>{{ fiche.presence.total }}</b></div>
+      {% if fiche.vue != 'enseignant' %}<div><span>{% trans "Appels" %}</span><b>{{ fiche.presence.total }}</b></div>{% endif %}
       <div><span>{% trans "Absences non justifiées" %}</span><b {% if fiche.presence.non_justifiees %}style="color:var(--ax-bad)"{% endif %}>{{ fiche.presence.non_justifiees }}</b></div>
       <div><span>{% trans "Absences justifiées" %}</span><b>{{ fiche.presence.justifiees }}</b></div>
       <div><span>{% trans "Retards" %}</span><b>{{ fiche.presence.retards }}</b></div>

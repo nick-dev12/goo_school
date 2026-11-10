@@ -1,0 +1,40 @@
+{% load notes_tags %}
+<div class="notes-list notes-list--complet" role="list" style="--eval-count: {{ matieres_releve_complet|length|default:0 }};" data-eval-count="{{ matieres_releve_complet|length|default:0 }}">
+    <div class="notes-list-head">
+        <span class="notes-list-head__eleve">Élève</span>
+        <div class="notes-list-head__evals">
+            {% for matiere in matieres_releve_complet %}
+                <span class="notes-list-head__eval" title="{{ matiere.nom }}" tabindex="0">{{ matiere.code }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% for result in resultats_releve_complet %}
+    <article class="notes-list-row" role="listitem">
+        <div class="notes-list-row__eleve">
+            <span class="notes-list-row__index">{{ forloop.counter }}</span>
+            <div class="notes-list-row__name">
+                <span class="nom">{{ result.eleve.nom|upper }}</span>
+                <span class="prenom">{{ result.eleve.prenom }}</span>
+            </div>
+        </div>
+        <div class="notes-list-row__evals">
+            {% for matiere in matieres_releve_complet %}
+                {% with matiere_data=result.moyennes_par_matiere|get_item:matiere.code %}
+                    <span class="notes-chip" title="{{ matiere.nom }}" tabindex="0">
+                        <span class="notes-chip__label">{{ matiere.code }}</span>
+                        {% if matiere_data and matiere_data.moyenne %}
+                            {% with color=matiere_data.moyenne|note_color_css:20 %}
+                            <span class="notes-chip__value {{ matiere_data.moyenne|get_note_color_class:20 }}" data-note-sort="{{ matiere_data.moyenne|note_sort_attr }}" data-bareme="20"{% if color %} style="color: {{ color }};"{% endif %}>{{ matiere_data.moyenne|floatformat:2 }}</span>
+                            {% endwith %}
+                        {% else %}
+                            <span class="notes-chip__value muted">—</span>
+                        {% endif %}
+                    </span>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    </article>
+    {% empty %}
+    <p class="notes-list-empty">Aucun résultat disponible</p>
+    {% endfor %}
+</div>

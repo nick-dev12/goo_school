@@ -1,0 +1,69 @@
+{% load notes_tags %}
+{% with moy_evals=evaluations_matiere|evals_incluses_moyenne:releve_data %}
+<div class="notes-eval-block" data-view="eval">
+    {% include 'school_admin/enseignant/primaire/partials/notes_eval_tabs_primaire.html' %}
+    <div class="notes-list" id="notesReleveTable" role="list"
+         data-view="eval"
+         data-active-eval="{% if evaluations_matiere %}{{ evaluations_matiere.0.id }}{% endif %}"
+         style="--moy-n: {{ moy_evals|length }};">
+        <div class="notes-list-head">
+            <span class="notes-list-head__devoir" data-eval-head aria-live="polite">{% if evaluations_matiere %}{{ evaluations_matiere.0.titre|default:evaluations_matiere.0.type_label }}{% else %}Évaluation{% endif %}</span>
+            <div class="notes-list-head__cols">
+                <span class="notes-list-head__index" aria-hidden="true"></span>
+                <span class="notes-list-head__eleve">Élève</span>
+                <span class="notes-list-head__note">Note</span>
+                {% for eval in moy_evals %}
+                    <span class="notes-list-head__num for-moyenne" title="{{ eval.titre|default:eval.type_label }}">{{ forloop.counter }}</span>
+                {% endfor %}
+                <span class="notes-list-head__moy">Moy.</span>
+            </div>
+        </div>
+        {% if not releve_data %}
+            <p class="notes-list-empty">Aucun élève inscrit dans cette classe pour cette période.</p>
+        {% endif %}
+        {% for data in releve_data %}
+        <article class="notes-list-row" role="listitem" data-eleve-name="{{ data.eleve.nom }} {{ data.eleve.prenom }}">
+            <span class="notes-list-row__index">{{ forloop.counter }}</span>
+            <div class="notes-list-row__eleve">
+                <div class="notes-list-row__name">
+                    <span class="nom">{{ data.eleve.nom|upper }}</span>
+                    <span class="prenom">{{ data.eleve.prenom }}</span>
+                </div>
+            </div>
+            {% if evaluations_matiere %}
+                {% for eval in evaluations_matiere %}
+                    {% with note_data=data.notes_evaluations|get_item:eval.id %}
+                        <span class="notes-list-row__devoir{% if forloop.first %} is-active{% endif %}"
+                              data-eval-id="{{ eval.id }}"
+                              title="{{ eval.titre|default:eval.type_label }}"
+                              tabindex="0">{{ eval.titre|default:eval.type_label }}</span>
+                        <span class="notes-list-row__note{% if forloop.first %} is-active{% endif %}{% if eval.id|eval_in_moyenne:moy_evals %} is-moyenne{% endif %}"
+                              data-eval-id="{{ eval.id }}"
+                              data-note-sort="{% if note_data.note_obj and note_data.note_obj.note %}{{ note_data.note_obj.note|note_sort_attr }}{% endif %}">
+                            {% if note_data.note_obj and note_data.note_obj.note %}
+                                {% with color=note_data.note_obj.note|note_color_css:eval.bareme %}
+                                <span class="notes-chip__value {{ note_data.note_obj.note|get_note_color_class:eval.bareme }}" data-note-sort="{{ note_data.note_obj.note|note_sort_attr }}" data-bareme="{{ eval.bareme|note_sort_attr }}"{% if color %} style="color: {{ color }};"{% endif %}>{{ note_data.note_obj.note|floatformat:2 }}<small>/{{ eval.bareme|floatformat:0 }}</small></span>
+                                {% endwith %}
+                            {% elif note_data.note_obj and note_data.note_obj.absent %}
+                                <span class="notes-chip__value absent">ABS</span>
+                            {% else %}
+                                <span class="notes-chip__value muted">—</span>
+                            {% endif %}
+                        </span>
+                    {% endwith %}
+                {% endfor %}
+            {% endif %}
+            <span class="notes-list-row__moy" data-note-sort="{% if data.moyenne %}{{ data.moyenne|note_sort_attr }}{% endif %}">
+                {% if data.moyenne %}
+                    {% with color=data.moyenne|note_color_css:20 %}
+                    <span class="notes-chip__value {{ data.moyenne|get_note_color_class:20 }}" data-note-sort="{{ data.moyenne|note_sort_attr }}" data-bareme="20"{% if color %} style="color: {{ color }};"{% endif %}>{{ data.moyenne|floatformat:2 }}</span>
+                    {% endwith %}
+                {% else %}
+                    <span class="notes-chip__value muted">—</span>
+                {% endif %}
+            </span>
+        </article>
+        {% endfor %}
+    </div>
+</div>
+{% endwith %}

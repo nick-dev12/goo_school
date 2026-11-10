@@ -175,5 +175,35 @@ if (modalOverlay) {
   });
 }
 
+function bindJustifEvalTabs() {
+  document.querySelectorAll(".notes-justif-block").forEach((block) => {
+    if (block.dataset.justifTabsBound === "1") {
+      return;
+    }
+    block.dataset.justifTabsBound = "1";
+    block.addEventListener("click", (event) => {
+      const tab = event.target.closest(".notes-justif-eval-tab");
+      if (!tab || !block.contains(tab)) {
+        return;
+      }
+      const evalId = tab.getAttribute("data-eval-id") || "";
+      block.querySelectorAll(".notes-justif-eval-tab").forEach((btn) => {
+        const on = btn === tab;
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      block.querySelectorAll(".justif-list__note").forEach((cell) => {
+        cell.classList.toggle("is-active", cell.getAttribute("data-eval-id") === evalId);
+      });
+      const head = block.querySelector(".justif-list__note-head-current");
+      if (head) {
+        head.textContent = (tab.getAttribute("title") || tab.textContent || "").replace(/\s+/g, " ").trim();
+      }
+    });
+  });
+}
+
 initJustificationsPage();
+bindJustifEvalTabs();
 document.addEventListener("prof-hub-panel-loaded", initJustificationsPage);
+document.addEventListener("prof-hub-panel-loaded", bindJustifEvalTabs);

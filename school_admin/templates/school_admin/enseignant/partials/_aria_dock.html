@@ -1,0 +1,27 @@
+{% load notes_tags %}
+<nav class="ax-dock" aria-label="Navigation principale de l'espace enseignant">
+  <ul class="ax-dock__list ax-dock__list--full">
+    {% for link in teacher_nav.bar %}<li><a href="{{ link.url }}" class="ax-dock__item{% if link.active %} is-active{% endif %}"{% if link.active %} aria-current="page"{% endif %}><span class="ax-dock__icon ax-tone-{{ link.tone }}"><i class="fas {{ link.icon }}" aria-hidden="true"></i></span><span class="ax-dock__label">{{ link.label }}</span></a></li>{% endfor %}
+    {% if professeur|peut_justifier_notes %}<li><a href="{% if teacher_nav.primary %}{% url 'enseignant_primaire:justifications_notes' %}{% else %}{% url 'enseignant:justifications_notes' %}{% endif %}" class="ax-dock__item{% if request.resolver_match.url_name == 'justifications_notes' %} is-active{% endif %}"{% if request.resolver_match.url_name == 'justifications_notes' %} aria-current="page"{% endif %}><span class="ax-dock__icon ax-tone-royal"><i class="fas fa-scale-balanced" aria-hidden="true"></i></span><span class="ax-dock__label">Justification</span></a></li>{% endif %}
+  </ul>
+  <ul class="ax-dock__list ax-dock__list--compact">
+    {% for link in teacher_nav.mobile %}<li><a href="{{ link.url }}" class="ax-dock__item{% if link.active %} is-active{% endif %}"{% if link.active %} aria-current="page"{% endif %}><span class="ax-dock__icon ax-tone-{{ link.tone }}"><i class="fas {{ link.icon }}" aria-hidden="true"></i></span><span class="ax-dock__label">{{ link.label }}</span></a></li>{% endfor %}
+    <li><button type="button" class="ax-dock__item{% if teacher_nav.more_active %} is-active{% endif %}" id="axMoreBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="axSheet"><span class="ax-dock__icon ax-tone-menu"><i class="fas fa-ellipsis" aria-hidden="true"></i></span><span class="ax-dock__label">Menu</span></button></li>
+  </ul>
+</nav>
+<div class="ax-sheet-backdrop" data-ax-sheet-close></div>
+<div class="ax-sheet" id="axSheet" role="dialog" aria-modal="true" aria-labelledby="axSheetTitle" aria-hidden="true">
+  <div class="ax-sheet__grip" aria-hidden="true"></div>
+  <div class="ax-sheet__head"><h2 class="ax-sheet__title" id="axSheetTitle">{{ professeur.etablissement.nom }}</h2><button type="button" class="ax-icon-btn" data-ax-sheet-close aria-label="Fermer"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>
+  <nav class="ax-nav" aria-label="Toutes les sections de l'enseignant">
+    <div class="ax-nav__group"><p class="ax-nav__title">Navigation</p>
+      {% for link in teacher_nav.bar %}<a href="{{ link.url }}" class="ax-nav__link{% if link.active %} is-active{% endif %}"{% if link.active %} aria-current="page"{% endif %}><span class="ax-dock__icon ax-tone-{{ link.tone|default:'blue' }}"><i class="fas {{ link.icon }}" aria-hidden="true"></i></span><span>{{ link.label }}</span></a>{% endfor %}
+    </div>
+    <div class="ax-nav__group"><p class="ax-nav__title">Plus</p>
+      {% if professeur|peut_justifier_notes %}<a href="{% if teacher_nav.primary %}{% url 'enseignant_primaire:justifications_notes' %}{% else %}{% url 'enseignant:justifications_notes' %}{% endif %}" class="ax-nav__link"><span class="ax-dock__icon ax-tone-royal"><i class="fas fa-scale-balanced" aria-hidden="true"></i></span><span>Justification des notes</span></a>{% endif %}
+      <a href="{% url 'enseignant:notifications_enseignant' %}" class="ax-nav__link"><span class="ax-dock__icon ax-tone-slate"><i class="fas fa-bell" aria-hidden="true"></i></span><span>Notifications</span></a>
+      <a href="{% url 'enseignant:annonces_enseignant' %}" class="ax-nav__link"><span class="ax-dock__icon ax-tone-orange"><i class="fas fa-bullhorn" aria-hidden="true"></i></span><span>Annonces</span></a>
+      <a href="{% url 'school_admin:deconnexion_compte_administrateur' %}" class="ax-nav__link"><span class="ax-dock__icon ax-tone-red"><i class="fas fa-right-from-bracket" aria-hidden="true"></i></span><span>Déconnexion</span></a>
+    </div>
+  </nav>
+</div>

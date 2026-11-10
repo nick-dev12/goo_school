@@ -1,6 +1,13 @@
 """Réglages de test (SQLite mémoire, pas de Redis / secrets)."""
 from .settings import *  # noqa: F403
 
+DEBUG = False
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+LOGGING = {'version': 1, 'disable_existing_loggers': True}
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',

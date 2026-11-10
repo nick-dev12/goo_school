@@ -8,10 +8,13 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     // Fonction pour obtenir le formulaire de la matière active
+    function getActiveScope() {
+        return document.querySelector('.matiere-tab-content.active') || document;
+    }
+
     function getActiveForm() {
-        const activeTab = document.querySelector('.matiere-tab-content.active');
-        if (!activeTab) return null;
-        return activeTab.querySelector('.notation-form');
+        const scope = getActiveScope();
+        return scope.querySelector ? scope.querySelector('.notation-form') : document.querySelector('.notation-form');
     }
     
     // Récupérer le token CSRF
@@ -176,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast(data.message || 'Notes enregistrées avec succès !', 'success');
                 
                 // Mettre à jour visuellement les notes enregistrées
-                const activeTab = document.querySelector('.matiere-tab-content.active');
+                const activeTab = getActiveScope();
                 if (activeTab && data.notes_enregistrees) {
                     Object.entries(data.notes_enregistrees).forEach(([noteKey, noteValue]) => {
                         // noteKey format: "note_eleveID_evalID" ou "note_eleveID_examen_creneauID"
@@ -228,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Vérifier qu'au moins une évaluation est sélectionnée
-        const activeTab = document.querySelector('.matiere-tab-content.active');
+        const activeTab = getActiveScope();
         const selectedEvals = activeTab.querySelectorAll('.eval-checkbox:checked');
         if (selectedEvals.length === 0) {
             showToast('⚠️ Veuillez sélectionner au moins une évaluation', 'error');
@@ -342,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const originalHTML = button.innerHTML;
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Arrondissement...';
 
-        const activeTab = document.querySelector('.matiere-tab-content.active');
+        const activeTab = getActiveScope();
         
         fetch(form.action, {
             method: 'POST',

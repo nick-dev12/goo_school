@@ -397,12 +397,13 @@ def dashboard_secretaire(request):
     }
     
     # Statistiques des élèves et classes filtrées par année scolaire active
+    from school_admin.services.dashboard_metrics import evaluations_semaine
     dashboard_stats = {
         'total_eleves': total_eleves,
         'nouveaux_eleves': nouveaux_eleves,
         'total_classes': classes.count(),
-        'evaluations_en_cours': 0,  # TODO: Implémenter le comptage des évaluations
-        'taches_urgentes': 3,  # Placeholder
+        'evaluations_en_cours': evaluations_semaine(etablissement, annee_scolaire_active),
+        'taches_urgentes': None,
     }
     
     context = {

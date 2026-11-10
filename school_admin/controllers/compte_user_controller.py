@@ -336,15 +336,12 @@ class CompteUserController:
                         )
                         clear_on_success(request, form_data['username'])
 
-                        # Configuration de la session persistante "à vie"
-                        # Définir une expiration très longue (10 ans) pour que la session ne s'expire jamais
-                        # La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST
-                        from datetime import timedelta
-                        request.session.set_expiry(timedelta(days=365 * 10))  # 10 ans
+                        # Appliquer la durée configurée, sans exception de dix ans.
+                        request.session.set_expiry(None)
 
                         user_type = persist_auth_user_type(request, user)
                         request.session.modified = True
-                        logger.info(f"Login réussi pour {getattr(user, 'email', 'N/A')}, Type: {type(user).__name__}, Session type: {user_type}, Session persistante activée")
+                        logger.info('Connexion réussie ; type de compte : %s', user_type)
                         
                         # Sauvegarder l'année scolaire active dans la session pour les élèves
                         if isinstance(user, Eleve) and user.etablissement:

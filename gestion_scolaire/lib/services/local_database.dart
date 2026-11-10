@@ -21,10 +21,12 @@ class LocalDatabase {
   static const _uuid = Uuid();
 
   Database? _db;
+  String? _accountScope;
+  String? _directoryOverride;
 
   Database get db {
     final database = _db;
-    if (database == null) {
+    if (database == null || _accountScope == null) {
       throw StateError(
         'LocalDatabase n\'est pas initialisée. Appelez init() d\'abord.',
       );
@@ -32,14 +34,46 @@ class LocalDatabase {
     return database;
   }
 
-  bool get isReady => _db != null;
+  bool get isReady => _db != null && _accountScope != null;
+
+  /// L'identité vient exclusivement d'une réponse Django authentifiée.
+  /// Le fichier historique sans propriétaire n'est jamais réutilisé.
+  Future<void> activateAccount(
+    String scope,
+    bool Function() stillCurrent,
+  ) async {
+    if (_accountScope == scope && _db != null) return;
+    _accountScope = null;
+    await _db?.close();
+    _db = null;
+    final legacyPath = await _resolveDbPath();
+    final safeScope = base64Url.encode(utf8.encode(scope)).replaceAll('=', '');
+    final path = p.join(p.dirname(legacyPath), 'aria_account_$safeScope.db');
+    final opened = await openDatabase(
+      path,
+      version: _schemaVersion,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
+    if (!stillCurrent()) {
+      await opened.close();
+      return;
+    }
+    _db = opened;
+    _accountScope = scope;
+  }
+
+  void lockAccount() {
+    _accountScope = null;
+  }
 
   /// À appeler une fois au démarrage, avant runApp.
-  Future<void> init() async {
+  Future<void> init({String? directory}) async {
     if (_db != null) {
       return;
     }
 
+    _directoryOverride = directory;
     _configureFactory();
     final dbPath = await _resolveDbPath();
     _db = await openDatabase(
@@ -52,6 +86,7 @@ class LocalDatabase {
   }
 
   Future<void> close() async {
+    _accountScope = null;
     await _db?.close();
     _db = null;
   }
@@ -67,6 +102,9 @@ class LocalDatabase {
   }
 
   Future<String> _resolveDbPath() async {
+    if (_directoryOverride != null) {
+      return p.join(_directoryOverride!, _fileName);
+    }
     if (!kIsWeb &&
         (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       final dir = await getApplicationSupportDirectory();

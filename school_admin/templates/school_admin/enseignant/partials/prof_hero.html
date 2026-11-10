@@ -1,0 +1,29 @@
+{% load i18n %}
+<section class="axd-hero axd-hero--prof">
+  <div class="axd-hero__row">
+    <div class="axd-hero__text">
+      <p class="axd-hero__date">
+        {% now "l j F Y" as aujourdhui %}{{ aujourdhui|capfirst }}
+        {% if annee_scolaire_active %}
+          <span class="axd-dot" aria-hidden="true"></span>{% trans "Année" %} {{ annee_scolaire_active.libelle }}
+        {% elif periode_active.annee_scolaire %}
+          <span class="axd-dot" aria-hidden="true"></span>{% trans "Année" %} {{ periode_active.annee_scolaire }}
+        {% endif %}
+        {% if periode_active %}<span class="axd-dot" aria-hidden="true"></span>{{ periode_active.nom_periode }}{% endif %}
+      </p>
+      <h1 class="axd-hero__title">{% trans "Bonjour" %} {{ professeur.prenom|default:professeur.nom_complet }}</h1>
+      <p class="axd-hero__sub">
+        {{ professeur.etablissement.nom }}
+        {% if not teacher_nav.primary and professeur.matiere_display %} · {{ professeur.matiere_display }}{% endif %}
+      </p>
+    </div>
+    <div class="axd-hero__actions">
+      <a class="axd-hero__btn axd-hero__btn--pointage{% if request.resolver_match.url_name == 'pointage' %} is-active{% endif %}" href="{% url teacher_nav.ns|add:':pointage' %}"{% if request.resolver_match.url_name == 'pointage' %} aria-current="page"{% endif %}><i class="fas fa-qrcode" aria-hidden="true"></i>{% trans "Pointage" %}</a>
+      <a class="axd-hero__btn axd-hero__btn--cahier{% if request.resolver_match.url_name == 'cahier_texte' or request.resolver_match.url_name == 'cahier_texte_rediger' %} is-active{% endif %}" href="{% url teacher_nav.ns|add:':cahier_texte' %}"{% if request.resolver_match.url_name == 'cahier_texte' or request.resolver_match.url_name == 'cahier_texte_rediger' %} aria-current="page"{% endif %}><i class="fas fa-book-open" aria-hidden="true"></i>{% trans "Cahier de texte" %}</a>
+      <a class="axd-hero__btn axd-hero__btn--emploi{% if request.resolver_match.url_name == 'emploi_du_temps' %} is-active{% endif %}" href="{% url teacher_nav.ns|add:':emploi_du_temps' %}"{% if request.resolver_match.url_name == 'emploi_du_temps' %} aria-current="page"{% endif %}><i class="fas fa-calendar-week" aria-hidden="true"></i>{% trans "Emploi du temps" %}</a>
+    </div>
+  </div>
+  {% if not annee_scolaire_active and not periode_active.annee_scolaire %}
+  <p class="axd-hero__warn"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{% trans "Aucune année scolaire active : les chiffres peuvent ne pas correspondre à la session en cours." %}</p>
+  {% endif %}
+</section>

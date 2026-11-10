@@ -1,0 +1,167 @@
+{% load notes_tags %}
+{% if presence_appel_mode == 'primaire' %}
+    {% url 'enseignant_primaire:gestion_presence' as presence_hub_url %}
+    {% url 'enseignant_primaire:valider_presence' classe.id as presence_form_action %}
+{% else %}
+    {% url 'enseignant:gestion_presence' as presence_hub_url %}
+    {% url 'enseignant:valider_presence' classe.id as presence_form_action %}
+{% endif %}
+
+<div class="prof-appel presence-modal-content" data-presence-appel data-presence-niveau="{% if presence_appel_mode == 'primaire' %}primaire{% else %}secondaire{% endif %}">
+    {% if not modal_mode %}
+    <div class="prof-appel-chrome">
+        <a href="{{ presence_hub_url }}" class="prof-appel-back">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            Présence
+        </a>
+        <div class="prof-appel-meta">
+            <span class="prof-appel-chip">{{ today|date:"d/m/Y" }}</span>
+            {% if presence_appel_mode == 'primaire' and numero_appel_actuel %}
+            <span class="prof-appel-chip">Appel n°{{ numero_appel_actuel }}</span>
+            {% endif %}
+            {% if limite_atteinte %}
+            <span class="prof-appel-status is-limit">Limite atteinte</span>
+            {% elif soumission_existante or formulaire_desactive %}
+            <span class="prof-appel-status is-done">Soumise</span>
+            {% elif liste_presence.validee %}
+            <span class="prof-appel-status is-done">Validé</span>
+            {% elif liste_presence %}
+            <span class="prof-appel-status is-open">En cours</span>
+            {% endif %}
+        </div>
+    </div>
+    {% include 'school_admin/enseignant/partials/prof_presence_appel_chrome.html' %}
+    {% endif %}
+
+    {% if not annee_scolaire_active %}
+    <p class="prof-appel-alert is-warn" role="status">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        Aucune année scolaire active. Les présences ne seront pas liées à une session.
+    </p>
+    {% endif %}
+
+    {% if limite_atteinte %}
+    <p class="prof-appel-alert is-warn" role="status">
+        <i class="fas fa-ban" aria-hidden="true"></i>
+        Les 3 appels du jour sont déjà effectués.
+    </p>
+    {% elif soumission_existante or formulaire_desactive %}
+    <p class="prof-appel-alert is-warn" role="status">
+        <i class="fas fa-lock" aria-hidden="true"></i>
+        {{ message_soumission|default:"Les présences ont déjà été soumises pour aujourd’hui." }}
+        {% if soumission_existante %}
+        <span class="prof-appel-alert__meta">{{ soumission_existante.date_soumission|date:"d/m/Y à H:i" }}</span>
+        {% endif %}
+    </p>
+    {% elif liste_presence.validee %}
+    <p class="prof-appel-alert is-ok" role="status">
+        <i class="fas fa-check-circle" aria-hidden="true"></i>
+        Liste validée{% if liste_presence.date_validation %} le {{ liste_presence.date_validation|date:"d/m/Y à H:i" }}{% endif %}.
+    </p>
+    {% endif %}
+
+    {% if presence_appel_mode == 'primaire' and appels_du_jour %}
+    <nav class="prof-appel-history" aria-label="Appels du jour">
+        {% for appel in appels_du_jour %}
+        <span class="prof-appel-history-chip is-done">
+            Appel {{ appel.numero_appel }}
+            <span>{{ appel.nombre_presents }}P</span>
+            <span>{{ appel.nombre_absents }}A</span>
+            {% if appel.date_validation %}<time>{{ appel.date_validation|date:"H:i" }}</time>{% endif %}
+        </span>
+        {% endfor %}
+        {% if liste_presence and not liste_presence.validee and not limite_atteinte %}
+        <span class="prof-appel-history-chip is-current">Appel {{ numero_appel_actuel }} — en cours</span>
+        {% endif %}
+        {% if liste_presence.validee and nombre_appels_valides < 3 %}
+        <a href="?appel={{ numero_appel_actuel|add:1 }}" class="prof-appel-history-chip is-next">
+            <i class="fas fa-plus" aria-hidden="true"></i>
+            Nouvel appel ({{ nombre_appels_valides|add:1 }}/3)
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+    {% if liste_presence and not limite_atteinte %}
+    <form method="post" action="{{ presence_form_action }}" id="presence-form"{% if presence_appel_mode == 'primaire' %} onsubmit="return confirm('Valider l’appel n°{{ numero_appel_actuel }} ? Cette action est définitive.');"{% else %} onsubmit="return confirm('Valider cette liste de présence ? Cette action est définitive pour aujourd’hui.');"{% endif %}>
+        {% csrf_token %}
+        <input type="hidden" name="classe_id" value="{{ classe.id }}">
+        {% if presence_appel_mode == 'primaire' %}
+        <input type="hidden" name="numero_appel" value="{{ numero_appel_actuel }}">
+        {% else %}
+        <input type="hidden" name="professeur_id" value="{{ professeur.id }}">
+        <input type="hidden" name="etablissement_id" value="{{ classe.etablissement.id }}">
+        <input type="hidden" name="matiere_id" value="{% if matiere %}{{ matiere.id }}{% endif %}">
+        {% endif %}
+
+        {% include 'school_admin/enseignant/partials/prof_presence_appel_save.html' %}
+
+        <div class="notes-list notes-list--appel" role="list">
+            <div class="notes-list-head">
+                <span class="notes-list-head__index" aria-hidden="true">n°</span>
+                <span class="notes-list-head__eleve">{{ libelle_eleve|default:"Élève" }}</span>
+                <span class="notes-list-head__present">Présent</span>
+                <span class="notes-list-head__absent">Absent</span>
+            </div>
+            {% for item in eleves_avec_presence %}
+            <article class="notes-list-row" role="listitem" data-eleve-name="{{ item.eleve.nom }} {{ item.eleve.prenom }}">
+                <span class="notes-list-row__index">{{ forloop.counter }}</span>
+                <div class="notes-list-row__eleve">
+                    <div class="notes-list-row__name">
+                        <span class="nom">{{ item.eleve.nom|upper }}</span>
+                        <span class="prenom">{{ item.eleve.prenom }}</span>
+                    </div>
+                    {% if item.statut_legacy %}
+                    <p class="presence-legacy-hint" role="status">{{ item.statut_legacy }}</p>
+                    {% endif %}
+                </div>
+                <div class="appel-statut">
+                    <label class="appel-statut-opt is-present{% if item.statut_saisie == 'present' %} active{% endif %}" aria-label="Présent">
+                        <input type="radio"
+                               name="presence_{{ item.eleve.id }}"
+                               value="present"
+                               {% if item.statut_saisie == 'present' %}checked{% endif %}
+                               {% if presence_appel_mode == 'primaire' %}{% if liste_presence.validee %}disabled{% endif %}{% else %}{% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}{% endif %}
+                               required>
+                        <i class="fas fa-check" aria-hidden="true"></i>
+                        <span class="appel-statut-label">Présent</span>
+                    </label>
+                </div>
+                <div class="appel-statut">
+                    <label class="appel-statut-opt is-absent{% if item.statut_saisie == 'absent' %} active{% endif %}" aria-label="Absent">
+                        <input type="radio"
+                               name="presence_{{ item.eleve.id }}"
+                               value="absent"
+                               {% if item.statut_saisie == 'absent' %}checked{% endif %}
+                               {% if presence_appel_mode == 'primaire' %}{% if liste_presence.validee %}disabled{% endif %}{% else %}{% if formulaire_desactive or liste_presence.validee %}disabled{% endif %}{% endif %}
+                               required>
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                        <span class="appel-statut-label">Absent</span>
+                    </label>
+                </div>
+            </article>
+            {% empty %}
+            <p class="notes-list-empty">Aucun {{ libelle_eleve|default:"élève"|lower }}</p>
+            {% endfor %}
+        </div>
+
+        {% include 'school_admin/enseignant/partials/prof_presence_appel_save.html' with save_placement='end' %}
+    </form>
+    {% endif %}
+
+    <script type="application/json" id="presence-offline-context">
+    {
+      "niveau": "{% if presence_appel_mode == 'primaire' %}primaire{% else %}secondaire{% endif %}",
+      "classe_id": {{ classe.id }},
+      "classe_nom": "{{ classe.nom|escapejs }}",
+      "matiere_id": {% if matiere %}{{ matiere.id }}{% else %}null{% endif %},
+      "numero_appel": {{ numero_appel_actuel|default:1 }},
+      "date": "{{ today|date:'Y-m-d' }}",
+      "eleves": [
+        {% for item in eleves_avec_presence %}
+        {"id": {{ item.eleve.id }}, "server_id": {{ item.eleve.id }}, "nom": "{{ item.eleve.nom|escapejs }}", "prenom": "{{ item.eleve.prenom|escapejs }}", "nom_complet": "{{ item.eleve.nom_complet|escapejs }}", "matricule": "{{ item.eleve.matricule|escapejs }}", "classe_id": {{ classe.id }}}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }
+    </script>
+</div>

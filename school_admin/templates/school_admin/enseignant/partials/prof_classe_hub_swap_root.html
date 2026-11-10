@@ -1,9 +1,10 @@
+{% load aria_tabs %}
 <div id="prof-hub-swap-root" class="prof-classe-hub-shell">
     <div id="prof-hub-header">
         {% include 'school_admin/enseignant/partials/prof_classe_hub_header.html' %}
     </div>
     <div id="prof-hub-chrome">
-        {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+        {% aria_prof_filters show_periodes=False show_matieres=False %}
     </div>
     <div id="prof-hub-panel">
         {% if prof_classe_hub_panel_template %}

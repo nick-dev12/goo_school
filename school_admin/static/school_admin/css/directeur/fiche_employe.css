@@ -37,6 +37,16 @@ body.fe-body { font-family: var(--ax-font, "Inter", system-ui, sans-serif); back
 .fe-hero__chips .cg3-chip { gap: 5px; }
 .fe-hero__actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .fe-hero__actions form { margin: 0; }
+.fe-hero--actions-below {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+.fe-hero--actions-below .fe-contact {
+  grid-column: 2 / -1;
+}
+.fe-hero--actions-below .fe-hero__actions {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+}
 .fe-contact { display: flex; flex-wrap: wrap; gap: 8px; grid-column: 2 / -1; margin-top: -4px; }
 .fe-contact a, .fe-contact span { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border: 1px solid var(--ax-line); border-radius: 999px; background: var(--ax-surface-2); color: var(--ax-ink-2); font-size: 0.8rem; font-weight: 600; text-decoration: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fe-contact a:hover { border-color: var(--ax-brand); color: var(--ax-brand); }
@@ -354,7 +364,8 @@ a.fe-kpi:hover { border-color: var(--ax-brand); }
   .fe-hero__actions { grid-column: 1 / -1; justify-content: stretch; }
   .fe-hero__actions > *, .fe-hero__actions form .cg3-btn { flex: 1 1 auto; justify-content: center; }
   .fe-hero__actions form { flex: 1 1 auto; display: flex; }
-  .fe-contact { grid-column: 1 / -1; margin-top: 0; }
+  .fe-contact,
+  .fe-hero--actions-below .fe-contact { grid-column: 1 / -1; margin-top: 0; }
   .fe-kpis { grid-auto-columns: minmax(70px, 1fr); gap: 6px; overflow-x: auto; scrollbar-width: thin; }
   .fe-kpi { padding: 7px 8px; }
   .fe-kpi__icon { display: none; }

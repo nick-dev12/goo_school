@@ -13,14 +13,15 @@ class Command(BaseCommand):
         parser.add_argument(
             '--dry-run',
             action='store_true',
-            help='Affiche les compteurs sans envoyer (non implémenté côté envoi : lance vraiment).',
+            help='Simule les relances et ruptures sans écriture ni envoi.',
         )
 
     def handle(self, *args, **options):
-        rompus = verifier_rupture_moratoires()
-        stats = envoyer_relances_automatiques()
+        dry_run = options['dry_run']
+        rompus = verifier_rupture_moratoires(dry_run=dry_run)
+        stats = envoyer_relances_automatiques(dry_run=dry_run)
         self.stdout.write(
             self.style.SUCCESS(
-                f"Moratoires rompus: {rompus}. Relances: {stats}"
+                f"{'SIMULATION — ' if dry_run else ''}Moratoires rompus: {rompus}. Relances: {stats}"
             )
         )

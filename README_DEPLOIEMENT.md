@@ -1,5 +1,7 @@
 # Guide de Déploiement - Application Django sur VPS Ubuntu
 
+> Guide historique. Pour la procédure actuelle Daphne, Celery, sauvegardes et livraison bloquante, consulter [deploy/README.md](deploy/README.md). Ne pas reprendre les exemples Gunicorn et les réparations `--fake` ci-dessous comme procédure courante.
+
 Ce guide détaille toutes les étapes nécessaires pour déployer l'application Django **Goo School** sur un serveur VPS Ubuntu avec PostgreSQL, Nginx, Gunicorn et HTTPS.
 
 ## Table des matières
@@ -105,7 +107,7 @@ sudo -u postgres psql
 Créer la base de données et l'utilisateur :
 ```sql
 -- Créer un utilisateur (si nécessaire)
-ALTER USER postgres PASSWORD 'Ludvanne';
+ALTER USER postgres PASSWORD 'REMPLACER_PAR_UN_SECRET';
 
 -- Créer la base de données
 CREATE DATABASE goo_school;
@@ -228,7 +230,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('DB_NAME', 'goo_school'),
         'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'Ludvanne'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'REMPLACER_PAR_UN_SECRET'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
         'OPTIONS': {

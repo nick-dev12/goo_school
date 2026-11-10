@@ -39,7 +39,7 @@ def _notes(current: str) -> TrailRule:
 
 
 def _eleves(current: str) -> TrailRule:
-    return TrailRule('gestion_eleves', _('Élèves'), current, _CLASSE_QUERY, (), _CLASSE_FROM_PATH)
+    return TrailRule('gestion_eleves', _('Classe'), current, _CLASSE_QUERY, (), _CLASSE_FROM_PATH)
 
 
 def _classes(current: str) -> TrailRule:
@@ -60,13 +60,14 @@ _SHARED_RULES: dict[str, TrailRule] = {
     'liste_presence': _presence(_('Appel')),
     'noter_eleves': _notes(_('Saisie des notes')),
     'voir_releve': _notes(_('Relevé')),
-    'creer_evaluation': _notes(_('Nouvelle évaluation')),
-    'liste_evaluations': _notes(_('Évaluations')),
+    'creer_evaluation': TrailRule(
+        'liste_evaluations', _('Évaluations'), _('Nouvelle évaluation'), _CLASSE_QUERY, (), _CLASSE_FROM_PATH,
+    ),
     'modifier_evaluation': TrailRule(
         'liste_evaluations', _('Évaluations'), _('Modifier l\'évaluation'), _CLASSE_QUERY,
     ),
     'detail_eleve': _eleves(_('Élève')),
-    'detail_classe': _classes(_('Classe')),
+    'detail_classe': _eleves(_('Classe')),
     'historique_presence': _eleve_detail(_('Historique des présences')),
     'historique_sanctions': _eleve_detail(_('Historique des sanctions')),
     'liste_sanctions_classe': _eleves(_('Sanctions')),

@@ -1,0 +1,170 @@
+{% load notes_tags %}
+{% with moy_evals=evaluations_liste|evals_incluses_moyenne:noter_lignes %}
+<div class="notes-eval-block notes-eval-block--saisie" data-view="{{ vue_saisie|default:'eval' }}">
+    {% include 'school_admin/enseignant/partials/notes_eval_tabs.html' with evaluations=evaluations_liste has_examen=session_examen switch_label="Saisie" %}
+
+    <div class="notes-noter-moyenne-tools">
+        {% if not has_evaluations %}
+            <div class="alert-warning-compact">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Aucune évaluation programmée</span>
+                <a href="{% url 'enseignant:creer_evaluation' classe.id %}" class="btn-create-mini">
+                    <i class="fas fa-plus"></i> Créer
+                </a>
+            </div>
+        {% else %}
+            <p class="notes-noter-moyenne-tools__hint">Cochez les évaluations à inclure, choisissez le mode, puis calculez.</p>
+            <div class="notes-noter-select">
+                {% for item in evaluations_liste %}
+                    <label class="notes-noter-select__item{% if item.evaluation.id|eval_in_moyenne:moy_evals %} is-checked{% endif %}">
+                        <input type="checkbox"
+                               id="select_{{ item.key }}"
+                               name="select_{{ item.key }}"
+                               class="eval-checkbox global-note-select"
+                               data-note-key="{{ item.key }}"
+                               data-type="{{ item.type }}"
+                               value="{{ item.key }}"
+                               {% if item.evaluation.id|eval_in_moyenne:moy_evals %}checked{% endif %}
+                               {% if releve_notes.soumis %}disabled{% endif %}>
+                        <span class="notes-noter-select__title">{{ item.evaluation.titre }}</span>
+                        <span class="notes-noter-select__bareme">/{{ item.evaluation.bareme|floatformat:0 }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+            <div class="notes-noter-calc-bar">
+                <label class="notes-noter-mode">
+                    <span>Mode</span>
+                    <select name="modeCalculMoyenne" id="modeCalculMoyenne" {% if releve_notes.soumis %}disabled{% endif %}>
+                        <option value="toutes" {% if mode_calcul_courant == 'toutes' %}selected{% endif %}>Toutes les notes</option>
+                        <option value="1" {% if mode_calcul_courant == '1' %}selected{% endif %}>1 meilleure note</option>
+                        <option value="2" {% if mode_calcul_courant == '2' %}selected{% endif %}>2 meilleures notes (composées)</option>
+                        <option value="3" {% if mode_calcul_courant == '3' %}selected{% endif %}>3 meilleures notes (composées)</option>
+                        <option value="4" {% if mode_calcul_courant == '4' %}selected{% endif %}>4 meilleures notes (composées)</option>
+                        <option value="interro_x2" {% if mode_calcul_courant == 'interro_x2' %}selected{% endif %}>1 Meilleure interro × 2</option>
+                    </select>
+                </label>
+                <span class="prof-noter-counter-pill"><strong id="selectedCount">0</strong> cochée(s)</span>
+                <button type="button" class="prof-noter-btn-ghost js-prof-noter-select-all" {% if releve_notes.soumis %}disabled{% endif %}>Tout cocher</button>
+                <button type="button" class="prof-noter-btn-ghost js-prof-noter-select-none" {% if releve_notes.soumis %}disabled{% endif %}>Tout décocher</button>
+                <button type="button"
+                        class="notes-noter-calc-submit"
+                        {% if releve_notes.soumis %}disabled{% endif %}>
+                    <i class="fas fa-calculator" aria-hidden="true"></i>
+                    <span>Calculer les moyennes</span>
+                </button>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="notes-list"
+         role="list"
+         data-view="{{ vue_saisie|default:'eval' }}"
+         data-active-eval="{% if evaluations_liste %}{{ evaluations_liste.0.evaluation.id }}{% elif session_examen %}examen{% endif %}"
+         style="--moy-n: {{ moy_evals|length }};">
+        <div class="notes-list-head">
+            <span class="notes-list-head__devoir" data-eval-head aria-live="polite">{% if evaluations_liste %}{{ evaluations_liste.0.evaluation.titre }}{% elif session_examen %}Examen{% else %}Évaluation{% endif %}</span>
+            <div class="notes-list-head__cols">
+                <span class="notes-list-head__index" aria-hidden="true"></span>
+                <span class="notes-list-head__eleve">Élève</span>
+                <span class="notes-list-head__note">Note</span>
+                {% for item in moy_evals %}
+                    <span class="notes-list-head__num for-moyenne" title="{{ item.evaluation.titre }}">{{ forloop.counter }}</span>
+                {% endfor %}
+                <span class="notes-list-head__moy">Moy.</span>
+            </div>
+        </div>
+        {% for eleve in eleves %}
+        <article class="notes-list-row" role="listitem" data-eleve-id="{{ eleve.id }}">
+            <span class="notes-list-row__index">{{ forloop.counter }}</span>
+            <div class="notes-list-row__eleve">
+                <div class="notes-list-row__name">
+                    <span class="nom">{{ eleve.nom|upper }}</span>
+                    <span class="prenom">{{ eleve.prenom }}</span>
+                </div>
+            </div>
+            {% for item in evaluations_liste %}
+                {% with note_value=notes_existantes|get_note:eleve.id|get_note:item.key note_obj=notes_objets|get_item:eleve.id|get_item:item.key %}
+                    <span class="notes-list-row__devoir{% if vue_saisie != 'moyenne' and forloop.first %} is-active{% endif %}"
+                          data-eval-id="{{ item.evaluation.id }}"
+                          title="{{ item.evaluation.titre }}"
+                          tabindex="0">{{ item.evaluation.titre }}</span>
+                    <span class="notes-list-row__note{% if vue_saisie != 'moyenne' and forloop.first %} is-active{% endif %}{% if item.evaluation.id|eval_in_moyenne:moy_evals %} is-moyenne{% endif %}"
+                          data-eval-id="{{ item.evaluation.id }}">
+                        <input type="number"
+                               name="note_{{ eleve.id }}_{{ item.key }}"
+                               class="note-input notes-noter-input{% if note_value %} saved {{ note_value|get_note_color_class:item.evaluation.bareme }}{% endif %}{% if releve_notes.soumis %} locked{% endif %}"
+                               min="0"
+                               max="{{ item.evaluation.bareme }}"
+                               step="0.5"
+                               value="{{ note_value|format_note }}"
+                               placeholder="--"
+                               data-type="{{ item.type }}"
+                               data-max="{{ item.evaluation.bareme }}"
+                               data-note-key="{{ item.key }}"
+                               data-eval-id="{{ item.evaluation.id }}"
+                               {% if releve_notes.soumis %}readonly{% endif %}>
+                        {% if note_value %}
+                            {% with note_class=note_value|get_note_color_class:item.evaluation.bareme %}
+                                <span class="notes-chip__value notes-noter-chip {{ note_class }}">{{ note_value|floatformat:2 }}</span>
+                            {% endwith %}
+                        {% else %}
+                            <span class="notes-chip__value notes-noter-chip muted">—</span>
+                        {% endif %}
+                    </span>
+                {% endwith %}
+            {% endfor %}
+            {% if session_examen %}
+                {% with note_examen=notes_examen_par_eleve|get_item:eleve.id %}
+                    <span class="notes-list-row__devoir{% if vue_saisie != 'moyenne' and not evaluations_liste %} is-active{% endif %}"
+                          data-eval-id="examen"
+                          title="Examen"
+                          tabindex="0">Examen</span>
+                    <span class="notes-list-row__note{% if vue_saisie != 'moyenne' and not evaluations_liste %} is-active{% endif %}"
+                          data-eval-id="examen">
+                        <input type="text"
+                               inputmode="decimal"
+                               title="Note sur 20 ou ABS"
+                               name="note_examen_{{ eleve.id }}"
+                               class="note-input examen-input notes-noter-input{% if note_examen and note_examen.note %} saved{% endif %}{% if releve_notes.soumis %} locked{% endif %}"
+                               min="0"
+                               max="20"
+                               step="0.5"
+                               value="{% if note_examen and not note_examen.absent and note_examen.note is not None %}{{ note_examen.note|format_note }}{% endif %}"
+                               placeholder="--"
+                               data-type="examen"
+                               data-max="20"
+                               data-note-key="examen_{{ session_examen.id }}"
+                               data-eval-id="examen"
+                               data-session-examen-id="{{ session_examen.id }}"
+                               {% if releve_notes.soumis or note_examen.soumis %}readonly{% endif %}
+                               {% if note_examen and note_examen.absent %}disabled{% endif %}>
+                        {% if note_examen and note_examen.absent %}
+                            <span class="notes-chip__value notes-noter-chip absent">ABS</span>
+                        {% elif note_examen and note_examen.note is not None %}
+                            {% with note_class=note_examen.note|get_note_color_class:20 %}
+                                <span class="notes-chip__value notes-noter-chip {{ note_class }}">{{ note_examen.note|floatformat:2 }}</span>
+                            {% endwith %}
+                        {% else %}
+                            <span class="notes-chip__value notes-noter-chip muted">—</span>
+                        {% endif %}
+                    </span>
+                {% endwith %}
+            {% endif %}
+            <span class="notes-list-row__moy">
+                {% with moy_data=moyennes_enregistrees|get_item:eleve.id %}
+                    {% if moy_data %}
+                        {% with note_class=moy_data.moyenne|get_note_color_class:20 %}
+                            <span class="notes-chip__value {{ note_class }}" id="moyenne_{{ eleve.id }}">{{ moy_data.moyenne|floatformat:2 }}</span>
+                        {% endwith %}
+                    {% else %}
+                        <span class="notes-chip__value muted" id="moyenne_{{ eleve.id }}">—</span>
+                    {% endif %}
+                {% endwith %}
+            </span>
+        </article>
+        {% empty %}
+        <p class="notes-list-empty">Aucun élève dans cette classe</p>
+        {% endfor %}
+    </div>
+</div>
+{% endwith %}

@@ -98,8 +98,8 @@
     <div class="ax-nav__group">
       <p class="ax-nav__title">{{ group.title }}</p>
       {% for link in group.items %}
-      <a href="{{ link.url }}" class="ax-nav__link{% if link.active %} is-active{% endif %}"{% if link.active %} aria-current="page"{% endif %}>
-        <i class="fas {{ link.icon }}" aria-hidden="true"></i>
+      <a href="{{ link.url }}" class="ax-nav__link{% if link.active %} is-active{% endif %}"{% if link.active %} aria-current="page"{% endif %} data-ax-key="{{ link.key }}">
+        <span class="ax-dock__icon ax-tone-{{ link.tone|default:'blue' }}"><i class="fas {{ link.icon }}" aria-hidden="true"></i></span>
         <span>{{ link.label }}</span>
         {% if link.key == 'notifications' and notifications_directeur_non_lues > 0 %}
         <span class="ax-nav__badge">{{ notifications_directeur_non_lues }}</span>

@@ -561,7 +561,7 @@ def envoyer_relance_eleve(
     return relance
 
 
-def envoyer_relances_automatiques(aujourdhui: Optional[date] = None) -> dict:
+def envoyer_relances_automatiques(aujourdhui: Optional[date] = None, *, dry_run=False) -> dict:
     """Parcourt les établissements dont le flag rappels est actif."""
     from school_admin.model.annee_scolaire_model import AnneeScolaire
     from school_admin.model.etablissement_model import Etablissement
@@ -589,6 +589,10 @@ def envoyer_relances_automatiques(aujourdhui: Optional[date] = None) -> dict:
                 resume = resume_dette_eleve(inscription.eleve, etablissement, annee)
                 if not eleve_eligible_relance_auto(resume, parametres, aujourdhui):
                     stats['ignorees'] += 1
+                    continue
+                if dry_run:
+                    stats.setdefault('prevues', 0)
+                    stats['prevues'] += 1
                     continue
                 relance = envoyer_relance_eleve(
                     inscription.eleve,
@@ -755,14 +759,21 @@ def verifier_rupture_moratoire(moratoire, aujourdhui: Optional[date] = None) -> 
     return False
 
 
-def verifier_rupture_moratoires(etablissement=None, aujourdhui: Optional[date] = None) -> int:
+def verifier_rupture_moratoires(etablissement=None, aujourdhui: Optional[date] = None, *, dry_run=False) -> int:
     from school_admin.model.recouvrement_model import Moratoire
 
     qs = Moratoire.objects.filter(statut='actif').prefetch_related('echeances')
     if etablissement:
         qs = qs.filter(etablissement=etablissement)
     rompus = 0
+    aujourdhui = aujourdhui or timezone.localdate()
     for moratoire in qs:
+        if dry_run:
+            rompus += int(any(
+                not e.est_totalement_paye() and e.date_echeance < aujourdhui
+                for e in moratoire.echeances.all()
+            ))
+            continue
         if verifier_rupture_moratoire(moratoire, aujourdhui=aujourdhui):
             rompus += 1
     return rompus

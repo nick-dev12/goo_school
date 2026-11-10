@@ -18,6 +18,7 @@ class SyncService {
 
   StreamSubscription<List<ConnectivityResult>>? _subscription;
   bool _flushing = false;
+  bool _pulling = false;
   bool _online = true;
   String _baseUrl = 'https://aria-edu.com';
   String? _cookieHeader;
@@ -37,6 +38,10 @@ class SyncService {
   }
 
   void setCookieHeader(String? cookieHeader) {
+    if (_extractCookieValue(_cookieHeader, 'sessionid') !=
+        _extractCookieValue(cookieHeader, 'sessionid')) {
+      _db.lockAccount();
+    }
     _cookieHeader = cookieHeader;
     _csrfToken = _extractCookieValue(cookieHeader, 'csrftoken');
   }
@@ -56,8 +61,7 @@ class SyncService {
         _notify();
       }
       if (nextOnline) {
-        unawaited(flushQueue());
-        unawaited(pull());
+        unawaited(_resumeSync());
       }
     });
   }
@@ -65,6 +69,11 @@ class SyncService {
   Future<void> stop() async {
     await _subscription?.cancel();
     _subscription = null;
+  }
+
+  Future<void> _resumeSync() async {
+    final result = await pull();
+    if (result['success'] == true) await flushQueue();
   }
 
   Future<bool> refreshOnlineStatus() async {
@@ -96,11 +105,17 @@ class SyncService {
     }
 
     _flushing = true;
+    final session = _extractCookieValue(_cookieHeader, 'sessionid');
+    final headers = _headers(jsonBody: true);
     var synced = 0;
     var failed = 0;
 
     try {
       final items = await _db.pendingActions();
+      if (session != _extractCookieValue(_cookieHeader, 'sessionid') ||
+          !_db.isReady) {
+        return {'success': false, 'error': 'session_changed'};
+      }
       if (items.isEmpty) {
         await _db.setMeta(
           'last_sync_at',
@@ -114,7 +129,7 @@ class SyncService {
       final response = await http
           .post(
             uri,
-            headers: _headers(jsonBody: true),
+            headers: headers,
             body: jsonEncode({
               'items': items
                   .map(
@@ -131,8 +146,15 @@ class SyncService {
           )
           .timeout(const Duration(seconds: 30));
 
+      if (session != _extractCookieValue(_cookieHeader, 'sessionid') ||
+          !_db.isReady) {
+        return {'success': false, 'error': 'session_changed'};
+      }
       if (response.statusCode == 401 || response.statusCode == 403) {
-        debugPrint('⚠️ Sync refusée (${response.statusCode}) — session à renouveler');
+        _db.lockAccount();
+        debugPrint(
+          '⚠️ Sync refusée (${response.statusCode}) — session à renouveler',
+        );
         return {
           'success': false,
           'error': 'unauthorized',
@@ -198,42 +220,52 @@ class SyncService {
       await _notify();
     }
 
-    return {
-      'success': failed == 0,
-      'synced': synced,
-      'failed': failed,
-    };
+    return {'success': failed == 0, 'synced': synced, 'failed': failed};
   }
 
   Future<Map<String, dynamic>> pull({
     List<String> resources = const ['classes', 'eleves', 'presences'],
   }) async {
-    if (!_online || !_db.isReady) {
+    if (!_online || _pulling) {
       return {'success': false, 'error': 'offline_or_db'};
     }
     if (_cookieHeader == null || _cookieHeader!.isEmpty) {
       return {'success': false, 'error': 'no_session'};
     }
 
+    _pulling = true;
+    final session = _extractCookieValue(_cookieHeader, 'sessionid');
     try {
-      final uri = Uri.parse('$_baseUrl/api/sync/pull/').replace(
-        queryParameters: {'resources': resources.join(',')},
-      );
+      final uri = Uri.parse(
+        '$_baseUrl/api/sync/pull/',
+      ).replace(queryParameters: {'resources': resources.join(',')});
       final response = await http
           .get(uri, headers: _headers())
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        return {
-          'success': false,
-          'error': 'HTTP ${response.statusCode}',
-        };
+        if ((response.statusCode == 401 || response.statusCode == 403) &&
+            session == _extractCookieValue(_cookieHeader, 'sessionid')) {
+          _db.lockAccount();
+        }
+        return {'success': false, 'error': 'HTTP ${response.statusCode}'};
       }
 
       final body = _tryDecode(response.body);
       final data = body['data'];
-      if (data is! Map) {
+      final scope = body['account_scope'];
+      if (data is! Map || scope is! String || scope.isEmpty) {
         return {'success': false, 'error': 'invalid_payload'};
+      }
+      bool stillCurrent() =>
+          session != null &&
+          session == _extractCookieValue(_cookieHeader, 'sessionid');
+      if (!stillCurrent()) {
+        return {'success': false, 'error': 'session_changed'};
+      }
+      await _db.activateAccount(scope, stillCurrent);
+      if (!stillCurrent()) {
+        return {'success': false, 'error': 'session_changed'};
       }
 
       for (final resource in resources) {
@@ -250,6 +282,8 @@ class SyncService {
     } catch (e) {
       debugPrint('⚠️ Sync pull interrompu : $e');
       return {'success': false, 'error': e.toString()};
+    } finally {
+      _pulling = false;
     }
   }
 

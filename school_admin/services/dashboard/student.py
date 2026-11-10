@@ -86,7 +86,7 @@ def notes_publiees(eleve, annee, primaire):
         )
         if annee:
             qs = qs.filter(annee_scolaire=annee)
-        for n in qs.select_related('evaluation_primaire__matiere'):
+        for n in qs.select_related('evaluation_primaire__matiere', 'evaluation_primaire__periode_scolaire'):
             ev = n.evaluation_primaire
             val = _valeur_publiee(n)
             s20 = _sur20(val, ev.bareme)
@@ -95,7 +95,8 @@ def notes_publiees(eleve, annee, primaire):
             rows.append({'matiere': getattr(ev.matiere, 'nom', '') or 'Matière', 'titre': ev.titre,
                          'valeur': val, 'bareme': ev.bareme, 'sur20': s20,
                          'date': ev.date_evaluation, 'publiee_le': n.date_publication,
-                         'appreciation': getattr(n, 'appreciation', '') or ''})
+                         'appreciation': getattr(n, 'appreciation', '') or '',
+                         'periode_id': getattr(ev, 'periode_scolaire_id', None)})
     else:
         from school_admin.model.evaluation_model import Note
 
@@ -104,7 +105,7 @@ def notes_publiees(eleve, annee, primaire):
         )
         if annee:
             qs = qs.filter(annee_scolaire=annee)
-        for n in qs.select_related('evaluation__matiere', 'matiere'):
+        for n in qs.select_related('evaluation__matiere', 'evaluation__periode_scolaire', 'matiere'):
             ev = n.evaluation
             val = _valeur_publiee(n)
             s20 = _sur20(val, ev.bareme)
@@ -113,7 +114,8 @@ def notes_publiees(eleve, annee, primaire):
             matiere = getattr(n.matiere, 'nom', '') or getattr(ev.matiere, 'nom', '') or 'Matière'
             rows.append({'matiere': matiere, 'titre': ev.titre, 'valeur': val, 'bareme': ev.bareme,
                          'sur20': s20, 'date': ev.date_evaluation, 'publiee_le': n.date_publication,
-                         'appreciation': n.appreciation or ''})
+                         'appreciation': n.appreciation or '',
+                         'periode_id': getattr(ev, 'periode_scolaire_id', None)})
     rows.sort(key=lambda r: (r['date'] or timezone.localdate(), r['publiee_le'] or timezone.now()))
     return rows
 
@@ -229,22 +231,27 @@ def evaluations_a_venir(classe, annee, today, primaire, horizon=21, limit=6):
     if annee:
         qs = qs.filter(annee_scolaire=annee)
     out = []
-    for ev in qs.select_related('matiere').order_by('date_evaluation')[:limit]:
+    for ev in qs.select_related('matiere', 'periode_scolaire').order_by('date_evaluation')[:limit]:
         delta = (ev.date_evaluation - today).days
         nom = ev.matiere.nom if ev.matiere else 'Matière'
         icon, tone = style_matiere(nom)
         out.append({'titre': ev.titre, 'matiere': nom, 'icon': icon, 'tone': tone, 'date': ev.date_evaluation,
-                    'jours': delta, 'quand': _jours_label(delta), 'proche': delta <= 3})
+                    'jours': delta, 'quand': _jours_label(delta), 'proche': delta <= 3,
+                    'periode_id': getattr(ev, 'periode_scolaire_id', None)})
     return out
 
 
 # --------------------------------------------------------------------------- présence
-def presence(eleve, annee, today):
+def presence(eleve, annee, today, date_debut=None, date_fin=None):
     from school_admin.model.presence_model import Presence
 
     qs = Presence.objects.filter(eleve=eleve)
     if annee:
         qs = qs.filter(annee_scolaire=annee)
+    if date_debut:
+        qs = qs.filter(date__gte=date_debut)
+    if date_fin:
+        qs = qs.filter(date__lte=date_fin)
     agg = qs.aggregate(total=Count('id'), absents=Count('id', filter=Q(statut__in=ABSENTS)),
                        retards=Count('id', filter=Q(statut='retard')))
     total = agg['total'] or 0

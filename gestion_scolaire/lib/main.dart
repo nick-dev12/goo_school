@@ -567,6 +567,7 @@ class _WebViewScreenState extends State<WebViewScreen>
         url: WebUri(url),
       );
       if (cookies.isEmpty) {
+        SyncService.instance.setCookieHeader(null);
         return;
       }
       final header = cookies
@@ -577,8 +578,10 @@ class _WebViewScreenState extends State<WebViewScreen>
         (cookie) => cookie.name == 'sessionid' && cookie.value.isNotEmpty,
       );
       if (pullIfReady && hasSession && SyncService.instance.isOnline) {
-        unawaited(SyncService.instance.pull());
-        unawaited(SyncService.instance.flushQueue());
+        final result = await SyncService.instance.pull();
+        if (result['success'] == true) {
+          await SyncService.instance.flushQueue();
+        }
       }
     } catch (e) {
       print('⚠️ Impossible de lire les cookies de session: $e');

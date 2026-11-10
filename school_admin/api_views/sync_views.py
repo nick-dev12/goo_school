@@ -81,6 +81,8 @@ def _process_item(professeur, raw: dict) -> dict:
 
     existing = SyncAction.objects.filter(client_uuid=item_id).first()
     if existing:
+        if existing.utilisateur_type != 'professeur' or existing.utilisateur_id != professeur.pk:
+            return {"id": item_id, "ok": False, "error": "Action appartenant à un autre compte"}
         stored = existing.resultat if isinstance(existing.resultat, dict) else {}
         return {"id": item_id, **stored, "replayed": True}
 
@@ -188,7 +190,10 @@ def sync_pull(request):
             for presence in qs
         ]
 
-    return JsonResponse({"ok": True, "data": data})
+    return JsonResponse({
+        "ok": True, "data": data,
+        "account_scope": f"professeur:{professeur.pk}:etablissement:{professeur.etablissement_id}",
+    })
 
 
 def _classes_affectees(professeur, annee):

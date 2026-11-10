@@ -73,14 +73,17 @@ class AssistantParentWsTests(TransactionTestCase):
 
         _run(_go())
 
-    def test_ws_refuse_eleve(self):
+    def test_ws_eleve_conserve_son_persona_sans_devenir_parent(self):
         async def _go():
             consumer = AssistantConsumer()
             consumer.scope = {'user': self.eleve_seul, 'session': {}}
             consumer.accept = AsyncMock()
             consumer.close = AsyncMock()
             allowed = await consumer._resolve_etablissement()
-            self.assertFalse(allowed)
+            # Le consumer est désormais commun aux assistants parent et élève.
+            self.assertTrue(allowed)
+            self.assertEqual(consumer.persona, 'eleve')
+            self.assertIsNone(consumer.parent)
 
         _run(_go())
 
@@ -95,7 +98,7 @@ class AssistantParentWsTests(TransactionTestCase):
             calls = [c.args[0] for c in consumer._send_json.call_args_list]
             welcome = next(c for c in calls if c.get('type') == 'assistant.welcome')
             self.assertEqual(welcome.get('persona'), 'parent')
-            self.assertIn('Wolof', welcome.get('text', ''))
+            self.assertIn('wolof', welcome.get('text', '').casefold())
             consumer._emit_sentence.assert_awaited()
 
         _run(_go())

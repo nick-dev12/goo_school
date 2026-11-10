@@ -124,6 +124,8 @@ class FicheEleveTests(TestCase):
         self.assertNotContains(r, 'Devoir SVT 4')
         self.assertContains(r, f'data-fe-presence="{presence.id}"')
         self.assertNotContains(r, 'data-fe-panel="finances"')
+        self.assertContains(r, 'prof-hub-filter-block--period')
+        self.assertContains(r, '1er Trimestre')
 
     def test_page_enseignant_primaire_et_correction_appel(self):
         self._monter('primary', 'fvq', niveau='primaire')
@@ -137,7 +139,56 @@ class FicheEleveTests(TestCase):
         r = self.client.get(reverse('enseignant_primaire:detail_eleve', args=[self.eleve.id]))
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, 'data-fe-panel="notes"')
+        self.assertContains(r, 'prof-hub-filter-block--period')
+        self.assertContains(r, '1er Trimestre')
         r = self.client.post(reverse('enseignant_primaire:modifier_presence', args=[presence.id]), {'statut': 'present'})
         presence.refresh_from_db()
         self.assertEqual(presence.statut, 'present')
         self.assertIn(reverse('enseignant_primaire:detail_eleve', args=[self.eleve.id]), r['Location'])
+
+    def test_construire_filtre_periode(self):
+        self._monter('lycée', 'fvt')
+        p2 = PeriodeScolaire.objects.create(
+            etablissement=self.etab, nom_periode='2e Trimestre', type_periode='trimestre',
+            date_debut=date(2027, 1, 5), date_fin=date(2027, 3, 31), annee_scolaire=self.annee.libelle,
+            annee_scolaire_fk=self.annee, est_active=True)
+        self._note(self.math, 8)
+        ev = Evaluation.objects.create(
+            titre='Devoir T2', classe=self.classe, professeur=self.prof, matiere=self.math,
+            date_evaluation=date(2027, 2, 10), bareme=20, periode_scolaire=p2, annee_scolaire=self.annee)
+        Note.objects.create(eleve=self.eleve, evaluation=ev, matiere=self.math, note=18,
+                            annee_scolaire=self.annee, statut_publication=Note.STATUT_PUBLIEE)
+        Presence.objects.create(eleve=self.eleve, classe=self.classe, professeur=self.prof,
+                                etablissement=self.etab, date=date(2026, 10, 10), statut='absent',
+                                annee_scolaire=self.annee)
+        Presence.objects.create(eleve=self.eleve, classe=self.classe, professeur=self.prof,
+                                etablissement=self.etab, date=date(2027, 2, 1), statut='absent',
+                                annee_scolaire=self.annee)
+        f1 = fev.construire(self.eleve, self.classe, self.etab, self.annee, vue='enseignant',
+                            matieres_prof=[self.math], periode=self.periode)
+        f2 = fev.construire(self.eleve, self.classe, self.etab, self.annee, vue='enseignant',
+                            matieres_prof=[self.math], periode=p2)
+        self.assertEqual(f1['nb_notes'], 1)
+        self.assertEqual(f2['nb_notes'], 1)
+        self.assertEqual(f1['presence']['absences'], 1)
+        self.assertEqual(f2['presence']['absences'], 1)
+
+    def test_presence_hub_onglets_periode_primaire(self):
+        self._monter('primary', 'fprp', niveau='primaire')
+        AffectationProfesseurPrimaire.objects.create(
+            professeur=self.prof, classe=self.classe, annee_scolaire=self.annee, actif=True)
+        self.client.force_login(self.prof)
+        r = self.client.get(reverse('enseignant_primaire:gestion_presence'), {'classe': self.classe.id}, follow=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'prof-hub-filter-block--period')
+        self.assertContains(r, '1er Trimestre')
+
+    def test_presence_hub_onglets_periode_secondaire(self):
+        self._monter('lycée', 'fprs')
+        AffectationProfesseur.objects.create(professeur=self.prof, classe=self.classe, matiere=self.math,
+                                             annee_scolaire=self.annee, statut='classique', actif=True)
+        self.client.force_login(self.prof)
+        r = self.client.get(reverse('enseignant:gestion_presence'), {'classe': self.classe.id}, follow=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'prof-hub-filter-block--period')
+        self.assertContains(r, '1er Trimestre')

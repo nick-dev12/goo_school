@@ -1,0 +1,31 @@
+---
+description: Onglets — composant unique aria_filter_tabs, jamais recopier le HTML page par page
+globs: school_admin/templates/**/*.html,school_admin/static/school_admin/css/**/*.css
+alwaysApply: true
+---
+
+# Onglets
+
+Lire **en entier** : `school_admin/static/school_admin/css/README-DESIGN-ONGLETS.md`
+
+À **chaque** création ou modification d’onglets, utiliser le composant. Ne pas inventer un autre style ni dupliquer le HTML.
+
+## Obligatoire
+
+```django
+{% load aria_tabs %}
+{% aria_prof_filters %}
+```
+
+Ou `{% aria_filter_tabs groups=… %}`. HTML : `partials/aria_filter_tabs.html`. CSS : `css/shared/aria_filter_tabs.css`.
+
+- Pastilles : `2.05rem`, largeur `auto`, padding `0 0.7rem`, rayon `8px`, `0.75rem` / `600`
+- Liens GET Django. JS seulement overflow Plus
+- kind : period ambre · class bleu · subject violet · view teal
+- Direction : `aria_direction_tabs.js` enveloppe toutes les barres ; même CSS, pas de second style
+
+## Interdit
+
+- Recopier `matiere-tab-btn` / `.ex-switch` dans une page
+- `flex: 1`, `width: 100%`, barre qui étire les onglets
+- Nouveau CSS d’onglets, dégradé, JS pour changer d’onglet

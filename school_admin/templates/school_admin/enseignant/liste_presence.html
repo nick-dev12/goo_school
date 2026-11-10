@@ -4,56 +4,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste de présence - {{ classe.nom }}</title>
+    <title>Faire l’appel - {{ classe.nom }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/liste_presence_primaire.css' %}?v=1.0.4">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}?v=1.0.4">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/prof_presence_appel.css' %}?v=1.0.4">
     {% if hub_prof_ui %}{% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}{% else %}
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=2.0.4" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=2.0.5" />
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/prof_matiere_tabs_bar.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/prof_notes_list.css' %}?v=1.3.9" />
     {% endif %}
 </head>
 <body data-live-page="presence-liste">
     {% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}
 
-    <!-- Main Content -->
-    <div class="main-content-wrapper">
-        <!-- Message d'information sur l'année scolaire active -->
-        {% if annee_scolaire_active %}
-        {% comment %} <div class="active-year-info" style="background: var(--primary-light, rgba(59,130,246,0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(59,130,246,0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <span class="active-year-icon" style="display: flex; width: 40px; height: 40px; border-radius: 8px; align-items: center; justify-content: center; background: var(--primary, #3b82f6); color: #fff;">
-            <i class="fas fa-calendar-check"></i>
-          </span>
-          <div>
-            <p style="margin: 0; font-weight: 600; color: var(--gray-800, #1f2937); font-size: 0.95rem;">
-              Année scolaire active : {{ annee_scolaire_active.libelle }}
-            </p>
-            <p style="margin: 0; color: var(--gray-600, #4b5563); font-size: 0.85rem;">
-              Les présences enregistrées seront liées à cette année scolaire.
-            </p>
-          </div>
-        </div> {% endcomment %}
-        {% else %}
-        <div class="alert alert-warning" style="background: var(--warning-light, rgba(251, 191, 36, 0.1)); padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(251, 191, 36, 0.2); display: flex; gap: 0.85rem; align-items: center;">
-          <i class="fas fa-exclamation-triangle" style="color: var(--warning, #fbbf24);"></i>
-          <span style="color: var(--gray-800, #1f2937); font-size: 0.875rem;">
-            Aucune année scolaire active. Les présences ne seront pas liées à une session.
-          </span>
-        </div>
-        {% endif %}
-
-        <!-- Contenu liste de présence -->
+    <div class="main-content-container">
         {% include 'school_admin/enseignant/partials/liste_presence_inner.html' %}
     </div>
+
     <script src="{% static 'school_admin/js/directeur/tabs_nav_overflow.js' %}?v=2.0.4"></script>
     <script src="{% static 'school_admin/js/enseignant/professeur_tab_storage.js' %}?v=1.0.0"></script>
-    <script src="{% static 'school_admin/js/enseignant/liste_presence.js' %}?v=1.0.1"></script>
+    <script src="{% static 'school_admin/js/enseignant/liste_presence.js' %}?v=1.1.1"></script>
     <script src="{% static 'school_admin/js/enseignant/presence_offline.js' %}"></script>
-
     {% include 'school_admin/enseignant/partials/bottom_nav_enseignant.html' %}
-{% include 'school_admin/partials/enseignant_live_scripts.html' %}
+    {% include 'school_admin/partials/enseignant_live_scripts.html' %}
 </body>
 </html>
-

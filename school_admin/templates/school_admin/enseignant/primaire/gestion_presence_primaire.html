@@ -9,10 +9,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}">
     <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/gestion_notes.css' %}">
-    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_presence_primaire.css' %}?v=1.1.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/primaire/gestion_presence_primaire.css' %}?v=1.1.1">
     {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}
 </head>
-<body data-live-page="presence-gestion" data-prof-hub-nav-live="1" data-prof-hub-key="professeur:primaire-presence" data-prof-hub-fields="classe" data-initial-classe="{{ initial_classe_id }}">
+<body data-live-page="presence-gestion" data-prof-hub-nav-live="1" data-prof-hub-key="professeur:primaire-presence" data-prof-hub-fields="periode,classe" data-initial-classe="{{ initial_classe_id }}"{% if periode_selectionnee %} data-initial-periode="{{ periode_selectionnee.id }}"{% endif %}>
     {% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}
 
     <div class="main-content-container">

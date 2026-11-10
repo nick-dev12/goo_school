@@ -1,0 +1,29 @@
+{% load static %}
+<header class="ax-topbar" aria-label="Barre supérieure de l'espace enseignant">
+  <div class="ax-topbar__left">
+    <a class="ax-topbar__logo" href="{{ teacher_nav.bar.0.url }}" aria-label="Accueil Aria">
+      <img src="{% static 'school_admin/img/logo_wordmark.png' %}" alt="Aria" width="104" height="32">
+    </a>
+    <span class="ax-topbar__school" title="{{ professeur.etablissement.nom }}">
+      <span class="ax-school-mark" aria-hidden="true">{{ professeur.etablissement.nom|first|upper }}</span>
+      <span class="ax-topbar__school-text">
+        <span class="ax-topbar__school-name">{{ professeur.etablissement.nom }}</span>
+        <span class="ax-topbar__school-type">{% if teacher_nav.primary %}École primaire{% else %}Espace enseignant{% endif %}</span>
+      </span>
+    </span>
+  </div>
+  <div class="ax-topbar__right">
+    <button id="pwa-install-btn" class="ax-pwa-btn" type="button"><i class="fas fa-download" aria-hidden="true"></i><span>Installer</span></button>
+    <div class="ax-hide-mobile">{% include 'school_admin/partials/gtranslate_header_bar.html' %}</div>
+    <a href="{% url 'enseignant:notifications_enseignant' %}" class="ax-icon-btn" aria-label="Notifications" title="Notifications">
+      <i class="fas fa-bell" aria-hidden="true"></i>
+      {% if notifications_enseignant_non_lues > 0 %}<span class="ax-dot-badge">{{ notifications_enseignant_non_lues }}</span>{% endif %}
+    </a>
+    <a href="{% url 'enseignant:annonces_enseignant' %}" class="ax-icon-btn ax-hide-mobile" aria-label="Annonces" title="Annonces"><i class="fas fa-bullhorn" aria-hidden="true"></i></a>
+    <span class="ax-topbar__divider ax-hide-mobile" aria-hidden="true"></span>
+    <a class="ax-user" href="{{ teacher_nav.by_key.profil.url }}" title="Profil">
+      <span class="ax-avatar" aria-hidden="true">{{ professeur.prenom|first|upper }}{{ professeur.nom|first|upper }}</span>
+      <span class="ax-user__text"><span class="ax-user__name">{{ professeur.nom_complet }}</span><span class="ax-user__role">Enseignant</span></span>
+    </a>
+  </div>
+</header>

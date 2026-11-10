@@ -94,10 +94,8 @@ class Salle(models.Model):
     
     @property
     def capacite_actuelle(self):
-        """Retourne la capacité actuelle (pour l'instant, retourne la capacité max)"""
-        # TODO: Implémenter la logique pour calculer la capacité actuelle
-        # basée sur les réservations ou occupations actuelles
-        return self.capacite_max
+        """Occupation réelle inconnue ; la capacité maximale est un autre indicateur."""
+        return None
     
     def clean(self):
         """Validation personnalisée"""

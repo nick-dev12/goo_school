@@ -1,0 +1,110 @@
+{% load notes_tags %}
+{% with evaluations=classe_justif.evaluations %}
+<div class="notes-justif-block" data-view="eval">
+    {% if evaluations %}
+    <section class="aria-filter-tabs__group prof-hub-filter-block prof-hub-filter-block--vue" data-kind="view" aria-label="Choisir une évaluation">
+    <nav class="aria-filter-tabs__nav prof-primaire-hub-nav notes-eval-tabs notes-justif-eval-switch" aria-label="Choisir une évaluation">
+        <div class="aria-filter-tabs__list matiere-tabs-bar notes-eval-tabs-bar" data-tabs-level="primary" data-aria-tabs-kind="view" data-overflow-item-label="Évaluation" data-overflow-items-label="évaluations">
+            <div class="matiere-tabs-track" role="tablist">
+                {% for eval_item in evaluations %}
+                    <button type="button"
+                            role="tab"
+                            class="aria-filter-tabs__tab matiere-tab-btn notes-eval-tab notes-justif-eval-tab{% if forloop.first %} active{% endif %}"
+                            data-eval-id="{{ eval_item.evaluation.id }}"
+                            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                            title="{{ eval_item.evaluation.titre }}">
+                        <span>{{ eval_item.evaluation.titre }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+            <div class="matiere-tabs-more-wrap" hidden>
+                <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres évaluations">
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    <span class="matiere-tabs-more-label">Autres évaluations</span>
+                </button>
+                <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+            </div>
+        </div>
+    </nav>
+    </section>
+    {% endif %}
+
+    <div class="notes-list notes-list--justif prof-primaire-searchable" role="list" style="--justif-n: {{ evaluations|length }};">
+        <div class="notes-list-head">
+            <span class="notes-list-head__index" aria-hidden="true"></span>
+            <span class="notes-list-head__eleve">Élève</span>
+            <span class="justif-list__note-head-current">{% if evaluations %}{{ evaluations.0.evaluation.titre }}{% else %}Note{% endif %}</span>
+            {% for eval_item in evaluations %}
+                <span class="justif-list__num-head" title="{{ eval_item.evaluation.titre }}">{{ forloop.counter }}</span>
+            {% endfor %}
+            <span class="justif-list__status-head">Justification</span>
+            <span class="justif-list__action-head">Action</span>
+        </div>
+        {% for eleve_data in classe_justif.eleves %}
+        <article class="notes-list-row" role="listitem" data-eleve-name="{{ eleve_data.eleve.nom }} {{ eleve_data.eleve.prenom }}">
+            <span class="notes-list-row__index">{{ forloop.counter }}</span>
+            <div class="notes-list-row__eleve">
+                <div class="notes-list-row__name">
+                    <span class="nom">{{ eleve_data.eleve.nom|upper }}</span>
+                    <span class="prenom">{{ eleve_data.eleve.prenom }}</span>
+                </div>
+            </div>
+            {% for eval_item in evaluations %}
+                {% with entry=eleve_data.notes|get_item:eval_item.evaluation.id %}
+                    <span class="justif-list__note{% if forloop.first %} is-active{% endif %}"
+                          data-eval-id="{{ eval_item.evaluation.id }}"
+                          title="{{ eval_item.evaluation.titre }}">
+                        {% if entry and entry.note and entry.note.absent %}
+                            <span class="notes-chip__value absent">ABS</span>
+                        {% elif entry and entry.note and entry.note.note is not None %}
+                            {% with color=entry.note.note|note_color_css:eval_item.evaluation.bareme %}
+                            <span class="notes-chip__value {{ entry.note.note|get_note_color_class:eval_item.evaluation.bareme }}"{% if color %} style="color: {{ color }};"{% endif %}>{{ entry.note.note|floatformat:2 }}<small>/{{ eval_item.evaluation.bareme|floatformat:0 }}</small></span>
+                            {% endwith %}
+                        {% else %}
+                            <span class="notes-chip__value muted">—</span>
+                        {% endif %}
+                    </span>
+                {% endwith %}
+            {% empty %}
+                <span class="justif-list__note is-active"><span class="notes-chip__value muted">—</span></span>
+            {% endfor %}
+            <span class="justif-list__status">
+                {% if eleve_data.derniere_justification %}
+                    <span class="status-chip status-{{ eleve_data.derniere_justification.statut }}">
+                        {% if eleve_data.derniere_justification.statut == 'en_attente' %}
+                            En attente
+                        {% elif eleve_data.derniere_justification.statut == 'validee' %}
+                            Validée
+                        {% else %}
+                            Refusée
+                        {% endif %}
+                    </span>
+                {% else %}
+                    <span class="status-chip status-none">Aucune</span>
+                {% endif %}
+            </span>
+            <span class="justif-list__action">
+                {% if eleve_data.notes %}
+                <button
+                    type="button"
+                    class="btn-primary justif-list__btn"
+                    data-justify-btn
+                    data-eleve-id="{{ eleve_data.eleve.id }}"
+                    data-eleve-nom="{{ eleve_data.eleve.nom_complet }}"
+                    data-classe-id="{{ classe_justif.classe.id }}"
+                    data-matiere-id="{% if classe_justif.matiere %}{{ classe_justif.matiere.id }}{% endif %}"
+                >
+                    <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                    Justifier
+                </button>
+                {% else %}
+                    <span class="notes-chip__value muted">Aucune note</span>
+                {% endif %}
+            </span>
+        </article>
+        {% empty %}
+        <p class="notes-list-empty">Aucun élève disponible pour cette classe.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endwith %}

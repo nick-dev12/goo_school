@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 {% load static %}
 {% load exam_filters %}
-{% load notes_tags %}
+{% load notes_tags aria_tabs %}
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -32,12 +32,9 @@
             {% if hub_prof_ui %}
             <div id="prof-hub-chrome">
                 {% if hub_v3 %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
+                {% aria_prof_filters show_matieres=False search_placeholder="Rechercher un élève…" search_target=".releve-table-container.prof-primaire-searchable tbody tr" %}
                 {% elif hub_v4 %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un étudiant…" %}
+                {% aria_prof_filters show_periodes=False show_matieres=False search_placeholder="Rechercher un étudiant…" search_target=".releve-table-container.prof-primaire-searchable tbody tr" %}
                 {% endif %}
             </div>
             <div id="prof-hub-panel">
@@ -45,12 +42,9 @@
             </div>
             {% else %}
             {% if hub_v3 %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un élève…" %}
+            {% aria_prof_filters show_matieres=False search_placeholder="Rechercher un élève…" search_target=".releve-table-container.prof-primaire-searchable tbody tr" %}
             {% elif hub_v4 %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
-            {% include 'school_admin/enseignant/primaire/partials/prof_primaire_search_toolbar.html' with search_placeholder="Rechercher un étudiant…" %}
+            {% aria_prof_filters show_periodes=False show_matieres=False search_placeholder="Rechercher un étudiant…" search_target=".releve-table-container.prof-primaire-searchable tbody tr" %}
             {% elif not est_superieur %}
             <div class="periodes-tabs-horizontal">
                 <div class="periodes-nav">

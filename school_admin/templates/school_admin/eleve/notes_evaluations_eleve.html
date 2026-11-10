@@ -25,6 +25,8 @@
       {% endif %}
     </header>
 
+    {% include 'school_admin/eleve/partials/_ex_periodes.html' %}
+
     <section class="axd-mini ex-mini" aria-label="{% trans 'Résumé' %}">
       <article class="axd-mini__card">
         <span class="axd-mini__icon ax-tone-blue"><i class="fas fa-chart-line" aria-hidden="true"></i></span>
@@ -60,39 +62,26 @@
       </article>
     </section>
 
-    <section class="axd-grid">
-      <article class="axd-card axd-span-8">
-        <header class="axd-card__head">
-          <div>
-            <h2 class="axd-card__title">{% trans "Évolution" %}</h2>
-            <p class="axd-card__sub">{% trans "Chaque point est une note ramenée sur 20 · seuil 10/20" %}</p>
+    {% if n.evaluations %}
+    <section class="axd-card ex-feed-card">
+      <header class="axd-card__head">
+        <div><h2 class="axd-card__title">{% trans "Prochaines évaluations" %}</h2></div>
+      </header>
+      <ul class="ex-feed">
+        {% for e in n.evaluations %}
+        <li class="ex-item">
+          <span class="axd-date-chip ex-chip-{{ e.tone }}" aria-hidden="true"><b>{{ e.date|date:"d" }}</b>{{ e.date|date:"M" }}</span>
+          <div class="ex-item__body">
+            <p class="ex-item__kicker">{{ e.matiere }}</p>
+            <h3 class="ex-item__title">{{ e.titre }}</h3>
           </div>
-        </header>
-        {% if n.charts.evolution.values|length > 1 %}
-        <div class="axd-chart"><canvas id="ex-chart-evolution" role="img" aria-label="{% trans 'Courbe des notes sur 20' %}"></canvas></div>
-        {% else %}
-          {% include 'school_admin/directeur/dashboard/components/_axd_empty.html' with icon='fa-chart-line' message=_("La courbe apparaîtra après quelques notes publiées.") %}
-        {% endif %}
-      </article>
-      <aside class="axd-card axd-span-4">
-        <header class="axd-card__head"><div><h2 class="axd-card__title">{% trans "Prochaines évaluations" %}</h2></div></header>
-        {% if n.evaluations %}
-        <ul class="ex-tasks">
-          {% for e in n.evaluations %}
-          <li class="ex-task">
-            <span class="axd-date-chip ex-chip-{{ e.tone }}" aria-hidden="true"><b>{{ e.date|date:"d" }}</b>{{ e.date|date:"M" }}</span>
-            <div class="ex-task__body"><strong>{{ e.titre }}</strong><small>{{ e.matiere }}</small></div>
-            <span class="axd-score {% if e.jours <= 1 %}axd-score--bad{% elif e.proche %}axd-score--warn{% else %}ex-score--neutral{% endif %}">{{ e.quand }}</span>
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <p class="axd-muted">{% trans "Aucune évaluation annoncée." %}</p>
-        {% endif %}
-      </aside>
+          <span class="px-badge {% if e.jours <= 1 %}px-badge--red{% elif e.proche %}px-badge--orange{% else %}px-badge--blue{% endif %}">{{ e.quand }}</span>
+        </li>
+        {% endfor %}
+      </ul>
     </section>
+    {% endif %}
 
-    <h2 class="px-section-title ex-section-title">{% trans "Par matière" %}</h2>
     {% if n.matieres %}
     <div class="ex-subjects">
       {% for m in n.matieres %}
@@ -118,12 +107,8 @@
     <div class="px-empty-inline"><i class="fas fa-star" aria-hidden="true"></i><h2>{% trans "Pas encore de note" %}</h2><p>{% trans "Tes notes apparaîtront ici dès que tes professeurs les auront publiées." %}</p></div>
     {% endif %}
   </main>
-
-  {{ n.charts|json_script:"ex-data" }}
   {% endwith %}
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="{% static 'school_admin/js/eleve/dashboard_eleve_v3.js' %}?v=1.0.0"></script>
   {% include 'school_admin/eleve/partials/_ex_foot.html' %}
 </body>
 </html>

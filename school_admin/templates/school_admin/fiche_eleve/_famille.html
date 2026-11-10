@@ -27,7 +27,7 @@
   <p class="fe-alert fe-alert--warn"><i class="fas fa-user-slash" aria-hidden="true"></i><span>{% trans "Aucun compte parent n’est lié à cet élève : la famille ne reçoit ni les notes ni les absences sur ARIA." %}</span></p>
   {% endif %}
 </article>
-{% if fiche.famille.fiche %}
+{% if fiche.famille.fiche and fiche.vue != 'enseignant' %}
 <article class="fe-card" style="margin-top:16px">
   <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-address-card" aria-hidden="true"></i>{% trans "Responsable déclaré à l’inscription" %}</h2></div></header>
   <dl class="fe-dl">

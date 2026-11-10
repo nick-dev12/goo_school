@@ -21,121 +21,14 @@
 
         {% if onglet_actif == 'eleves' %}
         <div class="tab-content active prof-classe-detail-tab" id="tab-eleves">
-            <div class="section-card">
-                <div class="section-header">
-                    <h2><i class="fas fa-users"></i> Liste des élèves</h2>
-                    <span class="count-badge">{{ nombre_eleves }} élève{{ nombre_eleves|pluralize }}</span>
+            {% if eleves %}
+                {% include 'school_admin/enseignant/partials/prof_eleves_notes_list.html' with eleves_rows=eleves eleves_classe_id=classe.id eleves_list_variant='detail-primaire' eleves_ns='enseignant_primaire' %}
+            {% else %}
+                <div class="empty-state-small">
+                    <i class="fas fa-user-slash"></i>
+                    <p>Aucun élève dans cette classe</p>
                 </div>
-                
-                {% if eleves %}
-                    <div class="table-container table-responsive">
-                        <table class="eleves-table" data-rl data-rl-mobile="2,4,5" data-rl-actions="8">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Nom complet</th>
-                                    <th>Genre</th>
-                                    <th>Absences</th>
-                                    <th>Retards</th>
-                                    <th>Sanctions</th>
-                                    <th>Notes</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for eleve_data in eleves %}
-                                    <tr>
-                                        <td>{{ forloop.counter }}</td>
-                                        <td>
-                                            <div class="eleve-cell">
-                                                <div class="eleve-avatar-mini">
-                                                    {{ eleve_data.eleve.nom.0 }}{{ eleve_data.eleve.prenom.0 }}
-                                                </div>
-                                                <div class="eleve-name">
-                                                    <span class="nom">{{ eleve_data.eleve.nom|upper }}</span>
-                                                    <span class="prenom">{{ eleve_data.eleve.prenom }}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="badge-genre {{ eleve_data.eleve.sexe|lower }}">
-                                                <i class="fas fa-{% if eleve_data.eleve.sexe == 'M' %}mars{% else %}venus{% endif %}"></i>
-                                                {{ eleve_data.eleve.get_sexe_display }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {% if eleve_data.nombre_absences > 0 %}
-                                                <span class="badge-absences danger">
-                                                    <i class="fas fa-exclamation-triangle"></i>
-                                                    {{ eleve_data.nombre_absences }}
-                                                </span>
-                                            {% else %}
-                                                <span class="badge-absences success">
-                                                    <i class="fas fa-check"></i>
-                                                    0
-                                                </span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if eleve_data.nombre_retards > 0 %}
-                                                <span class="badge-retards warning">
-                                                    <i class="fas fa-clock"></i>
-                                                    {{ eleve_data.nombre_retards }}
-                                                </span>
-                                            {% else %}
-                                                <span class="badge-retards success">
-                                                    <i class="fas fa-check"></i>
-                                                    0
-                                                </span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if eleve_data.nombre_sanctions > 0 %}
-                                                <span class="badge-sanctions danger">
-                                                    <i class="fas fa-gavel"></i>
-                                                    {{ eleve_data.nombre_sanctions }}
-                                                </span>
-                                            {% else %}
-                                                <span class="badge-sanctions success">
-                                                    <i class="fas fa-check"></i>
-                                                    0
-                                                </span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <span class="notes-count">{{ eleve_data.nombre_notes }}</span>
-                                        </td>
-                                        <td>
-                                            <div class="actions-cell">
-                                                <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=informations" 
-                                                   class="action-btn-tiny primary" 
-                                                   title="Voir le profil">
-                                                    <i class="fas fa-user"></i>
-                                                </a>
-                                                <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=presences" 
-                                                   class="action-btn-tiny info" 
-                                                   title="Présences">
-                                                    <i class="fas fa-calendar-check"></i>
-                                                </a>
-                                                <a href="{% url 'enseignant_primaire:detail_eleve' eleve_data.eleve.id %}?onglet=notes" 
-                                                   class="action-btn-tiny success" 
-                                                   title="Notes">
-                                                    <i class="fas fa-clipboard-check"></i>
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="empty-state-small">
-                        <i class="fas fa-user-slash"></i>
-                        <p>Aucun élève dans cette classe</p>
-                    </div>
-                {% endif %}
-            </div>
+            {% endif %}
         </div>
         {% endif %}
 
@@ -146,15 +39,24 @@
                     <h2><i class="fas fa-calendar-check"></i> Statistiques de présence</h2>
                 </div>
                 
-                <!-- Sous-onglets par mois -->
-                <div class="sub-tabs-container">
-                    {% for mois_data in mois_disponibles %}
-                        <a href="?onglet=presence&mois={{ mois_data.mois }}&annee={{ mois_data.annee }}{% if periode_filtre %}&periode_eval={{ periode_filtre }}{% endif %}" 
-                           class="sub-tab {% if mois_filtre == mois_data.mois and annee_filtre == mois_data.annee %}active{% endif %}">
-                            {{ mois_data.nom_court }}
-                        </a>
-                    {% endfor %}
-                </div>
+                <section class="aria-filter-tabs__group prof-hub-filter-block prof-hub-filter-block--vue" data-kind="view" aria-label="Mois">
+                    <p class="aria-filter-tabs__label prof-hub-filter-label"><i class="fas fa-calendar-days" aria-hidden="true"></i> Mois</p>
+                    <nav class="aria-filter-tabs__nav prof-primaire-hub-nav" aria-label="Mois">
+                    <div class="aria-filter-tabs__list matiere-tabs-bar prof-primaire-vues-bar" data-tabs-level="primary" data-aria-tabs-kind="view" data-overflow-item-label="Mois" data-overflow-items-label="mois">
+                        <div class="matiere-tabs-track" role="tablist">
+                            {% for mois_data in mois_disponibles %}
+                                <a role="tab"
+                                   href="?onglet=presence&mois={{ mois_data.mois }}&annee={{ mois_data.annee }}{% if periode_filtre %}&periode_eval={{ periode_filtre }}{% endif %}"
+                                   class="aria-filter-tabs__tab matiere-tab-btn {% if mois_filtre == mois_data.mois and annee_filtre == mois_data.annee %}active{% endif %}"
+                                   {% if mois_filtre == mois_data.mois and annee_filtre == mois_data.annee %}aria-current="page" aria-selected="true"{% else %}aria-selected="false"{% endif %}>
+                                    <span>{{ mois_data.nom_court }}</span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                        {% include 'school_admin/enseignant/partials/prof_tabs_more_wrap.html' with items_label="mois" %}
+                    </div>
+                    </nav>
+                </section>
                 
                 <div class="presence-stats-grid">
                     <div class="presence-stat-box present">
@@ -251,44 +153,60 @@
                     </a>
                 </div>
                 
-                <!-- Onglets par matière -->
                 {% if matieres_enseignees %}
-                <div class="matieres-tabs-container">
-                    <div class="matieres-tabs-nav">
-                        <a href="?onglet=evaluations&matiere_eval=toutes{% if periode_eval_active %}&periode_eval={{ periode_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
-                           class="matiere-tab-btn {% if request.GET.matiere_eval == 'toutes' %}active{% endif %}">
-                            <i class="fas fa-list"></i>
-                            <span>Toutes les matières</span>
-                        </a>
-                        {% for matiere in matieres_enseignees %}
-                            <a href="?onglet=evaluations&matiere_eval={{ matiere.id }}{% if periode_eval_active %}&periode_eval={{ periode_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
-                               class="matiere-tab-btn {% if matiere_eval_active and matiere_eval_active.id == matiere.id %}active{% endif %}"
-                               title="{{ matiere.nom }}">
-                                <i class="fas fa-book"></i>
-                                <span>{{ matiere.code }} - {{ matiere.nom }}</span>
-                            </a>
-                        {% endfor %}
-                    </div>
-                </div>
+                <section class="aria-filter-tabs__group prof-hub-filter-block prof-hub-filter-block--matiere" data-kind="subject" aria-label="Matière">
+                    <p class="aria-filter-tabs__label prof-hub-filter-label"><i class="fas fa-book-open" aria-hidden="true"></i> Matières</p>
+                    <nav class="aria-filter-tabs__nav prof-primaire-hub-nav" aria-label="Matières">
+                        <div class="aria-filter-tabs__list matiere-tabs-bar prof-primaire-matieres-bar" data-tabs-level="primary" data-aria-tabs-kind="subject" data-overflow-item-label="Matière" data-overflow-items-label="matières">
+                            <div class="matiere-tabs-track" role="tablist">
+                                <a role="tab" href="?onglet=evaluations&matiere_eval=toutes{% if periode_eval_active %}&periode_eval={{ periode_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}"
+                                   class="matiere-tab-btn {% if request.GET.matiere_eval == 'toutes' %}active{% endif %}"
+                                   aria-selected="{% if request.GET.matiere_eval == 'toutes' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-list" aria-hidden="true"></i>
+                                    <span>Toutes les matières</span>
+                                </a>
+                                {% for matiere in matieres_enseignees %}
+                                    <a role="tab" href="?onglet=evaluations&matiere_eval={{ matiere.id }}{% if periode_eval_active %}&periode_eval={{ periode_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}"
+                                       class="matiere-tab-btn {% if matiere_eval_active and matiere_eval_active.id == matiere.id %}active{% endif %}"
+                                       aria-selected="{% if matiere_eval_active and matiere_eval_active.id == matiere.id %}true{% else %}false{% endif %}"
+                                       title="{{ matiere.nom }}">
+                                        <i class="fas fa-book" aria-hidden="true"></i>
+                                        <span>{{ matiere.code }} - {{ matiere.nom }}</span>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                            {% include 'school_admin/enseignant/partials/prof_tabs_more_wrap.html' with items_label="matières" %}
+                        </div>
+                    </nav>
+                </section>
                 {% endif %}
-                
-                <!-- Sous-onglets par période -->
+
                 {% if periodes_scolaires_eval %}
-                <div class="sub-tabs-container">
-                    <a href="?onglet=evaluations&periode_eval=toutes{% if matiere_eval_active %}&matiere_eval={{ matiere_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
-                       class="sub-tab {% if request.GET.periode_eval == 'toutes' %}active{% endif %}">
-                        <i class="fas fa-list"></i>
-                        <span>Toutes les périodes</span>
-                    </a>
-                    {% for periode in periodes_scolaires_eval %}
-                        <a href="?onglet=evaluations&periode_eval={{ periode.id }}{% if matiere_eval_active %}&matiere_eval={{ matiere_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}" 
-                           class="sub-tab {% if periode_eval_active and periode_eval_active.id == periode.id %}active{% endif %}"
-                           title="Période: {{ periode.nom_periode }}">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>{{ periode.nom_periode }}</span>
-                        </a>
-                    {% endfor %}
-                </div>
+                <section class="aria-filter-tabs__group prof-hub-filter-block prof-hub-filter-block--period" data-kind="period" aria-label="Période">
+                    <p class="aria-filter-tabs__label prof-hub-filter-label"><i class="fas fa-calendar-days" aria-hidden="true"></i> Période</p>
+                    <nav class="aria-filter-tabs__nav prof-primaire-hub-nav" aria-label="Périodes scolaires">
+                        <div class="aria-filter-tabs__list matiere-tabs-bar prof-primaire-periodes-bar" data-tabs-level="primary" data-aria-tabs-kind="period" data-overflow-item-label="Période" data-overflow-items-label="périodes">
+                            <div class="matiere-tabs-track" role="tablist">
+                                <a role="tab" href="?onglet=evaluations&periode_eval=toutes{% if matiere_eval_active %}&matiere_eval={{ matiere_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}"
+                                   class="matiere-tab-btn {% if request.GET.periode_eval == 'toutes' %}active{% endif %}"
+                                   aria-selected="{% if request.GET.periode_eval == 'toutes' %}true{% else %}false{% endif %}">
+                                    <i class="fas fa-list" aria-hidden="true"></i>
+                                    <span>Toutes les périodes</span>
+                                </a>
+                                {% for periode in periodes_scolaires_eval %}
+                                    <a role="tab" href="?onglet=evaluations&periode_eval={{ periode.id }}{% if matiere_eval_active %}&matiere_eval={{ matiere_eval_active.id }}{% endif %}{% if mois_filtre %}&mois={{ mois_filtre }}&annee={{ annee_filtre }}{% endif %}"
+                                       class="matiere-tab-btn {% if periode_eval_active and periode_eval_active.id == periode.id %}active{% endif %}"
+                                       aria-selected="{% if periode_eval_active and periode_eval_active.id == periode.id %}true{% else %}false{% endif %}"
+                                       title="Période: {{ periode.nom_periode }}">
+                                        <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                                        <span>{{ periode.nom_periode }}</span>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                            {% include 'school_admin/enseignant/partials/prof_tabs_more_wrap.html' with items_label="périodes" %}
+                        </div>
+                    </nav>
+                </section>
                 {% endif %}
                 
                 <!-- Prochaines évaluations -->
@@ -385,6 +303,7 @@
     </div>
 
     <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
+    {% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_scripts.html' %}
 
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}
 </body>

@@ -1,0 +1,63 @@
+<div class="eval-board">
+{% if classe_selectionnee %}
+    {% if evaluations_liste %}
+    <ul class="eval-list">
+        {% for evaluation in evaluations_liste %}
+        <li class="eval-card{% if evaluation.est_passe %} eval-card--done{% elif evaluation.est_a_venir %} eval-card--soon{% else %} eval-card--today{% endif %}">
+            <div class="eval-card__top">
+                <div>
+                    <h3 class="eval-card__title">{{ evaluation.titre }}</h3>
+                </div>
+                <time class="eval-card__cal" datetime="{{ evaluation.date_evaluation|date:'Y-m-d' }}">
+                    <span>{{ evaluation.date_evaluation|date:"b" }}</span>
+                    <strong>{{ evaluation.date_evaluation|date:"d" }}</strong>
+                </time>
+            </div>
+            <div class="eval-card__meta">
+                {% if evaluation.matiere %}<span class="eval-chip">{{ evaluation.matiere.nom }}</span>{% endif %}
+                {% if evaluation.get_type_evaluation_display and evaluation.type_evaluation %}
+                <span class="eval-chip">{{ evaluation.get_type_evaluation_display }}</span>
+                {% endif %}
+                <span class="eval-chip">/ {{ evaluation.bareme|floatformat:0 }}</span>
+                {% if evaluation.est_passe %}
+                <span class="eval-chip eval-chip--ok">Passée</span>
+                {% elif evaluation.est_a_venir %}
+                <span class="eval-chip eval-chip--warn">À venir</span>
+                {% else %}
+                <span class="eval-chip eval-chip--now">Aujourd'hui</span>
+                {% endif %}
+            </div>
+            <div class="eval-card__actions">
+                <button type="button" class="eval-btn" onclick="ouvrirModalModification({{ evaluation.id }})">
+                    <i class="fas fa-pen" aria-hidden="true"></i> Modifier
+                </button>
+                <button type="button" class="eval-btn eval-btn--danger" onclick="supprimerEvaluation({{ evaluation.id }}, '{{ evaluation.titre|escapejs }}', this)">
+                    <i class="fas fa-trash" aria-hidden="true"></i> Supprimer
+                </button>
+                <a href="{% url 'enseignant:noter_eleves' classe_selectionnee.id %}{% if evaluation.matiere %}?matiere={{ evaluation.matiere.id }}{% endif %}{% if evaluation.periode_scolaire %}{% if evaluation.matiere %}&{% else %}?{% endif %}periode={{ evaluation.periode_scolaire.id }}{% endif %}"
+                   class="eval-btn eval-btn--primary">
+                    <i class="fas fa-clipboard-check" aria-hidden="true"></i> Noter
+                </a>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="eval-empty" role="status">
+        <span class="eval-empty__icon"><i class="fas fa-clipboard-list" aria-hidden="true"></i></span>
+        <p>Aucune évaluation pour cette sélection.</p>
+        <button type="button" class="eval-btn eval-btn--primary" data-open-evaluation-modal
+                data-classe-id="{{ classe_selectionnee.id }}"
+                {% if classe_data_active.matiere %}data-matiere-id="{{ classe_data_active.matiere.id }}"{% endif %}
+                {% if classe_data_active.periode_courante %}data-periode-id="{{ classe_data_active.periode_courante.id }}"{% elif periode_selectionnee %}data-periode-id="{{ periode_selectionnee.id }}"{% endif %}>
+            <i class="fas fa-plus" aria-hidden="true"></i> Créer une évaluation
+        </button>
+    </div>
+    {% endif %}
+{% else %}
+    <div class="eval-empty" role="status">
+        <span class="eval-empty__icon"><i class="fas fa-chalkboard-user" aria-hidden="true"></i></span>
+        <p>Choisissez une classe pour voir et créer des évaluations.</p>
+    </div>
+{% endif %}
+</div>

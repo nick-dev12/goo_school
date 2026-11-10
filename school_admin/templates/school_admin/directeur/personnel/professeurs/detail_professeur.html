@@ -38,9 +38,6 @@
         </p>
         <div class="fe-hero__chips">
           <span class="cg3-chip {% if professeur.actif %}cg3-chip--ok{% else %}cg3-chip--muted{% endif %}"><i class="fas fa-circle" style="font-size:.45rem" aria-hidden="true"></i>{% if professeur.actif %}{% trans "Actif" %}{% else %}{% trans "Inactif" %}{% endif %}</span>
-          <span class="cg3-chip cg3-chip--muted"><i class="fas fa-id-badge" aria-hidden="true"></i>{{ professeur.numero_employe }}</span>
-          <span class="cg3-chip {% if professeur.type_contrat == 'permanent' %}cg3-chip--ok{% else %}cg3-chip--muted{% endif %}"><i class="fas fa-file-signature" aria-hidden="true"></i>{{ professeur.get_type_contrat_display }}</span>
-          {% if professeur.mot_de_passe_provisoire %}<span class="cg3-chip cg3-chip--warn"><i class="fas fa-key" aria-hidden="true"></i>{% trans "Jamais connecté" %}</span>{% endif %}
         </div>
       </div>
       <div class="fe-hero__actions">
@@ -59,34 +56,28 @@
     </header>
 
     {# ================= Indicateurs ================= #}
-    <section class="fe-kpis" aria-label="{% trans 'Indicateurs' %}">
+    <section class="fe-kpis hb-kpis" aria-label="{% trans 'Indicateurs' %}">
       <a class="fe-kpi fe-tone-blue" href="?onglet=enseignement" data-fe-goto="enseignement">
         <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Classes" %}</span><span class="fe-kpi__icon"><i class="fas fa-chalkboard" aria-hidden="true"></i></span></div>
         <p class="fe-kpi__value">{{ fiche.nb_classes }}</p>
-        <p class="fe-kpi__caption">{% blocktrans count n=fiche.nb_eleves %}{{ n }} élève{% plural %}{{ n }} élèves{% endblocktrans %}</p>
       </a>
       <a class="fe-kpi fe-tone-violet" href="?onglet=edt" data-fe-goto="edt">
         <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Heures / semaine" %}</span><span class="fe-kpi__icon"><i class="fas fa-clock" aria-hidden="true"></i></span></div>
         <p class="fe-kpi__value">{{ fiche.heures_semaine|floatformat:"-1" }}<small>h</small></p>
-        {% if fiche.charge_pct != None %}<div class="fe-bar"><span class="{% if fiche.charge_pct > 110 %}is-bad{% elif fiche.charge_pct < 80 %}is-warn{% endif %}" style="width: {% if fiche.charge_pct > 100 %}100{% else %}{{ fiche.charge_pct }}{% endif %}%"></span></div>
-        <p class="fe-kpi__caption">{% blocktrans with p=fiche.charge_pct h=professeur.heures_contrat_semaine|floatformat:"-1" %}{{ p }} % du contrat ({{ h }} h){% endblocktrans %}</p>
-        {% else %}<p class="fe-kpi__caption">{% blocktrans count n=fiche.nb_creneaux %}{{ n }} créneau publié{% plural %}{{ n }} créneaux publiés{% endblocktrans %}</p>{% endif %}
+        {% if fiche.charge_pct != None %}<div class="fe-bar"><span class="{% if fiche.charge_pct > 110 %}is-bad{% elif fiche.charge_pct < 80 %}is-warn{% endif %}" style="width: {% if fiche.charge_pct > 100 %}100{% else %}{{ fiche.charge_pct }}{% endif %}%"></span></div>{% endif %}
       </a>
       <a class="fe-kpi fe-tone-green" href="?onglet=presence" data-fe-goto="presence">
         <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Assiduité du mois" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-check" aria-hidden="true"></i></span></div>
         <p class="fe-kpi__value">{% if fiche.assiduite != None %}{{ fiche.assiduite }}<small>%</small>{% else %}—{% endif %}</p>
-        <p class="fe-kpi__caption">{% if fiche.assiduite == None %}{% trans "Aucune séance pointée ce mois-ci" %}{% else %}{{ fiche.paie.heures_validees|floatformat:"-1" }} h {% trans "payables" %}{% endif %}</p>
       </a>
       <a class="fe-kpi fe-tone-teal" href="?onglet=cahier" data-fe-goto="cahier">
         <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Cahier de texte" %}</span><span class="fe-kpi__icon"><i class="fas fa-book-open" aria-hidden="true"></i></span></div>
         <p class="fe-kpi__value">{% if cahier.taux != None %}{{ cahier.taux }}<small>%</small>{% else %}—{% endif %}</p>
-        <p class="fe-kpi__caption">{% blocktrans count n=cahier.total %}{{ n }} entrée validée{% plural %}{{ n }} entrées validées{% endblocktrans %}</p>
       </a>
       <a class="fe-kpi fe-tone-orange" href="?onglet=dossier" data-fe-goto="dossier">
         <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Dossier RH" %}</span><span class="fe-kpi__icon"><i class="fas fa-folder-open" aria-hidden="true"></i></span></div>
         <p class="fe-kpi__value">{{ completude.taux }}<small>%</small></p>
         <div class="fe-bar"><span class="{% if completude.taux < 50 %}is-bad{% elif completude.taux < 80 %}is-warn{% endif %}" style="width: {{ completude.taux }}%"></span></div>
-        <p class="fe-kpi__caption">{% if completude.manquants %}{% blocktrans count n=completude.manquants|length %}{{ n }} information manquante{% plural %}{{ n }} informations manquantes{% endblocktrans %}{% else %}{% trans "Complet" %}{% endif %}</p>
       </a>
     </section>
 

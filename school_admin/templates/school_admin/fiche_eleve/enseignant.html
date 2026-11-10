@@ -1,4 +1,4 @@
-{% load static i18n %}
+{% load static i18n aria_tabs %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -8,11 +8,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}?v=1.0.3">
-  {% if ns == 'enseignant_primaire' %}{% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}{% endif %}
+  {% include 'school_admin/enseignant/partials/prof_hub_ui_assets.html' %}
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/aria_shell.css' %}?v=1.0.0">
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=20261104c">
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0">
-  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.2">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5">
 </head>
 <body class="axd-page axd-page--prof cg3-body fe-body">
   {% if ns == 'enseignant_primaire' %}{% include 'school_admin/enseignant/primaire/partials/header_primaire.html' %}{% else %}{% include 'school_admin/enseignant/partials/header_enseignant_new.html' %}{% endif %}
@@ -22,9 +23,7 @@
 
     {% include 'school_admin/fiche_eleve/_hero.html' %}
 
-    {% if fiche.matieres_prof %}
-    <p class="fe-alert fe-alert--info" style="margin-top:14px"><i class="fas fa-chalkboard-user" aria-hidden="true"></i><span>{% trans "Vous voyez les notes de vos matières :" %} <strong>{% for m in fiche.matieres_prof %}{{ m.nom }}{% if not forloop.last %}, {% endif %}{% endfor %}</strong>{% if fiche.derniere_moyenne %} {% trans "et la moyenne générale publiée." %}{% else %}.{% endif %}</span></p>
-    {% endif %}
+    {% aria_prof_filters show_classes=False show_matieres=False %}
 
     {% include 'school_admin/fiche_eleve/_kpis.html' %}
 
@@ -44,6 +43,7 @@
   </main>
 
   <script src="{% static 'school_admin/js/directeur/fiche_employe.js' %}?v=1.1.0"></script>
+  <script src="{% static 'school_admin/js/directeur/tabs_nav_overflow.js' %}?v=2.0.5"></script>
   {% if ns == 'enseignant_primaire' %}
     <script src="{% static 'school_admin/js/enseignant/header_enseignant_new.js' %}"></script>
     {% include 'school_admin/enseignant/primaire/partials/bottom_nav_primaire.html' %}

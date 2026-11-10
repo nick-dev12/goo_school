@@ -37,6 +37,8 @@ class ProfNavTrailTests(SimpleTestCase):
             '/enseignant/primaire/eleves-difficulte/',
             '/enseignant/notes/',
             '/enseignant/presence/',
+            '/enseignant/evaluations/',
+            '/enseignant/primaire/evaluations/',
         ):
             self.assertIsNone(resolve_prof_nav_trail(_request(path)), path)
 
@@ -77,26 +79,27 @@ class ProfNavTrailTests(SimpleTestCase):
         self.assertIn('matiere=4', trail['parent_url'])
         self.assertIn('vue=saisie', trail['parent_url'])
 
-    def test_voir_releve_and_creer_evaluation_map_to_notes(self):
+    def test_voir_releve_maps_to_notes_and_creer_evaluation_to_evaluations(self):
         releve = resolve_prof_nav_trail(_request('/enseignant/releve/3/?periode=1'))
         self.assertEqual(str(releve['parent_label']), 'Notes')
         self.assertEqual(str(releve['current_label']), 'Relevé')
         self.assertIn('/enseignant/notes/', releve['parent_url'])
 
         creer = resolve_prof_nav_trail(_request('/enseignant/primaire/evaluation/creer/9/'))
-        self.assertEqual(str(creer['parent_label']), 'Notes')
+        self.assertEqual(str(creer['parent_label']), 'Évaluations')
         self.assertEqual(str(creer['current_label']), 'Nouvelle évaluation')
+        self.assertIn('/enseignant/primaire/evaluations/', creer['parent_url'])
         self.assertIn('classe=9', creer['parent_url'])
 
     def test_detail_eleve_and_classe_map_to_hubs(self):
         eleve = resolve_prof_nav_trail(_request('/enseignant/primaire/eleve/4/?classe=11'))
-        self.assertEqual(str(eleve['parent_label']), 'Élèves')
+        self.assertEqual(str(eleve['parent_label']), 'Classe')
         self.assertIn('/enseignant/primaire/eleves/', eleve['parent_url'])
         self.assertIn('classe=11', eleve['parent_url'])
 
         classe = resolve_prof_nav_trail(_request('/enseignant/classe/7/'))
-        self.assertEqual(str(classe['parent_label']), 'Classes')
-        self.assertIn('/enseignant/classes/', classe['parent_url'])
+        self.assertEqual(str(classe['parent_label']), 'Classe')
+        self.assertIn('/enseignant/eleves/', classe['parent_url'])
         self.assertIn('classe=7', classe['parent_url'])
 
     def test_historique_presence_maps_to_eleve(self):
@@ -121,11 +124,9 @@ class ProfNavTrailTests(SimpleTestCase):
         self.assertEqual(str(trail['current_label']), "Notes d'examen")
         self.assertIn('classe=6', trail['parent_url'])
 
-    def test_liste_evaluations_maps_to_notes(self):
+    def test_liste_evaluations_is_top_level(self):
         trail = resolve_prof_nav_trail(_request('/enseignant/evaluations/'))
-        self.assertEqual(str(trail['parent_label']), 'Notes')
-        self.assertEqual(str(trail['current_label']), 'Évaluations')
-        self.assertIn('/enseignant/notes/', trail['parent_url'])
+        self.assertIsNone(trail)
 
     def test_modifier_evaluation_maps_to_liste(self):
         trail = resolve_prof_nav_trail(_request('/enseignant/modifier-evaluation/2/'))
@@ -137,4 +138,4 @@ class ProfNavTrailTests(SimpleTestCase):
         set_prof_breadcrumb_current_label(request, 'Aminata Diop')
         trail = resolve_prof_nav_trail(request)
         self.assertEqual(trail['current_label'], 'Aminata Diop')
-        self.assertEqual(str(trail['parent_label']), 'Élèves')
+        self.assertEqual(str(trail['parent_label']), 'Classe')

@@ -182,6 +182,23 @@ class ProfHubPartialIntegrationTests(TestCase):
         self.assertIn('id="prof-hub-chrome"', body)
         self.assertIn('id="prof-hub-panel"', body)
 
+    def test_noter_eleves_hub_partial_swap(self):
+        resp = self.client.get(
+            reverse('enseignant_primaire:noter_eleves', args=[self.classe.id]),
+            {
+                'hub_partial': 'hub',
+                'periode': str(self.periode.id),
+                'matiere': str(self.matiere.id),
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('id="prof-hub-chrome"', body)
+        self.assertIn('id="prof-hub-panel"', body)
+        self.assertIn('prof-hub-nav-link', body)
+        self.assertNotIn('<html', body.lower())
+
     def test_eleves_difficulte_hub_partial_swap(self):
         resp = self.client.get(
             reverse('enseignant_primaire:eleves_en_difficulte'),
@@ -322,14 +339,15 @@ class ProfHubSecondaryIntegrationTests(TestCase):
         body = resp.content.decode('utf-8')
         self.assertIn('id="prof-hub-chrome"', body)
         self.assertIn('id="gestion-presence-live-root"', body)
+        self.assertIn('id="prof-hub-header"', body)
+        self.assertIn('prof-presence-hub-panel', body)
 
     def _college_hub(self, url_name, extra=None):
         params = {'hub_partial': 'hub', 'classe': str(self.classe.id), 'periode': str(self.periode.id)}
         if extra:
             params.update(extra)
         return self.client.get(
-        self.assertIn('id="prof-hub-header"', body)
-        self.assertIn('prof-presence-hub-panel', body)
+            reverse(url_name),
             params,
             HTTP_X_REQUESTED_WITH='XMLHttpRequest',
         )

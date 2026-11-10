@@ -20,7 +20,7 @@ import os
 import environ
 
 env = environ.Env(
-    DEBUG=(bool, True),
+    DEBUG=(bool, False),
     USE_CELERY=(bool, False),
     USE_REDIS_CACHE=(bool, False),
     REALTIME_LOCAL=(bool, False),
@@ -37,13 +37,10 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'school_admin/static'),  # Ajouter le chemin des fichiers statiques de l'application
 ]
-# Configuration des sessions - Connexion persistante "à vie"
-# La session ne s'expire jamais tant que l'utilisateur ne se déconnecte pas manuellement
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # La session ne expire pas quand le navigateur est fermé
-SESSION_SAVE_EVERY_REQUEST = True  # Renouveler la session à chaque requête pour la maintenir active
-# Age de la session en secondes - 10 ans (connexion persistante)
-# La session sera renouvelée automatiquement à chaque requête grâce à SESSION_SAVE_EVERY_REQUEST
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 365 * 10  # 10 ans (315360000 secondes)
+# Expiration d'inactivité ; les actions sensibles exigent une nouvelle preuve.
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_AGE = env.int('SESSION_COOKIE_AGE', default=28800)
 
 # @login_required et fallback Django — même page que le middleware custom
 LOGIN_URL = '/connexion/'
@@ -54,10 +51,10 @@ LOGIN_URL = '/connexion/'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # Utiliser une variable d'environnement en production
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-5%&6bpaizqq8n)h7%7i7t&1dci^n+-entc_cy%_w4-aabu57o9')
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DEBUG', default=True)
+DEBUG = env.bool('DEBUG', default=False)
 REALTIME_LOCAL = env.bool('REALTIME_LOCAL', default=False)
 
 # Hosts autorisés
@@ -121,6 +118,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'school_admin.middleware.UserTypeMiddleware',  # Doit être AVANT AuthenticationMiddleware
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'school_admin.private_cache_middleware.PrivateResponseMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'school_admin.middleware.AuthenticationMiddleware',  # Notre middleware d'authentification personnalisé
@@ -170,7 +168,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('DB_NAME', 'aria'),
         'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'Ludvanne'),
+        'PASSWORD': env('DB_PASSWORD', default=''),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
         'OPTIONS': {
@@ -204,7 +202,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'fr-fr'
 
-TIME_ZONE = 'Europe/Paris'
+TIME_ZONE = env('TIME_ZONE', default='Africa/Dakar')
 
 USE_I18N = True
 
@@ -338,7 +336,10 @@ LOGGING = {
             'formatter': 'verbose',
         },
         'file': {
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'maxBytes': 10 * 1024 * 1024,
+            'backupCount': 5,
+            'encoding': 'utf-8',
             'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
             'formatter': 'verbose',
         },
@@ -374,11 +375,8 @@ WASENDER_API_BASE_URL = os.getenv(
     "WASENDER_API_BASE_URL",
     "https://wasenderapi.com/api",
 )
-WASENDER_API_TOKEN = os.getenv(
-    "WASENDER_API_TOKEN",
-    "ec608d8488fcc95bb57fc9c43af6e0689e58599758ef2b1ac6cd8327bd540fc1",
-)
-WASENDER_DEFAULT_SESSION_ID = os.getenv("WASENDER_DEFAULT_SESSION_ID", "31658")
+WASENDER_API_TOKEN = env('WASENDER_API_TOKEN', default='')
+WASENDER_DEFAULT_SESSION_ID = env('WASENDER_DEFAULT_SESSION_ID', default='')
 
 # ============================================
 # Assistant vocal directeur (Gemini LLM + TTS, rollback DeepSeek / Edge)
@@ -443,6 +441,8 @@ EDGE_TTS_VOLUME = env('EDGE_TTS_VOLUME', default='').strip()
 # Configuration pour les proxies (Nginx)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=not DEBUG)
+
 # Cookies sécurisés en HTTPS
 SESSION_COOKIE_SECURE = not DEBUG  # True en production (HTTPS)
 CSRF_COOKIE_SECURE = not DEBUG    # True en production (HTTPS)
@@ -493,12 +493,20 @@ CORS_ALLOW_HEADERS = [
 # ============================================
 # Configuration Email (SMTP)
 # ============================================
-EMAIL_BACKEND = 'school_admin.email_backends.CustomSMTPEmailBackend'
-EMAIL_HOST = 'mail.aria-edu.com'
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = env('EMAIL_HOST', default='mail.aria-edu.com')
 EMAIL_PORT = 587
 EMAIL_USE_SSL = False
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'service@aria-edu.com'
-EMAIL_HOST_PASSWORD = 'Ludvanne12@gmail.com'
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+EMAIL_TIMEOUT = 15
 DEFAULT_FROM_EMAIL = 'Aria - Plateforme de gestion scolaire <service@aria-edu.com>'
 SERVER_EMAIL = 'service@aria-edu.com'
+# Arrêt explicite plutôt qu'un démarrage avec une configuration vulnérable.
+if not DEBUG:
+    from django.core.exceptions import ImproperlyConfigured
+    if len(SECRET_KEY) < 50 or SECRET_KEY.startswith(('django-insecure-', 'changez-')):
+        raise ImproperlyConfigured('SECRET_KEY de production absente ou insuffisante.')
+    if not DATABASES['default']['PASSWORD']:
+        raise ImproperlyConfigured('DB_PASSWORD est obligatoire en production.')

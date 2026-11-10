@@ -22,78 +22,119 @@
       </div>
     </header>
 
-    <section class="px-stats" aria-label="{% trans 'Résumé' %}">
-      <div class="px-stat"><span class="px-stat__icon ax-tone-orange"><i class="fas fa-pen-to-square" aria-hidden="true"></i></span><div><strong>{{ total_exercices }}</strong><small>{% trans "Devoirs donnés" %}</small></div></div>
-      <div class="px-stat"><span class="px-stat__icon ax-tone-red"><i class="fas fa-book-open-reader" aria-hidden="true"></i></span><div><strong>{{ total_evaluations }}</strong><small>{% trans "Évaluations" %}</small></div></div>
-      <div class="px-stat"><span class="px-stat__icon ax-tone-blue"><i class="fas fa-calendar-week" aria-hidden="true"></i></span><div><strong>{{ total_semaine }}</strong><small>{% trans "Cette semaine" %}</small></div></div>
-      <div class="px-stat"><span class="px-stat__icon ax-tone-green"><i class="fas fa-hourglass-half" aria-hidden="true"></i></span><div><strong>{{ total_a_venir }}</strong><small>{% trans "À venir" %}</small></div></div>
+    {% include 'school_admin/eleve/partials/_ex_periodes.html' %}
+
+    <section class="axd-mini ex-mini" aria-label="{% trans 'Résumé' %}">
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-orange"><i class="fas fa-pen-to-square" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% trans "Devoirs" %}</h2>
+          <p class="axd-mini__value">{{ total_exercices }}</p>
+        </div>
+      </article>
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-red"><i class="fas fa-book-open-reader" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% trans "Évaluations" %}</h2>
+          <p class="axd-mini__value">{{ total_evaluations }}</p>
+        </div>
+      </article>
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-blue"><i class="fas fa-calendar-week" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% trans "Cette semaine" %}</h2>
+          <p class="axd-mini__value">{{ total_semaine }}</p>
+        </div>
+      </article>
+      <article class="axd-mini__card">
+        <span class="axd-mini__icon ax-tone-green"><i class="fas fa-hourglass-half" aria-hidden="true"></i></span>
+        <div class="axd-mini__body">
+          <h2 class="axd-mini__label">{% trans "À venir" %}</h2>
+          <p class="axd-mini__value">{{ total_a_venir }}</p>
+        </div>
+      </article>
     </section>
 
-    <nav class="px-tabs ex-maintabs" aria-label="{% trans 'Type' %}">
-      <a href="?onglet=exercices" class="px-tab{% if onglet_actif == 'exercices' %} is-active{% endif %}"><i class="fas fa-pen-to-square" aria-hidden="true"></i>{% trans "Devoirs" %} <b>{{ total_exercices }}</b></a>
-      <a href="?onglet=evaluations" class="px-tab{% if onglet_actif == 'evaluations' %} is-active{% endif %}"><i class="fas fa-book-open-reader" aria-hidden="true"></i>{% trans "Évaluations" %} <b>{{ total_evaluations }}</b></a>
-    </nav>
-
-    {% if onglet_actif == 'evaluations' %}{% with periodes=periodes_evaluations %}
-    {% if periodes|length > 1 %}
-    <nav class="px-tabs ex-subtabs" aria-label="{% trans 'Période' %}">
-      {% for periode in periodes %}
-      <a href="?onglet=evaluations&periode={{ periode.id }}" class="px-tab{% if periode.id|stringformat:'s' == periode_selectionnee|stringformat:'s' %} is-active{% endif %}">{{ periode.nom }} <b>{{ periode.total }}</b></a>
-      {% endfor %}
-    </nav>
-    {% endif %}{% endwith %}
-    {% if evaluations %}
-    <div class="ex-cards">
-      {% for e in evaluations %}
-      <article class="ex-work{% if e.statut == 'passe' %} is-past{% endif %}">
-        <span class="ex-work__icon ax-tone-{{ e.matiere|matiere_tone }}"><i class="fas {{ e.matiere|matiere_icon }}" aria-hidden="true"></i></span>
-        <div class="ex-work__body">
-          <p class="ex-work__subject">{{ e.matiere }}</p>
-          <h2 class="ex-work__title">{{ e.titre }}</h2>
-          {% if e.description %}<p class="ex-work__desc">{{ e.description }}</p>{% endif %}
-          <p class="px-item__meta">
-            <span><i class="fas fa-calendar" aria-hidden="true"></i>{{ e.date_evaluation|date:"l j F"|capfirst }}</span>
-            <span><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{{ e.professeur }}</span>
-            <span><i class="fas fa-star" aria-hidden="true"></i>{% trans "Sur" %} {{ e.bareme|floatformat:"0" }}</span>
-          </p>
-        </div>
-        <span class="px-badge {% if e.statut == 'aujourdhui' or e.statut == 'demain' %}px-badge--red{% elif e.statut == 'proche' %}px-badge--orange{% elif e.statut == 'passe' %}px-badge--gray{% else %}px-badge--blue{% endif %} ex-work__badge">{{ e.statut_label }}</span>
-      </article>
-      {% endfor %}
+    <div class="prof-hub-filters ex-period-filters">
+      <section class="prof-hub-filter-block prof-hub-filter-block--vue" aria-label="{% trans 'Type' %}">
+        <p class="prof-hub-filter-label"><i class="fas fa-layer-group" aria-hidden="true"></i> {% trans "Type" %}</p>
+        <nav class="prof-primaire-hub-nav" aria-label="{% trans 'Type de travail' %}">
+          <div class="matiere-tabs-bar prof-primaire-vues-bar" data-tabs-level="primary" data-overflow-item-label="type" data-overflow-items-label="types">
+            <div class="matiere-tabs-track" role="tablist">
+              <a role="tab"
+                 class="matiere-tab-btn prof-primaire-tab-link prof-hub-nav-link{% if onglet_actif == 'exercices' %} active{% endif %}"
+                 aria-selected="{% if onglet_actif == 'exercices' %}true{% else %}false{% endif %}"
+                 href="?onglet=exercices{% if periode_selectionnee %}&periode={{ periode_selectionnee }}{% endif %}">
+                <i class="fas fa-pen-to-square" aria-hidden="true"></i>
+                <span>{% trans "Devoirs" %}</span>
+                <span class="tab-count">{{ total_exercices }}</span>
+              </a>
+              <a role="tab"
+                 class="matiere-tab-btn prof-primaire-tab-link prof-hub-nav-link{% if onglet_actif == 'evaluations' %} active{% endif %}"
+                 aria-selected="{% if onglet_actif == 'evaluations' %}true{% else %}false{% endif %}"
+                 href="?onglet=evaluations{% if periode_selectionnee %}&periode={{ periode_selectionnee }}{% endif %}">
+                <i class="fas fa-book-open-reader" aria-hidden="true"></i>
+                <span>{% trans "Évaluations" %}</span>
+                <span class="tab-count">{{ total_evaluations }}</span>
+              </a>
+            </div>
+            <div class="matiere-tabs-more-wrap" hidden>
+              <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres types' %}">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                <span class="matiere-tabs-more-label">{% trans "Autres types" %}</span>
+              </button>
+              <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+            </div>
+          </div>
+        </nav>
+      </section>
     </div>
-    {% else %}
-    <div class="px-empty-inline"><i class="fas fa-book-open-reader" aria-hidden="true"></i><h2>{% trans "Aucune évaluation" %}</h2><p>{% trans "Aucune évaluation programmée pour cette période." %}</p></div>
-    {% endif %}
 
-    {% else %}{% with periodes=periodes_exercices %}
-    {% if periodes|length > 1 %}
-    <nav class="px-tabs ex-subtabs" aria-label="{% trans 'Période' %}">
-      {% for periode in periodes %}
-      <a href="?onglet=exercices&periode={{ periode.id }}" class="px-tab{% if periode.id|stringformat:'s' == periode_selectionnee|stringformat:'s' %} is-active{% endif %}">{{ periode.nom }} <b>{{ periode.total }}</b></a>
-      {% endfor %}
-    </nav>
-    {% endif %}{% endwith %}
-    {% if exercices %}
-    <div class="ex-cards">
-      {% for x in exercices %}
-      <article class="ex-work{% if x.statut == 'retard' %} is-past{% elif x.statut == 'jour' or x.statut == 'bientot' %} is-urgent{% endif %}">
-        <span class="ex-work__icon ax-tone-{{ x.matiere|matiere_tone }}"><i class="fas {{ x.matiere|matiere_icon }}" aria-hidden="true"></i></span>
-        <div class="ex-work__body">
-          <p class="ex-work__subject">{{ x.matiere }}</p>
-          <h2 class="ex-work__title">{{ x.titre }}</h2>
-          {% if x.description %}<p class="ex-work__desc">{{ x.description }}</p>{% endif %}
-          <p class="px-item__meta">
-            <span><i class="fas fa-calendar" aria-hidden="true"></i>{% trans "À rendre le" %} {{ x.date_rendu|date:"l j F" }}</span>
-            <span><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{{ x.professeur }}</span>
-          </p>
-        </div>
-        <span class="px-badge {% if x.statut == 'jour' or x.statut == 'bientot' %}px-badge--red{% elif x.statut == 'proche' %}px-badge--orange{% elif x.statut == 'retard' %}px-badge--gray{% else %}px-badge--blue{% endif %} ex-work__badge">{% if x.statut == 'retard' %}{% trans "Date passée" %}{% else %}{{ x.statut_label }}{% endif %}</span>
-      </article>
-      {% endfor %}
-    </div>
+    {% if onglet_actif == 'evaluations' %}
+      {% if evaluations %}
+      <ul class="ex-feed">
+        {% for e in evaluations %}
+        <li class="ex-item{% if e.statut == 'passe' %} is-past{% elif e.statut == 'aujourdhui' or e.statut == 'demain' %} is-soon{% endif %}">
+          <span class="ex-item__icon ax-tone-{{ e.matiere|matiere_tone }}"><i class="fas {{ e.matiere|matiere_icon }}" aria-hidden="true"></i></span>
+          <div class="ex-item__body">
+            <p class="ex-item__kicker">{{ e.matiere }}</p>
+            <h2 class="ex-item__title">{{ e.titre }}</h2>
+            {% if e.description %}<p class="ex-item__desc">{{ e.description }}</p>{% endif %}
+            <p class="ex-item__meta">
+              <span>{{ e.date_evaluation|date:"l j F"|capfirst }}</span>
+              <span>{{ e.professeur }}</span>
+              <span>{% trans "Sur" %} {{ e.bareme|floatformat:"0" }}</span>
+            </p>
+          </div>
+          <span class="px-badge {% if e.statut == 'aujourdhui' or e.statut == 'demain' %}px-badge--red{% elif e.statut == 'proche' %}px-badge--orange{% elif e.statut == 'passe' %}px-badge--gray{% else %}px-badge--blue{% endif %}">{{ e.statut_label }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="px-empty-inline"><i class="fas fa-book-open-reader" aria-hidden="true"></i><h2>{% trans "Aucune évaluation" %}</h2><p>{% trans "Aucune évaluation programmée pour cette période." %}</p></div>
+      {% endif %}
     {% else %}
-    <div class="px-empty-inline"><i class="fas fa-mug-hot" aria-hidden="true"></i><h2>{% trans "Aucun devoir" %}</h2><p>{% trans "Aucun devoir donné pour cette période." %}</p></div>
-    {% endif %}
+      {% if exercices %}
+      <ul class="ex-feed">
+        {% for x in exercices %}
+        <li class="ex-item{% if x.statut == 'retard' %} is-past{% elif x.statut == 'jour' or x.statut == 'bientot' %} is-soon{% endif %}">
+          <span class="ex-item__icon ax-tone-{{ x.matiere|matiere_tone }}"><i class="fas {{ x.matiere|matiere_icon }}" aria-hidden="true"></i></span>
+          <div class="ex-item__body">
+            <p class="ex-item__kicker">{{ x.matiere }}</p>
+            <h2 class="ex-item__title">{{ x.titre }}</h2>
+            {% if x.description %}<p class="ex-item__desc">{{ x.description }}</p>{% endif %}
+            <p class="ex-item__meta">
+              <span>{% trans "À rendre le" %} {{ x.date_rendu|date:"l j F" }}</span>
+              <span>{{ x.professeur }}</span>
+            </p>
+          </div>
+          <span class="px-badge {% if x.statut == 'jour' or x.statut == 'bientot' %}px-badge--red{% elif x.statut == 'proche' %}px-badge--orange{% elif x.statut == 'retard' %}px-badge--gray{% else %}px-badge--blue{% endif %}">{% if x.statut == 'retard' %}{% trans "Date passée" %}{% else %}{{ x.statut_label }}{% endif %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="px-empty-inline"><i class="fas fa-mug-hot" aria-hidden="true"></i><h2>{% trans "Aucun devoir" %}</h2><p>{% trans "Aucun devoir donné pour cette période." %}</p></div>
+      {% endif %}
     {% endif %}
   </main>
 

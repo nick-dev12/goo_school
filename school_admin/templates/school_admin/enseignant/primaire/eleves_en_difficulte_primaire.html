@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
-{% load notes_tags %}
+{% load notes_tags aria_tabs %}
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -29,8 +29,7 @@
 
         {% if stats.total_classes > 0 %}
             <div id="prof-hub-chrome">
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_periode_tabs.html' %}
-                {% include 'school_admin/enseignant/primaire/partials/prof_primaire_classe_tabs.html' %}
+                {% aria_prof_filters show_matieres=False %}
             </div>
             <div id="prof-hub-panel">
                 {% include 'school_admin/enseignant/primaire/partials/eleves_en_difficulte_primaire_hub_panel.html' %}

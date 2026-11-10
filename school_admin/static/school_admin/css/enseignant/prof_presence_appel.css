@@ -1,0 +1,344 @@
+/* Faire l’appel — primaire, collège, lycée, supérieur. Pas de dégradé. */
+
+body[data-live-page="presence-liste"] {
+  background: #f3f6fb;
+}
+
+body[data-live-page="presence-liste"] .main-content-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: clamp(1rem, 2.5vw, 2rem) clamp(1rem, 3vw, 2rem) 1.25rem;
+}
+
+.prof-appel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  padding: 0 0.75rem;
+}
+
+@media (min-width: 1025px) {
+  .prof-appel {
+    padding: 0;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.prof-appel-chrome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+}
+
+.prof-appel-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 2.05rem;
+  padding: 0 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.prof-appel-back:hover,
+.prof-appel-back:focus-visible {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.prof-appel-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.prof-appel-chip,
+.prof-appel-status,
+.prof-appel-history-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2.05rem;
+  padding: 0 0.7rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.prof-appel-chip--classe {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.prof-appel-chip--matiere {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+  color: #5b21b6;
+}
+
+.prof-appel-status.is-open {
+  border-color: #bfdbfe;
+  background: #3b82f6;
+  color: #fff;
+}
+
+.prof-appel-status.is-done {
+  border-color: #a7f3d0;
+  background: #10b981;
+  color: #fff;
+}
+
+.prof-appel-status.is-limit {
+  border-color: #fecaca;
+  background: #ef4444;
+  color: #fff;
+}
+
+.prof-appel-alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.prof-appel-alert.is-warn {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.prof-appel-alert.is-ok {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.prof-appel-alert__meta {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.prof-appel-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.prof-appel-history-chip.is-done {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.prof-appel-history-chip.is-current {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.prof-appel-history-chip.is-next {
+  border-color: #3b82f6;
+  background: #3b82f6;
+  color: #fff;
+  text-decoration: none;
+}
+
+.prof-appel-history-chip.is-next:hover,
+.prof-appel-history-chip.is-next:focus-visible {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.prof-appel-history-chip time,
+.prof-appel-history-chip span {
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.prof-appel-filters {
+  margin: 0 0 0.15rem;
+}
+
+.presence-legacy-hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #b45309;
+  line-height: 1.3;
+}
+
+.prof-appel-save {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 4.75rem 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+.prof-appel-save--end {
+  margin-top: 0.85rem;
+  margin-bottom: calc(var(--ax-dock-h, 104px) + 28px + env(safe-area-inset-bottom, 0px));
+}
+
+.prof-appel-save-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #4b5563;
+}
+
+.prof-appel-save-text strong {
+  color: #111827;
+  font-size: 0.875rem;
+}
+
+.prof-appel-save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.prof-appel-submit,
+.prof-appel-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0 0.9rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.prof-appel-submit {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+}
+
+.prof-appel-submit:hover,
+.prof-appel-submit:focus-visible {
+  background: #059669;
+  border-color: #059669;
+  color: #fff;
+}
+
+.prof-appel-cancel {
+  background: #fff;
+  border-color: #e5e7eb;
+  color: #4b5563;
+}
+
+.prof-appel-cancel:hover,
+.prof-appel-cancel:focus-visible {
+  background: #f9fafb;
+  color: #111827;
+}
+
+.prof-appel-matieres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.prof-appel-matiere {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #ddd6fe;
+  background: #fff;
+  color: #5b21b6;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.prof-appel-matiere:hover,
+.prof-appel-matiere:focus-visible {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #fff;
+}
+
+#modalPresenceAppel .prof-appel {
+  gap: 0.75rem;
+}
+
+#modalPresenceAppel .prof-appel-save--end {
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  body[data-live-page="presence-liste"] .main-content-container {
+    padding: 0.75rem 0.75rem 1.25rem;
+  }
+
+  .prof-appel-save-text {
+    font-size: 0.75rem;
+  }
+
+  .prof-appel-submit,
+  .prof-appel-cancel {
+    width: 100%;
+  }
+
+  .prof-appel-save-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+}

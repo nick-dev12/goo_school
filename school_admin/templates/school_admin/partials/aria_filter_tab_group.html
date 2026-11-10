@@ -1,0 +1,45 @@
+<section class="aria-filter-tabs__group prof-hub-filter-block prof-hub-filter-block--{{ group.block }}"
+         data-kind="{{ group.kind }}"
+         aria-label="{{ group.label }}">
+  <p class="aria-filter-tabs__label prof-hub-filter-label">
+    <i class="{{ group.icon }}" aria-hidden="true"></i> {{ group.label }}
+  </p>
+  <nav class="aria-filter-tabs__nav prof-primaire-hub-nav" aria-label="{{ group.label }}">
+    <div class="aria-filter-tabs__list matiere-tabs-bar {{ group.bar }}"
+         data-tabs-level="primary"
+         data-aria-tabs-kind="{{ group.kind }}"
+         data-overflow-item-label="{{ group.overflow_one }}"
+         data-overflow-items-label="{{ group.overflow_many }}">
+      <div class="matiere-tabs-track" role="tablist">
+        {% for item in group.items %}
+        <a role="tab"
+           class="aria-filter-tabs__tab matiere-tab-btn prof-hub-nav-link notes-secondary-tab{% if item.active %} active{% endif %}"
+           href="{{ item.href }}"
+           {% if item.active %}aria-current="page" aria-selected="true"{% else %}aria-selected="false"{% endif %}
+           {% if item.label %}title="{{ item.label }}"{% endif %}>
+          <span>{{ item.label }}</span>
+          {% if item.count != None %}<span class="tab-count aria-filter-tabs__count">{{ item.count }}</span>{% endif %}
+        </a>
+        {% empty %}
+        <span class="aria-filter-tabs__empty">Aucun élément</span>
+        {% endfor %}
+      </div>
+      <div class="matiere-tabs-more-wrap" hidden>
+        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres {{ group.overflow_many }}">
+          <i class="fas fa-chevron-down" aria-hidden="true"></i>
+          <span class="matiere-tabs-more-label">Autres {{ group.overflow_many }}</span>
+        </button>
+        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+      </div>
+    </div>
+  </nav>
+  {% if group.search_placeholder %}
+  <label class="prof-primaire-search-wrap prof-eleves-search-wrap">
+    <span class="visually-hidden">{{ group.search_placeholder }}</span>
+    <i class="fas fa-search" aria-hidden="true"></i>
+    <input type="search" id="profPrimaireSearchInput" class="prof-primaire-search-input"
+           placeholder="{{ group.search_placeholder }}" autocomplete="off"
+           data-prof-search-target="{{ group.search_target }}">
+  </label>
+  {% endif %}
+</section>

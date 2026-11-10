@@ -1,0 +1,104 @@
+{% load notes_tags %}
+<div class="notes-justif-block" data-view="eval">
+    {% if evaluations_matiere %}
+    <section class="aria-filter-tabs__group prof-hub-filter-block prof-hub-filter-block--vue" data-kind="view" aria-label="Choisir une évaluation">
+    <nav class="aria-filter-tabs__nav prof-primaire-hub-nav notes-eval-tabs notes-justif-eval-switch" aria-label="Choisir une évaluation">
+        <div class="aria-filter-tabs__list matiere-tabs-bar notes-eval-tabs-bar" data-tabs-level="primary" data-aria-tabs-kind="view" data-overflow-item-label="Évaluation" data-overflow-items-label="évaluations">
+            <div class="matiere-tabs-track" role="tablist">
+                {% for eval in evaluations_matiere %}
+                    <button type="button"
+                            role="tab"
+                            class="aria-filter-tabs__tab matiere-tab-btn notes-eval-tab notes-justif-eval-tab{% if forloop.first %} active{% endif %}"
+                            data-eval-id="{{ eval.id }}"
+                            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                            title="{{ eval.titre|default:eval.type_label }}">
+                        <span>{{ eval.titre|default:eval.type_label }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+            <div class="matiere-tabs-more-wrap" hidden>
+                <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="Autres évaluations">
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    <span class="matiere-tabs-more-label">Autres évaluations</span>
+                </button>
+                <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+            </div>
+        </div>
+    </nav>
+    </section>
+    {% endif %}
+
+    <div class="notes-list notes-list--justif" role="list" style="--justif-n: {{ evaluations_matiere|length }};">
+        <div class="notes-list-head">
+            <span class="notes-list-head__index" aria-hidden="true"></span>
+            <span class="notes-list-head__eleve">Élève</span>
+            <span class="justif-list__note-head-current">{% if evaluations_matiere %}{{ evaluations_matiere.0.titre|default:evaluations_matiere.0.type_label }}{% else %}Note{% endif %}</span>
+            {% for eval in evaluations_matiere %}
+                <span class="justif-list__num-head" title="{{ eval.titre|default:eval.type_label }}">{{ forloop.counter }}</span>
+            {% endfor %}
+            <span class="justif-list__status-head">Justification</span>
+            <span class="justif-list__action-head">Action</span>
+        </div>
+        {% for data in releve_data %}
+        <article class="notes-list-row" role="listitem" data-eleve-name="{{ data.eleve.nom }} {{ data.eleve.prenom }}">
+            <span class="notes-list-row__index">{{ forloop.counter }}</span>
+            <div class="notes-list-row__eleve">
+                <div class="notes-list-row__name">
+                    <span class="nom">{{ data.eleve.nom|upper }}</span>
+                    <span class="prenom">{{ data.eleve.prenom }}</span>
+                </div>
+            </div>
+            {% for eval in evaluations_matiere %}
+                {% with note_data=data.notes_evaluations|get_item:eval.id %}
+                    <span class="justif-list__note{% if forloop.first %} is-active{% endif %}"
+                          data-eval-id="{{ eval.id }}"
+                          title="{{ eval.titre|default:eval.type_label }}">
+                        {% if note_data.note_obj and note_data.note_obj.note %}
+                            {% with color=note_data.note_obj.note|note_color_css:eval.bareme %}
+                            <span class="notes-chip__value {{ note_data.note_obj.note|get_note_color_class:eval.bareme }}"{% if color %} style="color: {{ color }};"{% endif %}>{{ note_data.note_obj.note|floatformat:2 }}<small>/{{ eval.bareme|floatformat:0 }}</small></span>
+                            {% endwith %}
+                        {% elif note_data.note_obj and note_data.note_obj.absent %}
+                            <span class="notes-chip__value absent">ABS</span>
+                        {% else %}
+                            <span class="notes-chip__value muted">—</span>
+                        {% endif %}
+                    </span>
+                {% endwith %}
+            {% empty %}
+                <span class="justif-list__note is-active"><span class="notes-chip__value muted">—</span></span>
+            {% endfor %}
+            <span class="justif-list__status">
+                {% if data.derniere_justification %}
+                    <span class="status-chip status-{{ data.derniere_justification.statut }}">
+                        {% if data.derniere_justification.statut == 'en_attente' %}
+                            En attente
+                        {% elif data.derniere_justification.statut == 'validee' %}
+                            Validée
+                        {% else %}
+                            Refusée
+                        {% endif %}
+                    </span>
+                {% else %}
+                    <span class="status-chip status-none">Aucune</span>
+                {% endif %}
+            </span>
+            <span class="justif-list__action">
+                <button
+                    type="button"
+                    class="btn-primary justif-list__btn"
+                    data-justify-btn
+                    data-eleve-id="{{ data.eleve.id }}"
+                    data-eleve-nom="{{ data.eleve.nom_complet }}"
+                    data-classe-id="{{ classe_selectionnee.id }}"
+                    data-matiere-id="{{ matiere_selectionnee.id }}"
+                >
+                    <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                    Justifier
+                </button>
+            </span>
+        </article>
+        {% empty %}
+        <p class="notes-list-empty">Aucun élève inscrit dans cette classe pour cette période.</p>
+        {% endfor %}
+    </div>
+</div>

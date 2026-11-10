@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=20261104c" />
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0" />
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1" />
-  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.2.2" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5" />
 </head>
 <body class="axd-page cg3-body fe-body">
   {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -23,18 +23,6 @@
     </header>
 
     {% if messages %}<div class="fe-messages" style="margin-top:14px">{% for m in messages %}<p class="fe-alert {% if m.tags == 'success' %}fe-alert--ok{% elif m.tags == 'error' or m.tags == 'warning' %}fe-alert--warn{% else %}fe-alert--info{% endif %}"><i class="fas fa-circle-info" aria-hidden="true"></i><span>{{ m }}</span></p>{% endfor %}</div>{% endif %}
-
-    {% if hub.kpis %}
-    <section class="fe-kpis hb-kpis hb-kpis--{{ hub.kpis|length }}" aria-label="{% trans 'Indicateurs' %}">
-      {% for k in hub.kpis %}
-      <div class="fe-kpi fe-tone-{{ k.tone }}">
-        <div class="fe-kpi__top"><span class="fe-kpi__label">{{ k.label }}</span><span class="fe-kpi__icon"><i class="fas {{ k.icon }}" aria-hidden="true"></i></span></div>
-        <p class="fe-kpi__value{% if k.texte %} is-text{% endif %}{% if k.bad %} is-warn{% endif %}">{{ k.value }}</p>
-        {% if k.pct != None and k.pct != '' %}<div class="fe-bar"><span class="{% if k.pct > 100 %}is-bad{% elif k.pct < 80 %}is-warn{% endif %}" style="width: {% if k.pct > 100 %}100{% else %}{{ k.pct }}{% endif %}%"></span></div>{% endif %}
-      </div>
-      {% endfor %}
-    </section>
-    {% endif %}
 
     {% if afficher_points_a_verifier and hub.alertes %}
     <section class="hb-todo" aria-label="{% trans 'Points d’attention' %}">
@@ -58,8 +46,12 @@
         <a class="hb-card fe-tone-{{ l.tone }}" href="{{ l.url }}">
           <span class="hb-card__icon"><i class="fas {{ l.icon }}" aria-hidden="true"></i></span>
           <span class="hb-card__body">
-            <strong>{{ l.titre }}</strong>
+            <span class="hb-card__title-row">
+              <strong>{{ l.titre }}</strong>
+              {% if l.stat != None %}<span class="hb-card__stat"><b>{{ l.stat }}</b> {{ l.stat_label }}</span>{% endif %}
+            </span>
             <small>{{ l.desc }}</small>
+            {% if l.alerte %}<span class="hb-card__alert">{{ l.alerte }}</span>{% endif %}
           </span>
           <i class="fas fa-chevron-right hb-card__go" aria-hidden="true"></i>
         </a>

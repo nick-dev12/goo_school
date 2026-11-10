@@ -95,33 +95,15 @@ function calculerMoyennes(matiereId) {
     console.log('Moyennes calculées pour', count, 'élèves');
 }
 
-// Colorier une note selon sa valeur
 function colorNote(input) {
-    const value = parseFloat(input.value);
-    const bareme = parseFloat(input.getAttribute('data-bareme'));
-    
-    if (!isNaN(value) && !isNaN(bareme) && bareme > 0) {
-        const noteSur20 = (value / bareme) * 20;
-        
-        input.classList.remove('excellent', 'tres-bien', 'bien', 'passable', 'fragile', 'insuffisant');
-        
-        if (noteSur20 >= 16) {
-            input.classList.add('excellent');
-        } else if (noteSur20 >= 14) {
-            input.classList.add('tres-bien');
-        } else if (noteSur20 >= 12) {
-            input.classList.add('bien');
-        } else if (noteSur20 >= 10) {
-            input.classList.add('passable');
-        } else if (noteSur20 >= 8) {
-            input.classList.add('fragile');
-        } else {
-            input.classList.add('insuffisant');
-        }
-        
+    if (!input) return;
+    if (input.value && !input.disabled) {
         input.classList.add('saved');
     } else {
-        input.classList.remove('excellent', 'tres-bien', 'bien', 'passable', 'fragile', 'insuffisant', 'saved');
+        input.classList.remove('saved');
+    }
+    if (typeof window.__notesScaleColor === 'function') {
+        window.__notesScaleColor(input);
     }
 }
 
@@ -152,32 +134,29 @@ function syncModeCalculDropdowns() {
     }
 }
 
-// Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initialisation de la page de notation primaire');
-    
-    // Synchroniser les dropdowns de mode de calcul
     syncModeCalculDropdowns();
-    
-    // Ajouter les événements sur les checkboxes
-    document.querySelectorAll('.eval-checkbox').forEach(checkbox => {
+
+    document.querySelectorAll('.eval-checkbox').forEach(function (checkbox) {
         checkbox.addEventListener('change', function() {
             const matiereId = this.getAttribute('data-matiere');
-            updateSelectedCount(matiereId);
+            if (matiereId) {
+                updateSelectedCount(matiereId);
+            }
         });
     });
-    
-    // Activer le premier onglet par défaut
-    const firstTab = document.querySelector('.matiere-tab-btn');
-    if (firstTab) {
-        const firstMatiereId = firstTab.getAttribute('data-tab');
-        switchMatiereTab(firstMatiereId);
+
+    if (!document.querySelector('.matiere-tab-content')) {
+        return;
     }
-    
-    // Mettre à jour les compteurs initiaux
-    document.querySelectorAll('.matiere-tab-btn').forEach(btn => {
-        const matiereId = btn.getAttribute('data-tab');
-        updateSelectedCount(matiereId);
+
+    const firstTab = document.querySelector('.matiere-tab-btn[data-tab]');
+    if (firstTab) {
+        switchMatiereTab(firstTab.getAttribute('data-tab'));
+    }
+
+    document.querySelectorAll('.matiere-tab-btn[data-tab]').forEach(function (btn) {
+        updateSelectedCount(btn.getAttribute('data-tab'));
     });
 });
 

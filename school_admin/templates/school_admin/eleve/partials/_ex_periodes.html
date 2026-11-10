@@ -1,0 +1,30 @@
+{% load i18n %}
+{% if periodes_nav %}
+<div class="prof-hub-filters ex-period-filters">
+  <section class="prof-hub-filter-block prof-hub-filter-block--period" aria-label="{% trans 'Période' %}">
+    <p class="prof-hub-filter-label"><i class="fas fa-calendar-alt" aria-hidden="true"></i> {% trans "Période" %}</p>
+    <nav class="prof-primaire-hub-nav" aria-label="{% trans 'Périodes scolaires' %}">
+      <div class="matiere-tabs-bar prof-primaire-periodes-bar" data-tabs-level="primary" data-overflow-item-label="période" data-overflow-items-label="périodes">
+        <div class="matiere-tabs-track" role="tablist">
+          {% for p in periodes_nav %}
+          <a role="tab"
+             class="matiere-tab-btn prof-primaire-tab-link prof-hub-nav-link{% if p.active %} active{% endif %}"
+             aria-selected="{% if p.active %}true{% else %}false{% endif %}"
+             href="{{ p.url }}">
+            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+            <span>{{ p.nom }}</span>
+          </a>
+          {% endfor %}
+        </div>
+        <div class="matiere-tabs-more-wrap" hidden>
+          <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres périodes' %}">
+            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            <span class="matiere-tabs-more-label">{% trans "Autres périodes" %}</span>
+          </button>
+          <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+        </div>
+      </div>
+    </nav>
+  </section>
+</div>
+{% endif %}

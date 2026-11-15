@@ -46,13 +46,23 @@
 
     }
 
-    modal.classList.add('active');
+    modal.hidden = false;
+
+    modal.classList.add('is-open', 'active');
+
+    document.documentElement.style.overflow = 'hidden';
 
     lockBody(true);
 
     if (window.initInscriptionFormExtras) {
 
       window.initInscriptionFormExtras();
+
+    }
+
+    if (window.initFraisAuChoixClasse) {
+
+      window.initFraisAuChoixClasse(modal);
 
     }
 
@@ -70,7 +80,11 @@
 
     }
 
-    modal.classList.remove('active');
+    modal.classList.remove('is-open', 'active');
+
+    modal.hidden = true;
+
+    document.documentElement.style.overflow = '';
 
     if (!document.getElementById('modalRecuEleve') || !document.getElementById('modalRecuEleve').classList.contains('active')) {
 
@@ -79,6 +93,14 @@
     }
 
   };
+
+  document.addEventListener('click', function (e) {
+    var modal = document.getElementById('modalInscriptionEleve');
+    if (!modal || !modal.classList.contains('is-open')) return;
+    if (e.target === modal) {
+      window.closeModalInscriptionEleve();
+    }
+  });
 
 
 
@@ -256,19 +278,9 @@
 
       '<span class="student-name-mobile">' +
 
-      esc(item.premier_nom) +
-
-      ' ' +
-
-      esc(item.premier_prenom) +
+      esc(item.nom_complet) +
 
       '</span></h4></div></div>' +
-
-      '<div class="list-cell ele-list-cell" data-label="Numéro"><span class="student-number">' +
-
-      esc(item.matricule) +
-
-      '</span></div>' +
 
       '<div class="list-cell ele-list-cell ele-list-cell--center" data-label="Âge"><span class="student-age">' +
 
@@ -288,7 +300,7 @@
 
       '</span></div>' +
 
-      '<div class="list-cell ele-list-cell ele-list-cell--actions" data-label="Actions">' +
+      '<div class="list-cell ele-list-cell ele-list-cell--center" data-label="Profil">' +
 
       '<div class="student-actions-compact">' +
 
@@ -296,21 +308,7 @@
 
       esc(item.detail_url) +
 
-      '" class="btn-action-small btn-view" title="Voir détails"><i class="fas fa-eye"></i></a>' +
-
-      '<button class="btn-action-small btn-sanction" title="Ajouter une sanction" onclick="ouvrirModalSanction(' +
-
-      item.id +
-
-      ", '" +
-
-      esc(item.nom_complet).replace(/'/g, "\\'") +
-
-      "', " +
-
-      item.classe_id +
-
-      ')"><i class="fas fa-gavel"></i></button>' +
+      '" class="btn-action-small btn-view" title="Profil">Profil</a>' +
 
       '</div></div>';
 
@@ -368,15 +366,13 @@
 
       '<div class="list-cell header-cell ele-list-cell--student">Élève</div>' +
 
-      '<div class="list-cell header-cell">Numéro</div>' +
-
       '<div class="list-cell header-cell ele-list-cell--center">Âge</div>' +
 
       '<div class="list-cell header-cell ele-list-cell--center">Absences</div>' +
 
       '<div class="list-cell header-cell ele-list-cell--center">Inscription</div>' +
 
-      '<div class="list-cell header-cell ele-list-cell--actions">Actions</div>' +
+      '<div class="list-cell header-cell ele-list-cell--center">Profil</div>' +
 
       '</div>';
 
@@ -697,7 +693,7 @@
 
       '<html><head><title>Reçu inscription</title>' +
 
-      '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />' +
+      '<link rel="stylesheet" href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" />' +
 
       '<link rel="stylesheet" href="' + recuCss + '" />' +
 

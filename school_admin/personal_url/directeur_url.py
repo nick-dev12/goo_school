@@ -5,6 +5,8 @@ from ..controllers import (admission_controller, inscription_masse_controller, d
                            maquette_controller, service_enseignant_controller)
 from ..controllers.preinscription_controller import PreinscriptionController
 
+from ..controllers.rappels_controller import RappelsController
+
 app_name = 'directeur'  # ← Changement du namespace pour éviter le conflit
 
 urlpatterns = [
@@ -146,6 +148,8 @@ urlpatterns = [
     path('comptabilite/eleve/<int:eleve_id>/frais-inscription/<int:frais_id>/payer/', payer_frais_inscription_directeur, name='payer_frais_inscription_directeur'),
     path('comptabilite/eleve/<int:eleve_id>/mensualite/<int:mensualite_id>/payer/', payer_mensualite_directeur, name='payer_mensualite_directeur'),
     path('comptabilite/eleve/<int:eleve_id>/frais-annexe/<int:frais_id>/payer/', payer_frais_annexe_directeur, name='payer_frais_annexe_directeur'),
+    path('comptabilite/eleve/<int:eleve_id>/frais-annexes/choix/', gerer_choix_frais_annexes_directeur, name='gerer_choix_frais_annexes_directeur'),
+    path('comptabilite/classe/<int:classe_id>/frais-au-choix/', frais_au_choix_pour_classe_directeur, name='frais_au_choix_pour_classe_directeur'),
     path('comptabilite/verifier-statuts/', verifier_statuts_paiement_directeur, name='verifier_statuts_paiement_directeur'),
     path('comptabilite/parametres/', parametres_comptabilite_directeur, name='parametres_comptabilite_directeur'),
     path('comptabilite/parametres-groupes/', liste_parametres_groupes_directeur, name='liste_parametres_groupes_directeur'),
@@ -191,6 +195,7 @@ urlpatterns = [
     path('volume-horaire/', liste_volume_horaire_directeur, name='liste_volume_horaire'),
     path('volume-horaire/controle/', pointage_controle, name='pointage_controle'),
     path('cahiers-de-texte/', cahiers_texte_directeur, name='cahiers_texte'),
+    path('rappels-automatiques/', RappelsController.parametres, name='rappels_automatiques'),
     path('pointage/borne/<int:borne_id>/', pointage_borne, name='pointage_borne'),
     path('pointage/borne/<int:borne_id>/code/', pointage_borne_code, name='pointage_borne_code'),
     path('volume-horaire/<int:professeur_id>/', detail_volume_horaire_directeur, name='detail_volume_horaire'),

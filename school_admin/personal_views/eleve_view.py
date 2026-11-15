@@ -255,6 +255,24 @@ def dashboard_eleve(request):
         sdash = build_student_dashboard(eleve, classe_active, annee_scolaire_active, primaire, est_parent=est_parent)
         annonces, nombre_annonces = annonces_eleves(eleve.etablissement, annee_scolaire_active)
 
+        from school_admin.controllers.comptabilite_controller import ComptabiliteController
+        from school_admin.services.recouvrement import devise_etablissement, resume_dette_eleve
+        from school_admin.utils.tarifs_mensualite import paliers_depuis_parametre, phrase_paliers
+
+        scolarite_resume = None
+        paliers_scolarite = []
+        phrase_paliers_scolarite = ''
+        devise_scolarite = devise_etablissement(eleve.etablissement)
+        if annee_scolaire_active and eleve.etablissement:
+            scolarite_resume = resume_dette_eleve(eleve, eleve.etablissement, annee_scolaire_active)
+            parametre_scolarite = (
+                ComptabiliteController._parametres_groupe_for_classe(eleve.etablissement, classe_active)
+                if classe_active else None
+            )
+            if parametre_scolarite:
+                paliers_scolarite = paliers_depuis_parametre(parametre_scolarite)
+                phrase_paliers_scolarite = phrase_paliers(parametre_scolarite, devise_scolarite)
+
         context = {
             'page_title': 'Tableau de bord',
             'eleve': eleve,
@@ -267,6 +285,10 @@ def dashboard_eleve(request):
             'classe': classe_active,
             'classe_active': classe_active,
             'sdash': sdash,
+            'scolarite_resume': scolarite_resume,
+            'paliers_scolarite': paliers_scolarite,
+            'phrase_paliers_scolarite': phrase_paliers_scolarite,
+            'devise_scolarite': devise_scolarite,
         }
         return render(request, 'school_admin/eleve/dashboard_eleve.html', context)
 
@@ -274,6 +296,38 @@ def dashboard_eleve(request):
         logger.exception("Erreur tableau de bord élève")
         messages.error(request, f"Erreur lors du chargement du tableau de bord : {str(e)}")
         return redirect('school_admin:connexion_compte_user')
+
+
+def scolarite_eleve(request):
+    """Espace élève : tarifs de la classe, sommes dues et paiements reçus."""
+    eleve, est_parent = get_eleve_from_request(request)
+    if not eleve:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('school_admin:connexion_compte_user')
+
+    annee = get_session_active(request, eleve.etablissement) if eleve.etablissement else None
+    classe = get_classe_eleve_active(eleve, annee, eleve.etablissement)
+    from school_admin.controllers.comptabilite_controller import ComptabiliteController
+    from school_admin.services.recouvrement import devise_etablissement, resume_dette_eleve
+    from school_admin.utils.tarifs_mensualite import paliers_depuis_parametre, phrase_paliers
+
+    devise = devise_etablissement(eleve.etablissement)
+    resume = resume_dette_eleve(eleve, eleve.etablissement, annee) if annee else None
+    parametre = (
+        ComptabiliteController._parametres_groupe_for_classe(eleve.etablissement, classe)
+        if classe else None
+    )
+    return render(request, 'school_admin/eleve/scolarite_eleve.html', {
+        'eleve': eleve,
+        'est_parent': est_parent,
+        'classe': classe,
+        'annee_scolaire_active': annee,
+        'etablissement': eleve.etablissement,
+        'resume': resume,
+        'paliers': paliers_depuis_parametre(parametre) if parametre else [],
+        'phrase_paliers': phrase_paliers(parametre, devise) if parametre else '',
+        'devise_monnaie': devise,
+    })
 
 
 def devoirs_eleve(request):

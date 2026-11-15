@@ -293,3 +293,229 @@ def aria_prof_filters(
             groups.append(group)
 
     return {'groups': groups}
+
+
+def _classe_eleve_count(row):
+    if isinstance(row, dict):
+        if row.get('nombre_eleves') is not None:
+            return row.get('nombre_eleves')
+        stats = row.get('stats') or {}
+        if isinstance(stats, dict) and stats.get('total_eleves') is not None:
+            return stats.get('total_eleves')
+        bulletins = row.get('bulletins') or {}
+        if isinstance(bulletins, dict) and bulletins.get('eleves_total') is not None:
+            return bulletins.get('eleves_total')
+        return None
+    return getattr(row, 'nombre_eleves', None)
+
+
+def _dir_period_items(request, context, preserve, periode_param):
+    stats_rows = context.get('periodes_avec_stats') or []
+    if stats_rows:
+        selected_id = str(context.get('initial_periode_id') or '')
+        items = []
+        for row in stats_rows:
+            periode = row.get('periode') if isinstance(row, dict) else row
+            pid = _obj_id(periode)
+            if not pid:
+                continue
+            count = row.get('session_count') if isinstance(row, dict) else None
+            items.append({
+                'label': _attr(periode, 'nom_periode', 'nom'),
+                'href': _href(request, preserve, {periode_param: pid}),
+                'active': pid == selected_id,
+                'count': count,
+            })
+        return items
+
+    if context.get('est_superieur'):
+        return []
+
+    nav = context.get('periodes_nav') or []
+    if nav:
+        items = []
+        for periode in nav:
+            pid = _obj_id(periode) or str(_attr(periode, 'id', default=''))
+            if not pid:
+                continue
+            statut = _attr(periode, 'statut', 'statut_periode')
+            items.append({
+                'label': _attr(periode, 'nom', 'nom_periode'),
+                'href': _href(request, preserve, {periode_param: pid}),
+                'active': bool(_attr(periode, 'est_active', default=False)),
+                'count': 'En cours' if statut == 'en_cours' else None,
+            })
+        return items
+
+    periodes = context.get('periodes') or context.get('periodes_scolaires') or []
+    selected = context.get('periode_selectionnee') or context.get('periode_active')
+    selected_id = _obj_id(selected)
+    items = []
+    for periode in periodes:
+        pid = _obj_id(periode)
+        if not pid:
+            continue
+        statut = _attr(periode, 'statut_periode', 'statut')
+        items.append({
+            'label': _attr(periode, 'nom_periode', 'nom'),
+            'href': _href(request, preserve, {periode_param: pid}),
+            'active': pid == selected_id,
+            'count': 'En cours' if statut == 'en_cours' else None,
+        })
+    return items
+
+
+def _dir_niveau_items(request, context, preserve, niveau_param, classe_param):
+    grouped = context.get('classes_grouped') or {}
+    if grouped:
+        selected = (context.get('initial_niveau_key') or '').strip().lower()
+        items = []
+        for key, data in grouped.items():
+            label = ''
+            total = None
+            if isinstance(data, dict):
+                label = data.get('label') or key
+                total = data.get('total_eleves')
+            else:
+                label = key
+            norm = str(key).strip().lower()
+            items.append({
+                'label': label,
+                'href': _href(request, preserve, {niveau_param: key}, drop=(classe_param,)),
+                'active': norm == selected,
+                'count': total,
+            })
+        return items, 'Niveau'
+
+    groupes = context.get('groupes_classes') or {}
+    if not groupes:
+        return [], None
+    selected = str(context.get('initial_groupe_key') or '')
+    counts = {}
+    selected_periode = str(context.get('initial_periode_id') or '')
+    for row in context.get('periodes_avec_stats') or []:
+        if not isinstance(row, dict):
+            continue
+        periode = row.get('periode')
+        if _obj_id(periode) == selected_periode:
+            counts = row.get('groupe_counts') or {}
+            break
+    items = []
+    for key, groupe in groupes.items():
+        label = key
+        if isinstance(groupe, dict):
+            label = groupe.get('label') or key
+        count = counts.get(key) if isinstance(counts, dict) else None
+        items.append({
+            'label': label,
+            'href': _href(request, preserve, {niveau_param: key}),
+            'active': str(key) == selected,
+            'count': count,
+        })
+    label = 'Filière' if context.get('est_superieur') else 'Niveau'
+    return items, label
+
+
+def _dir_classe_items(request, context, preserve, niveau_param, classe_param):
+    grouped = context.get('classes_grouped') or {}
+    if not grouped:
+        return []
+    selected_niveau = (context.get('initial_niveau_key') or '').strip().lower()
+    selected_classe = str(context.get('initial_classe_id') or '')
+    rows = []
+    niveau_key = None
+    for key, data in grouped.items():
+        if str(key).strip().lower() == selected_niveau:
+            rows = (data or {}).get('classes') if isinstance(data, dict) else []
+            niveau_key = key
+            break
+    if not rows:
+        first_key = next(iter(grouped), None)
+        first = grouped.get(first_key) if first_key is not None else {}
+        rows = first.get('classes') if isinstance(first, dict) else []
+        niveau_key = first_key
+    items = []
+    for row in rows or []:
+        classe = row.get('classe') if isinstance(row, dict) else getattr(row, 'classe', row)
+        cid = _obj_id(classe)
+        if not cid:
+            continue
+        updates = {classe_param: cid}
+        if niveau_key is not None:
+            updates[niveau_param] = niveau_key
+        items.append({
+            'label': _attr(classe, 'nom'),
+            'href': _href(request, preserve, updates),
+            'active': cid == selected_classe,
+            'count': _classe_eleve_count(row),
+        })
+    return items
+
+
+@register.inclusion_tag('school_admin/partials/aria_filter_tabs.html', takes_context=True)
+def aria_dir_filters(
+    context,
+    show_periodes=None,
+    show_niveaux=None,
+    show_classes=None,
+    preserve='periode,niveau,classe,groupe',
+    periode_param='periode',
+    niveau_param='niveau',
+    classe_param='classe',
+    niveau_label=None,
+):
+    """Période / Niveau / Classe en liens GET — même HTML que le composant professeur."""
+    request = context.get('request')
+    if request is None:
+        return {'groups': []}
+
+    keys = [part.strip() for part in str(preserve).split(',') if part.strip()]
+    seeded = request.GET.copy()
+    defaults = {
+        periode_param: (
+            context.get('initial_periode_id')
+            or _obj_id(context.get('periode_selectionnee') or context.get('periode_active'))
+        ),
+        niveau_param: context.get('initial_niveau_key') or context.get('initial_groupe_key'),
+        classe_param: context.get('initial_classe_id'),
+    }
+    for key in keys:
+        if not seeded.get(key) and defaults.get(key):
+            seeded[key] = str(defaults[key])
+    wrapped = type('Req', (), {})()
+    wrapped.path = request.path
+    wrapped.GET = seeded
+    request = wrapped
+
+    groups = []
+    want_periodes = _as_bool(show_periodes, None)
+    want_niveaux = _as_bool(show_niveaux, None)
+    want_classes = _as_bool(show_classes, None)
+
+    period_items = _dir_period_items(request, context, keys, periode_param)
+    if want_periodes is None:
+        want_periodes = bool(period_items)
+    if want_periodes:
+        group = _make_group('period', period_items)
+        if group:
+            groups.append(group)
+
+    niveau_items, auto_label = _dir_niveau_items(
+        request, context, keys, niveau_param, classe_param
+    )
+    if want_niveaux is None:
+        want_niveaux = bool(niveau_items)
+    if want_niveaux:
+        group = _make_group('class', niveau_items, label=niveau_label or auto_label or 'Niveau')
+        if group:
+            groups.append(group)
+
+    classe_items = _dir_classe_items(request, context, keys, niveau_param, classe_param)
+    if want_classes is None:
+        want_classes = bool(classe_items) and bool(context.get('classes_grouped'))
+    if want_classes:
+        group = _make_group('class', classe_items, label='Classe')
+        if group:
+            groups.append(group)
+
+    return {'groups': groups}

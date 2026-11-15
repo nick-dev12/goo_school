@@ -7,8 +7,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Impression - Bulletin de {{ eleve.nom_complet }} - {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/bulletin_eleve.css' %}?v=2.0.2" />
   </head>
   <body>
@@ -18,8 +18,8 @@
       <div class="header_left_right">
         <div class="header-left">
           <div class="header-logo">
-            {% if etablissement.logo %}
-              <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" class="logo-img">
+            {% load logo_tags %}{% logo_impression etablissement as logo_url %}{% if logo_url %}
+              <img src="{{ logo_url }}" alt="Logo {{ etablissement.nom }}" class="logo-img">
             {% else %}
               <div class="logo-placeholder">
                 <i class="fas fa-school"></i>
@@ -329,7 +329,6 @@
       </button>
     </div>
 
-    {% trans "<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script>
       let printStyleSheet = null;
 
@@ -365,7 +364,7 @@
           document.body.classList.remove('print-landscape');
         }, 100);
       }
-    </script>" %}
+    </script>
   </body>
 </html>
 

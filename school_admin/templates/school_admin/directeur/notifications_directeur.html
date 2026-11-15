@@ -9,7 +9,7 @@
     <title>{% trans "Notifications - Directeur" %}</title>
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0"
     />
     <style>
       :root {
@@ -88,6 +88,24 @@
 
       .btn-primary:hover {
         transform: translateY(-2px);
+      }
+
+      .notification-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        padding: 9px 15px;
+        border-radius: 10px;
+        background: #eef3fe;
+        color: #1d47b3;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .notification-action:hover {
+        background: #dce7ff;
       }
 
       .notifications-list {
@@ -250,6 +268,11 @@
                     </span>
                   {% endif %}
                 </div>
+              {% endif %}
+              {% if notification.donnees.rappel and notification.donnees.url %}
+                <a class="notification-action" href="{{ notification.donnees.url }}">
+                  Ouvrir <i class="fas fa-arrow-right"></i>
+                </a>
               {% endif %}
             </article>
           {% endfor %}

@@ -58,6 +58,22 @@
       </aside>
     </section>
 
+    {% if scolarite_resume %}
+    <a class="px-alert" href="{% url 'eleve:scolarite_eleve' %}">
+      <span class="px-alert__icon"><i class="fas fa-wallet" aria-hidden="true"></i></span>
+      <span class="px-alert__text">
+        {% if scolarite_resume.reste > 0 %}
+        <strong>{% trans "Reste à payer" %} : {{ scolarite_resume.reste|floatformat:"0g" }} {{ devise_scolarite }}</strong>
+        <small>{% if phrase_paliers_scolarite %}{{ phrase_paliers_scolarite }}{% elif scolarite_resume.prochaine_echeance %}{% trans "Prochaine échéance le" %} {{ scolarite_resume.prochaine_echeance|date:"d F Y" }}{% else %}{% trans "Voir le détail des mois" %}{% endif %}</small>
+        {% else %}
+        <strong>{% trans "Scolarité à jour" %}</strong>
+        <small>{% if phrase_paliers_scolarite %}{{ phrase_paliers_scolarite }}{% else %}{% trans "Voir les tarifs de la classe" %}{% endif %}</small>
+        {% endif %}
+      </span>
+      <span class="px-alert__cta">{% trans "Détail" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+    </a>
+    {% endif %}
+
     {# ---------- Indicateurs ---------- #}
     <section class="axd-mini ex-mini" aria-label="{% trans 'Mes indicateurs' %}">
       {% for c in s.mini %}
@@ -252,7 +268,7 @@
   {{ s.charts|json_script:"ex-data" }}
   {% endwith %}
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/static/school_admin/vendor/chartjs/chart.umd.min.js?v=4.4.0"></script>
   <script src="{% static 'school_admin/js/eleve/dashboard_eleve_v3.js' %}?v=1.0.0"></script>
   {% include 'school_admin/eleve/partials/_ex_foot.html' %}
 </body>

@@ -5091,9 +5091,7 @@ def calculer_moyennes_classe(request, classe_id):
                         }
                         
                         # Envoyer la notification à cet élève spécifique
-                        result = FirebaseService.send_notification_to_multiple_users(
-                            [eleve], title, body, data
-                        )
+                        result = {'success_count': 0}  # Le service notify_note ci-dessous assure l'unique envoi.
                         
                         if result['success_count'] > 0:
                             logger.info(f"Notification de moyenne envoyée à {eleve.nom_complet} : {moyenne_val:.2f}/20")

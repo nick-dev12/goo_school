@@ -106,7 +106,8 @@
     function enhanceCandidates(root) {
         (root || document).querySelectorAll(CANDIDATS).forEach(function (track) {
             if (track.dataset.ovfTrack || track.getAttribute('data-tabs-overflow') === 'off' ||
-                track.closest(BAR_SELECTOR) || track.closest('[data-tabs-overflow="off"]')) {
+                track.closest(BAR_SELECTOR) || track.closest('[data-tabs-overflow="off"]') ||
+                track.closest('.aria-filter-tabs')) {
                 return;
             }
             var items = itemsOf(track);

@@ -741,24 +741,12 @@ body {
   line-height: 1.2;
 }
 
-/* Affichage responsive des noms */
 .student-name-full {
   display: inline;
 }
 
 .student-name-mobile {
   display: none;
-}
-
-/* Sur mobile, afficher uniquement le premier nom et prénom */
-@media (max-width: 768px) {
-  .student-name-full {
-    display: none;
-  }
-  
-  .student-name-mobile {
-    display: inline;
-  }
 }
 
 .student-email {
@@ -2679,7 +2667,7 @@ body {
 .ele-page .ele-list-header,
 .ele-page .ele-list-row {
   display: grid;
-  grid-template-columns: minmax(180px, 2fr) minmax(100px, 1.1fr) minmax(70px, 0.7fr) minmax(90px, 0.85fr) minmax(100px, 1fr) minmax(110px, 1.1fr);
+  grid-template-columns: minmax(220px, 2.4fr) minmax(80px, 0.8fr) minmax(100px, 0.9fr) minmax(110px, 1fr) minmax(100px, 0.9fr);
   gap: 0.625rem;
   align-items: center;
   padding: 0.625rem 1rem;
@@ -2709,8 +2697,8 @@ body {
 
 .ele-page .ele-list-header .header-cell.ele-list-cell--actions,
 .ele-page .ele-list-cell.ele-list-cell--actions {
-  justify-content: flex-end;
-  text-align: right;
+  justify-content: center;
+  text-align: center;
 }
 
 .ele-page .ele-list-row {
@@ -2731,7 +2719,10 @@ body {
   border-bottom: none;
 }
 
+.ele-page .ele-list-header .header-cell,
 .ele-page .ele-list-cell {
+  display: flex;
+  align-items: center;
   min-width: 70px;
   white-space: nowrap;
 }
@@ -2790,18 +2781,24 @@ body {
 
 .ele-page .student-actions-compact {
   gap: 0.375rem;
+  justify-content: center;
 }
 
 .ele-page .btn-action-small {
-  width: 32px;
-  height: 32px;
+  width: auto;
+  min-width: 32px;
+  height: 30px;
+  padding: 0 0.75rem;
   border-radius: 8px;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   box-shadow: var(--shadow-sm);
 }
 
 .ele-page .btn-action-small.btn-view {
   background: #3b82f6;
+  color: #fff;
+  text-decoration: none;
 }
 
 .ele-page .btn-action-small.btn-view:hover {

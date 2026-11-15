@@ -8,8 +8,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% trans "Grade Report" %} - {{ classe.nom }} - {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/imprimer_releve_notes.css' %}">
+  <link rel="stylesheet" href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0">
 </head>
 <body>
     <div class="print-container">
@@ -17,8 +18,8 @@
         <header class="print-header">
             <div class="header-left">
                 <div class="header-logo">
-                    {% if etablissement.logo %}
-                        <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" class="logo-img">
+                    {% load logo_tags %}{% logo_impression etablissement as logo_url %}{% if logo_url %}
+                        <img src="{{ logo_url }}" alt="Logo {{ etablissement.nom }}" class="logo-img">
                     {% else %}
                         <div class="logo-placeholder">
                             <i class="fas fa-school"></i>
@@ -208,7 +209,6 @@
         </button>
     </div>
 
-    {% trans "<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script>
         // Imprimer automatiquement si le paramètre est présent dans l'URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -219,7 +219,7 @@
                 }, 500);
             };
         }
-    </script>" %}
+    </script>
 </body>
 </html>
 

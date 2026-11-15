@@ -27,6 +27,7 @@ CACHES = {
     }
 }
 
+CONTEXT_POPUP_TOTAL_TTL = 0  # les tests vérifient le décompte exact après chaque action
 USE_CELERY = False
 USE_REDIS_CACHE = False
 REALTIME_LOCAL = False

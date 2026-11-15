@@ -457,17 +457,18 @@ class Eleve(AbstractUser):
     
     @property
     def nom_complet(self):
-        """Retourne le nom complet de l'élève au format 'NOM Prénom'"""
-        nom = self.nom.upper() if self.nom else ''
-        prenom = self.prenom[0].upper() + self.prenom[1:].lower() if self.prenom and len(self.prenom) > 1 else (self.prenom.upper() if self.prenom else '')
+        """Retourne le nom complet de l'élève au format 'NOM Prénom' (tous les mots)."""
+        nom = (self.nom or '').strip().upper()
+        prenom = ''
+        for partie in (self.prenom or '').split():
+            if len(partie) == 1:
+                mot = partie.upper()
+            else:
+                mot = partie[0].upper() + partie[1:].lower()
+            prenom = ('%s %s' % (prenom, mot)).strip() if prenom else mot
         if nom and prenom:
-            return f"{nom} {prenom}"
-        elif nom:
-            return nom
-        elif prenom:
-            return prenom
-        else:
-            return ''
+            return '%s %s' % (nom, prenom)
+        return nom or prenom
     
     @property
     def age(self):

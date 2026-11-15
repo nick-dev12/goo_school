@@ -1,6 +1,6 @@
 /* Branche toutes les barres d’onglets direction sur le composant aria-filter-tabs. */
 (() => {
-  const SKIP_ROOT = '.ax-dock, .qr-scanner-modal, .gtranslate, footer, .bottom-nav';
+  const SKIP_ROOT = '.ax-dock, .qr-scanner-modal, .gtranslate, footer, .bottom-nav, .aria-filter-tabs';
   const SKIP_TAB = '.matiere-tabs-more-btn, .ovf-more-btn, .aria-filter-tabs__label';
   const SKIP_PARENT = '.tabs-container, .nr-niveau-tabs, .content-container, .main-content, .axd-page, body, main';
   const BAR_SELECTOR = [

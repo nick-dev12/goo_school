@@ -104,6 +104,11 @@
   global.enhanceDirecteurNiveauClasseTabs = function (cfg) {
     cfg = cfg || {};
     var storageKey = cfg.storageKey || 'directeur:niveau-classe';
+    if (document.querySelector('.aria-filter-tabs a.aria-filter-tabs__tab[href]')) {
+      var q = new global.URLSearchParams(global.location.search);
+      writeSelection(storageKey, q.get('niveau') || q.get('groupe') || '', q.get('classe') || '');
+      return;
+    }
     var origMain = global.switchMainTab;
     var origClasse = global.switchClasseTab;
 

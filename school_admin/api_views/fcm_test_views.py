@@ -1,3 +1,4 @@
+from school_admin.utils.push_permissions import push_diagnostic_admin
 """
 Vues de test pour les notifications FCM
 """
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @require_http_methods(["POST"])
+@push_diagnostic_admin
 @login_required
 def test_notification(request):
     """
@@ -103,6 +105,7 @@ def test_notification(request):
 
 
 @require_http_methods(["GET"])
+@push_diagnostic_admin
 @login_required
 def check_fcm_status(request):
     """
@@ -158,6 +161,7 @@ def check_fcm_status(request):
 
 
 @require_http_methods(["POST"])
+@push_diagnostic_admin
 @login_required
 def test_notification_eleve(request):
     """

@@ -19,8 +19,14 @@ def get_session_active(request, etablissement):
     """
     if not etablissement:
         return None
-    
-    return AnneeScolaire.get_session_active(etablissement)
+
+    # Appelée plusieurs fois par page (middleware, vue, gabarit) : en lecture, une seule requête par page suffit.
+    if getattr(request, 'method', None) not in ('GET', 'HEAD'):
+        return AnneeScolaire.get_session_active(etablissement)
+    memo = request.__dict__.setdefault('_annees_actives', {})
+    if etablissement.pk not in memo:
+        memo[etablissement.pk] = AnneeScolaire.get_session_active(etablissement)
+    return memo[etablissement.pk]
 
 
 def get_session_consultee(request, etablissement):

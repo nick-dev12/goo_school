@@ -1,0 +1,110 @@
+{% load i18n %}
+<div class="ri-panel" data-ri-liste>
+  {% if annee_scolaire_active %}
+  <div class="ri-year">
+    <span class="ri-year__ico"><i class="fas fa-calendar-check" aria-hidden="true"></i></span>
+    <div>
+      <p class="ri-year__title">{% trans "Année scolaire active" %} : {{ annee_scolaire_active.libelle }}</p>
+      <p class="ri-year__sub">{% trans "Les élèves ci-dessous peuvent être réinscrits pour cette session." %}</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <form id="reinscription-search-form" class="reinscription-search-form ri-search" method="get" action="{% url 'directeur:liste_reinscription' %}" data-ri-search{% if est_superieur %} data-filiere-classe-mode="filter"{% endif %}>
+    <div class="ri-search__field ri-search__field--grow">
+      <label class="ri-label" for="ri_search_input"><i class="fas fa-user" aria-hidden="true"></i> {% trans "Élève" %}</label>
+      <input id="ri_search_input" type="text" name="search" value="{{ search_query }}" placeholder="{% trans "Nom, prénom ou matricule…" %}" autocomplete="off">
+    </div>
+    {% if est_superieur and departments_inscription %}
+    <div class="ri-search__field">
+      <label class="ri-label" for="filiere_inscription_liste"><i class="fas fa-graduation-cap" aria-hidden="true"></i> {% trans "Filière" %}</label>
+      <select id="filiere_inscription_liste" class="js-inscription-filiere">
+        <option value="">{% trans "Toutes les filières" %}</option>
+        {% for dep in departments_inscription %}
+        <option value="{{ dep.id }}">{{ dep.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="ri-search__field">
+      <label class="ri-label" for="classe_filter_reinscription"><i class="fas fa-chalkboard" aria-hidden="true"></i> {% trans "Classe" %}</label>
+      <select name="classe" id="classe_filter_reinscription" class="js-inscription-classe">
+        <option value="">{% trans "Toutes les classes" %}</option>
+        {% for classe in classes %}
+        <option value="{{ classe.id }}" data-classe-option="1" data-department-id="{{ classe.department_id|default:'' }}" {% if classe_id == classe.id|stringformat:"s" %}selected{% endif %}>
+          {% if est_superieur %}
+            {{ classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe only %}{% if classe.department %}, {{ classe.department.nom }}{% endif %}
+          {% else %}
+            {{ classe.nom }} ({{ classe.get_niveau_display }})
+          {% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="ri-search__btn"><i class="fas fa-search" aria-hidden="true"></i> {% trans "Rechercher" %}</button>
+  </form>
+
+  {% if has_search %}
+    {% if eleves_data %}
+    <div class="table-responsive ri-table-wrap">
+      <table class="ri-table" data-rl data-rl-mobile="1,2,4" data-rl-actions="6">
+        <thead>
+          <tr>
+            <th>{% trans "Nom" %}</th>
+            <th>{% trans "Prénom" %}</th>
+            <th>{% trans "Matricule" %}</th>
+            <th>{% trans "Dernière classe" %}</th>
+            <th>{% trans "Dernière année" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for data in eleves_data %}
+          <tr>
+            <td><strong>{{ data.eleve.nom }}</strong></td>
+            <td>{{ data.eleve.prenom }}</td>
+            <td>{{ data.eleve.matricule_eleve|default:"-" }}</td>
+            <td>
+              {% if data.derniere_classe %}
+                {% if est_superieur %}
+                  {{ data.derniere_classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=data.derniere_classe only %}{% if data.derniere_classe.department %}, {{ data.derniere_classe.department.nom }}{% endif %}
+                {% else %}
+                  {{ data.derniere_classe.nom }} ({{ data.derniere_classe.get_niveau_display }})
+                {% endif %}
+              {% else %}
+                <span class="ri-muted">{% trans "Non renseigné" %}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if data.derniere_annee %}
+                <span class="badge-annee">{{ data.derniere_annee.libelle }}</span>
+              {% else %}
+                <span class="ri-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              <button type="button" class="btn-reinscrire" data-ri-eleve-url="{% url 'directeur:reinscription_eleve' data.eleve.id %}">
+                <i class="fas fa-redo" aria-hidden="true"></i>
+                <span>{% trans "Réinscrire" %}</span>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state ri-empty">
+      <i class="fas fa-user-slash" aria-hidden="true"></i>
+      <h3>{% trans "Aucun élève trouvé" %}</h3>
+      <p>{% trans "Aucun élève ne correspond à votre recherche." %}</p>
+    </div>
+    {% endif %}
+  {% else %}
+  <div class="empty-state ri-empty">
+    <i class="fas fa-search" aria-hidden="true"></i>
+    <h3>{% trans "Rechercher un élève" %}</h3>
+    <p>{% trans "Utilisez la barre de recherche pour trouver un élève à réinscrire (nom, prénom, matricule et/ou classe)." %}</p>
+  </div>
+  {% endif %}
+</div>

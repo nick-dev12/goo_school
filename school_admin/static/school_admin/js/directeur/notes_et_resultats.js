@@ -37,20 +37,29 @@
 
   window.updateNotesNavUrl = function (tabId, classeId) {
     var params = new URLSearchParams(window.location.search);
-    params.set('tab', tabId);
+    var validTab = tabId && tabId !== 'null' ? tabId : '';
+    if (validTab) {
+      params.set('tab', validTab);
+    } else {
+      params.delete('tab');
+    }
     if (classeId) {
       params.set('classe', classeId.replace('classe-', ''));
     }
     if (window.directeurTabStorage) {
       window.directeurTabStorage.writeStore(NR_STORAGE_KEY, {
-        tab: tabId,
+        tab: validTab,
         classe: classeId ? classeId.replace('classe-', '') : params.get('classe') || '',
         periode: params.get('periode') || '',
       });
     }
     document.querySelectorAll('.nr-periodes-bar .periode-tab').forEach(function (link) {
       var url = new URL(link.href, window.location.origin);
-      url.searchParams.set('tab', tabId);
+      if (validTab) {
+        url.searchParams.set('tab', validTab);
+      } else {
+        url.searchParams.delete('tab');
+      }
       if (classeId) {
         url.searchParams.set('classe', classeId.replace('classe-', ''));
       }
@@ -467,23 +476,34 @@
   });
 
   document.addEventListener('DOMContentLoaded', function () {
+    var hasGetTabs = !!document.querySelector('.aria-filter-tabs a.aria-filter-tabs__tab[href]');
     if (window.directeurTabStorage) {
-      window.directeurTabStorage.mergeUrlFromStore(NR_STORAGE_KEY, ['tab', 'classe', 'periode']);
+      window.directeurTabStorage.mergeUrlFromStore(
+        NR_STORAGE_KEY,
+        hasGetTabs ? ['periode'] : ['tab', 'classe', 'periode']
+      );
     }
     var params = new URLSearchParams(window.location.search);
     var tabId = params.get('tab');
+    if (tabId === 'null') {
+      tabId = '';
+      params.delete('tab');
+      history.replaceState({}, '', window.location.pathname + '?' + params.toString());
+    }
     var classeParam = params.get('classe');
-    if (tabId) {
-      window.switchMainTab(tabId);
-    }
-    if (classeParam) {
-      window.switchClasseTab(
-        { stopPropagation: function () {}, target: document.querySelector('[data-subtab="classe-' + classeParam + '"]') },
-        'classe-' + classeParam
-      );
-    }
-    if (tabId || classeParam) {
-      window.updateNotesNavUrl(tabId || params.get('tab'), classeParam ? 'classe-' + classeParam : null);
+    if (!hasGetTabs) {
+      if (tabId) {
+        window.switchMainTab(tabId);
+      }
+      if (classeParam) {
+        window.switchClasseTab(
+          { stopPropagation: function () {}, target: document.querySelector('[data-subtab="classe-' + classeParam + '"]') },
+          'classe-' + classeParam
+        );
+      }
+      if (tabId || classeParam) {
+        window.updateNotesNavUrl(tabId, classeParam ? 'classe-' + classeParam : null);
+      }
     }
     if (typeof window.layoutTabsOverflowNav === 'function') {
       window.layoutTabsOverflowNav();

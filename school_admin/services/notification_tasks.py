@@ -15,6 +15,19 @@ from django.urls import reverse
 logger = logging.getLogger(__name__)
 
 
+def eleves_inscrits_classe(classe, annee):
+    """Les destinataires sont ceux de l'année publiée, jamais ceux d'une autre année."""
+    from school_admin.model.eleve_model import Eleve
+    from school_admin.model.inscription_eleve_model import InscriptionEleve
+    if annee is None:
+        return Eleve.objects.none()
+    ids = InscriptionEleve.objects.filter(
+        classe=classe, etablissement=classe.etablissement, annee_scolaire=annee,
+        eleve__actif=True,
+    ).values_list('eleve_id', flat=True)
+    return Eleve.objects.filter(pk__in=ids, etablissement=classe.etablissement, actif=True)
+
+
 def _emit_realtime(etablissement_id: int, event_type: str, payload: dict | None = None) -> None:
     """Diffuse un événement WebSocket à l'établissement."""
     if not etablissement_id:
@@ -221,7 +234,11 @@ def _notify_parent_links(
     """
     from school_admin.services.parent_notification_service import ParentNotificationService
 
+    enfants_notifies = set()
     for lien in liens:
+        if lien.eleve_id in enfants_notifies:
+            continue
+        enfants_notifies.add(lien.eleve_id)
         try:
             message_personnalise = (
                 message.format(enfant=lien.eleve.nom_complet)
@@ -368,7 +385,7 @@ def _send_emploi_publication(emploi_id: int) -> None:
         )
 
     # Notifications élèves
-    eleves = list(Eleve.objects.filter(classe=classe, actif=True))
+    eleves = list(eleves_inscrits_classe(classe, emploi.annee_scolaire_fk))
     _notify_users_push(
         eleves,
         titre=titre_general,
@@ -385,7 +402,7 @@ def _send_emploi_publication(emploi_id: int) -> None:
     liens = (
         LienFamilial.objects.select_related("eleve", "parent")
         .filter(
-            eleve__classe=classe,
+            eleve_id__in=[eleve.pk for eleve in eleves],
             actif=True,
             statut="valide",
             parent__actif=True,
@@ -478,7 +495,7 @@ def _send_bulletin_publication(classe_id: int, periode_id: int, etablissement_id
     message_eleve = f"Les bulletins de {periode_nom} sont disponibles dans votre espace."
     redirect_eleves = reverse("eleve:notes_evaluations")
 
-    eleves = list(Eleve.objects.filter(classe=classe, actif=True))
+    eleves = list(eleves_inscrits_classe(classe, periode.annee_scolaire_fk))
     _notify_users_push(
         eleves,
         titre=titre_general,
@@ -494,7 +511,7 @@ def _send_bulletin_publication(classe_id: int, periode_id: int, etablissement_id
     liens = (
         LienFamilial.objects.select_related("eleve", "parent")
         .filter(
-            eleve__classe=classe,
+            eleve_id__in=[eleve.pk for eleve in eleves],
             actif=True,
             statut="valide",
             parent__actif=True,

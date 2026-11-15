@@ -85,6 +85,8 @@ class ComptabiliteEleve(models.Model):
         for mensualite in self.mensualites.all():
             total += mensualite.montant
 
+        # Une charge close conserve la partie déjà payée dans l'historique.
+        # Son montant a été ramené au montant payé lors de la clôture.
         for frais in self.frais_annexes.all():
             total += frais.montant
         
@@ -130,7 +132,7 @@ class ComptabiliteEleve(models.Model):
         annexes_en_retard = self.frais_annexes.filter(
             statut__in=['en_attente', 'en_retard'],
             date_echeance__lt=maintenant
-        ).exists()
+        ).exclude(statut='clos').exists()
         
         # Vérifier s'il y a des impayés
         mensualites_impayees = self.mensualites.filter(statut='impaye').exists()
@@ -420,6 +422,7 @@ class FraisAnnexe(models.Model):
         ('en_attente', 'En attente'),
         ('paye', 'Payé'),
         ('en_retard', 'En retard'),
+        ('clos', 'Clos / désabonné'),
     ]
 
     PERIODICITE_CHOICES = [
@@ -427,6 +430,8 @@ class FraisAnnexe(models.Model):
         ('annuel', 'Annuel'),
         ('ponctuel', 'Ponctuel'),
     ]
+
+    STATUTS_OUVERTS = ('en_attente', 'en_retard')
 
     eleve = models.ForeignKey(
         Eleve,
@@ -536,6 +541,8 @@ class FraisAnnexe(models.Model):
         self.save(update_fields=['montant_paye', 'reste_a_payer', 'statut', 'date_paiement'])
 
     def ajouter_paiement(self, montant):
+        if self.statut == 'clos':
+            return
         montant_paye_actuel = Decimal(str(self.montant_paye)) if self.montant_paye else Decimal('0.00')
         montant_a_ajouter = Decimal(str(montant))
         nouveau_montant_paye = montant_paye_actuel + montant_a_ajouter
@@ -551,6 +558,71 @@ class FraisAnnexe(models.Model):
         else:
             self.statut = 'en_attente'
         self.save(update_fields=['montant_paye', 'reste_a_payer', 'statut', 'date_paiement'])
+
+    def clore_apres_desabonnement(self):
+        """Arrête le reste à payer tout en conservant les versements déjà reçus."""
+        paye = Decimal(str(self.montant_paye or 0))
+        if paye <= Decimal('0.00'):
+            self.delete()
+            return None
+        self.montant = paye
+        self.reste_a_payer = Decimal('0.00')
+        self.statut = 'clos'
+        self.save(update_fields=['montant', 'reste_a_payer', 'statut'])
+        return self
+
+
+class ChoixFraisAnnexeEleve(models.Model):
+    """
+    Choix d'affectation d'un frais annexe « au choix » pour un élève / année.
+    Indépendant de la charge : un refus persiste même après une MAJ des tarifs.
+    """
+
+    STATUT_CHOICES = [
+        ('inscrit', 'Inscrit'),
+        ('refuse', 'Refusé'),
+        ('non_choisi', 'Non choisi'),
+    ]
+
+    eleve = models.ForeignKey(
+        Eleve,
+        on_delete=models.CASCADE,
+        related_name='choix_frais_annexes',
+        verbose_name='Élève',
+    )
+    etablissement = models.ForeignKey(
+        Etablissement,
+        on_delete=models.CASCADE,
+        related_name='choix_frais_annexes',
+        verbose_name='Établissement',
+    )
+    annee_scolaire = models.ForeignKey(
+        AnneeScolaire,
+        on_delete=models.CASCADE,
+        related_name='choix_frais_annexes',
+        verbose_name='Année scolaire',
+    )
+    code = models.CharField(max_length=40, verbose_name='Code du frais')
+    statut = models.CharField(
+        max_length=20,
+        choices=STATUT_CHOICES,
+        default='non_choisi',
+        verbose_name='Statut du choix',
+    )
+    date_choix = models.DateTimeField(auto_now=True, verbose_name='Dernière mise à jour')
+    date_creation = models.DateTimeField(auto_now_add=True, verbose_name='Date de création')
+
+    class Meta:
+        verbose_name = 'Choix frais annexe élève'
+        verbose_name_plural = 'Choix frais annexes élèves'
+        unique_together = [('eleve', 'annee_scolaire', 'code')]
+        indexes = [
+            models.Index(fields=['eleve', 'annee_scolaire'], name='choixfax_eleve_annee_idx'),
+            models.Index(fields=['etablissement', 'code'], name='choixfax_etab_code_idx'),
+        ]
+
+    def __str__(self):
+        return f'{self.code} ({self.statut}) — {self.eleve_id}'
 
 
 class Mensualite(models.Model):

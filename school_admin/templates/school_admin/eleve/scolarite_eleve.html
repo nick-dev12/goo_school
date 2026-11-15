@@ -1,0 +1,101 @@
+{% load static %}
+{% load i18n %}
+{% load eleve_nav %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include 'school_admin/partials/seo_head.html' %}
+  <title>{% trans "Scolarité" %} — {{ eleve.prenom }}</title>
+  {% include 'school_admin/eleve/partials/_ex_head.html' %}
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tarifs_mois.css' %}?v=3">
+</head>
+<body class="axd-page px-page ex-page">
+  {% include 'school_admin/eleve/partials/_ex_shell.html' %}
+
+  <main class="axd px ex" id="contenu">
+    <header class="px-page-head">
+      <span class="px-page-head__icon ax-tone-green"><i class="fas fa-wallet" aria-hidden="true"></i></span>
+      <div>
+        <h1>{% trans "Scolarité" %}</h1>
+        <p>
+          {% if classe %}{{ classe.nom }}{% endif %}
+          {% if etablissement %} · {{ etablissement.nom }}{% endif %}
+        </p>
+      </div>
+    </header>
+
+    <p class="px-page-head__note">{% trans "Voici ce que votre classe paie cette année, ce qui a déjà été versé, et ce qui reste. Les montants viennent des tarifs définis par l’établissement." %}</p>
+
+    {% if resume %}
+      {% if resume.reste > 0 %}
+      <section class="px-balance px-balance--due">
+        <span class="px-balance__icon"><i class="fas fa-hourglass-half" aria-hidden="true"></i></span>
+        <div>
+          <strong>{% trans "Reste à payer" %} : {{ resume.reste|floatformat:"0g" }} {{ devise_monnaie }}</strong>
+          <small>{% if resume.prochaine_echeance %}{% trans "Prochaine échéance le" %} {{ resume.prochaine_echeance|date:"d/m/Y" }}{% if resume.prochaine_libelle %} ({{ resume.prochaine_libelle }}){% endif %}{% else %}{% trans "Les détails des mois sont listés ci-dessous." %}{% endif %}</small>
+        </div>
+      </section>
+      {% else %}
+      <section class="px-balance px-balance--ok">
+        <span class="px-balance__icon"><i class="fas fa-circle-check" aria-hidden="true"></i></span>
+        <div>
+          <strong>{% trans "Vous êtes à jour" %}</strong>
+          <small>{% trans "Aucun reste à payer pour cette année." %}</small>
+        </div>
+      </section>
+      {% endif %}
+
+      {% if paliers %}
+      <div class="px-tarifs-banner" role="note">
+        <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+        <div>
+          <strong>{% trans "Tarifs de la classe" %}</strong>
+          <p>
+            {% for palier in paliers %}
+              {{ palier.label }} : {{ palier.montant|floatformat:"0g" }} {{ devise_monnaie }}{% if not forloop.last %} · {% endif %}
+            {% endfor %}
+          </p>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if resume.charges %}
+      <div class="px-table-wrap">
+        <table class="px-table">
+          <thead>
+            <tr>
+              <th>{% trans "Frais" %}</th>
+              <th class="num">{% trans "Dû" %}</th>
+              <th class="num">{% trans "Payé" %}</th>
+              <th class="num">{% trans "Reste" %}</th>
+              <th>{% trans "Échéance" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for charge in resume.charges %}
+            <tr>
+              <td>{{ charge.libelle }}</td>
+              <td class="num">{{ charge.montant|floatformat:"0g" }}</td>
+              <td class="num">{{ charge.montant_paye|floatformat:"0g" }}</td>
+              <td class="num">{{ charge.reste|floatformat:"0g" }}</td>
+              <td>{% if charge.date_echeance %}{{ charge.date_echeance|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    {% else %}
+      <div class="px-empty-inline">
+        <i class="fas fa-wallet" aria-hidden="true"></i>
+        <h2>{% trans "Aucune scolarité à afficher" %}</h2>
+        <p>{% trans "Les tarifs apparaîtront ici dès que l’établissement les aura enregistrés pour votre classe." %}</p>
+      </div>
+    {% endif %}
+  </main>
+
+  {% include 'school_admin/eleve/partials/_ex_foot.html' %}
+</body>
+</html>

@@ -1,0 +1,21 @@
+{% load i18n %}
+<div class="sco-etat sco-etat--{{ etat.etat|default:'vide' }}">
+    {% if etat.mois_nom %}
+    <span class="sco-etat__mois">{{ etat.mois_nom }}</span>
+    {% endif %}
+    {% if etat.etat == 'paye' %}
+        <span class="sco-etat__badge sco-etat__badge--ok">{% trans "Payé" %}</span>
+    {% elif etat.etat == 'partiel' %}
+        <span class="sco-etat__line sco-etat__line--paye">{{ etat.paye|floatformat:0 }} {% trans "versé" %}</span>
+        <span class="sco-etat__line sco-etat__line--reste">{{ etat.reste|floatformat:0 }} {% trans "reste" %}</span>
+        <span class="sco-etat__badge {% if etat.badge == 'Impayé' %}sco-etat__badge--late{% else %}sco-etat__badge--wait{% endif %}">{{ etat.badge }}</span>
+    {% elif etat.etat == 'impaye' %}
+        <span class="sco-etat__line sco-etat__line--due">{{ etat.montant|floatformat:0 }}</span>
+        <span class="sco-etat__badge {% if etat.badge == 'Impayé' %}sco-etat__badge--late{% else %}sco-etat__badge--wait{% endif %}">{{ etat.badge }}</span>
+    {% else %}
+        <span class="sco-etat__empty">—</span>
+    {% endif %}
+    {% if etat.autres_libelle %}
+    <span class="sco-etat__extra">+ {{ etat.autres_libelle }}</span>
+    {% endif %}
+</div>

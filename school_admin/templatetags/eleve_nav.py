@@ -17,6 +17,7 @@ _LIENS = [
     ('convocations', 'eleve:convocations_eleve', 'Convocations', 'fa-calendar-check', 'red'),
     ('sanctions', 'eleve:sanctions_eleve', 'Sanctions', 'fa-gavel', 'slate'),
     ('notifications', 'eleve:notifications_eleve', 'Notifications', 'fa-bell', 'sky'),
+    ('scolarite', 'eleve:scolarite_eleve', 'Scolarité', 'fa-wallet', 'green'),
     ('historique', 'eleve:historique_annees', 'Mes années', 'fa-clock-rotate-left', 'slate'),
     ('profil', 'eleve:profil_eleve', 'Profil', 'fa-user', 'violet'),
 ]
@@ -24,7 +25,8 @@ _URL_ACTIVE = {
     'dashboard_eleve': 'accueil', 'emploi_du_temps': 'edt', 'notes_evaluations': 'notes',
     'devoirs_eleve': 'devoirs', 'cahier_texte': 'cahier', 'absences_retards': 'presence', 'bulletin_eleve': 'bulletin',
     'annonces_eleve': 'annonces', 'convocations_eleve': 'convocations', 'sanctions_eleve': 'sanctions',
-    'notifications_eleve': 'notifications', 'historique_annees': 'historique',
+    'notifications_eleve': 'notifications', 'scolarite_eleve': 'scolarite',
+    'historique_annees': 'historique',
     'historique_annee_detail': 'historique', 'profil_eleve': 'profil',
 }
 _COURTS = {'edt': 'Planning'}
@@ -34,7 +36,7 @@ _GROUPES = [
     ('Ma journée', ('accueil', 'edt', 'devoirs', 'cahier')),
     ('Mes résultats', ('notes', 'bulletin', 'historique')),
     ('Vie scolaire', ('presence', 'convocations', 'sanctions')),
-    ('Infos', ('annonces', 'notifications', 'profil')),
+    ('Infos', ('annonces', 'notifications', 'scolarite', 'profil')),
 ]
 
 

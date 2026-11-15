@@ -250,6 +250,13 @@ class PreinscriptionEleve(models.Model):
         verbose_name="Commentaires du parent",
         help_text="Commentaires ou informations supplémentaires fournis par le parent"
     )
+
+    frais_annexe_choix = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Frais annexes au choix",
+        help_text="Codes des frais annexes « au choix » demandés lors de la préinscription",
+    )
     
     commentaires_etablissement = models.TextField(
         blank=True,
@@ -290,7 +297,7 @@ class PreinscriptionEleve(models.Model):
     def __str__(self):
         return f"Préinscription - {self.prenom} {self.nom} ({self.etablissement.nom})"
     
-    def valider(self, validateur, commentaires=None, documents=None, classe=None, statut_inscription=None, date_inscription=None):
+    def valider(self, validateur, commentaires=None, documents=None, classe=None, statut_inscription=None, date_inscription=None, codes_frais_au_choix=None):
         """
         Valide la préinscription et crée automatiquement :
         - L'élève dans la table Eleve
@@ -305,6 +312,7 @@ class PreinscriptionEleve(models.Model):
             classe: Classe d'affectation (optionnel, utilise classe_souhaitee par défaut)
             statut_inscription: Statut d'inscription ('nouvelle' ou 'reinscription', optionnel, 'nouvelle' par défaut)
             date_inscription: Date d'inscription (optionnel, date du jour par défaut)
+            codes_frais_au_choix: codes des frais annexes « au choix » cochés (optionnel)
         """
         from .eleve_model import Eleve
         from .parent_model import Parent
@@ -552,7 +560,12 @@ class PreinscriptionEleve(models.Model):
                 try:
                     from ..utils.comptabilite_utils import creer_frais_inscription
                     type_frais = 'inscription' if statut_inscription == 'nouvelle' else 'reinscription'
-                    creer_frais_inscription(eleve, annee_scolaire_active, type_frais)
+                    creer_frais_inscription(
+                        eleve,
+                        annee_scolaire_active,
+                        type_frais,
+                        codes_frais_au_choix=codes_frais_au_choix if codes_frais_au_choix is not None else [],
+                    )
                 except Exception as e:
                     # Logger l'erreur mais ne pas bloquer la validation
                     import logging

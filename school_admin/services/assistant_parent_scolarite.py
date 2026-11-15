@@ -68,6 +68,15 @@ def read_scolarite_enfant(eleve, ctx):
     resume = resume_dette_eleve(eleve, etab, annee)
     devise = devise_etablissement(etab)
     payload = _resume_payload(eleve, resume, devise)
+    from school_admin.controllers.comptabilite_controller import ComptabiliteController
+    from school_admin.model.inscription_eleve_model import InscriptionEleve
+    from school_admin.utils.tarifs_mensualite import phrase_paliers
+    inscription = InscriptionEleve.objects.filter(
+        eleve=eleve, etablissement=etab, annee_scolaire=annee
+    ).select_related('classe').first()
+    classe = inscription.classe if inscription else None
+    parametre = ComptabiliteController._parametres_groupe_for_classe(etab, classe) if classe else None
+    payload['tarifs_classe'] = phrase_paliers(parametre, devise) if parametre else ''
     recus = []
     for p in PaiementEleve.objects.filter(eleve=eleve, annee_scolaire=annee).order_by(
         '-date_paiement'

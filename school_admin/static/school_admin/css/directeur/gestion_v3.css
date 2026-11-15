@@ -149,8 +149,9 @@ body.gv3 input::placeholder, body.gv3 textarea::placeholder { color: var(--ax-mu
 body.gv3 input[type="checkbox"], body.gv3 input[type="radio"] { accent-color: var(--ax-brand); width: 16px; height: 16px; }
 body.gv3 .input-error, body.gv3 .is-invalid { border-color: var(--ax-bad) !important; box-shadow: 0 0 0 3px var(--ax-bad-soft) !important; }
 
-/* Barres de filtres / recherche : grille souple qui passe à la ligne */
-body.gv3 .filters-box, body.gv3 [class*="-filters-row"], body.gv3 [class*="-filters"]:not(.v3-zone *) {
+/* Barres de filtres / recherche : grille souple qui passe à la ligne.
+   Le composant d’onglets (.aria-filter-tabs / .prof-hub-filters) reste en colonne. */
+body.gv3 .filters-box, body.gv3 [class*="-filters-row"], body.gv3 [class*="-filters"]:not(.v3-zone *):not(.aria-filter-tabs):not(.prof-hub-filters) {
   display: grid !important; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 12px; align-items: end;
   padding: 12px 14px !important; border: 1px solid var(--ax-line) !important; border-radius: 12px !important; background: var(--ax-surface-2) !important; box-shadow: none !important;
 }

@@ -26,6 +26,54 @@ from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..model.eleve_model import Eleve
 from ..model.classe_model import Classe
 from school_admin.services.comptabilite_generale import pont_paiement_eleve
+from school_admin.utils.tarifs_mensualite import (
+    etat_depuis_mensualite,
+    etat_ligne_frais,
+    etat_mois_impayes,
+    extraire_tarifs_par_mois,
+    mois_ordre_form,
+    phrase_paliers,
+    tranches_form,
+)
+
+
+def frais_annexes_en_transition(parametre, annee_scolaire):
+    """Anciennes charges sans choix explicite, limitées aux classes du jeu."""
+    from ..model.inscription_eleve_model import InscriptionEleve
+    from ..model.comptabilite_eleve_model import ChoixFraisAnnexeEleve
+    from ..utils.frais_annexes import frais_au_choix_pour_parametres
+
+    if annee_scolaire is None:
+        return {}
+    options = {item['code']: item for item in frais_au_choix_pour_parametres(parametre)}
+    if not options:
+        return {}
+    inscriptions = {
+        row.eleve_id: row
+        for row in InscriptionEleve.objects.filter(
+            etablissement=parametre.etablissement,
+            annee_scolaire=annee_scolaire,
+            eleve__isnull=False,
+        ).select_related('classe', 'eleve')
+        if row.classe and ComptabiliteController._nom_groupe_classe(row.classe) in (parametre.groupes_classes or [])
+    }
+    if not inscriptions:
+        return {}
+    choix_existants = set(ChoixFraisAnnexeEleve.objects.filter(
+        eleve_id__in=inscriptions,
+        annee_scolaire=annee_scolaire,
+        code__in=options,
+    ).values_list('eleve_id', 'code'))
+    transitions = {}
+    for charge in FraisAnnexe.objects.filter(
+        etablissement=parametre.etablissement,
+        annee_scolaire=annee_scolaire,
+        eleve_id__in=inscriptions,
+        code__in=options,
+    ).exclude(statut='clos'):
+        if (charge.eleve_id, charge.code) not in choix_existants:
+            transitions.setdefault(charge.code, []).append((charge, inscriptions[charge.eleve_id]))
+    return transitions
 
 
 class ComptabiliteController:
@@ -146,6 +194,8 @@ class ComptabiliteController:
             messages.warning(request, "Aucune année scolaire active trouvée pour cet établissement.")
             return redirect('directeur:dashboard_directeur')
         
+        devise_monnaie = ComptabiliteController._get_devise_monnaie(etablissement)
+
         # Récupérer toutes les classes de l'établissement
         classes = (
             Classe.objects.filter(etablissement=etablissement, actif=True)
@@ -186,8 +236,11 @@ class ComptabiliteController:
             show_colonne_mensualite = bool(
                 parametres_groupe
                 and etablissement.type_etablissement_comptabilite == 'prive'
-                and (parametres_groupe.montant_mensualite or Decimal('0')) > 0
                 and parametres_groupe.type_facturation == 'mensuel'
+                and (
+                    (parametres_groupe.montant_mensualite or Decimal('0')) > 0
+                    or parametres_groupe.montants_mensualite_par_mois
+                )
             )
             show_colonne_annexes = bool(
                 parametres_groupe
@@ -195,6 +248,8 @@ class ComptabiliteController:
             )
 
             eleves_comptabilite = []
+            aujourdhui = timezone.now().date()
+            cle_aujourdhui = (aujourdhui.year, aujourdhui.month)
             for eleve in eleves:
                 # Récupérer ou créer la comptabilité
                 comptabilite, created = ComptabiliteEleve.objects.get_or_create(
@@ -214,21 +269,31 @@ class ComptabiliteController:
                 # Cette fonctionnalité a été désactivée pour éviter la création automatique
                 # Les données affichées proviennent uniquement de la base de données
                 
-                if not parametres_groupe:
-                    total_du = Decimal('0.00')
-                    total_paye = Decimal('0.00')
-                    reste_a_payer = Decimal('0.00')
-                    frais_inscription = Decimal('0.00')
-                    mensualites_total = Decimal('0.00')
-                    mensualites_reste = Decimal('0.00')
-                    frais_annexes_total = Decimal('0.00')
-                    frais_annexes_paye = Decimal('0.00')
-                    frais_annexes_reste = Decimal('0.00')
-                    est_non_en_regle = False
-                else:
+                total_du = Decimal('0.00')
+                total_paye = Decimal('0.00')
+                reste_a_payer = Decimal('0.00')
+                frais_inscription = Decimal('0.00')
+                mensualites_total = Decimal('0.00')
+                mensualites_reste = Decimal('0.00')
+                frais_annexes_total = Decimal('0.00')
+                frais_annexes_paye = Decimal('0.00')
+                frais_annexes_reste = Decimal('0.00')
+                est_non_en_regle = False
+                inscription_etat = etat_ligne_frais(0, 0)
+                mensualites_etat = etat_ligne_frais(0, 0)
+                mois_en_cours_etat = etat_ligne_frais(0, 0)
+                mois_suivant_etat = etat_ligne_frais(0, 0)
+                mois_impaye_etat = etat_ligne_frais(0, 0)
+                annexes_etat = etat_ligne_frais(0, 0)
+
+                if parametres_groupe:
                     comptabilite.verifier_statut_paiement()
-                    mensualites = Mensualite.objects.filter(comptabilite_eleve=comptabilite)
-                    for mensualite in mensualites:
+                    mensualites_qs = list(
+                        Mensualite.objects.filter(comptabilite_eleve=comptabilite).order_by(
+                            'annee', 'mois'
+                        )
+                    )
+                    for mensualite in mensualites_qs:
                         mensualite.mettre_a_jour_statut(parametres)
                     est_non_en_regle = comptabilite.est_non_en_regle(parametres)
                     total_du = comptabilite.calculer_total_du()
@@ -237,20 +302,38 @@ class ComptabiliteController:
                     frais_inscription_obj = FraisInscription.objects.filter(
                         comptabilite_eleve=comptabilite
                     ).first()
-                    frais_inscription = (
-                        frais_inscription_obj.montant if frais_inscription_obj else Decimal('0.00')
-                    )
-                    mensualites_total = Decimal('0.00')
-                    mensualites_reste = Decimal('0.00')
-                    for mensualite in Mensualite.objects.filter(comptabilite_eleve=comptabilite):
+                    if frais_inscription_obj:
+                        frais_inscription = frais_inscription_obj.montant
+                        inscription_etat = etat_ligne_frais(
+                            frais_inscription_obj.montant,
+                            frais_inscription_obj.montant_paye,
+                        )
+                        inscription_etat['mois_nom'] = (
+                            'Réinscription'
+                            if frais_inscription_obj.type_frais == 'reinscription'
+                            else 'Inscription'
+                        )
+                    mensualites_paye = Decimal('0.00')
+                    mois_en_cours_obj = None
+                    mois_suivant_obj = None
+                    for mensualite in mensualites_qs:
                         mensualites_total += mensualite.montant
+                        mensualites_paye += mensualite.montant_paye or Decimal('0.00')
                         mensualites_reste += mensualite.get_reste_a_payer()
-                    frais_annexes_total = Decimal('0.00')
-                    frais_annexes_paye = Decimal('0.00')
+                        cle_mois = (mensualite.annee, mensualite.mois)
+                        if cle_mois == cle_aujourdhui:
+                            mois_en_cours_obj = mensualite
+                        elif cle_mois > cle_aujourdhui and mois_suivant_obj is None:
+                            mois_suivant_obj = mensualite
+                    mensualites_etat = etat_ligne_frais(mensualites_total, mensualites_paye)
+                    mois_en_cours_etat = etat_depuis_mensualite(mois_en_cours_obj)
+                    mois_suivant_etat = etat_depuis_mensualite(mois_suivant_obj)
+                    mois_impaye_etat = etat_mois_impayes(mensualites_qs, cle_aujourdhui)
                     for frais in FraisAnnexe.objects.filter(comptabilite_eleve=comptabilite):
                         frais_annexes_total += frais.montant
                         frais_annexes_paye += frais.montant_paye
                     frais_annexes_reste = frais_annexes_total - frais_annexes_paye
+                    annexes_etat = etat_ligne_frais(frais_annexes_total, frais_annexes_paye)
                     if frais_annexes_total > 0:
                         show_colonne_annexes = True
 
@@ -267,6 +350,12 @@ class ComptabiliteController:
                     'frais_annexes_paye': frais_annexes_paye,
                     'frais_annexes_reste': frais_annexes_reste,
                     'est_non_en_regle': est_non_en_regle,
+                    'inscription_etat': inscription_etat,
+                    'mensualites_etat': mensualites_etat,
+                    'mois_en_cours_etat': mois_en_cours_etat,
+                    'mois_suivant_etat': mois_suivant_etat,
+                    'mois_impaye_etat': mois_impaye_etat,
+                    'annexes_etat': annexes_etat,
                 })
             
             # Calculer les statistiques spécifiques à la classe
@@ -295,6 +384,8 @@ class ComptabiliteController:
                 'parametres_configures': parametres_groupe is not None,
                 'show_colonne_mensualite': show_colonne_mensualite,
                 'show_colonne_annexes': show_colonne_annexes,
+                'paliers_mensualite': parametres_groupe.paliers_mensualite if parametres_groupe else [],
+                'phrase_paliers': phrase_paliers(parametres_groupe, devise_monnaie) if parametres_groupe else '',
             }
             
             classes_grouped[categorie]['classes'].append(classe_data)
@@ -452,6 +543,8 @@ class ComptabiliteController:
         paiements = PaiementEleve.objects.filter(
             eleve=eleve,
             annee_scolaire=annee_scolaire_active
+        ).select_related(
+            'frais_annexe', 'mensualite', 'frais_inscription'
         ).order_by('-date_paiement')
         
         # Calculer le montant déjà payé depuis la table PaiementEleve pour chaque frais d'inscription
@@ -534,7 +627,98 @@ class ComptabiliteController:
                 'reste_a_payer': reste_a_payer_annexe if reste_a_payer_annexe > Decimal('0.00') else Decimal('0.00'),
                 'paiements': paiements_annexe,
             })
-        
+
+        from school_admin.model.comptabilite_eleve_model import ChoixFraisAnnexeEleve
+        from school_admin.utils.frais_annexes import (
+            CHOIX_INSCRIT,
+            MODE_AU_CHOIX,
+            frais_annexes_actifs,
+            periodicite_label,
+        )
+
+        charges_par_code = {
+            row['frais'].code: row for row in frais_annexes_avec_paiements
+        }
+        params_actifs = frais_annexes_actifs(
+            getattr(parametres, 'frais_annexes', None) if parametres else None
+        )
+        choix_existants = {
+            c.code: c.statut
+            for c in ChoixFraisAnnexeEleve.objects.filter(
+                eleve=eleve,
+                annee_scolaire=annee_scolaire_active,
+            )
+        }
+        frais_annexes_lignes = []
+        codes_vus = set()
+        for item in params_actifs:
+            code = item['code']
+            codes_vus.add(code)
+            charge_row = charges_par_code.get(code)
+            frais_obj = charge_row['frais'] if charge_row else None
+            au_choix = item.get('mode_application') == MODE_AU_CHOIX
+            if au_choix:
+                actif = choix_existants.get(code) == CHOIX_INSCRIT
+            else:
+                actif = True
+            if charge_row and frais_obj and frais_obj.statut != 'clos':
+                montant_total = charge_row['montant_total']
+                montant_paye = charge_row['montant_paye']
+                reste = charge_row['reste_a_payer']
+                paiements_ligne = charge_row['paiements']
+                date_echeance = frais_obj.date_echeance
+                periodicite_display = frais_obj.get_periodicite_display()
+            elif charge_row and frais_obj and frais_obj.statut == 'clos':
+                # Clos = inactif (historique), montants affichés depuis la charge close
+                actif = False
+                montant_total = charge_row['montant_total']
+                montant_paye = charge_row['montant_paye']
+                reste = Decimal('0.00')
+                paiements_ligne = charge_row['paiements']
+                date_echeance = frais_obj.date_echeance
+                periodicite_display = frais_obj.get_periodicite_display()
+            else:
+                montant_total = item['montant_decimal']
+                montant_paye = Decimal('0.00')
+                reste = montant_total if actif else Decimal('0.00')
+                paiements_ligne = []
+                date_echeance = None
+                periodicite_display = item.get('periodicite_display') or periodicite_label(
+                    item.get('periodicite')
+                )
+            frais_annexes_lignes.append({
+                'code': code,
+                'libelle': item['libelle'],
+                'au_choix': au_choix,
+                'actif': actif,
+                'frais': frais_obj,
+                'montant_total': montant_total,
+                'montant_paye': montant_paye,
+                'reste_a_payer': reste,
+                'paiements': paiements_ligne,
+                'date_echeance': date_echeance,
+                'periodicite_display': periodicite_display,
+            })
+        for code, charge_row in charges_par_code.items():
+            if code in codes_vus:
+                continue
+            frais_obj = charge_row['frais']
+            actif = frais_obj.statut != 'clos'
+            frais_annexes_lignes.append({
+                'code': code,
+                'libelle': frais_obj.libelle,
+                'au_choix': True,
+                'actif': actif,
+                'frais': frais_obj,
+                'montant_total': charge_row['montant_total'],
+                'montant_paye': charge_row['montant_paye'],
+                'reste_a_payer': charge_row['reste_a_payer'] if actif else Decimal('0.00'),
+                'paiements': charge_row['paiements'],
+                'date_echeance': frais_obj.date_echeance,
+                'periodicite_display': frais_obj.get_periodicite_display(),
+            })
+        frais_annexes_lignes.sort(key=lambda row: (not row['actif'], row['libelle'].lower()))
+
         # Calculer les totaux
         total_du = comptabilite.calculer_total_du()
         total_paye = comptabilite.calculer_total_paye()
@@ -582,6 +766,7 @@ class ComptabiliteController:
             'mensualites_avec_paiements': mensualites_avec_paiements,  # Nouveau avec montants calculés depuis PaiementEleve
             'frais_annexes': frais_annexes,
             'frais_annexes_avec_paiements': frais_annexes_avec_paiements,
+            'frais_annexes_lignes': frais_annexes_lignes,
             'paiements': paiements,
             'total_du': total_du,
             'total_paye': total_paye,
@@ -589,6 +774,8 @@ class ComptabiliteController:
             'is_directeur': is_directeur,
             'personnel': personnel,
             'parametres': parametres,
+            'paliers_mensualite': getattr(parametres, 'paliers_mensualite', []) if parametres else [],
+            'phrase_paliers': phrase_paliers(parametres, devise_monnaie) if parametres and hasattr(parametres, 'montant_pour_mois') else '',
             'devise_monnaie': devise_monnaie,  # Ajouter la devise au contexte
             'moratoire': moratoire,
             'moratoire_echeances': moratoire_echeances,
@@ -687,7 +874,7 @@ class ComptabiliteController:
                 comptabilite_eleve=comptabilite,
                 annee_scolaire=annee_scolaire_active,
                 statut__in=['en_attente', 'en_retard']
-            ).order_by('date_echeance')
+            ).exclude(statut='clos').order_by('date_echeance')
         
         if request.method == 'POST':
             type_paiement = request.POST.get('type_paiement')
@@ -793,6 +980,9 @@ class ComptabiliteController:
                         # Ajouter le paiement à la mensualité
                         mensualite_obj.ajouter_paiement(montant_decimal)
                     elif type_paiement == 'frais_annexe' and frais_annexe_obj:
+                        frais_annexe_obj = FraisAnnexe.objects.select_for_update().get(pk=frais_annexe_obj.pk)
+                        if frais_annexe_obj.statut == 'clos':
+                            raise ValueError("Ce frais est clôturé et ne peut plus recevoir de paiement.")
                         reste_a_payer = frais_annexe_obj.get_reste_a_payer()
                         if montant_decimal > reste_a_payer:
                             messages.error(request, f"Le montant ({montant_decimal}) dépasse le reste à payer ({reste_a_payer}).")
@@ -818,10 +1008,7 @@ class ComptabiliteController:
                         notes=notes,
                         enregistre_par=enregistre_par_user
                     )
-                    try:
-                        pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
-                    except Exception:
-                        pass
+                    pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
                     
                     # Mettre à jour le statut de la comptabilité
                     if comptabilite:
@@ -1043,10 +1230,7 @@ class ComptabiliteController:
                         notes='',
                         enregistre_par=enregistre_par_user
                     )
-                    try:
-                        pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
-                    except Exception:
-                        pass
+                    pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
                     
                     # Mettre à jour le statut de la comptabilité
                     if frais_inscription.comptabilite_eleve:
@@ -1207,10 +1391,7 @@ class ComptabiliteController:
                         notes='',
                         enregistre_par=enregistre_par_user
                     )
-                    try:
-                        pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
-                    except Exception:
-                        pass
+                    pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
                     
                     # Mettre à jour le statut de la comptabilité
                     if mensualite.comptabilite_eleve:
@@ -1238,6 +1419,140 @@ class ComptabiliteController:
                 return redirect('directeur:details_comptabilite_eleve_directeur', eleve_id=eleve_id_int)
         
         return redirect('directeur:details_comptabilite_eleve_directeur', eleve_id=eleve_id_int)
+
+    @staticmethod
+    @login_required
+    def gerer_choix_frais_annexes_directeur(request, eleve_id):
+        """Enregistre les frais annexes « au choix » pour un élève (POST Django)."""
+        result = ComptabiliteController._get_user_etablissement(request)
+        if result[0] is None:
+            messages.error(request, "Accès non autorisé.")
+            return redirect('directeur:dashboard_directeur')
+
+        etablissement, is_directeur, personnel = result
+        if not is_directeur:
+            from ..utils.decorators_permissions import check_permission
+            if not check_permission(request.user, 'comptabilite_voir'):
+                messages.error(request, "Vous n'avez pas l'autorisation d'accéder à la comptabilité.")
+                return redirect('directeur:dashboard_directeur')
+
+        annee_scolaire_active = ComptabiliteController._get_session_directeur(request, etablissement)
+        redirect_details = redirect(
+            'directeur:details_comptabilite_eleve_directeur', eleve_id=eleve_id
+        )
+        if not annee_scolaire_active:
+            messages.warning(request, "Aucune année scolaire active trouvée.")
+            return redirect_details
+
+        if request.method != 'POST':
+            return redirect_details
+
+        from ..model.inscription_eleve_model import InscriptionEleve
+        from school_admin.utils.frais_annexes import appliquer_choix_frais_au_choix
+
+        try:
+            inscription = InscriptionEleve.objects.select_related('eleve', 'classe').get(
+                eleve_id=int(eleve_id),
+                etablissement=etablissement,
+                annee_scolaire=annee_scolaire_active,
+                eleve__isnull=False,
+            )
+        except (InscriptionEleve.DoesNotExist, ValueError, TypeError):
+            messages.error(request, "Élève introuvable pour cette année scolaire.")
+            return redirect_details
+
+        eleve = inscription.eleve
+        parametres = ComptabiliteController._get_parametres_for_classe(
+            etablissement, inscription.classe
+        )
+        if parametres is None:
+            messages.error(request, "Aucun paramètre de scolarité pour la classe de cet élève.")
+            return redirect_details
+
+        comptabilite, _ = ComptabiliteEleve.objects.get_or_create(
+            eleve=eleve,
+            etablissement=etablissement,
+            annee_scolaire=annee_scolaire_active,
+            defaults={'statut_paiement': 'a_jour'},
+        )
+
+        from school_admin.model.comptabilite_eleve_model import ChoixFraisAnnexeEleve
+        from school_admin.utils.frais_annexes import CHOIX_INSCRIT, frais_au_choix_pour_parametres
+
+        action = (request.POST.get('action') or '').strip()
+        code = (request.POST.get('code') or '').strip()
+        au_choix_codes = {item['code'] for item in frais_au_choix_pour_parametres(parametres)}
+
+        if action in ('activer', 'desactiver') and code:
+            if code not in au_choix_codes:
+                messages.error(request, "Ce frais n'est pas configurable au choix pour cet élève.")
+                return redirect_details
+            from school_admin.utils.frais_annexes import enregistrer_choix_frais_annexe, synchroniser_frais_annexes_eleve
+            with transaction.atomic():
+                enregistrer_choix_frais_annexe(
+                    eleve, etablissement, annee_scolaire_active, code,
+                    CHOIX_INSCRIT if action == 'activer' else 'refuse',
+                )
+                synchroniser_frais_annexes_eleve(
+                    eleve, etablissement, annee_scolaire_active,
+                    comptabilite, parametres, inscription=inscription,
+                )
+            message_ok = "Le choix de ce frais annexe a été mis à jour pour cet élève."
+            messages.success(request, message_ok)
+        else:
+            codes = request.POST.getlist('frais_annexe_choix')
+            appliquer_choix_frais_au_choix(
+                eleve,
+                etablissement,
+                annee_scolaire_active,
+                comptabilite,
+                parametres,
+                codes,
+                inscription=inscription,
+            )
+            messages.success(request, "Les frais annexes au choix ont été mis à jour pour cet élève.")
+
+        comptabilite.verifier_statut_paiement()
+        from django.urls import reverse
+        return redirect(
+            reverse('directeur:details_comptabilite_eleve_directeur', kwargs={'eleve_id': eleve.id})
+            + '?section=annexes'
+        )
+
+    @staticmethod
+    @login_required
+    def frais_au_choix_pour_classe_directeur(request, classe_id):
+        """JSON : frais annexes « au choix » liés aux paramètres de la classe."""
+        from django.http import JsonResponse
+        from school_admin.utils.frais_annexes import frais_au_choix_pour_parametres
+
+        result = ComptabiliteController._get_user_etablissement(request)
+        if result[0] is None:
+            return JsonResponse({'ok': False, 'message': 'Accès non autorisé.'}, status=403)
+
+        etablissement = result[0]
+        try:
+            classe = Classe.objects.get(
+                id=int(classe_id),
+                etablissement=etablissement,
+                actif=True,
+            )
+        except (Classe.DoesNotExist, ValueError, TypeError):
+            return JsonResponse({'ok': False, 'message': 'Classe introuvable.'}, status=404)
+
+        parametres = ComptabiliteController._get_parametres_for_classe(etablissement, classe)
+        devise = ComptabiliteController._get_devise_monnaie(etablissement)
+        frais = []
+        for item in frais_au_choix_pour_parametres(parametres):
+            montant = item.get('montant_decimal') or Decimal('0.00')
+            frais.append({
+                'code': item['code'],
+                'libelle': item['libelle'],
+                'icon': item.get('icon') or 'fa-tag',
+                'montant': float(montant),
+                'montant_display': f'{int(montant)}',
+            })
+        return JsonResponse({'ok': True, 'frais': frais, 'devise': devise or 'FCFA'})
 
     @staticmethod
     @login_required
@@ -1324,6 +1639,9 @@ class ComptabiliteController:
 
         try:
             with transaction.atomic():
+                frais_annexe = FraisAnnexe.objects.select_for_update().get(pk=frais_annexe.pk)
+                if frais_annexe.statut == 'clos' or montant_decimal > frais_annexe.get_reste_a_payer():
+                    raise ValueError("Le reste à payer a changé. Actualisez la fiche avant de recommencer.")
                 frais_annexe.ajouter_paiement(montant_decimal)
                 frais_annexe.refresh_from_db()
 
@@ -1346,10 +1664,7 @@ class ComptabiliteController:
                     notes='',
                     enregistre_par=enregistre_par_user,
                 )
-                try:
-                    pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
-                except Exception:
-                    pass
+                pont_paiement_eleve(paiement, annee_scolaire=annee_scolaire_active, user=enregistre_par_user)
 
                 if frais_annexe.comptabilite_eleve:
                     frais_annexe.comptabilite_eleve.verifier_statut_paiement()
@@ -1449,6 +1764,41 @@ class ComptabiliteController:
             messages.warning(request, "Le module scolarité n'est pas activé pour cet établissement.")
             return redirect('directeur:profil_etablissement')
 
+        if request.method == 'POST' and request.POST.get('action') == 'transition_frais_annexe':
+            from ..utils.frais_annexes import (
+                frais_au_choix_pour_parametres,
+                enregistrer_choix_frais_annexe,
+                synchroniser_frais_annexes_eleve,
+                CHOIX_INSCRIT,
+                CHOIX_REFUSE,
+            )
+
+            annee = ComptabiliteController._get_session_directeur(request, etablissement)
+            parametre = ParametresComptabiliteGroupeClasse.objects.filter(
+                pk=request.POST.get('parametre_id'), etablissement=etablissement
+            ).first()
+            code = request.POST.get('code', '').strip()
+            decision = request.POST.get('decision', '').strip()
+            if not annee or not parametre or decision not in (CHOIX_INSCRIT, CHOIX_REFUSE):
+                messages.error(request, "Décision de transition invalide.")
+                return redirect('directeur:parametres_comptabilite_directeur')
+            if code not in {item['code'] for item in frais_au_choix_pour_parametres(parametre)}:
+                messages.error(request, "Ce frais n'est pas proposé au choix dans ce jeu.")
+                return redirect('directeur:parametres_comptabilite_directeur')
+            lignes = frais_annexes_en_transition(parametre, annee).get(code, [])
+            with transaction.atomic():
+                for charge, inscription in lignes:
+                    enregistrer_choix_frais_annexe(
+                        inscription.eleve, etablissement, annee, code, decision
+                    )
+                    synchroniser_frais_annexes_eleve(
+                        inscription.eleve, etablissement, annee,
+                        charge.comptabilite_eleve, parametre, inscription
+                    )
+                    charge.comptabilite_eleve.verifier_statut_paiement()
+            messages.success(request, f"{len(lignes)} élève(s) classé(s) « {decision} » pour ce frais.")
+            return redirect('directeur:parametres_comptabilite_directeur')
+
         if request.method == 'POST' and request.POST.get('action') == 'enregistrer_regime':
             from school_admin.services.comptabilite_generale import enregistrer_regime_comptable
 
@@ -1467,9 +1817,19 @@ class ComptabiliteController:
                 messages.error(request, str(exc))
             return redirect('directeur:parametres_comptabilite_directeur')
 
-        parametres_groupes = ParametresComptabiliteGroupeClasse.objects.filter(
+        parametres_groupes = list(ParametresComptabiliteGroupeClasse.objects.filter(
             etablissement=etablissement
-        ).order_by('-date_modification')
+        ).order_by('-date_modification'))
+
+        annee = ComptabiliteController._get_session_directeur(request, etablissement)
+        from ..utils.frais_annexes import frais_au_choix_pour_parametres
+        for parametre in parametres_groupes:
+            transitions = frais_annexes_en_transition(parametre, annee)
+            parametre.transitions_frais = [
+                {'code': item['code'], 'libelle': item['libelle'], 'nombre': len(transitions[item['code']])}
+                for item in frais_au_choix_pour_parametres(parametre)
+                if transitions.get(item['code'])
+            ]
 
         groupes_disponibles = ParametresComptabiliteGroupeClasse.get_groupes_disponibles(etablissement)
         groupes_deja_assignes = ParametresComptabiliteGroupeClasse.get_groupes_deja_assignes(etablissement)
@@ -1477,7 +1837,7 @@ class ComptabiliteController:
         devise_monnaie = ComptabiliteController._get_devise_monnaie(etablissement)
 
         stats_generales = {
-            'total_parametres': parametres_groupes.count(),
+            'total_parametres': len(parametres_groupes),
             'groupes_assignes': len(groupes_deja_assignes),
             'groupes_disponibles': len(groupes_disponibles),
         }
@@ -1491,6 +1851,8 @@ class ComptabiliteController:
             'groupes_disponibles': groupes_disponibles,
             'groupes_deja_assignes': groupes_deja_assignes,
             'frais_annexes_form': get_frais_annexes_from_parametres(None),
+            'tranches_form': tranches_form(),
+            'mois_ordre': mois_ordre_form(),
             'stats_generales': stats_generales,
             'open_ajouter_modal': request.GET.get('modal') == 'ajouter',
             'is_directeur': is_directeur,
@@ -2229,7 +2591,6 @@ class ComptabiliteController:
                 
                 montant_frais_inscription = request.POST.get('montant_frais_inscription', '0')
                 montant_frais_reinscription = request.POST.get('montant_frais_reinscription', '0')
-                montant_mensualite = request.POST.get('montant_mensualite', '0')
                 montant_facturation_annuelle = request.POST.get('montant_facturation_annuelle', '0')
                 type_facturation = request.POST.get('type_facturation', 'mensuel')
                 
@@ -2243,7 +2604,14 @@ class ComptabiliteController:
                 
                 mois_debut_facturation = int(request.POST.get('mois_debut_facturation', 9))
                 mois_fin_facturation = int(request.POST.get('mois_fin_facturation', 6))
-                
+                montants_mensualite_par_mois = extraire_tarifs_par_mois(
+                    request.POST,
+                    debut=mois_debut_facturation,
+                    fin=mois_fin_facturation,
+                )
+                # Plus de montant « mois non cochés » : seuls les tarifs cochés comptent.
+                montant_mensualite = '0'
+
                 appliquer_remise_famille_nombreuse = request.POST.get('appliquer_remise_famille_nombreuse') == 'on'
                 pourcentage_remise_famille_nombreuse = request.POST.get('pourcentage_remise_famille_nombreuse', '0')
                 nombre_enfants_minimum_remise = int(request.POST.get('nombre_enfants_minimum_remise', 3))
@@ -2291,6 +2659,7 @@ class ComptabiliteController:
                         'montant_frais_inscription': Decimal(montant_frais_inscription) if montant_frais_inscription else Decimal('0.00'),
                         'montant_frais_reinscription': Decimal(montant_frais_reinscription) if montant_frais_reinscription else Decimal('0.00'),
                         'montant_mensualite': Decimal(montant_mensualite) if montant_mensualite else Decimal('0.00'),
+                        'montants_mensualite_par_mois': montants_mensualite_par_mois,
                         'montant_facturation_annuelle': Decimal(montant_facturation_annuelle) if montant_facturation_annuelle else Decimal('0.00'),
                         'type_facturation': type_facturation,
                         'autoriser_retards': autoriser_retards,
@@ -2317,7 +2686,8 @@ class ComptabiliteController:
                     
                     # Mettre à jour automatiquement le système de comptabilité
                     try:
-                        parametre.mettre_a_jour_systeme_comptabilite()
+                        if not parametre.mettre_a_jour_systeme_comptabilite():
+                            raise ValueError("La mise à jour des mensualités a échoué.")
                         success_msg = "Paramètre spécifique créé avec succès. Le système de comptabilité a été mis à jour automatiquement."
                     except Exception as e:
                         success_msg = f"Paramètre spécifique créé avec succès, mais erreur lors de la mise à jour automatique : {str(e)}"
@@ -2328,6 +2698,7 @@ class ComptabiliteController:
                     parametre.montant_frais_inscription = Decimal(montant_frais_inscription) if montant_frais_inscription else Decimal('0.00')
                     parametre.montant_frais_reinscription = Decimal(montant_frais_reinscription) if montant_frais_reinscription else Decimal('0.00')
                     parametre.montant_mensualite = Decimal(montant_mensualite) if montant_mensualite else Decimal('0.00')
+                    parametre.montants_mensualite_par_mois = montants_mensualite_par_mois
                     parametre.montant_facturation_annuelle = Decimal(montant_facturation_annuelle) if montant_facturation_annuelle else Decimal('0.00')
                     parametre.type_facturation = type_facturation
                     parametre.autoriser_retards = autoriser_retards
@@ -2357,7 +2728,8 @@ class ComptabiliteController:
                     
                     # Mettre à jour automatiquement le système de comptabilité
                     try:
-                        parametre.mettre_a_jour_systeme_comptabilite()
+                        if not parametre.mettre_a_jour_systeme_comptabilite():
+                            raise ValueError("La mise à jour des mensualités a échoué.")
                         success_msg = "Paramètre spécifique modifié avec succès. Le système de comptabilité a été mis à jour automatiquement."
                     except Exception as e:
                         success_msg = f"Paramètre spécifique modifié avec succès, mais erreur lors de la mise à jour automatique : {str(e)}"
@@ -2391,6 +2763,11 @@ class ComptabiliteController:
             'groupes_disponibles': groupes_disponibles,
             'groupes_deja_assignes': groupes_deja_assignes,
             'frais_annexes_form': get_frais_annexes_from_parametres(parametre),
+            'tranches_form': tranches_form(parametre),
+            'mois_ordre': mois_ordre_form(
+                getattr(parametre, 'mois_debut_facturation', 9) if parametre else 9,
+                getattr(parametre, 'mois_fin_facturation', 6) if parametre else 6,
+            ),
             'is_directeur': is_directeur,
             'personnel': personnel,
             'devise_monnaie': devise_monnaie,

@@ -7,19 +7,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% trans "Certificate of Removal/Transfer" %} - {{ eleve.nom_complet }} - {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/certificat_radiation.css' %}">
+  <link rel="stylesheet" href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/entete_logo_impression.css' %}?v=1.0.0">
 </head>
 <body>
     <div class="certificat-container">
         <!-- En-tête de l'établissement -->
         <header class="certificat-header">
             <div class="header-info">
+                {% include 'school_admin/directeur/partials/_logo_entete_impression.html' %}
                 <h1 class="etablissement-nom">{{ etablissement.nom }}</h1>
-                <p class="etablissement-adresse">{{ etablissement.adresse }}</p>
+                {% if etablissement.adresse %}<p class="etablissement-adresse">{{ etablissement.adresse }}</p>{% endif %}
                 <div class="etablissement-contact">
-                    <span class="contact-item">{{ etablissement.telephone }}</span>
-                    <span class="contact-item">{{ etablissement.email }}</span>
+                    {% if etablissement.telephone %}<span class="contact-item">{{ etablissement.telephone }}</span>{% endif %}
+                    {% if etablissement.email %}<span class="contact-item">{{ etablissement.email }}</span>{% endif %}
                 </div>
             </div>
         </header>
@@ -66,8 +69,7 @@
                 <p class="text-certifie">{% trans "Certifie que" %}</p>
                 
                 <p class="text-eleve">
-                    <strong>{{ eleve.nom|upper }} {{ eleve.prenom }}</strong>{% trans ", 
-                    né(e) le" %} <strong>{{ eleve.date_naissance|date:"d/m/Y" }}</strong> {% trans "à" %} <strong>{{ eleve.lieu_naissance }}</strong>,
+                    <strong>{{ eleve.nom|upper }} {{ eleve.prenom }}</strong>{% trans ", né(e) le" %} <strong>{{ eleve.date_naissance|date:"d/m/Y" }}</strong> {% trans "à" %} <strong>{{ eleve.lieu_naissance }}</strong>,
                 </p>
                 
                 <p class="text-content">
@@ -128,7 +130,7 @@
         </button>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
 </body>
 </html>
 

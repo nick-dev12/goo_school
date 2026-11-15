@@ -69,8 +69,9 @@
     }
   }
 
-  function init() {
-    document.querySelectorAll('.js-inscription-filiere').forEach(function (filiereSel) {
+  function init(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll('.js-inscription-filiere').forEach(function (filiereSel) {
       var form = filiereSel.closest('form');
       if (!form) return;
       var classeSel = form.querySelector('.js-inscription-classe');
@@ -78,9 +79,11 @@
     });
   }
 
+  window.initInscriptionFiliereClasse = init;
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', function () { init(document); });
   } else {
-    init();
+    init(document);
   }
 })();

@@ -7,7 +7,7 @@
 .content-container.sco-page {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 1rem 1.5rem 5rem;
+  padding: 1rem 1.5rem 7rem;
 }
 
 .page-header-minimal {
@@ -541,98 +541,93 @@
   pointer-events: none;
 }
 
-.sco-page .students-list {
-  --sco-cols: 1.6fr 0.9fr 1fr 1fr 1fr 0.9fr 0.6fr;
-  min-width: 1040px;
+.sco-page .hb-head .sco-head-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
 }
 
-.sco-page .students-list.has-mensualite-col {
-  --sco-cols: 1.6fr 0.9fr 0.9fr 1fr 1fr 1fr 0.9fr 0.6fr;
-  min-width: 1180px;
+.sco-page .hb-head .sco-head-btn i {
+  font-size: 0.78rem;
+  color: #fff;
 }
 
-.sco-page .students-list.has-annexes-col {
-  --sco-cols: 1.6fr 0.9fr 1.15fr 1fr 1fr 1fr 0.9fr 0.6fr;
-  min-width: 1240px;
+.sco-page .hb-head .sco-head-btn--blue {
+  background: #3b82f6;
 }
 
-.sco-page .students-list.has-mensualite-col.has-annexes-col {
-  --sco-cols: 1.6fr 0.9fr 0.9fr 1.15fr 1fr 1fr 1fr 0.9fr 0.6fr;
-  min-width: 1400px;
+.sco-page .hb-head .sco-head-btn--blue:hover {
+  background: #1d4ed8;
 }
 
-.sco-page .students-list .list-header,
-.sco-page .students-list .list-row {
+.sco-page .hb-head .sco-head-btn--green {
+  background: #10b981;
+}
+
+.sco-page .hb-head .sco-head-btn--green:hover {
+  background: #059669;
+}
+
+.sco-page .sco-eleves-list {
+  --sco-cols: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr) minmax(108px, 0.95fr) minmax(96px, 0.85fr);
+  width: 100%;
+  min-width: 0;
+}
+
+.sco-page .sco-eleves-list .sco-eleves-head,
+.sco-page .sco-eleves-list .list-row {
   display: grid;
   grid-template-columns: var(--sco-cols);
-  gap: 0.5rem;
+  column-gap: 0.4rem;
   align-items: center;
-  padding: 0.625rem 0.875rem;
+  padding: 0.7rem 0.85rem;
 }
 
-.sco-params-notice {
-  margin: 0 0 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
-  background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  color: var(--gray-700, #374151);
-  font-size: 0.875rem;
-  line-height: 1.45;
-}
-
-.sco-params-notice i {
-  color: var(--primary, #3b82f6);
-  margin-right: 0.35rem;
-}
-
-.sco-mensualite-reste {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--gray-500, #6b7280);
-}
-
-.sco-annexes-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  line-height: 1.4;
-}
-
-.sco-page .amount-annexes,
-.sco-page .amount-mensualites {
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.sco-annexes-paye,
-.sco-annexes-reste {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--gray-500, #6b7280);
-  white-space: nowrap;
-}
-
-.sco-annexes-reste.text-danger {
-  color: #ef4444;
-  font-weight: 600;
-}
-
-.sco-annexes-reste.text-success {
-  color: #10b981;
-  font-weight: 600;
-}
-
-.sco-page .list-header {
+.sco-page .sco-eleves-head {
   background: var(--gray-50, #f9fafb);
   border-bottom: 1px solid var(--gray-200, #e5e7eb);
-  font-size: 0.8125rem;
+  font-size: 0.6875rem;
   font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
   color: var(--gray-600, #4b5563);
+  line-height: 1.3;
 }
 
-.sco-page .list-cell {
-  min-width: 120px;
+.sco-page .sco-eleves-head .list-cell {
+  text-align: center;
+}
+
+.sco-page .sco-eleves-head .sco-col-eleve,
+.sco-page .sco-eleves-list .sco-col-eleve {
+  text-align: left;
+  min-width: 0;
+}
+
+.sco-page .sco-eleves-list .list-cell {
+  min-width: 0;
+}
+
+.sco-page .sco-eleves-list .sco-col-etat,
+.sco-page .sco-eleves-list .sco-col-statut,
+.sco-page .sco-eleves-list .sco-col-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .sco-page .list-row {
@@ -648,11 +643,92 @@
   display: none !important;
 }
 
+.sco-etat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem;
+  line-height: 1.25;
+  width: 100%;
+}
+
+.sco-etat__mois {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--gray-500, #6b7280);
+}
+
+.sco-etat__line {
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+.sco-etat__line--paye {
+  color: #059669;
+  font-weight: 600;
+}
+
+.sco-etat__line--reste {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.sco-etat__line--due {
+  color: var(--gray-800, #1f2937);
+  font-weight: 700;
+  font-size: 0.8125rem;
+}
+
+.sco-etat__empty {
+  color: var(--gray-400, #9ca3af);
+  font-weight: 600;
+}
+
+.sco-etat__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sco-etat__badge--ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.sco-etat__badge--wait {
+  background: rgba(251, 191, 36, 0.18);
+  color: #b45309;
+}
+
+.sco-etat__badge--late {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.sco-etat__extra {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #dc2626;
+  white-space: nowrap;
+}
+
 .sco-page .student-cell {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-width: 140px;
+  min-width: 0;
+}
+
+.sco-page .student-info-compact {
+  min-width: 0;
 }
 
 .sco-page .student-avatar-small {
@@ -671,6 +747,8 @@
   font-size: 0.875rem;
   font-weight: 600;
   margin: 0;
+  overflow: visible;
+  white-space: normal;
 }
 
 .sco-page .student-name-full {
@@ -681,20 +759,9 @@
   display: none;
 }
 
-@media (max-width: 768px) {
-  .sco-page .student-name-full {
-    display: none;
-  }
-
-  .sco-page .student-name-mobile {
-    display: inline;
-  }
-}
 
 .sco-page .student-email {
-  font-size: 0.75rem;
-  color: var(--gray-500, #6b7280);
-  margin: 0;
+  display: none;
 }
 
 .sco-page .amount-due,
@@ -717,9 +784,9 @@
 .sco-statut-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.625rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -734,16 +801,24 @@
   color: #dc2626;
 }
 
-.sco-view-btn {
+.sco-view-btn,
+.sco-scol-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  height: 30px;
+  padding: 0 0.75rem;
   border-radius: 8px;
   background: #3b82f6;
   color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
+}
+
+.sco-scol-btn:hover {
+  background: #1d4ed8;
 }
 
 .sco-empty-state {
@@ -779,9 +854,13 @@
     justify-content: center;
   }
 
-  .sco-page .list-header,
+  .sco-page .sco-eleves-head,
   .sco-page .list-row {
     font-size: 0.8125rem;
     padding: 0.5rem 0.625rem;
+  }
+
+  .sco-page .sco-eleves-list {
+    min-width: 820px;
   }
 }

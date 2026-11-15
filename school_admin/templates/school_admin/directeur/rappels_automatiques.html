@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% trans "Rappels automatiques" %} — {{ etablissement.nom }}</title>
+  <link rel="stylesheet" href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=20261104c" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/rappels.css' %}?v=1.0.0" />
+</head>
+<body class="axd-page cg3-body">
+  {% include 'school_admin/directeur/partials/header_directeur.html' %}
+  <main class="axd cg3 rap" id="contenu">
+    <header class="cg3-head">
+      <div class="cg3-head__id">
+        <span class="cg3-head__icon ax-tone-blue"><i class="fas fa-bell" aria-hidden="true"></i></span>
+        <div>
+          <h1 class="cg3-head__title">{% trans "Rappels automatiques" %}</h1>
+          <p class="rap-sub">{% trans "Chaque personne est prévenue de ce qu’elle a à faire : dans son espace, dans sa cloche et sur son téléphone." %}</p>
+        </div>
+      </div>
+      <div class="cg3-head__tools">
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="simuler">
+          <button class="cg3-btn" type="submit"><i class="fas fa-eye" aria-hidden="true"></i>{% trans "Voir ce qui partirait" %}</button>
+        </form>
+        <form method="post" onsubmit="return confirm('{% trans "Envoyer maintenant les rappels dus à toutes les personnes concernées ?" %}')">{% csrf_token %}<input type="hidden" name="action" value="envoyer">
+          <button class="cg3-btn rap-btn-primary" type="submit"><i class="fas fa-paper-plane" aria-hidden="true"></i>{% trans "Envoyer maintenant" %}</button>
+        </form>
+      </div>
+    </header>
+
+    {# ---------- État ---------- #}
+    <section class="rap-kpis">
+      <div class="rap-kpi">
+        <span class="rap-kpi__icon {% if params.actif %}is-ok{% else %}is-off{% endif %}"><i class="fas {% if params.actif %}fa-circle-check{% else %}fa-circle-pause{% endif %}" aria-hidden="true"></i></span>
+        <div><small>{% trans "État" %}</small><strong>{% if params.actif %}{% trans "Activés" %}{% else %}{% trans "Désactivés" %}{% endif %}</strong>
+          {% if en_heures_calmes and params.actif %}<em>{% trans "Heures calmes en cours" %}</em>{% endif %}</div>
+      </div>
+      <div class="rap-kpi">
+        <span class="rap-kpi__icon {% if planificateur_ok %}is-ok{% else %}is-warn{% endif %}"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i></span>
+        <div><small>{% trans "Dernier passage" %}</small>
+          <strong>{% if params.dernier_passage %}{{ params.dernier_passage|date:"d/m H:i" }}{% else %}{% trans "Jamais" %}{% endif %}</strong>
+          {% if not planificateur_ok %}<em>{% trans "Le planificateur ne tourne pas" %}</em>{% endif %}</div>
+      </div>
+      <div class="rap-kpi">
+        <span class="rap-kpi__icon"><i class="fas fa-paper-plane" aria-hidden="true"></i></span>
+        <div><small>{% trans "Rappels sur 7 jours" %}</small><strong>{{ envoyes_semaine }}</strong></div>
+      </div>
+      <div class="rap-kpi">
+        <span class="rap-kpi__icon"><i class="fas fa-users" aria-hidden="true"></i></span>
+        <div><small>{% trans "Personnes prévenues" %}</small><strong>{{ personnes_semaine }}</strong></div>
+      </div>
+    </section>
+
+    {% if simulation %}
+    <section class="axd-card rap-card">
+      <h2 class="rap-h2">{% trans "Ce qui partirait maintenant" %}
+        <span class="cg3-chip cg3-chip--muted">{{ simulation.stats.rappels }} {% trans "rappel(s)" %}</span></h2>
+      {% if simulation.stats.calmes %}
+        <p class="rap-note">{% trans "Heures calmes en cours : rien ne part avant la reprise." %}</p>
+      {% elif simulation.lignes %}
+      <div class="cg3-table-wrap"><table class="cg3-table">
+        <thead><tr><th>{% trans "Destinataire" %}</th><th>{% trans "Rappel" %}</th><th>{% trans "Moment" %}</th><th>{% trans "Règle" %}</th></tr></thead>
+        <tbody>{% for ligne in simulation.lignes %}
+          <tr><td>{{ ligne.role }}</td><td>{{ ligne.titre }}</td><td>{{ ligne.seuil }}</td><td><span class="rap-code">{{ ligne.code }}</span></td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+      <p class="rap-note">{% trans "Simulation uniquement : rien n’a été envoyé." %}</p>
+      {% else %}
+        <p class="rap-note">{% trans "Aucun rappel n’est dû pour le moment : tout le monde est à jour ou a déjà été prévenu." %}</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <div class="rap-grid">
+      {# ---------- Réglages ---------- #}
+      <section class="axd-card rap-card">
+        <h2 class="rap-h2">{% trans "Réglages" %}</h2>
+        <form method="post" class="rap-form">
+          {% csrf_token %}<input type="hidden" name="action" value="enregistrer">
+          <label class="rap-switch">
+            <input type="checkbox" name="actif" {% if params.actif %}checked{% endif %}>
+            <span class="rap-switch__track" aria-hidden="true"></span>
+            <span><strong>{% trans "Envoyer les rappels automatiques" %}</strong>
+              <small>{% trans "Désactivé : plus aucun rappel planifié ne part ; les informations restent visibles dans les espaces." %}</small></span>
+          </label>
+
+          <fieldset class="rap-fieldset">
+            <legend>{% trans "Heures calmes" %}</legend>
+            <p class="rap-help">{% trans "Aucun rappel n’est envoyé pendant cette plage ; il part à la reprise." %}</p>
+            <div class="rap-row">
+              <label class="cg3-field"><span>{% trans "De" %}</span><input type="time" name="debut" value="{{ params.debut_heures_calmes|time:'H:i' }}" required></label>
+              <label class="cg3-field"><span>{% trans "À" %}</span><input type="time" name="fin" value="{{ params.fin_heures_calmes|time:'H:i' }}" required></label>
+              <label class="cg3-field"><span>{% trans "Rappels max. par personne et par jour" %}</span><input type="number" name="plafond" min="1" max="10" value="{{ params.plafond_quotidien }}" required></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="rap-fieldset">
+            <legend>{% trans "Sujets rappelés" %}</legend>
+            <div class="rap-familles">
+              {% for famille in familles %}
+              <label class="rap-check"><input type="checkbox" name="familles" value="{{ famille.key }}" {% if famille.active %}checked{% endif %}><span>{{ famille.label }}</span></label>
+              {% endfor %}
+            </div>
+          </fieldset>
+          <label class="rap-switch">
+            <input type="checkbox" name="cours_demain" {% if params.rappel_cours_demain %}checked{% endif %}>
+            <span class="rap-switch__track" aria-hidden="true"></span>
+            <span><strong>{% trans "Rappeler les cours du lendemain" %}</strong>
+              <small>{% trans "Chaque soir à partir de 17 h, un message annonce les cours du lendemain. Désactivé par défaut pour limiter les messages quotidiens." %}</small></span>
+          </label>
+          <div><button class="cg3-btn rap-btn-primary" type="submit"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Enregistrer" %}</button></div>
+        </form>
+      </section>
+
+      {# ---------- Fonctionnement ---------- #}
+      <section class="axd-card rap-card">
+        <h2 class="rap-h2">{% trans "Comment ça marche" %}</h2>
+        <ul class="rap-steps">
+          <li><i class="fas fa-calendar-day" aria-hidden="true"></i><span><strong>{% trans "Avant, le jour même, puis en retard" %}</strong>{% trans "Pour une date (devoir, échéance, convocation) : un rappel trois jours avant, la veille, le jour J, puis trois relances au plus." %}</span></li>
+          <li><i class="fas fa-rotate" aria-hidden="true"></i><span><strong>{% trans "Tant que ce n’est pas fait" %}</strong>{% trans "Pour un dossier en attente : un premier rappel, puis une relance tous les trois jours, trois fois au plus." %}</span></li>
+          <li><i class="fas fa-circle-check" aria-hidden="true"></i><span><strong>{% trans "Arrêt automatique" %}</strong>{% trans "Dès que l’action est faite, le rappel disparaît partout." %}</span></li>
+          <li><i class="fas fa-layer-group" aria-hidden="true"></i><span><strong>{% trans "Jamais trop" %}</strong>{% trans "Au-delà du maximum quotidien, le reste est regroupé en un seul message." %}</span></li>
+        </ul>
+      </section>
+    </div>
+
+    {# ---------- Journal ---------- #}
+    <section class="axd-card rap-card">
+      <h2 class="rap-h2">{% trans "Derniers rappels envoyés" %}</h2>
+      {% if journal %}
+      <div class="cg3-table-wrap"><table class="cg3-table">
+        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Destinataire" %}</th><th>{% trans "Rappel" %}</th><th>{% trans "Moment" %}</th><th>{% trans "Règle" %}</th></tr></thead>
+        <tbody>{% for ligne in journal %}
+          <tr><td>{{ ligne.date|date:"d/m H:i" }}</td>
+            <td><strong>{{ ligne.nom }}</strong><br><small class="rap-muted">{{ ligne.role }}</small></td>
+            <td>{{ ligne.titre }}</td><td>{{ ligne.seuil }}</td><td><span class="rap-code">{{ ligne.code }}</span></td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+      {% else %}
+      <p class="rap-note">{% trans "Aucun rappel n’a encore été envoyé." %}</p>
+      {% endif %}
+    </section>
+  </main>
+  {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body>
+</html>

@@ -10,23 +10,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Liste des Élèves - {{ etablissement.nom }}</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      href="/static/school_admin/vendor/fonts/poppins.css?v=1"
       rel="stylesheet"
     />
     <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0"
       rel="stylesheet"
     />
     <link
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3"
     />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=2.3.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/liste_eleves.css' %}?v=2.3.2" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=2.0.5" />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0"
+      href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.1"
     />
     <link
       rel="stylesheet"
@@ -39,7 +39,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
     <link
       rel="stylesheet"
-      href="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2"
+      href="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.3"
     />
     <link
       rel="stylesheet"
@@ -48,13 +48,14 @@
       <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.3">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/recherche_filtres.css' %}?v=1.1.6">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.1.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_masse.css' %}?v=2.0.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_formulaire.css' %}?v=1.0.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/reinscription_modal.css' %}?v=1.0.2">
 </head>
-  <body class="ele-page-body gv3 cg3" data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.2" data-initial-niveau="{{ initial_niveau_key|default:'' }}" data-initial-classe="{{ initial_classe_id|default:'' }}"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}{% if open_masse_modal %} data-open-masse-modal="{{ open_masse_modal }}"{% endif %}>
+  <body class="ele-page-body gv3 cg3" data-live-page="liste-eleves" data-recu-css="{% static 'school_admin/css/directeur/reçu_inscription_eleve.css' %}?v=1.0.3" data-initial-niveau="{{ initial_niveau_key|default:'' }}" data-initial-classe="{{ initial_classe_id|default:'' }}"{% if open_inscription_modal %} data-open-inscription-modal="1"{% endif %}{% if open_masse_modal %} data-open-masse-modal="{{ open_masse_modal }}"{% endif %}{% if open_reinscription_modal %} data-open-reinscription-modal="1"{% endif %}{% if open_reinscription_eleve_url %} data-open-reinscription-eleve="{{ open_reinscription_eleve_url }}"{% endif %}>
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container ele-page">
@@ -211,14 +212,13 @@
                   <div class="students-section ele-list-section">
                   {% if classe_data.eleves %}
                     <div class="ele-list-scroll">
-                    <div class="students-list ele-list" data-rl data-rl-mobile="1,2,4" data-rl-actions="6">
+                    <div class="students-list ele-list" data-rl data-rl-mobile="1,2,3" data-rl-actions="4">
                       <div class="list-header ele-list-header">
                         <div class="list-cell header-cell ele-list-cell--student">{% trans "Élève" %}</div>
-                        <div class="list-cell header-cell">{% trans "Numéro" %}</div>
                         <div class="list-cell header-cell ele-list-cell--center">{% trans "Âge" %}</div>
                         <div class="list-cell header-cell ele-list-cell--center">{% trans "Absences" %}</div>
                         <div class="list-cell header-cell ele-list-cell--center">{% trans "Inscription" %}</div>
-                        <div class="list-cell header-cell ele-list-cell--actions">{% trans "Actions" %}</div>
+                        <div class="list-cell header-cell ele-list-cell--center">{% trans "Profil" %}</div>
                       </div>
                       
                       {% for eleve_data in classe_data.eleves %}
@@ -247,7 +247,7 @@
                                     </span>
                                   {% endif %}
                                 </span>
-                                <span class="student-name-mobile">{{ eleve_data.eleve.nom|premier_nom }} {{ eleve_data.eleve.prenom|premier_prenom }}</span>
+                                <span class="student-name-mobile">{{ eleve_data.eleve.nom_complet }}</span>
                               </h4>
                               {# Informations en plus, montrées dans la fenêtre « élève » sur mobile (liste_responsive.js). #}
                               <span hidden data-rl-extra data-rl-label="{% trans 'Sexe' %}">{{ eleve_data.eleve.get_sexe_display }}</span>
@@ -256,10 +256,6 @@
                               <span hidden data-rl-extra data-rl-label="{% trans 'Parent' %}">{% if eleve_data.eleve.parent_nom or eleve_data.eleve.parent_prenom %}{{ eleve_data.eleve.parent_prenom }} {{ eleve_data.eleve.parent_nom }}{% endif %}</span>
                               <span hidden data-rl-extra data-rl-label="{% trans 'Téléphone parent' %}">{% if eleve_data.eleve.parent_telephone %}<a href="tel:{{ eleve_data.eleve.parent_telephone }}">{{ eleve_data.eleve.parent_telephone }}</a>{% endif %}</span>
                             </div>
-                          </div>
-                          
-                          <div class="list-cell ele-list-cell" data-label="Numéro">
-                            <span class="student-number">{{ eleve_data.eleve.matricule_eleve|default:eleve_data.eleve.numero_eleve }}</span>
                           </div>
                           
                           <div class="list-cell ele-list-cell ele-list-cell--center" data-label="Âge">
@@ -284,14 +280,11 @@
                             <span class="inscription-date">{{ eleve_data.eleve.date_inscription|date:"d/m/Y" }}</span>
                           </div>
                           
-                          <div class="list-cell ele-list-cell ele-list-cell--actions" data-label="Actions">
+                          <div class="list-cell ele-list-cell ele-list-cell--center" data-label="Profil">
                             <div class="student-actions-compact">
-                              <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-small btn-view" title="{% trans "Voir détails" %}">
-                                <i class="fas fa-eye"></i>
+                              <a href="{% url 'secretaire:detail_eleve' eleve_data.eleve.id %}" class="btn-action-small btn-view" title="{% trans "Profil" %}">
+                                {% trans "Profil" %}
                               </a>
-                              <button class="btn-action-small btn-sanction" title="Ajouter une sanction" onclick="ouvrirModalSanction({{ eleve_data.eleve.id }}, '{{ eleve_data.eleve.nom_complet }}', {{ classe_data.classe.id }})">
-                                <i class="fas fa-gavel"></i>
-                              </button>
                             </div>
                           </div>
                         </div>
@@ -322,19 +315,20 @@
       </section>
     </div>
 
-    <!-- Modal inscription élève (plein écran) -->
-    <div id="modalInscriptionEleve" class="modal-creneau-fullscreen personnel-form-modal if-modal">
-      <div class="modal-creneau-overlay" onclick="closeModalInscriptionEleve()"></div>
-      <div class="modal-creneau-content modal-creneau-content-wide">
-        <div class="modal-creneau-header">
-          <h2><i class="fas fa-user-plus" aria-hidden="true"></i><span>{% if est_superieur %}{% trans "Inscrire un étudiant" %}{% else %}{% trans "Inscrire un élève" %}{% endif %}<small>{% trans "Les champs marqués * sont obligatoires." %}</small></span></h2>
-          <button type="button" class="modal-creneau-close" onclick="closeModalInscriptionEleve()" aria-label="{% trans 'Fermer' %}">
-            <i class="fas fa-times"></i>
+    <!-- Modal inscription élève (design cg3 comme la modification fiche) -->
+    <div class="cg3-modal fe-edit-modal" id="modalInscriptionEleve" role="dialog" aria-modal="true" aria-labelledby="modalInscriptionEleveTitre" hidden
+         data-frais-au-choix-url="{% url 'directeur:frais_au_choix_pour_classe_directeur' 0 %}">
+      <div class="cg3-modal__panel">
+        <div class="cg3-modal__head">
+          <h2 id="modalInscriptionEleveTitre">
+            <i class="fas fa-user-plus" aria-hidden="true"></i>
+            {% if est_superieur %}{% trans "Inscrire un étudiant" %}{% else %}{% trans "Inscrire un élève" %}{% endif %}
+          </h2>
+          <button type="button" class="cg3-btn cg3-btn--sm" onclick="closeModalInscriptionEleve()" aria-label="{% trans 'Fermer' %}">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
-        <div class="modal-creneau-body">
-          {% include 'school_admin/directeur/secretaire/partials/form_inscription_eleve_inner.html' %}
-        </div>
+        {% include 'school_admin/directeur/secretaire/partials/form_inscription_eleve_inner.html' %}
       </div>
     </div>
 
@@ -349,6 +343,34 @@
           </button>
         </div>
         <div class="modal-creneau-body sx" id="imModalCorps" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <!-- Modal réinscription : liste de recherche -->
+    <div id="modalReinscriptionListe" class="modal-creneau-fullscreen personnel-form-modal if-modal" data-ri-liste-url="{% url 'directeur:liste_reinscription' %}">
+      <div class="modal-creneau-overlay" onclick="closeModalReinscriptionListe()"></div>
+      <div class="modal-creneau-content modal-creneau-content-wide">
+        <div class="modal-creneau-header">
+          <h2><i class="fas fa-rotate" aria-hidden="true"></i><span>{% trans "Réinscriptions" %}<small>{% trans "Passage à l’année suivante — recherchez un élève déjà connu." %}</small></span></h2>
+          <button type="button" class="modal-creneau-close" onclick="closeModalReinscriptionListe()" aria-label="{% trans 'Fermer' %}">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-creneau-body" id="riListeCorps" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <!-- Modal réinscription : formulaire élève -->
+    <div id="modalReinscriptionForme" class="modal-creneau-fullscreen personnel-form-modal if-modal">
+      <div class="modal-creneau-overlay" onclick="closeModalReinscriptionForme(true)"></div>
+      <div class="modal-creneau-content modal-creneau-content-wide">
+        <div class="modal-creneau-header">
+          <h2><i class="fas fa-user-check" aria-hidden="true"></i><span>{% trans "Réinscrire un élève" %}<small>{% trans "Les informations existantes sont pré-remplies." %}</small></span></h2>
+          <button type="button" class="modal-creneau-close" onclick="closeModalReinscriptionForme(true)" aria-label="{% trans 'Fermer' %}">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-creneau-body" id="riFormeCorps" aria-live="polite"></div>
       </div>
     </div>
 
@@ -536,9 +558,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="{% static 'school_admin/js/realtime_page.js' %}?v=1.0.2"></script>
     <script src="{% static 'school_admin/js/directeur/liste_eleves.js' %}?v=2.2.0"></script>
-    <script src="{% static 'school_admin/js/directeur/liste_eleves_live.js' %}?v=1.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/frais_au_choix_classe.js' %}?v=1.0.1"></script>
+    <script src="{% static 'school_admin/js/directeur/liste_eleves_live.js' %}?v=1.1.3"></script>
     <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.1.0"></script>
     <script src="{% static 'school_admin/js/directeur/inscription_masse.js' %}?v=1.2.0"></script>
+    <script src="{% static 'school_admin/js/directeur/reinscription_modal.js' %}?v=1.0.1"></script>
   
     <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.2.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

@@ -9,11 +9,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% trans "Student Management" %} - {{ etablissement.nom }}</title>
     <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        href="/static/school_admin/vendor/fonts/poppins.css?v=1"
         rel="stylesheet"
     />
     <link
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0"
         rel="stylesheet"
     />
     <link
@@ -113,7 +113,7 @@
                 {% endif %}
                 {% check_permission request.user "eleves_reinscrire" as can_reinscrire_eleves %}
                 {% if can_reinscrire_eleves or is_directeur %}
-                <a href="{% url 'directeur:liste_reinscription' %}" class="nav-link-card">
+                <a href="{% url 'secretaire:liste_eleves' %}?reinscrire=1" class="nav-link-card">
                     <div class="nav-card-icon neo-orange">
                         <i class="fas fa-redo"></i>
                     </div>

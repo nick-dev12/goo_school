@@ -2,14 +2,15 @@
 {% load static %}
 {% load i18n %}
 {% load eleve_filters %}
+{% load aria_tabs %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% trans "Fiches d'inscription / réinscription" %} - {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_inscription_liste.css' %}?v=2.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
@@ -61,60 +62,11 @@
         {% endif %}
 
         {% if classes_grouped %}
+        {% aria_dir_filters %}
         <div class="tabs-container fic-niveau-tabs">
-            <div class="fic-niveau-nav">
-                <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
-                    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Niveaux' %}">
-                        {% for categorie, data in classes_grouped.items %}
-                            <button type="button" role="tab"
-                                    class="matiere-tab-btn fic-niveau-tab tab-button {% if categorie|lower == initial_niveau_key %}active{% endif %}"
-                                    data-tab="tab-{{ forloop.counter }}"
-                                    data-niveau-key="{{ categorie|lower }}"
-                                    aria-selected="{% if categorie|lower == initial_niveau_key %}true{% else %}false{% endif %}">
-                                <i class="fas fa-layer-group"></i>
-                                <span>{{ data.label }}</span>
-                                <span class="tab-count">{{ data.total_eleves }}</span>
-                            </button>
-                        {% endfor %}
-                    </div>
-                    <div class="matiere-tabs-more-wrap" hidden>
-                        <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres niveaux' %}">
-                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                            <span class="matiere-tabs-more-label">{% trans "Autres niveaux" %}</span>
-                        </button>
-                        <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
-                    </div>
-                </div>
-            </div>
-
             <div class="tabs-content fic-tabs-content">
                 {% for categorie, data in classes_grouped.items %}
                     <div class="tab-panel {% if categorie|lower == initial_niveau_key %}active{% endif %}" id="tab-{{ forloop.counter }}"{% if categorie|lower != initial_niveau_key %} hidden{% endif %}>
-
-                        <div class="fic-classe-nav">
-                            <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
-                                <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes' %}">
-                                    {% for classe_data in data.classes %}
-                                        <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}"
-                                                data-subtab="classe-{{ classe_data.classe.id }}"
-                                                data-classe-id="{{ classe_data.classe.id }}"
-                                                aria-selected="{% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}true{% else %}false{% endif %}">
-                                            <i class="fas fa-door-open"></i>
-                                            <span>{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
-                                            <span class="tab-count">{{ classe_data.nombre_eleves }}</span>
-                                        </button>
-                                    {% endfor %}
-                                </div>
-                                <div class="matiere-tabs-more-wrap" hidden>
-                                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres classes' %}">
-                                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                                        <span class="matiere-tabs-more-label">{% trans "Autres classes" %}</span>
-                                    </button>
-                                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
-                                </div>
-                            </div>
-                        </div>
-
                         {% for classe_data in data.classes %}
                             <div class="classe-subtab-content fic-classe-panel {% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}" id="classe-{{ classe_data.classe.id }}"{% if categorie|lower != initial_niveau_key or classe_data.classe.id != initial_classe_id %} hidden{% endif %}>
 
@@ -198,7 +150,7 @@
                                                             <div class="student-info-compact">
                                                                 <h4 class="student-name">
                                                                     <span class="student-name-full">{{ eleve.nom }} {{ eleve.prenom }}</span>
-                                                                    <span class="student-name-mobile">{{ eleve.nom|premier_nom }} {{ eleve.prenom|premier_prenom }}</span>
+                                                                    <span class="student-name-mobile">{{ eleve.nom }} {{ eleve.prenom }}</span>
                                                                 </h4>
                                                             </div>
                                                         </div>
@@ -251,7 +203,7 @@
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
     <script src="{% static 'school_admin/js/directeur/matiere_tabs_overflow.js' %}?v=1.0.0"></script>
-    <script src="{% static 'school_admin/js/directeur/directeur_niveau_classe_persist.js' %}?v=1.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/directeur_niveau_classe_persist.js' %}?v=1.0.2"></script>
     <script src="{% static 'school_admin/js/directeur/fiche_inscription_liste.js' %}?v=2.1.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

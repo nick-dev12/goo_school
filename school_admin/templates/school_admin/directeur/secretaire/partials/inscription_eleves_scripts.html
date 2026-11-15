@@ -230,6 +230,10 @@ function resetForm() {
   var form = document.getElementById('inscriptionForm');
   if (form) {
     form.reset();
+    var classeSelect = form.querySelector('select.js-inscription-classe, select#classe');
+    if (classeSelect) {
+      classeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   }
   var phoneFull = document.getElementById('parent_telephone_full');
   if (phoneFull) {

@@ -41,20 +41,24 @@ def resolve_niveau_classe_tab_selection(request, classes_grouped):
     active_niveau = default_niveau
     active_classe_id = None
 
+    if niveau_param in key_by_norm:
+        active_niveau = key_by_norm[niveau_param]
+
     if classe_id is not None:
+        classe_niveau = None
         for key, data in classes_grouped.items():
             for classe_info in data.get('classes') or []:
                 cid = classe_info.get('classe')
                 pk = getattr(cid, 'id', None) if cid is not None else classe_info.get('classe_id')
                 if pk == classe_id:
-                    active_niveau = key
-                    active_classe_id = classe_id
+                    classe_niveau = key
                     break
-            if active_classe_id is not None:
+            if classe_niveau is not None:
                 break
-
-    if active_classe_id is None and niveau_param in key_by_norm:
-        active_niveau = key_by_norm[niveau_param]
+        if classe_niveau is not None:
+            if niveau_param not in key_by_norm or _normalize_niveau_key(classe_niveau) == _normalize_niveau_key(active_niveau):
+                active_niveau = classe_niveau
+                active_classe_id = classe_id
 
     classes_in_niveau = classes_grouped.get(active_niveau, {}).get('classes') or []
     if active_classe_id is None and classes_in_niveau:

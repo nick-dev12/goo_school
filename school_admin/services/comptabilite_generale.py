@@ -615,7 +615,7 @@ def pont_paiement_eleve(paiement, annee_scolaire=None, user=None):
     else:
         contrepartie = _compte_produit_pour_type(etab, paiement.type_paiement)
     if not jour or not treso or not contrepartie:
-        return None
+        raise ValueError("Configuration comptable incomplète : journal ou comptes d'encaissement manquants.")
     montant = paiement.montant or Decimal('0')
     if montant <= 0:
         return None

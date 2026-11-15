@@ -8,7 +8,7 @@ from .personal_views.commercial_view import *
 from .personal_views.comptable_view import *
 from .controllers.activites_commerciales_controller import ActivitesCommercialesController
 from .personal_views.directeur_view import verifier_bulletin_qr
-from .api_views import fcm_views, fcm_test_views, test_notes_notifications, sync_views
+from .api_views import fcm_views, fcm_test_views, test_notes_notifications, sync_views, context_popup_views
 from .personal_views.qr_scan_view import scan_qr_eleve, scan_qr_eleve_authenticated
 from .seo_views import robots_txt, sitemap_xml
 
@@ -24,6 +24,9 @@ urlpatterns =[
     # PWA - Routes pour la Progressive Web App (doivent être en premier)
     path('manifest.json', pwa_views.manifest_view, name='manifest'),
     path('service-worker.js', pwa_views.service_worker_view, name='service_worker'),
+    path('push-config.js', pwa_views.push_config_view, name='push_config_js'),
+    path('api/push/config/', pwa_views.push_config_view, name='push_config'),
+    path('api/context-popup/', context_popup_views.context_popup, name='context_popup'),
     path('offline/', pwa_views.offline_view, name='offline'),
     
     # Service Worker Firebase (doit être à la racine)
@@ -33,6 +36,7 @@ urlpatterns =[
     path('api/sync/push/', sync_views.sync_push, name='sync_push'),
     path('api/sync/pull/', sync_views.sync_pull, name='sync_pull'),
     path('api/fcm/save-token/', fcm_views.save_fcm_token, name='save_fcm_token'),
+    path('api/push/test/', fcm_views.test_own_push, name='test_own_push'),
     path('api/fcm/delete-token/', fcm_views.delete_fcm_token, name='delete_fcm_token'),
     path('api/fcm/test-notification/', fcm_test_views.test_notification, name='test_notification'),
     path('api/fcm/test-notification-eleve/', fcm_test_views.test_notification_eleve, name='test_notification_eleve'),

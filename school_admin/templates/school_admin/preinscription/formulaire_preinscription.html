@@ -5,9 +5,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Préinscription - {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0" />
+    <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
     <!-- intl-tel-input CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
@@ -374,7 +374,72 @@
                 </div>
             </div>
 
-            <!-- Section 2: Informations Parent/Tuteur -->
+            <div class="form-section-modern" data-section="2">
+                <div class="section-header-modern">
+                    <div class="section-icon-wrapper">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="section-title-wrapper">
+                        <h2 class="section-title-modern">Informations Scolaires</h2>
+                        <p class="section-subtitle-modern">Classe souhaitée et type d'inscription</p>
+                    </div>
+                    <div class="section-number">02</div>
+                </div>
+                <div class="form-grid-modern">
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="classe_souhaitee">
+                            <i class="fas fa-chalkboard"></i>
+                            Classe souhaitée <span class="optional-badge">Optionnel</span>
+                        </label>
+                        <select class="input-modern js-inscription-classe {% if field_errors.classe_souhaitee %}input-error{% endif %}" id="classe_souhaitee" name="classe_souhaitee">
+                            <option value="">Sélectionnez une classe</option>
+                            {% for classe in classes %}
+                            <option value="{{ classe.id }}" {% if form_data.classe_souhaitee == classe.id|stringformat:"s" %}selected{% endif %}>
+                                {{ classe.nom }} ({{ classe.get_niveau_display }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if field_errors.classe_souhaitee %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.classe_souhaitee }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="form-group-modern">
+                        <label class="label-modern" for="statut_inscription">
+                            <i class="fas fa-user-check"></i>
+                            Type d'inscription <span class="required-star">*</span>
+                        </label>
+                        <select class="input-modern {% if field_errors.statut_inscription %}input-error{% endif %}" id="statut_inscription" name="statut_inscription" required>
+                            <option value="nouvelle" {% if form_data.statut_inscription == 'nouvelle' or not form_data.statut_inscription %}selected{% endif %}>Nouvelle inscription</option>
+                            <option value="reinscription" {% if form_data.statut_inscription == 'reinscription' %}selected{% endif %}>Réinscription</option>
+                        </select>
+                        {% if field_errors.statut_inscription %}
+                            <span class="error-message-modern"><i class="fas fa-exclamation-circle"></i> {{ field_errors.statut_inscription }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <script type="application/json" id="fraisAuChoixMapData">{{ frais_au_choix_map_json|default:"{}"|safe }}</script>
+            <div class="form-section-modern" data-section="frais-annexes" id="fraisAuChoixSection" hidden
+                 data-frais-map-el="fraisAuChoixMapData"
+                 data-devise="{{ devise_monnaie|default:'FCFA' }}">
+                <div class="section-header-modern">
+                    <div class="section-icon-wrapper"><i class="fas fa-tags"></i></div>
+                    <div class="section-title-wrapper">
+                        <h2 class="section-title-modern">Frais annexes au choix</h2>
+                        <p class="section-subtitle-modern">Frais liés à la classe sélectionnée — cochez ceux souhaités</p>
+                    </div>
+                    <div class="section-number">03</div>
+                </div>
+                <div class="info-box-modern">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Sélectionnez d’abord une classe pour afficher les frais annexes disponibles.</p>
+                </div>
+                <div class="checkbox-grid-modern" id="fraisAuChoixGrid" data-selected-codes="{% if form_data.frais_annexe_choix %}{{ form_data.frais_annexe_choix|join:',' }}{% endif %}"></div>
+                <p class="section-subtitle-modern" id="fraisAuChoixEmpty" hidden>Aucun frais annexe « au choix » pour cette classe.</p>
+            </div>
+
+            <!-- Section Parent/Tuteur -->
             <div class="form-section-modern" data-section="3">
                 <div class="section-header-modern">
                     <div class="section-icon-wrapper">
@@ -384,7 +449,7 @@
                         <h2 class="section-title-modern">Parent / Tuteur</h2>
                         <p class="section-subtitle-modern">Informations de la personne responsable</p>
                     </div>
-                    <div class="section-number">02</div>
+                    <div class="section-number">04</div>
                 </div>
 
                 <div class="info-box-modern">
@@ -526,10 +591,14 @@
     <!-- intl-tel-input JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/intlTelInput.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/js/utils.js"></script>
+    <script src="{% static 'school_admin/js/directeur/frais_au_choix_classe.js' %}?v=1.0.1"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.querySelector("#preinscriptionForm");
+            if (window.initFraisAuChoixClasse) {
+                window.initFraisAuChoixClasse(form);
+            }
             
             // Fonctionnalité de recherche de pays (identique au formulaire d'inscription)
             const countrySearchInput = document.getElementById('nationalite_search');

@@ -62,7 +62,16 @@ def notifications_directeur(request) -> Dict[str, int]:
     from school_admin.model.notification_directeur_model import NotificationDirecteur
 
     if not isinstance(user, Etablissement):
-        return {}
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+        if not isinstance(user, PersonnelAdministratif):
+            return {}
+
+        def _count_personnel() -> int:
+            # Le personnel partage l'interface de la direction : même cloche, ses propres notifications.
+            from school_admin.model.rappel_model import NotificationPersonnel
+            return NotificationPersonnel.objects.filter(personnel=user, lu=False).count()
+
+        return {'notifications_directeur_non_lues': SimpleLazyObject(_count_personnel)}
 
     def _count() -> int:
         return NotificationDirecteur.objects.filter(

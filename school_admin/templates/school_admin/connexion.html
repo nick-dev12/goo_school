@@ -5,10 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {% include 'school_admin/partials/seo_head.html' %}
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      href="/static/school_admin/vendor/fonts/inter.css?v=1"
       rel="stylesheet"
     />
 
@@ -18,10 +16,10 @@
   />
   <link
     rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0"
   />
     <!-- QR Code Scanner Library -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="{% static 'school_admin/js/shared/qr_scanner_loader.js' %}?v=1.0.0" defer></script>
   </head>
   <body>
    
@@ -44,7 +42,7 @@
         <div class="welcome-content">
           <div class="school-logo">
             <div class="logo-container">
-              <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Aria Logo" class="main-logo">
+              <img src="{% static 'school_admin/img/logo-256.webp' %}" alt="Aria Logo" class="main-logo">
             </div>
           </div>
           <h1 class="welcome-title">
@@ -81,7 +79,7 @@
             <i class="fas fa-sign-in-alt"></i>
           </div>
           <div class="header-icon-logo">
-            <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="Aria Logo" class="header-logo-img">
+            <img src="{% static 'school_admin/img/logo-256.webp' %}" alt="Aria Logo" class="header-logo-img">
           </div>
           <h2>Connexion</h2>
           <p class="header-subtitle-desktop">Accédez à votre espace personnel</p>
@@ -758,6 +756,17 @@
 
       function demarrerScanner() {
         if (isScanning) return;
+        if (typeof Html5Qrcode === 'undefined' && window.ariaChargerScannerQR) {
+          // Bibliothèque de scan téléchargée à la première ouverture, plus à chaque page.
+          window.ariaChargerScannerQR().then(function () {
+            const modal = document.getElementById('qrScannerModal');
+            if (modal && modal.classList.contains('active')) demarrerScanner();
+          }, function () {
+            alert("La bibliothèque de scan QR Code n'a pas pu être chargée. Vérifiez votre connexion puis réessayez.");
+            fermerScannerQR();
+          });
+          return;
+        }
         
         const qrReaderContainer = document.getElementById('qr-reader');
         const qrReaderResults = document.getElementById('qr-reader-results');

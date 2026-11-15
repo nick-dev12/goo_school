@@ -11,6 +11,21 @@ from django.db import transaction
 logger = logging.getLogger(__name__)
 
 
+@shared_task
+def deliver_push_task(job_id):
+    from school_admin.services.push_delivery import deliver
+    deliver(job_id)
+
+
+@shared_task
+def retry_pending_push():
+    from django.utils import timezone
+    from school_admin.model.push_delivery_model import PushDelivery
+    from school_admin.services.push_delivery import deliver
+    for job_id in PushDelivery.objects.filter(status='pending', next_attempt__lte=timezone.now()).values_list('pk', flat=True)[:500]:
+        deliver(job_id)
+
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=30)
 def send_annonce_notifications_task(self, annonce_id: int) -> None:
     from school_admin.services.notification_tasks import _send_annonce_notifications
@@ -63,3 +78,13 @@ def verifier_moratoires_task() -> int:
     from school_admin.services.recouvrement import verifier_rupture_moratoires
 
     return verifier_rupture_moratoires()
+
+
+@shared_task
+def generer_rappels_task() -> dict:
+    """Rappels automatiques : notification persistante + push pour chaque action à faire."""
+    from school_admin.services.rappels import generer
+
+    stats = generer()
+    stats.pop('detail', None)
+    return stats

@@ -12,7 +12,7 @@ from school_admin.model.comptabilite_eleve_model import (
 )
 
 
-def creer_frais_inscription(eleve, annee_scolaire, type_frais='inscription'):
+def creer_frais_inscription(eleve, annee_scolaire, type_frais='inscription', codes_frais_au_choix=None):
     """
     Crée les frais d'inscription pour un élève
     
@@ -20,9 +20,10 @@ def creer_frais_inscription(eleve, annee_scolaire, type_frais='inscription'):
         eleve: Instance de Eleve
         annee_scolaire: Instance de AnneeScolaire
         type_frais: 'inscription' ou 'reinscription'
+        codes_frais_au_choix: codes des frais annexes « au choix » cochés pour cet élève
     
     Returns:
-        Instance de FraisInscription créée
+        Instance de FraisInscription créée (ou None si pas de montant inscription)
     """
     etablissement = eleve.etablissement
     
@@ -30,44 +31,87 @@ def creer_frais_inscription(eleve, annee_scolaire, type_frais='inscription'):
     if not etablissement.module_comptabilite:
         return None
     
-    # Déterminer le montant selon le type d'établissement
     montant = None
-    if etablissement.type_etablissement_comptabilite == 'prive':
+    parametres = None
+    inscription = None
+    try:
+        from school_admin.controllers.comptabilite_controller import ComptabiliteController
+        from school_admin.model.inscription_eleve_model import InscriptionEleve
+
+        inscription = InscriptionEleve.objects.filter(
+            eleve=eleve,
+            annee_scolaire=annee_scolaire,
+            etablissement=etablissement,
+        ).select_related('classe').first()
+        classe = getattr(inscription, 'classe', None) or getattr(eleve, 'classe', None)
+        if classe is not None:
+            parametres = ComptabiliteController._get_parametres_for_classe(etablissement, classe)
+    except Exception:
+        parametres = None
+        inscription = None
+
+    if parametres is not None and hasattr(parametres, 'montant_frais_inscription'):
+        if etablissement.type_etablissement_comptabilite == 'prive':
+            if type_frais == 'reinscription' and getattr(parametres, 'montant_frais_reinscription', None):
+                montant = parametres.montant_frais_reinscription
+            else:
+                montant = parametres.montant_frais_inscription
+        else:
+            montant = getattr(parametres, 'montant_facturation_annuelle', None)
+    elif etablissement.type_etablissement_comptabilite == 'prive':
         montant = etablissement.montant_frais_inscription
-    else:  # public
+    else:
         montant = etablissement.montant_facturation_annuelle
-    
-    if not montant:
-        return None
-    
-    # Récupérer ou créer la comptabilité de l'élève
-    comptabilite_eleve, created = ComptabiliteEleve.objects.get_or_create(
+
+    comptabilite_eleve, _created = ComptabiliteEleve.objects.get_or_create(
         eleve=eleve,
         etablissement=etablissement,
         annee_scolaire=annee_scolaire,
-        defaults={
-            'statut_paiement': 'a_jour'
-        }
+        defaults={'statut_paiement': 'a_jour'},
     )
-    
-    # Date d'échéance : 30 jours après l'inscription
-    date_echeance = timezone.now().date() + timedelta(days=30)
-    
-    # Créer les frais d'inscription avec statut 'en_attente' et montant_paye=0
-    # La caissière/comptable enregistrera le paiement manuellement
-    frais_inscription = FraisInscription.objects.create(
-        eleve=eleve,
-        etablissement=etablissement,
-        annee_scolaire=annee_scolaire,
-        comptabilite_eleve=comptabilite_eleve,
-        montant=montant,
-        date_echeance=date_echeance,
-        type_frais=type_frais,
-        statut='en_attente',
-        montant_paye=Decimal('0.00'),
-        reste_a_payer=montant  # Initialiser le reste à payer au montant total
-    )
-    
+
+    frais_inscription = None
+    if montant:
+        date_echeance = timezone.now().date() + timedelta(days=30)
+        frais_inscription = FraisInscription.objects.create(
+            eleve=eleve,
+            etablissement=etablissement,
+            annee_scolaire=annee_scolaire,
+            comptabilite_eleve=comptabilite_eleve,
+            montant=montant,
+            date_echeance=date_echeance,
+            type_frais=type_frais,
+            statut='en_attente',
+            montant_paye=Decimal('0.00'),
+            reste_a_payer=montant,
+        )
+
+    if parametres is not None:
+        from school_admin.utils.frais_annexes import (
+            appliquer_choix_frais_au_choix,
+            synchroniser_frais_annexes_eleve,
+        )
+
+        if codes_frais_au_choix is None:
+            synchroniser_frais_annexes_eleve(
+                eleve,
+                etablissement,
+                annee_scolaire,
+                comptabilite_eleve,
+                parametres,
+                inscription=inscription,
+            )
+        else:
+            appliquer_choix_frais_au_choix(
+                eleve,
+                etablissement,
+                annee_scolaire,
+                comptabilite_eleve,
+                parametres,
+                codes_frais_au_choix,
+                inscription=inscription,
+            )
+
     return frais_inscription
 
 

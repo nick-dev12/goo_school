@@ -57,6 +57,8 @@ class DirecteurNotificationService:
         pushdata_with_url.setdefault("redirect_url", default_redirect_url)
         pushdata_with_url.setdefault("url", default_redirect_url)
 
+        pushdata_with_url['_push_notification_ids'] = {str(etablissement.pk): notification.pk}
+
         push_result = None
         if push_title and push_body:
             try:

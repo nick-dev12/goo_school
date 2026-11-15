@@ -10,6 +10,15 @@ import os
 
 
 @require_GET
+def push_config_view(request):
+    from school_admin.push_config import public_config
+    config = public_config()
+    if request.path.endswith('.js'):
+        return HttpResponse('self.ARIA_PUSH_CONFIG = ' + json.dumps(config) + ';', content_type='application/javascript')
+    return JsonResponse(config)
+
+
+@require_GET
 @cache_control(max_age=3600, public=True)
 def manifest_view(request):
     """

@@ -7,9 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include 'school_admin/partials/seo_head.html' %}
   <title>{% trans "Pointage" %} – ARIA</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet">
+  <link href="/static/school_admin/vendor/fonts/inter.css?v=1" rel="stylesheet">
+  <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'school_admin/css/enseignant/header_enseignant_new.css' %}?v=1.0.3">
   {% if ns == 'enseignant_primaire' %}{% include 'school_admin/enseignant/primaire/partials/prof_primaire_ui_assets.html' %}{% endif %}
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/aria_shell.css' %}?v=1.0.0">
@@ -152,7 +152,7 @@
   </div>
 
   <script src="{% static 'school_admin/js/directeur/cg_v3.js' %}?v=1.0.1"></script>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="{% static 'school_admin/vendor/html5-qrcode/html5-qrcode.min.js' %}?v=2.3.8" defer></script>
   <script>
     (function () {
       var form = document.getElementById('pt-form-scan');

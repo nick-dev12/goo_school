@@ -1,0 +1,29 @@
+/* Logo de l'établissement dans l'en-tête des documents à imprimer (certificats, attestations, fiches, listes).
+   Hauteur bornée, proportions conservées ; le bloc n'existe pas quand l'établissement n'a pas de logo. */
+.entete-logo-etab {
+    line-height: 0;
+    margin: 0 0 8px;
+}
+
+.entete-logo-etab img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-height: 72px;
+    max-width: 180px;
+    object-fit: contain;
+}
+
+@media print {
+    .entete-logo-etab {
+        margin-bottom: 2mm;
+        break-inside: avoid;
+    }
+
+    .entete-logo-etab img {
+        max-height: 18mm;
+        max-width: 45mm;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}

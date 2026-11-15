@@ -7,10 +7,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Validation de la préinscription - {{ preinscription.nom }} {{ preinscription.prenom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/inscription_eleves.css' %}?v=2.0.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
     <!-- intl-tel-input CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.1.1/css/intlTelInput.css" />
@@ -321,7 +321,7 @@
                                 <i class="fas fa-chalkboard"></i>
                                 {% trans "Classe d'affectation <span class=\"required-star\">*</span>" %}
                             </label>
-                            <select class="input-modern {% if field_errors.classe %}input-error{% endif %}" 
+                            <select class="input-modern js-inscription-classe {% if field_errors.classe %}input-error{% endif %}" 
                                     id="classe" 
                                     name="classe" 
                                     required>
@@ -651,8 +651,29 @@
                     </div>
                 </div>
 
+                <div class="form-section-modern" data-section="frais-annexes" id="fraisAuChoixSection" hidden
+                     data-frais-au-choix-url="{% url 'directeur:frais_au_choix_pour_classe_directeur' 0 %}">
+                    <div class="section-header-modern">
+                        <div class="section-icon-wrapper">
+                            <i class="fas fa-tags"></i>
+                        </div>
+                        <div class="section-title-wrapper">
+                            <h2 class="section-title-modern">{% trans "Frais annexes au choix" %}</h2>
+                            <p class="section-subtitle-modern">{% trans "Frais liés à la classe sélectionnée — cochez ceux à activer pour cet élève" %}</p>
+                        </div>
+                        <div class="section-number">05</div>
+                    </div>
+                    <div class="info-box-modern">
+                        <i class="fas fa-info-circle"></i>
+                        <p>{% trans "Les options apparaissent après le choix de la classe d’affectation." %}</p>
+                    </div>
+                    <input type="hidden" name="frais_annexe_choix_present" value="1">
+                    <div class="checkbox-grid-modern" id="fraisAuChoixGrid" data-selected-codes="{% if preinscription.frais_annexe_choix %}{{ preinscription.frais_annexe_choix|join:',' }}{% endif %}"></div>
+                    <p class="section-subtitle-modern" id="fraisAuChoixEmpty" hidden>{% trans "Aucun frais annexe « au choix » pour cette classe." %}</p>
+                </div>
+
                 <!-- Commentaires -->
-                <div class="form-section-modern" data-section="5">
+                <div class="form-section-modern" data-section="6">
                     <div class="section-header-modern">
                         <div class="section-icon-wrapper">
                             <i class="fas fa-comment-alt"></i>
@@ -661,7 +682,7 @@
                             <h2 class="section-title-modern">{% trans "Commentaires" %}</h2>
                             <p class="section-subtitle-modern">{% trans "Notes ou commentaires additionnels (optionnel)" %}</p>
                         </div>
-                        <div class="section-number">05</div>
+                        <div class="section-number">06</div>
                     </div>
 
                     <div class="form-group-modern full-width">
@@ -695,24 +716,25 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    {% trans "<script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.querySelector("#inscriptionForm");
-            
-            // Gestion de la soumission du formulaire
-            form.addEventListener('submit', function(e) {
-                const submitBtn = form.querySelector('.btn-submit-modern');
-                const loading = submitBtn.querySelector('.btn-loading');
-                const btnText = submitBtn.querySelector('span');
-                
-                // Afficher le loader
-                loading.style.display = 'inline-block';
-                btnText.style.display = 'none';
+    <script src="{% static 'school_admin/js/directeur/frais_au_choix_classe.js' %}?v=1.0.1"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var form = document.querySelector('#inscriptionForm') || document.querySelector('form');
+            if (!form) return;
+            form.addEventListener('submit', function () {
+                var submitBtn = form.querySelector('.btn-submit-modern');
+                if (!submitBtn) return;
+                var loading = submitBtn.querySelector('.btn-loading');
+                var btnText = submitBtn.querySelector('span');
+                if (loading) loading.style.display = 'inline-block';
+                if (btnText) btnText.style.display = 'none';
                 submitBtn.disabled = true;
             });
+            if (window.initFraisAuChoixClasse) {
+                window.initFraisAuChoixClasse(form);
+            }
         });
-    </script>" %}
+    </script>
 </body>
 </html>
 

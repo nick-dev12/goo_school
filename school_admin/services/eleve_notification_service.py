@@ -31,6 +31,9 @@ class EleveNotificationService:
         Returns:
             L'URL de redirection appropriée
         """
+        explicit = (payload or {}).get('url', '')
+        if isinstance(explicit, str) and explicit.startswith('/') and not explicit.startswith('//'):
+            return explicit
         try:
             if type_notification == "evaluation":
                 # Rediriger vers la page des devoirs
@@ -126,6 +129,8 @@ class EleveNotificationService:
         pushdata_with_url["redirect_url"] = redirect_url
         pushdata_with_url["url"] = redirect_url
         pushdata_with_url = cls._sanitize_for_json(pushdata_with_url)
+
+        pushdata_with_url['_push_notification_ids'] = {str(eleve.pk): notification.pk}
 
         push_result = None
         if push_title and push_body:

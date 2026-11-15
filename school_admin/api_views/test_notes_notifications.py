@@ -1,3 +1,4 @@
+from school_admin.utils.push_permissions import push_diagnostic_admin
 """
 Vue de test pour vérifier l'envoi de notifications lors de l'enregistrement des notes
 """
@@ -17,6 +18,7 @@ from school_admin.services.firebase_service import FirebaseService
 
 logger = logging.getLogger(__name__)
 
+@push_diagnostic_admin
 @login_required
 def test_notes_notifications_page(request):
     """
@@ -26,6 +28,7 @@ def test_notes_notifications_page(request):
 
 
 @require_http_methods(["POST"])
+@push_diagnostic_admin
 @login_required
 def test_send_note_notification(request):
     """
@@ -135,6 +138,7 @@ def test_send_note_notification(request):
 
 
 @require_http_methods(["GET"])
+@push_diagnostic_admin
 @login_required
 def get_eleves_with_tokens(request):
     """

@@ -294,7 +294,7 @@ def _charges_ouvertes(eleve, etablissement, annee_scolaire) -> list[ChargeDue]:
         )
     for frais in FraisAnnexe.objects.filter(
         eleve=eleve, etablissement=etablissement, annee_scolaire=annee_scolaire
-    ):
+    ).exclude(statut='clos'):
         reste = frais.get_reste_a_payer()
         charges.append(
             ChargeDue(
@@ -455,6 +455,8 @@ def _notifier_parents_scolarite(eleve, titre: str, message: str, resume: ResumeD
             'scolarite',
             titre,
             message,
+            push_title=titre,
+            push_body=message,
             payload={
                 'reste': str(resume.reste),
                 'echeance': resume.prochaine_echeance.isoformat() if resume.prochaine_echeance else '',
@@ -803,7 +805,7 @@ def _repartir_sur_charges_origine(eleve, etablissement, annee_scolaire, montant:
     files.extend(
         list(FraisAnnexe.objects.filter(
             eleve=eleve, etablissement=etablissement, annee_scolaire=annee_scolaire
-        ).order_by('date_echeance'))
+        ).exclude(statut='clos').order_by('date_echeance'))
     )
     enregistre_par = user if getattr(user, 'pk', None) else None
     for charge in files:

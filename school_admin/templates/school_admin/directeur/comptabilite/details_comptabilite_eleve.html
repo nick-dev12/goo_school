@@ -7,15 +7,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% trans "Scolarité" %} — {{ eleve.nom }} {{ eleve.prenom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/details_comptabilite_eleve.css' %}?v=2.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/details_comptabilite_eleve.css' %}?v=2.0.7" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tarifs_mois.css' %}?v=3.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=2.0.5" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
-<body class="scd-page-body" data-live-page="compta-details" data-eleve-id="{{ eleve.id }}" data-devise="{{ devise_monnaie|default:'FCFA' }}">
+<body class="scd-page-body cg3" data-live-page="compta-details" data-eleve-id="{{ eleve.id }}" data-devise="{{ devise_monnaie|default:'FCFA' }}">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container scd-page">
@@ -50,27 +54,6 @@
                 {% endif %}
             </div>
 
-            <div class="scd-summary-cards">
-                <div class="scd-summary-card summary-card">
-                    <span class="scd-summary-label">{% trans "Total dû" %}</span>
-                    <span class="scd-summary-value" data-summary="total_du">{{ total_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
-                </div>
-                <div class="scd-summary-card summary-card success">
-                    <span class="scd-summary-label">{% trans "Total payé" %}</span>
-                    <span class="scd-summary-value" data-summary="total_paye">{{ total_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
-                </div>
-                <div class="scd-summary-card summary-card {% if reste_a_payer > 0 %}danger{% else %}success{% endif %}" data-summary-card="reste">
-                    <span class="scd-summary-label">{% trans "Reste à payer" %}</span>
-                    <span class="scd-summary-value" data-summary="reste_a_payer">{{ reste_a_payer|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
-                </div>
-                <div class="scd-summary-card summary-card {% if comptabilite.statut_paiement == 'a_jour' %}success{% elif comptabilite.statut_paiement == 'en_retard' %}warning{% else %}danger{% endif %}" data-summary-card="statut">
-                    <span class="scd-summary-label">{% trans "Statut" %}</span>
-                    <span class="badge badge-{% if comptabilite.statut_paiement == 'a_jour' %}success{% elif comptabilite.statut_paiement == 'en_retard' %}warning{% else %}danger{% endif %}" data-summary="statut_display">
-                        {{ comptabilite.get_statut_paiement_display }}
-                    </span>
-                </div>
-            </div>
-
             <div class="scd-hero-actions">
                 {% if reste_a_payer > 0 %}
                 <form method="post" action="{% url 'directeur:relancer_impaye_directeur' eleve.id %}" style="display:inline;">
@@ -86,6 +69,25 @@
                 </a>
             </div>
         </header>
+
+        <section class="fe-kpis hb-kpis hb-kpis--4" aria-label="{% trans 'Indicateurs' %}">
+            <div class="fe-kpi fe-tone-blue">
+                <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Total dû" %}</span><span class="fe-kpi__icon"><i class="fas fa-file-invoice" aria-hidden="true"></i></span></div>
+                <p class="fe-kpi__value" data-summary="total_du">{{ total_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</p>
+            </div>
+            <div class="fe-kpi fe-tone-green">
+                <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Total payé" %}</span><span class="fe-kpi__icon"><i class="fas fa-circle-check" aria-hidden="true"></i></span></div>
+                <p class="fe-kpi__value" data-summary="total_paye">{{ total_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</p>
+            </div>
+            <div class="fe-kpi {% if reste_a_payer > 0 %}fe-tone-red danger{% else %}fe-tone-green success{% endif %}" data-summary-card="reste">
+                <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Reste à payer" %}</span><span class="fe-kpi__icon"><i class="fas fa-wallet" aria-hidden="true"></i></span></div>
+                <p class="fe-kpi__value" data-summary="reste_a_payer">{{ reste_a_payer|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</p>
+            </div>
+            <div class="fe-kpi {% if comptabilite.statut_paiement == 'a_jour' %}fe-tone-green success{% elif comptabilite.statut_paiement == 'en_retard' %}fe-tone-orange warning{% else %}fe-tone-red danger{% endif %}" data-summary-card="statut">
+                <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Statut" %}</span><span class="fe-kpi__icon"><i class="fas fa-flag" aria-hidden="true"></i></span></div>
+                <p class="fe-kpi__value is-text"><span data-summary="statut_display">{{ comptabilite.get_statut_paiement_display }}</span></p>
+            </div>
+        </section>
 
         {% if moratoire %}
         <section class="scd-tabs-wrap" style="margin-bottom:1rem;">
@@ -164,7 +166,7 @@
                     <button type="button" role="tab" class="matiere-tab-btn scd-tab-btn {% if initial_compta_details_section == 'annexes' %}active{% endif %}" data-scd-tab="scd-panel-annexes" data-section="annexes" aria-selected="{% if initial_compta_details_section == 'annexes' %}true{% else %}false{% endif %}">
                         <i class="fas fa-tags"></i>
                         <span>{% trans "Frais annexes" %}</span>
-                        <span class="scd-tab-count tab-count" id="comptaAnnexesCount">{{ frais_annexes_avec_paiements|length }}</span>
+                        <span class="scd-tab-count tab-count" id="comptaAnnexesCount">{{ frais_annexes_lignes|length }}</span>
                     </button>
                     <button type="button" role="tab" class="matiere-tab-btn scd-tab-btn {% if initial_compta_details_section == 'historique' %}active{% endif %}" data-scd-tab="scd-panel-historique" data-section="historique" aria-selected="{% if initial_compta_details_section == 'historique' %}true{% else %}false{% endif %}">
                         <i class="fas fa-history"></i>
@@ -244,6 +246,19 @@
                 <header class="scd-section-head">
                     <h2 class="scd-section-title"><i class="fas fa-calendar-alt"></i> {% trans "Mensualités" %}</h2>
                 </header>
+                {% if paliers_mensualite %}
+                <div class="scd-tarifs-banner" role="note">
+                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                    <div>
+                        <strong>{% trans "Tarifs appliqués à cet élève" %}</strong>
+                        <p>
+                            {% for palier in paliers_mensualite %}
+                                {{ palier.label }} : {{ palier.montant|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}{% if not forloop.last %} · {% endif %}
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
                 {% if mensualites_avec_paiements %}
                     <div class="scd-table-wrap table-responsive">
                         <table class="scd-table">
@@ -317,7 +332,7 @@
                 <header class="scd-section-head">
                     <h2 class="scd-section-title"><i class="fas fa-tags"></i> {% trans "Frais annexes" %}</h2>
                 </header>
-                {% if frais_annexes_avec_paiements %}
+                {% if frais_annexes_lignes %}
                     <div class="scd-table-wrap table-responsive">
                         <table class="scd-table">
                             <thead>
@@ -334,31 +349,67 @@
                                 </tr>
                             </thead>
                             <tbody id="comptaAnnexesBody">
-                                {% for frais_data in frais_annexes_avec_paiements %}
-                                    {% with frais=frais_data.frais reste=frais_data.reste_a_payer paiements_ligne=frais_data.paiements %}
-                                    <tr data-annexe-id="{{ frais.id }}">
-                                        <td>{{ frais.libelle }}</td>
-                                        <td>{{ frais.get_periodicite_display }}</td>
-                                        <td><strong>{{ frais_data.montant_total|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</strong></td>
-                                        <td>{{ frais_data.montant_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
+                                {% for ligne in frais_annexes_lignes %}
+                                    {% with frais=ligne.frais reste=ligne.reste_a_payer paiements_ligne=ligne.paiements %}
+                                    <tr {% if frais %}data-annexe-id="{{ frais.id }}"{% endif %} data-annexe-code="{{ ligne.code }}">
+                                        <td>
+                                            {{ ligne.libelle }}
+                                            {% if ligne.au_choix %}<span class="frais-optionnel-tag">{% trans "au choix" %}</span>{% endif %}
+                                        </td>
+                                        <td>{{ ligne.periodicite_display }}</td>
+                                        <td><strong>{{ ligne.montant_total|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</strong></td>
+                                        <td>{{ ligne.montant_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</td>
                                         <td>
                                             <span class="{% if reste > 0 %}scd-amount-danger{% else %}scd-amount-success{% endif %}">
                                                 {{ reste|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}
                                             </span>
                                         </td>
-                                        <td>{{ frais.date_echeance|date:"d/m/Y" }}</td>
+                                        <td>{% if ligne.date_echeance %}{{ ligne.date_echeance|date:"d/m/Y" }}{% else %}—{% endif %}</td>
                                         <td>
-                                            <span class="badge badge-{% if frais.statut == 'paye' %}success{% elif frais.statut == 'en_retard' %}warning{% else %}info{% endif %}">
-                                                {{ frais.get_statut_display }}
-                                            </span>
+                                            {% if ligne.actif %}
+                                            <span class="badge badge-success">{% trans "Actif" %}</span>
+                                            {% else %}
+                                            <span class="badge badge-danger scd-badge-inactif">{% trans "Inactif" %}</span>
+                                            {% endif %}
                                         </td>
                                         <td class="scd-actions-cell">
-                                            {% if reste > 0 %}
-                                            <button type="button" class="btn btn-success" onclick="openPaiementModal('annexe', {{ frais.id }}, {{ frais_data.montant_total|floatformat:0 }}, {{ frais_data.montant_paye|floatformat:0 }}, {{ reste|floatformat:0 }})">
-                                                <i class="fas fa-money-bill-wave"></i> {% trans "Payer" %}
-                                            </button>
+                                            {% if not ligne.actif %}
+                                                {% if ligne.au_choix %}
+                                                <form method="post" action="{% url 'directeur:gerer_choix_frais_annexes_directeur' eleve.id %}" class="scd-action-form">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="activer">
+                                                    <input type="hidden" name="code" value="{{ ligne.code }}">
+                                                    <button type="submit" class="btn btn-activer">
+                                                        <i class="fas fa-toggle-on" aria-hidden="true"></i>
+                                                        <span>{% trans "Activer" %}</span>
+                                                    </button>
+                                                </form>
+                                                {% else %}
+                                                <span class="badge badge-danger scd-badge-inactif">{% trans "Inactif" %}</span>
+                                                {% endif %}
                                             {% else %}
-                                            <span class="badge badge-success">{% trans "Payé" %}</span>
+                                                <div class="scd-actions-stack">
+                                                    {% if frais and reste > 0 %}
+                                                    <button type="button" class="btn btn-success" onclick="openPaiementModal('annexe', {{ frais.id }}, {{ ligne.montant_total|floatformat:0 }}, {{ ligne.montant_paye|floatformat:0 }}, {{ reste|floatformat:0 }})">
+                                                        <i class="fas fa-money-bill-wave"></i> {% trans "Payer" %}
+                                                    </button>
+                                                    {% elif frais %}
+                                                    <span class="badge badge-success">{% trans "Payé" %}</span>
+                                                    {% else %}
+                                                    <span class="badge badge-info">{% trans "Actif" %}</span>
+                                                    {% endif %}
+                                                    {% if ligne.au_choix %}
+                                                    <form method="post" action="{% url 'directeur:gerer_choix_frais_annexes_directeur' eleve.id %}" class="scd-action-form">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="desactiver">
+                                                        <input type="hidden" name="code" value="{{ ligne.code }}">
+                                                        <button type="submit" class="btn btn-desactiver" onclick="return confirm('{% trans "Désactiver ce frais pour cet élève ?" %}');">
+                                                            <i class="fas fa-toggle-off" aria-hidden="true"></i>
+                                                            <span>{% trans "Désactiver" %}</span>
+                                                        </button>
+                                                    </form>
+                                                    {% endif %}
+                                                </div>
                                             {% endif %}
                                         </td>
                                         {% include 'school_admin/directeur/comptabilite/partials/scd_colonne_recus.html' %}
@@ -400,14 +451,31 @@
                                     <tr data-paiement-id="{{ paiement.id }}">
                                         <td>{{ paiement.date_paiement|date:"d/m/Y H:i" }}</td>
                                         <td><strong>{{ paiement.montant|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</strong></td>
-                                        <td>{{ paiement.get_type_paiement_display|default:"-" }}</td>
-                                        <td>{{ paiement.get_mode_paiement_display|default:"-" }}</td>
                                         <td>
-                                            {% if paiement.numero_recu %}
-                                                <a href="{% url 'directeur:recu_paiement_directeur' paiement.id %}">{{ paiement.numero_recu }}</a>
+                                            {% if paiement.type_paiement == 'frais_annexe' and paiement.frais_annexe %}
+                                                {{ paiement.frais_annexe.libelle }}
+                                            {% elif paiement.type_paiement == 'mensualite' and paiement.mensualite %}
+                                                {{ paiement.mensualite.periode|default:paiement.get_type_paiement_display }}
+                                            {% elif paiement.type_paiement == 'frais_inscription' and paiement.frais_inscription %}
+                                                {{ paiement.frais_inscription.get_type_frais_display|default:paiement.get_type_paiement_display }}
                                             {% else %}
-                                                <a href="{% url 'directeur:recu_paiement_directeur' paiement.id %}">{% trans "Reçu" %}</a>
+                                                {{ paiement.get_type_paiement_display|default:"-" }}
                                             {% endif %}
+                                        </td>
+                                        <td>{{ paiement.get_mode_paiement_display|default:"-" }}</td>
+                                        <td class="scd-recus-cell">
+                                            <a
+                                                href="{% url 'directeur:recu_paiement_directeur' paiement.id %}"
+                                                class="scd-btn-recu"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="{% trans 'Voir / imprimer le reçu' %}"
+                                            >
+                                                <i class="fas fa-receipt" aria-hidden="true"></i>
+                                                <span class="scd-btn-recu__label">
+                                                    {% if paiement.numero_recu %}{{ paiement.numero_recu }}{% else %}{% trans "Reçu" %}{% endif %}
+                                                </span>
+                                            </a>
                                         </td>
                                         <td>{{ paiement.reference_paiement|default:"-" }}</td>
                                     </tr>

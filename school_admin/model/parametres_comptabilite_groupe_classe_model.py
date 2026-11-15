@@ -73,6 +73,32 @@ class ParametresComptabiliteGroupeClasse(models.Model):
         verbose_name="Montant de la mensualité",
         help_text="Montant de la mensualité mensuelle (établissements privés)"
     )
+    montants_mensualite_par_mois = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Montants particuliers par mois",
+        help_text="Mois (1 à 12) associés à un montant différent de la mensualité de base",
+    )
+
+    def montant_pour_mois(self, mois):
+        valeur = (self.montants_mensualite_par_mois or {}).get(str(mois))
+        return Decimal(str(valeur)) if valeur is not None else (self.montant_mensualite or Decimal('0.00'))
+
+    @property
+    def paliers_mensualite(self):
+        from school_admin.utils.tarifs_mensualite import paliers_depuis_parametre
+        return paliers_depuis_parametre(self)
+
+    def phrase_paliers(self, devise='FCFA'):
+        from school_admin.utils.tarifs_mensualite import phrase_paliers
+        return phrase_paliers(self, devise)
+
+    @property
+    def tarifs_mensuels_personnalises(self):
+        return [
+            (palier['label'], palier['montant'])
+            for palier in self.paliers_mensualite
+        ]
     
     montant_facturation_annuelle = models.DecimalField(
         max_digits=10,
@@ -532,7 +558,7 @@ class ParametresComptabiliteGroupeClasse(models.Model):
                                     frais_existant.save(update_fields=['montant', 'montant_paye', 'reste_a_payer', 'statut', 'date_paiement'])
                         
                         # 2. Créer ou mettre à jour les mensualités pour les établissements privés
-                        if self.etablissement.type_etablissement_comptabilite == 'prive' and self.montant_mensualite and self.montant_mensualite > Decimal('0.00'):
+                        if self.etablissement.type_etablissement_comptabilite == 'prive' and (self.montant_mensualite or self.montants_mensualite_par_mois):
                             # Générer les mensualités selon la période de facturation
                             mois_debut = self.mois_debut_facturation
                             mois_fin = self.mois_fin_facturation
@@ -550,7 +576,9 @@ class ParametresComptabiliteGroupeClasse(models.Model):
                             
                             while True:
                                 date_debut_mois = date(annee_courante, mois_courant, 1)
-                                if date_debut_mois < annee_scolaire_active.date_debut or date_debut_mois > annee_scolaire_active.date_fin:
+                                # La période de facturation peut inclure juillet, même si
+                                # les cours de l'année scolaire se terminent en juin.
+                                if date_debut_mois < annee_scolaire_active.date_debut:
                                     mois_courant += 1
                                     if mois_courant > 12:
                                         mois_courant = 1
@@ -564,6 +592,16 @@ class ParametresComptabiliteGroupeClasse(models.Model):
                                             break
                                     continue
                                 
+                                montant_du_mois = self.montant_pour_mois(mois_courant)
+                                if montant_du_mois <= 0:
+                                    mois_courant += 1
+                                    if mois_courant > 12:
+                                        mois_courant = 1
+                                        annee_courante += 1
+                                    if annee_courante > annee_fin or (annee_courante == annee_fin and mois_courant > mois_fin):
+                                        break
+                                    continue
+
                                 mensualite_existante = Mensualite.objects.filter(
                                     eleve=eleve,
                                     etablissement=self.etablissement,
@@ -585,7 +623,8 @@ class ParametresComptabiliteGroupeClasse(models.Model):
                                         comptabilite_eleve=comptabilite,
                                         mois=mois_courant,
                                         annee=annee_courante,
-                                        montant=self.montant_mensualite,
+                                        montant=montant_du_mois,
+                                        montant_brut=montant_du_mois,
                                         date_echeance=date_echeance,
                                         periode=periode,
                                         statut='en_attente',
@@ -593,36 +632,37 @@ class ParametresComptabiliteGroupeClasse(models.Model):
                                     )
                                     mensualites_creees += 1
                                 else:
+                                    # Le tarif brut sert de base au recalcul des remises familiales.
+                                    if mensualite_existante.montant_brut != montant_du_mois:
+                                        mensualite_existante.montant_brut = montant_du_mois
+                                        mensualite_existante.save(update_fields=['montant_brut'])
                                     # Mettre à jour la mensualité non payée (uniquement si montant_paye == 0)
                                     if mensualite_existante.montant_paye == Decimal('0.00'):
-                                        if mensualite_existante.montant != self.montant_mensualite:
-                                            mensualite_existante.montant = self.montant_mensualite
+                                        if mensualite_existante.montant != montant_du_mois:
+                                            mensualite_existante.montant = montant_du_mois
                                             mensualite_existante.save(update_fields=['montant'])
                                     else:
                                         # Si déjà payé partiellement ou totalement, mettre à jour le montant total et recalculer le reste
-                                        if mensualite_existante.montant != self.montant_mensualite:
-                                            ancien_montant = mensualite_existante.montant
-                                            mensualite_existante.montant = self.montant_mensualite
-                                            reste = self.montant_mensualite - mensualite_existante.montant_paye
+                                        if mensualite_existante.montant != montant_du_mois:
+                                            mensualite_existante.montant = montant_du_mois
+                                            reste = montant_du_mois - mensualite_existante.montant_paye
                                             
                                             # Si le nouveau montant est inférieur ou égal au montant déjà payé, tout est payé
                                             if reste <= Decimal('0.00'):
-                                                mensualite_existante.montant_paye = self.montant_mensualite
-                                                mensualite_existante.reste_a_payer = Decimal('0.00')
+                                                # Un changement de tarif ne modifie jamais les versements enregistrés.
                                                 mensualite_existante.statut = 'paye'
                                                 if not mensualite_existante.date_paiement:
                                                     mensualite_existante.date_paiement = timezone.now()
                                                 mensualite_existante.date_dernier_paiement_partiel = None
                                             else:
                                                 # Recalculer le reste à payer
-                                                mensualite_existante.reste_a_payer = reste
                                                 # Si le statut était 'paye' mais qu'il reste à payer, changer le statut
                                                 if mensualite_existante.statut == 'paye':
                                                     mensualite_existante.statut = 'en_attente'
                                             
                                             # Recalculer le statut avec les nouveaux paramètres
                                             mensualite_existante.mettre_a_jour_statut(self)
-                                            mensualite_existante.save(update_fields=['montant', 'montant_paye', 'reste_a_payer', 'statut', 'date_paiement', 'date_dernier_paiement_partiel'])
+                                            mensualite_existante.save(update_fields=['montant', 'statut', 'date_paiement', 'date_dernier_paiement_partiel'])
                                 
                                 mois_courant += 1
                                 if mois_courant > 12:

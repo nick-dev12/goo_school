@@ -21,14 +21,14 @@ class FirebaseService:
         if not cls._initialized:
             try:
                 # Chemin vers le fichier de credentials
-                cred_path = os.path.join(settings.BASE_DIR, 'firebase', 'gestion-scolaire-6945a-e1fb73fd49c4.json')
+                cred_path = getattr(settings, 'FIREBASE_CREDENTIALS_PATH', None) or os.environ.get('FIREBASE_CREDENTIALS_PATH') or os.path.join(settings.BASE_DIR, 'firebase', 'gestion-scolaire-6945a-e1fb73fd49c4.json')
                 
                 if not os.path.exists(cred_path):
                     logger.error(f"Fichier credentials Firebase introuvable: {cred_path}")
                     return False
                 
                 cred = credentials.Certificate(cred_path)
-                firebase_admin.initialize_app(cred)
+                firebase_admin.get_app() if firebase_admin._apps else firebase_admin.initialize_app(cred)
                 cls._initialized = True
                 logger.info("Firebase Admin SDK initialisé avec succès")
                 return True
@@ -57,12 +57,9 @@ class FirebaseService:
         try:
             # Convertir les données en strings (requis par FCM)
             fcm_data = cls._convert_data_to_strings(data)
+            fcm_data.update({'title': title, 'body': body})
             
             message = messaging.Message(
-                notification=messaging.Notification(
-                    title=title,
-                    body=body,
-                ),
                 data=fcm_data,
                 token=token,
             )
@@ -112,6 +109,11 @@ class FirebaseService:
         Returns:
             dict: Résultat de l'envoi (success_count, failure_count, responses)
         """
+        if len(tokens) > 500:
+            results = [cls.send_multicast(tokens[i:i + 500], title, body, data) for i in range(0, len(tokens), 500)]
+            return {'success_count': sum(r['success_count'] for r in results),
+                    'failure_count': sum(r['failure_count'] for r in results),
+                    'responses': [v for r in results for v in r.get('responses', [])]}
         if not cls.initialize():
             return {'success_count': 0, 'failure_count': len(tokens), 'responses': []}
         
@@ -122,6 +124,7 @@ class FirebaseService:
         try:
             # Convertir les données en strings (requis par FCM)
             fcm_data = cls._convert_data_to_strings(data)
+            fcm_data.update({'title': title, 'body': body})
             
             logger.info(f"Envoi de notifications à {len(tokens)} token(s)")
             logger.debug(f"Titre: {title}, Body: {body}, Data: {fcm_data}")
@@ -130,10 +133,6 @@ class FirebaseService:
             messages = []
             for token in tokens:
                 message = messaging.Message(
-                    notification=messaging.Notification(
-                        title=title,
-                        body=body,
-                    ),
                     data=fcm_data,
                     token=token,
                 )
@@ -173,7 +172,7 @@ class FirebaseService:
         for idx, response in enumerate(responses):
             if not response.success:
                 error = response.exception
-                if error and ('not-registered' in str(error) or 'invalid-registration-token' in str(error)):
+                if error and (isinstance(error, messaging.UnregisteredError) or 'not-registered' in str(error) or 'invalid-registration-token' in str(error)):
                     # Désactiver le token invalide
                     try:
                         FCMToken.objects.filter(token=tokens[idx]).update(is_active=False)
@@ -195,28 +194,9 @@ class FirebaseService:
         Returns:
             dict: Résultat de l'envoi
         """
-        from school_admin.model.fcm_token_model import FCMToken
-        from django.contrib.contenttypes.models import ContentType
-        
-        try:
-            content_type = ContentType.objects.get_for_model(user)
-            tokens_obj = FCMToken.objects.filter(
-                content_type=content_type,
-                object_id=user.id,
-                is_active=True
-            )
-            
-            if not tokens_obj.exists():
-                logger.warning(f"Aucun token FCM trouvé pour l'utilisateur {user}")
-                return {'success_count': 0, 'failure_count': 0, 'responses': []}
-            
-            tokens = [t.token for t in tokens_obj]
-            return cls.send_multicast(tokens, title, body, data)
-            
-        except Exception as e:
-            logger.error(f"Erreur lors de l'envoi notification à l'utilisateur: {str(e)}")
-            return {'success_count': 0, 'failure_count': 0, 'responses': []}
-    
+        from school_admin.services.push_delivery import enqueue
+        return enqueue([user], title, body, data)
+
     @classmethod
     def send_notification_to_multiple_users(cls, users, title, body, data=None):
         """
@@ -231,31 +211,5 @@ class FirebaseService:
         Returns:
             dict: Résultat de l'envoi
         """
-        from school_admin.model.fcm_token_model import FCMToken
-        from django.contrib.contenttypes.models import ContentType
-        
-        all_tokens = []
-        
-        for user in users:
-            try:
-                content_type = ContentType.objects.get_for_model(user)
-                tokens_obj = FCMToken.objects.filter(
-                    content_type=content_type,
-                    object_id=user.id,
-                    is_active=True
-                )
-                user_tokens = [t.token for t in tokens_obj]
-                all_tokens.extend(user_tokens)
-                logger.info(f"Utilisateur {user} ({user.__class__.__name__}): {len(user_tokens)} token(s) trouvé(s)")
-            except Exception as e:
-                logger.error(f"Erreur lors de la récupération des tokens pour {user}: {str(e)}", exc_info=True)
-        
-        if not all_tokens:
-            logger.warning(f"Aucun token FCM trouvé pour {len(users)} utilisateur(s)")
-            return {'success_count': 0, 'failure_count': 0, 'responses': []}
-        
-        # Supprimer les doublons tout en conservant l'ordre
-        unique_tokens = list(dict.fromkeys(all_tokens))
-        
-        return cls.send_multicast(unique_tokens, title, body, data)
-
+        from school_admin.services.push_delivery import enqueue
+        return enqueue(users, title, body, data)

@@ -478,9 +478,15 @@ select.input-modern {
 }
 
 .checkbox-grid-modern {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--spacing-sm);
+}
+
+@media (max-width: 640px) {
+  .checkbox-grid-modern {
+    grid-template-columns: 1fr;
+  }
 }
 
 .checkbox-card-modern {

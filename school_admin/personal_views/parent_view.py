@@ -1159,8 +1159,10 @@ def scolarite_parent(request):
 
     parent = request.user
     from decimal import Decimal
+    from school_admin.controllers.comptabilite_controller import ComptabiliteController
     from school_admin.model.comptabilite_eleve_model import PaiementEleve
     from school_admin.services.recouvrement import devise_etablissement, resume_dette_eleve
+    from school_admin.utils.tarifs_mensualite import paliers_depuis_parametre, phrase_paliers
 
     liens = LienFamilial.objects.filter(
         parent=parent, actif=True, statut='valide'
@@ -1182,14 +1184,22 @@ def scolarite_parent(request):
         recus = PaiementEleve.objects.filter(
             eleve=eleve, annee_scolaire=annee
         ).exclude(numero_recu='').order_by('-date_paiement')[:12]
+        classe = get_classe_eleve_active(eleve, annee, eleve.etablissement)
+        parametre = (
+            ComptabiliteController._parametres_groupe_for_classe(eleve.etablissement, classe)
+            if classe else None
+        )
+        devise_enfant = devise_etablissement(eleve.etablissement)
         enfants_scolarite.append({
             'eleve': eleve,
             'lien': lien.get_type_lien_display(),
-            'classe': get_classe_eleve_active(eleve, annee, eleve.etablissement),
+            'classe': classe,
             'resume': resume,
-            'devise': devise_etablissement(eleve.etablissement),
+            'devise': devise_enfant,
             'recus': recus,
             'annee': annee,
+            'paliers': paliers_depuis_parametre(parametre) if parametre else [],
+            'phrase_paliers': phrase_paliers(parametre, devise_enfant) if parametre else '',
         })
         total_reste += resume.reste
         if resume.prochaine_echeance:

@@ -4,10 +4,23 @@
    Tag : {% load aria_tabs %} {% aria_prof_filters %} / {% aria_filter_tabs %} */
 
 .aria-filter-tabs,
-.prof-hub-filters {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.prof-hub-filters,
+body.gv3 .aria-filter-tabs,
+body.gv3 .prof-hub-filters,
+body .aria-filter-tabs.prof-hub-filters {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  gap: 0.5rem !important;
+  width: 100% !important;
+  max-width: 100%;
+  grid-template-columns: none !important;
+  grid-auto-flow: row !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .aria-filter-tabs__group {
@@ -289,4 +302,12 @@ body .aria-filter-tabs__group[data-kind] .ovf-bar.ovf-bar--secondary .ovf-tab.ov
 body .aria-filter-tabs__group[data-kind] .ovf-bar.ovf-bar--secondary {
   border-bottom: 0;
   margin-bottom: 0;
+}
+
+.tab-content-panel[hidden],
+.tab-panel[hidden],
+.classe-subtab-content[hidden],
+.gex-periode-panel[hidden],
+.gex-groupe-panel[hidden] {
+  display: none !important;
 }

@@ -104,6 +104,8 @@ class AuthenticationMiddleware:
         ]
 
         technical_urls = {
+            '/push-config.js',
+            '/api/push/config/',
             '/health/ready/',
             '/service-worker.js',
             '/firebase-messaging-sw.js',
@@ -342,6 +344,7 @@ class CaissierAccessMiddleware:
         '/ws/',
         '/connexion/',
         '/service-worker.js',
+        '/push-config.js',
         '/firebase',
         '/api/',
     )

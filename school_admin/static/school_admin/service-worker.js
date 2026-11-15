@@ -1,5 +1,5 @@
 // Cache limité aux ressources publiques statiques ; aucune page privée persistée.
-const STATIC_CACHE = 'aria-static-v2';
+const STATIC_CACHE = 'aria-static-v3';
 const MAX_CACHE_ITEMS = 150;
 // Import Firebase scripts pour les notifications push
 try {
@@ -10,16 +10,8 @@ try {
   console.warn('[Service Worker] Notifications indisponibles');
 }
 
-// Configuration Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyCSvm0VNdvnLqdIFPdDs4DPYDjHvDsO4_Q",
-  authDomain: "gestion-scolaire-6945a.firebaseapp.com",
-  projectId: "gestion-scolaire-6945a",
-  storageBucket: "gestion-scolaire-6945a.firebasestorage.app",
-  messagingSenderId: "983006440407",
-  appId: "1:983006440407:web:8cbfc916f43b745a7e7992",
-  measurementId: "G-1SHG5PC5T7"
-};
+importScripts('/push-config.js');
+const firebaseConfig = self.ARIA_PUSH_CONFIG.firebase;
 
 // Initialiser Firebase
 try {
@@ -29,9 +21,9 @@ try {
   // Gérer les notifications en arrière-plan
   messaging.onBackgroundMessage((payload) => {
     
-    const notificationTitle = payload.notification?.title || 'Nouvelle notification';
+    const notificationTitle = payload.data?.title || payload.notification?.title || 'Nouvelle notification';
     const notificationOptions = {
-      body: payload.notification?.body || 'Vous avez une nouvelle notification',
+      body: payload.data?.body || payload.notification?.body || 'Vous avez une nouvelle notification',
       icon: '/static/school_admin/images/logo.png',
       badge: '/static/school_admin/images/badge.png',
       tag: payload.data?.tag || payload.data?.type || 'general',

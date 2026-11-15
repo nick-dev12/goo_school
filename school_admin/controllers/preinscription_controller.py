@@ -51,6 +51,7 @@ class PreinscriptionController:
         form_data = {
             'statut_inscription': 'nouvelle',
             'nationalite': '',
+            'frais_annexe_choix': [],
         }
         field_errors = {}
         
@@ -74,6 +75,7 @@ class PreinscriptionController:
                 'parent_profession': request.POST.get('parent_profession', '').strip(),
                 'parent_lien': request.POST.get('parent_lien', ''),
                 'commentaires_parent': request.POST.get('commentaires_parent', '').strip(),
+                'frais_annexe_choix': request.POST.getlist('frais_annexe_choix'),
             }
             
             # Validation
@@ -144,6 +146,7 @@ class PreinscriptionController:
                             parent_profession=form_data['parent_profession'] or None,
                             parent_lien=form_data['parent_lien'],
                             commentaires_parent=form_data['commentaires_parent'] or None,
+                            frais_annexe_choix=form_data.get('frais_annexe_choix') or [],
                             statut='en_attente'
                         )
                         
@@ -159,6 +162,27 @@ class PreinscriptionController:
                     logger.error(f"Erreur lors de la création de la préinscription: {str(e)}")
                     field_errors['__all__'] = "Une erreur est survenue lors de la soumission. Veuillez réessayer."
         
+        from school_admin.controllers.comptabilite_controller import ComptabiliteController
+        from school_admin.utils.frais_annexes import frais_au_choix_pour_parametres
+        import json
+
+        devise = ComptabiliteController._get_devise_monnaie(etablissement)
+        frais_map = {}
+        for classe in classes:
+            parametres = ComptabiliteController._get_parametres_for_classe(etablissement, classe)
+            frais_map[str(classe.id)] = {
+                'devise': devise or 'FCFA',
+                'frais': [
+                    {
+                        'code': item['code'],
+                        'libelle': item['libelle'],
+                        'icon': item.get('icon') or 'fa-tag',
+                        'montant_display': f"{int(item.get('montant_decimal') or 0)}",
+                    }
+                    for item in frais_au_choix_pour_parametres(parametres)
+                ],
+            }
+
         context = {
             'etablissement': etablissement,
             'classes': classes,
@@ -166,6 +190,8 @@ class PreinscriptionController:
             'form_data': form_data,
             'field_errors': field_errors,
             'token': token,
+            'frais_au_choix_map_json': json.dumps(frais_map, ensure_ascii=False),
+            'devise_monnaie': devise or 'FCFA',
         }
         
         return render(request, 'school_admin/preinscription/formulaire_preinscription.html', context)
@@ -479,13 +505,17 @@ class PreinscriptionController:
             try:
                 # Valider la préinscription (crée l'élève et le parent)
                 # Passer la classe, le statut et la date depuis le formulaire
+                codes_frais = request.POST.getlist('frais_annexe_choix')
+                if 'frais_annexe_choix_present' not in request.POST and not codes_frais and preinscription.frais_annexe_choix:
+                    codes_frais = list(preinscription.frais_annexe_choix)
                 eleve, parent = preinscription.valider(
                     etablissement, 
                     commentaires, 
                     documents,
                     classe=classe,
                     statut_inscription=statut_inscription,
-                    date_inscription=date_inscription
+                    date_inscription=date_inscription,
+                    codes_frais_au_choix=codes_frais,
                 )
                 
                 # Vérifier que les tokens QR sont bien générés

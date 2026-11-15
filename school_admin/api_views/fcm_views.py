@@ -13,6 +13,27 @@ from school_admin.model.fcm_token_model import FCMToken
 logger = logging.getLogger(__name__)
 
 
+@require_http_methods(['POST'])
+def test_own_push(request):
+    """Test volontaire limité aux appareils du compte connecté."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Connexion requise.'}, status=401)
+    from django.core.cache import cache
+    content_type = ContentType.objects.get_for_model(request.user)
+    if not FCMToken.objects.filter(content_type=content_type, object_id=request.user.pk, is_active=True).exists():
+        return JsonResponse({'error': 'Activez les notifications sur cet appareil avant le test.'}, status=400)
+    key = f'push-self-test:{content_type.pk}:{request.user.pk}'
+    if not cache.add(key, True, timeout=30):
+        return JsonResponse({'error': 'Patientez 30 secondes entre deux tests.'}, status=429)
+    from school_admin.services.firebase_service import FirebaseService
+    result = FirebaseService.send_notification_to_user(
+        request.user, 'Aria — test de notification',
+        'Le test push réel fonctionne. Confirme dans la conversation si tu vois ce message.',
+        {'url': '/', 'type': 'self_test'},
+    )
+    return JsonResponse({'success': True, 'queued': result.get('queued_count', 0)})
+
+
 @require_http_methods(["POST"])
 def save_fcm_token(request):
     """
@@ -51,7 +72,8 @@ def save_fcm_token(request):
                 fcm_token.device_type = device_type
                 fcm_token.device_name = device_name
                 fcm_token.is_active = True
-                fcm_token.save(update_fields=['device_type', 'device_name', 'is_active'])
+                fcm_token.save(update_fields=['device_type', 'device_name', 'is_active', 'updated_at'])
+            request.session['fcm_token_id'] = fcm_token.pk
         
         logger.info(f"Token FCM {'créé' if created else 'mis à jour'} pour {request.user}")
         

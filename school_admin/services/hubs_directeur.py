@@ -257,8 +257,6 @@ def hub_eleves(user, etab, annee):
         {'titre': 'Inscriptions', 'desc': f"Arrivée des {lib['eleves']} et renouvellement d’une année sur l’autre.", 'liens': [
             _peut(user, 'eleves_liste') and _lien(f"Liste des {lib['eleves']}", 'Recherche, fiches et dossiers', _url('secretaire:liste_eleves'),
                                                    'fa-users', 'blue', nb, 'inscrit(s)'),
-            _peut(user, 'eleves_reinscrire') and _lien('Réinscriptions', 'Passage à l’année suivante', _url('directeur:liste_reinscription'),
-                                                        'fa-rotate', 'teal'),
             etab.type_etablissement == 'superieur' and _peut(user, 'eleves_liste') and _lien(
                 'Admissions et concours', 'Candidatures en ligne, épreuves, classement, listes d’attente',
                 _url('directeur:liste_concours'), 'fa-door-open', 'green'),
@@ -319,6 +317,9 @@ def hub_administratif(user, etab, annee):
                            convoc, 'à venir'),
             peut and _lien('Demandes de liaison parent-enfant', 'Valider les comptes parents', _url('directeur:demandes_liaison_liste'), 'fa-link', 'blue',
                            demandes, 'en attente', 'À traiter' if demandes else None),
+            getattr(user, '_meta', None) is not None and user._meta.model_name == 'etablissement' and _lien(
+                'Rappels automatiques', 'Notifications et rappels envoyés à chacun',
+                _url('directeur:rappels_automatiques'), 'fa-bell', 'blue', nouveau=True),
         ]},
     ]
     kpis = [

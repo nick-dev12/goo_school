@@ -35,6 +35,9 @@ class ParentNotificationService:
         Returns:
             L'URL de redirection appropriée
         """
+        explicit = (payload or {}).get('url', '')
+        if isinstance(explicit, str) and explicit.startswith('/') and not explicit.startswith('//'):
+            return explicit
         try:
             if type_notification == "evaluation":
                 # Rediriger vers le dashboard enfant (qui affiche les devoirs)
@@ -95,7 +98,8 @@ class ParentNotificationService:
         except Exception:
             parent_inscripteur = None
 
-        if parent_inscripteur and parent_inscripteur.actif:
+        if (parent_inscripteur and parent_inscripteur.actif
+                and not LienFamilial.objects.filter(eleve=eleve, parent=parent_inscripteur).exists()):
             parents_set.add(parent_inscripteur)
 
         if not parents_set:
@@ -180,6 +184,8 @@ class ParentNotificationService:
         pushdata_with_url = push_data.copy() if push_data else {}
         pushdata_with_url['redirect_url'] = redirect_url
         pushdata_with_url['url'] = redirect_url
+
+        pushdata_with_url['_push_notification_ids'] = {str(n.parent_id): n.pk for n in notifications}
 
         push_result = None
         if push_title and push_body:

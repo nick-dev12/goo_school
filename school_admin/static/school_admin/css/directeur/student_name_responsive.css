@@ -1,25 +1,45 @@
-/* 
- * Styles responsive pour l'affichage des noms d'élèves
- * Affiche uniquement le premier nom et prénom sur mobile
- */
-
-/* Affichage par défaut (desktop) : nom complet */
+/* Noms d’élèves : toujours le nom complet, jamais tronqué ni forcé en capitales. */
 .student-name-full {
-  display: inline;
+  display: inline !important;
 }
 
 .student-name-mobile {
-  display: none;
+  display: none !important;
 }
 
-/* Sur mobile (tablettes et téléphones), afficher uniquement le premier nom et prénom */
-@media (max-width: 768px) {
-  .student-name-full {
-    display: none;
-  }
-  
-  .student-name-mobile {
-    display: inline;
-  }
+.student-name,
+.student-name-full,
+.eleve-nom,
+.eleve-nom-table,
+.eleve-nom-text,
+.student-card-name,
+.student-full-name {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+  text-transform: none !important;
+  max-width: none !important;
 }
 
+.student-cell,
+.ele-list-cell--student,
+.sco-col-eleve,
+.list-cell.student-cell,
+.v3-row > .v3-cell-main.student-cell,
+.v3-row > .student-cell,
+.eleve-nom-cell {
+  overflow: visible !important;
+  white-space: normal !important;
+  min-width: 12rem;
+  text-overflow: clip !important;
+}
+
+.student-info-compact {
+  min-width: 0;
+  overflow: visible;
+}
+
+.student-header .student-name,
+#modalRecuEleve .student-name {
+  text-transform: uppercase !important;
+}

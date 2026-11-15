@@ -8,6 +8,7 @@
   {% include 'school_admin/partials/seo_head.html' %}
   <title>{% trans "Scolarité" %} — {{ parent.nom_complet }}</title>
   {% include 'school_admin/parent/partials/_px_head.html' %}
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tarifs_mois.css' %}?v=3" />
 </head>
 <body class="axd-page px-page">
   {% include 'school_admin/parent/partials/_px_shell.html' %}
@@ -20,6 +21,8 @@
         <p>{% trans "Ce qu’il reste à payer et vos reçus." %}{% if etablissement %} · {{ etablissement.nom }}{% endif %}</p>
       </div>
     </header>
+
+    <p class="px-page-head__note">{% trans "Chaque enfant a les tarifs de sa classe. Un mois peut coûter plus ou moins qu’un autre : le détail apparaît sous le nom de l’enfant, puis ligne par ligne." %}</p>
 
     {% if enfants_scolarite %}
       {% if total_reste > 0 %}
@@ -57,6 +60,20 @@
               <span class="px-badge px-badge--green"><i class="fas fa-check" aria-hidden="true"></i>{% trans "À jour" %}</span>
             {% endif %}
           </div>
+
+          {% if item.paliers %}
+          <div class="px-tarifs-banner" role="note">
+            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+            <div>
+              <strong>{% trans "Tarifs de la classe" %}</strong>
+              <p>
+                {% for palier in item.paliers %}
+                  {{ palier.label }} : {{ palier.montant|floatformat:"0g" }} {{ item.devise }}{% if not forloop.last %} · {% endif %}
+                {% endfor %}
+              </p>
+            </div>
+          </div>
+          {% endif %}
 
           {% if item.resume.charges %}
           <div class="px-table-wrap">

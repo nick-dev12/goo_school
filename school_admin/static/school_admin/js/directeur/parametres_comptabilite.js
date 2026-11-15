@@ -64,6 +64,90 @@
     }
   }
 
+  function syncAddPalierButtons(root) {
+    (root || document).querySelectorAll('.scp-paliers').forEach(function (fieldset) {
+      var bouton = fieldset.querySelector('[data-add-palier]');
+      if (!bouton) return;
+      bouton.hidden = !fieldset.querySelector('[data-palier][hidden]');
+    });
+  }
+
+  function ordreMoisPeriode(debut, fin) {
+    var mois = [];
+    var courant = debut;
+    for (var i = 0; i < 12; i += 1) {
+      mois.push(courant);
+      if (courant === fin) break;
+      courant = courant === 12 ? 1 : courant + 1;
+    }
+    return mois;
+  }
+
+  function syncMoisPaliers(form) {
+    if (!form) return;
+    var debutEl = form.querySelector('[data-periode-debut]');
+    var finEl = form.querySelector('[data-periode-fin]');
+    if (!debutEl || !finEl) return;
+    var debut = parseInt(debutEl.value, 10);
+    var fin = parseInt(finEl.value, 10);
+    if (!debut || !fin) return;
+    var ordre = ordreMoisPeriode(debut, fin);
+    var autorises = {};
+    ordre.forEach(function (n) {
+      autorises[String(n)] = true;
+    });
+
+    form.querySelectorAll('.scp-palier__mois').forEach(function (zone) {
+      var chips = Array.prototype.slice.call(zone.querySelectorAll('.scp-mois-chip[data-mois]'));
+      chips.sort(function (a, b) {
+        var ma = parseInt(a.getAttribute('data-mois'), 10);
+        var mb = parseInt(b.getAttribute('data-mois'), 10);
+        var ia = ordre.indexOf(ma);
+        var ib = ordre.indexOf(mb);
+        if (ia === -1 && ib === -1) return ma - mb;
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      });
+      chips.forEach(function (chip) {
+        var num = chip.getAttribute('data-mois');
+        var dansPeriode = !!autorises[num];
+        chip.hidden = !dansPeriode;
+        var input = chip.querySelector('input[type="checkbox"]');
+        if (input && !dansPeriode) {
+          input.checked = false;
+        }
+        zone.appendChild(chip);
+      });
+    });
+  }
+
+  function bindPeriodeSelects(root) {
+    (root || document).querySelectorAll('form').forEach(function (form) {
+      if (!form.querySelector('[data-periode-debut]')) return;
+      syncMoisPaliers(form);
+      form.querySelectorAll('[data-periode-debut], [data-periode-fin]').forEach(function (select) {
+        if (select.getAttribute('data-periode-bound') === '1') return;
+        select.setAttribute('data-periode-bound', '1');
+        select.addEventListener('change', function () {
+          syncMoisPaliers(form);
+        });
+      });
+    });
+  }
+
+  document.addEventListener('click', function (event) {
+    var bouton = event.target.closest('[data-add-palier]');
+    if (!bouton) return;
+    var fieldset = bouton.closest('.scp-paliers');
+    if (!fieldset) return;
+    var hidden = fieldset.querySelector('[data-palier][hidden]');
+    if (hidden) hidden.hidden = false;
+    syncAddPalierButtons(fieldset);
+    var form = fieldset.closest('form');
+    syncMoisPaliers(form);
+  });
+
   document.addEventListener('DOMContentLoaded', function () {
     if (document.body.getAttribute('data-open-ajouter-modal') === '1') {
       openAjouterModal();
@@ -72,5 +156,7 @@
     if (searchInput) {
       searchInput.addEventListener('input', filterParamCards);
     }
+    syncAddPalierButtons(document);
+    bindPeriodeSelects(document);
   });
 })();

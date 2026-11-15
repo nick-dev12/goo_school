@@ -81,6 +81,17 @@ def serialize_comptabilite_parametres(parametres, etablissement):
         'montant_frais_inscription': _fmt_parametre_amount(parametres.montant_frais_inscription),
         'montant_frais_reinscription': _fmt_parametre_amount(parametres.montant_frais_reinscription),
         'montant_mensualite': _fmt_parametre_amount(parametres.montant_mensualite),
+        'montants_mensualite_par_mois': getattr(parametres, 'montants_mensualite_par_mois', {}) or {},
+        'paliers_mensualite': [
+            {
+                'label': palier['label'],
+                'montant': _fmt_parametre_amount(palier['montant']),
+                'phrase': palier['phrase'],
+            }
+            for palier in getattr(parametres, 'paliers_mensualite', []) or []
+        ],
+        'phrase_paliers': parametres.phrase_paliers(etablissement.devise_monnaie or 'FCFA')
+        if hasattr(parametres, 'phrase_paliers') else '',
         'montant_facturation_annuelle': _fmt_parametre_amount(parametres.montant_facturation_annuelle),
         'type_facturation': parametres.type_facturation,
         'type_facturation_display': parametres.get_type_facturation_display(),
@@ -322,6 +333,16 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
             'recus': _recu_links_for_paiements(paiements_ligne),
         })
 
+    from school_admin.utils.frais_annexes import MODE_AU_CHOIX, frais_annexes_actifs
+
+    params_actifs_by_code = {
+        item['code']: item
+        for item in frais_annexes_actifs(
+            getattr(parametres, 'frais_annexes', None) if parametres else None
+        )
+    }
+    choix_url = reverse('directeur:gerer_choix_frais_annexes_directeur', args=[eleve.id])
+
     annexes_rows = []
     for frais in FraisAnnexe.objects.filter(comptabilite_eleve=comptabilite).order_by('libelle'):
         montant_paye = Decimal('0.00')
@@ -338,8 +359,11 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
         reste = Decimal(str(frais.montant)) - montant_paye
         if reste < Decimal('0.00'):
             reste = Decimal('0.00')
+        param_item = params_actifs_by_code.get(frais.code) or {}
+        au_choix = param_item.get('mode_application') == MODE_AU_CHOIX or not param_item
         annexes_rows.append({
             'id': frais.id,
+            'code': frais.code,
             'libelle': frais.libelle,
             'periodicite_display': frais.get_periodicite_display(),
             'montant_total': _fmt_amount(frais.montant),
@@ -349,7 +373,9 @@ def serialize_comptabilite_eleve_snapshot(eleve_id, etablissement, annee_scolair
             'statut': frais.statut,
             'statut_display': frais.get_statut_display(),
             'statut_badge': _frais_statut_badge(frais.statut),
-            'can_pay': float(reste) > 0,
+            'can_pay': float(reste) > 0 and frais.statut != 'clos',
+            'au_choix': au_choix and frais.statut != 'clos',
+            'choix_url': choix_url,
             'recus': _recu_links_for_paiements(paiements_ligne),
         })
 

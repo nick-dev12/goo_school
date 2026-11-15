@@ -2,23 +2,26 @@
 {% load static %}
 {% load i18n %}
 {% load eleve_filters %}
+{% load aria_tabs %}
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Scolarité des Élèves - {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_eleves.css' %}?v=2.0.3" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_eleves.css' %}?v=2.1.5" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/comptabilite_clarte.css' %}?v=2" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tarifs_mois.css' %}?v=3.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=2.0.5" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.2">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.3">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/recherche_filtres.css' %}?v=1.1.6">
 </head>
 <body class="sco-page-body gv3 cg3" data-live-page="compta-liste">
@@ -44,47 +47,15 @@
         </div>
         {% endif %}
 
+        {% aria_dir_filters %}
         <div class="tabs-container sco-niveau-tabs">
-            <div class="tabs-nav" role="tablist" aria-label="{% trans 'Niveaux' %}">
-                {% for categorie, data in classes_grouped.items %}
-                    <button type="button" role="tab" class="tab-button sco-niveau-tab {% if categorie|lower == initial_niveau_key %}active{% endif %}"
-                            data-tab="tab-{{ forloop.counter }}"
-                            data-niveau-key="{{ categorie|lower }}"
-                            aria-selected="{% if categorie|lower == initial_niveau_key %}true{% else %}false{% endif %}">
-                        <i class="fas fa-layer-group"></i>
-                        <span>{{ categorie }}</span>
-                        <span class="tab-count">{{ data.total_eleves }}</span>
-                    </button>
-                {% endfor %}
-            </div>
+
 
             <div class="tabs-content sco-tabs-content">
                 {% for categorie, data in classes_grouped.items %}
                     <div class="tab-panel {% if categorie|lower == initial_niveau_key %}active{% endif %}" id="tab-{{ forloop.counter }}"{% if categorie|lower != initial_niveau_key %} hidden{% endif %}>
 
-                        <div class="sco-classe-nav">
-                            <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
-                                <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes' %}">
-                                    {% for classe_data in data.classes %}
-                                        <button type="button" role="tab" class="classe-subtab-btn matiere-tab-btn {% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}"
-                                                data-subtab="classe-{{ classe_data.classe.id }}"
-                                                data-classe-id="{{ classe_data.classe.id }}"
-                                                aria-selected="{% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}true{% else %}false{% endif %}">
-                                            <i class="fas fa-door-open"></i>
-                                            <span>{% if est_superieur %}{{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% else %}{{ classe_data.classe.nom }}{% endif %}</span>
-                                            <span class="tab-count">{{ classe_data.nombre_eleves }}</span>
-                                        </button>
-                                    {% endfor %}
-                                </div>
-                                <div class="matiere-tabs-more-wrap" hidden>
-                                    <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres classes' %}">
-                                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                                        <span class="matiere-tabs-more-label">{% trans "Autres classes" %}</span>
-                                    </button>
-                                    <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
-                                </div>
-                            </div>
-                        </div>
+
 
                         {% for classe_data in data.classes %}
                             <div class="classe-subtab-content sco-classe-panel {% if categorie|lower == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}" id="classe-{{ classe_data.classe.id }}"{% if categorie|lower != initial_niveau_key or classe_data.classe.id != initial_classe_id %} hidden{% endif %}>
@@ -111,10 +82,17 @@
                                     </div>
                                 </header>
 
-                                {% if not classe_data.parametres_configures %}
-                                <div class="sco-params-notice" role="status">
-                                    <i class="fas fa-info-circle"></i>
-                                    {% trans "Aucun jeu de paramètres de scolarité n’est configuré pour ce niveau. Les montants restent à zéro tant qu’un jeu n’inclut pas ce groupe dans Paramètres de scolarité." %}
+                                {% if classe_data.paliers_mensualite %}
+                                <div class="sco-tarifs-banner" role="note">
+                                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                                    <div>
+                                        <strong>{% trans "Tarifs de cette classe" %}</strong>
+                                        <p>
+                                            {% for palier in classe_data.paliers_mensualite %}
+                                                {{ palier.label }} : {{ palier.montant|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}{% if not forloop.last %} · {% endif %}
+                                            {% endfor %}
+                                        </p>
+                                    </div>
                                 </div>
                                 {% endif %}
 
@@ -164,22 +142,16 @@
                                     </div>
 
                                     {% if classe_data.eleves %}
-                                        <div class="sco-list-scroll table-responsive">
-                                            <div class="students-list{% if classe_data.show_colonne_mensualite %} has-mensualite-col{% endif %}{% if classe_data.show_colonne_annexes %} has-annexes-col{% endif %}" data-rl data-rl-mobile="1,-3,-2" data-rl-actions="-1">
-                                                <div class="list-header">
-                                                    <div class="list-cell header-cell">{% trans "Élève" %}</div>
-                                                    <div class="list-cell header-cell">{% trans "Inscription" %}</div>
-                                                    {% if classe_data.show_colonne_mensualite %}
+                                        <div class="sco-list-scroll">
+                                            <div class="sco-eleves-list">
+                                                <div class="sco-eleves-head">
+                                                    <div class="list-cell header-cell sco-col-eleve">{% trans "Élève" %}</div>
+                                                    <div class="list-cell header-cell">{% trans "Inscription / Réinsc." %}</div>
+                                                    <div class="list-cell header-cell">{% trans "Mois impayé" %}</div>
                                                     <div class="list-cell header-cell">{% trans "Mensualités" %}</div>
-                                                    {% endif %}
-                                                    {% if classe_data.show_colonne_annexes %}
-                                                    <div class="list-cell header-cell">{% trans "Annexes" %}</div>
-                                                    {% endif %}
-                                                    <div class="list-cell header-cell">{% trans "Total dû" %}</div>
-                                                    <div class="list-cell header-cell">{% trans "Payé" %}</div>
-                                                    <div class="list-cell header-cell">{% trans "Reste" %}</div>
+                                                    <div class="list-cell header-cell">{% trans "Frais annexes" %}</div>
                                                     <div class="list-cell header-cell">{% trans "Statut" %}</div>
-                                                    <div class="list-cell header-cell">{% trans "Actions" %}</div>
+                                                    <div class="list-cell header-cell">{% trans "Scolarité" %}</div>
                                                 </div>
 
                                                 {% for eleve_data in classe_data.eleves %}
@@ -190,49 +162,37 @@
                                                          data-nom="{{ eleve.nom|lower }}"
                                                          data-prenom="{{ eleve.prenom|lower }}"
                                                          data-email="{{ eleve.email|default:''|lower }}">
-                                                        <div class="list-cell student-cell">
+                                                        <div class="list-cell student-cell sco-col-eleve">
                                                             <div class="student-avatar-small"><i class="fas fa-user"></i></div>
                                                             <div class="student-info-compact">
                                                                 <h4 class="student-name">
                                                                     <span class="student-name-full">{{ eleve.nom }} {{ eleve.prenom }}</span>
-                                                                    <span class="student-name-mobile">{{ eleve.nom|premier_nom }} {{ eleve.prenom|premier_prenom }}</span>
+                                                                    <span class="student-name-mobile">{{ eleve.nom }} {{ eleve.prenom }}</span>
                                                                 </h4>
-                                                                <p class="student-email">{% if eleve.email %}{{ eleve.email }}{% else %}{% trans "Aucun email" %}{% endif %}</p>
                                                             </div>
                                                         </div>
-                                                        <div class="list-cell"><span class="amount-inscription">{{ eleve_data.frais_inscription|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span></div>
-                                                        {% if classe_data.show_colonne_mensualite %}
-                                                        <div class="list-cell">
-                                                            <span class="amount-mensualites">{{ eleve_data.mensualites_total|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
-                                                            {% if eleve_data.mensualites_reste > 0 %}
-                                                            <span class="sco-mensualite-reste">{% trans "Reste" %} {{ eleve_data.mensualites_reste|floatformat:0 }}</span>
-                                                            {% endif %}
+                                                        <div class="list-cell sco-col-etat">
+                                                            {% include 'school_admin/directeur/comptabilite/partials/sco_etat_cell.html' with etat=eleve_data.inscription_etat only %}
                                                         </div>
-                                                        {% endif %}
-                                                        {% if classe_data.show_colonne_annexes %}
-                                                        <div class="list-cell sco-annexes-cell">
-                                                            <span class="amount-annexes">{{ eleve_data.frais_annexes_total|default:0|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
-                                                            <span class="sco-annexes-paye">{% trans "Payé" %} {{ eleve_data.frais_annexes_paye|default:0|floatformat:0 }}</span>
-                                                            <span class="sco-annexes-reste {% if eleve_data.frais_annexes_reste > 0 %}text-danger{% else %}text-success{% endif %}">{% trans "Reste" %} {{ eleve_data.frais_annexes_reste|default:0|floatformat:0 }}</span>
+                                                        <div class="list-cell sco-col-etat">
+                                                            {% include 'school_admin/directeur/comptabilite/partials/sco_etat_cell.html' with etat=eleve_data.mois_impaye_etat only %}
                                                         </div>
-                                                        {% endif %}
-                                                        <div class="list-cell"><span class="amount-due">{{ eleve_data.total_du|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span></div>
-                                                        <div class="list-cell"><span class="amount-paid">{{ eleve_data.total_paye|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span></div>
-                                                        <div class="list-cell">
-                                                            <span class="amount-remaining {% if eleve_data.reste_a_payer > 0 %}text-danger{% else %}text-success{% endif %}">
-                                                                {{ eleve_data.reste_a_payer|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}
-                                                            </span>
+                                                        <div class="list-cell sco-col-etat">
+                                                            {% include 'school_admin/directeur/comptabilite/partials/sco_etat_cell.html' with etat=eleve_data.mensualites_etat only %}
                                                         </div>
-                                                        <div class="list-cell">
+                                                        <div class="list-cell sco-col-etat">
+                                                            {% include 'school_admin/directeur/comptabilite/partials/sco_etat_cell.html' with etat=eleve_data.annexes_etat only %}
+                                                        </div>
+                                                        <div class="list-cell sco-col-statut">
                                                             {% if eleve_data.est_non_en_regle %}
                                                                 <span class="sco-statut-badge sco-statut-badge--warn">{% trans "Non en règle" %}</span>
                                                             {% else %}
                                                                 <span class="sco-statut-badge sco-statut-badge--ok">{% trans "À jour" %}</span>
                                                             {% endif %}
                                                         </div>
-                                                        <div class="list-cell">
-                                                            <a href="{% url 'directeur:details_comptabilite_eleve_directeur' eleve.id %}" class="sco-view-btn" title="{% trans "Voir les détails" %}">
-                                                                <i class="fas fa-eye"></i>
+                                                        <div class="list-cell sco-col-action">
+                                                            <a href="{% url 'directeur:details_comptabilite_eleve_directeur' eleve.id %}" class="sco-scol-btn" title="{% trans "Scolarité" %}">
+                                                                {% trans "Scolarité" %}
                                                             </a>
                                                         </div>
                                                     </div>
@@ -258,7 +218,7 @@
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
     <script src="{% static 'school_admin/js/directeur/directeur_tab_storage.js' %}?v=1.0.0"></script>
-    <script src="{% static 'school_admin/js/directeur/directeur_niveau_classe_persist.js' %}?v=1.0.1"></script>
+    <script src="{% static 'school_admin/js/directeur/directeur_niveau_classe_persist.js' %}?v=1.0.2"></script>
     <script src="{% static 'school_admin/js/directeur/comptabilite_eleves.js' %}?v=2.1.0"></script>
     <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.2.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

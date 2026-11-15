@@ -111,6 +111,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Compression des pages et des réponses JSON : indispensable sur les connexions lentes (3G).
+    'school_admin.compression_middleware.CompressionMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # CORS middleware (doit être avant CommonMiddleware)
@@ -232,6 +234,20 @@ AFFICHER_POINTS_A_VERIFIER = os.environ.get('AFFICHER_POINTS_A_VERIFIER', '0') =
 # Configuration pour la collecte des fichiers statiques en production
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# collectstatic crée une copie compressée (.gz) de chaque CSS / JS : WhiteNoise la sert telle quelle, et Nginx
+# aussi avec « gzip_static on » (voir deploy/nginx/aria-static-compression.conf).
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'},
+}
+# Durée de cache navigateur des fichiers statiques servis par WhiteNoise (30 jours, comme Nginx en production).
+# Les gabarits versionnent leurs fichiers par « ?v= » : changer ce numéro force le rechargement.
+WHITENOISE_MAX_AGE = 0 if DEBUG else 30 * 24 * 3600
+
+# Pastille « À faire » : durée (secondes) pendant laquelle le nombre d'actions est réutilisé d'une page à
+# l'autre au lieu d'être recalculé (20 à 45 requêtes SQL par page). 0 = recalcul à chaque page.
+CONTEXT_POPUP_TOTAL_TTL = env.int('CONTEXT_POPUP_TOTAL_TTL', default=30)
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -295,9 +311,17 @@ try:
     from celery.schedules import crontab
 
     CELERY_BEAT_SCHEDULE = {
+        'reprise-push-en-attente': {
+            'task': 'school_admin.tasks.celery_tasks.retry_pending_push',
+            'schedule': 60.0,
+        },
         'relances-impayes-quotidiennes': {
             'task': 'school_admin.tasks.celery_tasks.envoyer_relances_impayes_task',
             'schedule': crontab(hour=8, minute=0),
+        },
+        'rappels-automatiques': {
+            'task': 'school_admin.tasks.celery_tasks.generer_rappels_task',
+            'schedule': crontab(minute='5,35'),
         },
         'verifier-moratoires-quotidiens': {
             'task': 'school_admin.tasks.celery_tasks.verifier_moratoires_task',
@@ -309,6 +333,9 @@ except ImportError:
 
 # Configuration du modèle d'utilisateur personnalisé
 AUTH_USER_MODEL = 'school_admin.CompteUser'
+
+# Réponse HTML traitée avant la compression : un seul composant sur les écrans d'accueil.
+MIDDLEWARE.append('school_admin.context_popup_middleware.ContextPopupMiddleware')
 
 # Configuration des backends d'authentification
 AUTHENTICATION_BACKENDS = [

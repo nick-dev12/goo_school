@@ -912,16 +912,32 @@
 
   }
 
+  function csrfTokenFromCookie() {
+    var match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
   function renderAnnexeRow(row, devise) {
     var resteColor = row.reste_a_payer > 0 ? 'var(--accent, #ef4444)' : 'var(--success, #10b981)';
-    var action = row.can_pay
+    var payBtn = row.can_pay
       ? '<button type="button" class="btn btn-success" onclick="openPaiementModal(\'annexe\', ' +
         row.id + ', ' + row.montant_total + ', ' + row.montant_paye + ', ' + row.reste_a_payer +
-        ')" style="padding: 0.5rem 1rem; font-size: 0.875rem;"><i class="fas fa-money-bill-wave"></i> Payer</button>'
+        ')"><i class="fas fa-money-bill-wave"></i> Payer</button>'
       : '<span class="badge badge-success">Payé</span>';
+    var desactiver = '';
+    if (row.au_choix && row.choix_url && row.code) {
+      desactiver =
+        '<form method="post" action="' + esc(row.choix_url) + '" class="scd-action-form">' +
+        '<input type="hidden" name="csrfmiddlewaretoken" value="' + esc(csrfTokenFromCookie()) + '">' +
+        '<input type="hidden" name="action" value="desactiver">' +
+        '<input type="hidden" name="code" value="' + esc(row.code) + '">' +
+        '<button type="submit" class="btn btn-desactiver" onclick="return confirm(\'Désactiver ce frais pour cet élève ?\');">' +
+        '<i class="fas fa-toggle-off" aria-hidden="true"></i><span>Désactiver</span></button></form>';
+    }
+    var action = '<div class="scd-actions-stack">' + payBtn + desactiver + '</div>';
     return (
-      '<tr data-annexe-id="' + row.id + '">' +
-      '<td>' + esc(row.libelle) + '</td>' +
+      '<tr data-annexe-id="' + row.id + '"' + (row.code ? ' data-annexe-code="' + esc(row.code) + '"' : '') + '>' +
+      '<td>' + esc(row.libelle) + (row.au_choix ? ' <span class="frais-optionnel-tag">au choix</span>' : '') + '</td>' +
       '<td>' + esc(row.periodicite_display || '') + '</td>' +
       '<td><strong>' + fmtMoney(row.montant_total, devise) + '</strong></td>' +
       '<td>' + fmtMoney(row.montant_paye, devise) + '</td>' +
@@ -1353,13 +1369,25 @@
     }).join('');
     var amounts;
     if (isComptaPrive()) {
+      var paliers = item.paliers_mensualite || [];
+      var paliersHtml = '';
+      if (paliers.length) {
+        paliersHtml = '<div class="scp-info-item info-item" style="grid-column:1/-1"><span class="scp-info-label info-item-label">Mensualités</span><ul class="scp-paliers-list">' +
+          paliers.map(function (palier) {
+            return '<li><span>' + AriaLive.escapeHtml(String(palier.label || '')) + '</span><strong>' +
+              AriaLive.escapeHtml(String(palier.montant || '0')) + ' ' + devise + '</strong></li>';
+          }).join('') + '</ul></div>';
+      } else {
+        paliersHtml =
+          '<div class="scp-info-item info-item"><span class="scp-info-label info-item-label">Mensualité</span>' +
+          '<span class="scp-info-value scp-info-value--amount info-item-value amount">' +
+          AriaLive.escapeHtml(String(item.montant_mensualite || '0')) + ' ' + devise + '</span></div>';
+      }
       amounts =
         '<div class="scp-info-item info-item"><span class="scp-info-label info-item-label">Inscription</span>' +
         '<span class="scp-info-value scp-info-value--amount info-item-value amount">' +
         AriaLive.escapeHtml(String(item.montant_frais_inscription || '0')) + ' ' + devise + '</span></div>' +
-        '<div class="scp-info-item info-item"><span class="scp-info-label info-item-label">Mensualité</span>' +
-        '<span class="scp-info-value scp-info-value--amount info-item-value amount">' +
-        AriaLive.escapeHtml(String(item.montant_mensualite || '0')) + ' ' + devise + '</span></div>';
+        paliersHtml;
     } else {
       amounts =
         '<div class="scp-info-item info-item"><span class="scp-info-label info-item-label">Facturation annuelle</span>' +

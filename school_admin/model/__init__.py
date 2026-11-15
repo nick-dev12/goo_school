@@ -41,7 +41,14 @@ from .inscription_eleve_model import InscriptionEleve
 from .inscription_parent_model import InscriptionParent
 from .preinscription_model import LienPreinscription, PreinscriptionEleve
 from .carte_identite_personnalisation_model import CarteIdentitePersonnalisation
-from .comptabilite_eleve_model import ComptabiliteEleve, FraisInscription, FraisAnnexe, Mensualite, PaiementEleve
+from .comptabilite_eleve_model import (
+    ComptabiliteEleve,
+    FraisInscription,
+    FraisAnnexe,
+    ChoixFraisAnnexeEleve,
+    Mensualite,
+    PaiementEleve,
+)
 from .recouvrement_model import (
     CompteurRecuPaiement,
     RelanceImpaye,
@@ -89,4 +96,7 @@ from .cahier_texte_model import CahierTexte
 from .deliberation_model import Deliberation, DecisionJury, UECapitalisee
 from .maquette_model import Parcours, GroupeEnseignement, InscriptionPedagogique
 from .service_enseignant_model import ReglesService
+from .push_delivery_model import PushDelivery
+from .context_popup_model import ContextPopupState, ContextPopupVisit
 from .admission_model import Concours, EpreuveConcours, Candidature, NoteConcours, Diplome
+from .rappel_model import RappelEnvoye, ParametresRappels, NotificationPersonnel

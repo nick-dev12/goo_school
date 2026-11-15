@@ -623,7 +623,7 @@ def prepare_reinscrire_eleve(ctx, args):
         adresse=extras['adresse'],
         telephone=extras['telephone'],
         email=extras['email'],
-        url=_reverse('directeur:liste_reinscription'),
+        url=_reverse('secretaire:liste_eleves') + '?reinscrire=1',
     )
 
 

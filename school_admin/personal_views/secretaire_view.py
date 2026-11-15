@@ -231,6 +231,9 @@ def _build_inscription_form_context(etablissement, form_data=None, field_errors=
         logging.getLogger(__name__).error("Erreur lors de la récupération des pays: %s", exc)
         pays_list = []
 
+    from school_admin.utils.frais_annexes import frais_au_choix_etablissement
+    from school_admin.controllers.comptabilite_controller import ComptabiliteController
+
     return {
         'classes': classes,
         'est_superieur': est_superieur,
@@ -238,6 +241,8 @@ def _build_inscription_form_context(etablissement, form_data=None, field_errors=
         'form_data': form_data or _default_inscription_form_data(),
         'field_errors': field_errors or {},
         'pays_list': pays_list,
+        'frais_au_choix_inscription': frais_au_choix_etablissement(etablissement),
+        'devise_monnaie': ComptabiliteController._get_devise_monnaie(etablissement),
     }
 
 
@@ -756,7 +761,12 @@ def inscription_eleves(request):
                     from ..utils.comptabilite_utils import creer_frais_inscription
                     type_frais = 'inscription' if form_data['statut'] == 'nouvelle' else 'reinscription'
                     try:
-                        creer_frais_inscription(eleve, annee_scolaire_active, type_frais)
+                        creer_frais_inscription(
+                            eleve,
+                            annee_scolaire_active,
+                            type_frais,
+                            codes_frais_au_choix=request.POST.getlist('frais_annexe_choix'),
+                        )
                     except Exception as e:
                         # Logger l'erreur mais ne pas bloquer l'inscription
                         import logging
@@ -861,6 +871,7 @@ def liste_eleves(request):
         form_data=session_form_data,
         field_errors=session_field_errors or {},
     )
+    from ..utils.decorators_permissions import check_permission as user_has_perm
 
     context = {
         'user': user,
@@ -874,6 +885,16 @@ def liste_eleves(request):
         'est_superieur': etablissement.type_etablissement == 'superieur',
         'open_inscription_modal': request.GET.get('inscrire') == '1' or bool(session_field_errors),
         'open_masse_modal': request.GET.get('masse') if request.GET.get('masse') in ('fichier', 'grille') else '',
+        'open_reinscription_modal': request.GET.get('reinscrire') == '1',
+        'open_reinscription_eleve_url': (
+            reverse('directeur:reinscription_eleve', args=[int(request.GET.get('reinscrire_eleve'))])
+            if (request.GET.get('reinscrire_eleve') or '').isdigit()
+            else ''
+        ),
+        'can_reinscrire_eleves': (
+            isinstance(user, Etablissement)
+            or user_has_perm(user, 'eleves_reinscrire')
+        ),
         'initial_niveau_key': initial_niveau_key,
         'initial_classe_id': initial_classe_id,
         **inscription_ctx,

@@ -1560,18 +1560,25 @@ def gestion_eleves(request):
     return render(request, 'school_admin/directeur/hub/hub.html', context)
 
 
+def _reinscription_is_ajax(request):
+    return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+
 @login_required
 @login_required
 @require_permission('eleves_reinscrire')
 def liste_reinscription_eleves(request):
     """
-    Liste des élèves éligibles à la réinscription
-    Affiche les élèves ayant une inscription dans une année précédente mais pas dans l'année active
+    Liste des élèves éligibles à la réinscription.
+    Fragment HTML pour le modal de la liste des élèves ; sinon redirection vers cette liste.
     """
     result = _get_user_etablissement(request, 'eleves_reinscrire')
     if result[0] is None:
         messages.error(request, "Accès non autorisé.")
         return redirect('directeur:dashboard_directeur')
+
+    if not _reinscription_is_ajax(request):
+        return redirect(reverse('secretaire:liste_eleves') + '?reinscrire=1')
     
     etablissement, is_directeur, personnel = result
     annee_scolaire_active = _get_session_directeur(request, etablissement)
@@ -1680,15 +1687,21 @@ def liste_reinscription_eleves(request):
     
     from ..services.suivi_eleves import enrichir as _enrichir_suivi
     _enrichir_suivi(request, context, 'reinscriptions')
-    return render(request, 'school_admin/directeur/reinscription/liste_reinscription_eleves.html', context)
+    return render(
+        request,
+        'school_admin/directeur/reinscription/partials/liste_reinscription_inner.html',
+        context,
+    )
 
 
 @login_required
 @require_permission('eleves_reinscrire')
 def reinscription_eleve(request, eleve_id):
     """
-    Formulaire de réinscription pour un élève spécifique
+    Formulaire de réinscription pour un élève spécifique (modal sur la liste des élèves).
     """
+    from ..services.realtime_helpers import json_ok
+
     result = _get_user_etablissement(request, 'eleves_reinscrire')
     if result[0] is None:
         messages.error(request, "Accès non autorisé.")
@@ -1696,6 +1709,8 @@ def reinscription_eleve(request, eleve_id):
     
     etablissement, is_directeur, personnel = result
     annee_scolaire_active = _get_session_directeur(request, etablissement)
+    ajax = _reinscription_is_ajax(request)
+    liste_eleves_url = reverse('secretaire:liste_eleves') + '?reinscrire=1'
     
     if not annee_scolaire_active:
         messages.error(
@@ -1711,7 +1726,7 @@ def reinscription_eleve(request, eleve_id):
         ).get(id=eleve_id, etablissement=etablissement)
     except Eleve.DoesNotExist:
         messages.error(request, "Élève non trouvé.")
-        return redirect('directeur:liste_reinscription')
+        return redirect(liste_eleves_url)
     
     # Vérifier que l'élève n'est pas déjà inscrit pour l'année active
     inscription_existante = InscriptionEleve.objects.filter(
@@ -1722,7 +1737,7 @@ def reinscription_eleve(request, eleve_id):
     
     if inscription_existante:
         messages.warning(request, f"L'élève {eleve.nom_complet} est déjà inscrit pour l'année scolaire active.")
-        return redirect('directeur:liste_reinscription')
+        return redirect(liste_eleves_url)
     
     est_superieur = etablissement.type_etablissement == 'superieur'
     if est_superieur:
@@ -2029,7 +2044,12 @@ def reinscription_eleve(request, eleve_id):
                     if etablissement.module_comptabilite:
                         from ..utils.comptabilite_utils import creer_frais_inscription
                         try:
-                            creer_frais_inscription(eleve, annee_scolaire_active, 'reinscription')
+                            creer_frais_inscription(
+                                eleve,
+                                annee_scolaire_active,
+                                'reinscription',
+                                codes_frais_au_choix=request.POST.getlist('frais_annexe_choix'),
+                            )
                         except Exception as e:
                             # Logger l'erreur mais ne pas bloquer la réinscription
                             import logging
@@ -2051,7 +2071,11 @@ def reinscription_eleve(request, eleve_id):
                         montant_affiche = str(montant_par_eleve)
                     
                     messages.success(request, f"L'élève {form_data['nom']} {form_data['prenom']} a été réinscrit avec succès pour l'année scolaire {annee_scolaire_active.libelle} ! Montant ajouté: {montant_affiche}.")
-                    return redirect('directeur:liste_reinscription')
+                    if ajax:
+                        return json_ok(
+                            message=f"L'élève {form_data['nom']} {form_data['prenom']} a été réinscrit avec succès."
+                        )
+                    return redirect(liste_eleves_url)
                     
             except Exception as e:
                 logger.error(f"Erreur lors de la réinscription: {str(e)}", exc_info=True)
@@ -2066,6 +2090,13 @@ def reinscription_eleve(request, eleve_id):
         logger.error(f"Erreur lors de la récupération des pays: {str(e)}")
         pays_list = []
     
+    from school_admin.utils.frais_annexes import frais_au_choix_etablissement
+    from school_admin.controllers.comptabilite_controller import ComptabiliteController as _ComptaCtrl
+
+    if request.method == 'POST':
+        form_data = dict(form_data or {})
+        form_data['frais_annexe_choix'] = request.POST.getlist('frais_annexe_choix')
+
     context = {
         'etablissement': etablissement,
         'annee_scolaire_active': annee_scolaire_active,
@@ -2077,9 +2108,23 @@ def reinscription_eleve(request, eleve_id):
         'field_errors': field_errors,
         'pays_list': pays_list,
         'parent': parent,
+        'frais_au_choix_inscription': frais_au_choix_etablissement(etablissement),
+        'devise_monnaie': _ComptaCtrl._get_devise_monnaie(etablissement),
     }
-    
-    return render(request, 'school_admin/directeur/reinscription/reinscription_eleve.html', context)
+
+    if not ajax and request.method == 'GET' and not field_errors:
+        return redirect(
+            reverse('secretaire:liste_eleves')
+            + '?'
+            + urlencode({'reinscrire_eleve': eleve.id})
+        )
+
+    template = (
+        'school_admin/directeur/reinscription/partials/form_reinscription_inner.html'
+        if ajax
+        else 'school_admin/directeur/reinscription/reinscription_eleve.html'
+    )
+    return render(request, template, context)
 
 
 @login_required
@@ -2423,6 +2468,14 @@ def notes_et_resultats(request):
         'tab_nav_query': tab_nav_query,
         'stats_generales': stats_generales,
     }
+    context = _attach_directeur_niveau_classe_tabs(request, context, classes_grouped)
+    keys = list(classes_grouped.keys())
+    nk = (context.get('initial_niveau_key') or '').strip().lower()
+    for i, key in enumerate(keys, 1):
+        if str(key).strip().lower() == nk:
+            context['active_tab_index'] = i
+            break
+    context['active_classe_id'] = context.get('initial_classe_id')
     
     from ..services.suivi_eleves import enrichir as _enrichir_suivi
     _enrichir_suivi(request, context, 'notes')
@@ -4042,19 +4095,27 @@ def notifications_directeur(request):
     """
     Affiche les notifications reçues par le directeur puis les supprime après consultation.
     """
-    if not isinstance(request.user, Etablissement):
+    from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+    from school_admin.model.rappel_model import NotificationPersonnel
+
+    if isinstance(request.user, PersonnelAdministratif) and request.user.etablissement_id:
+        # Le personnel administratif consulte ici ses propres notifications (rappels automatiques).
+        etablissement = request.user.etablissement
+        notification_model = NotificationPersonnel
+        notifications_query = NotificationPersonnel.objects.filter(personnel=request.user)
+    elif isinstance(request.user, Etablissement):
+        etablissement = request.user
+        notification_model = NotificationDirecteur
+        notifications_query = NotificationDirecteur.objects.filter(etablissement=etablissement)
+    else:
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
-
-    notifications_query = NotificationDirecteur.objects.filter(etablissement=etablissement)
 
     notifications_non_lues = notifications_query.filter(lu=False)
     notification_ids_non_lues = list(notifications_non_lues.values_list('id', flat=True))
 
     if notification_ids_non_lues:
-        NotificationDirecteur.objects.filter(id__in=notification_ids_non_lues).update(
+        notification_model.objects.filter(id__in=notification_ids_non_lues).update(
             lu=True,
             statut='lu',
             date_lecture=timezone.now(),
@@ -10615,6 +10676,18 @@ def payer_mensualite_directeur(request, eleve_id, mensualite_id):
 def payer_frais_annexe_directeur(request, eleve_id, frais_id):
     """Enregistre un paiement de frais annexe (tenue, carte, etc.)."""
     return ComptabiliteController.payer_frais_annexe_directeur(request, eleve_id, frais_id)
+
+
+@login_required
+def gerer_choix_frais_annexes_directeur(request, eleve_id):
+    """Enregistre les frais annexes au choix pour un élève."""
+    return ComptabiliteController.gerer_choix_frais_annexes_directeur(request, eleve_id)
+
+
+@login_required
+def frais_au_choix_pour_classe_directeur(request, classe_id):
+    """JSON des frais annexes au choix pour une classe."""
+    return ComptabiliteController.frais_au_choix_pour_classe_directeur(request, classe_id)
 
 
 @login_required

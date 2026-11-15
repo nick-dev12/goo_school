@@ -1,4 +1,9 @@
 {% load i18n static %}
+{% if can_reinscrire_eleves or is_directeur %}
+<button type="button" class="ele-action-btn ele-action-btn--teal" onclick="openModalReinscriptionListe()">
+  <i class="fas fa-rotate" aria-hidden="true"></i> {% trans "Réinscriptions" %}
+</button>
+{% endif %}
 <button type="button" class="ele-action-btn" onclick="openModalInscriptionMasse()"><i class="fas fa-users-line"></i> {% trans "Inscription en masse" %}</button>
 <button type="button" class="ele-action-btn ele-action-btn--primary" onclick="openModalInscriptionEleve()">
             <i class="fas fa-user-plus"></i> {% trans "Inscrire un élève" %}

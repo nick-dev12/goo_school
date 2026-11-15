@@ -7,10 +7,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% trans "Paramètres de scolarité" %} — {{ etablissement.nom }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
+    <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/parametres_comptabilite.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/parametres_comptabilite.css' %}?v=2.1.2" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tarifs_mois.css' %}?v=3.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
 </head>
 <body class="scp-page-body" data-live-page="compta-parametres" data-devise="{{ devise_monnaie|default:'FCFA' }}" data-type-compta="{{ etablissement.type_etablissement_comptabilite|default:'prive' }}"{% if open_ajouter_modal %} data-open-ajouter-modal="1"{% endif %}>
@@ -29,20 +30,6 @@
                 <span class="scp-hero-badge">
                     <i class="fas fa-school"></i> {{ etablissement.get_type_etablissement_comptabilite_display }}
                 </span>
-            </div>
-            <div class="scp-hero-stats">
-                <div class="scp-stat-pill">
-                    <span class="scp-stat-num">{{ stats_generales.total_parametres }}</span>
-                    <span class="scp-stat-lbl">{% trans "Jeux de paramètres" %}</span>
-                </div>
-                <div class="scp-stat-pill">
-                    <span class="scp-stat-num">{{ stats_generales.groupes_assignes }}</span>
-                    <span class="scp-stat-lbl">{% trans "Groupes assignés" %}</span>
-                </div>
-                <div class="scp-stat-pill">
-                    <span class="scp-stat-num">{{ stats_generales.groupes_disponibles }}</span>
-                    <span class="scp-stat-lbl">{% trans "Groupes disponibles" %}</span>
-                </div>
             </div>
             <div class="scp-hero-actions">
                 <button type="button" class="scp-action-btn scp-action-btn--primary" id="btnOpenAjouterModal">
@@ -78,17 +65,12 @@
                         <option value="tresorerie" {% if regime_comptable == 'tresorerie' %}selected{% endif %}>{% trans "Trésorerie (encaissements)" %}</option>
                     </select>
                 </label>
-                {% if regime_verrouille %}
-                <p class="scp-regime-lock">{% trans "Des écritures existent déjà sur l'exercice civil ouvert : le régime ne peut plus être changé." %}</p>
-                {% else %}
+                {% if not regime_verrouille %}
                 <button type="submit" class="scp-action-btn scp-action-btn--primary">
                     <i class="fas fa-save"></i> {% trans "Enregistrer le régime" %}
                 </button>
                 {% endif %}
             </form>
-            <a href="{% url 'directeur:cg_exercices' %}" class="scp-action-btn scp-action-btn--secondary">
-                <i class="fas fa-calendar-alt"></i> {% trans "Exercice et plan de comptes" %}
-            </a>
         </section>
         {% endif %}
 
@@ -111,10 +93,21 @@
                                         <span class="scp-info-label info-item-label">{% trans "Inscription" %}</span>
                                         <span class="scp-info-value scp-info-value--amount info-item-value amount">{{ parametre.montant_frais_inscription|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
                                     </div>
+                                    {% if parametre.paliers_mensualite %}
+                                    <div class="scp-info-item info-item" style="grid-column:1/-1">
+                                        <span class="scp-info-label info-item-label">{% trans "Mensualités" %}</span>
+                                        <ul class="scp-paliers-list">
+                                            {% for palier in parametre.paliers_mensualite %}
+                                            <li><span>{{ palier.label }}</span><strong>{{ palier.montant|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</strong></li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% else %}
                                     <div class="scp-info-item info-item">
                                         <span class="scp-info-label info-item-label">{% trans "Mensualité" %}</span>
                                         <span class="scp-info-value scp-info-value--amount info-item-value amount">{{ parametre.montant_mensualite|floatformat:0 }} {{ devise_monnaie|default:"FCFA" }}</span>
                                     </div>
+                                    {% endif %}
                                 {% else %}
                                     <div class="scp-info-item info-item">
                                         <span class="scp-info-label info-item-label">{% trans "Facturation annuelle" %}</span>
@@ -154,6 +147,25 @@
                             </ul>
                             {% else %}
                             <ul class="scp-annexes-list" data-param-annexes-list hidden></ul>
+                            {% endif %}
+                            {% if parametre.transitions_frais %}
+                            <div class="scp-transition" role="group" aria-label="Anciennes charges à classer">
+                                <strong>Anciennes charges à classer</strong>
+                                <p>Ces élèves ont déjà une charge, mais n'ont pas encore de choix enregistré. Sélectionnez la décision à appliquer pour chaque frais.</p>
+                                {% for transition in parametre.transitions_frais %}
+                                <div class="scp-transition__row">
+                                    <span>{{ transition.libelle }} · {{ transition.nombre }} élève{{ transition.nombre|pluralize }}</span>
+                                    <form method="post" action="{% url 'directeur:parametres_comptabilite_directeur' %}" onsubmit="return confirm('Conserver ces anciennes charges et inscrire les élèves à ce frais ?');">
+                                        {% csrf_token %}<input type="hidden" name="action" value="transition_frais_annexe"><input type="hidden" name="parametre_id" value="{{ parametre.id }}"><input type="hidden" name="code" value="{{ transition.code }}"><input type="hidden" name="decision" value="inscrit">
+                                        <button type="submit">Inscrire</button>
+                                    </form>
+                                    <form method="post" action="{% url 'directeur:parametres_comptabilite_directeur' %}" onsubmit="return confirm('Exempter ces élèves ? Les charges sans paiement seront annulées ; les paiements reçus seront conservés.');">
+                                        {% csrf_token %}<input type="hidden" name="action" value="transition_frais_annexe"><input type="hidden" name="parametre_id" value="{{ parametre.id }}"><input type="hidden" name="code" value="{{ transition.code }}"><input type="hidden" name="decision" value="refuse">
+                                        <button type="submit">Exempter</button>
+                                    </form>
+                                </div>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                         <div class="scp-param-card-foot parametre-card-actions">
@@ -203,7 +215,7 @@
     </div>
 
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
-    <script src="{% static 'school_admin/js/directeur/parametres_comptabilite.js' %}?v=2.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/parametres_comptabilite.js' %}?v=2.3.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

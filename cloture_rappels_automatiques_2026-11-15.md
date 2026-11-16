@@ -215,3 +215,26 @@ Le script `deploy/deploy_safe.sh` rétablit désormais les droits après la coll
 - HTTP/2 actif (`HTTP/2 200` sur la page de connexion).
 - Page de connexion 200 en 0,47 s ; `/health/ready/` 200 ; Nginx, Daphne, worker Celery et Beat actifs.
 - La poignée de main WebSocket atteint bien l'application (réponse 403 sans session, attendue) ; le temps réel avec un compte connecté n'a pas été testé.
+
+---
+
+## 9. Vérification en production avec un compte connecté — 16 novembre 2026
+
+Compte de test d'un directeur (établissement « Noujoum »), connexion faite par l'utilisateur dans le navigateur ; consultation uniquement, aucun réglage enregistré, aucun envoi lancé.
+
+| Élément | Résultat |
+|---|---|
+| Popup d'arrivée | S'affiche : « Bonjour Cheikh », date du jour, groupe « À faire maintenant », carte « Des dossiers de scolarité à suivre » avec pastille 14, boutons « Voir les dossiers » et « Plus tard » |
+| Une synthèse par visite | En passant d'une page à l'autre par un lien du site, le popup ne revient pas |
+| Centre « À faire » | S'ouvre depuis la pastille, liste la même action, bouton « Fermer » |
+| Page Notifications | Le rappel reçu à 6 h 35 y figure, avec son bouton « Ouvrir » vers la page des impayés |
+| Page « Rappels automatiques » | État « Activés », dernier passage 16/11 07:05, réglages chargés (21:00 – 06:30, 4 par jour, 9 sujets cochés, cours du lendemain éteint), journal avec les 2 rappels de l'établissement |
+| Erreurs JavaScript | Aucune dans la console sur les 3 pages |
+| Requêtes | Toutes en 200, servies en HTTP/2 |
+| Tableau de bord, seconde visite | 46 requêtes dont 39 servies par le cache du navigateur ; 5 Ko transférés ; page HTML de 58 Ko envoyée en 12 Ko ; affichage complet en 1,1 s (dont 1,0 s d'attente du serveur) |
+
+**Défaut trouvé et corrigé** : dans l'espace direction, la pastille « À faire » était cachée derrière la barre de navigation du bas. Elle est maintenant placée à gauche, au-dessus de la barre réellement affichée (hauteur calculée par le script). Commit `87473184`. Le calcul a été vérifié sur la page de production (barre détectée, pastille à 112 px du bas).
+
+**Retouche** : le code de règle du journal (« ADM-04 ») ne se coupe plus sur deux lignes.
+
+**Non vérifié** : les espaces professeur, élève, parent et personnel avec un compte connecté en production ; la réception d'un push sur un téléphone ; le temps d'attente du serveur d'environ une seconde sur le tableau de bord n'a pas été analysé.

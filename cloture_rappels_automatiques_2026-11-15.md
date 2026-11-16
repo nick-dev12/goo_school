@@ -200,3 +200,18 @@ Le script `deploy/deploy_safe.sh` rétablit désormais les droits après la coll
 **Reste à faire sur le serveur** : `sudo bash deploy/configurer_nginx_compression.sh` (compression des CSS / JavaScript, copies `.gz`, HTTP/2). Tant que ce n'est pas fait, les CSS et JavaScript partent non compressés.
 
 **Non vérifié en production** : affichage du popup et de la page « Rappels automatiques » avec un compte connecté ; réception d'un push sur un téléphone.
+
+### Réglage Nginx appliqué — 16 novembre 2026, 7 h 14 UTC
+
+`deploy/configurer_nginx_compression.sh` exécuté sur le VPS : test de syntaxe réussi, Nginx rechargé. Ancienne configuration conservée dans `/etc/nginx/sites-available/aria-edu.bak-20261116T071449Z`.
+
+| Fichier | Avant | Après | Gain |
+|---|---|---|---|
+| `css/directeur/aria_shell.css` | 18 612 octets | 4 466 octets | 76 % |
+| `js/shared/context_popups.js` | 14 907 octets | 5 236 octets | 65 % |
+| `css/shared/context_popups.css` | 10 685 octets | 3 044 octets | 72 % |
+| `vendor/chartjs/chart.umd.min.js` | 205 222 octets | 69 479 octets | 66 % |
+
+- HTTP/2 actif (`HTTP/2 200` sur la page de connexion).
+- Page de connexion 200 en 0,47 s ; `/health/ready/` 200 ; Nginx, Daphne, worker Celery et Beat actifs.
+- La poignée de main WebSocket atteint bien l'application (réponse 403 sans session, attendue) ; le temps réel avec un compte connecté n'a pas été testé.

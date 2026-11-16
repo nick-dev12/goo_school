@@ -139,7 +139,8 @@
 
 /* Pastille flottante */
 .arp-pill {
-  position: fixed; z-index: 900; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  /* À gauche : la droite est occupée par l'assistante. La hauteur est ajustée par le script. */
+  position: fixed; z-index: 940; left: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px));
   display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 10px 8px 14px;
   border: 0; border-radius: 99px; background: var(--arp-ink); color: #fff; cursor: pointer;
   font-size: 13px; font-weight: 650; box-shadow: 0 10px 26px rgba(16, 24, 40, .26);
@@ -180,7 +181,7 @@
   .arp-btn--ghost, .arp-btn--soft, .arp-btn--link { flex: 0 0 auto; }
   .arp__footer { padding: 10px 14px 14px; }
   .arp__hint { font-size: 11px; }
-  .arp-pill { right: 12px; bottom: calc(var(--arp-pill-offset, 84px) + env(safe-area-inset-bottom, 0px)); }
+  .arp-pill { left: 12px; }
   .arp-pill__label { display: none; }
   .arp-pill { padding: 8px 9px 8px 11px; }
 }

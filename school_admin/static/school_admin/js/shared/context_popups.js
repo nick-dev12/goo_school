@@ -73,7 +73,7 @@ function loadStyles() {
   styled = new Promise(resolve => {
     const stylesheet = node('link');
     stylesheet.rel = 'stylesheet';
-    stylesheet.href = new URL('../../css/shared/context_popups.css?v=8', import.meta.url).href;
+    stylesheet.href = new URL('../../css/shared/context_popups.css?v=9', import.meta.url).href;
     stylesheet.onload = stylesheet.onerror = resolve;
     document.head.append(stylesheet);
   });
@@ -240,6 +240,23 @@ function emptyState() {
 }
 
 /* ---------- Pastille « À faire » : rouvre la liste à tout moment ---------- */
+/* La pastille se pose au-dessus de la barre de navigation basse de l'espace, quelle qu'elle soit. */
+function placePill() {
+  if (!pill) return;
+  let top = innerHeight;
+  for (const element of document.querySelectorAll('nav, footer, [class*="dock"], [class*="bottom-nav"], [class*="bottom_nav"], [class*="tabbar"]')) {
+    if (element.closest('dialog')) continue;
+    const style = getComputedStyle(element);
+    if (style.position !== 'fixed' || style.display === 'none' || style.visibility === 'hidden') continue;
+    const box = element.getBoundingClientRect();
+    if (box.width >= innerWidth * 0.5 && box.height > 0 && box.height < innerHeight * 0.4
+        && box.bottom >= innerHeight - 48 && box.top > innerHeight * 0.5) top = Math.min(top, box.top);
+  }
+  pill.style.bottom = `${Math.round(innerHeight - top) + 14}px`;
+}
+let placing;
+addEventListener('resize', () => { clearTimeout(placing); placing = setTimeout(placePill, 150); });
+
 async function renderPill() {
   if (!total) { pill?.remove(); pill = null; return; }
   await loadStyles();
@@ -249,7 +266,9 @@ async function renderPill() {
     pill.append(icon('list', 'arp-pill__icon'), node('span', 'arp-pill__label', 'À faire'), node('span', 'arp-pill__count'));
     pill.onclick = openCentre;
     document.body.append(pill);
+    setTimeout(placePill, 1500);  // barres de navigation affichées après coup
   }
+  placePill();
   pill.querySelector('.arp-pill__count').textContent = String(total);
   pill.setAttribute('aria-label', `Ouvrir mes actions à faire (${total})`);
 }

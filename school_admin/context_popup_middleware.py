@@ -23,7 +23,7 @@ class ContextPopupMiddleware:
                 and not request.headers.get('X-Requested-With')):
             marker = b'</body>'
             if marker in response.content:
-                script = f'<script type="module" src="{static("school_admin/js/shared/context_popups.js")}?v=8"></script>'
+                script = f'<script type="module" src="{static("school_admin/js/shared/context_popups.js")}?v=9"></script>'
                 response.content = response.content.replace(marker, script.encode() + marker, 1)
                 if response.has_header('Content-Length'):
                     response['Content-Length'] = str(len(response.content))

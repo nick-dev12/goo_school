@@ -238,3 +238,11 @@ Compte de test d'un directeur (établissement « Noujoum »), connexion faite pa
 **Retouche** : le code de règle du journal (« ADM-04 ») ne se coupe plus sur deux lignes.
 
 **Non vérifié** : les espaces professeur, élève, parent et personnel avec un compte connecté en production ; la réception d'un push sur un téléphone ; le temps d'attente du serveur d'environ une seconde sur le tableau de bord n'a pas été analysé.
+
+### Correctif déployé — 16 novembre 2026, 8 h 32 CET
+
+Version `87473184` déployée par `deploy.sh` (sauvegarde, pas de migration, 3 fichiers statiques recopiés, services redémarrés, contrôle de santé réussi). Le script corrigé a bien rétabli les droits des fichiers statiques (aucun fichier fermé à Nginx).
+
+Vérifié sur `aria-edu.com` avec le compte directeur connecté : la pastille « À faire (1) » est visible en bas à gauche, au-dessus de la barre de navigation, et répond au clic. Le script servi est bien la version 9.
+
+La console du navigateur intégré signale un échec du WebSocket temps réel et du service worker ; côté serveur, le service worker est servi (200, 3,5 Ko) et le journal de Daphne montre des connexions WebSocket qui aboutissent. Ces deux messages viennent des restrictions du navigateur de vérification, pas du site.

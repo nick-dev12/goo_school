@@ -177,3 +177,26 @@ Worker Celery et Celery Beat démarrés en arrière-plan sur ce poste (journaux 
 - La date de dernier passage est renseignée pour les trois établissements.
 
 Ces deux processus ne sont pas des services Windows : ils s'arrêtent à la fermeture de la session ou au redémarrage du poste et doivent alors être relancés (section 5).
+
+---
+
+## 8. Mise en production — nuit du 15 au 16 novembre 2026
+
+**Livraison** : commit `55112c1d` poussé sur `main`, puis déployé sur le VPS par `deploy.sh` (sauvegarde, migrations `0243` à `0251`, collecte des fichiers statiques, redémarrage de Daphne, du worker Celery et de Beat). Correctif du script de déploiement : commit `358adff5`.
+
+**Vérifié après livraison**
+- Site : `/health/ready/` répond 200 ; page de connexion 200 ; API des popups 401 sans connexion (attendu).
+- Les trois services `aria-daphne`, `aria-celery`, `aria-celery-beat` sont actifs sur la nouvelle version.
+- Le worker a chargé `generer_rappels_task`, `deliver_push_task` et `retry_pending_push`.
+- **Premier passage automatique en production, lundi 16 novembre à 6 h 35 (fin des heures calmes)** : 28 établissements, 570 personnes, 9 rappels, 0 erreur, en 38 secondes. Détail : 4 DIR-07, 3 PAR-01, 1 ADM-04, 1 DIR-01. Le passage suivant (7 h 05) n'a rien renvoyé : aucun doublon.
+- Push : 3 acceptés par Firebase, 6 ignorés faute d'appareil enregistré. 20 jetons d'appareils périmés ont été désactivés automatiquement (93 → 73 actifs).
+
+**Deux incidents pendant la livraison, corrigés**
+1. Le contrôle de santé du script a répondu 502 : il partait une seconde avant que Daphne n'écoute. Le site était en réalité remonté. Le script s'est arrêté là, donc le réglage Nginx n'a pas été appliqué à ce moment.
+2. Les nouveaux dossiers statiques (`vendor/` : icônes, graphiques, scanner QR) et les copies `.gz` avaient été créés sans droit de lecture pour Nginx à cause du `umask 077` du script : ces fichiers ont répondu 403 pendant quelques minutes après le redémarrage. Droits rétablis à la main (`chmod`), tous les fichiers contrôlés répondent 200.
+
+Le script `deploy/deploy_safe.sh` rétablit désormais les droits après la collecte et réessaie le contrôle de santé pendant une minute.
+
+**Reste à faire sur le serveur** : `sudo bash deploy/configurer_nginx_compression.sh` (compression des CSS / JavaScript, copies `.gz`, HTTP/2). Tant que ce n'est pas fait, les CSS et JavaScript partent non compressés.
+
+**Non vérifié en production** : affichage du popup et de la page « Rappels automatiques » avec un compte connecté ; réception d'un push sur un téléphone.

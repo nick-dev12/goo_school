@@ -32,14 +32,27 @@ python manage.py check --deploy --fail-level WARNING
 python manage.py makemigrations --check --dry-run
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
+# « umask 077 » protège les sauvegardes, mais Nginx (www-data) doit pouvoir lire les fichiers statiques :
+# sans cette ligne, les nouveaux dossiers et les copies .gz répondent 403.
+chmod -R u=rwX,go=rX "${ARIA_STATIC_ROOT:-$PROJECT_DIR/staticfiles}"
 sudo nginx -t
 sudo systemctl restart aria-daphne aria-celery aria-celery-beat
 sudo systemctl reload nginx
 for service in aria-daphne aria-celery aria-celery-beat; do
     sudo systemctl is-active --quiet "$service"
 done
-curl --fail --silent --show-error --max-time 20 \
-    "${ARIA_HEALTH_URL:-https://aria-edu.com/health/ready/}" >/dev/null
+# Daphne met quelques secondes à écouter après son redémarrage : on réessaie avant de conclure à un échec.
+HEALTH_URL="${ARIA_HEALTH_URL:-https://aria-edu.com/health/ready/}"
+for attempt in $(seq 1 12); do
+    if curl --fail --silent --max-time 20 "$HEALTH_URL" >/dev/null; then
+        break
+    fi
+    if [ "$attempt" -eq 12 ]; then
+        echo "Le site ne répond pas correctement après redémarrage : $HEALTH_URL" >&2
+        exit 1
+    fi
+    sleep 5
+done
 echo "Version $TARGET_COMMIT déployée. Sauvegarde : $BACKUP_DIR"
 # En cas d'erreur, set -e arrête la livraison. Une base migrée doit être évaluée
 # avant retour au code précédent ; ne jamais prétendre annuler une migration par git.

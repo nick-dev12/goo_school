@@ -224,7 +224,7 @@ Compte de test d'un directeur (établissement « Noujoum »), connexion faite pa
 
 | Élément | Résultat |
 |---|---|
-| Popup d'arrivée | S'affiche : « Bonjour Cheikh », date du jour, groupe « À faire maintenant », carte « Des dossiers de scolarité à suivre » avec pastille 14, boutons « Voir les dossiers » et « Plus tard » |
+| Popup d'arrivée | S'affiche : une salutation avec le prénom du directeur, date du jour, groupe « À faire maintenant », carte « Des dossiers de scolarité à suivre » avec pastille 14, boutons « Voir les dossiers » et « Plus tard » |
 | Une synthèse par visite | En passant d'une page à l'autre par un lien du site, le popup ne revient pas |
 | Centre « À faire » | S'ouvre depuis la pastille, liste la même action, bouton « Fermer » |
 | Page Notifications | Le rappel reçu à 6 h 35 y figure, avec son bouton « Ouvrir » vers la page des impayés |

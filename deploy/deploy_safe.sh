@@ -26,7 +26,16 @@ mkdir -p "$BACKUP_DIR"
 printf '%s\n' "$PREVIOUS_COMMIT" > "$BACKUP_DIR/previous-commit.txt"
 python manage.py backup_production --output "$BACKUP_DIR"
 # Aucune destruction des changements locaux, aucun --fake automatique.
+# Des fichiers déposés (media/) ont été suivis par Git par le passé. Si la nouvelle version cesse de les
+# suivre, « git checkout » les effacerait du disque : on les met de côté, puis on remet ceux qui manquent.
+MEDIA_KEEP="$BACKUP_DIR/media-suivis.tar"
+if [ -n "$(git ls-files media | head -n 1)" ]; then
+    git ls-files -z media | tar --null -cf "$MEDIA_KEEP" -T -
+fi
 git checkout --detach "$TARGET_COMMIT"
+if [ -f "$MEDIA_KEEP" ]; then
+    tar --skip-old-files -xf "$MEDIA_KEEP"
+fi
 pip install -r requirements.txt
 python manage.py check --deploy --fail-level WARNING
 python manage.py makemigrations --check --dry-run

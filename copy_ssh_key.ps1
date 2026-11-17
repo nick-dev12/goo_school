@@ -13,7 +13,7 @@ Write-Host "Clé publique à copier:" -ForegroundColor Yellow
 Write-Host $publicKey -ForegroundColor Gray
 Write-Host ""
 Write-Host "Vous allez être invité à entrer le mot de passe:" -ForegroundColor Yellow
-Write-Host "Mot de passe: Ludvanne12@" -ForegroundColor Green
+Write-Host "Mot de passe: <retiré — voir le gestionnaire de mots de passe>" -ForegroundColor Green
 Write-Host ""
 Write-Host "Appuyez sur Entrée pour continuer..." -ForegroundColor Cyan
 Read-Host

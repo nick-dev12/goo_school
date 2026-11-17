@@ -1,0 +1,250 @@
+/* Thèmes des cartes : couleurs et habillage uniquement, dimensions d'impression inchangées. */
+.idcard-establishment-brand { display: none; }
+.student-idcard-wrapper[data-carte-modele] .student-idcard-front,
+.student-idcard-wrapper[data-carte-modele] .student-idcard-back {
+  border-color: var(--carte-principale) !important;
+  background: var(--carte-fond) !important;
+  color: var(--carte-texte);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.student-idcard-wrapper[data-carte-modele] .idcard-header {
+  background: var(--carte-fond);
+  border-bottom-color: var(--carte-principale);
+}
+.student-idcard-wrapper[data-carte-modele] .info-label,
+.student-idcard-wrapper[data-carte-modele] .info-value,
+.student-idcard-wrapper[data-carte-modele] .idcard-back-motto { color: var(--carte-texte); }
+.student-idcard-wrapper[data-carte-modele] .idcard-rules-card {
+  background: var(--carte-fond);
+  border-color: var(--carte-secondaire);
+}
+.student-idcard-wrapper[data-carte-modele] .idcard-back-header {
+  border-left: 3px solid var(--carte-secondaire);
+  background: var(--carte-fond);
+}
+.student-idcard-wrapper[data-carte-modele] .idcard-qr { background: white; border-color: var(--carte-secondaire); flex-shrink: 0; }
+.student-idcard-wrapper[data-carte-modele="moderne"] .student-idcard-front,
+.student-idcard-wrapper[data-carte-modele="moderne"] .student-idcard-back {
+  border-radius: 8px !important;
+}
+.student-idcard-wrapper[data-carte-modele="moderne"] .idcard-header {
+  background: var(--carte-principale);
+  color: var(--carte-contraste);
+  border-bottom-color: var(--carte-secondaire);
+}
+.student-idcard-wrapper[data-carte-modele="moderne"] .idcard-header-text { align-items: flex-start; text-align: left; }
+.student-idcard-wrapper[data-carte-modele="moderne"] .idcard-title { letter-spacing: .5px; }
+.student-idcard-wrapper[data-carte-modele="moderne"] .idcard-photo,
+.student-idcard-wrapper[data-carte-modele="moderne"] .idcard-photo img { border-radius: 50%; }
+.student-idcard-wrapper[data-carte-modele="moderne"] .idcard-back-header {
+  background: var(--carte-principale);
+  color: var(--carte-contraste);
+  border-radius: 4px;
+}
+.student-idcard-wrapper[data-carte-modele="moderne"] .idcard-back-footer { border-top: 2px solid var(--carte-secondaire); }
+
+/* Horizon : composition graphique, diagonale de couleur et photo aux coins adoucis. */
+.student-idcard-wrapper[data-carte-modele="horizon"] .student-idcard-front,
+.student-idcard-wrapper[data-carte-modele="horizon"] .student-idcard-back { border-radius: 14px !important; }
+.student-idcard-wrapper[data-carte-modele="horizon"] .idcard-header {
+  background: linear-gradient(120deg, var(--carte-principale) 82%, var(--carte-secondaire) 82%);
+  color: var(--carte-contraste);
+  border-bottom: 3px solid var(--carte-secondaire);
+}
+.student-idcard-wrapper[data-carte-modele="horizon"] .idcard-header-text { text-align: left; align-items: flex-start; }
+.student-idcard-wrapper[data-carte-modele="horizon"] .idcard-photo { border-color: var(--carte-secondaire); border-radius: 18px 4px 18px 4px; }
+.student-idcard-wrapper[data-carte-modele="horizon"] .idcard-photo img { border-radius: 12px 2px 12px 2px; }
+.student-idcard-wrapper[data-carte-modele="horizon"] .idcard-logo { border-radius: 4px; }
+.student-idcard-wrapper[data-carte-modele="horizon"] .idcard-back-header {
+  background: linear-gradient(120deg, var(--carte-principale) 82%, var(--carte-secondaire) 82%);
+  color: var(--carte-contraste);
+  border: 0;
+  border-radius: 6px;
+}
+.student-idcard-wrapper[data-carte-modele="horizon"] .idcard-rules-card { border-radius: 12px 3px 12px 3px; }
+.student-idcard-wrapper[data-carte-modele="horizon"] .idcard-back-footer { border-top: 2px solid var(--carte-secondaire); }
+
+/* Signature : en-tête clair, typographie espacée, médaillon et filets fins. */
+.student-idcard-wrapper[data-carte-modele="signature"] .student-idcard-front,
+.student-idcard-wrapper[data-carte-modele="signature"] .student-idcard-back { border-radius: 5px !important; }
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-header { border-bottom: 1px solid var(--carte-secondaire); }
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-school { color: var(--carte-principale); }
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-title { font-size: 12px; letter-spacing: 1.8px; font-weight: 600; }
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-logo,
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-flag { border: 0; background: transparent; }
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-photo { border-radius: 50%; border-color: var(--carte-secondaire); }
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-photo img { border-radius: 50%; }
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-qr { border-style: solid; border-width: 1px; border-radius: 3px; }
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-back-header { border: 0; border-bottom: 1px solid var(--carte-secondaire); border-radius: 0; font-weight: 600; letter-spacing: .8px; }
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-rules-card { border: 0; border-radius: 0; box-shadow: inset 3px 0 var(--carte-secondaire); }
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-back-footer { border-top: 1px solid var(--carte-secondaire); }
+@media print {
+  .student-idcard-wrapper[data-carte-modele="signature"] .idcard-title { font-size: 8px; letter-spacing: 1px; }
+}
+
+/* Collections illustrées : grilles différentes, sans changer le format physique. */
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .student-idcard-front {
+  display: grid !important;
+  grid-template-rows: 32% minmax(0, 1fr) 14%;
+  position: relative;
+}
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-header {
+  min-height: 0; height: auto; padding: 5px 10px; gap: 6px;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  display: grid;
+}
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-flag,
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-logo {
+  width: 46px; height: 46px; padding: 3px; border: 0; border-radius: 4px;
+}
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-header-text { gap: 1px; min-width: 0; line-height: 1.15; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-country { font-size: 8px; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-motto { font-size: 7px; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-school { font-size: 13px; letter-spacing: .1px; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-title { font-size: 11px; letter-spacing: .4px; margin-top: 3px; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-body {
+  display: grid; grid-template-columns: 21% minmax(0, 1fr) 16%;
+  align-items: center; gap: 8px; padding: 8px; margin: 0; min-height: 0;
+}
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-photo {
+  width: 100%; min-width: 0; max-width: 100%; height: 112px;
+  min-height: 0; max-height: 100%; border-radius: 3px; border: 1px solid var(--carte-principale); padding: 3px;
+}
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-photo img { border-radius: 0; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-info { height: auto !important; min-width: 0; gap: 5px; margin: 0; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-info-row { font-size: 9px; gap: 3px; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .info-label { letter-spacing: 0; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .info-accent,
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .info-strong { font-size: 9px; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-qr { width: 100%; height: auto; aspect-ratio: 1; padding: 4px; border-radius: 3px; border-width: 1px; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-qr img { width: 100%; height: auto; }
+.student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-footer { display: flex; flex-direction: column; justify-content: center; padding: 6px 12px; font-size: 7px; min-height: 0; gap: 1px; }
+
+/* Élan : cartouche central et vague basse, inspirés des cartes scolaires institutionnelles. */
+.student-idcard-wrapper[data-carte-modele="elan"] .student-idcard-front,
+.student-idcard-wrapper[data-carte-modele="elan"] .student-idcard-back { border-radius: 4px !important; }
+.student-idcard-wrapper[data-carte-modele="elan"] .idcard-header { border: 0; }
+.student-idcard-wrapper[data-carte-modele="elan"] .idcard-title { background: var(--carte-principale); color: var(--carte-contraste); border-radius: 12px; padding: 3px 9px; }
+.student-idcard-wrapper[data-carte-modele="elan"] .idcard-body { background: radial-gradient(ellipse at 80% 20%, color-mix(in srgb, var(--carte-principale) 10%, transparent), transparent 80%); }
+.student-idcard-wrapper[data-carte-modele="elan"] .idcard-footer { background: var(--carte-principale); color: var(--carte-contraste); border-radius: 45% 0 0 0 / 30% 0 0 0; border-top: 3px solid var(--carte-secondaire); }
+.student-idcard-wrapper[data-carte-modele="elan"] .idcard-back-header { border: 0; background: var(--carte-principale); color: var(--carte-contraste); border-radius: 12px; }
+.student-idcard-wrapper[data-carte-modele="elan"] .idcard-back-footer { border-top: 3px solid var(--carte-secondaire); border-radius: 35% 0 0 0; }
+
+/* Campus : photo à droite, bandeau arrondi et identité au centre. */
+.student-idcard-wrapper[data-carte-modele="campus"] .idcard-header { background: var(--carte-principale); color: var(--carte-contraste); border-radius: 0 0 38% 8% / 0 0 20% 8%; border-bottom: 3px solid var(--carte-secondaire); }
+.student-idcard-wrapper[data-carte-modele="campus"] .idcard-body { grid-template-columns: 16% minmax(0, 1fr) 23%; }
+.student-idcard-wrapper[data-carte-modele="campus"] .idcard-photo { grid-column: 3; grid-row: 1; height: 120px; border-width: 2px; }
+.student-idcard-wrapper[data-carte-modele="campus"] .idcard-info { grid-column: 2; grid-row: 1; }
+.student-idcard-wrapper[data-carte-modele="campus"] .idcard-qr { grid-column: 1; grid-row: 1; align-self: end; }
+.student-idcard-wrapper[data-carte-modele="campus"] .idcard-title { font-style: italic; letter-spacing: 1.5px; }
+.student-idcard-wrapper[data-carte-modele="campus"] .idcard-footer { border-top: 1px solid var(--carte-secondaire); align-items: center; }
+.student-idcard-wrapper[data-carte-modele="campus"] .idcard-back-header { background: var(--carte-principale); color: var(--carte-contraste); border: 0; border-radius: 0 0 25% 0; }
+.student-idcard-wrapper[data-carte-modele="campus"] .idcard-rules-card { border-radius: 16px 0 16px 0; }
+
+/* Prisme : grande photo et diagonales latérales, corps clair et pied contrasté. */
+.student-idcard-wrapper[data-carte-modele="prisme"] .student-idcard-front { grid-template-rows: 28% minmax(0, 1fr) 13%; border-radius: 6px !important; }
+.student-idcard-wrapper[data-carte-modele="prisme"] .idcard-header { background: var(--carte-principale); color: var(--carte-contraste); border: 0; }
+.student-idcard-wrapper[data-carte-modele="prisme"] .idcard-body { grid-template-columns: 24% minmax(0, 1fr) 15%; background: linear-gradient(120deg, var(--carte-principale) 0 23%, var(--carte-secondaire) 23% 29%, var(--carte-fond) 29%); }
+.student-idcard-wrapper[data-carte-modele="prisme"] .idcard-info { background: var(--carte-fond); padding: 5px; }
+.student-idcard-wrapper[data-carte-modele="prisme"] .idcard-photo { height: 128px; padding: 2px; border: 2px solid var(--carte-fond); }
+.student-idcard-wrapper[data-carte-modele="prisme"] .idcard-footer { background: var(--carte-principale); color: var(--carte-contraste); }
+.student-idcard-wrapper[data-carte-modele="prisme"] .idcard-back-header { background: var(--carte-principale); color: var(--carte-contraste); border-radius: 0; }
+.student-idcard-wrapper[data-carte-modele="prisme"] .idcard-rules-card { border-left-width: 5px; border-radius: 0; }
+.student-idcard-wrapper[data-carte-modele="prisme"] .idcard-back-footer { border-top: 3px solid var(--carte-secondaire); }
+
+@media print {
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-header { grid-template-columns: 32px minmax(0, 1fr) 32px; padding: 3px 5px; gap: 3px; }
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-flag,
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-logo { width: 30px; height: 30px; }
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-country,
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-motto { font-size: 5px; }
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-school { font-size: 8px; }
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-title { font-size: 7px; letter-spacing: .2px; }
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-body { padding: 5px; gap: 4px; }
+  .student-idcard-wrapper[data-carte-modele="elan"] .idcard-body { grid-template-columns: 21% minmax(0, 1fr) 55px; }
+  .student-idcard-wrapper[data-carte-modele="campus"] .idcard-body { grid-template-columns: 55px minmax(0, 1fr) 23%; }
+  .student-idcard-wrapper[data-carte-modele="prisme"] .idcard-body { grid-template-columns: 24% minmax(0, 1fr) 55px; }
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-qr { padding: 2px; }
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-photo { height: 76px; }
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-info { gap: 3px; }
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-info-row,
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .info-accent,
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .info-strong { font-size: 6px; }
+  .student-idcard-wrapper:is([data-carte-modele="elan"], [data-carte-modele="campus"], [data-carte-modele="prisme"], [data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-footer { font-size: 5px; padding: 4px 6px; }
+}
+
+/* Rivage : ruban incurvé sur la droite et en-tête institutionnel clair. */
+.student-idcard-wrapper[data-carte-modele="rivage"] .student-idcard-front { grid-template-rows: 28% minmax(0, 1fr) 14%; border-radius: 3px !important; }
+.student-idcard-wrapper[data-carte-modele="rivage"] .student-idcard-front::before {
+  content: ''; position: absolute; inset: 0; background: var(--carte-principale);
+  clip-path: polygon(89% 0, 100% 0, 100% 100%, 78% 100%, 91% 54%, 95% 30%);
+  pointer-events: none;
+}
+.student-idcard-wrapper[data-carte-modele="rivage"] .student-idcard-front > * { position: relative; }
+.student-idcard-wrapper[data-carte-modele="rivage"] .idcard-header { background: transparent; border-bottom: 1px solid var(--carte-secondaire); }
+.student-idcard-wrapper[data-carte-modele="rivage"] .idcard-body { background: transparent; grid-template-columns: 24% minmax(0, 1fr) 16%; }
+.student-idcard-wrapper[data-carte-modele="rivage"] .idcard-title { border: 1px solid var(--carte-principale); border-radius: 2px; padding: 2px 8px; }
+.student-idcard-wrapper[data-carte-modele="rivage"] .idcard-footer { background: var(--carte-fond); border-top: 1px solid var(--carte-secondaire); margin-right: 22%; }
+.student-idcard-wrapper[data-carte-modele="rivage"] .idcard-back-header { background: var(--carte-principale); color: var(--carte-contraste); border: 0; border-radius: 0 18px 0 18px; }
+.student-idcard-wrapper[data-carte-modele="rivage"] .idcard-rules-card { border-radius: 0 20px 0 20px; }
+
+/* Académie : grande photo, identité aérée et nom d'établissement en bandeau bas. */
+.student-idcard-wrapper[data-carte-modele="academie"] .student-idcard-front { grid-template-rows: 30% minmax(0, 1fr) 16%; border-radius: 18px !important; }
+.student-idcard-wrapper[data-carte-modele="academie"] .idcard-header { border: 0; }
+.student-idcard-wrapper[data-carte-modele="academie"] .idcard-country { color: var(--carte-principale); font-weight: 800; }
+.student-idcard-wrapper[data-carte-modele="academie"] .idcard-title { background: linear-gradient(90deg, transparent, var(--carte-principale) 15% 85%, transparent); color: var(--carte-contraste); padding: 3px 16px; }
+.student-idcard-wrapper[data-carte-modele="academie"] .idcard-body { grid-template-columns: 28% minmax(0, 1fr) 16%; }
+.student-idcard-wrapper[data-carte-modele="academie"] .idcard-photo { height: 128px; border: 0; padding: 2px; background: white; box-shadow: 2px 3px 5px #0002; }
+.student-idcard-wrapper[data-carte-modele="academie"] .idcard-footer,
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-footer { background: var(--carte-principale); color: var(--carte-contraste); align-items: center; }
+.student-idcard-wrapper[data-carte-modele="academie"] .idcard-establishment-brand,
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-establishment-brand { display: block; font-size: 12px; font-weight: 800; text-transform: uppercase; line-height: 1.2; text-align: center; }
+.student-idcard-wrapper[data-carte-modele="academie"] .idcard-printed,
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-printed { display: none; }
+.student-idcard-wrapper[data-carte-modele="academie"] .student-idcard-back { border-radius: 18px !important; }
+.student-idcard-wrapper[data-carte-modele="academie"] .idcard-rules-card { border: 0; box-shadow: none; text-align: center; }
+.student-idcard-wrapper[data-carte-modele="academie"] .idcard-back-footer { justify-content: center; flex-direction: column; border: 0; gap: 4px; }
+.student-idcard-wrapper[data-carte-modele="academie"] .idcard-back-logo img { width: 45px; height: 45px; }
+
+/* Équateur : cadre affirmé, portrait généreux et cartouche de titre fin. */
+.student-idcard-wrapper[data-carte-modele="equateur"] .student-idcard-front { grid-template-rows: 25% minmax(0, 1fr) 15%; border-radius: 14px !important; }
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-header { border: 0; background: linear-gradient(135deg, var(--carte-secondaire) 0 3%, transparent 3% 6%, var(--carte-principale) 6% 8%, var(--carte-fond) 8%); }
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-country { font-weight: 700; }
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-title { border: 1px solid var(--carte-principale); border-radius: 20px; padding: 2px 12px; }
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-body { grid-template-columns: 27% minmax(0, 1fr) 16%; background: linear-gradient(140deg, transparent 45%, color-mix(in srgb, var(--carte-secondaire) 12%, transparent)); }
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-photo { height: 130px; border: 0; padding: 0; }
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-qr { align-self: end; }
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-back-header { border-radius: 20px; border: 1px solid var(--carte-principale); justify-content: center; }
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-back-footer { background: var(--carte-principale); color: var(--carte-contraste); border-radius: 10px; }
+.student-idcard-wrapper[data-carte-modele="equateur"] .idcard-back-motto { color: var(--carte-contraste); }
+
+.student-idcard-wrapper:is([data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-info-row.double { grid-template-columns: max-content minmax(0, 1fr); }
+@media print {
+  .student-idcard-wrapper:is([data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-body { grid-template-columns: 25% minmax(0, 1fr) 55px; }
+  .student-idcard-wrapper:is([data-carte-modele="rivage"], [data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-photo { height: 76px; }
+  .student-idcard-wrapper:is([data-carte-modele="academie"], [data-carte-modele="equateur"]) .idcard-establishment-brand { font-size: 8px; }
+  .student-idcard-wrapper[data-carte-modele="academie"] .idcard-back-logo img { width: 28px; height: 28px; }
+}
+
+
+/* Autoriser le retour des lieux longs sans toucher aux dimensions imprimees. */
+.student-idcard-wrapper[data-carte-modele="signature"] .idcard-info-row.double { grid-template-columns: max-content minmax(0, 1fr); }
+
+/* Zone de lecture reelle plus grande sur la carte physique, format inchange. */
+@media print {
+  .student-idcard-wrapper[data-carte-modele] .idcard-qr { width: 18mm; height: 18mm; min-width: 18mm; flex: 0 0 18mm; padding: 0; border: 0; background: white; border-radius: 0; }
+  .student-idcard-wrapper[data-carte-modele] .idcard-qr img { width: 18mm; height: 18mm; max-width: none; }
+  .student-idcard-wrapper[data-carte-modele] .idcard-body { grid-template-columns: 25% minmax(0, 1fr) 18mm; }
+  .student-idcard-wrapper[data-carte-modele] .idcard-info-row.double { grid-template-columns: max-content minmax(0, 1fr); }
+}
+
+/* Contacts du verso : compacts et lisibles sans changer le format physique. */
+.student-idcard-wrapper[data-carte-modele] .idcard-back-info { grid-template-columns: minmax(0, 1fr); gap: 3px; padding: 6px 10px; }
+.student-idcard-wrapper[data-carte-modele] .idcard-establishment { gap: 3px; }
+.idcard-contact { display: flex; flex-wrap: wrap; gap: 2px 5px; line-height: 1.2; font-size: 9px; }
+.idcard-contact strong { white-space: nowrap; }
+@media print {
+  .student-idcard-wrapper[data-carte-modele] .idcard-back-info { gap: 2px; padding: 3px 6px; }
+  .idcard-contact { font-size: 6px; }
+}

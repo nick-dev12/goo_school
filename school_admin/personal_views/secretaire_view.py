@@ -1075,6 +1075,8 @@ def cartes_identite_classe(request, classe_id):
         'classe', 'classe__academic_level',
     ).order_by(Lower('nom'), Lower('prenom'))
     eleves = list(eleves_queryset)
+    from ..services.carte_contacts import precharger_contacts_cartes
+    precharger_contacts_cartes(eleves)
 
     erreurs_qr = []
     for eleve in eleves:

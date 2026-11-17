@@ -1,5 +1,6 @@
 from django.urls import path
 from ..personal_views.secretaire_view import *
+from ..personal_views.carte_personnalisation_view import personnaliser_cartes_identite
 
 app_name = 'secretaire'
 
@@ -8,6 +9,7 @@ urlpatterns = [
     path('inscription/eleves/', inscription_eleves, name='inscription_eleves'),
     path('liste/eleves/', liste_eleves, name='liste_eleves'),
     path('cartes-identite/eleves/', cartes_identite_eleves, name='cartes_identite_eleves'),
+    path('cartes-identite/personnaliser/', personnaliser_cartes_identite, name='personnaliser_cartes_identite'),
     path('detail/eleve/<int:eleve_id>/', detail_eleve, name='detail_eleve'),
     path('carte-identite/eleve/<int:eleve_id>/', carte_identite_eleve, name='carte_identite_eleve'),
     path('cartes-identite/classe/<int:classe_id>/', cartes_identite_classe, name='cartes_identite_classe'),

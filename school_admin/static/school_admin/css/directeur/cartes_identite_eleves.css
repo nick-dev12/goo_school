@@ -633,7 +633,7 @@
 
   .sci-hero-actions,
   .sci-print-actions {
-    flex-direction: column;
+    flex-direction: row;
   }
 
   .sci-action-btn,
@@ -652,3 +652,30 @@
     display: none;
   }
 }
+
+/* Les deux actions restent côte à côte, y compris sur téléphone. */
+.sci-print-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+}
+.sci-print-actions .sci-print-btn {
+  justify-content: center;
+  min-width: 0;
+  text-align: center;
+}
+@media (max-width: 480px) {
+  .sci-print-actions .sci-print-btn {
+    font-size: 12px;
+    padding: 10px 6px;
+    gap: 5px;
+  }
+}
+
+/* Liste directe, sans enveloppes visuelles imbriquees. */
+.sci-page .sci-classe-panel { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.sci-page .sci-students-section { padding: 0; border: 0; background: transparent; box-shadow: none; }
+.sci-page .sci-personnaliser { background: #0f766e; border-color: #0f766e; color: white; }
+.sci-page .sci-personnaliser:hover { background: #115e59; border-color: #115e59; color: white; }
+.sci-student-link { color: inherit; text-decoration: none; }
+.sci-student-link:hover { text-decoration: underline; }
+@media (max-width: 768px) { .students-list[data-rl-sans-fenetre] .list-row { cursor: pointer; } }

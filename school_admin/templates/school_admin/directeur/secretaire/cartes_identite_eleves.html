@@ -12,7 +12,7 @@
     <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
     <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cartes_identite_eleves.css' %}?v=2.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cartes_identite_eleves.css' %}?v=2.2.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=2.0.5" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
@@ -32,28 +32,6 @@
             <div class="sci-hero-text">
                 <h1 class="sci-hero-title"><i class="fas fa-id-card"></i> {% trans "Cartes d'identité scolaires" %}</h1>
             </div>
-            <div class="sci-hero-stats">
-                <div class="sci-stat-pill">
-                    <span class="sci-stat-num">{{ stats_generales.total_eleves }}</span>
-                    <span class="sci-stat-lbl">{% trans "Élèves" %}</span>
-                </div>
-                <div class="sci-stat-pill sci-stat-pill--accent">
-                    <span class="sci-stat-num">{{ stats_generales.total_classes }}</span>
-                    <span class="sci-stat-lbl">{% trans "Classes" %}</span>
-                </div>
-                <div class="sci-stat-pill">
-                    <span class="sci-stat-num">{{ stats_generales.taux_occupation_global }}%</span>
-                    <span class="sci-stat-lbl">{% trans "Occupation" %}</span>
-                </div>
-            </div>
-            <div class="sci-hero-actions">
-                <a href="{% url 'secretaire:liste_eleves' %}" class="sci-action-btn sci-action-btn--secondary">
-                    <i class="fas fa-users"></i> {% trans "Gestion des élèves" %}
-                </a>
-                <a href="{% url 'directeur:gestion_administrative' %}" class="sci-action-btn sci-action-btn--secondary">
-                    <i class="fas fa-folder-open"></i> {% trans "Gestion administrative" %}
-                </a>
-            </div>
         </header>
 
 
@@ -66,33 +44,13 @@
                         {% for classe_data in data.classes %}
                             <div class="classe-subtab-content sci-classe-panel {% if cat_key == initial_niveau_key and classe_data.classe.id == initial_classe_id %}active{% endif %}" id="classe-{{ classe_data.classe.id }}"{% if cat_key != initial_niveau_key or classe_data.classe.id != initial_classe_id %} hidden{% endif %}>
 
-                                <header class="sci-classe-header">
-                                    <div>
-                                        <h2 class="sci-classe-title">
-                                            <i class="fas fa-chalkboard"></i>
-                                            {% if est_superieur %}
-                                                {{ classe_data.classe.nom }} — {% include 'school_admin/directeur/pedagogique/includes/niveau_classe_superieur.html' with classe=classe_data.classe only %}{% if classe_data.classe.department %}, {{ classe_data.classe.department.nom }}{% endif %}
-                                            {% else %}
-                                                {{ classe_data.classe.nom }} — {{ classe_data.classe.get_niveau_display }}
-                                            {% endif %}
-                                        </h2>
-                                        <p class="sci-classe-desc">{% trans "Imprimez les cartes de toute la classe ou ouvrez la carte d'un élève." %}</p>
-                                    </div>
-                                    <div class="sci-classe-meta">
-                                        <span class="sci-mini-stat"><strong>{{ classe_data.stats.total_eleves }}</strong> {% trans "inscrits" %}</span>
-                                        <span class="sci-mini-stat"><strong>{{ classe_data.classe.capacite_max }}</strong> {% trans "places" %}</span>
-                                        <span class="sci-mini-stat"><strong>{{ classe_data.stats.taux_occupation }}%</strong> {% trans "occupation" %}</span>
-                                    </div>
-                                </header>
-
                                 <div class="sci-print-actions">
-                                    <a href="{% url 'directeur:imprimer_liste_nominative' classe_data.classe.id %}"
-                                       class="sci-print-btn sci-print-btn--list" target="_blank" rel="noopener">
-                                        <i class="fas fa-print"></i> {% trans "Imprimer la liste nominative" %}
-                                    </a>
                                     <a href="{% url 'secretaire:cartes_identite_classe' classe_data.classe.id %}"
-                                       class="sci-print-btn sci-print-btn--cards" target="_blank" rel="noopener">
+                                       class="sci-print-btn sci-print-btn--cards">
                                         <i class="fas fa-id-card"></i> {% trans "Imprimer toutes les cartes" %}
+                                    </a>
+                                    <a href="{% url 'secretaire:personnaliser_cartes_identite' %}" class="sci-print-btn sci-print-btn--list sci-personnaliser">
+                                        <i class="fas fa-edit" aria-hidden="true"></i> {% trans "Personnaliser" %}
                                     </a>
                                 </div>
 
@@ -118,7 +76,7 @@
 
                                     {% if classe_data.eleves %}
                                         <div class="sci-list-scroll table-responsive">
-                                            <div class="students-list" data-rl data-rl-mobile="1,2" data-rl-actions="3">
+                                            <div class="students-list" data-rl data-rl-sans-fenetre data-rl-mobile="1,2" data-rl-actions="3">
                                                 <div class="list-header">
                                                     <div class="list-cell header-cell">{% trans "Élève" %}</div>
                                                     <div class="list-cell header-cell">{% trans "N° élève" %}</div>
@@ -135,11 +93,10 @@
                                                         <div class="list-cell student-cell">
                                                             <div class="student-avatar-small"><i class="fas fa-user"></i></div>
                                                             <div class="student-info-compact">
-                                                                <h4 class="student-name">
+                                                                <h4 class="student-name"><a class="sci-student-link" href="{% url 'secretaire:carte_identite_eleve' eleve.id %}">
                                                                     <span class="student-name-full">{{ eleve.nom_complet }}</span>
                                                                     <span class="student-name-mobile">{{ eleve.nom_complet }}</span>
-                                                                </h4>
-                                                                <p class="student-matricule">{% trans "Matricule" %} : {{ eleve.matricule_eleve|default:"—" }}</p>
+                                                                </a></h4>
                                                             </div>
                                                         </div>
                                                         <div class="list-cell">
@@ -149,7 +106,7 @@
                                                             <a href="{% url 'secretaire:carte_identite_eleve' eleve.id %}"
                                                                class="sci-view-btn"
                                                                title="{% trans "Voir la carte d'identité" %}"
-                                                               target="_blank" rel="noopener">
+                                                              >
                                                                 <i class="fas fa-id-card"></i>
                                                                 <span>{% trans "Voir" %}</span>
                                                             </a>
@@ -191,7 +148,7 @@
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
     <script src="{% static 'school_admin/js/directeur/matiere_tabs_overflow.js' %}?v=1.0.0"></script>
     <script src="{% static 'school_admin/js/directeur/directeur_niveau_classe_persist.js' %}?v=1.0.2"></script>
-    <script src="{% static 'school_admin/js/directeur/cartes_identite_eleves.js' %}?v=2.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/cartes_identite_eleves.js' %}?v=2.2.0"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

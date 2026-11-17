@@ -69,6 +69,7 @@ urlpatterns =[
     path('bulletins/verifier/', verifier_bulletin_qr, name='verifier_bulletin_qr'),
     
     # Scan QR Code Élève (route publique)
+    path('q/<str:qr_identifier>/', scan_qr_eleve, name='scan_qr_eleve_court'),
     path('scan-qr/eleve/<str:qr_identifier>/', scan_qr_eleve, name='scan_qr_eleve'),
     # Scan QR Code Élève (route authentifiée pour directeur et personnel administratif)
     path('scan-qr/eleve/<str:qr_identifier>/authenticated/', scan_qr_eleve_authenticated, name='scan_qr_eleve_authenticated'),

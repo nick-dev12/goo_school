@@ -1,0 +1,86 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Personnaliser les cartes scolaires — {{ etablissement.nom }}</title>
+  <link rel="stylesheet" href="{% static 'school_admin/vendor/fonts/poppins.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'school_admin/vendor/fontawesome/css/all.min.css' %}?v=6.4.0">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/carte_identite_eleve.css' %}?v=1.0.1">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/carte_identite_apercu.css' %}?v=1.0.1" media="screen">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/personnaliser_cartes_identite.css' %}?v=1.4.0">
+  <script src="{% static 'school_admin/js/directeur/carte_identite_apercu.js' %}?v=1.0.1" defer></script>
+  <script src="{% static 'school_admin/js/directeur/personnaliser_cartes_identite.js' %}?v=1.2.0" defer></script>
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/carte_identite_modeles.css' %}?v=1.6.0">
+</head>
+<body>
+<div class="card-page">
+  <header class="card-header">
+    <a href="{% url 'secretaire:cartes_identite_eleves' %}" class="btn-secondary"><i class="fas fa-arrow-left" aria-hidden="true"></i> Retour aux cartes</a>
+    <div class="card-title"><h1>Personnaliser les cartes scolaires</h1><p>{{ etablissement.nom }}</p></div>
+  </header>
+  {% for message in messages %}<p class="personnalisation-message" role="status">{{ message }}</p>{% endfor %}
+  <div class="personnalisation-layout">
+    <section class="info-section personnalisation-options">
+      <h2>Informations communes</h2>
+      <p>Ces informations seront appliquées au recto et au verso de toutes les cartes de votre établissement.</p>
+      <form method="post" id="personnalisation-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+        {% if field.name == 'modele' %}
+        <div class="personnalisation-field modele-selection">
+          {{ field }}
+          <span class="modele-selection-label">Modèle de carte</span>
+          <button type="button" class="modele-ouvrir" id="choisir-modele" aria-haspopup="dialog" aria-controls="modeles-dialog">
+            <span class="modele-ouvrir-icone" aria-hidden="true">▦</span>
+            <span><strong>Choisir un modèle</strong><span id="modele-actuel">{{ personnalisation.get_modele_display }}</span></span>
+            <span aria-hidden="true">›</span>
+          </button>
+          {{ field.errors }}
+        </div>
+        {% else %}
+        <div class="personnalisation-field{% if field.field.widget.input_type == 'color' %} personnalisation-field--color{% endif %}">
+          {{ field.label_tag }}
+          {{ field }}
+          {{ field.errors }}
+        </div>
+        {% endif %}
+        {% endfor %}
+        <button type="submit" class="btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Enregistrer pour toutes les cartes</button>
+        <p id="personnalisation-status" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    <section class="info-section personnalisation-preview" aria-label="Aperçu fictif de la carte">
+      <h2>Aperçu de la carte</h2>
+      <p>Exemple fictif : aucune information d’élève réel n’est utilisée.</p>
+      <div class="personnalisation-faces" role="group" aria-label="Face de la carte">
+        <button type="button" data-face="front" aria-pressed="true">Recto</button>
+        <button type="button" data-face="back" aria-pressed="false">Verso</button>
+      </div>
+      {% include 'school_admin/directeur/secretaire/_carte_identite_faces.html' %}
+      <p class="personnalisation-caption">Le motif DÉMO ne permet aucune identification.</p>
+    </section>
+  </div>
+</div>
+<dialog id="modeles-dialog" class="modeles-dialog" aria-labelledby="modeles-dialog-titre">
+  <header class="modeles-dialog-header">
+    <div><span class="modeles-surtitle">VOTRE CARTE, VOTRE STYLE</span><h2 id="modeles-dialog-titre">Choisir un modèle</h2>
+    <p>Choisissez un style. Vos couleurs et vos informations sont conservées.</p></div>
+    <button type="button" class="modeles-fermer" aria-label="Fermer le choix du modèle">×</button>
+  </header>
+  <div class="modeles-grille">
+    {% for code, nom, description in modeles_cartes %}
+    <button type="button" class="modele-choix" data-modele="{{ code }}" aria-pressed="false">
+      <span class="modele-miniature" aria-hidden="true"></span>
+      <span class="modele-description"><span class="modele-nom">{{ nom }}{% if code == 'rivage' or code == 'academie' or code == 'equateur' %}<span class="modele-nouveau">Nouveau</span>{% endif %}</span>
+      <span class="modele-detail">{{ description }}</span></span>
+      <span class="modele-selectionne" aria-hidden="true">✓</span>
+    </button>
+    {% endfor %}
+  </div>
+  <p class="modeles-dialog-note">Le modèle choisi apparaîtra dans l’aperçu. Enregistrez ensuite pour l’appliquer à toutes les cartes.</p>
+</dialog>
+</body>
+</html>

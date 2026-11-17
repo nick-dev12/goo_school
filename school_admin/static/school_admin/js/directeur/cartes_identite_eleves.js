@@ -94,6 +94,13 @@
   }
 
   document.addEventListener('click', function (event) {
+    var row = event.target.closest('.students-list[data-rl-sans-fenetre] .list-row');
+    if (row && window.matchMedia('(max-width: 768px)').matches &&
+        !event.target.closest('a, button, input, select, textarea')) {
+      var link = row.querySelector('.sci-student-link');
+      if (link) { window.location.assign(link.href); return; }
+    }
+
     var niveauBtn = event.target.closest('.sci-niveau-tab[data-tab]');
     if (niveauBtn) {
       window.switchMainTab(niveauBtn.getAttribute('data-tab'), niveauBtn);

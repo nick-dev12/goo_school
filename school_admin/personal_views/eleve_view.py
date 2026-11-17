@@ -2377,6 +2377,8 @@ def profil_eleve(request):
         'classe': classe_active,
     }
     
+    from ..model.carte_identite_personnalisation_model import CarteIdentitePersonnalisation
+    context['personnalisation'] = CarteIdentitePersonnalisation.objects.filter(etablissement=etablissement).first()
     return render(request, 'school_admin/eleve/profil_eleve.html', context)
 
 

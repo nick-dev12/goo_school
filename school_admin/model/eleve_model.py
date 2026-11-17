@@ -712,7 +712,7 @@ class Eleve(AbstractUser):
         if self.qr_code_identifier:
             try:
                 # Construire l'URL relative vers la page de scan
-                url_relative = reverse('school_admin:scan_qr_eleve', kwargs={'qr_identifier': self.qr_code_identifier})
+                url_relative = reverse('school_admin:scan_qr_eleve_court', kwargs={'qr_identifier': self.qr_code_identifier})
                 
                 # Construire l'URL absolue
                 # Essayer d'utiliser SITE_URL depuis les settings
@@ -780,9 +780,9 @@ class Eleve(AbstractUser):
         payload = self._build_qr_payload()
         qr = qrcode.QRCode(
             version=None,
-            error_correction=qrcode.constants.ERROR_CORRECT_H,  # Haute correction d'erreur pour plus de robustesse
+            error_correction=qrcode.constants.ERROR_CORRECT_M,  # Moins dense pour une petite carte imprimee
             box_size=15,  # Augmenté de 10 à 15 pour des points plus gros et faciles à scanner
-            border=3,  # Bordure réduite légèrement pour optimiser l'espace, mais suffisante pour le scan
+            border=4,  # Zone blanche normalisee de quatre modules
         )
         qr.add_data(payload)
         qr.make(fit=True)

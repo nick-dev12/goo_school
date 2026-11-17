@@ -10,6 +10,9 @@
   <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
   <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/carte_identite_eleve.css' %}?v=1.0.1">
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/carte_identite_apercu.css' %}?v=1.0.1" media="screen">
+  <script src="{% static 'school_admin/js/directeur/carte_identite_apercu.js' %}?v=1.0.1" defer></script>
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/carte_identite_modeles.css' %}?v=1.6.0">
 </head>
 <body>
   <div class="card-page">
@@ -38,122 +41,7 @@
           <i class="fas fa-id-card"></i>
           {% trans "Carte d'identité scolaire" %}
         </h3>
-        <div class="student-idcard-wrapper">
-          <div class="student-idcard-front">
-            <div class="idcard-header">
-              <div class="idcard-flag">
-                  <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="{% trans "Logo de l'établissement" %}">
-              </div>
-              <div class="idcard-header-text">
-                <p class="idcard-country">{{ personnalisation.pays_nom|default:"RÉPUBLIQUE DE [VOTRE PAYS]" }}</p>
-                <p class="idcard-motto">{{ personnalisation.devise_pays|default:"[DEVISE NATIONALE]" }}</p>
-                <h4 class="idcard-school">{{ etablissement.nom|default:"LYCÉE BLAISE PASCAL" }}</h4>
-                <p class="idcard-title">{{ personnalisation.titre_carte|default:"CARTE D'IDENTITÉ SCOLAIRE" }}</p>
-              </div>
-              <div class="idcard-logo">
-                {% if etablissement.logo %}
-                  <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}">
-                {% else %}
-                  <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="{% trans "Logo établissement" %}">
-                {% endif %}
-              </div>
-            </div>
-            <div class="idcard-body">
-              <div class="idcard-photo">
-                {% if eleve.photo_profil %}
-                  <img src="{{ eleve.photo_profil.url }}" alt="Photo de {{ eleve.nom_complet }}">
-                {% else %}
-                  <img src="{% static 'school_admin/img/Profile_avatar_placeholder_large.png' %}" alt="{% trans "Photo par défaut" %}">
-                {% endif %}
-              </div>
-              <div class="idcard-info">
-                <div class="idcard-info-row">
-                  <span class="info-label">{% trans "Année scolaire :" %}</span>
-                  <span class="info-value">{% if annee_scolaire_active %}{{ annee_scolaire_active.libelle }}{% else %}{{ annee_scolaire|default:"Non spécifiée" }}{% endif %}</span>
-                </div>
-                <div class="idcard-info-row">
-                  <span class="info-label">{% trans "Nom :" %}</span>
-                  <span class="info-value info-accent">{{ eleve.nom|upper }}</span>
-                </div>
-                <div class="idcard-info-row">
-                  <span class="info-label">{% trans "Prénom :" %}</span>
-                  <span class="info-value info-accent">{{ eleve.prenom|upper }}</span>
-                </div>
-                <div class="idcard-info-row double">
-                  <span class="info-label">{% trans "Né(e) le :" %}</span>
-                  <span class="info-value info-strong">{{ eleve.date_naissance|date:"d-m-Y" }}</span>
-                  <span class="info-label">{% trans "À :" %}</span>
-                  <span class="info-value info-strong info-value-wrap">{{ eleve.lieu_naissance|default:"-" }}</span>
-                </div>
-                {% if eleve.classe %}
-                <div class="idcard-info-row">
-                  <span class="info-label">{% trans "Niveau :" %}</span>
-                  <span class="info-value info-value-wrap">{{ eleve.classe.get_libelle_niveau_complet_pour_eleve }}</span>
-                </div>
-                {% endif %}
-                <div class="idcard-info-row double">
-                  <span class="info-label">{% trans "Sexe :" %}</span>
-                  <span class="info-value info-uppercase">{{ eleve.get_sexe_display|slice:":1" }}</span>
-                  <span class="info-label">{% trans "Classe :" %}</span>
-                  <span class="info-value info-uppercase info-value-wrap">
-                    {% if eleve.classe %}
-                      {{ eleve.classe.nom }}
-                    {% else %}
-                      Non assignée
-                    {% endif %}
-                  </span>
-                </div>
-              </div>
-              <div class="idcard-qr">
-                {% if eleve.qr_code_image %}
-                  <img src="{{ eleve.qr_code_image.url }}" alt="QR code de {{ eleve.nom_complet }}">
-                {% else %}
-                  <div class="idcard-qr-placeholder">
-                    <i class="fas fa-qrcode"></i>
-                    <span>{% trans "QR code indisponible" %}</span>
-                  </div>
-                {% endif %}
-              </div>
-            </div>
-            <div class="idcard-footer">
-              <span class="idcard-matricule">MAT. : {{ eleve.matricule_eleve|default:eleve.numero_eleve }}</span>
-              <span class="idcard-printed">IMPRIMÉ PAR / {{ etablissement.nom|default:"LYCÉE GANALIS" }}</span>
-            </div>
-          </div>
-
-          <div class="student-idcard-back">
-            <div class="idcard-back-header">
-              <i class="fas fa-book-reader"></i>
-              <span>{% trans "Règlement d'utilisation" %}</span>
-            </div>
-            <div class="idcard-back-body">
-              <div class="idcard-rules-card">
-                <ol class="idcard-rules">
-                  <li>{% trans "Cette carte est personnelle et non cessible." %}</li>
-                  <li>{% trans "Elle doit être présentée à toute demande du personnel administratif." %}</li>
-                  <li>{% trans "En cas de perte, prévenir immédiatement la direction de l'établissement." %}</li>
-                  <li>{% trans "Toute falsification expose à des sanctions disciplinaires." %}</li>
-                </ol>
-              </div>
-              <div class="idcard-back-info">
-                <div class="idcard-establishment">
-                  <span class="establishment-name">{{ etablissement.nom|upper|default:"LYCÉE GANALIS" }}</span>
-                  
-                </div>
-              </div>
-            </div>
-            <div class="idcard-back-footer">
-              <div class="idcard-back-logo">
-                {% if etablissement.logo %}
-                  <img src="{{ etablissement.logo.url }}" alt="Logo {{ etablissement.nom }}" />
-                {% else %}
-                  <img src="{% static 'school_admin/img/logo.jpeg' %}" alt="{% trans "Logo établissement" %}" />
-                {% endif %}
-              </div>
-              <span class="idcard-back-motto">{{ personnalisation.devise_etablissement|default:"[DEVISE DE VOTRE ÉTABLISSEMENT]" }}</span>
-            </div>
-          </div>
-        </div>
+        {% include 'school_admin/directeur/secretaire/_carte_identite_faces.html' %}
       </div>
     </main>
   </div>

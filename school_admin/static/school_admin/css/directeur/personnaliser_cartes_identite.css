@@ -1,0 +1,90 @@
+body { background: #f5f7fb; }
+.personnalisation-layout { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 1.35fr); gap: 20px; align-items: start; }
+.personnalisation-layout .info-section { min-width: 0; }
+.personnalisation-layout h2 { font-size: 19px; margin-bottom: 8px; }
+.personnalisation-layout > .info-section > p { font-size: 13px; color: #64748b; margin-bottom: 16px; }
+.personnalisation-field { margin: 18px 0; }
+.personnalisation-field label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.personnalisation-input { width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; background: white; color: #172033; }
+.personnalisation-input:focus { outline: 2px solid #3b82f6; outline-offset: 2px; }
+.personnalisation-color { height: 38px; padding: 3px 5px; cursor: pointer; }
+#personnalisation-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 12px; }
+#personnalisation-form > * { grid-column: 1 / -1; }
+#personnalisation-form > .personnalisation-field--color { grid-column: auto; }
+.modele-selection-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.modele-ouvrir { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; text-align: left; border: 1px solid #cbd5e1; border-radius: 10px; background: white; color: #172033; cursor: pointer; font: inherit; }
+.modele-ouvrir:hover { border-color: #2563eb; background: #f8faff; }
+.modele-ouvrir:focus-visible, .modele-choix:focus-visible, .modeles-fermer:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+.modele-ouvrir > span:nth-child(2) { flex: 1; }
+.modele-ouvrir strong { display: block; font-size: 13px; }
+.modele-ouvrir-icone { display: grid; place-items: center; width: 38px; height: 38px; background: #eef2ff; color: #4f46e5; border-radius: 9px; font-size: 25px; }
+#modele-actuel { display: block; font-size: 12px; color: #64748b; margin-top: 2px; }
+.modeles-dialog { width: min(960px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 24px; border: 0; border-radius: 20px; color: #172033; background: #f8fafc; overflow-y: auto; box-shadow: 0 24px 80px #0f172a40; }
+.modeles-dialog::backdrop { background: #0f172aa6; backdrop-filter: blur(4px); }
+body:has(.modeles-dialog[open]) { overflow: hidden; }
+.modeles-dialog-header { display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; position: sticky; top: -24px; z-index: 2; background: #f8fafc; padding: 12px 0; }
+.modeles-surtitle { font-size: 10px; color: #6366f1; font-weight: 700; letter-spacing: 1.8px; }
+.modeles-dialog-header h2 { font-size: 24px; margin: 5px 0 8px; }
+.modeles-dialog-header p, .modeles-dialog-note { font-size: 13px; color: #64748b; }
+.modeles-fermer { flex-shrink: 0; width: 36px; height: 36px; border: 1px solid #e2e8f0; border-radius: 50%; background: white; color: #475569; cursor: pointer; font-size: 25px; }
+.modeles-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.modele-choix { position: relative; display: block; width: 100%; min-width: 0; padding: 12px; border: 2px solid #e2e8f0; border-radius: 14px; background: white; color: #172033; text-align: left; font: inherit; cursor: pointer; }
+.modele-choix:hover { border-color: #a5b4fc; box-shadow: 0 5px 20px #4f46e514; }
+.modele-choix[aria-pressed="true"] { border-color: #4f46e5; background: #fafaff; }
+.modele-miniature { display: block; width: 100%; aspect-ratio: 85.6 / 53.98; overflow: hidden; border-radius: 10px; background: #f1f5f9; contain: layout paint; }
+.modele-miniature .student-idcard-wrapper { width: 480px; pointer-events: none; }
+.modele-miniature .student-idcard-front { box-shadow: none; }
+.modele-description { display: block; margin-top: 12px; padding-right: 22px; }
+.modele-nom { display: flex; gap: 8px; align-items: center; font-size: 15px; font-weight: 700; }
+.modele-nouveau { font-size: 9px; color: #047857; background: #d1fae5; border-radius: 20px; padding: 3px 7px; font-weight: 600; }
+.modele-detail { display: block; font-size: 12px; color: #64748b; line-height: 1.5; margin-top: 4px; }
+.modele-selectionne { display: none; position: absolute; right: 12px; bottom: 20px; width: 22px; height: 22px; border-radius: 50%; background: #4f46e5; color: white; text-align: center; line-height: 22px; }
+.modele-choix[aria-pressed="true"] .modele-selectionne { display: block; }
+.modeles-dialog-note { margin-top: 18px; line-height: 1.6; }
+@media (max-width: 600px) {
+  .modeles-dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); padding: 16px; border-radius: 16px; }
+  .modeles-dialog-header h2 { font-size: 20px; }
+  .modeles-dialog-header { position: sticky; top: -16px; z-index: 2; background: #f8fafc; padding: 12px 0; }
+  .modeles-grille { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .modeles-dialog-header p, .modeles-dialog-note { font-size: 12px; }
+}
+.errorlist { color: #b91c1c; padding-left: 20px; font-size: 13px; }
+.personnalisation-message { padding: 12px 16px; background: #dcfce7; border-radius: 10px; color: #166534; }
+.personnalisation-faces { display: flex; gap: 8px; margin: 18px 0; }
+.personnalisation-faces button { border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 20px; background: white; cursor: pointer; font: inherit; }
+.personnalisation-faces button[aria-pressed="true"] { background: #2563eb; color: white; border-color: #2563eb; }
+.personnalisation-preview .student-idcard-back { display: none; }
+.personnalisation-preview[data-face="back"] .student-idcard-front { display: none; }
+.personnalisation-preview[data-face="back"] .student-idcard-back { display: flex; }
+.personnalisation-layout .personnalisation-caption { margin-top: 16px; margin-bottom: 0; font-size: 12px; }
+#personnalisation-status { margin-top: 12px; margin-bottom: 0; }
+@media (max-width: 900px) { .personnalisation-layout { grid-template-columns: minmax(0, 1fr); } }
+@media screen and (max-width: 600px) {
+  .personnalisation-options h2 { font-size: 16px; margin-bottom: 6px; }
+  .personnalisation-layout > .personnalisation-options > p {
+    font-size: 12px;
+    line-height: 1.45;
+    margin-bottom: 10px;
+  }
+  .personnalisation-field { margin: 10px 0; }
+  .personnalisation-field label { font-size: 12px; margin-bottom: 4px; }
+  /* 16 px évite le zoom automatique à la saisie sur iPhone. */
+  .personnalisation-input { font-size: 16px; line-height: 1.25; padding: 8px 10px; border-radius: 6px; }
+  .personnalisation-options .btn-primary {
+    width: 100%;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1.4;
+    padding: 10px 8px;
+    margin-top: 4px;
+  }
+  .personnalisation-layout { gap: 14px; }
+}
+
+/* Formulaire compact, en conservant 16 px pour eviter le zoom iOS. */
+#personnalisation-form .personnalisation-field { margin: 6px 0; }
+#personnalisation-form .personnalisation-field label { font-size: 12px; margin-bottom: 3px; }
+#personnalisation-form .personnalisation-input { padding: 5px 8px; line-height: 1.25; min-height: 32px; }
+#personnalisation-form .personnalisation-color { height: 32px; padding: 2px 4px; }
+#personnalisation-form .modele-ouvrir { padding: 7px 9px; gap: 8px; }
+#personnalisation-form .modele-ouvrir-icone { width: 30px; height: 30px; font-size: 20px; }

@@ -1,6 +1,7 @@
 # school_admin/model/carte_identite_personnalisation_model.py
 
 from django.db import models
+from django.core.validators import RegexValidator
 from django.utils import timezone
 from .etablissement_model import Etablissement
 
@@ -46,6 +47,21 @@ class CarteIdentitePersonnalisation(models.Model):
         help_text="Devise de l'établissement à afficher au verso de la carte (ex: Discipline - Travail - Réussite)"
     )
     
+    modele = models.CharField(max_length=20, default='classique',
+                              choices=[('classique', 'Classique'), ('moderne', 'Moderne'),
+                                       ('horizon', 'Horizon'), ('signature', 'Signature'),
+                                       ('elan', 'Élan'), ('campus', 'Campus'), ('prisme', 'Prisme'),
+                                       ('rivage', 'Rivage'), ('academie', 'Académie'), ('equateur', 'Équateur')],
+                              verbose_name='Modèle de carte')
+    couleur_principale = models.CharField(max_length=7, default='#3b82f6', verbose_name='Couleur principale',
+        validators=[RegexValidator(r'^#[0-9a-fA-F]{6}$', 'Utilisez une couleur au format #RRGGBB.')])
+    couleur_secondaire = models.CharField(max_length=7, default='#7c3aed', verbose_name='Couleur secondaire',
+        validators=[RegexValidator(r'^#[0-9a-fA-F]{6}$', 'Utilisez une couleur au format #RRGGBB.')])
+    couleur_fond = models.CharField(max_length=7, default='#ffffff', verbose_name='Fond de la carte',
+        validators=[RegexValidator(r'^#[0-9a-fA-F]{6}$', 'Utilisez une couleur au format #RRGGBB.')])
+    couleur_texte = models.CharField(max_length=7, default='#1f2937', verbose_name='Texte de la carte',
+        validators=[RegexValidator(r'^#[0-9a-fA-F]{6}$', 'Utilisez une couleur au format #RRGGBB.')])
+
     # Métadonnées
     date_creation = models.DateTimeField(
         auto_now_add=True,

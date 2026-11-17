@@ -1,0 +1,5 @@
+{% load carte_style_tags %}
+{% if etablissement.telephone and etablissement.telephone.strip %}
+<div class="idcard-contact"><span>Établissement :</span> <strong>{{ etablissement.telephone|telephone_international_carte:etablissement.pays }}</strong></div>
+{% endif %}
+<div class="idcard-contact"><span>Parent / tuteur :</span> <strong>{{ eleve|telephone_parent_carte|telephone_international_carte:etablissement.pays }}</strong></div>

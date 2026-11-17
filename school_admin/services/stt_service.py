@@ -16,7 +16,8 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 GOOGLE_STT_URL = 'https://www.google.com/speech-api/v2/recognize'
-GOOGLE_STT_KEY = 'AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw'
+# Clé de l'API Web Speech (secours). Jamais dans le code : variable GOOGLE_STT_KEY du serveur.
+GOOGLE_STT_KEY = getattr(settings, 'GOOGLE_STT_KEY', '')
 STT_TIMEOUT = 30.0
 SAMPLE_RATE = 16000
 BYTES_PER_SECOND = SAMPLE_RATE * 2
@@ -76,6 +77,8 @@ async def transcribe_pcm16_multi(audio_bytes, languages=None):
     pcm = _extract_pcm(audio_bytes)
     if not pcm or len(pcm) < 3200:
         return {lang: '' for lang in langs}
+    if not GOOGLE_STT_KEY:
+        return {lang: '' for lang in langs}
     if len(pcm) > MAX_PCM_BYTES:
         pcm = pcm[:MAX_PCM_BYTES]
 
@@ -104,6 +107,9 @@ async def transcribe_pcm16(audio_bytes, language='fr-FR'):
     """
     pcm = _extract_pcm(audio_bytes)
     if not pcm or len(pcm) < 3200:
+        return ''
+    if not GOOGLE_STT_KEY:
+        logger.warning('Transcription de secours indisponible : GOOGLE_STT_KEY non configurée.')
         return ''
     if len(pcm) > MAX_PCM_BYTES:
         pcm = pcm[:MAX_PCM_BYTES]

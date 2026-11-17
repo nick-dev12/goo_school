@@ -405,6 +405,9 @@ WASENDER_API_BASE_URL = os.getenv(
 WASENDER_API_TOKEN = env('WASENDER_API_TOKEN', default='')
 WASENDER_DEFAULT_SESSION_ID = env('WASENDER_DEFAULT_SESSION_ID', default='')
 
+# Transcription vocale de secours (API Web Speech de Google) : clé fournie par l'environnement.
+GOOGLE_STT_KEY = env('GOOGLE_STT_KEY', default='')
+
 # ============================================
 # Assistant vocal directeur (Gemini LLM + TTS, rollback DeepSeek / Edge)
 # ============================================

@@ -44,3 +44,6 @@ MIGRATION_MODULES = {
     'contenttypes': None,
     'sessions': None,
 }
+
+# Limite de rythme par compte : désactivée par défaut dans les tests (activée explicitement dans tests_securite).
+ACCOUNT_RATE_LIMIT = 0

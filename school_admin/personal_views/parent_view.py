@@ -395,9 +395,13 @@ def retour_selection_enfant(request):
 
 def demande_liaison_enfant(request):
     """
-    Traite la demande de liaison d'un parent avec un enfant
-    Système simplifié : vérification uniquement du matricule et du mot de passe
-    Blocage après 5 tentatives échouées pour ce matricule spécifique (tous parents confondus)
+    Traite la demande de liaison d'un parent avec un enfant (matricule + mot de passe de l'élève).
+
+    Limites, toutes sur 24 heures glissantes :
+    - un parent : 5 échecs sur un même matricule, 10 échecs au total (matricules inexistants compris) ;
+    - un matricule : 15 échecs tous parents confondus (freine une attaque menée depuis plusieurs comptes).
+    Un parent malveillant ne peut donc plus bloquer définitivement la liaison d'un enfant, et le message
+    ne révèle pas si un matricule existe.
     """
     if not isinstance(request.user, Parent):
         messages.error(request, "Accès non autorisé.")
@@ -415,23 +419,37 @@ def demande_liaison_enfant(request):
         'matricule_eleve': matricule_eleve,
     }
     
-    print(f"[DEMANDE LIAISON] Parent: {parent.nom_complet}, Matricule: {matricule_eleve}")
-    
+    from datetime import timedelta
+    from django.core.cache import cache
     from school_admin.model.demande_liaison_model import DemandeLiaisonParent
-    from django.contrib.auth.hashers import check_password
-    
+
+    MESSAGE_ECHEC = "❌ Matricule ou mot de passe incorrect."
+    MESSAGE_PAUSE = ("❌ Trop de tentatives infructueuses. Réessayez dans 24 heures, ou demandez à "
+                     "l'établissement de lier votre enfant à votre compte.")
+    depuis = timezone.now() - timedelta(hours=24)
+    cle_parent = f'liaison:echecs:parent:{parent.pk}'
+
+    def noter_echec_parent():
+        cache.set(cle_parent, (cache.get(cle_parent) or 0) + 1, 24 * 3600)
+
     try:
+        # Plafond global du parent (matricules inexistants compris) : empêche de deviner des matricules.
+        if (cache.get(cle_parent) or 0) >= 10:
+            messages.error(request, MESSAGE_PAUSE)
+            return redirect('school_admin:dashboard_parent')
+
         # Vérifier que l'élève existe
         eleve = Eleve.objects.filter(
             matricule_eleve=matricule_eleve,
             actif=True
         ).first()
-        
-        # Si l'élève n'existe pas, afficher un message
+
+        # Même message qu'un mauvais mot de passe : on ne révèle pas si le matricule existe.
         if not eleve:
-            messages.error(request, "❌ Matricule incorrect. Cet élève n'est inscrit dans aucun établissement.")
+            noter_echec_parent()
+            messages.error(request, MESSAGE_ECHEC)
             return redirect('school_admin:dashboard_parent')
-        
+
         # Vérifier si un lien existe déjà
         lien_existant = LienFamilial.objects.filter(
             parent=parent,
@@ -446,26 +464,20 @@ def demande_liaison_enfant(request):
                 del request.session['form_data']
             return redirect('school_admin:dashboard_parent')
         
-        # Compter toutes les tentatives échouées pour ce matricule (tous parents confondus)
-        # Compter le nombre de demandes échouées/bloquées (chaque demande = 1 tentative)
-        tentatives_echec = DemandeLiaisonParent.objects.filter(
-            matricule_eleve=matricule_eleve,
-            statut__in=['echec', 'bloquee']
-        ).count()
-        
-        # Vérifier si ce matricule est déjà bloqué (5 tentatives ou plus)
-        if tentatives_echec >= 5:
-            messages.error(request, 
-                f"❌ Ce matricule a été bloqué après 5 tentatives infructueuses. "
-                f"Veuillez contacter l'établissement pour débloquer la liaison.")
-            logger.warning(f"Tentative de liaison sur matricule bloqué - Parent: {parent.matricule_parental}, Matricule: {matricule_eleve}")
+        echecs_recents = DemandeLiaisonParent.objects.filter(
+            matricule_eleve=matricule_eleve, statut__in=['echec', 'bloquee'], date_demande__gte=depuis)
+        tentatives_echec = echecs_recents.filter(parent_demandeur=parent).count()
+        if tentatives_echec >= 5 or echecs_recents.count() >= 15:
+            messages.error(request, MESSAGE_PAUSE)
+            logger.warning("Liaison en pause - parent %s, matricule %s", parent.pk, matricule_eleve)
             return redirect('school_admin:dashboard_parent')
-        
+
         # Vérifier le mot de passe de l'élève
         if not eleve.check_password(mot_de_passe_eleve):
             # Mot de passe incorrect - enregistrer la tentative échouée
+            noter_echec_parent()
             nouvelle_tentative = tentatives_echec + 1
-            
+
             # Récupérer l'année scolaire active
             annee_scolaire_active = None
             if eleve.etablissement:
@@ -487,20 +499,15 @@ def demande_liaison_enfant(request):
                 annee_scolaire=annee_scolaire_active
             )
             
-            # Vérifier si on doit bloquer (5 tentatives atteintes)
+            # 5 échecs de ce parent sur ce matricule : pause de 24 heures pour lui seul.
             if nouvelle_tentative >= 5:
                 demande.statut = 'bloquee'
                 demande.save()
-                messages.error(request, 
-                    f"❌ Mot de passe incorrect. Après 5 tentatives infructueuses pour ce matricule, "
-                    f"la liaison est maintenant bloquée. Veuillez contacter l'établissement.")
-                logger.warning(f"Matricule bloqué après 5 tentatives - Matricule: {matricule_eleve}")
+                messages.error(request, MESSAGE_PAUSE)
+                logger.warning("Liaison en pause après 5 échecs - parent %s, matricule %s", parent.pk, matricule_eleve)
             else:
-                tentatives_restantes = 5 - nouvelle_tentative
-                messages.error(request, 
-                    f"❌ Mot de passe incorrect. Il reste {tentatives_restantes} tentative{'s' if tentatives_restantes > 1 else ''} "
-                    f"avant le blocage de ce matricule.")
-            
+                messages.error(request, MESSAGE_ECHEC)
+
             return redirect('school_admin:dashboard_parent')
         
         # Mot de passe correct - créer directement le lien familial

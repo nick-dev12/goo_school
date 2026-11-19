@@ -112,6 +112,8 @@ class AuthenticationMiddleware:
             '/firebase-messaging-sw.js',
             '/manifest.json',
             '/favicon.ico',
+            '/robots.txt',
+            '/sitemap.xml',
         }
         
         

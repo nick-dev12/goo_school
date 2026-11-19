@@ -2,10 +2,12 @@
 import io
 import shutil
 import tempfile
+from datetime import timedelta
 from pathlib import Path
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, TestCase, override_settings
+from django.utils import timezone
 
 from school_admin.media_views import _normaliser, url_signee
 from school_admin.model.classe_model import Classe
@@ -166,3 +168,111 @@ class FiltreEnvoisTests(TestCase):
         middleware(bon)
         self.assertEqual(len(appels), 1)
         self.assertEqual(appels[0].FILES['fichier_joint'].read(), PDF)  # le fichier reste lisible par la vue
+
+
+# --------------------------------------------------------------------------- lot 2
+from unittest.mock import patch  # noqa: E402
+
+from django.core.cache import cache  # noqa: E402
+from django.urls import reverse  # noqa: E402
+
+from school_admin.model.demande_liaison_model import DemandeLiaisonParent  # noqa: E402
+from school_admin.utils import login_throttle  # noqa: E402
+
+
+class AdresseVisiteurTests(TestCase):
+    def requete(self, remote, **meta):
+        return RequestFactory().get('/', REMOTE_ADDR=remote, **meta)
+
+    def test_adresse_reelle_transmise_par_nginx(self):
+        self.assertEqual(login_throttle.get_client_ip(self.requete('127.0.0.1', HTTP_X_REAL_IP='41.82.10.5')),
+                         '41.82.10.5')
+
+    def test_en_tete_falsifie_ignore_hors_mandataire(self):
+        # Un visiteur qui joindrait l'application directement ne peut pas choisir son adresse.
+        self.assertEqual(login_throttle.get_client_ip(self.requete('41.82.10.5', HTTP_X_REAL_IP='1.2.3.4')),
+                         '41.82.10.5')
+
+    def test_plafond_par_adresse_tous_comptes_confondus(self):
+        cache.clear()
+        with patch.object(login_throttle, 'IP_FAILURE_LIMIT', 3):
+            requete = self.requete('127.0.0.1', HTTP_X_REAL_IP='41.82.10.9')
+            self.assertEqual(login_throttle.register_auth_failure(requete, 'a@x.sn'), 0)
+            self.assertEqual(login_throttle.register_auth_failure(requete, 'b@x.sn'), 0)
+            self.assertGreater(login_throttle.register_auth_failure(requete, 'c@x.sn'), 0)
+            # Un autre compte, depuis la même adresse, est aussi en pause…
+            self.assertGreater(login_throttle.get_seconds_remaining(requete, 'd@x.sn'), 0)
+            # …mais pas un visiteur d'une autre adresse.
+            autre = self.requete('127.0.0.1', HTTP_X_REAL_IP='41.82.10.10')
+            self.assertEqual(login_throttle.get_seconds_remaining(autre, 'd@x.sn'), 0)
+
+    def test_verrou_par_compte_lie_a_l_adresse(self):
+        cache.clear()
+        attaquant = self.requete('127.0.0.1', HTTP_X_REAL_IP='5.5.5.5')
+        for _ in range(login_throttle.ATTEMPT_LIMIT):
+            login_throttle.register_auth_failure(attaquant, 'directeur@ecole.sn')
+        self.assertGreater(login_throttle.get_seconds_remaining(attaquant, 'directeur@ecole.sn'), 0)
+        # Le vrai directeur, depuis son école, n'est pas bloqué par l'attaquant.
+        ecole = self.requete('127.0.0.1', HTTP_X_REAL_IP='41.82.10.20')
+        self.assertEqual(login_throttle.get_seconds_remaining(ecole, 'directeur@ecole.sn'), 0)
+
+
+class LiaisonParentTests(MediaTestCase):
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+        Eleve.objects.filter(pk=self.eleve.pk).update(matricule_eleve=f'MAT-{self.eleve.pk}-TEST')
+        self.eleve.refresh_from_db()
+        self.eleve.set_password('Eleve@Test1!')
+        self.eleve.save()
+        LienFamilial.objects.filter(eleve=self.eleve).delete()
+        self.url = reverse('school_admin:demande_liaison_enfant')
+
+    def essayer(self, parent, matricule, mot_de_passe='mauvais'):
+        self.client.force_login(parent)
+        reponse = self.client.post(self.url, {'matricule_eleve': matricule, 'mot_de_passe_eleve': mot_de_passe},
+                                   follow=True)
+        return ' '.join(str(m) for m in reponse.context['messages']) if reponse.context else ''
+
+    def test_matricule_inexistant_et_mauvais_mot_de_passe_meme_message(self):
+        self.assertIn('Matricule ou mot de passe incorrect', self.essayer(self.parent, 'INCONNU-000'))
+        self.assertIn('Matricule ou mot de passe incorrect', self.essayer(self.parent, self.eleve.matricule_eleve))
+
+    def test_un_parent_malveillant_ne_bloque_pas_les_autres(self):
+        for _ in range(5):
+            self.essayer(self.parent, self.eleve.matricule_eleve)
+        self.assertIn('Trop de tentatives', self.essayer(self.parent, self.eleve.matricule_eleve, 'Eleve@Test1!'))
+        vrai_parent = _make_parent(self.etab, 's9')
+        self.assertIn('lié avec succès', self.essayer(vrai_parent, self.eleve.matricule_eleve, 'Eleve@Test1!'))
+
+    def test_plafond_global_du_parent(self):
+        for numero in range(10):
+            self.essayer(self.parent, f'INCONNU-{numero}')
+        self.assertIn('Trop de tentatives', self.essayer(self.parent, self.eleve.matricule_eleve, 'Eleve@Test1!'))
+        self.assertFalse(LienFamilial.objects.filter(parent=self.parent, eleve=self.eleve).exists())
+
+    def test_les_anciens_echecs_ne_bloquent_plus(self):
+        for _ in range(5):
+            self.essayer(self.parent, self.eleve.matricule_eleve)
+        DemandeLiaisonParent.objects.update(date_demande=timezone.now() - timedelta(days=2))
+        cache.clear()
+        self.assertIn('lié avec succès', self.essayer(self.parent, self.eleve.matricule_eleve, 'Eleve@Test1!'))
+
+
+class RythmeParCompteTests(MediaTestCase):
+    def test_au_dela_du_seuil_la_reponse_est_429(self):
+        cache.clear()
+        self.client.force_login(self.etab)
+        with override_settings(ACCOUNT_RATE_LIMIT=3, ACCOUNT_RATE_WINDOW=300):
+            codes = [self.client.get('/notifications/').status_code for _ in range(4)]
+            self.assertEqual(codes[3], 429)
+            self.assertNotIn(429, codes[:3])
+            # Les images ne comptent pas : la photo reste accessible.
+            self.assertEqual(self.client.get(f'/media/{self.photo}').status_code, 200)
+            api = self.client.get('/api/sync/pull/', HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+            self.assertNotEqual(api.status_code, 429)
+
+    def test_robots_et_sitemap_publics(self):
+        self.assertEqual(self.client.get('/robots.txt').status_code, 200)
+        self.assertIn('Disallow: /parent/', self.client.get('/robots.txt').content.decode())
+        self.assertEqual(self.client.get('/sitemap.xml').status_code, 200)

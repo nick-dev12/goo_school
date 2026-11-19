@@ -30,19 +30,61 @@ def _normalize_username(raw: str) -> str:
     return (raw or "").strip().lower()[:255]
 
 
+# Mandataires locaux de confiance : Nginx est le seul à joindre Daphne (127.0.0.1:8001) et il écrase
+# l'en-tête X-Real-IP avec l'adresse réelle du visiteur. Sans cela, tout le monde aurait l'adresse 127.0.0.1.
+TRUSTED_PROXIES = {'127.0.0.1', '::1'}
+
+
 def get_client_ip(request) -> str:
+    remote = (request.META.get('REMOTE_ADDR') or 'unknown')[:45]
+    if remote in TRUSTED_PROXIES:
+        real = (request.META.get('HTTP_X_REAL_IP') or '').strip()
+        if real:
+            return real[:45]
     trust = getattr(settings, 'LOGIN_THROTTLE_TRUST_X_FORWARDED_FOR', False)
     if trust:
         xff = request.META.get('HTTP_X_FORWARDED_FOR')
         if xff:
             return xff.split(',')[0].strip()[:45]
-    return (request.META.get('REMOTE_ADDR') or 'unknown')[:45]
+    return remote
 
 
 def _cache_key(ip: str, username_norm: str) -> str:
     payload = f"{ip}\0{username_norm}".encode()
     digest = hmac.new(_throttle_secret(), payload, hashlib.sha256).hexdigest()
     return f"{CACHE_KEY_PREFIX}:{digest}"
+
+
+# Plafond par adresse, tous identifiants confondus : freine l'essai d'un même mot de passe sur des
+# centaines de comptes. Large, car une école entière peut sortir sur Internet par la même adresse.
+IP_FAILURE_LIMIT = 100
+IP_WINDOW_SEC = 15 * 60
+IP_LOCK_SEC = 15 * 60
+
+
+def _ip_key(ip: str) -> str:
+    digest = hmac.new(_throttle_secret(), f"ip\0{ip}".encode(), hashlib.sha256).hexdigest()
+    return f"{CACHE_KEY_PREFIX}:ip:{digest}"
+
+
+def _ip_seconds_remaining(ip: str) -> int:
+    state = cache.get(_ip_key(ip)) or {}
+    locked_until = state.get('locked_until')
+    return max(0, int(locked_until - time.time() + 0.5)) if locked_until and locked_until > time.time() else 0
+
+
+def _register_ip_failure(ip: str) -> int:
+    key = _ip_key(ip)
+    now = time.time()
+    state = cache.get(key) or {}
+    if state.get('locked_until') and state['locked_until'] > now:
+        return int(state['locked_until'] - now + 0.5)
+    fails = [t for t in state.get('fails', []) if t > now - IP_WINDOW_SEC] + [now]
+    if len(fails) >= IP_FAILURE_LIMIT:
+        cache.set(key, {'fails': [], 'locked_until': now + IP_LOCK_SEC}, IP_LOCK_SEC + 60)
+        return IP_LOCK_SEC
+    cache.set(key, {'fails': fails}, IP_WINDOW_SEC + 60)
+    return 0
 
 
 def _default_state() -> dict[str, Any]:
@@ -73,12 +115,11 @@ def get_state(request, username_raw: str) -> dict[str, Any]:
 
 
 def get_seconds_remaining(request, username_raw: str) -> int:
+    ip_lock = _ip_seconds_remaining(get_client_ip(request))
     state = get_state(request, username_raw)
     lu = state.get("locked_until")
-    if not lu:
-        return 0
-    rem = lu - time.time()
-    return max(0, int(rem + 0.5))
+    account_lock = max(0, int(lu - time.time() + 0.5)) if lu else 0
+    return max(ip_lock, account_lock)
 
 
 def clear_on_success(request, username_raw: str) -> None:
@@ -94,13 +135,14 @@ def register_auth_failure(request, username_raw: str) -> int:
     (déjà actif ou déclenché), sinon 0.
     """
     ip = get_client_ip(request)
+    ip_lock = _register_ip_failure(ip)
     un = _normalize_username(username_raw)
     key = _cache_key(ip, un)
     state = cache.get(key) or _default_state()
     lu = state.get("locked_until")
     now = time.time()
     if lu is not None and lu > now:
-        return max(0, int(lu - now + 0.5))
+        return max(ip_lock, int(lu - now + 0.5))
 
     if lu is not None and lu <= now:
         state["locked_until"] = None
@@ -113,7 +155,7 @@ def register_auth_failure(request, username_raw: str) -> int:
         state["strike"] = strike + 1
         state["fails"] = 0
         cache.set(key, state, CACHE_TIMEOUT_SEC)
-        return duration
+        return max(ip_lock, duration)
 
     cache.set(key, state, CACHE_TIMEOUT_SEC)
-    return 0
+    return ip_lock

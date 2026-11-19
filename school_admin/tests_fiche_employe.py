@@ -119,7 +119,7 @@ class FichePersonnelTests(TestCase):
         p = PersonnelAdministratif(username=f'sec.{etab.pk}', email=f'sec.{etab.pk}@aria-test.local', nom='Diop',
                                    prenom='Fatou', telephone='770000077', fonction='secretaire', etablissement=etab,
                                    actif=True, permissions={}, mot_de_passe_provisoire='Prov@1234')
-        p.set_password('Sec@Test1!')
+        p.set_password('Prov@1234')  # compte tout juste créé : son mot de passe est le provisoire
         p.save()
         self.client.force_login(etab)
         url = reverse('personnel:detail_personnel', args=[p.id])

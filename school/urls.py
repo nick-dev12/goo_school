@@ -22,7 +22,7 @@ from school_admin.media_views import servir_media
 
 urlpatterns = [
     path('health/ready/', ready, name='health_ready'),
-    path('admin/', admin.site.urls),
+    path(settings.ADMIN_URL, admin.site.urls),
     # Fichiers déposés : jamais servis sans contrôle des droits (logos d'établissement exceptés).
     re_path(r'^media/(?P<path>.+)$', servir_media, name='media'),
     path('', include('school_admin.urls', namespace='school_admin')),

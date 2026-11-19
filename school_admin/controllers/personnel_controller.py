@@ -231,10 +231,9 @@ class PersonnelController:
     
     @staticmethod
     def generate_mot_de_passe_provisoire():
-        """
-        Génère un mot de passe provisoire de 6 chiffres
-        """
-        return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+        """Mot de passe provisoire : 8 chiffres tirés avec le module secrets (voir services/mots_de_passe)."""
+        from ..services.mots_de_passe import generer_provisoire
+        return generer_provisoire()
     
     @staticmethod
     def generate_numero_employe(fonction, etablissement):

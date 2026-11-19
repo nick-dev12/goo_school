@@ -335,6 +335,10 @@ class CompteUserController:
                             backend='school_admin.authentication_backends.MultiUserBackend',
                         )
                         clear_on_success(request, form_data['username'])
+                        # Mot de passe donné par l'établissement encore en vigueur : il faudra le remplacer.
+                        from ..services.mots_de_passe import SESSION_CLE, provisoire_en_vigueur
+                        if provisoire_en_vigueur(user):
+                            request.session[SESSION_CLE] = True
 
                         # Appliquer la durée configurée, sans exception de dix ans.
                         request.session.set_expiry(None)
@@ -507,7 +511,7 @@ class CompteUserController:
         from django.http import HttpResponseRedirect
         
         try:
-            logger.info(f"Tentative d'authentification QR Code avec token: {token[:10]}...")
+            logger.info("Tentative d'authentification par QR code")  # jamais le jeton dans les journaux
             
             if not token or not token.strip():
                 logger.warning("Token QR Code vide ou invalide")
@@ -543,13 +547,25 @@ class CompteUserController:
             
             # Vérifier qu'un utilisateur a été trouvé
             if not eleve and not parent:
-                logger.warning(f"Token QR Code invalide: {token[:10]}...")
+                logger.warning("Code QR inconnu présenté à la connexion")
                 messages.error(request, "Code QR invalide. Veuillez utiliser un code QR valide.")
                 return HttpResponseRedirect(reverse('school_admin:connexion_compte_user'))
             
             # Déterminer l'utilisateur à connecter
             user_to_login = eleve if eleve else parent
             
+            # Un code QR a une durée de vie limitée : une carte perdue ou volée finit par ne plus ouvrir le compte.
+            from django.conf import settings as _settings
+            from django.utils import timezone as _tz
+            from datetime import timedelta as _td
+            _validite = getattr(_settings, "QR_AUTH_TOKEN_MAX_AGE_DAYS", 400)
+            _genere = getattr(user_to_login, "qr_auth_token_generated_at", None)
+            if _validite and _genere and _genere < _tz.now() - _td(days=_validite):
+                logger.warning("Code QR expiré : %s #%s", type(user_to_login).__name__, user_to_login.pk)
+                messages.error(request, "Ce code QR a expiré. Demandez une nouvelle carte à l'établissement, "
+                                        "ou connectez-vous avec votre identifiant et votre mot de passe.")
+                return HttpResponseRedirect(reverse('school_admin:connexion_compte_user'))
+
             # Vérifier que l'utilisateur est actif
             is_active = user_to_login.actif if hasattr(user_to_login, 'actif') else user_to_login.is_active
             if not is_active:

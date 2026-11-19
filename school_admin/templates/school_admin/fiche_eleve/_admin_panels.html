@@ -50,6 +50,7 @@
         <div><dt>{% trans "Mot de passe" %}</dt><dd>{% if eleve.mot_de_passe_eleve_modifie %}<span class="cg3-chip cg3-chip--ok">{% trans "Personnalisé par l’élève" %}</span>{% else %}<span class="cg3-chip cg3-chip--warn">{% trans "Provisoire" %}</span>{% endif %}</dd></div>
         <div><dt>{% trans "Dernière connexion" %}</dt><dd>{% if eleve.last_login %}{{ eleve.last_login|date:"d/m/Y H:i" }}{% else %}<span class="is-empty is-warn">{% trans "Jamais connecté" %}</span>{% endif %}</dd></div>
       </dl>
+      {% include 'school_admin/securite/_bouton_nouveau_mdp.html' with type_compte='eleve' pk=eleve.pk nom=eleve.prenom|add:" "|add:eleve.nom %}
     </article>
     <article class="fe-card fe-col-6">
       <header class="fe-card__head"><div><h2 class="fe-card__title"><i class="fas fa-user-shield" aria-hidden="true"></i>{% trans "Comptes parents" %}</h2></div></header>
@@ -58,6 +59,7 @@
         <span>{{ c.parent.prenom }} {{ c.parent.nom }} · {{ c.lien }}{% if c.parent.last_login %} · {% trans "connecté le" %} {{ c.parent.last_login|date:"d/m/Y" }}{% endif %}</span>
         <div class="fe-access__val"><code>{{ c.parent.username }}</code><button type="button" class="fe-copy" data-fe-copy="{{ c.parent.username }}" aria-label="{% trans 'Copier' %}"><i class="fas fa-copy" aria-hidden="true"></i></button></div>
         {% if c.parent.mot_de_passe_provisoire and not c.parent.mot_de_passe_modifie %}<div class="fe-access__val" style="margin-top:6px"><code>{{ c.parent.mot_de_passe_provisoire }}</code><button type="button" class="fe-copy" data-fe-copy="{{ c.parent.mot_de_passe_provisoire }}" aria-label="{% trans 'Copier' %}"><i class="fas fa-copy" aria-hidden="true"></i></button></div>{% endif %}
+        {% include 'school_admin/securite/_bouton_nouveau_mdp.html' with type_compte='parent' pk=c.parent.pk nom=c.parent.prenom|add:" "|add:c.parent.nom %}
       </div>
       {% empty %}<p class="fe-alert fe-alert--warn"><i class="fas fa-user-slash" aria-hidden="true"></i><span>{% trans "Aucun compte parent associé." %}</span></p>{% endfor %}
     </article>

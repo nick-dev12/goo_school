@@ -901,9 +901,9 @@ class ProfesseurController:
                         # Générer le matricule : initiales + 6 chiffres (sera utilisé comme numero_employe)
                         matricule = ProfesseurController.generate_matricule_professeur(etablissement)
                         
-                        # Générer un mot de passe provisoire de 4 chiffres
-                        import random
-                        mot_de_passe_provisoire = ''.join([str(random.randint(0, 9)) for _ in range(4)])
+                        # Mot de passe provisoire : 8 chiffres tirés avec le module secrets
+                        from ..services.mots_de_passe import generer_provisoire
+                        mot_de_passe_provisoire = generer_provisoire()
                         
                         # Pour le primaire, si pas de matière principale, prendre la première matière secondaire
                         from ..model.matiere_model import Matiere

@@ -276,3 +276,112 @@ class RythmeParCompteTests(MediaTestCase):
         self.assertEqual(self.client.get('/robots.txt').status_code, 200)
         self.assertIn('Disallow: /parent/', self.client.get('/robots.txt').content.decode())
         self.assertEqual(self.client.get('/sitemap.xml').status_code, 200)
+
+
+# --------------------------------------------------------------------------- lot 3
+from school_admin.services import mots_de_passe as mdp  # noqa: E402
+from school_admin.tests_rappels import _personnel  # noqa: E402
+
+
+class MotsDePasseProvisoiresTests(MediaTestCase):
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+        self.provisoire = mdp.attribuer_provisoire(self.parent)
+
+    def connecter(self, identifiant, mot):
+        return self.client.post(reverse('school_admin:connexion_compte_user'),
+                                {'email': identifiant, 'password': mot, 'conditions_acceptees': 'on'})
+
+    def test_generation_sure(self):
+        mots = {mdp.generer_provisoire() for _ in range(200)}
+        self.assertTrue(all(len(m) == 8 and m.isdigit() for m in mots))
+        self.assertGreater(len(mots), 190)  # pas de répétition anormale
+        self.assertEqual(len(Eleve.generer_mot_de_passe()), 8)
+
+    def test_premiere_connexion_impose_le_changement(self):
+        self.parent.refresh_from_db()
+        self.assertFalse(self.parent.mot_de_passe_modifie)
+        self.assertEqual(self.connecter(self.parent.username, self.provisoire).status_code, 302)
+        reponse = self.client.get('/parent/dashboard/')
+        self.assertEqual(reponse.status_code, 302)
+        self.assertIn('/securite/nouveau-mot-de-passe/', reponse['Location'])
+        # La page de changement, elle, s'affiche.
+        self.assertEqual(self.client.get('/securite/nouveau-mot-de-passe/').status_code, 200)
+
+    def test_refus_du_meme_mot_de_passe_et_des_mots_faibles(self):
+        self.connecter(self.parent.username, self.provisoire)
+        url = '/securite/nouveau-mot-de-passe/'
+        for mauvais in (self.provisoire, '12345678', 'abc'):
+            reponse = self.client.post(url, {'nouveau': mauvais, 'confirmation': mauvais})
+            self.assertEqual(reponse.status_code, 200, mauvais)
+        reponse = self.client.post(url, {'nouveau': '58201974', 'confirmation': '58201977'})
+        self.assertContains(reponse, 'pas identiques')
+
+    def test_changement_efface_le_provisoire_et_libere_l_acces(self):
+        self.connecter(self.parent.username, self.provisoire)
+        reponse = self.client.post('/securite/nouveau-mot-de-passe/?next=/parent/dashboard/',
+                                   {'nouveau': '58201974', 'confirmation': '58201974', 'next': '/parent/dashboard/'})
+        self.assertEqual(reponse['Location'], '/parent/dashboard/')
+        self.parent.refresh_from_db()
+        self.assertEqual(self.parent.mot_de_passe_provisoire, '')
+        self.assertTrue(self.parent.mot_de_passe_modifie)
+        self.assertTrue(self.parent.check_password('58201974'))
+        self.assertNotIn('/securite/', self.client.get('/parent/dashboard/').get('Location', ''))
+
+    def test_tout_changement_de_mot_de_passe_efface_le_provisoire(self):
+        self.parent.set_password('Autre@Mot2026')
+        self.parent.save()
+        self.parent.refresh_from_db()
+        self.assertEqual(self.parent.mot_de_passe_provisoire, '')
+
+    def test_mot_de_passe_deja_personnel_pas_de_changement_impose(self):
+        self.parent.set_password('Autre@Mot2026')
+        self.parent.save()
+        self.connecter(self.parent.username, 'Autre@Mot2026')
+        self.assertNotIn(mdp.SESSION_CLE, self.client.session)
+
+    def test_la_direction_redonne_un_mot_de_passe(self):
+        self.parent.set_password('Autre@Mot2026')
+        self.parent.save()
+        self.client.force_login(self.etab)
+        url = reverse('school_admin:nouveau_mot_de_passe_provisoire', args=['parent', self.parent.pk])
+        reponse = self.client.post(url, follow=True)
+        message = ' '.join(str(m) for m in reponse.context['messages'])
+        self.parent.refresh_from_db()
+        self.assertTrue(self.parent.mot_de_passe_provisoire)
+        self.assertIn(self.parent.mot_de_passe_provisoire, message)
+        self.assertTrue(self.parent.check_password(self.parent.mot_de_passe_provisoire))
+        self.assertFalse(self.parent.mot_de_passe_modifie)
+
+    def test_redonner_un_mot_de_passe_est_reserve(self):
+        autre_etab = _make_etablissement_type('lycée', 'autre3')
+        _make_annee(autre_etab)
+        url = reverse('school_admin:nouveau_mot_de_passe_provisoire', args=['eleve', self.eleve.pk])
+        for compte in (autre_etab, self.parent, _personnel(self.etab, {'eleves_modifier': False}, 'z')):
+            self.client.force_login(compte)
+            self.assertEqual(self.client.post(url).status_code, 404, compte)
+        self.client.force_login(_personnel(self.etab, {'eleves_modifier': True}, 'w'))
+        self.assertEqual(self.client.post(url).status_code, 302)
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+
+class CodeQrConnexionTests(MediaTestCase):
+    def test_code_qr_expire(self):
+        self.eleve.generer_et_sauvegarder_token_qr()
+        url = f'/auth/qr/{self.eleve.qr_auth_token}/'
+        reponse = self.client.get(url)
+        self.assertEqual(reponse.status_code, 302)
+        self.assertNotIn('connexion', reponse['Location'])
+        self.client.logout()
+        Eleve.objects.filter(pk=self.eleve.pk).update(qr_auth_token_generated_at=timezone.now() - timedelta(days=401))
+        reponse = self.client.get(url)
+        self.assertIn('connexion', reponse['Location'])
+
+
+class AdministrationDjangoTests(TestCase):
+    def test_tentatives_limitees(self):
+        cache.clear()
+        for _ in range(login_throttle.ATTEMPT_LIMIT):
+            self.client.post('/admin/login/', {'username': 'inconnu', 'password': 'faux'})
+        self.assertEqual(self.client.post('/admin/login/', {'username': 'inconnu', 'password': 'faux'}).status_code, 429)

@@ -217,13 +217,9 @@ class Parent(AbstractUser):
     
     @staticmethod
     def generer_mot_de_passe():
-        """
-        Génère un mot de passe provisoire de 6 chiffres sans tiret
-        Format : XXXXXX
-        Exemple : 654565
-        """
-        import random
-        return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+        """Mot de passe provisoire : 8 chiffres tirés avec le module secrets (voir services/mots_de_passe)."""
+        from school_admin.services.mots_de_passe import generer_provisoire
+        return generer_provisoire()
     
     @staticmethod
     def generer_token_qr_auth():

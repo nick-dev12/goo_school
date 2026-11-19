@@ -1,0 +1,8 @@
+{# Bouton « nouveau mot de passe provisoire ». Paramètres : type_compte (eleve, parent, professeur, personnel), pk, nom. #}
+<form method="post" action="{% url 'school_admin:nouveau_mot_de_passe_provisoire' type_compte pk %}" style="margin-top:10px"
+      onsubmit="return confirm('Générer un nouveau mot de passe provisoire pour {{ nom|escapejs }} ?\n\nL’ancien ne fonctionnera plus et la personne sera déconnectée de ses appareils. Elle devra choisir son propre mot de passe à la prochaine connexion.');">
+  {% csrf_token %}
+  <button type="submit" style="display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:8px 14px;border:1px solid #d0d5dd;border-radius:10px;background:#fff;color:#1d47b3;font:inherit;font-size:.85rem;font-weight:600;cursor:pointer">
+    <i class="fas fa-rotate" aria-hidden="true"></i>Mot de passe oublié : en générer un nouveau
+  </button>
+</form>

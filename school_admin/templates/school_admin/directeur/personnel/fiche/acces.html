@@ -22,6 +22,7 @@
       <li>{% trans "Le mot de passe provisoire disparaît alors de cette page." %}</li>
     </ol>
     {% endif %}
+    {% if type_compte %}{% include 'school_admin/securite/_bouton_nouveau_mdp.html' with pk=employe.pk nom=employe.prenom|add:" "|add:employe.nom %}{% endif %}
   </article>
   <article class="fe-card fe-col-4">
     <header class="fe-card__head"><h2 class="fe-card__title"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i>{% trans "Activité" %}</h2></header>

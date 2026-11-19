@@ -125,7 +125,7 @@ class AuthenticationMiddleware:
             request.path in public_urls
             or request.path in technical_urls
             or is_public_pattern
-            or request.path.startswith('/admin/')
+            or request.path.startswith('/' + getattr(settings, 'ADMIN_URL', 'admin/'))
             or request.path.startswith('/static/')
             or request.path.startswith('/connexion/professeurs/otp/verification/')
             or request.path.startswith('/password-reset/')  # Pages de réinitialisation de mot de passe

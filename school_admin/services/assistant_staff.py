@@ -340,7 +340,8 @@ def apply_creer_professeur(ctx, draft):
 
     with transaction.atomic():
         matricule = ProfesseurController.generate_matricule_professeur(ctx.etablissement)
-        mot = ''.join(str(timezone.now().microsecond % 10) for _ in range(4))
+        from school_admin.services.mots_de_passe import generer_provisoire
+        mot = generer_provisoire()
         matiere = None
         if draft.get('matiere_id'):
             matiere = Matiere.objects.filter(

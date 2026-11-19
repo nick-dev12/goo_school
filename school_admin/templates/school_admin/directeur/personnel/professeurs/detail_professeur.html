@@ -98,7 +98,7 @@
     <section class="fe-panel" id="fe-p-presence" data-fe-panel="presence" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/prof_presence.html' %}</section>
     <section class="fe-panel" id="fe-p-cahier" data-fe-panel="cahier" role="tabpanel"><div class="fe-card">{% include 'school_admin/directeur/personnel/partials/detail_prof_panel_cahier.html' %}</div></section>
     <section class="fe-panel" id="fe-p-dossier" data-fe-panel="dossier" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/dossier.html' with employe=professeur %}</section>
-    <section class="fe-panel" id="fe-p-acces" data-fe-panel="acces" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/acces.html' with employe=professeur qui=_("l’enseignant") %}</section>
+    <section class="fe-panel" id="fe-p-acces" data-fe-panel="acces" role="tabpanel">{% include 'school_admin/directeur/personnel/fiche/acces.html' with employe=professeur qui=_("l’enseignant") type_compte='professeur' %}</section>
 
     <form method="post" id="fe-retirer-matiere" action="{% url 'professeur:detail_professeur' professeur.id %}" hidden>
       {% csrf_token %}<input type="hidden" name="action" value="retirer_matiere_secondaire"><input type="hidden" name="professeur_id" value="{{ professeur.id }}"><input type="hidden" name="matiere_id" value="">

@@ -11,6 +11,7 @@ from . import auth_user_type  # noqa: F401 — session `_auth_user_type`
 from . import push_lifecycle  # noqa: F401
 from . import family_events  # noqa: F401
 from . import context_popup  # noqa: F401
+from . import mots_de_passe  # noqa: F401 — efface le mot de passe provisoire une fois remplacé
 
 __all__ = [
     'creer_notes_examen_automatiques_classes',

@@ -126,6 +126,8 @@ MIDDLEWARE = [
     'school_admin.middleware.AuthenticationMiddleware',  # Notre middleware d'authentification personnalisé
     'school_admin.upload_guard.UploadGuardMiddleware',  # Refuse les fichiers dangereux avant toute vue
     'school_admin.rate_limit_middleware.AccountRateLimitMiddleware',  # Freine l'aspiration par un compte
+    'school_admin.securite_mdp_views.ChangementObligatoireMiddleware',  # Mot de passe provisoire à remplacer
+    'school_admin.admin_guard.AdminLoginThrottleMiddleware',  # Tentatives limitées sur l'administration Django
     'school_admin.middleware.SessionActiveMiddleware',  # Middleware pour la gestion des sessions actives
     'school_admin.middleware.CaissierAccessMiddleware',
     'school_admin.middleware.SeoMiddleware',
@@ -350,6 +352,10 @@ MEDIA_URL = '/media/'
 # Rythme maximal par compte connecté (requêtes de pages et d'API) ; 0 pour désactiver.
 ACCOUNT_RATE_LIMIT = env.int('ACCOUNT_RATE_LIMIT', default=300)
 ACCOUNT_RATE_WINDOW = env.int('ACCOUNT_RATE_WINDOW', default=300)
+# Durée de validité d'un code QR de connexion (élève, parent) ; 0 = sans limite.
+QR_AUTH_TOKEN_MAX_AGE_DAYS = env.int('QR_AUTH_TOKEN_MAX_AGE_DAYS', default=400)
+# Adresse de l'administration Django. Une adresse peu prévisible (ex. « gestion-x7k2/ ») réduit les robots.
+ADMIN_URL = env('ADMIN_URL', default='admin/').strip('/') + '/'
 # En production, Nginx envoie les fichiers privés après contrôle par l'application (X-Accel-Redirect).
 MEDIA_ACCEL_PREFIX = env('MEDIA_ACCEL_PREFIX', default='' if DEBUG else '/protected-media/')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

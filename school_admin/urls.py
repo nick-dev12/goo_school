@@ -8,6 +8,7 @@ from .personal_views.commercial_view import *
 from .personal_views.comptable_view import *
 from .controllers.activites_commerciales_controller import ActivitesCommercialesController
 from .personal_views.directeur_view import verifier_bulletin_qr
+from . import securite_mdp_views
 from .api_views import fcm_views, fcm_test_views, test_notes_notifications, sync_views, context_popup_views
 from .personal_views.qr_scan_view import scan_qr_eleve, scan_qr_eleve_authenticated
 from .seo_views import robots_txt, sitemap_xml
@@ -27,6 +28,9 @@ urlpatterns =[
     path('push-config.js', pwa_views.push_config_view, name='push_config_js'),
     path('api/push/config/', pwa_views.push_config_view, name='push_config'),
     path('api/context-popup/', context_popup_views.context_popup, name='context_popup'),
+    path('securite/nouveau-mot-de-passe/', securite_mdp_views.choisir_mot_de_passe, name='choisir_mot_de_passe'),
+    path('securite/mot-de-passe-provisoire/<str:type_compte>/<int:pk>/',
+         securite_mdp_views.nouveau_mot_de_passe_provisoire, name='nouveau_mot_de_passe_provisoire'),
     path('offline/', pwa_views.offline_view, name='offline'),
     
     # Service Worker Firebase (doit être à la racine)

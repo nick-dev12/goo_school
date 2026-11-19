@@ -124,6 +124,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'school_admin.middleware.AuthenticationMiddleware',  # Notre middleware d'authentification personnalisé
+    'school_admin.upload_guard.UploadGuardMiddleware',  # Refuse les fichiers dangereux avant toute vue
     'school_admin.middleware.SessionActiveMiddleware',  # Middleware pour la gestion des sessions actives
     'school_admin.middleware.CaissierAccessMiddleware',
     'school_admin.middleware.SeoMiddleware',
@@ -345,6 +346,8 @@ AUTHENTICATION_BACKENDS = [
 
 # Configuration des fichiers média
 MEDIA_URL = '/media/'
+# En production, Nginx envoie les fichiers privés après contrôle par l'application (X-Accel-Redirect).
+MEDIA_ACCEL_PREFIX = env('MEDIA_ACCEL_PREFIX', default='' if DEBUG else '/protected-media/')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Configuration du logging

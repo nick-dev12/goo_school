@@ -65,84 +65,32 @@ def scan_qr_eleve(request, qr_identifier):
         if isinstance(current_user, Etablissement) or isinstance(current_user, PersonnelAdministratif):
             return redirect('school_admin:scan_qr_eleve_authenticated', qr_identifier=qr_identifier)
     
-    # Récupérer l'année scolaire active
-    annee_scolaire_active = None
-    if etablissement:
-        annee_scolaire_active = AnneeScolaire.get_session_active(etablissement)
-    
-    # Récupérer l'inscription de l'élève pour l'année scolaire active
-    inscription = None
+    # Page publique : uniquement de quoi vérifier qu'une carte est authentique (photo, prénom, classe,
+    # établissement). Ni nom complet, ni matricule, ni coordonnées du parent : ces informations servent
+    # à se faire passer pour la famille et restent réservées aux comptes connectés de l'établissement.
+    from school_admin.media_views import url_signee
+
+    annee_scolaire_active = AnneeScolaire.get_session_active(etablissement)
     classe = None
     if annee_scolaire_active:
         inscription = InscriptionEleve.objects.filter(
-            eleve=eleve,
-            etablissement=etablissement,
-            annee_scolaire=annee_scolaire_active
+            eleve=eleve, etablissement=etablissement, annee_scolaire=annee_scolaire_active,
         ).select_related('classe').first()
-        
-        if inscription:
-            classe = inscription.classe
-    
-    # Si pas de classe via inscription, utiliser la classe de l'élève
-    if not classe:
-        classe = eleve.classe
-    
-    # Informations du parent qui a inscrit l'élève
-    parent_inscripteur = None
-    parent_info = None
-    
-    # Chercher le parent via InscriptionEleve
-    if inscription:
-        parent_info = {
-            'nom': inscription.parent_nom,
-            'prenom': inscription.parent_prenom,
-            'nom_complet': f"{inscription.parent_nom} {inscription.parent_prenom}",
-            'telephone': inscription.parent_telephone,
-            'email': inscription.parent_email if hasattr(inscription, 'parent_email') else None,
-        }
-        parent_inscripteur = parent_info
-    
-    # Si pas trouvé via inscription, chercher via LienFamilial
-    if not parent_inscripteur:
-        lien_inscripteur = LienFamilial.objects.filter(
-            eleve=eleve,
-            est_inscripteur=True,
-            actif=True,
-            statut='valide'
-        ).select_related('parent').first()
-        
-        if lien_inscripteur and lien_inscripteur.parent:
-            parent_inscripteur = {
-                'nom': lien_inscripteur.parent.nom,
-                'prenom': lien_inscripteur.parent.prenom,
-                'nom_complet': lien_inscripteur.parent.nom_complet,
-                'telephone': lien_inscripteur.parent.telephone,
-                'email': lien_inscripteur.parent.email,
-            }
-    
-    # Si toujours pas trouvé, utiliser les informations de l'élève
-    if not parent_inscripteur:
-        parent_inscripteur = {
-            'nom': eleve.parent_nom if hasattr(eleve, 'parent_nom') else None,
-            'prenom': eleve.parent_prenom if hasattr(eleve, 'parent_prenom') else None,
-            'nom_complet': f"{eleve.parent_nom} {eleve.parent_prenom}" if hasattr(eleve, 'parent_nom') and eleve.parent_nom else "Non renseigné",
-            'telephone': eleve.parent_telephone if hasattr(eleve, 'parent_telephone') else None,
-            'email': eleve.parent_email if hasattr(eleve, 'parent_email') else None,
-        }
-    
-    # Récupérer la devise monétaire
-    devise_monnaie = etablissement.devise_monnaie if etablissement and etablissement.devise_monnaie else 'FCFA'
-    
+        classe = inscription.classe if inscription else None
+
+    nom = (eleve.nom or '').strip()
     context = {
-        'eleve': eleve,
         'etablissement': etablissement,
         'classe': classe,
         'annee_scolaire_active': annee_scolaire_active,
-        'parent_inscripteur': parent_inscripteur,
-        'devise_monnaie': devise_monnaie,  # Ajouter la devise au contexte
+        'nom_affiche': f"{(eleve.prenom or '').strip()} {nom[:1].upper() + '.' if nom else ''}".strip(),
+        'photo_url': url_signee(eleve.photo_profil),
+        'inscrit_cette_annee': classe is not None,
     }
-    
-    return render(request, 'school_admin/qr_scan/scan_eleve_info.html', context)
+    response = render(request, 'school_admin/qr_scan/scan_eleve_info.html', context)
+    response['Cache-Control'] = 'no-store'
+    response['X-Robots-Tag'] = 'noindex, nofollow'
+    return response
 
 
 @login_required

@@ -15,14 +15,16 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
-from django.conf.urls.static import static
 from school_admin.health_views import ready
+from school_admin.media_views import servir_media
 
 urlpatterns = [
     path('health/ready/', ready, name='health_ready'),
     path('admin/', admin.site.urls),
+    # Fichiers déposés : jamais servis sans contrôle des droits (logos d'établissement exceptés).
+    re_path(r'^media/(?P<path>.+)$', servir_media, name='media'),
     path('', include('school_admin.urls', namespace='school_admin')),
     path('', include('school_admin.personal_url.directeur_url', namespace='directeur')),
     path('', include('school_admin.personal_url.personnel_url', namespace='personnel')),
@@ -43,4 +45,3 @@ urlpatterns = [
 if settings.DEBUG:
     from django.contrib.staticfiles.urls import staticfiles_urlpatterns
     urlpatterns += staticfiles_urlpatterns()
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

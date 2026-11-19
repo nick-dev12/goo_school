@@ -3,8 +3,9 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8" />
+    <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Informations Élève - {{ eleve.nom_complet }}</title>
+    <title>Vérification de carte scolaire - {{ etablissement.nom }}</title>
     <link
         href="/static/school_admin/vendor/fonts/poppins.css?v=1"
         rel="stylesheet"
@@ -493,40 +494,34 @@
         <!-- Photo de l'élève -->
         <div class="photo-section">
             <div class="photo-container">
-                {% if eleve.photo_profil_eleve %}
-                    <img src="{{ eleve.photo_profil_eleve.url }}" alt="{{ eleve.nom_complet }}">
+                {% if photo_url %}
+                    <img src="{{ photo_url }}" alt="Photo de l'élève">
                 {% else %}
                     <div class="photo-placeholder">
                         <i class="fas fa-user"></i>
                     </div>
                 {% endif %}
             </div>
-            <h2>{{ eleve.nom_complet }}</h2>
-            <p class="matricule">{{ eleve.matricule_eleve|default:eleve.numero_eleve|default:"N/A" }}</p>
+            <h2>{{ nom_affiche }}</h2>
         </div>
-        
-        <!-- Informations de base (toujours affichées) -->
+
+        <!-- Vérification de la carte -->
         <div class="section-card">
-            <h3 class="section-title">
-                <i class="fas fa-user-graduate"></i>
-                Informations Personnelles
-            </h3>
+            {% if inscrit_cette_annee %}
+            <div class="alert-box success">
+                <i class="fas fa-check-circle"></i>
+                <div>Carte scolaire valide : cet élève est inscrit pour l'année en cours.</div>
+            </div>
+            {% else %}
+            <div class="alert-box warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>Aucune inscription trouvée pour l'année en cours. Contactez l'établissement.</div>
+            </div>
+            {% endif %}
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="info-label">Nom</div>
-                    <div class="info-value">{{ eleve.nom }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Prénom</div>
-                    <div class="info-value">{{ eleve.prenom }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Matricule</div>
-                    <div class="info-value">{{ eleve.matricule_eleve|default:eleve.numero_eleve|default:"N/A" }}</div>
-                </div>
-                <div class="info-item">
                     <div class="info-label">Classe</div>
-                    <div class="info-value">{{ classe.nom|default:"Non assignée" }}</div>
+                    <div class="info-value">{{ classe.nom|default:"—" }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Établissement</div>
@@ -534,289 +529,20 @@
                 </div>
                 {% if annee_scolaire_active %}
                 <div class="info-item">
-                    <div class="info-label">Année Scolaire</div>
+                    <div class="info-label">Année scolaire</div>
                     <div class="info-value">{{ annee_scolaire_active.libelle }}</div>
                 </div>
                 {% endif %}
             </div>
         </div>
-        
-        <!-- Informations du parent (toujours affichées) -->
+
         <div class="section-card">
-            <h3 class="section-title">
-                <i class="fas fa-users"></i>
-                Informations du Parent
-            </h3>
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">Nom du Parent</div>
-                    <div class="info-value">{{ parent_inscripteur.nom_complet|default:"Non renseigné" }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Téléphone</div>
-                    <div class="info-value">
-                        {% if parent_inscripteur.telephone %}
-                            <a href="tel:{{ parent_inscripteur.telephone }}">
-                                <i class="fas fa-phone"></i> {{ parent_inscripteur.telephone }}
-                            </a>
-                        {% else %}
-                            Non renseigné
-                        {% endif %}
-                    </div>
-                </div>
+            <div class="restricted-section">
+                <i class="fas fa-lock"></i>
+                <h3>Informations protégées</h3>
+                <p>Le nom complet, le matricule, les coordonnées de la famille et la scolarité sont réservés à la direction et au personnel de l'établissement. Connectez-vous pour y accéder.</p>
             </div>
         </div>
-        
-        <!-- Informations de scolarité/comptabilité (uniquement pour directeur et personnel administratif) -->
-        {% if can_access_comptabilite %}
-            {% if comptabilite_info %}
-                <!-- Statut général -->
-                <div class="section-card">
-                    <h3 class="section-title">
-                        <i class="fas fa-money-bill-wave"></i>
-                        Situation Comptable
-                    </h3>
-                    
-                    <div class="alert-box {% if comptabilite_info.est_a_jour %}success{% elif comptabilite_info.est_non_en_regle %}danger{% else %}warning{% endif %}">
-                        <i class="fas fa-{% if comptabilite_info.est_a_jour %}check-circle{% elif comptabilite_info.est_non_en_regle %}exclamation-triangle{% else %}clock{% endif %}"></i>
-                        <div>
-                            <strong>Statut :</strong> {{ comptabilite_info.statut }}
-                            {% if comptabilite_info.est_non_en_regle %}
-                                <br><small>L'élève n'est pas en règle selon les critères de l'établissement.</small>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <!-- Résumé financier -->
-                    <div class="summary-cards">
-                        <div class="summary-card">
-                            <div class="summary-card-label">Total Dû</div>
-                            <div class="summary-card-value">{{ comptabilite_info.total_du|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-card-label">Total Payé</div>
-                            <div class="summary-card-value success">{{ comptabilite_info.total_paye|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-card-label">Reste à Payer</div>
-                            <div class="summary-card-value {% if comptabilite_info.reste_a_payer > 0 %}danger{% else %}success{% endif %}">
-                                {{ comptabilite_info.reste_a_payer|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Frais d'inscription -->
-                    <div style="margin-top: 2rem;">
-                        <h4 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem;">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                            Frais d'Inscription
-                        </h4>
-                        <div class="table-responsive">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Montant</th>
-                                        <th>Montant Payé</th>
-                                        <th>Reste à Payer</th>
-                                        <th>Statut</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>{{ comptabilite_info.frais_inscription_montant|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                                        <td>{{ comptabilite_info.frais_inscription_montant_paye|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                                        <td>{{ comptabilite_info.frais_inscription_reste|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                                        <td>
-                                            {% if comptabilite_info.frais_inscription_paye %}
-                                                <span class="badge badge-success">Payé</span>
-                                            {% else %}
-                                                <span class="badge badge-warning">En attente</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <!-- Mensualités payées -->
-                    {% if comptabilite_info.mensualites_payees %}
-                        <div style="margin-top: 2rem;">
-                            <h4 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem;">
-                                <i class="fas fa-check-circle" style="color: var(--success);"></i>
-                                Mensualités Payées ({{ comptabilite_info.mensualites_payees|length }})
-                            </h4>
-                            <div class="table-responsive">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Période</th>
-                                            <th>Montant</th>
-                                            <th>Date d'Échéance</th>
-                                            <th>Statut</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for mensualite in comptabilite_info.mensualites_payees %}
-                                        <tr>
-                                            <td>{{ mensualite.periode }}</td>
-                                            <td>{{ mensualite.montant|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                                            <td>{{ mensualite.date_echeance|date:"d/m/Y" }}</td>
-                                            <td><span class="badge badge-success">Payé</span></td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    {% endif %}
-                    
-                    <!-- Mensualités impayées -->
-                    {% if comptabilite_info.mensualites_impayees %}
-                        <div style="margin-top: 2rem;">
-                            <h4 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem;">
-                                <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
-                                Mensualités Impayées ({{ comptabilite_info.mensualites_impayees|length }})
-                            </h4>
-                            <div class="table-responsive">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Période</th>
-                                            <th>Montant Total</th>
-                                            <th>Montant Payé</th>
-                                            <th>Reste à Payer</th>
-                                            <th>Date d'Échéance</th>
-                                            <th>Statut</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for mensualite in comptabilite_info.mensualites_impayees %}
-                                        <tr>
-                                            <td>{{ mensualite.periode }}</td>
-                                            <td>{{ mensualite.montant|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                                            <td>{{ mensualite.montant_paye|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                                            <td>{{ mensualite.reste_a_payer|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                                            <td>{{ mensualite.date_echeance|date:"d/m/Y" }}</td>
-                                            <td>
-                                                {% if mensualite.statut == 'paye' %}
-                                                    <span class="badge badge-success">Payé</span>
-                                                {% elif mensualite.statut == 'en_retard' %}
-                                                    <span class="badge badge-warning">En retard</span>
-                                                {% else %}
-                                                    <span class="badge badge-danger">Impayé</span>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    {% endif %}
-                    
-                    <!-- Mensualités à venir -->
-                    {% if comptabilite_info.mensualites_a_venir %}
-                        <div style="margin-top: 2rem;">
-                            <h4 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem;">
-                                <i class="fas fa-calendar-alt" style="color: var(--info);"></i>
-                                Mensualités à Venir ({{ comptabilite_info.mensualites_a_venir|length }})
-                            </h4>
-                            <div class="table-responsive">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Période</th>
-                                            <th>Montant</th>
-                                            <th>Date d'Échéance</th>
-                                            <th>Statut</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for mensualite in comptabilite_info.mensualites_a_venir %}
-                                        <tr>
-                                            <td>{{ mensualite.periode }}</td>
-                                            <td>{{ mensualite.montant|floatformat:0|default:"0" }} {{ devise_monnaie|default:"FCFA" }}</td>
-                                            <td>{{ mensualite.date_echeance|date:"d/m/Y" }}</td>
-                                            <td><span class="badge badge-info">À venir</span></td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-            {% else %}
-                <div class="section-card">
-                    <h3 class="section-title">
-                        <i class="fas fa-money-bill-wave"></i>
-                        Situation Comptable
-                    </h3>
-                    <div class="alert-box info">
-                        <i class="fas fa-info-circle"></i>
-                        <div>Aucune information de comptabilité disponible pour cet élève.</div>
-                    </div>
-                </div>
-            {% endif %}
-        {% else %}
-            <!-- Section restreinte pour les utilisateurs non autorisés -->
-            <div class="section-card">
-                <div class="restricted-section">
-                    <i class="fas fa-lock"></i>
-                    <h3>Informations Complémentaires</h3>
-                    <p>Pour accéder aux informations détaillées de scolarité et de comptabilité, veuillez vous connecter en tant que directeur ou personnel administratif autorisé.</p>
-                </div>
-            </div>
-        {% endif %}
-        
-        <!-- Informations supplémentaires (pour directeur et personnel administratif) -->
-        {% if can_access_comptabilite %}
-            {% if eleve.date_naissance or eleve.lieu_naissance or eleve.sexe or eleve.date_inscription or parent_inscripteur.email %}
-            <div class="section-card">
-                <h3 class="section-title">
-                    <i class="fas fa-info-circle"></i>
-                    Informations Supplémentaires
-                </h3>
-                <div class="info-grid">
-                    {% if eleve.date_naissance %}
-                    <div class="info-item">
-                        <div class="info-label">Date de Naissance</div>
-                        <div class="info-value">{{ eleve.date_naissance|date:"d/m/Y" }}</div>
-                    </div>
-                    {% endif %}
-                    {% if eleve.lieu_naissance %}
-                    <div class="info-item">
-                        <div class="info-label">Lieu de Naissance</div>
-                        <div class="info-value">{{ eleve.lieu_naissance }}</div>
-                    </div>
-                    {% endif %}
-                    {% if eleve.sexe %}
-                    <div class="info-item">
-                        <div class="info-label">Sexe</div>
-                        <div class="info-value">{{ eleve.get_sexe_display }}</div>
-                    </div>
-                    {% endif %}
-                    {% if eleve.date_inscription %}
-                    <div class="info-item">
-                        <div class="info-label">Date d'Inscription</div>
-                        <div class="info-value">{{ eleve.date_inscription|date:"d/m/Y" }}</div>
-                    </div>
-                    {% endif %}
-                    {% if parent_inscripteur.email %}
-                    <div class="info-item">
-                        <div class="info-label">Email du Parent</div>
-                        <div class="info-value">
-                            <a href="mailto:{{ parent_inscripteur.email }}">
-                                <i class="fas fa-envelope"></i> {{ parent_inscripteur.email }}
-                            </a>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-        {% endif %}
     </div>
 </body>
 </html>

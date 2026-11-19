@@ -101,6 +101,7 @@ class AuthenticationMiddleware:
             '/candidature/',  # Candidature en ligne (admissions du supérieur)
             '/scan-qr/eleve/',  # Scan QR Code Élève (page publique)
             '/pointage/borne/',  # Borne QR de pointage : appareil appairé par cookie signé
+            '/media/',  # Fichiers déposés : la vue servir_media vérifie elle-même connexion et droits
         ]
 
         technical_urls = {

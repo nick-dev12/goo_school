@@ -54,7 +54,11 @@ def liste_deliberations(request):
         session = request.POST.get('session') or Deliberation.SESSION_NORMALE
         if session not in dict(Deliberation.SESSION_CHOICES):
             session = Deliberation.SESSION_NORMALE
-        d, cree = svc.creer(etablissement, classe, annee, periode, session)
+        try:
+            d, cree = svc.creer(etablissement, classe, annee, periode, session)
+        except svc.DeliberationErreur as exc:
+            messages.error(request, str(exc))
+            return redirect('directeur:liste_deliberations')
         if cree:
             messages.success(request, f"Délibération ouverte pour {classe.nom} — {d.libelle_portee}. "
                                       f"Vérifiez les résultats puis attribuez les points de jury.")
@@ -139,8 +143,10 @@ def detail_deliberation(request, deliberation_id):
             messages.error(request, str(exc))
         return redirect(url)
 
-    if not d.est_cloturee and not d.decisions.exists():
-        svc.preparer(d)
+    if not d.est_cloturee:
+        controle = svc.controle_resultats(d.classe, svc.periodes_de(d), d.annee_scolaire)
+        if not controle['pret']:
+            messages.warning(request, 'Résultats à compléter ou à recalculer avant toute validation.')
     decisions = list(d.decisions.select_related('eleve').order_by('eleve__nom', 'eleve__prenom'))
     filtre = request.GET.get('filtre', '')
     if filtre == 'dettes':
@@ -155,6 +161,7 @@ def detail_deliberation(request, deliberation_id):
         'regles_examen': moteur.regles(etablissement),
         'filtre': filtre,
         'decision_choices': DecisionJury.DECISION_CHOICES,
+        'controle_resultats': controle if not d.est_cloturee else None,
     }
     return render(request, 'school_admin/directeur/deliberations/detail.html', context)
 

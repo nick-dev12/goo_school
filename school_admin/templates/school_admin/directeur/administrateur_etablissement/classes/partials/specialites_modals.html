@@ -5,7 +5,7 @@
     <div class="modal-header-fullscreen">
       <h2 class="modal-title-fullscreen">
         <i class="fas fa-edit"></i>
-        {% trans "Modifier la spécialité" %}
+        {% trans "Modifier la filière" %}
       </h2>
       <button type="button" class="modal-close-fullscreen" id="closeModifierFiliereModal" aria-label="{% trans 'Fermer' %}">
         <i class="fas fa-times"></i>
@@ -13,23 +13,29 @@
     </div>
     <form method="post" id="formModifierFiliere" class="modal-form-fullscreen" data-action-template="{% url 'administrateur_etablissement:modifier_filiere' 0 %}">
       {% csrf_token %}
+      <p class="form-text">{% trans "Une filière regroupe les classes d’une même formation, par exemple Informatique. Seuls le nom et le code court sont obligatoires." %}</p>
       <div class="form-group">
-        <label class="form-label" for="modifier_nom_filiere">{% trans "Nom de la spécialité *" %}</label>
+        <label class="form-label" for="modifier_nom_filiere">{% trans "Nom de la filière *" %}</label>
         <input type="text" class="form-control" id="modifier_nom_filiere" name="nom_filiere" required placeholder="{% trans 'Ex: Logistique et Transport, Informatique' %}">
       </div>
       <div class="form-group">
-        <label class="form-label" for="modifier_sigle_filiere">{% trans "Code / Sigle de la spécialité *" %}</label>
+        <label class="form-label" for="modifier_sigle_filiere">{% trans "Code court de la filière *" %}</label>
         <input type="text" class="form-control" id="modifier_sigle_filiere" name="sigle_filiere" required maxlength="12" placeholder="{% trans 'Ex: GL, TL, QHSE' %}" style="text-transform: uppercase;">
         <small class="form-text">{% trans "Utilisé sur les bulletins et relevés de notes (2 à 12 caractères)." %}</small>
       </div>
+      <details class="classe-options">
+        <summary>{% trans "Informations complémentaires (facultatif)" %}</summary>
       <div class="form-group">
-        <label class="form-label" for="modifier_domaine">{% trans "Domaine" %}</label>
-        <input type="text" class="form-control" id="modifier_domaine" name="domaine" placeholder="{% trans 'Ex: Sciences et Technologies, Sciences Humaines' %}">
+        <label class="form-label" for="modifier_domaine">{% trans "Domaine (facultatif)" %}</label>
+        <input type="text" class="form-control" id="modifier_domaine" aria-describedby="modifier_domaine-aide" name="domaine" placeholder="{% trans 'Ex: Sciences et Technologies, Sciences Humaines' %}">
+        <small class="form-text" id="modifier_domaine-aide">{% trans "Grand domaine d’études, par exemple Sciences et Technologies. Vous pouvez laisser ce champ vide." %}</small>
       </div>
       <div class="form-group">
-        <label class="form-label" for="modifier_mention">{% trans "Mention" %}</label>
-        <input type="text" class="form-control" id="modifier_mention" name="mention" placeholder="{% trans 'Ex: Informatique, Logistique' %}">
+        <label class="form-label" for="modifier_mention">{% trans "Mention (facultatif)" %}</label>
+        <input type="text" class="form-control" id="modifier_mention" aria-describedby="modifier_mention-aide" name="mention" placeholder="{% trans 'Ex: Informatique, Logistique' %}">
+        <small class="form-text" id="modifier_mention-aide">{% trans "Intitulé officiel figurant sur le diplôme, si votre établissement en utilise un. Sinon, laissez vide." %}</small>
       </div>
+      </details>
       <div class="modal-actions-fullscreen">
         <button type="button" class="btn-cancel" id="cancelModifierFiliere">{% trans "Annuler" %}</button>
         <button type="submit" class="btn-submit"><i class="fas fa-save"></i> {% trans "Enregistrer" %}</button>
@@ -38,13 +44,13 @@
   </div>
 </div>
 
-<!-- Modal - Ajouter une spécialité -->
+<!-- Modal - Ajouter une filière -->
 <div class="modal-overlay-fullscreen modal-filiere-fullscreen" id="addFiliereModal">
   <div class="modal-container-fullscreen">
     <div class="modal-header-fullscreen">
       <h2 class="modal-title-fullscreen">
         <i class="fas fa-sitemap"></i>
-        {% trans "Ajouter une spécialité" %}
+        {% trans "Ajouter une filière" %}
       </h2>
       <button type="button" class="modal-close-fullscreen" id="closeFiliereModal" aria-label="{% trans 'Fermer' %}">
         <i class="fas fa-times"></i>
@@ -52,26 +58,32 @@
     </div>
     <form method="post" action="{% url 'administrateur_etablissement:ajouter_filiere' %}" class="modal-form-fullscreen">
       {% csrf_token %}
+      <p class="form-text">{% trans "Une filière regroupe les classes d’une même formation, par exemple Informatique. Seuls le nom et le code court sont obligatoires." %}</p>
       <div class="form-group">
-        <label class="form-label" for="nom_filiere">{% trans "Nom de la spécialité *" %}</label>
+        <label class="form-label" for="nom_filiere">{% trans "Nom de la filière *" %}</label>
         <input type="text" class="form-control" id="nom_filiere" name="nom_filiere" required placeholder="{% trans 'Ex: Logistique et Transport, Informatique' %}">
       </div>
       <div class="form-group">
-        <label class="form-label" for="sigle_filiere">{% trans "Code / Sigle de la spécialité *" %}</label>
+        <label class="form-label" for="sigle_filiere">{% trans "Code court de la filière *" %}</label>
         <input type="text" class="form-control" id="sigle_filiere" name="sigle_filiere" required maxlength="12" placeholder="{% trans 'Ex: GL, TL, QHSE' %}" style="text-transform: uppercase;">
         <small class="form-text">{% trans "Utilisé sur les bulletins et relevés de notes (2 à 12 caractères)." %}</small>
       </div>
+      <details class="classe-options">
+        <summary>{% trans "Informations complémentaires (facultatif)" %}</summary>
       <div class="form-group">
-        <label class="form-label" for="domaine">{% trans "Domaine" %}</label>
-        <input type="text" class="form-control" id="domaine" name="domaine" placeholder="{% trans 'Ex: Sciences et Technologies, Sciences Humaines' %}">
+        <label class="form-label" for="domaine">{% trans "Domaine (facultatif)" %}</label>
+        <input type="text" class="form-control" id="domaine" aria-describedby="domaine-aide" name="domaine" placeholder="{% trans 'Ex: Sciences et Technologies, Sciences Humaines' %}">
+        <small class="form-text" id="domaine-aide">{% trans "Grand domaine d’études, par exemple Sciences et Technologies. Vous pouvez laisser ce champ vide." %}</small>
       </div>
       <div class="form-group">
-        <label class="form-label" for="mention">{% trans "Mention" %}</label>
-        <input type="text" class="form-control" id="mention" name="mention" placeholder="{% trans 'Ex: Informatique, Logistique' %}">
+        <label class="form-label" for="mention">{% trans "Mention (facultatif)" %}</label>
+        <input type="text" class="form-control" id="mention" aria-describedby="mention-aide" name="mention" placeholder="{% trans 'Ex: Informatique, Logistique' %}">
+        <small class="form-text" id="mention-aide">{% trans "Intitulé officiel figurant sur le diplôme, si votre établissement en utilise un. Sinon, laissez vide." %}</small>
       </div>
+      </details>
       <div class="modal-actions-fullscreen">
         <button type="button" class="btn-cancel" id="cancelFiliere">{% trans "Annuler" %}</button>
-        <button type="submit" class="btn-submit"><i class="fas fa-save"></i> {% trans "Créer la spécialité" %}</button>
+        <button type="submit" class="btn-submit"><i class="fas fa-save"></i> {% trans "Créer la filière" %}</button>
       </div>
     </form>
   </div>

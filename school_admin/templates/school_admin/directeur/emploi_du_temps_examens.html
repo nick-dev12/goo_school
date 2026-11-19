@@ -37,7 +37,7 @@
                 <h1 class="hb-head__title">{% trans "Emploi du temps des examens" %}</h1>
             </div>
             <div class="hb-head__actions">
-                <button type="button" class="cg3-btn cg3-btn--primary" onclick="openModal()"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter une épreuve" %}</button>
+                <button type="button" class="cg3-btn cg3-btn--primary" onclick="openModal()" {% if not sessions_avec_grille %}disabled title="Créez une session avant de planifier une épreuve"{% endif %}><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Ajouter une épreuve" %}</button>
                 <button type="button" class="cg3-btn" onclick="printTimetable()"><i class="fas fa-print" aria-hidden="true"></i>{% trans "Imprimer" %}</button>
                 <a href="{% url 'directeur:gestion_examens' %}" class="cg3-btn"><i class="fas fa-clipboard-list" aria-hidden="true"></i>{% trans "Sessions" %}</a>
             </div>

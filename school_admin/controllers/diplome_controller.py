@@ -1,10 +1,12 @@
 """Diplômes du supérieur : classes de fin de cycle, éligibilité, délivrance, impression."""
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
 from ..model.admission_model import Diplome
 from ..model.classe_model import Classe
+from ..model.etablissement_model import Etablissement
 from ..services import diplomes as svc
 from ..services.deliberations import etudiants
 from ..utils.decorators_permissions import require_permission
@@ -48,27 +50,56 @@ def diplomes_classe(request, classe_id):
     etablissement, annee = _acces(request)
     if etablissement is None:
         return redirect('directeur:dashboard_directeur')
-    classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement)
+    classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, niveau='superieur')
+    if etablissement.type_etablissement != 'superieur':
+        return HttpResponseForbidden()
+    peut_modifier = isinstance(request.user, Etablissement)
     eleves = etudiants(classe, annee) if annee else []
     if request.method == 'POST':
+        if not peut_modifier:
+            return HttpResponseForbidden("Seul le directeur peut délivrer ou annuler une attestation.")
         action = request.POST.get('action')
         if action == 'delivrer':
-            ids = {int(x) for x in request.POST.getlist('eleves') if x.isdigit()}
-            choisis = [e for e in eleves if not ids or e.id in ids]
-            crees = svc.delivrer(classe, choisis, annee)
-            if crees:
-                messages.success(request, f"{len(crees)} diplôme(s) délivré(s).")
+            valeurs = request.POST.getlist('eleves')
+            ids = {int(x) for x in valeurs if x.isascii() and x.isdigit() and len(x) < 20}
+            if not ids:
+                messages.warning(request, "Sélectionnez au moins un étudiant")
+            elif len(ids) != len(set(valeurs)) or not ids <= {e.pk for e in eleves}:
+                return HttpResponseBadRequest("Sélection invalide ou étrangère à la classe.")
             else:
-                messages.warning(request, "Aucun étudiant éligible sans diplôme dans la sélection.")
+                try:
+                    crees = svc.delivrer(classe, [e for e in eleves if e.pk in ids], annee)
+                except ValueError as exc:
+                    return HttpResponseBadRequest(str(exc))
+                messages.success(request, f"{len(crees)} attestation(s) provisoire(s) délivrée(s).")
         elif action == 'annuler':
-            d = get_object_or_404(Diplome, id=request.POST.get('id'), etablissement=etablissement)
-            svc.annuler(d)
-            messages.warning(request, f"Diplôme {d.numero} annulé.")
+            if request.POST.get('confirmation') != 'oui':
+                return HttpResponseBadRequest("Confirmez l'annulation.")
+            identifiant = request.POST.get('id', '')
+            if not identifiant.isascii() or not identifiant.isdigit() or len(identifiant) > 18:
+                return HttpResponseBadRequest("Référence invalide.")
+            d = get_object_or_404(Diplome, id=identifiant,
+                                  classe=classe, etablissement=etablissement)
+            try:
+                svc.annuler(d, request.user, request.POST.get('motif'))
+            except ValueError as exc:
+                return HttpResponseBadRequest(str(exc))
+            messages.warning(request, f"Attestation {d.numero} annulée.")
+        else:
+            return HttpResponseBadRequest("Action inconnue.")
         return redirect('directeur:diplomes_classe', classe_id=classe.id)
     lignes = svc.situation(classe, eleves)
+    from ..model.sync_action_model import SyncAction
+    historique = list(Diplome.objects.filter(classe=classe, etablissement=etablissement, annule=True))
+    traces = {t.resultat.get('diplome_id'): t for t in SyncAction.objects.filter(
+        resource='diplome', action='CANCEL', resultat__etablissement_id=etablissement.pk,
+        resultat__classe_id=classe.pk)}
+    for document in historique:
+        document.trace_annulation = traces.get(document.pk)
     return render(request, 'school_admin/directeur/diplomes/classe.html', {
         'etablissement': etablissement, 'annee_scolaire_active': annee, 'classe': classe,
-        'info': svc.diplome_de(classe), 'lignes': lignes,
+        'info': svc.diplome_de(classe), 'lignes': lignes, 'peut_modifier': peut_modifier,
+        'historique': historique,
         'nb_eligibles': sum(1 for l in lignes if l['eligible'] and not l['diplome']),
         'nb_delivres': sum(1 for l in lignes if l['diplome']),
     })
@@ -82,4 +113,6 @@ def imprimer_diplome(request, diplome_id):
         return redirect('directeur:dashboard_directeur')
     d = get_object_or_404(Diplome.objects.select_related('eleve', 'classe', 'annee_scolaire'), id=diplome_id,
                           etablissement=etablissement)
+    if d.annule:
+        return HttpResponseForbidden("Cette attestation est annulée et ne peut plus être imprimée.")
     return render(request, 'school_admin/directeur/diplomes/attestation.html', {'d': d, 'etablissement': etablissement})

@@ -80,45 +80,134 @@ def _capitalisations(eleve, exclure_deliberation=None, annee=None):
     return {c.module_id: c for c in qs}
 
 
-def lignes_eleve(eleve, classe, periodes, annee, exclure_deliberation=None):
-    """Lignes EC (MoyennePeriode) du ou des semestres, avec les UE déjà capitalisées marquées."""
+def lignes_eleve(eleve, classe, periodes, annee, exclure_deliberation=None, cache=None):
+    cache = {} if cache is None else cache
+    """Programme attendu, y compris les cours dont aucune moyenne n'est enregistree."""
     from school_admin.model.module_model import ModuleClasse
+    from school_admin.model.matiere_model import Matiere
     from school_admin.model.moyenne_periode_model import MoyennePeriode
-
-    caps = _capitalisations(eleve, exclure_deliberation, annee)
-    par_periode = OrderedDict((p.id, []) for p in periodes)
-    rows = (MoyennePeriode.objects.filter(eleve=eleve, periode__in=periodes, est_moyenne_generale=False,
-                                          matiere__isnull=False)
-            .select_related('matiere', 'matiere__module'))
-    if annee is not None:
-        from django.db.models import Q
-        rows = rows.filter(Q(annee_scolaire=annee) | Q(annee_scolaire__isnull=True))
     from school_admin.services.maquette import module_ids_exclus
+    from school_admin.services.resultats_integrite import empreinte_moyenne
+    caps = _capitalisations(eleve, exclure_deliberation, annee)
     exclus = module_ids_exclus(eleve, classe, annee)
-    vus = set()
-    for r in rows:
-        m = r.matiere
-        if m.module_id and m.module_id in exclus:
-            continue  # UE d'un autre parcours ou option non choisie
-        cap = caps.get(m.module_id) if m.module_id else None
-        par_periode[r.periode_id].append({
-            'matiere': m,
-            'moyenne': None if r.moyenne_matiere is None else Decimal(str(r.moyenne_matiere)),
-            'coefficient': r.coefficient or m.coefficient or 1,
-            'credits': r.credits if r.credits is not None else (m.credits or 0),
-            'capitalisee': bool(cap),
-        })
-        if m.module_id:
-            vus.add(m.module_id)
-    # UE de la maquette déjà capitalisées mais sans note cette année (l'étudiant ne les repasse pas)
-    for mc in ModuleClasse.objects.filter(classe=classe, periode__in=periodes).select_related('module'):
+    resultat = OrderedDict((p.id, []) for p in periodes)
+    rows = MoyennePeriode.objects.filter(eleve=eleve, periode__in=periodes,
+        annee_scolaire=annee, etablissement_id=classe.etablissement_id,
+        est_moyenne_generale=False, matiere__isnull=False).select_related('matiere','eleve')
+    moyennes = {(r.periode_id, r.matiere_id): r for r in rows}
+    cle_programme = ('programme_jury',classe.pk,tuple(p.pk for p in periodes))
+    if cle_programme not in cache:
+        cache[cle_programme] = list(ModuleClasse.objects.filter(classe=classe,periode__in=periodes).select_related('module'))
+    programme = cache[cle_programme]
+    for mc in programme:
+        if mc.module_id in exclus:
+            continue
         cap = caps.get(mc.module_id)
-        if cap and mc.module_id not in vus:
-            fictive = SimpleNamespace(id=f'cap-{mc.module_id}', module_id=mc.module_id, module=mc.module,
-                                      nom=mc.module.nom)
-            par_periode[mc.periode_id].append({'matiere': fictive, 'moyenne': cap.moyenne, 'coefficient': 1,
-                                               'credits': cap.credits or mc.credits, 'capitalisee': True})
-    return par_periode
+        if cap and Decimal(str(cap.credits or 0)) >= mc.credits:
+            fictive = SimpleNamespace(id=f'cap-{mc.module_id}', module_id=mc.module_id,
+                                     module=mc.module, nom=mc.module.nom)
+            resultat[mc.periode_id].append({'matiere':fictive,'moyenne':cap.moyenne,
+                'coefficient':1,'credits':mc.credits,'capitalisee':True, 'perimee':False})
+            continue
+        cle_ecs = ('ecs',classe.pk,mc.module_id)
+        if cle_ecs not in cache:
+            ecs = list(Matiere.objects.filter(module_id=mc.module_id, actif=True,
+                       etablissement_id=classe.etablissement_id, classes=classe).distinct().order_by('pk'))
+            if not ecs:
+                ecs = list(Matiere.objects.filter(module_id=mc.module_id, actif=True,
+                           etablissement_id=classe.etablissement_id).order_by('pk'))
+            cache[cle_ecs] = ecs
+        ecs = cache[cle_ecs]
+        if not ecs:
+            ecs = [SimpleNamespace(pk=f'vide-{mc.module_id}', id=f'vide-{mc.module_id}',
+                   module_id=mc.module_id,module=mc.module,nom=mc.module.nom,credits=mc.credits,coefficient=1)]
+        poids = sum((Decimal(str(m.credits or 0)) for m in ecs),D0)
+        restant = mc.credits
+        for i,m in enumerate(ecs):
+            credit = (restant if i == len(ecs)-1 else
+                      mc.credits * Decimal(str(m.credits or 0)) / poids if poids else mc.credits / len(ecs))
+            restant -= credit
+            r = moyennes.get((mc.periode_id,m.pk))
+            # Moyenne calculée avant l'ajout de l'empreinte (migration 0256) : à recalculer une fois.
+            ancienne = bool(r and not r.empreinte_sources)
+            perimee = bool(r and (ancienne or r.empreinte_sources != empreinte_moyenne(r,cache)))
+            valeur = None if not r or perimee or r.moyenne_matiere is None else Decimal(str(r.moyenne_matiere))
+            resultat[mc.periode_id].append({'matiere':m,'moyenne':valeur,'coefficient':m.coefficient or 1,
+                'credits':credit,'capitalisee':False,'perimee':perimee,'ancienne':ancienne})
+    return resultat
+
+
+def controle_resultats(classe, periodes, annee):
+    """Controle de preparation en lecture seule, commun au guide et aux actions du jury."""
+    from school_admin.model.module_model import ModuleClasse
+    from school_admin.services.maquette import inscription
+    periodes = list(periodes)
+    problemes, manquants, perimes = [], 0, 0
+    anciennes = {}  # nom du semestre -> nombre de moyennes calculées avant la mise à jour
+    cache = {}
+    eleves = etudiants(classe, annee) if annee else []
+    if not annee:
+        problemes.append('Aucune année académique sélectionnée.')
+    if not periodes:
+        problemes.append('Aucun semestre configuré pour cette classe.')
+    for periode in periodes:
+        if (periode.etablissement_id != classe.etablissement_id or periode.annee_scolaire_fk_id != getattr(annee,'pk',None)
+                or (classe.niveau_lmd and periode.niveau_lmd != classe.niveau_lmd)):
+            problemes.append('Le semestre ne correspond pas à la classe et à l’année sélectionnées.')
+        if not ModuleClasse.objects.filter(classe=classe,periode=periode).exists():
+            problemes.append(f'{periode.nom_periode} : programme non renseigné.')
+    if not eleves:
+        problemes.append('Aucun étudiant inscrit dans ce contexte.')
+    for eleve in eleves:
+        ins = inscription(eleve,annee)
+        mcs = list(ModuleClasse.objects.filter(classe=classe,periode__in=periodes))
+        if any(mc.parcours_id for mc in mcs) and not getattr(ins,'parcours_id',None):
+            problemes.append(f'{eleve.nom_complet} : parcours pédagogique à préciser.')
+        options = set(ins.ues_optionnelles.values_list('pk',flat=True)) if ins else set()
+        groupes = {}
+        for mc in mcs:
+            if mc.optionnelle and (not mc.parcours_id or mc.parcours_id == getattr(ins,'parcours_id',None)):
+                groupes.setdefault((mc.periode_id,mc.groupe_options),[]).append(mc)
+        for groupe in groupes.values():
+            if len(options.intersection(mc.pk for mc in groupe)) != max(mc.choix_requis for mc in groupe):
+                problemes.append(f'{eleve.nom_complet} : choix des options à compléter.')
+        lignes = lignes_eleve(eleve,classe,periodes,annee,cache=cache)
+        for periode in periodes:
+            ls = lignes[periode.pk]
+            if not ls or sum((ln['credits'] for ln in ls),D0) <= 0:
+                problemes.append(f'{eleve.nom_complet} — {periode.nom_periode} : programme sans crédits validables.')
+            for ln in ls:
+                if ln.get('perimee'):
+                    perimes += 1
+                    if ln.get('ancienne'):
+                        anciennes[periode.nom_periode] = anciennes.get(periode.nom_periode, 0) + 1
+                    else:
+                        problemes.append(f'{eleve.nom_complet} — {ln["matiere"].nom} : moyenne à recalculer.')
+                elif ln['moyenne'] is None and not ln.get('capitalisee'):
+                    manquants += 1
+                    problemes.append(f'{eleve.nom_complet} — {ln["matiere"].nom} : moyenne manquante.')
+    if anciennes:
+        detail = ', '.join(f'{nom} ({nb})' for nom, nb in anciennes.items())
+        problemes.insert(0, f'Moyennes calculées avant la mise à jour du contrôle des résultats : {detail}. '
+                            'Relancez une fois le calcul des moyennes de ce semestre dans Bulletins ; '
+                            'aucune note n’est perdue.')
+    problemes = list(dict.fromkeys(problemes))
+    return {'pret':not problemes,'problemes':problemes,'etudiants':len(eleves),
+            'manquants':manquants,'perimes':perimes,'anciennes':sum(anciennes.values())}
+
+
+def exiger_resultats(deliberation):
+    if deliberation.periode_id is None:
+        from school_admin.model.periode_model import semestres_choices_pour_niveau
+        attendus = {nom for nom, _ in semestres_choices_pour_niveau(deliberation.classe.niveau_lmd)}
+        presents = {p.nom_periode for p in periodes_de(deliberation)}
+        if attendus - presents:
+            raise DeliberationErreur('Bilan annuel incomplet : configurez tous les semestres du niveau.')
+    controle = controle_resultats(deliberation.classe, periodes_de(deliberation), deliberation.annee_scolaire)
+    if not controle['pret']:
+        raise DeliberationErreur('Résultats non prêts : ' + ' '.join(controle['problemes'][:8]) +
+                                ' Calculez les moyennes dans Bulletins avant de continuer.')
+    return controle
 
 
 # --------------------------------------------------------------------------- calcul d'une décision
@@ -169,7 +258,9 @@ def calculer(deliberation, eleve, points_jury=D0, regle=None):
         total = sum((u['credits'] for u in ues), D0)
         acquis = sum((u['credits'] for u in ues if u['acquise']), D0)
         pct = (acquis / total * 100) if total else D0
-        if total and acquis >= total:
+        if incomplet or not toutes:
+            decision = DecisionJury.INCOMPLET
+        elif total and acquis >= total:
             decision = (DecisionJury.ADMIS_COMPENSATION if any(u['mode'] == 'compensee' for u in ues)
                         else DecisionJury.ADMIS)
         elif total and regle.pourcentage_passage_conditionnel < 100 and pct >= regle.pourcentage_passage_conditionnel:
@@ -188,13 +279,25 @@ def calculer(deliberation, eleve, points_jury=D0, regle=None):
 
 
 # --------------------------------------------------------------------------- délibération
+@transaction.atomic
 def creer(etablissement, classe, annee, periode=None, session=Deliberation.SESSION_NORMALE):
+    from school_admin.model.classe_model import Classe
+    Classe.objects.select_for_update().get(pk=classe.pk)
     if classe.etablissement_id != etablissement.id:
         raise DeliberationErreur("Classe invalide.")
     existante = Deliberation.objects.filter(classe=classe, annee_scolaire=annee, periode=periode,
                                             session=session).first()
     if existante:
         return existante, False
+    if periode is None:
+        from school_admin.model.periode_model import semestres_choices_pour_niveau
+        attendus = {nom for nom, _ in semestres_choices_pour_niveau(classe.niveau_lmd)}
+        presents = {p.nom_periode for p in periodes_annee(classe,annee)}
+        if attendus - presents:
+            raise DeliberationErreur('Bilan annuel incomplet : configurez tous les semestres du niveau.')
+    controle = controle_resultats(classe, [periode] if periode else periodes_annee(classe,annee), annee)
+    if not controle['pret']:
+        raise DeliberationErreur('Résultats non prêts : ' + ' '.join(controle['problemes'][:8]))
     d = Deliberation.objects.create(etablissement=etablissement, classe=classe, annee_scolaire=annee,
                                     periode=periode, session=session, date_deliberation=timezone.localdate())
     preparer(d)
@@ -205,6 +308,7 @@ def preparer(deliberation):
     """(Re)calcule toutes les décisions en conservant les points et motifs déjà saisis."""
     if deliberation.est_cloturee:
         raise DeliberationErreur("La délibération est clôturée : rouvrez-la pour la modifier.")
+    exiger_resultats(deliberation)
     regle = moteur.regles(deliberation.etablissement)
     existantes = {d.eleve_id: d for d in deliberation.decisions.all()}
     with transaction.atomic():
@@ -226,6 +330,10 @@ def enregistrer_points(deliberation, saisies):
     """saisies : {eleve_id: (points, motif)}. Renvoie la liste des erreurs (rien n'est écrit s'il y en a)."""
     if deliberation.est_cloturee:
         return ["La délibération est clôturée : rouvrez-la pour modifier les points de jury."]
+    try:
+        exiger_resultats(deliberation)
+    except DeliberationErreur as exc:
+        return [str(exc)]
     regle = moteur.regles(deliberation.etablissement)
     maxi = Decimal(str(regle.points_jury_max))
     decisions = {d.eleve_id: d for d in deliberation.decisions.select_related('eleve')}
@@ -256,8 +364,35 @@ def enregistrer_points(deliberation, saisies):
     return []
 
 
+@transaction.atomic
 def cloturer(deliberation, par=''):
     """Clôture : décisions figées, UE acquises capitalisées, décisions reportées au bulletin, notes verrouillées."""
+    from school_admin.model.classe_model import Classe
+    Classe.objects.select_for_update().get(pk=deliberation.classe_id)
+    Deliberation.objects.select_for_update().get(pk=deliberation.pk)
+    deliberation.refresh_from_db()
+    # Verrouiller aussi les sources existantes : update/delete concurrrents ne peuvent
+    # passer entre le controle final et la publication des decisions.
+    from school_admin.model.evaluation_model import Evaluation, Note
+    from school_admin.model.note_examen_model import NoteExamen
+    from school_admin.model.moyenne_periode_model import MoyennePeriode
+    from school_admin.model.module_model import ModuleClasse
+    from school_admin.model.matiere_model import Matiere
+    from school_admin.model.session_examen_model import ReglesExamen
+    from school_admin.model.ponderation_model import Ponderation
+    pids = [p.pk for p in periodes_de(deliberation)]
+    sources = [
+        Evaluation.objects.filter(classe_id=deliberation.classe_id,periode_scolaire_id__in=pids),
+        Note.objects.filter(evaluation__classe_id=deliberation.classe_id,evaluation__periode_scolaire_id__in=pids),
+        NoteExamen.objects.filter(classe_id=deliberation.classe_id,session_examen__periode_id__in=pids),
+        MoyennePeriode.objects.filter(eleve_id__in=[e.pk for e in etudiants(deliberation.classe,deliberation.annee_scolaire)],periode_id__in=pids),
+        ModuleClasse.objects.filter(classe_id=deliberation.classe_id),
+        Matiere.objects.filter(etablissement_id=deliberation.etablissement_id),
+        ReglesExamen.objects.filter(etablissement_id=deliberation.etablissement_id),
+        Ponderation.objects.filter(etablissement_id=deliberation.etablissement_id),
+    ]
+    for queryset in sources:
+        list(queryset.order_by('pk').select_for_update().values_list('pk',flat=True))
     if deliberation.est_cloturee:
         return deliberation
     preparer(deliberation)

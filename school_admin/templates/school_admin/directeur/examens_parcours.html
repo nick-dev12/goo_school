@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Examens et jury</title>
+<link rel="stylesheet" href="/static/school_admin/vendor/fonts/poppins.css?v=1">
+<link rel="stylesheet" href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0">
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/examens_parcours.css' %}?v=1.0.1">
+</head><body>
+{% include 'school_admin/directeur/partials/header_directeur.html' %}
+<main class="examens-parcours">
+<nav aria-label="Retour"><a href="{% url 'directeur:gestion_pedagogique' %}">Retour à la pédagogie</a> · <a href="{% url 'directeur:gestion_examens' %}">Examens</a> · <a href="{% url 'directeur:liste_deliberations' %}">Délibérations</a></nav>
+<h1>Examens et jury</h1>
+{% if not periodes %}<p role="status">Aucun semestre compatible disponible. <a href="{% url 'directeur:gestion_periodes_scolaires' %}">Configurer les semestres</a> pour commencer.</p>{% endif %}<p>Choisissez le contexte, puis suivez les six étapes. Cette consultation ne calcule ni ne publie de résultats.</p>
+<p>Le contexte est conservé dans les liens du guide. Les actions de préparation concernent l’année active ; les autres années sont consultables sans ouvrir un calcul sur une autre année.</p>
+{% if annee and not annee.est_active %}<p id="ep-historique" role="status">Consultation historique : sélectionnez l’année active pour préparer un programme, calculer les moyennes ou délivrer des attestations. Les délibérations identifiées restent consultables dans leur propre année.</p>{% endif %}
+<form method="get" class="ep-contexte">
+<label>Année académique<select name="annee_id" required><option value="">Choisir…</option>{% for a in annees %}<option value="{{ a.id }}" {% if a.id == annee.id %}selected{% endif %}>{{ a.libelle }}</option>{% endfor %}</select></label>
+<label>Classe — Filière<select name="classe_id" required><option value="">Choisir…</option>{% for c in classes %}<option value="{{ c.id }}" {% if c.id == classe.id %}selected{% endif %}>{{ c.nom }}{% if c.department %} — {{ c.department.nom }}{% endif %}</option>{% endfor %}</select></label>
+<label>Portée<select name="portee" id="ep-portee"><option value="semestre" {% if portee == 'semestre' %}selected{% endif %}>Semestre</option><option value="annuelle" {% if portee == 'annuelle' %}selected{% endif %}>Année entière</option></select></label>
+<label id="ep-semestre" {% if portee == 'annuelle' %}hidden{% endif %}>Semestre<select name="periode_id" id="ep-periode"><option value="">Choisir…</option>{% for p in periodes %}<option value="{{ p.id }}" {% if p.id == periode.id %}selected{% endif %}>{{ p.nom_periode }}</option>{% endfor %}</select></label>
+<label>Session<select name="session">{% for code, label in sessions %}<option value="{{ code }}" {% if session == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<button type="submit">Afficher le parcours</button></form>
+{% if classe %}<p><strong>{{ classe.nom }}</strong> · Filière : {{ classe.department.nom|default:"À renseigner" }} · {{ annee.libelle }} · {% if portee == 'annuelle' %}Année entière{% else %}{{ periode.nom_periode|default:"Semestre à choisir" }}{% endif %}</p>{% endif %}
+{% if etapes %}
+<ol class="ep-etapes">{% for e in etapes %}<li><article><div class="ep-titre"><h2>{{ forloop.counter }}. {{ e.titre }}</h2><span class="ep-etat {% if e.pret %}ep-pret{% endif %}">{{ e.etat }}</span></div><p>{{ e.explication }}</p><a href="{{ e.url }}">{{ e.action }}</a></article></li>{% endfor %}</ol>
+<details><summary>Crédits attendus par étudiant dans ce contexte</summary><p>Programme selon les options et le parcours enregistrés, à confirmer par le contrôle de complétude.</p><ul>{% for ligne in credits_attendus %}<li>{{ ligne.eleve }} : {{ ligne.credits }} crédits</li>{% empty %}<li>Aucun étudiant inscrit.</li>{% endfor %}</ul></details>
+<section aria-labelledby="ep-controle"><h2 id="ep-controle">Contrôle des résultats</h2>{% for p in problemes %}<p>{{ p }}</p>{% endfor %}{% if controle.manquants %}<p>Des résultats sont manquants.</p>{% endif %}{% if controle.perimes %}<p>Des résultats sont périmés : recalcul requis.</p>{% endif %}</section>
+<section id="saisies"><h2>Saisies manquantes ou non soumises</h2><ul>{% for ligne in saisies_manquantes %}<li>{{ ligne.eleve }} — {{ ligne.matiere.nom }} — {{ ligne.session.nom_examen }} : {{ ligne.motif }}. Enseignant : {{ ligne.enseignant|default:"Non identifié sur une ligne de note" }}.</li>{% empty %}<li>Aucune ligne manquante identifiée dans les sessions du contexte. Cela ne certifie pas la complétude du programme ni des résultats.</li>{% endfor %}</ul></section>
+{% if documents_prets %}<p><a href="{{ attestations_url }}">Attestations provisoires de diplôme</a> : fin de cursus uniquement, après vérification des crédits acquis/requis et du dernier bilan, avec sélection volontaire des étudiants.</p>{% endif %}
+{% else %}<p role="status">Choisissez une année, une classe puis un semestre compatible, ou explicitement l’année entière. Après changement de classe ou d’année, rechargez les semestres disponibles.</p>{% endif %}
+<p>Capitalisation : une UE validée reste acquise selon les règles du cursus. Compensation : application des règles de l’établissement. Les UE à repasser concernent les résultats pédagogiques.</p>
+</main>
+<script>(function(){var p=document.getElementById('ep-portee'),s=document.getElementById('ep-periode'),w=document.getElementById('ep-semestre');function sync(){var annuel=p.value==='annuelle';w.hidden=annuel;s.disabled=annuel;}p.addEventListener('change',sync);sync();document.querySelectorAll('[name=classe_id],[name=annee_id]').forEach(function(e){e.addEventListener('change',function(){s.value='';});});})();</script>
+{% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+</body></html>

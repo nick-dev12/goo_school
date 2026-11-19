@@ -37,7 +37,17 @@
         .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; }
         .signatures div { border-top: 1px solid var(--ink); padding-top: 4px; min-height: 60px; font-size: 11px; }
         .mention-cachet { margin-top: 10px; font-size: 10.5px; color: var(--muted); text-align: right; }
+        .pv-table-hint { display: none; }
+        .pv-table-scroll { max-width: 100%; }
+        @media screen and (max-width: 820px) {
+            .pv-table-scroll { width: 100%; overflow-x: auto; }
+            .pv-table-scroll table { min-width: 680px; }
+            .pv-table-hint { display: block; font-size: 11px; color: var(--muted); }
+            .barre { flex-wrap: wrap; }
+        }
         @media print {
+            .pv-table-scroll { overflow: visible; }
+
             body { background: #fff; }
             .barre { display: none; }
             .page { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
@@ -75,6 +85,8 @@
         <div><span>{% trans "Date" %}</span><strong>{{ d.date_deliberation|date:"d/m/Y"|default:"—" }}</strong></div>
     </div>
 
+    <p class="pv-table-hint">Sur téléphone, faites glisser le tableau horizontalement pour lire toutes les colonnes.</p>
+    <div class="pv-table-scroll" role="region" aria-label="Résultats du procès-verbal" tabindex="0">
     <table>
         <thead><tr>
             <th>N°</th><th>{% trans "Matricule" %}</th><th>{% trans "Nom et prénom" %}</th><th>{% trans "Moy." %}</th>
@@ -98,6 +110,7 @@
         {% endfor %}
         </tbody>
     </table>
+    </div>
 
     <div class="stats">
         <div class="bloc">

@@ -15,6 +15,7 @@
         <form method="post" action="{% url 'administrateur_etablissement:ajouter_classe' %}" class="modal-form" id="addClasseForm">
           {% csrf_token %}
           
+          {% if est_superieur %}<p class="form-text">{% trans "Choisissez une filière, puis un niveau, un nom de groupe et sa capacité. Les champs marqués * sont obligatoires." %}</p>{% endif %}
           {% if field_errors %}
             <div class="alert alert-error">
               <i class="fas fa-exclamation-triangle"></i>
@@ -29,17 +30,17 @@
             <div class="cam-section-header">
               <div class="cam-section-icon cam-section-icon--acad"><i class="fas fa-university"></i></div>
               <div class="cam-section-titles">
-                <h3>{% trans "Contexte académique (LMD)" %}</h3>
-                <p>{% trans "Filière et niveau du cycle principal — ex. QHSE, Licence 2." %}</p>
+                <h3>{% trans "1. Choisir la filière et le niveau" %}</h3>
+                <p>{% trans "Exemple : filière Informatique, niveau Licence 2." %}</p>
               </div>
             </div>
             <div class="cam-form-grid cam-form-grid--2">
               <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" for="department">{% trans "Filière / spécialité *" %}</label>
+                <label class="form-label" for="department">{% trans "Filière *" %}</label>
                 <select class="form-control {% if field_errors.department %}is-invalid{% endif %}" id="department" name="department" required>
                   <option value="">{% trans "— Choisir —" %}</option>
                   {% if not departments %}
-                  <option value="" disabled>{% trans "Créez d'abord une spécialité." %}</option>
+                  <option value="" disabled>{% trans "Créez d'abord une filière, puis ajoutez sa première classe." %}</option>
                   {% endif %}
                   {% for dept in departments %}
                   <option value="{{ dept.id }}" {% if form_data.department == dept.id|stringformat:"d" %}selected{% endif %}>{{ dept.nom }}</option>
@@ -48,7 +49,7 @@
                 {% if field_errors.department %}<div class="invalid-feedback">{{ field_errors.department }}</div>{% endif %}
               </div>
               <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" for="niveau_lmd">{% trans "Niveau LMD / formation *" %}</label>
+                <label class="form-label" for="niveau_lmd">{% trans "Niveau de formation *" %}</label>
                 <select class="form-control {% if field_errors.niveau_lmd %}is-invalid{% endif %}" id="niveau_lmd" name="niveau_lmd" required>
                   {% for niveau_code, niveau_label in niveau_lmd_choices %}
                   <option value="{{ niveau_code }}" {% if form_data.niveau_lmd == niveau_code or niveau_code == 'L1' and not form_data.niveau_lmd %}selected{% endif %}>{{ niveau_label }}</option>
@@ -68,51 +69,15 @@
             <div class="cam-section-header">
               <div class="cam-section-icon cam-section-icon--id"><i class="fas fa-signature"></i></div>
               <div class="cam-section-titles">
-                <h3>{% trans "Nom de la classe" %}</h3>
-                <p>{% trans "Section, groupe ou intitulé affiché (ex. QHSE A)." %}</p>
+                <h3>{% trans "2. Nommer la classe" %}</h3>
+                <p>{% trans "Exemple : INFO L2 A pour le groupe A de Licence 2 Informatique." %}</p>
               </div>
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label class="form-label" for="nom">{% trans "Nom *" %}</label>
-              <input type="text" class="form-control {% if field_errors.nom %}is-invalid{% endif %}" id="nom" name="nom" value="{{ form_data.nom }}" placeholder="{% trans 'Ex: QHSE A, Section B' %}" required>
+              <input type="text" class="form-control {% if field_errors.nom %}is-invalid{% endif %}" id="nom" name="nom" value="{{ form_data.nom }}" placeholder="{% trans 'Ex: INFO L2 A, groupe B' %}" required>
               {% if field_errors.nom %}<div class="invalid-feedback">{{ field_errors.nom }}</div>{% endif %}
             </div>
-          </div>
-
-          <div class="cam-section cam-section--parcours">
-            <div class="cam-section-header">
-              <div class="cam-section-icon cam-section-icon--parcours"><i class="fas fa-route"></i></div>
-              <div class="cam-section-titles">
-                <h3>{% trans "Examens & concours accessibles" %}</h3>
-                <p>{% trans "Sélection multiple : concours BTS, BT, DUT, certifications… en complément du parcours LMD." %}</p>
-              </div>
-            </div>
-            <div class="cam-hint-banner">
-              <i class="fas fa-info-circle"></i>
-              <span>{% trans "Exemple : une Licence 2 QHSE peut préparer concours BTS ou BT sans quitter le cadre LMD. Aucune sélection = parcours standard uniquement." %}</span>
-            </div>
-            {% for grp in catalogue_examens_groupes %}
-            <div class="cam-examen-categorie">
-              <p class="cam-examen-categorie-title">{{ grp.label }}</p>
-              <div class="cam-examen-grid">
-                {% for op in grp.items %}
-                <label class="cam-examen-card" for="ec-{{ op.id }}">
-                  <input type="checkbox" name="examens_concours_ids" value="{{ op.id }}" id="ec-{{ op.id }}"
-                    {% with sid=op.id|stringformat:"s" %}{% if sid in form_data.examens_concours_ids %}checked{% endif %}{% endwith %}>
-                  <span class="cam-examen-card-body">
-                    <span class="cam-examen-check"><i class="fas fa-check"></i></span>
-                    <span class="cam-examen-text">
-                      <strong>{{ op.libelle }}</strong>
-                      {% if op.description %}<small>{{ op.description }}</small>{% endif %}
-                    </span>
-                  </span>
-                </label>
-                {% endfor %}
-              </div>
-            </div>
-            {% empty %}
-            <p class="text-muted" style="font-size:.875rem;">{% trans "Catalogue vide — contactez l'administrateur." %}</p>
-            {% endfor %}
           </div>
 
           {% else %}
@@ -136,13 +101,13 @@
             <div class="cam-section-header">
               <div class="cam-section-icon cam-section-icon--org"><i class="fas fa-users-cog"></i></div>
               <div class="cam-section-titles">
-                <h3>{% trans "Capacité et informations" %}</h3>
+                <h3>{% if est_superieur %}{% trans "3. Indiquer la capacité" %}{% else %}{% trans "Capacité et informations" %}{% endif %}</h3>
                 <p>{% trans "Effectif maximal et remarques internes." %}</p>
               </div>
             </div>
             <div class="cam-form-grid cam-form-grid--2">
               <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" for="capacite_max">{% trans "Capacité max. *" %}</label>
+                <label class="form-label" for="capacite_max">{% if est_superieur %}{% trans "Nombre maximal d’étudiants *" %}{% else %}{% trans "Capacité maximale *" %}{% endif %}</label>
                 <input type="number" class="form-control {% if field_errors.capacite_max %}is-invalid{% endif %}" id="capacite_max" name="capacite_max" value="{{ form_data.capacite_max }}" min="1" max="100" placeholder="30" required>
                 {% if field_errors.capacite_max %}<div class="invalid-feedback">{{ field_errors.capacite_max }}</div>{% endif %}
               </div>
@@ -153,6 +118,45 @@
             </div>
           </div>
           
+          {% if est_superieur %}
+          <details class="cam-section cam-section--parcours classe-options" {% if form_data.examens_concours_ids %}open{% endif %}>
+            <summary>{% trans "Options avancées : examens et concours (facultatif)" %}</summary>
+            <div class="cam-section-header">
+              <div class="cam-section-icon cam-section-icon--parcours"><i class="fas fa-route"></i></div>
+              <div class="cam-section-titles">
+                <h3>{% trans "Examens & concours accessibles" %}</h3>
+                <p>{% trans "Facultatif : choisissez uniquement les examens supplémentaires préparés par cette classe." %}</p>
+              </div>
+            </div>
+            <div class="cam-hint-banner">
+              <i class="fas fa-info-circle"></i>
+              <span>{% trans "Laissez cette partie vide si la classe suit seulement son programme habituel." %}</span>
+            </div>
+            {% for grp in catalogue_examens_groupes %}
+            <div class="cam-examen-categorie">
+              <p class="cam-examen-categorie-title">{{ grp.label }}</p>
+              <div class="cam-examen-grid">
+                {% for op in grp.items %}
+                <label class="cam-examen-card" for="ec-{{ op.id }}">
+                  <input type="checkbox" name="examens_concours_ids" value="{{ op.id }}" id="ec-{{ op.id }}"
+                    {% with sid=op.id|stringformat:"s" %}{% if sid in form_data.examens_concours_ids %}checked{% endif %}{% endwith %}>
+                  <span class="cam-examen-card-body">
+                    <span class="cam-examen-check"><i class="fas fa-check"></i></span>
+                    <span class="cam-examen-text">
+                      <strong>{{ op.libelle }}</strong>
+                      {% if op.description %}<small>{{ op.description }}</small>{% endif %}
+                    </span>
+                  </span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+            {% empty %}
+            <p class="text-muted" style="font-size:.875rem;">{% trans "Aucun examen supplémentaire proposé. Vous pouvez créer la classe sans cette option." %}</p>
+            {% endfor %}
+          </details>
+
+          {% endif %}
           <div class="modal-actions">
             <button type="button" class="btn-cancel" id="cancelAdd">
               <i class="fas fa-times"></i>

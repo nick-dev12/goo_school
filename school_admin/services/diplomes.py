@@ -94,17 +94,35 @@ def delivrer(classe, eleves, annee, date=None):
     """Délivre le diplôme aux étudiants éligibles (pas de doublon). Renvoie la liste des diplômes créés."""
     from school_admin.model.admission_model import Diplome
 
-    info = diplome_de(classe)
-    if not info:
-        return []
-    intitule, grade, _ = info
-    domaine = ''
-    if classe.department_id:
-        dep = classe.department
-        domaine = dep.mention or dep.nom
     crees = []
     with transaction.atomic():
-        for l in situation(classe, eleves):
+        from school_admin.model.classe_model import Classe
+        from school_admin.model.etablissement_model import Etablissement
+        from school_admin.services.deliberations import etudiants
+
+        # Même ordre pour délivrance et annulation. Le verrou établissement protège
+        # aussi la numérotation partagée par plusieurs classes du même niveau.
+        Etablissement.objects.select_for_update().get(pk=classe.etablissement_id)
+        classe = Classe.objects.select_for_update().get(pk=classe.pk)
+        if classe.niveau != 'superieur' or classe.etablissement.type_etablissement != 'superieur':
+            raise ValueError("Classe non autorisée pour une attestation.")
+        info = diplome_de(classe)
+        if not info or not annee or annee.etablissement_id != classe.etablissement_id:
+            return []
+        intitule, grade, _ = info
+        domaine = ''
+        if classe.department_id:
+            dep = classe.department
+            domaine = dep.mention or dep.nom
+        demandes = {e.pk for e in eleves}
+        autorises = {e.pk: e for e in etudiants(classe, annee)
+                     if e.etablissement_id == classe.etablissement_id}
+        if not demandes <= autorises.keys():
+            raise ValueError("La sélection contient un étudiant étranger à la classe.")
+        lignes = situation(classe, [autorises[pk] for pk in sorted(demandes)])
+        if any(not l['eligible'] and not l['diplome'] for l in lignes):
+            raise ValueError("La sélection contient un étudiant inéligible.")
+        for l in lignes:
             if not l['eligible'] or l['diplome']:
                 continue
             crees.append(Diplome.objects.create(
@@ -117,7 +135,33 @@ def delivrer(classe, eleves, annee, date=None):
     return crees
 
 
-def annuler(diplome):
-    diplome.annule = True
-    diplome.save(update_fields=['annule'])
+def annuler(diplome, auteur, motif):
+    """Annulation tracée ; une redélivrance conserve cette référence et sa trace."""
+    from uuid import uuid4
+    from school_admin.model.admission_model import Diplome
+    from school_admin.model.classe_model import Classe
+    from school_admin.model.etablissement_model import Etablissement
+    from school_admin.model.sync_action_model import SyncAction
+
+    motif = (motif or '').strip()
+    if not isinstance(auteur, Etablissement) or auteur.pk != diplome.etablissement_id:
+        raise PermissionError("Seul le directeur de cet établissement peut annuler.")
+    if not motif:
+        raise ValueError("Le motif d'annulation est obligatoire.")
+    with transaction.atomic():
+        Etablissement.objects.select_for_update().get(pk=diplome.etablissement_id)
+        if diplome.classe_id:
+            Classe.objects.select_for_update().get(pk=diplome.classe_id)
+        d = Diplome.objects.select_for_update().get(pk=diplome.pk)
+        if d.annule:
+            return
+        SyncAction.objects.create(
+            client_uuid=str(uuid4()), resource='diplome', action='CANCEL',
+            utilisateur_id=auteur.pk, utilisateur_type='etablissement',
+            resultat={'diplome_id': d.pk, 'numero': d.numero, 'classe_id': d.classe_id,
+                      'etablissement_id': d.etablissement_id, 'motif': motif,
+                      'auteur': str(auteur), 'date': timezone.now().isoformat()})
+        d.annule = True
+        d.save(update_fields=['annule'])
+        diplome.annule = True
     return diplome

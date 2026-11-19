@@ -26,13 +26,13 @@
             <div class="fe-kpi fe-tone-orange"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Éligibles à délivrer" %}</span><span class="fe-kpi__icon"><i class="fas fa-hourglass-half"></i></span></div><p class="fe-kpi__value">{{ nb_eligibles }}</p></div>
             <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Délivrés" %}</span><span class="fe-kpi__icon"><i class="fas fa-award"></i></span></div><p class="fe-kpi__value">{{ nb_delivres }}</p></div>
         </section>
-        <form method="post" class="dlb-card">
+        <form method="post" class="dlb-card" id="delivrance" data-classe="{{ classe.nom }}" data-annee="{{ annee_scolaire_active }}">
             {% csrf_token %}<input type="hidden" name="action" value="delivrer">
             <div class="dlb-card__head"><h2><i class="fas fa-list-check"></i> {% trans "Situation des étudiants" %}</h2><span class="dlb-help">{% trans "Les crédits viennent des UE capitalisées lors des délibérations clôturées." %}</span></div>
             <div class="dlb-table-wrap"><table class="dlb-table">
                 <thead><tr><th></th><th>{% trans "Étudiant" %}</th><th>{% trans "Crédits" %}</th><th>{% trans "Dernier bilan" %}</th><th>{% trans "Mention" %}</th><th>{% trans "Diplôme" %}</th></tr></thead>
                 <tbody>{% for l in lignes %}<tr>
-                    <td data-label="">{% if l.eligible and not l.diplome %}<input type="checkbox" name="eleves" value="{{ l.eleve.id }}" checked aria-label="{% trans 'Sélectionner' %}">{% endif %}</td>
+                    <td data-label="">{% if peut_modifier and l.eligible and not l.diplome %}<input type="checkbox" name="eleves" value="{{ l.eleve.id }}" data-nom="{{ l.eleve.nom }} {{ l.eleve.prenom }}" aria-label="{% trans 'Sélectionner' %}">{% endif %}</td>
                     <td class="dlb-etu"><strong>{{ l.eleve.nom|upper }} {{ l.eleve.prenom }}</strong><small>{{ l.eleve.matricule_eleve|default:l.eleve.numero_eleve }}</small></td>
                     <td data-label="{% trans 'Crédits' %}" class="dlb-credits"><span class="dlb-num">{{ l.credits|floatformat:"-2" }} / {{ l.requis|floatformat:"-2" }}</span><div class="dlb-credits__bar"><span style="width: {{ l.pct }}%"></span></div></td>
                     <td data-label="{% trans 'Dernier bilan' %}">{% if l.decision %}<span class="dlb-dec dlb-dec--{{ l.decision.decision }}">{{ l.decision.get_decision_display }}</span>{% if l.moyenne is not None %}<span class="dlb-mention">{{ l.moyenne|floatformat:2 }}/20</span>{% endif %}{% else %}—{% endif %}</td>
@@ -44,8 +44,61 @@
                     </td>
                 </tr>{% empty %}<tr><td colspan="6"><div class="dlb-vide">{% trans "Aucun étudiant." %}</div></td></tr>{% endfor %}</tbody>
             </table></div>
-            {% if nb_eligibles %}<div class="dlb-actions-bar"><button type="submit" class="cg3-btn cg3-btn--primary" onclick="return confirm('{% trans "Délivrer le diplôme aux étudiants sélectionnés ?" %}')"><i class="fas fa-award"></i> {% trans "Délivrer les diplômes" %}</button></div>{% endif %}
+            {% if peut_modifier and nb_eligibles %}<div class="dlb-actions-bar">
+                <span id="compteur" aria-live="polite">0 étudiant sélectionné</span>
+                <button type="button" id="tout-selectionner">Tout sélectionner</button>
+                <button type="submit" id="delivrer" disabled> Délivrer les attestations provisoires de diplôme</button>
+            </div>{% endif %}
         </form>
+        <p>Document délivré : attestation provisoire de diplôme, en attendant le diplôme définitif.
+        Après annulation, une redélivrance crée une nouvelle référence et conserve l'ancienne.</p>
+        {% if peut_modifier %}
+        {% for l in lignes %}{% if l.diplome %}
+        <form method="post" class="annulation">
+            {% csrf_token %}<input type="hidden" name="action" value="annuler">
+            <input type="hidden" name="id" value="{{ l.diplome.pk }}">
+            <p>Annuler cette attestation : {{ l.diplome.numero }} — {{ l.eleve.nom }} {{ l.eleve.prenom }} — {{ l.diplome.date_delivrance|date:"d/m/Y" }}</p>
+            <label>Motif obligatoire <textarea name="motif" required></textarea></label>
+            <label><input type="checkbox" name="confirmation" value="oui" required> Je confirme l'annulation de cette attestation.</label>
+            <button type="submit">Annuler cette attestation</button>
+        </form>
+        {% endif %}{% endfor %}
+        {% endif %}
+        {% for d in historique %}<p>Attestation annulée : {{ d.numero }} — {{ d.eleve }} — {{ d.date_delivrance|date:"d/m/Y" }}. Réimpression interdite.
+        {% if d.trace_annulation %}Annulée le {{ d.trace_annulation.date_creation|date:"d/m/Y H:i" }}
+        par {{ d.trace_annulation.resultat.auteur }} — Motif : {{ d.trace_annulation.resultat.motif }}
+        {% else %}Trace d'annulation antérieure indisponible.{% endif %}</p>{% endfor %}
+        <script>
+        (() => {
+            const form = document.getElementById('delivrance');
+            const boxes = Array.from(form.querySelectorAll('input[name="eleves"]'));
+            const button = document.getElementById('delivrer');
+            const selected = () => boxes.filter(box => box.checked);
+            const update = () => {
+                if (!button) return;
+                button.disabled = selected().length === 0;
+                document.getElementById('compteur').textContent = selected().length + ' étudiant(s) sélectionné(s)';
+            };
+            boxes.forEach(box => box.addEventListener('change', update));
+            document.getElementById('tout-selectionner')?.addEventListener('click', () => {
+                boxes.forEach(box => { box.checked = true; }); update();
+            });
+            form.addEventListener('submit', event => {
+                const choix = selected();
+                const texte = 'Délivrer ' + choix.length + ' attestation(s) provisoire(s) de diplôme ?\nClasse : '
+                    + form.dataset.classe + '\nAnnée : ' + form.dataset.annee + '\n'
+                    + choix.map(box => box.dataset.nom).join('\n');
+                if (!choix.length || !window.confirm(texte)) event.preventDefault();
+            });
+            document.querySelectorAll('.annulation').forEach(annulation => {
+                annulation.addEventListener('submit', event => {
+                    if (!window.confirm(annulation.querySelector('p').textContent + '\nMotif : '
+                        + annulation.querySelector('textarea').value)) event.preventDefault();
+                });
+            });
+            update();
+        })();
+        </script>
     </div>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
     {% include 'school_admin/partials/directeur_live_scripts.html' %}

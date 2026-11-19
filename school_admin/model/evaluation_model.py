@@ -220,6 +220,11 @@ class Note(models.Model):
     def __str__(self):
         return f"{self.eleve.nom_complet} - {self.evaluation.titre} : {self.note}/{self.evaluation.bareme}"
     
+    def save(self, *args, **kwargs):
+        from school_admin.services.verrou_notes import verrou_note
+        with verrou_note(self.evaluation.classe_id, self.evaluation.periode_scolaire):
+            return super().save(*args, **kwargs)
+
     @property
     def note_sur_20(self):
         """Convertit la note sur 20"""

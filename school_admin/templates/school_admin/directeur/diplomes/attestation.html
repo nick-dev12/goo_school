@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% trans "Attestation de diplôme" %} — {{ d.numero }}</title>
+    <title>{% trans "Attestation provisoire de diplôme" %} — {{ d.numero }}</title>
     <style>
         * { box-sizing: border-box; }
         body { margin: 0; background: #e2e8f0; font-family: Georgia, "Times New Roman", serif; color: #0f172a; }
@@ -28,6 +28,12 @@
         .annule { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 80px; color: rgba(220, 38, 38, .25); transform: rotate(-18deg); font-family: Arial; font-weight: 800; pointer-events: none; }
         @media print { body { background: #fff; } .barre { display: none; } .feuille { margin: 0; box-shadow: none; width: auto; min-height: 0; } @page { size: A4 landscape; margin: 8mm; } }
         @media screen and (max-width: 1100px) { .feuille { width: 100%; min-height: 0; padding: 12px; } .cadre { padding: 18px; } h2 { font-size: 22px; } .details { flex-wrap: wrap; gap: 14px; } }
+        @media screen and (max-width: 600px) {
+            .bas { flex-direction: column; align-items: stretch; gap: 24px; margin-top: 24px; }
+            .signature { min-width: 0; width: 100%; }
+            .numero { width: 100%; line-height: 1.5; }
+            .entete h1, .texte, .diplome { overflow-wrap: anywhere; }
+        }
     </style>
 </head>
 <body>
@@ -39,7 +45,7 @@
             <h1>{{ etablissement.nom }}</h1>
             <p>{{ etablissement.adresse }}{% if etablissement.ville %} — {{ etablissement.ville }}{% endif %}</p>
         </div>
-        <h2>{% trans "ATTESTATION DE DIPLÔME" %}</h2>
+        <h2>{% trans "ATTESTATION DE DIPLÔME — PROVISOIRE" %}</h2>
         <p class="texte">
             {% trans "Le Directeur de l'établissement atteste que" %}<br>
             <strong>{% if d.eleve.sexe == 'F' %}Mme{% else %}M.{% endif %} {{ d.eleve.prenom }} {{ d.eleve.nom|upper }}</strong><br>

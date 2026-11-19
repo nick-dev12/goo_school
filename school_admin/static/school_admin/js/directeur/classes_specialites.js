@@ -1,5 +1,5 @@
 /**
- * Onglets principaux Spécialités / Classes / Examens & concours + modals spécialités
+ * Onglets principaux Spécialités / Classes / Examens & concours + modals filières
  */
 (function () {
     'use strict';
@@ -157,7 +157,7 @@
         document.querySelectorAll('.specialite-delete-form').forEach(function (form) {
             form.addEventListener('submit', function (e) {
                 var nom = this.dataset.filiereNom || '';
-                if (!confirm('Êtes-vous sûr de vouloir supprimer la spécialité « ' + nom + ' » ?')) {
+                if (!confirm('Êtes-vous sûr de vouloir supprimer la filière « ' + nom + ' » ?')) {
                     e.preventDefault();
                 }
             });

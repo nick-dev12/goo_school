@@ -32,6 +32,8 @@
 
     <!-- Main Content -->
     <div class="main-content-container ge-hub">
+
+
         <div class="page-header page-header-minimal">
             {% url 'directeur:dashboard_directeur' as directeur_dashboard_url %}
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=directeur_dashboard_url %}
@@ -47,6 +49,12 @@
             <h2 id="ge-hub-title" class="ge-hub-title">{% trans "Accès rapides" %}</h2>
             <div class="navigation-container ge-nav-grid">
             <div class="nav-cards-grid">
+                {% if etablissement.type_etablissement == 'superieur' %}
+                {% url 'directeur:parcours_examens' as guide_url %}
+                {% if guide_url %}<a href="{{ guide_url }}" class="nav-link-card">
+                    <div class="nav-card-icon neo-blue"><i class="fas fa-route" aria-hidden="true"></i></div>
+                    <div class="nav-link-content"><h3>Examens et jury</h3><p>Guide en six étapes, résultats et documents</p></div>
+                </a>{% endif %}{% endif %}
                 {% check_permission request.user "eleves_inscrire" as can_inscrire_eleves %}
                 {% if can_inscrire_eleves or is_directeur %}
                 <a href="{% url 'secretaire:liste_eleves' %}?inscrire=1" class="nav-link-card">

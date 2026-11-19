@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/deliberations.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/deliberations.css' %}?v=1.0.1" />
 </head>
 <body class="dlb-page-body" data-live-page="examens">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -24,6 +24,8 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
         </div>
 
+        {% url 'directeur:parcours_examens' as guide_url %}
+        {% if guide_url %}<p><a href="{{ guide_url }}">Retour au guide Examens et jury</a></p>{% endif %}
         <header class="hb-head">
             <span class="hb-head__icon fe-tone-red"><i class="fas fa-gavel" aria-hidden="true"></i></span>
             <div class="hb-head__text">
@@ -44,6 +46,7 @@
         <section class="dlb-card" aria-labelledby="titre-ouvrir">
             <div class="dlb-card__head"><h2 id="titre-ouvrir"><i class="fas fa-plus-circle"></i> {% trans "Ouvrir une délibération" %}</h2></div>
             <div class="dlb-card__body">
+                {% if not periodes %}<p role="status">Aucun semestre disponible. <a href="{% url 'directeur:gestion_periodes_scolaires' %}">Configurer les semestres</a> avant de préparer le jury.</p>{% endif %}
                 <form method="post" class="dlb-form" id="formOuvrir">
                     {% csrf_token %}
                     <div class="dlb-grid">
@@ -55,7 +58,7 @@
                         </label>
                         <div>
                             <span class="dlb-help" style="display:block;margin-bottom:.3rem;font-weight:600">{% trans "Portée" %}</span>
-                            <div class="dlb-seg" role="radiogroup">
+                            <div class="dlb-seg" role="radiogroup" aria-label="Portée de la délibération">
                                 <label><input type="radio" name="portee" value="semestre" checked><span>{% trans "Semestre" %}</span></label>
                                 <label><input type="radio" name="portee" value="annuelle"><span>{% trans "Année" %}</span></label>
                             </div>
@@ -70,7 +73,7 @@
                         </label>
                     </div>
                     <p class="dlb-help"><i class="fas fa-circle-info"></i> {% trans "Les résultats sont calculés à partir des moyennes enregistrées (bulletins). Le bilan annuel décide du passage : tous les crédits = admis ; au moins" %} {{ regles_examen.pourcentage_passage_conditionnel }} % {% trans "des crédits = admis avec dettes ; sinon redoublement." %}</p>
-                    <div><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-gavel"></i> {% trans "Ouvrir la délibération" %}</button></div>
+                    <div><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-gavel"></i> {% trans "Préparer la délibération" %}</button></div>
                 </form>
             </div>
         </section>
@@ -123,7 +126,8 @@
         }
         function portee() {
             var annuelle = document.querySelector('input[name=portee]:checked').value === 'annuelle';
-            wrap.style.visibility = annuelle ? 'hidden' : 'visible';
+            wrap.hidden = annuelle;
+            periode.disabled = annuelle;
             periode.required = !annuelle;
         }
         classe.addEventListener('change', filtrer);

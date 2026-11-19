@@ -171,7 +171,7 @@ class ClasseController:
 
     @staticmethod
     def _build_filieres_avec_nb_classes(etablissement):
-        """Liste des spécialités avec le nombre de classes rattachées."""
+        """Liste des filières avec le nombre de classes rattachées."""
         filieres = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
         return [
             {'department': dep, 'nb_classes': dep.classes.count()}
@@ -190,7 +190,7 @@ class ClasseController:
     @staticmethod
     def _classe_placement_payload(classe, est_superieur):
         if est_superieur:
-            filiere = classe.department.nom if classe.department else "Sans spécialité"
+            filiere = classe.department.nom if classe.department else "Sans filière"
             niveau_lmd = classe.niveau_lmd or 'L1'
             niveau_key = (
                 (classe.niveau_libelle or niveau_lmd) if niveau_lmd == 'AUTRE' else niveau_lmd
@@ -334,7 +334,7 @@ class ClasseController:
             def _filiere_from_classe(classe):
                 if classe.department:
                     return classe.department.nom
-                return "Sans spécialité"
+                return "Sans filière"
 
             classes_by_filiere = {}
             for classe_data in classes_with_teachers:
@@ -634,7 +634,7 @@ class ClasseController:
                 required_fields.insert(0, 'department')  # Filière obligatoire pour le supérieur
             for field in required_fields:
                 if not form_data.get(field):
-                    label = {'department': 'Spécialité', 'nom': 'Nom de la classe', 'capacite_max': 'Capacité maximale'}.get(field, field.replace('_', ' ').title())
+                    label = {'department': 'Filière', 'nom': 'Nom de la classe', 'capacite_max': 'Capacité maximale'}.get(field, field.replace('_', ' ').title())
                     field_errors[field] = f"Le champ {label} est obligatoire."
                     is_valid = False
             
@@ -672,7 +672,7 @@ class ClasseController:
                 try:
                     Department.objects.get(id=int(form_data['department']), etablissement=etablissement)
                 except (ValueError, Department.DoesNotExist):
-                    field_errors['department'] = "Veuillez sélectionner une spécialité valide. Créez d'abord une spécialité si nécessaire."
+                    field_errors['department'] = "Veuillez sélectionner une filière valide. Créez d'abord une filière si nécessaire."
                     is_valid = False
 
             # Pour établissement supérieur, valider niveau_lmd
@@ -909,7 +909,7 @@ class ClasseController:
     @staticmethod
     @login_required
     def liste_filieres(request):
-        """Redirige vers l'onglet Spécialités de la page classes."""
+        """Redirige vers l'onglet Filières de la page classes."""
         if isinstance(request.user, PersonnelAdministratif):
             etablissement = request.user.etablissement
         elif isinstance(request.user, Etablissement):
@@ -918,14 +918,14 @@ class ClasseController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         if etablissement.type_etablissement != 'superieur':
-            messages.error(request, "Les spécialités ne sont disponibles que pour les établissements supérieurs.")
+            messages.error(request, "Les filières ne sont disponibles que pour les établissements supérieurs.")
             return redirect('administrateur_etablissement:liste_classes')
         return ClasseController._redirect_liste_classes_tab('specialites')
 
     @staticmethod
     @login_required
     def liste_classes_specialite(request, specialite_id):
-        """Affiche les classes d'une spécialité donnée."""
+        """Affiche les classes d'une filière donnée."""
         if isinstance(request.user, PersonnelAdministratif):
             personnel = request.user
             etablissement = personnel.etablissement
@@ -936,12 +936,12 @@ class ClasseController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         if etablissement.type_etablissement != 'superieur':
-            messages.error(request, "Les spécialités ne sont disponibles que pour les établissements supérieurs.")
+            messages.error(request, "Les filières ne sont disponibles que pour les établissements supérieurs.")
             return redirect('administrateur_etablissement:liste_classes')
         try:
             department = Department.objects.get(id=specialite_id, etablissement=etablissement)
         except Department.DoesNotExist:
-            messages.error(request, "Spécialité non trouvée.")
+            messages.error(request, "Filière non trouvée.")
             return ClasseController._redirect_liste_classes_tab('specialites')
         classes = Classe.objects.filter(
             etablissement=etablissement,
@@ -1038,12 +1038,12 @@ class ClasseController:
     @staticmethod
     def _validate_department_sigle(etablissement, sigle: str, exclude_id=None):
         """
-        Valide le sigle d'une spécialité.
+        Valide le sigle d'une filière.
         Retourne (sigle_normalise, message_erreur).
         """
         sigle = ClasseController._normalize_department_sigle(sigle)
         if not sigle:
-            return '', "Le code / sigle de la spécialité est obligatoire (ex: GL, TL)."
+            return '', "Le code / sigle de la filière est obligatoire (ex: GL, TL)."
         if len(sigle) < 2:
             return '', "Le sigle doit contenir au moins 2 caractères."
         if len(sigle) > 12:
@@ -1054,7 +1054,7 @@ class ClasseController:
         if exclude_id:
             qs = qs.exclude(id=exclude_id)
         if qs.exists():
-            return '', f"Le sigle « {sigle} » est déjà utilisé par une autre spécialité."
+            return '', f"Le sigle « {sigle} » est déjà utilisé par une autre filière."
         return sigle, None
 
     @staticmethod
@@ -1069,7 +1069,7 @@ class ClasseController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         if etablissement.type_etablissement != 'superieur':
-            messages.error(request, "Les spécialités ne sont disponibles que pour les établissements supérieurs.")
+            messages.error(request, "Les filières ne sont disponibles que pour les établissements supérieurs.")
             return ClasseController._redirect_liste_classes_tab('specialites')
         if request.method != 'POST':
             return ClasseController._redirect_liste_classes_tab('specialites')
@@ -1078,14 +1078,14 @@ class ClasseController:
         domaine = (request.POST.get('domaine') or '').strip()
         mention = (request.POST.get('mention') or '').strip()
         if not nom:
-            messages.error(request, "Le nom de la spécialité est obligatoire.")
+            messages.error(request, "Le nom de la filière est obligatoire.")
             return ClasseController._redirect_liste_classes_tab('specialites')
         sigle, sigle_err = ClasseController._validate_department_sigle(etablissement, sigle_raw)
         if sigle_err:
             messages.error(request, sigle_err)
             return ClasseController._redirect_liste_classes_tab('specialites')
         if Department.objects.filter(etablissement=etablissement, nom__iexact=nom).exists():
-            messages.error(request, f"Une spécialité « {nom} » existe déjà.")
+            messages.error(request, f"Une filière « {nom} » existe déjà.")
             return ClasseController._redirect_liste_classes_tab('specialites')
         try:
             Department.objects.create(
@@ -1102,10 +1102,10 @@ class ClasseController:
                 'filiere.mise_a_jour',
                 {'event': 'filiere.mise_a_jour', 'nom': nom, 'action': 'creee'},
             )
-            messages.success(request, f"La spécialité « {nom} » ({sigle}) a été créée.")
+            messages.success(request, f"La filière « {nom} » ({sigle}) a été créée.")
         except Exception as e:
-            logger.error(f"Erreur création spécialité: {e}")
-            messages.error(request, "Erreur lors de la création de la spécialité.")
+            logger.error(f"Erreur création filière: {e}")
+            messages.error(request, "Erreur lors de la création de la filière.")
         return ClasseController._redirect_liste_classes_tab('specialites')
 
     @staticmethod
@@ -1120,12 +1120,12 @@ class ClasseController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         if etablissement.type_etablissement != 'superieur':
-            messages.error(request, "Les spécialités ne sont disponibles que pour les établissements supérieurs.")
+            messages.error(request, "Les filières ne sont disponibles que pour les établissements supérieurs.")
             return redirect('administrateur_etablissement:liste_classes')
         try:
             department = Department.objects.get(id=filiere_id, etablissement=etablissement)
         except Department.DoesNotExist:
-            messages.error(request, "Spécialité non trouvée.")
+            messages.error(request, "Filière non trouvée.")
             return ClasseController._redirect_liste_classes_tab('specialites')
         if request.method != 'POST':
             return ClasseController._redirect_liste_classes_tab('specialites')
@@ -1134,7 +1134,7 @@ class ClasseController:
         domaine = (request.POST.get('domaine') or '').strip()
         mention = (request.POST.get('mention') or '').strip()
         if not nom:
-            messages.error(request, "Le nom de la spécialité est obligatoire.")
+            messages.error(request, "Le nom de la filière est obligatoire.")
             return ClasseController._redirect_liste_classes_tab('specialites')
         sigle, sigle_err = ClasseController._validate_department_sigle(
             etablissement, sigle_raw, exclude_id=filiere_id
@@ -1143,7 +1143,7 @@ class ClasseController:
             messages.error(request, sigle_err)
             return ClasseController._redirect_liste_classes_tab('specialites')
         if Department.objects.filter(etablissement=etablissement, nom__iexact=nom).exclude(id=filiere_id).exists():
-            messages.error(request, f"Une spécialité « {nom} » existe déjà.")
+            messages.error(request, f"Une filière « {nom} » existe déjà.")
             return ClasseController._redirect_liste_classes_tab('specialites')
         try:
             department.nom = nom
@@ -1158,10 +1158,10 @@ class ClasseController:
                 'filiere.mise_a_jour',
                 {'event': 'filiere.mise_a_jour', 'id': department.id, 'action': 'modifiee'},
             )
-            messages.success(request, f"La spécialité a été modifiée en « {nom} » ({sigle}).")
+            messages.success(request, f"La filière a été modifiée en « {nom} » ({sigle}).")
         except Exception as e:
-            logger.error(f"Erreur modification spécialité: {e}")
-            messages.error(request, "Erreur lors de la modification de la spécialité.")
+            logger.error(f"Erreur modification filière: {e}")
+            messages.error(request, "Erreur lors de la modification de la filière.")
         return ClasseController._redirect_liste_classes_tab('specialites')
 
     @staticmethod
@@ -1176,20 +1176,20 @@ class ClasseController:
             messages.error(request, "Accès non autorisé.")
             return redirect('school_admin:connexion_compte_user')
         if etablissement.type_etablissement != 'superieur':
-            messages.error(request, "Les spécialités ne sont disponibles que pour les établissements supérieurs.")
+            messages.error(request, "Les filières ne sont disponibles que pour les établissements supérieurs.")
             return redirect('administrateur_etablissement:liste_classes')
         if request.method != 'POST':
             return ClasseController._redirect_liste_classes_tab('specialites')
         try:
             department = Department.objects.get(id=filiere_id, etablissement=etablissement)
         except Department.DoesNotExist:
-            messages.error(request, "Spécialité non trouvée.")
+            messages.error(request, "Filière non trouvée.")
             return ClasseController._redirect_liste_classes_tab('specialites')
         nb_classes = department.classes.count()
         if nb_classes > 0:
             messages.error(
                 request,
-                f"Impossible de supprimer la spécialité « {department.nom} » : elle contient {nb_classes} classe(s). "
+                f"Impossible de supprimer la filière « {department.nom} » : elle contient {nb_classes} classe(s). "
                 "Réassignez ou supprimez d'abord les classes."
             )
             return ClasseController._redirect_liste_classes_tab('specialites')
@@ -1203,10 +1203,10 @@ class ClasseController:
                 'filiere.mise_a_jour',
                 {'event': 'filiere.mise_a_jour', 'nom': nom, 'action': 'supprimee'},
             )
-            messages.success(request, f"La spécialité « {nom} » a été supprimée.")
+            messages.success(request, f"La filière « {nom} » a été supprimée.")
         except Exception as e:
-            logger.error(f"Erreur suppression spécialité: {e}")
-            messages.error(request, "Erreur lors de la suppression de la spécialité.")
+            logger.error(f"Erreur suppression filière: {e}")
+            messages.error(request, "Erreur lors de la suppression de la filière.")
         return ClasseController._redirect_liste_classes_tab('specialites')
 
     @staticmethod

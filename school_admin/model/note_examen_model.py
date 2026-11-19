@@ -218,7 +218,10 @@ class NoteExamen(models.Model):
         else:
             self.note_sur_20 = None
         
-        super().save(*args, **kwargs)
+        from school_admin.services.verrou_notes import verrou_note
+        saisie = self.note is not None or self.absent or self.soumis or self.note_publiee is not None
+        with verrou_note(self.classe_id, self.session_examen.periode, saisie=saisie):
+            super().save(*args, **kwargs)
     
     @property
     def note_format(self):

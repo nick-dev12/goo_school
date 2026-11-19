@@ -68,7 +68,7 @@ function renderMatieresSuperieurMount(modal, preselectedMatiereIds) {
         p.style.margin = '0';
         p.innerHTML =
             '<i class="fas fa-layer-group"></i> ' +
-            'Sélectionnez au moins une classe à l’étape 3 pour afficher les matières.';
+            'Sélectionnez les classes puis un semestre compatible pour afficher les matières.';
         mount.appendChild(p);
         if (emptyHint) emptyHint.style.display = 'none';
         return;
@@ -86,7 +86,10 @@ function renderMatieresSuperieurMount(modal, preselectedMatiereIds) {
                 break;
             }
         }
-        if (!match) return;
+        const periode = Number(modal.querySelector('[name="periode_id"]').value);
+        const concernees = ids.filter(id => selectedSet.has(id));
+        if (!match || !periode || !concernees.every(cid => (entry.associations || []).some(
+            a => a.classe_id === cid && a.periode_id === periode))) return;
 
         const id = entry.id;
         const label = buildMatiereLabelSuperieur(entry, selectedIds);
@@ -122,7 +125,29 @@ function renderMatieresSuperieurMount(modal, preselectedMatiereIds) {
 }
 
 function refreshMatieresSuperieurInModal(modal, preselectedMatiereIds) {
+    const el = document.getElementById('exam-periodes-data');
+    if (el) {
+        const meta = JSON.parse(el.textContent);
+        const ids = getSelectedClasseIds(modal);
+        const select = modal.querySelector('[name="periode_id"]');
+        Array.from(select.options).forEach(option => {
+            if (!option.value) return;
+            const row = meta.find(p => p.id === Number(option.value));
+            option.disabled = !ids.length || !row || !ids.every(id => row.classe_ids.includes(id));
+            option.hidden = option.disabled;
+        });
+        if (select.selectedOptions[0] && select.selectedOptions[0].disabled) select.value = '';
+    }
     renderMatieresSuperieurMount(modal, preselectedMatiereIds);
+    const remaining = new Set(Array.from(modal.querySelectorAll('.js-exam-matiere-superieur-cb:checked')).map(cb => Number(cb.value)));
+    if ((preselectedMatiereIds || []).some(id => !remaining.has(Number(id)))) {
+        const hint = modal.querySelector('.js-exam-matieres-superieur-empty');
+        if (hint) {
+            hint.textContent = 'Des matières incompatibles ont été décochées. Vérifiez le semestre et la sélection.';
+            hint.style.display = '';
+            hint.setAttribute('role', 'status');
+        }
+    }
 }
 
 function initSuperieurMatieresListeners(modalId) {
@@ -135,7 +160,7 @@ function initSuperieurMatieresListeners(modalId) {
         'change',
         function (ev) {
             const t = ev.target;
-            if (t && t.name === 'classes_concernees') {
+            if (t && (t.name === 'classes_concernees' || t.name === 'periode_id')) {
                 const preserved = [];
                 modal.querySelectorAll('.js-exam-matieres-superieur-mount input[type="checkbox"]:checked').forEach(function (cb) {
                     const v = parseInt(cb.value, 10);
@@ -435,16 +460,8 @@ function toggleCheckboxGroup(groupName, maxSelections) {
     }
 }
 
-function deleteSession(sessionId, nomSession) {
-    if (
-        confirm(
-            'Êtes-vous sûr de vouloir supprimer la session "' +
-                nomSession +
-                '" ?\n\nTous les créneaux d\'examen associés seront également supprimés.\n\nCette action est irréversible.'
-        )
-    ) {
-        window.location.href = '/supprimer-session-examen/' + sessionId + '/';
-    }
+function confirmSessionAction(form) {
+    return window.confirm(form.dataset.confirm);
 }
 
 function formatDate(dateString) {

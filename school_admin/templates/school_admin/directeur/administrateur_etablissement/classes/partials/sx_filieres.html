@@ -14,7 +14,7 @@
       <span class="sx-sigle">{{ f.department.sigle|default:f.department.nom|slice:":4"|upper }}</span>
       <div class="sx-fcard__title">
         <h3>{{ f.department.nom }}</h3>
-        <p>{% if f.department.mention %}{{ f.department.mention }}{% endif %}{% if f.department.mention and f.department.domaine %} · {% endif %}{% if f.department.domaine %}{{ f.department.domaine }}{% endif %}{% if not f.department.mention and not f.department.domaine %}{% trans "Mention et domaine non renseignés" %}{% endif %}</p>
+        <p>{% if f.department.mention %}{{ f.department.mention }}{% endif %}{% if f.department.mention and f.department.domaine %} · {% endif %}{% if f.department.domaine %}{{ f.department.domaine }}{% endif %}{% if not f.department.mention and not f.department.domaine %}{% trans "Informations complémentaires facultatives" %}{% endif %}</p>
       </div>
       <div class="sx-menu">
         <button type="button" class="sx-btn sx-btn--sm sx-menu__toggle" aria-haspopup="true" aria-expanded="false" aria-label="{% trans 'Autres actions' %}"><i class="fas fa-ellipsis" aria-hidden="true"></i></button>

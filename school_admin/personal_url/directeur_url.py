@@ -9,7 +9,12 @@ from ..controllers.rappels_controller import RappelsController
 
 app_name = 'directeur'  # ← Changement du namespace pour éviter le conflit
 
+from ..controllers.parcours_examens_controller import parcours_examens
+from ..controllers.examen_controller import annuler_session_examen
+
 urlpatterns = [
+    path('annuler-session-examen/<int:session_id>/',annuler_session_examen,name='annuler_session_examen'),
+    path('examens-et-jury/', parcours_examens, name='parcours_examens'),
     path('dashboard/directeur/', dashboard_directeur, name='dashboard_directeur'),
     path('notifications/', notifications_directeur, name='notifications_directeur'),
     path('facturation/directeur/', facturation_directeur, name='facturation_directeur'),

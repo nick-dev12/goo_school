@@ -32,7 +32,8 @@ def _q(x):
 def regles(etablissement):
     from school_admin.model.session_examen_model import ReglesExamen
 
-    return ReglesExamen.pour(etablissement)
+    return (ReglesExamen.objects.filter(etablissement=etablissement).first()
+            or ReglesExamen(etablissement=etablissement))
 
 
 # --------------------------------------------------------------------------- notes d'examen
@@ -153,7 +154,7 @@ def validation_lmd(lignes, regle, bonus=D0, compensation=None):
         ues[cle]['lignes'].append(ln)
 
     a_evaluer = [ln for ln in lignes if not ln.get('capitalisee')]
-    incomplet = any(ln.get('moyenne') is None for ln in a_evaluer)
+    incomplet = not lignes or any(ln.get('moyenne') is None for ln in a_evaluer)
     eliminatoire = bool(elim is not None and any(ln.get('moyenne') is not None and ln['moyenne'] < elim
                                                  for ln in a_evaluer))
     numer = denom = D0
@@ -186,7 +187,7 @@ def validation_lmd(lignes, regle, bonus=D0, compensation=None):
                 ue['acquise'], ue['mode'] = True, 'compensee'
     total = sum((ue['credits'] for ue in resultat_ues), D0)
     acquis = sum((ue['credits'] for ue in resultat_ues if ue['acquise']), D0)
-    if incomplet and not all(ue['acquise'] for ue in resultat_ues):
+    if not resultat_ues or (incomplet and not all(ue['acquise'] for ue in resultat_ues)):
         decision = 'Incomplet'
     elif all(ue['acquise'] for ue in resultat_ues):
         decision = 'Admis par compensation' if any(ue['mode'] == 'compensee' for ue in resultat_ues) else 'Admis'

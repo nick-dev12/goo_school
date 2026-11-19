@@ -31,6 +31,8 @@
 
 <!-- Main Content -->
 <div class="main-content-container">
+
+
     <!-- Page Header -->
     <div class="page-header">
       {% url 'directeur:dashboard_directeur' as directeur_dashboard_url %}
@@ -49,6 +51,12 @@
         
         <!-- Gestion pédagogique -->
         <div class="nav-cards-grid">
+                {% if etablissement.type_etablissement == 'superieur' %}
+                {% url 'directeur:parcours_examens' as guide_url %}
+                {% if guide_url %}<a href="{{ guide_url }}" class="nav-link-card">
+                    <div class="nav-card-icon neo-blue"><i class="fas fa-route" aria-hidden="true"></i></div>
+                    <div class="nav-link-content"><h3>Examens et jury</h3><p>Guide en six étapes, résultats et documents</p></div>
+                </a>{% endif %}{% endif %}
             <a href="{% url 'personnel:liste_personnel' %}" class="nav-link-card">
                 <div class="nav-card-icon neo-teal">
                     <i class="fas fa-chalkboard-teacher"></i>

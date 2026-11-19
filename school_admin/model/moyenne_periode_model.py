@@ -235,6 +235,8 @@ class MoyennePeriode(models.Model):
         verbose_name="Dernière modification"
     )
     
+    empreinte_sources = models.CharField(max_length=64, blank=True, default='', editable=False)
+
     est_moyenne_generale = models.BooleanField(
         default=False,
         verbose_name="Est moyenne générale",
@@ -299,6 +301,19 @@ class MoyennePeriode(models.Model):
                 self.moyenne_matiere = self.calculer_moyenne_matiere()
             if self.total_matiere is None and self.moyenne_matiere is not None:
                 self.total_matiere = self.calculer_total_matiere()
+        if (self.matiere_id and not self.est_moyenne_generale
+                and self.etablissement.type_etablissement == 'superieur'):
+            numeriques = {'moyenne_matiere', 'coefficient', 'credits', 'moyenne_classe', 'moyenne_examen'}
+            champs = kwargs.get('update_fields')
+            recalcul = self._state.adding or (champs is not None and bool(numeriques.intersection(champs)))
+            if champs is None and not recalcul:
+                ancien = type(self).objects.filter(pk=self.pk).values('moyenne_matiere','coefficient','credits').first()
+                recalcul = ancien is None or any(ancien[k] != getattr(self,k) for k in ancien)
+            if recalcul:
+                from school_admin.services.resultats_integrite import empreinte_moyenne
+                self.empreinte_sources = empreinte_moyenne(self)
+                if champs is not None:
+                    kwargs['update_fields'] = set(champs) | {'empreinte_sources'}
         super().save(*args, **kwargs)
 
 

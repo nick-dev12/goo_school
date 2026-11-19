@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/deliberations.css' %}?v=1.0.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/deliberations.css' %}?v=1.0.1" />
 </head>
 <body class="dlb-page-body" data-live-page="examens">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
@@ -24,6 +24,8 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
         </div>
 
+        {% url 'directeur:parcours_examens' as guide_url %}
+        {% if guide_url %}<p><a href="{{ guide_url }}?classe_id={{ deliberation.classe_id }}&amp;annee_id={{ deliberation.annee_scolaire_id }}&amp;portee={% if deliberation.periode_id %}semestre{% else %}annuelle{% endif %}&amp;periode_id={{ deliberation.periode_id|default:'' }}&amp;session={{ deliberation.session }}">Retour au guide Examens et jury</a></p>{% endif %}
         <header class="hb-head">
             <span class="hb-head__icon fe-tone-red"><i class="fas fa-gavel" aria-hidden="true"></i></span>
             <div class="hb-head__text">
@@ -35,7 +37,7 @@
                 </p>
             </div>
             <div class="hb-head__actions">
-                <a href="{% url 'directeur:pv_deliberation' d.id %}" target="_blank" rel="noopener" class="cg3-btn"><i class="fas fa-file-signature" aria-hidden="true"></i>{% trans "Procès-verbal" %}</a>
+                <a href="{% url 'directeur:pv_deliberation' d.id %}" target="_blank" rel="noopener" class="cg3-btn"><i class="fas fa-file-signature" aria-hidden="true"></i>{% if cloturee %}{% trans 'PV définitif' %}{% else %}{% trans 'PV provisoire' %}{% endif %}</a>
                 {% if cloturee %}
                 <form method="post" onsubmit="return confirm('{% trans "Rouvrir la délibération ? Les notes redeviennent modifiables et les UE capitalisées par cette délibération sont retirées." %}')">
                     {% csrf_token %}<input type="hidden" name="action" value="rouvrir">
@@ -47,11 +49,22 @@
                 </form>
                 <form method="post" onsubmit="return confirm('{% trans "Clôturer la délibération ? Les décisions seront publiées sur les relevés, les UE acquises capitalisées et les notes verrouillées." %}')">
                     {% csrf_token %}<input type="hidden" name="action" value="cloturer">
-                    <button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-lock" aria-hidden="true"></i>{% trans "Clôturer" %}</button>
+                    <button type="submit" class="cg3-btn cg3-btn--primary" {% if controle_resultats and not controle_resultats.pret %}disabled aria-describedby="resultats-a-completer"{% endif %}><i class="fas fa-lock" aria-hidden="true"></i>{% trans "Clôturer et publier les décisions" %}</button>
                 </form>
                 {% endif %}
             </div>
         </header>
+
+        {% if controle_resultats and not controle_resultats.pret %}
+        <section class="dlb-card" id="resultats-a-completer" aria-labelledby="titre-controle">
+            <div class="dlb-card__body">
+                <h2 id="titre-controle">Résultats à compléter ou à recalculer</h2>
+                <p>Les décisions affichées restent provisoires. Préparez des moyennes complètes et à jour dans Bulletins, puis recalculez les décisions du jury.</p>
+                <ul>{% for probleme in controle_resultats.problemes %}<li>{{ probleme }}</li>{% endfor %}</ul>
+                <a href="{% url 'directeur:bulletins_notes' %}?classe_id={{ d.classe_id }}&amp;periode_id={{ d.periode_id|default:'' }}&amp;annee_id={{ d.annee_scolaire_id }}">Préparer les moyennes dans Bulletins</a>
+            </div>
+        </section>
+        {% endif %}
 
         <section class="fe-kpis hb-kpis hb-kpis--4 cg3" aria-label="{% trans 'Indicateurs' %}">
             <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Étudiants" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-graduate"></i></span></div><p class="fe-kpi__value">{{ stats.effectif }}</p></div>
@@ -133,7 +146,7 @@
                         <label>{% trans "Date de la délibération" %}<input type="date" name="date_deliberation" value="{{ d.date_deliberation|date:'Y-m-d' }}" {% if cloturee %}disabled{% endif %}></label>
                     </div>
                     <div class="dlb-grid2">
-                        <label>{% trans "Membres (un par ligne)" %}<textarea name="membres" rows="4" {% if cloturee %}disabled{% endif %}>{{ d.membres }}</textarea></label>
+                        <label>{% trans "Membres (facultatif, un par ligne)" %}<textarea name="membres" rows="4" {% if cloturee %}disabled{% endif %}>{{ d.membres }}</textarea></label>
                         <label>{% trans "Observations" %}<textarea name="observations" rows="4" {% if cloturee %}disabled{% endif %}>{{ d.observations }}</textarea></label>
                     </div>
                     {% if not cloturee %}<div><button type="submit" class="cg3-btn"><i class="fas fa-check"></i> {% trans "Enregistrer le jury" %}</button></div>{% endif %}

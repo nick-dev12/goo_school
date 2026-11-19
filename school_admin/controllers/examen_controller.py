@@ -1,3 +1,4 @@
+from django.utils import timezone
 """
 Controller pour la gestion des examens selon la logique sénégalaise
 """
@@ -7,6 +8,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse
+from django.views.decorators.http import require_POST
+from django.http import HttpResponseForbidden
 from django.db import transaction
 from django.db.models import Q, Prefetch
 from django.utils.translation import gettext as _
@@ -61,6 +64,7 @@ def _build_matieres_session_superieur_meta(etablissement):
         .order_by('nom')
     )
 
+    from ..model.module_model import ModuleClasse
     out = []
     for m in matieres:
         raw = set(m.get_classe_ids_pour_affectation_superieur())
@@ -88,28 +92,34 @@ def _build_matieres_session_superieur_meta(etablissement):
                 'nom': m.nom,
                 'code': m.code,
                 'classe_ids': sorted(applicable),
+                'associations': list(ModuleClasse.objects.filter(module_id=m.module_id, classe_id__in=applicable, module__actif=True, periode__isnull=False).values('classe_id', 'periode_id')),
                 'par_classe': par_classe,
             }
         )
     return out
 
 
-def _valider_matieres_session_superieur(classes_selectionnees, matieres):
-    """
-    Vérifie que chaque matière est enseignée / rattachée à au moins une des classes sélectionnées.
-    Retourne (True, None) ou (False, message d'erreur).
-    """
-    if not classes_selectionnees:
-        return False, _("Sélectionnez au moins une classe avant les matières.")
+def _valider_matieres_session_superieur(classes_selectionnees, matieres, periode=None):
+    """Une matière commune doit être cohérente pour chaque classe concernée."""
+    from ..model.module_model import ModuleClasse
+    if not classes_selectionnees or periode is None:
+        return False, _("Sélectionnez les classes et le semestre avant les matières.")
+    for classe in classes_selectionnees:
+        if not PeriodeScolaire.filter_queryset_for_classe(
+            PeriodeScolaire.objects.filter(pk=periode.pk), classe.etablissement, classe
+        ).exists():
+            return False, _("Le semestre ne correspond pas au niveau de la classe « %(nom)s ».") % {'nom': classe.nom}
     ids_sel = {c.id for c in classes_selectionnees}
     for m in matieres:
-        applicable = set(m.get_classe_ids_pour_affectation_superieur())
-        if not applicable:
-            continue
-        if not (applicable & ids_sel):
-            return False, _("La matière « %(nom)s » ne correspond à aucune des classes sélectionnées.") % {
-                'nom': m.nom
-            }
+        concernees = set(m.get_classe_ids_pour_affectation_superieur()) & ids_sel
+        if not concernees:
+            return False, _("La matière « %(nom)s » ne correspond à aucune classe sélectionnée.") % {'nom': m.nom}
+        valides = set(ModuleClasse.objects.filter(
+            module_id=m.module_id, module__etablissement=periode.etablissement,
+            module__actif=True, classe_id__in=concernees, periode=periode,
+        ).values_list('classe_id', flat=True))
+        if valides != concernees or not m.actif:
+            return False, _("La matière « %(nom)s » doit appartenir au programme de ce semestre pour chaque classe concernée (ModuleClasse).") % {'nom': m.nom}
     return True, None
 
 
@@ -230,6 +240,8 @@ def _appliquer_formulaire_session(session, post, etablissement, prefixe_matieres
     from ..services.examens_planning import messages_validation
 
     erreurs = []
+    if session.pk and session.est_publie:
+        return None, None, ["Retirez le calendrier de la visibilité avant de modifier la session, puis vérifiez et republiez-le."]
     nom_examen = post.get('nom_examen', '').strip()
     periode_id = post.get('periode_id')
     date_debut_str, date_fin_str = post.get('date_debut'), post.get('date_fin')
@@ -241,14 +253,24 @@ def _appliquer_formulaire_session(session, post, etablissement, prefixe_matieres
     classes, err_classes = _classes_depuis_formulaire_session(etablissement, post)
     if err_classes:
         return None, None, [err_classes]
+    try:
+        periode_id = int(periode_id)
+    except (TypeError, ValueError):
+        return None, None, ["Période invalide."]
     periode = PeriodeScolaire.objects.filter(id=periode_id, etablissement=etablissement).first()
     if periode is None:
         return None, None, ["Période invalide."]
+    if periode.annee_scolaire_fk_id != session.annee_scolaire_id or not periode.est_active:
+        return None, None, ["Le semestre doit être actif et appartenir à l’année de la session."]
+    try:
+        matieres_ids = [int(x) for x in matieres_ids]
+    except (TypeError, ValueError):
+        return None, None, ["Sélection de matières invalide."]
     matieres = list(Matiere.objects.filter(id__in=matieres_ids, etablissement=etablissement))
     if len(matieres) != len(set(matieres_ids)):
         return None, None, [_("Sélection de matières invalide.")]
     if etablissement.type_etablissement == 'superieur':
-        ok_m, err_m = _valider_matieres_session_superieur(classes, matieres)
+        ok_m, err_m = _valider_matieres_session_superieur(classes, matieres, periode)
         if not ok_m:
             return None, None, [err_m]
     try:
@@ -268,13 +290,23 @@ def _appliquer_formulaire_session(session, post, etablissement, prefixe_matieres
     if 'compte_bulletin_present' in post:
         session.compte_bulletin = post.get('compte_bulletin') == 'on'
         session._compte_bulletin_explicite = True
-    if 'est_publie_present' in post:
-        session.est_publie = post.get('est_publie') == 'on'
+    if post.get('est_publie') == 'on' and not session.est_publie:
+        erreurs.append("Enregistrez puis planifiez toutes les épreuves avant de publier le calendrier avec l’action dédiée.")
     try:
         session.full_clean(exclude=['etablissement', 'annee_scolaire', 'duree_totale'])
     except ValidationError as exc:
         erreurs.extend(messages_validation(exc))
     return classes, matieres, erreurs
+
+
+def _verrouiller_classes_session(session_id, etablissement):
+    """Même verrou de classe que les écritures de notes / clôtures du jury.
+
+    Ordre stable : classes, puis session, puis notes/créneaux.
+    L'appelant doit déjà être dans transaction.atomic().
+    """
+    ids = SessionExamen.objects.filter(pk=session_id, etablissement=etablissement).values_list('classes__pk', flat=True)
+    list(Classe.objects.select_for_update().filter(pk__in=ids).order_by('pk').values_list('pk', flat=True))
 
 
 def _poids_cc_types(regle):
@@ -556,6 +588,12 @@ def gestion_examens(request):
         'annee_scolaire_active': annee_scolaire_active,
         'est_superieur': est_superieur,
         'matieres_session_superieur_meta': matieres_session_superieur_meta,
+        'periodes_session_meta': [
+            {'id': p.pk, 'classe_ids': [c.pk for g in groupes_classes.values() for c in g['classes']
+             if PeriodeScolaire.filter_queryset_for_classe(PeriodeScolaire.objects.filter(pk=p.pk), etablissement, c).exists()]}
+            for p in periodes if p.est_active and p.annee_scolaire_fk_id == annee_scolaire_active.pk
+        ],
+        'peut_supprimer_session': is_directeur,
     }
     
     return render(request, 'school_admin/directeur/gestion_examens.html', context)
@@ -763,12 +801,14 @@ def modifier_session_examen(request, session_id):
     session = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)
     
     if request.method == 'POST':
-        classes, matieres, erreurs = _appliquer_formulaire_session(session, request.POST, etablissement, 'matieres_ids')
-        if erreurs:
-            for e in erreurs:
-                messages.error(request, e)
-            return redirect('directeur:gestion_examens')
         with transaction.atomic():
+            _verrouiller_classes_session(session_id, etablissement)
+            session = get_object_or_404(SessionExamen.objects.select_for_update(), id=session_id, etablissement=etablissement)
+            classes, matieres, erreurs = _appliquer_formulaire_session(session, request.POST, etablissement, 'matieres_ids')
+            if erreurs:
+                for e in erreurs:
+                    messages.error(request, e)
+                return redirect('directeur:gestion_examens')
             session.save()
             session.classes.set(classes)
             session.matieres.set(matieres)
@@ -781,6 +821,7 @@ def modifier_session_examen(request, session_id):
 
 @login_required
 @require_permission('examens_voir')
+@require_POST
 def supprimer_session_examen(request, session_id):
     """
     Supprimer une session d'examen et tous ses créneaux associés (CASCADE)
@@ -793,38 +834,69 @@ def supprimer_session_examen(request, session_id):
     
     etablissement, is_directeur, personnel = result
     
-    try:
-        session = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)
-        
-        # Compter les créneaux avant suppression
-        nb_creneaux = session.creneaux.count()
-        nom_session = session.nom_examen
-        
-        # La suppression des créneaux se fait automatiquement grâce au CASCADE
-        session.delete()
-        
-        messages.success(request, f"Session '{nom_session}' et ses {nb_creneaux} créneau(x) supprimé(s) avec succès.")
-        
-    except Exception as e:
-        messages.error(request, f"Erreur lors de la suppression de la session : {str(e)}")
-    
+    if not is_directeur:
+        return HttpResponseForbidden("Seul le directeur peut supprimer définitivement une session ; le droit de consultation ne suffit pas.")
+    from ..model.note_examen_model import NoteExamen
+    with transaction.atomic():
+        _verrouiller_classes_session(session_id, etablissement)
+        session = get_object_or_404(SessionExamen.objects.select_for_update(), id=session_id, etablissement=etablissement)
+        notes = NoteExamen.objects.select_for_update().filter(
+            Q(session_examen=session) | Q(creneau_examen__session_examen=session))
+        # Verrouiller aussi les lignes vides avant le dernier contrôle.
+        list(notes.values_list('pk', flat=True))
+        protegees = notes.filter(
+            Q(note__isnull=False) | Q(note_sur_20__isnull=False) | Q(absent=True) |
+            Q(absence_justifiee=True) | Q(soumis=True) | Q(date_soumission__isnull=False) |
+            Q(note_publiee__isnull=False) | Q(date_publication__isnull=False) |
+            ~Q(statut_publication='brouillon') |
+            (Q(commentaire__isnull=False) & ~Q(commentaire='')))
+        if protegees.exists():
+            messages.error(request, "Suppression interdite : cette session contient des notes, absences, soumissions ou publications. Conservez la session et son historique ; aucune donnée n’a été supprimée.")
+        else:
+            nom, nb = session.nom_examen, session.creneaux.count()
+            session.delete()
+            messages.success(request, f"Session « {nom} » supprimée avec {nb} créneau(x) et ses seules lignes de notes vides.")
+
     return redirect('directeur:gestion_examens')
 
 @login_required
 @require_permission('examens_voir')
+@require_POST
 def publier_session_examen(request, session_id):
     """Publie / retire une session : seules les sessions publiées sont visibles des élèves et parents."""
     from ..utils.decorators_permissions import _get_user_etablissement
     etablissement = _get_user_etablissement(request, 'examens_voir')[0]
     if etablissement is None or request.method != 'POST':
         return redirect('directeur:gestion_examens')
-    session = get_object_or_404(SessionExamen, id=session_id, etablissement=etablissement)
-    session.est_publie = not session.est_publie
-    session.save(update_fields=['est_publie'])
-    messages.success(request, f"« {session.nom_examen} » " + (
-        "est publiée : élèves et parents voient le calendrier." if session.est_publie
-        else "n'est plus visible des élèves et parents."))
-    return redirect(request.POST.get('next') or 'directeur:gestion_examens')
+    from ..services.examens_planning import verifier_creneau
+    with transaction.atomic():
+        _verrouiller_classes_session(session_id, etablissement)
+        session = get_object_or_404(SessionExamen.objects.select_for_update(), id=session_id, etablissement=etablissement)
+        if not session.est_publie:
+            creneaux = list(session.creneaux.select_for_update().filter(actif=True, est_annule=False))
+            attendues = set(session.matieres.values_list('pk', flat=True))
+            erreurs = []
+            if not session.actif or session.est_annule:
+                erreurs.append("Une session inactive ou annulée ne peut pas être publiée.")
+            if not attendues or {c.matiere_id for c in creneaux} != attendues:
+                erreurs.append("Publication impossible : calendrier vide ou partiel. Planifiez toutes les matières prévues.")
+            if etablissement.type_etablissement == 'superieur':
+                ok, erreur = _valider_matieres_session_superieur(list(session.classes.all()), list(session.matieres.all()), session.periode)
+                if not ok:
+                    erreurs.append(erreur)
+            for creneau in creneaux:
+                erreurs.extend(verifier_creneau(creneau)[0])
+            if erreurs:
+                for erreur in erreurs:
+                    messages.error(request, erreur)
+                return redirect('directeur:gestion_examens')
+        session.est_publie = not session.est_publie
+        session.save(update_fields=['est_publie'])
+    messages.success(request, f"Calendrier de « {session.nom_examen} » " + (
+        "publié : visible des étudiants/élèves et parents. Les décisions du jury ne sont pas publiées par cette action."
+        if session.est_publie else "retiré de la visibilité ; la session et ses résultats sont conservés."))
+    return redirect('directeur:gestion_examens')
+
 
 
 @login_required
@@ -896,4 +968,36 @@ def regles_examens(request):
         r.poids_cc = poids
     r.save()
     messages.success(request, "Règles d'examen enregistrées. Recalculez les moyennes pour les appliquer aux bulletins.")
+    return redirect('directeur:gestion_examens')
+
+
+@login_required
+@require_permission('examens_voir')
+@require_POST
+def annuler_session_examen(request, session_id):
+    """Conserve notes/planning, retire la session des calculs et du calendrier public."""
+    from uuid import uuid4
+    from ..utils.decorators_permissions import _get_user_etablissement
+    from ..services.deliberations import periode_verrouillee
+    from ..model.sync_action_model import SyncAction
+    etablissement, is_directeur, _ = _get_user_etablissement(request, 'examens_voir')
+    if etablissement is None or not is_directeur:
+        return HttpResponseForbidden('Seul le directeur peut annuler une session.')
+    motif = request.POST.get('motif','').strip()
+    if not motif or request.POST.get('confirmation') != 'oui':
+        messages.error(request,'Indiquez le motif et confirmez l’annulation. Aucune donnée modifiée.')
+        return redirect('directeur:gestion_examens')
+    with transaction.atomic():
+        _verrouiller_classes_session(session_id,etablissement)
+        session = get_object_or_404(SessionExamen.objects.select_for_update(),pk=session_id,etablissement=etablissement)
+        if any(periode_verrouillee(c,session.periode) for c in session.classes.all()):
+            messages.error(request,'Cette session appartient à une délibération clôturée. Faites vérifier le dossier avant toute annulation.')
+        elif not session.est_annule:
+            SyncAction.objects.create(client_uuid=str(uuid4()),resource='session_examen',action='CANCEL',
+                utilisateur_id=request.user.pk,utilisateur_type='etablissement',
+                resultat={'session_id':session.pk,'nom':session.nom_examen,'etablissement_id':etablissement.pk,
+                          'motif':motif,'date':timezone.now().isoformat()})
+            session.est_annule=True; session.est_publie=False
+            session.save(update_fields=['est_annule','est_publie'])
+            messages.success(request,'Session annulée : notes et historique conservés. Elle ne compte plus dans les moyennes ; recalculez les résultats concernés.')
     return redirect('directeur:gestion_examens')

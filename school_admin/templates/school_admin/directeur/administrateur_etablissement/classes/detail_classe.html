@@ -101,6 +101,7 @@
                 <form method="post" action="{% url 'administrateur_etablissement:modifier_classe' classe.id %}" class="edit-form">
               {% csrf_token %}
 
+              {% if est_superieur %}<div class="cam-hint-banner"><p><strong>{% trans "Rattachement actuel :" %}</strong> {{ classe.department.nom }} — {{ classe.get_libelle_niveau_complet_pour_eleve }}. {% trans "La filière et le niveau ne sont pas modifiables dans ce formulaire. Changer le nom de la classe ne change pas son niveau ni son programme." %}</p></div>{% endif %}
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label" for="nom">{% trans "Nom de la classe *" %}</label>
@@ -138,17 +139,18 @@
               </div>
 
               {% if est_superieur %}
-              <div class="cam-section cam-section--parcours" style="margin-top: 1rem;">
+              <details class="cam-section cam-section--parcours classe-options" style="margin-top: 1rem;">
+                <summary>{% trans "Options avancées : examens et concours (facultatif)" %}</summary>
                 <div class="cam-section-header">
                   <div class="cam-section-icon cam-section-icon--parcours"><i class="fas fa-route"></i></div>
                   <div class="cam-section-titles">
                     <h3>{% trans "Examens & concours accessibles" %}</h3>
-                    <p>{% trans "Sélection multiple : concours BTS, BT, DUT, certifications… en complément du parcours LMD." %}</p>
+                    <p>{% trans "Facultatif : choisissez uniquement les examens supplémentaires préparés par cette classe." %}</p>
                   </div>
                 </div>
                 <div class="cam-hint-banner">
                   <i class="fas fa-info-circle"></i>
-                  <span>{% trans "Exemple : une Licence 2 QHSE peut préparer concours BTS ou BT sans quitter le cadre LMD. Aucune sélection = parcours standard uniquement." %}</span>
+                  <span>{% trans "Laissez cette partie vide si la classe suit seulement son programme habituel." %}</span>
                 </div>
                 {% for grp in catalogue_examens_groupes %}
                 <div class="cam-examen-categorie">
@@ -170,9 +172,9 @@
                   </div>
                 </div>
                 {% empty %}
-                <p class="text-muted" style="font-size: .875rem;">{% trans "Catalogue vide — contactez l'administrateur." %}</p>
+                <p class="text-muted" style="font-size: .875rem;">{% trans "Aucun examen supplémentaire proposé. Vous pouvez créer la classe sans cette option." %}</p>
                 {% endfor %}
-              </div>
+              </details>
               {% endif %}
               
               <div class="form-actions">
@@ -274,7 +276,7 @@
                   <div class="sx-quick">
                     <a class="sx-quick__item" href="{% url 'administrateur_etablissement:detail_emploi_du_temps' classe.id %}"><i class="fas fa-calendar-week" aria-hidden="true"></i><span><strong>{% trans "Emploi du temps" %}</strong><small>{% trans "Créneaux, salles et enseignants" %}</small></span></a>
                     {% if est_superieur %}
-                    <a class="sx-quick__item" href="{% url 'directeur:maquette_classe' classe.id %}"><i class="fas fa-layer-group" aria-hidden="true"></i><span><strong>{% trans "Maquette (UE et EC)" %}</strong><small>{% trans "Modules, crédits, volumes horaires" %}</small></span></a>
+                    <a class="sx-quick__item" href="{% url 'directeur:maquette_classe' classe.id %}"><i class="fas fa-layer-group" aria-hidden="true"></i><span><strong>{% trans "Programme de formation" %}</strong><small>{% trans "Matières et unités d’enseignement (UE), cours (EC), crédits et heures" %}</small></span></a>
                     {% endif %}
                     <a class="sx-quick__item" href="{% url 'affectation:affectation_professeurs' %}"><i class="fas fa-user-plus" aria-hidden="true"></i><span><strong>{% trans "Affecter des enseignants" %}</strong><small>{% if maitres_primaire %}{% trans "Maître de la classe" %}{% else %}{% trans "Une matière, un enseignant" %}{% endif %}</small></span></a>
                     <a class="sx-quick__item" href="{% url 'directeur:bulletins_notes' %}?classe={{ classe.id }}"><i class="fas fa-file-lines" aria-hidden="true"></i><span><strong>{% trans "Bulletins" %}</strong><small>{% trans "Calcul, publication, impression" %}</small></span></a>

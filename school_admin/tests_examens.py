@@ -291,7 +291,16 @@ class PlanningTests(BaseExamens):
     def test_publication(self):
         self.client.force_login(self.etab)
         self.assertFalse(self.compo.est_publie)
-        self.client.post(reverse('directeur:publier_session_examen', args=[self.compo.id]))
+        url = reverse('directeur:publier_session_examen', args=[self.compo.id])
+        self.client.post(url)
+        self.compo.refresh_from_db()
+        self.assertFalse(self.compo.est_publie)  # Un calendrier vide reste invisible.
+        for index, matiere in enumerate(self.compo.matieres.all()):
+            CreneauExamen.objects.create(
+                session_examen=self.compo, matiere=matiere, date_examen=self.compo.date_debut,
+                heure_debut=time(8 + index * 2), heure_fin=time(9 + index * 2),
+                annee_scolaire=self.annee)
+        self.client.post(url)
         self.compo.refresh_from_db()
         self.assertTrue(self.compo.est_publie)
 

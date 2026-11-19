@@ -8,8 +8,8 @@ from .personal_views.commercial_view import *
 from .personal_views.comptable_view import *
 from .controllers.activites_commerciales_controller import ActivitesCommercialesController
 from .personal_views.directeur_view import verifier_bulletin_qr
-from . import securite_mdp_views
-from .api_views import fcm_views, fcm_test_views, test_notes_notifications, sync_views, context_popup_views
+from . import csp, securite_mdp_views
+from .api_views import fcm_views, sync_views, context_popup_views
 from .personal_views.qr_scan_view import scan_qr_eleve, scan_qr_eleve_authenticated
 from .seo_views import robots_txt, sitemap_xml
 
@@ -28,6 +28,7 @@ urlpatterns =[
     path('push-config.js', pwa_views.push_config_view, name='push_config_js'),
     path('api/push/config/', pwa_views.push_config_view, name='push_config'),
     path('api/context-popup/', context_popup_views.context_popup, name='context_popup'),
+    path('securite/csp-rapport/', csp.rapport_csp, name='rapport_csp'),
     path('securite/nouveau-mot-de-passe/', securite_mdp_views.choisir_mot_de_passe, name='choisir_mot_de_passe'),
     path('securite/mot-de-passe-provisoire/<str:type_compte>/<int:pk>/',
          securite_mdp_views.nouveau_mot_de_passe_provisoire, name='nouveau_mot_de_passe_provisoire'),
@@ -42,17 +43,8 @@ urlpatterns =[
     path('api/fcm/save-token/', fcm_views.save_fcm_token, name='save_fcm_token'),
     path('api/push/test/', fcm_views.test_own_push, name='test_own_push'),
     path('api/fcm/delete-token/', fcm_views.delete_fcm_token, name='delete_fcm_token'),
-    path('api/fcm/test-notification/', fcm_test_views.test_notification, name='test_notification'),
-    path('api/fcm/test-notification-eleve/', fcm_test_views.test_notification_eleve, name='test_notification_eleve'),
-    path('api/fcm/check-status/', fcm_test_views.check_fcm_status, name='check_fcm_status'),
-    
-    # Page de test FCM
-    path('test-fcm/', views.test_fcm_page, name='test_fcm_page'),
-    
-    # API Test Notifications de Notes
-    path('api/test/send-note-notification/', test_notes_notifications.test_send_note_notification, name='test_send_note_notification'),
-    path('api/test/get-eleves-with-tokens/', test_notes_notifications.get_eleves_with_tokens, name='get_eleves_with_tokens'),
-    path('test-notes-notifications/', test_notes_notifications.test_notes_notifications_page, name='test_notes_notifications_page'),
+    # Les pages et API de diagnostic des notifications (test-fcm, api/test/…) ne sont plus publiées :
+    # utiliser la commande « python manage.py test_fcm_notification » sur le serveur.
     
 
     # Autres routes existantes

@@ -128,6 +128,7 @@ MIDDLEWARE = [
     'school_admin.rate_limit_middleware.AccountRateLimitMiddleware',  # Freine l'aspiration par un compte
     'school_admin.securite_mdp_views.ChangementObligatoireMiddleware',  # Mot de passe provisoire à remplacer
     'school_admin.admin_guard.AdminLoginThrottleMiddleware',  # Tentatives limitées sur l'administration Django
+    'school_admin.csp.CspMiddleware',  # Politique de sécurité du contenu (observation par défaut)
     'school_admin.middleware.SessionActiveMiddleware',  # Middleware pour la gestion des sessions actives
     'school_admin.middleware.CaissierAccessMiddleware',
     'school_admin.middleware.SeoMiddleware',
@@ -356,6 +357,8 @@ ACCOUNT_RATE_WINDOW = env.int('ACCOUNT_RATE_WINDOW', default=300)
 QR_AUTH_TOKEN_MAX_AGE_DAYS = env.int('QR_AUTH_TOKEN_MAX_AGE_DAYS', default=400)
 # Adresse de l'administration Django. Une adresse peu prévisible (ex. « gestion-x7k2/ ») réduit les robots.
 ADMIN_URL = env('ADMIN_URL', default='admin/').strip('/') + '/'
+# Politique de sécurité du contenu : « report » (signale sans bloquer), « enforce » (applique) ou « off ».
+CSP_MODE = env('CSP_MODE', default='report')
 # En production, Nginx envoie les fichiers privés après contrôle par l'application (X-Accel-Redirect).
 MEDIA_ACCEL_PREFIX = env('MEDIA_ACCEL_PREFIX', default='' if DEBUG else '/protected-media/')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -512,10 +515,9 @@ CORS_ORIGIN_WHITELIST = []
 CORS_ALLOWED_ORIGINS = [
     "https://aria-edu.com",
     "https://www.aria-edu.com",
-    "http://157.173.102.180",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
 ]
+if DEBUG:
+    CORS_ALLOWED_ORIGINS += ["http://localhost:8000", "http://127.0.0.1:8000"]
 
 # Autoriser les credentials (cookies, headers d'authentification)
 CORS_ALLOW_CREDENTIALS = True

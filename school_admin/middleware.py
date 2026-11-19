@@ -114,6 +114,7 @@ class AuthenticationMiddleware:
             '/favicon.ico',
             '/robots.txt',
             '/sitemap.xml',
+            '/securite/csp-rapport/',
         }
         
         

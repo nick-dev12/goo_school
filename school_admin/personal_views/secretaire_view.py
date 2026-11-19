@@ -20,6 +20,8 @@ from ..model.facturation_model import Facturation
 from ..model.ponderation_model import Ponderation
 from ..utils.session_utils import get_session_active, get_session_consultee
 from ..utils.formatting_utils import formater_nom, formater_prenom
+import logging
+logger = logging.getLogger(__name__)
 
 
 def _build_classes_grouped_data(etablissement, annee_scolaire_active=None):
@@ -709,7 +711,7 @@ def inscription_eleves(request):
                 elif parent_existant:
                     # Utiliser le parent existant et créer le lien
                     parent = parent_existant
-                    print(f"[INFO] Parent existant trouvé : {parent.nom_complet}")
+                    logger.debug(f"[INFO] Parent existant trouvé : {parent.nom_complet}")
                 else:
                     # Créer un nouveau compte parent
                     parent = Parent(
@@ -731,7 +733,7 @@ def inscription_eleves(request):
                     )
                     parent.set_password(form_data['mot_de_passe_parent'])
                     parent.save()
-                    print(f"[INFO] Nouveau parent créé : {parent.nom_complet}")
+                    logger.debug(f"[INFO] Nouveau parent créé : {parent.nom_complet}")
                 
                 # Créer le lien familial (si un parent a été saisi)
                 if parent is not None:
@@ -1824,7 +1826,7 @@ def detail_eleve(request, eleve_id):
         if lien_inscripteur:
             parent_inscripteur = lien_inscripteur.parent
     except Exception as e:
-        print(f"[DEBUG] Erreur lors de la récupération du parent inscripteur : {e}")
+        logger.debug(f"[DEBUG] Erreur lors de la récupération du parent inscripteur : {e}")
         parent_inscripteur = None
     
     form_data = {}

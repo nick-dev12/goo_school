@@ -29,6 +29,13 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        # Commande destructrice : jamais en production sans autorisation explicite et volontaire.
+        import os
+        from django.conf import settings
+        from django.core.management.base import CommandError
+        if not settings.DEBUG and os.environ.get('ARIA_AUTORISER_COMMANDE_DESTRUCTRICE') != 'oui':
+            raise CommandError("Commande refusée en production. Faire d'abord une sauvegarde, puis relancer avec "
+                               "ARIA_AUTORISER_COMMANDE_DESTRUCTRICE=oui si c'est vraiment voulu.")
         # Compter les données existantes
         nb_paiements = PaiementEleve.objects.count()
         nb_mensualites = Mensualite.objects.count()

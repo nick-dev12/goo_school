@@ -64,12 +64,12 @@ def dashboard_parent(request):
     Tableau de bord principal du parent
     Affiche la liste de ses enfants
     """
-    print(f"\n[DASHBOARD PARENT] User: {request.user}, Type: {type(request.user).__name__}, Authenticated: {request.user.is_authenticated}")
+    logger.debug(f"\n[DASHBOARD PARENT] User: {request.user}, Type: {type(request.user).__name__}, Authenticated: {request.user.is_authenticated}")
     logger.info(f"Dashboard parent - User: {request.user}, Type: {type(request.user).__name__}, Authenticated: {request.user.is_authenticated}")
     
     # Vérifier que l'utilisateur est bien un parent
     if not isinstance(request.user, Parent):
-        print(f"[DASHBOARD PARENT] Accès refusé - Type: {type(request.user).__name__}")
+        logger.debug(f"[DASHBOARD PARENT] Accès refusé - Type: {type(request.user).__name__}")
         logger.warning(f"Accès refusé au dashboard parent - Type d'utilisateur: {type(request.user).__name__}")
         messages.error(request, "Accès non autorisé. Cette page est réservée aux parents.")
         return redirect('school_admin:connexion_compte_user')
@@ -106,7 +106,7 @@ def dashboard_parent(request):
         statut='valide'
     ).select_related('eleve__classe', 'eleve__etablissement')
     
-    print(f"[DASHBOARD PARENT] Nombre de liens trouvés: {liens_familiaux.count()}")
+    logger.debug(f"[DASHBOARD PARENT] Nombre de liens trouvés: {liens_familiaux.count()}")
     
     # Récupérer les IDs des élèves qui ont une demande approuvée
     enfants = []
@@ -152,7 +152,7 @@ def dashboard_parent(request):
                     'classe': classe_eleve_active,
                 })
             except Exception as e:
-                print(f"[DASHBOARD PARENT] Erreur pour élève {eleve.nom_complet}: {str(e)}")
+                logger.debug(f"[DASHBOARD PARENT] Erreur pour élève {eleve.nom_complet}: {str(e)}")
                 # Récupérer l'année scolaire active pour l'élève même en cas d'erreur
                 eleve_annee_scolaire_active = None
                 if eleve.etablissement:
@@ -215,7 +215,7 @@ def dashboard_parent(request):
                     prochaine_echeance_scolarite = resume_item.prochaine_echeance
     
     # Toujours afficher le dashboard parent pour qu'il puisse choisir
-    print(f"[DASHBOARD PARENT] Nombre d'enfants à afficher: {len(enfants)}")
+    logger.debug(f"[DASHBOARD PARENT] Nombre d'enfants à afficher: {len(enfants)}")
     
     # Récupérer les données du formulaire de la session (si échec précédent)
     form_data = request.session.pop('form_data', None)
@@ -282,7 +282,7 @@ def dashboard_enfant(request, eleve_id):
     Sélection d'un enfant par le parent
     Stocke les IDs en session et redirige vers le dashboard de l'enfant
     """
-    print(f"\n[DASHBOARD ENFANT] User: {request.user}, Eleve ID: {eleve_id}")
+    logger.debug(f"\n[DASHBOARD ENFANT] User: {request.user}, Eleve ID: {eleve_id}")
     
     # Vérifier que l'utilisateur est bien un parent
     if not isinstance(request.user, Parent):
@@ -312,7 +312,7 @@ def dashboard_enfant(request, eleve_id):
     request.session['eleve_consulte_nom'] = eleve.nom_complet
     request.session['mode_consultation_parent'] = True
     
-    print(f"[DASHBOARD ENFANT] Session créée - Parent: {parent.nom_complet}, Enfant: {eleve.nom_complet}")
+    logger.debug(f"[DASHBOARD ENFANT] Session créée - Parent: {parent.nom_complet}, Enfant: {eleve.nom_complet}")
     logger.info(f"Parent {parent.matricule_parental} consulte l'enfant {eleve.nom_complet} (ID: {eleve.id})")
     
     # Rediriger vers le dashboard élève
@@ -553,7 +553,7 @@ def demande_liaison_enfant(request):
         return redirect('school_admin:dashboard_parent')
         
     except Exception as e:
-        print(f"[DEMANDE LIAISON] Erreur: {str(e)}")
+        logger.debug(f"[DEMANDE LIAISON] Erreur: {str(e)}")
         logger.error(f"Erreur demande liaison: {str(e)}", exc_info=True)
         messages.error(request, "Une erreur s'est produite lors du traitement de votre demande.")
         return redirect('school_admin:dashboard_parent')

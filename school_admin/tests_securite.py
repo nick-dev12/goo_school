@@ -385,3 +385,32 @@ class AdministrationDjangoTests(TestCase):
         for _ in range(login_throttle.ATTEMPT_LIMIT):
             self.client.post('/admin/login/', {'username': 'inconnu', 'password': 'faux'})
         self.assertEqual(self.client.post('/admin/login/', {'username': 'inconnu', 'password': 'faux'}).status_code, 429)
+
+
+# --------------------------------------------------------------------------- lot 4
+class FinitionsTests(TestCase):
+    def test_politique_de_contenu_en_observation(self):
+        reponse = self.client.get('/connexion/')
+        self.assertIn("default-src 'self'", reponse['Content-Security-Policy-Report-Only'])
+        self.assertIn("frame-ancestors 'none'", reponse['Content-Security-Policy-Report-Only'])
+        self.assertNotIn('Content-Security-Policy', [k for k in reponse.headers if k == 'Content-Security-Policy'])
+        with override_settings(CSP_MODE='enforce'):
+            self.assertIn('Content-Security-Policy', self.client.get('/connexion/').headers)
+
+    def test_rapport_csp_accepte_sans_connexion(self):
+        rapport = '{"csp-report": {"violated-directive": "script-src", "blocked-uri": "https://evil.example"}}'
+        reponse = self.client.post('/securite/csp-rapport/', rapport, content_type='application/csp-report')
+        self.assertEqual(reponse.status_code, 204)
+
+    def test_pages_de_diagnostic_retirees(self):
+        from django.urls import NoReverseMatch
+        for nom in ('test_fcm_page', 'test_notes_notifications_page', 'test_notification', 'get_eleves_with_tokens'):
+            with self.assertRaises(NoReverseMatch):
+                reverse(f'school_admin:{nom}')
+
+    def test_commandes_destructrices_refusees_en_production(self):
+        from django.core.management import CommandError, call_command
+        with override_settings(DEBUG=False):
+            for commande in ('vider_db', 'supprimer_comptabilite'):
+                with self.assertRaises(CommandError):
+                    call_command(commande, '--force')

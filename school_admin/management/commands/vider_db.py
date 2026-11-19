@@ -18,6 +18,13 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        # Commande destructrice : jamais en production sans autorisation explicite et volontaire.
+        import os
+        from django.conf import settings
+        from django.core.management.base import CommandError
+        if not settings.DEBUG and os.environ.get('ARIA_AUTORISER_COMMANDE_DESTRUCTRICE') != 'oui':
+            raise CommandError("Commande refusée en production. Faire d'abord une sauvegarde, puis relancer avec "
+                               "ARIA_AUTORISER_COMMANDE_DESTRUCTRICE=oui si c'est vraiment voulu.")
         # Obtenir tous les modèles de l'application school_admin
         app_models = apps.get_app_config('school_admin').get_models()
         

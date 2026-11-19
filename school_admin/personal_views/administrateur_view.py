@@ -10,6 +10,8 @@ from ..model.compte_user import CompteUser
 from django.db.models import Count, Q as models
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
+import logging
+logger = logging.getLogger(__name__)
 
 
 
@@ -957,9 +959,9 @@ def commercial_profile(request, commercial_id):
     notes_recents = list(notes_commerciales.order_by('-date_creation')[:2])
     
     # Debug: Afficher le nombre d'éléments trouvés
-    print(f"Debug - Établissements trouvés: {len(etablissements_recents)}")
-    print(f"Debug - Rendez-vous trouvés: {len(rendez_vous_programmes)}")
-    print(f"Debug - Notes trouvées: {len(notes_recents)}")
+    logger.debug(f"Debug - Établissements trouvés: {len(etablissements_recents)}")
+    logger.debug(f"Debug - Rendez-vous trouvés: {len(rendez_vous_programmes)}")
+    logger.debug(f"Debug - Notes trouvées: {len(notes_recents)}")
     
     # Activités récentes - toutes les activités sans limite
     recent_activities = []

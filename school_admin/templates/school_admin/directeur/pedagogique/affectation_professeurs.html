@@ -208,7 +208,7 @@
                                             {% if est_superieur and departments_affectation %}<option value="" data-department-id="">{% trans "Choisissez une filière puis une matière" %}</option>{% endif %}
                                             {% for matiere in matieres_enseignables %}
                                                 {% if matiere %}
-                                                <option value="{{ matiere.id }}" data-department-id="{{ matiere.department_id|default:'' }}" data-classe-ids="{% if est_superieur %}{{ matiere.get_classe_ids_pour_affectation_superieur_csv }}{% endif %}" {% if not est_superieur and forloop.first %}selected{% elif est_superieur and not departments_affectation and forloop.first %}selected{% endif %}>
+                                                <option value="{{ matiere.id }}" data-department-id="{{ matiere.department_id|default:'' }}"{% if est_superieur %} data-department-ids="{{ matiere.get_filieres_ids_csv }}"{% endif %} data-classe-ids="{% if est_superieur %}{{ matiere.get_classe_ids_pour_affectation_superieur_csv }}{% endif %}" {% if not est_superieur and forloop.first %}selected{% elif est_superieur and not departments_affectation and forloop.first %}selected{% endif %}>
                                                     {% if est_superieur and matiere.department %}{{ matiere.department.nom }} › {% endif %}{% if est_superieur and matiere.module %}{{ matiere.module.nom }} › {% endif %}{{ matiere.nom }}
                                                 </option>
                                                 {% endif %}
@@ -267,7 +267,7 @@
     </div>
 
     {% csrf_token %}
-    <script src="{% static 'school_admin/js/directeur/affectation_professeurs.js' %}?v=2.0.0"></script>
+    <script src="{% static 'school_admin/js/directeur/affectation_professeurs.js' %}?v=2.0.1"></script>
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 <script>

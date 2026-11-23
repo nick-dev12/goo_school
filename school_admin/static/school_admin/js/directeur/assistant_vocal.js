@@ -35,7 +35,6 @@
   var PARENT_LANG_KEY = 'aria.parent.lang_pref';
   var ELEVE_LANG_KEY = 'aria.eleve.lang_pref';
   var ANNONCE_DRAFT_KEY = 'aria.annonce.draft';
-  var CHARS_PER_SECOND = 13;
   var TARGET_RATE = 16000;
   var SPEAK_RMS = 0.045;
   var QUIET_RMS = 0.018;
@@ -51,7 +50,6 @@
   var audioQueue = [];
   var isPlaying = false;
   var currentAudio = null;
-  var typewriterTimer = null;
   var liveMode = false;
   var pendingTranscript = '';
   var silenceTimer = null;
@@ -80,12 +78,20 @@
   var voiceNoteUrl = '';
   var voiceStartedMs = 0;
   var voiceTimer = null;
-  var pendingDelta = '';
   var streamAccumulated = '';
-  var enqueuedSpeechFingerprints = [];
-  var turnSpeechFingerprint = '';
-  var voiceWaitScheduled = false;
-  var receivedVoiceSentence = false;
+  var receivedAudioIndexes = new Set();
+  var turnAudio = [];
+  var audioFailed = false;
+  var audioTimer = null;
+  var localSpeech = null;
+  var speechSession = 0;
+  var audible = false;
+  var revealFrame = null;
+  var showTextOnly = false;
+  var pendingSuggestions = [];
+  var replaying = false;
+  var replayControls = null;
+  var replayButton = null;
   var voiceSendAfterStop = false;
   var currentActionCard = null;
   var reloadAfterAction = false;
@@ -654,6 +660,9 @@
       } else if (item.role === 'result') {
         renderActionResult(item, true);
       } else if (item.role === 'user' || item.role === 'assistant' || item.role === 'error') {
+        if (item.role === 'assistant') {
+          item.text = collapseRepeatedReply(stripToolMarkup(item.text || ''));
+        }
         appendBubble(item.role, item.text || '');
       }
     });
@@ -751,16 +760,19 @@
   function handleChoice(item) {
     var intent = (item && item.intent) || 'chat';
     var value = (item && (item.value || item.label)) || '';
+    if (intent === 'chat') {
+      sendQuestion(value);
+      return;
+    }
     if (intent === 'open' && item && item.url) {
       goToPage(item.url);
       return;
     }
-    if (busy) {
+    if (busy || isPlaying) {
       interruptAssistant();
     }
     ignoreIncoming = false;
     unlockAudio(true);
-    receivedVoiceSentence = false;
     connect();
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       sendQuestion(value);
@@ -770,10 +782,8 @@
     currentAssistantBubble = null;
     spokenPlain = '';
     pendingDone = false;
-    pendingDelta = '';
     streamAccumulated = '';
-    turnSpeechFingerprint = '';
-    voiceWaitScheduled = false;
+    resetReplyAudio();
     pendingActionResult = null;
     ignoreIncoming = false;
     setBusy(true);
@@ -785,7 +795,7 @@
         value: value,
         label: (item && item.label) || '',
         url: (item && item.url) || '',
-        publier: intent === 'confirm',
+        confirmation_id: (item && item.confirmation_id) || null,
         mode: (item && item.mode) || '',
       })
     );
@@ -864,19 +874,15 @@
   }
 
   function renderSuggestions(items) {
-    renderChoices(
-      (items || []).map(function (item) {
-        var label = item.label || item.titre || item.nom || '';
-        var url = item.url || '';
-        var intent = item.intent || (url ? 'open' : 'chat');
-        return {
-          label: label,
-          value: item.value || label,
-          url: url,
-          intent: intent,
-        };
-      })
-    );
+    renderChoices((items || []).map(function (item) {
+      var label = item.label || item.titre || item.nom || '';
+      var value = item.value || label;
+      if ((item.intent === 'open' || item.url) && value === label &&
+          !/^(ouvr|affich|montr)/i.test(value)) {
+        value = 'Ouvre ' + label.replace(/^(?:voir|consulter|acc[èe]der [àa])\s+/i, '') + '.';
+      }
+      return { label: label, value: value, intent: 'chat' };
+    }));
   }
 
   function formatVoiceTime(seconds) {
@@ -974,6 +980,9 @@
     muteBtn.innerHTML = voiceMuted
       ? '<i class="fas fa-volume-mute"></i>'
       : '<i class="fas fa-volume-up"></i>';
+    if (replayButton) {
+      replayButton.disabled = voiceMuted;
+    }
   }
 
   function setVoiceMuted(value) {
@@ -985,17 +994,11 @@
     }
     updateMuteButton();
     if (voiceMuted) {
-      audioQueue.forEach(function (entry) {
-        if (entry) {
-          entry.src = '';
-        }
-      });
-      if (currentAudio || isPlaying || audioQueue.length) {
-        releaseCurrentAudio();
-        clearTypewriter();
-        isPlaying = false;
-        playNext();
-      }
+      showTextOnly = true;
+      stopAudio();
+      renderReceivedText();
+      finishIfIdle();
+      refreshStatus();
     }
   }
 
@@ -1034,6 +1037,9 @@
 
   function unlockAudio(force) {
     try {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+      }
       var Ctx = window.AudioContext || window.webkitAudioContext;
       if (Ctx) {
         audioContext = audioContext || new Ctx();
@@ -1079,6 +1085,11 @@
     };
     socket.onclose = function () {
       socket = null;
+      if (busy && !pendingDone) {
+        audioFailed = !voiceMuted;
+        pendingDone = true;
+        finishIfIdle();
+      }
       if (root.classList.contains('is-open')) {
         setStatus('Connexion interrompue…');
         window.clearTimeout(reconnectTimer);
@@ -1137,46 +1148,35 @@
       }
       return;
     }
-    if (data.type === 'text_delta') {
-      var piece = stripToolMarkup(data.text || '');
-      if (piece) {
-        var merged = mergeStreamDelta(streamAccumulated, piece);
-        streamAccumulated = merged.accumulated;
-        if (voiceMuted && merged.emit) {
-          pendingDelta += merged.emit;
+    if (data.type === 'text_delta' || data.type === 'text_replace') {
+      streamAccumulated = data.type === 'text_replace'
+        ? data.text || ''
+        : streamAccumulated + (data.text || '');
+      if (showTextOnly || voiceMuted) {
+        renderReceivedText();
+      }
+      return;
+    }
+    if (data.type === 'audio_reset') {
+      stopAudio();
+      resetReplyAudio({ keepSuggestions: true });
+      if (currentAssistantBubble) {
+        spokenPlain = '';
+        if (showTextOnly) {
+          renderReceivedText();
+        } else {
+          paintAssistant('', false);
         }
       }
       return;
     }
-    if (data.type === 'text_replace') {
-      var finalText = collapseRepeatedReply(stripToolMarkup(data.text || ''));
-      if (finalText) {
-        streamAccumulated = finalText;
-      }
-      return;
-    }
     if (data.type === 'audio_sentence') {
-      var sentenceText = collapseRepeatedReply(stripToolMarkup(data.text || ''));
-      var fp = speechFingerprint(sentenceText);
-      if (fp && turnSpeechFingerprint && fp === turnSpeechFingerprint) {
-        pendingDone = true;
-        finishIfIdle();
-        return;
-      }
-      if (fp) {
-        turnSpeechFingerprint = fp;
-      }
-      receivedVoiceSentence = true;
-      enqueueSentence(
-        sentenceText,
-        data.audio_base64 || '',
-        data.audio_mime || 'audio/wav'
-      );
+      enqueueSentence(data.text, data.audio_base64, data.audio_mime, data.index, data.language);
       return;
     }
     if (data.type === 'error') {
       var genericFail = /n[’']ai pas pu (répondre|exécuter)/i.test(data.message || '');
-      if (genericFail && (spokenPlain || receivedVoiceSentence || lastResultStamp)) {
+      if (genericFail && (spokenPlain || lastResultStamp)) {
         pendingDone = true;
         finishIfIdle();
         return;
@@ -1184,21 +1184,6 @@
       appendBubble('error', data.message || 'Une erreur est survenue.');
       pendingDone = true;
       finishIfIdle();
-      return;
-    }
-    if (data.type === 'text_replace') {
-      var cleaned = collapseRepeatedReply(stripToolMarkup(data.text || ''));
-      if (cleaned) {
-        ensureAssistantBubble();
-        if (foldAssistantText(spokenPlain) !== foldAssistantText(cleaned)) {
-          spokenPlain = cleaned;
-        } else if (!spokenPlain) {
-          spokenPlain = cleaned;
-        }
-        paintAssistant(spokenPlain || cleaned, false);
-        streamAccumulated = '';
-        pendingDelta = '';
-      }
       return;
     }
     if (data.type === 'done') {
@@ -1293,7 +1278,7 @@
       return;
     }
     if (data.type === 'suggestions') {
-      renderSuggestions(data.items || []);
+      pendingSuggestions = data.items || [];
       return;
     }
     if (data.type === 'choices') {
@@ -1438,7 +1423,7 @@
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       return;
     }
-    if (busy) {
+    if (busy || isPlaying) {
       interruptAssistant();
     }
     ignoreIncoming = false;
@@ -1447,9 +1432,8 @@
     appendBubble('user', label);
     currentAssistantBubble = null;
     spokenPlain = '';
-    enqueuedSpeechFingerprints = [];
+    resetReplyAudio();
     pendingDone = false;
-    receivedVoiceSentence = false;
     pendingActionResult = null;
     setBusy(true);
     showThinking();
@@ -1462,34 +1446,48 @@
     socket.send(JSON.stringify(payload));
   }
 
-  function enqueueSentence(text, audioBase64, audioMime) {
-    ensureAssistantBubble();
-    var mime = audioMime || 'audio/wav';
-    var line = collapseRepeatedReply(stripToolMarkup(text || ''));
-    var fp = speechFingerprint(line);
-    if (fp && enqueuedSpeechFingerprints.indexOf(fp) !== -1) {
-      return;
+  function resetReplyAudio(options) {
+    receivedAudioIndexes.clear();
+    turnAudio = [];
+    audioFailed = false;
+    showTextOnly = voiceMuted;
+    if (!(options && options.keepSuggestions)) {
+      pendingSuggestions = [];
     }
-    if (fp) {
-      enqueuedSpeechFingerprints.push(fp);
-    }
-    audioQueue.push({
-      text: line,
-      src: !voiceMuted && audioBase64 ? 'data:' + mime + ';base64,' + audioBase64 : '',
-    });
-    playNext();
   }
 
-  function clearTypewriter() {
-    if (typewriterTimer) {
-      window.clearInterval(typewriterTimer);
-      typewriterTimer = null;
+  function renderReceivedText() {
+    var reply = collapseRepeatedReply(stripToolMarkup(streamAccumulated));
+    if (reply) {
+      ensureAssistantBubble();
+      spokenPlain = reply;
+      paintAssistant(reply, false);
+    }
+  }
+
+  function enqueueSentence(text, audioBase64, audioMime, index, language) {
+    var line = stripToolMarkup(text);
+    if (!line || (Number.isInteger(index) && receivedAudioIndexes.has(index))) {
+      return;
+    }
+    if (Number.isInteger(index)) {
+      receivedAudioIndexes.add(index);
+    }
+    var item = {
+      text: line,
+      language: language || 'fr',
+      src: audioBase64 ? 'data:' + (audioMime || 'audio/wav') + ';base64,' + audioBase64 : '',
+    };
+    turnAudio.push(item);
+    if (!voiceMuted && root.classList.contains('is-open')) {
+      audioQueue.push(item);
+      playNext();
     }
   }
 
   function stripAriaSuggestions(text) {
     return String(text || '')
-      .replace(/(?:\[\[)?ARIA_?SUGGESTIONS:\s*[\s\S]*$/i, '')
+      .replace(/(?:\[\[?\s*)?ARIA[ _-]*SUGGEST(?:IONS?|ES?)?(?=\s*[:\[\]{}]|\s*$)[\s\S]*$/i, '')
       .trim();
   }
 
@@ -1506,33 +1504,6 @@
 
   function foldAssistantText(text) {
     return String(text || '').replace(/\s+/g, '').toLowerCase();
-  }
-
-  function mergeStreamDelta(accumulated, delta) {
-    var piece = delta || '';
-    var prev = accumulated || '';
-    if (!piece) {
-      return { accumulated: prev, emit: '' };
-    }
-    if (!prev) {
-      return { accumulated: piece, emit: piece };
-    }
-    if (piece === prev || prev.slice(-piece.length) === piece) {
-      return { accumulated: prev, emit: '' };
-    }
-    if (piece.indexOf(prev) === 0) {
-      var extra = piece.slice(prev.length);
-      if (!extra.trim()) {
-        return { accumulated: prev, emit: '' };
-      }
-      return { accumulated: prev + extra, emit: extra };
-    }
-    var fp = foldAssistantText(piece);
-    var fprev = foldAssistantText(prev);
-    if (fp === fprev || (fp.length >= fprev.length * 2 && fp.indexOf(fprev + fprev) === 0)) {
-      return { accumulated: prev, emit: '' };
-    }
-    return { accumulated: prev + piece, emit: piece };
   }
 
   function collapseRepeatedReply(text) {
@@ -1562,299 +1533,248 @@
     return raw;
   }
 
-  function speechFingerprint(text) {
-    return foldAssistantText(collapseRepeatedReply(stripToolMarkup(text || ''))).slice(0, 160);
-  }
-
-
-  function paintedCoversSentence(sentence) {
-    var clean = stripToolMarkup(sentence).trim();
-    if (!clean || !spokenPlain) {
-      return false;
+  function localVoice(language) {
+    var synthesis = window.speechSynthesis;
+    if (!synthesis) {
+      return null;
     }
-    return foldAssistantText(spokenPlain).indexOf(foldAssistantText(clean)) !== -1;
+    var locale = (language || 'fr').split('-')[0].toLowerCase();
+    return synthesis.getVoices().find(function (voice) {
+      return voice.localService && voice.lang.toLowerCase().split('-')[0] === locale;
+    }) || null;
   }
 
-  function paintedIsPrefixOfSentence(sentence) {
-    var clean = foldAssistantText(stripToolMarkup(sentence));
-    var shown = foldAssistantText(spokenPlain);
-    return !!(shown && clean && clean.indexOf(shown) === 0 && clean.length > shown.length);
-  }
-
-  function joinSentence(prefix, sentence) {
-    if (prefix && sentence && !/\s$/.test(prefix) && !/^[.,;:!?]/.test(sentence)) {
-      return prefix + ' ' + sentence;
+  function releaseCurrentAudio() {
+    window.clearTimeout(audioTimer);
+    audioTimer = null;
+    window.cancelAnimationFrame(revealFrame);
+    revealFrame = null;
+    if (currentAudio) {
+      currentAudio.onended = null;
+      currentAudio.onerror = null;
+      currentAudio.onplaying = null;
+      currentAudio.ontimeupdate = null;
+      currentAudio.pause();
+      currentAudio = null;
     }
-    return prefix + sentence;
-  }
-
-  function typeAlongDuration(sentence, durationMs, onComplete) {
-    if (paintedCoversSentence(sentence)) {
-      paintAssistant(spokenPlain, false);
-      if (onComplete) {
-        onComplete();
-      }
-      return;
+    if (localSpeech) {
+      localSpeech.onend = null;
+      localSpeech.onerror = null;
+      localSpeech.onstart = null;
+      localSpeech = null;
+      window.speechSynthesis.cancel();
     }
-    var prefix = spokenPlain;
-    var total = paintedIsPrefixOfSentence(sentence)
-      ? stripToolMarkup(sentence).trim()
-      : joinSentence(prefix, sentence);
-    var startAt = prefix ? Math.min(prefix.length, total.length) : 0;
-    var length = Math.max(1, total.length - startAt);
-    var started = Date.now();
-    var minDuration = Math.max(durationMs || 0, Math.round((length / CHARS_PER_SECOND) * 1000));
-    clearTypewriter();
-    typewriterTimer = window.setInterval(function () {
-      var elapsed = Date.now() - started;
-      var progress = Math.min(1, elapsed / minDuration);
-      var count = Math.max(1, Math.ceil(progress * length));
-      paintAssistant(total.slice(0, startAt + count), progress < 1);
-      if (progress >= 1) {
-        clearTypewriter();
-        spokenPlain = total;
-        paintAssistant(spokenPlain, false);
-        if (onComplete) {
-          onComplete();
-        }
-      }
-    }, 40);
-  }
-
-  function bindVoiceTypewriter(audio, sentence) {
-    var skipPaint = paintedCoversSentence(sentence);
-    var prefix = spokenPlain;
-    var total = skipPaint
-      ? spokenPlain
-      : paintedIsPrefixOfSentence(sentence)
-        ? stripToolMarkup(sentence).trim()
-        : joinSentence(prefix, sentence);
-    var startAt = prefix ? Math.min(prefix.length, total.length) : 0;
-    var length = Math.max(1, total.length - startAt);
-    var startedAt = Date.now();
-    var finished = false;
-
-    var complete = function () {
-      if (finished) {
-        return;
-      }
-      finished = true;
-      clearTypewriter();
-      spokenPlain = total;
-      paintAssistant(spokenPlain, false);
-      isPlaying = false;
-      releaseCurrentAudio();
-      var next = function () {
-        playNext();
-      };
-      if (audioQueue.length) {
-        window.setTimeout(next, 90);
-      } else {
-        next();
-      }
-    };
-
-    var reveal = function () {
-      if (skipPaint) {
-        paintAssistant(spokenPlain, true);
-        return;
-      }
-      var duration = audio.duration;
-      var progress;
-      if (duration && isFinite(duration) && duration > 0) {
-        progress = Math.min(1, audio.currentTime / duration);
-        var tail = 0.045;
-        if (duration > 0.25 && audio.currentTime >= duration - tail) {
-          audio.volume = 0;
-          audio.pause();
-          complete();
-          return;
-        }
-      } else {
-        progress = Math.min(0.92, ((Date.now() - startedAt) / 1000) * CHARS_PER_SECOND / length);
-      }
-      var count = Math.max(1, Math.ceil(progress * length));
-      paintAssistant(total.slice(0, startAt + count), progress < 1);
-    };
-
-    audio.ontimeupdate = reveal;
-    audio.onended = complete;
-    reveal();
-  }
-
-  function playAudioSafely(audio, onFail) {
-    if (voiceMuted) {
-      if (onFail) {
-        onFail();
-      }
-      return;
-    }
-    unlockAudio(true);
-    if (audioContext && audioContext.state === 'suspended') {
-      audioContext.resume();
-    }
-    var failed = false;
-    var failOnce = function () {
-      if (failed) {
-        return;
-      }
-      failed = true;
-      if (onFail) {
-        onFail();
-      }
-    };
-    var attempt = function (left) {
-      var playPromise = audio.play();
-      if (playPromise && playPromise.catch) {
-        playPromise.catch(function () {
-          if (left > 0) {
-            unlockAudio(true);
-            window.setTimeout(function () {
-              attempt(left - 1);
-            }, 80);
-            return;
-          }
-          failOnce();
-        });
-      }
-    };
-    attempt(2);
+    audible = false;
   }
 
   function playNext() {
     if (isPlaying) {
       return;
     }
-    if (!audioQueue.length) {
+    if (!audioQueue.length || voiceMuted) {
+      audioQueue = [];
+      replaying = false;
       finishIfIdle();
+      refreshStatus();
       return;
     }
 
     isPlaying = true;
-    ensureAssistantBubble();
     var item = audioQueue.shift();
-    var sentence = stripToolMarkup(item.text || '');
-    setStatus('Aria parle…');
-
-    if (voiceMuted || !item.src) {
-      typeAlongDuration(sentence, 0, function () {
-        isPlaying = false;
-        playNext();
-      });
+    var session = ++speechSession;
+    var animate = !replaying && !showTextOnly;
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var prefix = spokenPlain;
+    var text = Array.from(item.text);
+    var revealed = -1;
+    var reveal = function (count, completed) {
+      if (!animate || showTextOnly || voiceMuted || count === revealed) {
+        return;
+      }
+      revealed = count;
+      var chunk = text.slice(0, count).join('');
+      if (!chunk) {
+        return;
+      }
+      ensureAssistantBubble();
+      paintAssistant((prefix ? prefix + ' ' : '') + chunk, !completed);
+    };
+    var done = function (failed) {
+      if (session !== speechSession) {
+        return;
+      }
+      if (animate && !showTextOnly && !voiceMuted) {
+        revealed = -1;
+        reveal(text.length, true);
+        spokenPlain = (prefix ? prefix + ' ' : '') + item.text;
+      }
+      speechSession += 1;
+      audioFailed = audioFailed || failed;
+      releaseCurrentAudio();
+      isPlaying = false;
+      playNext();
+    };
+    var started = function () {
+      if (session === speechSession) {
+        audible = true;
+        if (reducedMotion) {
+          reveal(text.length, true);
+        }
+        refreshStatus();
+      }
+    };
+    var withLocalVoice = function () {
+      if (session !== speechSession) {
+        return;
+      }
+      releaseCurrentAudio();
+      var voice = localVoice(item.language);
+      if (!voice || voiceMuted) {
+        done(true);
+        return;
+      }
+      localSpeech = new SpeechSynthesisUtterance(item.text);
+      localSpeech.voice = voice;
+      localSpeech.lang = voice.lang;
+      localSpeech.onstart = function () {
+        started();
+        if (!reducedMotion) {
+          reveal(1, false);
+        }
+        window.clearTimeout(audioTimer);
+        audioTimer = window.setTimeout(function () { done(true); }, 20000);
+      };
+      localSpeech.onboundary = function (event) {
+        if (session === speechSession && !reducedMotion) {
+          reveal(Array.from(item.text.slice(0, event.charIndex + 1)).length, false);
+        }
+      };
+      localSpeech.onend = function () { done(false); };
+      localSpeech.onerror = function () { done(true); };
+      audioTimer = window.setTimeout(function () { done(true); }, 2500);
+      try {
+        window.speechSynthesis.speak(localSpeech);
+      } catch (error) {
+        done(true);
+      }
+    };
+    if (!item.src) {
+      withLocalVoice();
       return;
     }
-
     currentAudio = new Audio(item.src);
-    currentAudio.preload = 'auto';
-    currentAudio.volume = 1;
-    var started = false;
-    var fallbackType = function () {
-      if (started) {
+    var clip = currentAudio;
+    var guardProgress = function () {
+      window.clearTimeout(audioTimer);
+      audioTimer = window.setTimeout(function () { done(true); }, 4500);
+    };
+    var revealFromAudio = function () {
+      if (session !== speechSession || !animate || showTextOnly || voiceMuted || reducedMotion) {
         return;
       }
-      started = true;
-      typeAlongDuration(sentence, 0, function () {
-        isPlaying = false;
-        currentAudio = null;
-        playNext();
-      });
-    };
-    var startSynced = function () {
-      if (started || !currentAudio) {
-        return;
+      if (Number.isFinite(clip.duration) && clip.duration > 0) {
+        reveal(Math.max(1, Math.min(text.length, Math.ceil(text.length * clip.currentTime / clip.duration))), false);
       }
-      started = true;
-      bindVoiceTypewriter(currentAudio, sentence);
+      revealFrame = window.requestAnimationFrame(revealFromAudio);
     };
-
-    currentAudio.onerror = fallbackType;
-    currentAudio.onplaying = startSynced;
-    currentAudio.oncanplay = function () {
-      if (!started && currentAudio && currentAudio.paused) {
-        playAudioSafely(currentAudio, fallbackType);
-      }
+    clip.onplaying = function () {
+      started();
+      guardProgress();
+      window.cancelAnimationFrame(revealFrame);
+      revealFromAudio();
     };
-    window.setTimeout(function () {
-      if (!started && sentence && !paintedCoversSentence(sentence)) {
-        paintAssistant(joinSentence(spokenPlain, sentence).slice(0, spokenPlain.length + 1), true);
-      }
-    }, 350);
-    playAudioSafely(currentAudio, fallbackType);
-  }
-
-  function releaseCurrentAudio() {
-    if (!currentAudio) {
-      return;
-    }
+    clip.ontimeupdate = guardProgress;
+    clip.onended = function () { done(false); };
+    clip.onerror = function () { if (audible) { done(true); } else { withLocalVoice(); } };
+    audioTimer = window.setTimeout(withLocalVoice, 3500);
     try {
-      currentAudio.onended = null;
-      currentAudio.onerror = null;
-      currentAudio.onplaying = null;
-      currentAudio.oncanplay = null;
-      currentAudio.ontimeupdate = null;
-      currentAudio.volume = 0;
-      currentAudio.pause();
-    } catch (err) {
-      /* ignore */
+      var playback = clip.play();
+      if (playback && playback.catch) {
+        playback.catch(function () {
+          if (currentAudio === clip) {
+            withLocalVoice();
+          }
+        });
+      }
+    } catch (error) {
+      withLocalVoice();
     }
-    currentAudio = null;
   }
 
   function stopAudio() {
+    speechSession += 1;
+    replaying = false;
     audioQueue = [];
-    clearTypewriter();
     releaseCurrentAudio();
     isPlaying = false;
+  }
+
+  function appendReplay(bubble, clips, failed) {
+    var canReplay = clips.some(function (item) { return item.src || localVoice(item.language); });
+    var turn = bubble.closest('.assistant-vocal-turn');
+    if (!turn || (!canReplay && !failed)) {
+      return;
+    }
+    if (replayControls) {
+      replayControls.remove();
+    }
+    replayButton = null;
+    var controls = document.createElement('div');
+    replayControls = controls;
+    controls.className = 'assistant-vocal-choices';
+    if (failed) {
+      var status = document.createElement('span');
+      status.setAttribute('role', 'status');
+      status.textContent = 'Lecture audio incomplète.';
+      controls.appendChild(status);
+    }
+    if (canReplay) {
+      var replay = document.createElement('button');
+      replay.type = 'button';
+      replay.className = 'assistant-vocal-choice';
+      replay.textContent = 'Réécouter';
+      replay.disabled = voiceMuted;
+      replayButton = replay;
+      replay.addEventListener('click', function () {
+        if (busy || voiceMuted) {
+          return;
+        }
+        stopAudio();
+        unlockAudio(false);
+        audioQueue = clips.slice();
+        replaying = true;
+        playNext();
+      });
+      controls.appendChild(replay);
+    }
+    turn.appendChild(controls);
   }
 
   function finishIfIdle() {
     if (!pendingDone || isPlaying || audioQueue.length) {
       return;
     }
-    if (
-      !receivedVoiceSentence &&
-      !voiceMuted &&
-      (streamAccumulated || spokenPlain) &&
-      !voiceWaitScheduled
-    ) {
-      voiceWaitScheduled = true;
-      window.setTimeout(function () {
-        voiceWaitScheduled = false;
-        finishIfIdle();
-      }, 520);
-      return;
-    }
-    if (!spokenPlain && !receivedVoiceSentence) {
-      var textSource = voiceMuted ? pendingDelta : streamAccumulated || pendingDelta;
-      var textOnly = collapseRepeatedReply(stripToolMarkup(textSource || ''));
-      if (textOnly) {
-        isPlaying = true;
-        ensureAssistantBubble();
-        pendingDelta = '';
-        streamAccumulated = '';
-        typeAlongDuration(textOnly, 0, function () {
-          isPlaying = false;
-          finishIfIdle();
-        });
-        return;
-      }
-    }
     var settledText = collapseRepeatedReply(
-      stripToolMarkup(spokenPlain || streamAccumulated || '')
+      stripToolMarkup(streamAccumulated || spokenPlain || '')
     );
     pendingDone = false;
-    pendingDelta = '';
     streamAccumulated = '';
-    receivedVoiceSentence = false;
     hideThinking();
-    if (currentAssistantBubble && settledText) {
+    if (settledText) {
+      ensureAssistantBubble();
       spokenPlain = settledText;
       paintAssistant(spokenPlain, false);
+      if (pendingSuggestions.length) {
+        lastSuggestionHost = currentAssistantBubble;
+        renderSuggestions(pendingSuggestions);
+      }
+      appendReplay(currentAssistantBubble, turnAudio.slice(), audioFailed);
       if (chatLog.length && chatLog[chatLog.length - 1].role === 'assistant') {
         chatLog[chatLog.length - 1].text = spokenPlain;
         persistCache();
       }
     }
+    pendingSuggestions = [];
     currentAssistantBubble = null;
     spokenPlain = '';
     setBusy(false);
@@ -1887,15 +1807,8 @@
   }
 
   function syncSendButton() {
-    var settledReply = collapseRepeatedReply(
-      stripToolMarkup(spokenPlain || streamAccumulated || pendingDelta || '')
-    );
-    pendingDelta = '';
-    streamAccumulated = '';
-    receivedVoiceSentence = false;
-    hideThinking();
-    if (currentAssistantBubble && settledReply) {
-      spokenPlain = settledReply;
+    if (busy || isPlaying) {
+      sendBtn.classList.add('is-stop');
       sendBtn.setAttribute('aria-label', 'Arrêter');
       sendBtn.setAttribute('title', 'Arrêter');
       sendBtn.type = 'button';
@@ -1919,7 +1832,6 @@
     ignoreIncoming = false;
     stopAudio();
     pendingDone = false;
-    pendingDelta = '';
     streamAccumulated = '';
     hideThinking();
     if (currentAssistantBubble && spokenPlain) {
@@ -1949,7 +1861,9 @@
   }
 
   function refreshStatus() {
-    if (busy && isPlaying) {
+    syncSendButton();
+    root.dataset.voiceState = audible ? 'playing' : (isPlaying ? 'buffering' : 'idle');
+    if (audible) {
       setStatus('Aria parle…');
       return;
     }
@@ -1970,11 +1884,10 @@
     if (!question) {
       return;
     }
-    if (busy) {
+    if (busy || isPlaying) {
       interruptAssistant();
     }
     unlockAudio(true);
-    receivedVoiceSentence = false;
     connect();
     if (!socket || socket.readyState === WebSocket.CONNECTING) {
       setStatus('Connexion…');
@@ -1994,10 +1907,8 @@
     pendingTranscript = '';
     committedFinals = '';
     lastLiveText = '';
-    pendingDelta = '';
     streamAccumulated = '';
-    turnSpeechFingerprint = '';
-    voiceWaitScheduled = false;
+    resetReplyAudio();
     if (opts.skipUserBubble) {
       if (chatLog.length && chatLog[chatLog.length - 1].kind === 'voice') {
         chatLog[chatLog.length - 1].text = question;
@@ -2042,7 +1953,6 @@
     }
     var bottomGap = NAV_FALLBACK;
     if (nav) {
-    enqueuedSpeechFingerprints = [];
       var navBox = nav.getBoundingClientRect();
       var navHeight = Math.round(navBox.height || nav.offsetHeight || 0);
       var fromBottom = Math.round(window.innerHeight - navBox.top);
@@ -2095,6 +2005,7 @@
     panel.setAttribute('aria-hidden', 'true');
     stopLiveMode();
     stopAudio();
+    finishIfIdle();
     persistCache();
     if (fab) {
       fab.focus();
@@ -2568,7 +2479,7 @@
 
   if (sendBtn) {
     sendBtn.addEventListener('click', function (event) {
-      if (!busy) {
+      if (!busy && !isPlaying) {
         return;
       }
       event.preventDefault();

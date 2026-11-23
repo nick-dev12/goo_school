@@ -192,6 +192,37 @@ class PaieProfesseurPeriode(models.Model):
         return f"{self.professeur_id} {self.date_debut}–{self.date_fin} {self.montant_net}"
 
 
+class PaiePersonnelMois(models.Model):
+    """Salaire d'un mois versé à un membre du personnel administratif payé par l'établissement.
+
+    Le versement est enregistré comme une sortie de caisse « Salaire » (DepenseEtablissement) : il apparaît
+    dans la caisse, la trésorerie et la comptabilité comme les autres dépenses.
+    """
+
+    etablissement = models.ForeignKey(Etablissement, on_delete=models.CASCADE, related_name='paies_personnel')
+    personnel = models.ForeignKey('school_admin.PersonnelAdministratif', on_delete=models.CASCADE,
+                                  related_name='paies_mois', verbose_name="Membre du personnel")
+    mois = models.DateField(verbose_name="Mois payé", help_text="Premier jour du mois.")
+    montant = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Montant versé")
+    depense = models.OneToOneField(DepenseEtablissement, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name='paie_personnel')
+    date_paiement = models.DateField(default=timezone.localdate, verbose_name="Payé le")
+    enregistre_par = models.ForeignKey('school_admin.CompteUser', on_delete=models.SET_NULL, null=True, blank=True,
+                                       related_name='paies_personnel_enregistrees')
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Salaire du personnel (mois)"
+        verbose_name_plural = "Salaires du personnel (mois)"
+        ordering = ['-mois', 'personnel__nom']
+        constraints = [
+            models.UniqueConstraint(fields=['personnel', 'mois'], name='uniq_paie_personnel_mois'),
+        ]
+
+    def __str__(self):
+        return f"{self.personnel_id} {self.mois:%m/%Y} {self.montant}"
+
+
 class AbsenceEnseignant(models.Model):
     """Jour d'absence d'un professeur, avec remplaçant optionnel."""
 

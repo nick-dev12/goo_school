@@ -77,6 +77,16 @@ class PersonnelAdministratif(AbstractUser):
         verbose_name="Prix du volume horaire (FCFA/heure)",
     )
 
+    # Qui verse le salaire : l'établissement (paie gérée ici) ou l'État (agent public, hors paie de l'école).
+    PRISE_EN_CHARGE_CHOICES = [
+        ('etablissement', "Payé par l’établissement"),
+        ('etat', "Agent de l’État (payé par l’État)"),
+    ]
+    prise_en_charge = models.CharField(
+        max_length=14, choices=PRISE_EN_CHARGE_CHOICES, default='etablissement',
+        verbose_name="Salaire versé par",
+    )
+
     # Informations professionnelles
     fonction = models.CharField(max_length=50, choices=TYPE_FONCTION_CHOICES, verbose_name="Fonction")
     

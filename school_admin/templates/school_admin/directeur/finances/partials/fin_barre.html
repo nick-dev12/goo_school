@@ -1,0 +1,40 @@
+{% load i18n %}
+{# Barre commune des onglets Finances : mois (flèches) + filtres de la liste. #}
+<div class="fs-periode{% if sans_mois %} fs-periode--seul{% endif %}">
+    {% if not sans_mois %}
+    <nav class="fs-nav" aria-label="{% trans 'Mois affiché' %}">
+        <a href="?mois={{ mois_precedent }}{% if qs_sans_mois %}&amp;{{ qs_sans_mois }}{% endif %}" aria-label="{% trans 'Mois précédent' %}"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+        <strong>{{ bornes.label }}</strong>
+        <a href="?mois={{ mois_suivant }}{% if qs_sans_mois %}&amp;{{ qs_sans_mois }}{% endif %}" aria-label="{% trans 'Mois suivant' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
+        {% if bornes.valeur != mois_courant %}<a class="fs-auj" href="?mois={{ mois_courant }}{% if qs_sans_mois %}&amp;{{ qs_sans_mois }}{% endif %}">{% trans "Ce mois-ci" %}</a>{% endif %}
+    </nav>
+    {% endif %}
+    <form method="get" class="fs-filtres" role="search">
+        <input type="hidden" name="mois" value="{{ bornes.valeur }}" />
+        {% if vue %}<input type="hidden" name="vue" value="{{ vue }}" />{% endif %}
+        {% if filtres.releve_id %}<input type="hidden" name="releve" value="{{ filtres.releve_id }}" />{% endif %}
+        <label class="fs-recherche">
+            <span class="sr-only">{% trans "Rechercher" %}</span>
+            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" name="q" value="{{ filtres.q }}" placeholder="{% trans 'Rechercher un libellé, une référence…' %}" />
+        </label>
+        {% if avec_compte %}
+        <label><span class="sr-only">{% trans "Compte" %}</span>
+            <select name="compte" onchange="this.form.submit()">
+                <option value="">{% trans "Tous les comptes" %}</option>
+                {% for compte in comptes_tresorerie %}<option value="{{ compte.id }}" {% if filtres.compte_id == compte.id|stringformat:"s" %}selected{% endif %}>{{ compte.libelle }}</option>{% endfor %}
+            </select>
+        </label>
+        {% endif %}
+        {% if statuts_filtre %}
+        <label><span class="sr-only">{% trans "Statut" %}</span>
+            <select name="statut" onchange="this.form.submit()">
+                <option value="">{% trans "Tous les statuts" %}</option>
+                {% for code, label in statuts_filtre %}<option value="{{ code }}" {% if filtres.statut == code %}selected{% endif %}>{% trans label %}</option>{% endfor %}
+            </select>
+        </label>
+        {% endif %}
+        <button class="cg3-btn cg3-btn--sm" type="submit">{% trans "Filtrer" %}</button>
+        {% if filtre_actif %}<a class="fs-effacer" href="?mois={{ bornes.valeur }}{% if vue %}&amp;vue={{ vue }}{% endif %}">{% trans "Effacer" %}</a>{% endif %}
+    </form>
+</div>

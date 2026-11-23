@@ -400,7 +400,7 @@
 
       extra +=
 
-        '<div class="detail-item"><i class="fas fa-coins"></i><span>Crédits: ' +
+        '<div class="detail-item"><i class="fas fa-coins"></i><span>Poids dans le module (UE) : ' +
 
         esc(item.credits || '0') +
 

@@ -14,6 +14,9 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models import Q
+
+from school_admin.services.credits_lmd import credits_varient_selon_classe, repartir
 
 D0 = Decimal('0')
 CREDITS_SEMESTRE = Decimal('30')
@@ -34,7 +37,6 @@ def _semaines(periode):
 def heures_planifiees(classe, periode):
     """Heures par matière et par type (cours/td/tp) programmées dans l'emploi du temps actif, sur le semestre."""
     from school_admin.model.emploi_du_temps_model import CreneauEmploiDuTemps
-    from django.db.models import Q
 
     qs = CreneauEmploiDuTemps.objects.filter(emploi_du_temps__classe=classe, emploi_du_temps__est_actif=True,
                                              matiere__isnull=False)
@@ -80,21 +82,26 @@ def maquette_classe(classe, periodes):
         groupes = OrderedDict()
         for mc in mcs:
             ecs = list(Matiere.objects.filter(module=mc.module, actif=True)
-                       .filter(classes=classe).distinct().order_by('nom')) or \
-                list(Matiere.objects.filter(module=mc.module, actif=True).order_by('nom'))
+                       .filter(Q(classes=classe) | Q(classes__isnull=True)).distinct().order_by('nom'))
             somme_ec = sum((Decimal(str(m.credits or 0)) for m in ecs), D0)
+            # Crédits de chaque EC dans cette classe : part des crédits de l'UE (règle de services/credits_lmd).
+            repartition = repartir(mc.credits, ecs) if mc.credits and Decimal(str(mc.credits)) > 0 else {}
             lignes = []
             for m in ecs:
                 p = planif.get(m.id, {})
                 prevu = m.volume_cm + m.volume_td + m.volume_tp
                 planifie = sum(p.values(), D0) if p else D0
                 lignes.append({'matiere': m, 'planifie': p, 'prevu': prevu,
+                               'credits': repartition.get(m.pk, m.credits),
                                'planifie_total': planifie,
                                'ecart': (planifie - prevu) if prevu else None})
                 tot['ec'] += 1
                 if not (m.volume_cm or m.volume_td or m.volume_tp):
                     controles.append(f"{m.nom} : volume horaire (CM / TD / TP) non renseigné.")
-            if ecs and somme_ec and Decimal(str(mc.credits or 0)) and somme_ec != Decimal(str(mc.credits)):
+            # Pour une UE mutualisée dont les crédits changent selon la classe, les crédits des EC sont des
+            # poids : leur somme ne peut pas égaler les crédits de chaque classe, ce n'est pas une anomalie.
+            if (ecs and somme_ec and Decimal(str(mc.credits or 0)) and somme_ec != Decimal(str(mc.credits))
+                    and not credits_varient_selon_classe(mc.module)):
                 controles.append(f"{mc.module.nom} : {_f(mc.credits)} crédits pour l'UE mais {_f(somme_ec)} pour ses EC.")
             if not ecs:
                 controles.append(f"{mc.module.nom} : aucun EC (matière) dans cette UE.")
@@ -150,7 +157,6 @@ def inscription(eleve, annee):
 
 def module_ids_exclus(eleve, classe, annee):
     """UE de la classe que l'étudiant ne suit pas : autre parcours, options non choisies."""
-    from django.db.models import Q
     from school_admin.model.module_model import ModuleClasse
 
     mcs = list(ModuleClasse.objects.filter(classe=classe).filter(Q(parcours__isnull=False) | Q(optionnelle=True)))

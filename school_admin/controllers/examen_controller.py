@@ -1,3 +1,4 @@
+from ..services.examen_suppression import verrouiller_classes_session as _verrouiller_classes_session
 from django.utils import timezone
 """
 Controller pour la gestion des examens selon la logique sénégalaise
@@ -297,16 +298,6 @@ def _appliquer_formulaire_session(session, post, etablissement, prefixe_matieres
     except ValidationError as exc:
         erreurs.extend(messages_validation(exc))
     return classes, matieres, erreurs
-
-
-def _verrouiller_classes_session(session_id, etablissement):
-    """Même verrou de classe que les écritures de notes / clôtures du jury.
-
-    Ordre stable : classes, puis session, puis notes/créneaux.
-    L'appelant doit déjà être dans transaction.atomic().
-    """
-    ids = SessionExamen.objects.filter(pk=session_id, etablissement=etablissement).values_list('classes__pk', flat=True)
-    list(Classe.objects.select_for_update().filter(pk__in=ids).order_by('pk').values_list('pk', flat=True))
 
 
 def _poids_cc_types(regle):
@@ -836,26 +827,17 @@ def supprimer_session_examen(request, session_id):
     
     if not is_directeur:
         return HttpResponseForbidden("Seul le directeur peut supprimer définitivement une session ; le droit de consultation ne suffit pas.")
-    from ..model.note_examen_model import NoteExamen
-    with transaction.atomic():
-        _verrouiller_classes_session(session_id, etablissement)
-        session = get_object_or_404(SessionExamen.objects.select_for_update(), id=session_id, etablissement=etablissement)
-        notes = NoteExamen.objects.select_for_update().filter(
-            Q(session_examen=session) | Q(creneau_examen__session_examen=session))
-        # Verrouiller aussi les lignes vides avant le dernier contrôle.
-        list(notes.values_list('pk', flat=True))
-        protegees = notes.filter(
-            Q(note__isnull=False) | Q(note_sur_20__isnull=False) | Q(absent=True) |
-            Q(absence_justifiee=True) | Q(soumis=True) | Q(date_soumission__isnull=False) |
-            Q(note_publiee__isnull=False) | Q(date_publication__isnull=False) |
-            ~Q(statut_publication='brouillon') |
-            (Q(commentaire__isnull=False) & ~Q(commentaire='')))
-        if protegees.exists():
-            messages.error(request, "Suppression interdite : cette session contient des notes, absences, soumissions ou publications. Conservez la session et son historique ; aucune donnée n’a été supprimée.")
-        else:
-            nom, nb = session.nom_examen, session.creneaux.count()
-            session.delete()
-            messages.success(request, f"Session « {nom} » supprimée avec {nb} créneau(x) et ses seules lignes de notes vides.")
+    from ..services.examen_suppression import SessionProtegee, supprimer_session_sans_resultats
+
+    try:
+        nom, nb = supprimer_session_sans_resultats(etablissement, session_id)
+    except SessionExamen.DoesNotExist as exc:
+        from django.http import Http404
+        raise Http404("Session introuvable.") from exc
+    except SessionProtegee as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, f"Session « {nom} » supprimée avec {nb} créneau(x) et ses seules lignes de notes vides.")
 
     return redirect('directeur:gestion_examens')
 

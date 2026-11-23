@@ -13,6 +13,14 @@
     </div>
 
     <div class="form-grid dossier-grid">
+        <div class="form-group form-group-full">
+            <label class="form-label" for="{{ prefix }}prise_en_charge"><i class="fas fa-building-columns" aria-hidden="true"></i> {% trans "Salaire versé par" %}</label>
+            <select class="form-input form-control" id="{{ prefix }}prise_en_charge" name="prise_en_charge">
+                <option value="etablissement" {% if dossier_data.prise_en_charge != 'etat' %}selected{% endif %}>{% trans "L’établissement (payé par l’école)" %}</option>
+                <option value="etat" {% if dossier_data.prise_en_charge == 'etat' %}selected{% endif %}>{% trans "L’État (agent public, hors paie de l’école)" %}</option>
+            </select>
+            <small class="form-hint">{% trans "Seules les personnes payées par l’établissement apparaissent dans Salaires et paiements." %}</small>
+        </div>
         <div class="form-group">
             <label class="form-label" for="{{ prefix }}date_naissance">{% trans "Date de naissance" %}</label>
             <input type="date" class="form-input form-control" id="{{ prefix }}date_naissance" name="date_naissance"

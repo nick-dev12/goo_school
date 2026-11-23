@@ -1,0 +1,123 @@
+/* Heures des enseignants (Volume horaire) — suivi des heures prévues et faites, sans montants.
+   Les paiements se font dans Salaires et paiements. Préfixe vh- ; jetons --ax-* (cg_v3). */
+.vh {
+    --vh-ink: var(--ax-ink, #101828);
+    --vh-ink-2: var(--ax-ink-2, #344054);
+    --vh-muted: var(--ax-muted, #667085);
+    --vh-line: var(--ax-line, #e4e7ec);
+    --vh-soft: #f8f9fc;
+    --vh-brand: var(--ax-brand, #2563eb);
+    --vh-brand-ink: var(--ax-brand-ink, #1d47b3);
+    --vh-brand-soft: #eef4ff;
+    --vh-ok: #067647; --vh-ok-soft: #e7f6ec;
+    --vh-warn: #b54708; --vh-warn-soft: #fef4e6;
+    --vh-bad: #b42318; --vh-bad-soft: #fef3f2;
+    --vh-shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 10px 28px -18px rgba(16, 24, 40, .28);
+}
+
+/* Barre de période : Semaine / Mois / Année + précédent / suivant */
+.vh-periode { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 0 0 16px; padding: 10px 12px; background: #fff; border: 1px solid var(--vh-line); border-radius: 16px; box-shadow: var(--vh-shadow); }
+.vh-segments { display: inline-flex; padding: 4px; border-radius: 12px; background: #f1f4f9; }
+.vh-segments a { min-height: 34px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 9px; color: var(--vh-ink-2); font-size: .84rem; font-weight: 700; text-decoration: none; }
+.vh-segments a.is-active { background: #fff; color: var(--vh-brand-ink); box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
+.vh-nav { display: flex; align-items: center; gap: 8px; }
+.vh-nav strong { min-width: 150px; text-align: center; font-size: .95rem; color: var(--vh-ink); text-transform: capitalize; }
+.vh-nav a { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--vh-line); background: #fff; color: var(--vh-ink-2); text-decoration: none; }
+.vh-nav a:hover { border-color: var(--vh-brand); color: var(--vh-brand-ink); }
+
+/* Bandeau d'information (pointage pas encore en service) */
+.vh-bandeau { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0 0 16px; padding: 12px 16px; border-radius: 14px; background: var(--vh-brand-soft); border: 1px solid #d6e2ff; color: #1e3a8a; font-size: .86rem; }
+.vh-bandeau i { color: var(--vh-brand); }
+.vh-bandeau span { flex: 1 1 260px; }
+.vh-bandeau a { font-weight: 700; color: var(--vh-brand-ink); white-space: nowrap; }
+
+/* Indicateurs */
+.vh-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 16px; }
+.vh-kpi { padding: 14px 16px; background: #fff; border: 1px solid var(--vh-line); border-radius: 16px; box-shadow: var(--vh-shadow); }
+.vh-kpi small { display: block; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--vh-muted); }
+.vh-kpi strong { display: block; margin-top: 4px; font-size: 1.5rem; font-weight: 800; color: var(--vh-ink); letter-spacing: -.02em; }
+.vh-kpi strong span { font-size: .85rem; font-weight: 700; color: var(--vh-muted); }
+.vh-kpi p { margin: 4px 0 0; font-size: .78rem; color: var(--vh-muted); }
+.vh-kpi p a { color: var(--vh-brand-ink); font-weight: 700; }
+.vh-kpi--ok strong { color: var(--vh-ok); }
+.vh-kpi--warn { border-color: #fcd9a8; background: #fffaf2; }
+.vh-kpi--warn strong { color: var(--vh-warn); }
+.vh-kpi--bad strong { color: var(--vh-bad); }
+.vh-barre { height: 6px; margin-top: 8px; border-radius: 999px; background: #e9edf3; overflow: hidden; }
+.vh-barre span { display: block; height: 100%; border-radius: 999px; background: var(--vh-ok); }
+.vh-barre .is-bas { background: #f79009; }
+
+/* Liste */
+.vh-liste { margin: 0 0 18px; background: #fff; border: 1px solid var(--vh-line); border-radius: 16px; box-shadow: var(--vh-shadow); overflow: hidden; }
+.vh-liste__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; padding: 14px 18px; border-bottom: 1px solid var(--vh-line); }
+.vh-liste__head h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1rem; color: var(--vh-ink); }
+.vh-liste__head h2 i { color: var(--vh-brand); }
+.vh-filtres { display: flex; flex-wrap: wrap; gap: 6px; }
+.vh-filtre { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--vh-line); background: #fff; color: var(--vh-ink-2); font: 600 .78rem var(--ax-font, inherit); cursor: pointer; }
+.vh-filtre b { min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 999px; background: var(--vh-soft); font-size: .7rem; }
+.vh-filtre.is-active { background: var(--vh-brand); border-color: var(--vh-brand); color: #fff; }
+.vh-filtre.is-active b { background: rgba(255, 255, 255, .25); }
+.vh-lignes { margin: 0; padding: 0; list-style: none; }
+.vh-ligne[hidden], .vh-vide[hidden] { display: none; }
+.vh-ligne + .vh-ligne { border-top: 1px solid var(--vh-line); }
+.vh-ligne a { display: grid; grid-template-columns: 38px minmax(160px, 1.4fr) auto minmax(180px, 1.4fr) minmax(140px, auto) 16px; align-items: center; gap: 14px; padding: 12px 18px; color: inherit; text-decoration: none; }
+.vh-ligne a:hover { background: #f8faff; }
+.vh-ligne a:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: -3px; }
+.vh-avatar { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, #dbeafe, #ede9fe); color: var(--vh-brand-ink); font-size: .78rem; font-weight: 800; }
+.vh-nom strong { display: block; font-size: .9rem; color: var(--vh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vh-nom small { display: block; font-size: .74rem; color: var(--vh-muted); }
+.vh-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: .74rem; font-weight: 700; white-space: nowrap; background: #f2f4f7; color: var(--vh-ink-2); }
+.vh-chip--warn { background: var(--vh-warn-soft); color: var(--vh-warn); }
+.vh-chip--bad { background: var(--vh-bad-soft); color: var(--vh-bad); }
+.vh-chip--ok { background: var(--vh-ok-soft); color: var(--vh-ok); }
+.vh-heures b { font-size: .9rem; color: var(--vh-ink); }
+.vh-heures span { font-size: .8rem; color: var(--vh-muted); }
+.vh-heures .vh-barre { margin-top: 6px; }
+.vh-etat { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.vh-go { color: #c0c7d2; font-size: .75rem; }
+.vh-ligne a:hover .vh-go { color: var(--vh-brand); }
+.vh-vide { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 30px 12px; text-align: center; color: var(--vh-muted); }
+.vh-vide i { font-size: 1.4rem; }
+.vh-note { margin: 0; padding: 12px 18px; border-top: 1px solid var(--vh-line); background: var(--vh-soft); font-size: .8rem; color: var(--vh-muted); }
+.vh-note a { color: var(--vh-brand-ink); font-weight: 700; }
+
+/* Fiche d'un enseignant : carte « Contrat » */
+.vh-contrat dl { margin: 0 0 12px; display: grid; gap: 8px; }
+.vh-contrat dl div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--vh-line); font-size: .86rem; }
+.vh-contrat dt { color: var(--vh-muted); }
+.vh-contrat dd { margin: 0; font-weight: 700; color: var(--vh-ink); text-align: right; }
+.axd-card .cg3-sub { margin: 18px 0 8px; padding-top: 14px; border-top: 1px solid var(--ax-line, #e4e7ec); font-size: .9rem; }
+
+@media (max-width: 900px) {
+    .vh-kpis { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 760px) {
+    .vh-periode { padding: 10px; }
+    .vh-segments { width: 100%; }
+    .vh-segments a { flex: 1 1 0; justify-content: center; }
+    .vh-nav { width: 100%; justify-content: space-between; }
+    .vh-ligne a { grid-template-columns: 38px 1fr auto; grid-template-areas: "avatar nom contrat" "avatar heures heures" "avatar etat etat"; gap: 6px 12px; padding: 12px 14px; }
+    .vh-ligne .vh-avatar { grid-area: avatar; align-self: start; }
+    .vh-ligne .vh-nom { grid-area: nom; } .vh-ligne .vh-contrat-chip { grid-area: contrat; }
+    .vh-ligne .vh-heures { grid-area: heures; } .vh-ligne .vh-etat { grid-area: etat; justify-content: flex-start; }
+    .vh-go { display: none; }
+}
+
+/* ---------- Charte commune (en-tête bleu, cartes colorées, onglets) ---------- */
+.vh-page .hb-head { margin-bottom: 16px; }
+.vh-page .hb-head .cg3-head__sub { margin: 4px 0 0; color: rgba(255, 255, 255, .88) !important; font-size: .9rem; }
+/* Onglets de la section : sur fond blanc, détachés de l'en-tête et des filtres. */
+/* Le script commun des onglets place la barre dans un conteneur .ovf-bar : c'est lui qui porte le fond. */
+.vh-page > .ovf-bar, .vh-page > .vh-onglets:not([data-ovf-track]) {
+    margin: 0 0 18px !important; padding: 6px !important;
+    background: #fff !important; border: 1px solid var(--ax-line, #e4e7ec) !important; border-radius: 14px !important;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .05) !important;
+}
+.vh-page .vh-onglets .cg3-tab { min-height: 40px; padding: 0 16px; border-radius: 10px; }
+.vh-page .vh-kpis-charte { margin: 0 0 18px; }
+.vh-page .vh-kpis-charte .fe-kpi__caption a { color: #fff; font-weight: 700; text-decoration: underline; }
+.vh-page .vh-periode { margin-top: 0; }
+@media (max-width: 760px) {
+    .vh-page .vh-onglets .cg3-tab { flex: 1 1 0; justify-content: center; padding: 0 8px; font-size: .8rem; white-space: nowrap; }
+    .vh-page .vh-kpis-charte { grid-template-columns: 1fr 1fr !important; grid-auto-flow: row !important; overflow: visible !important; }
+}

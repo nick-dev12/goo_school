@@ -168,25 +168,140 @@ class EmploiSemestreGroupeTests(BaseMaquette):
 
 
 class PagesMaquetteTests(BaseMaquette):
+    def test_redirections_et_rappel_de_semestre(self):
+        self.client.force_login(self.etab)
+        fiche = reverse('administrateur_etablissement:detail_classe', args=[self.classe.id])
+        ancienne = reverse('directeur:maquette_classe', args=[self.classe.id])
+        self.assertRedirects(self.client.get(ancienne), fiche)
+        self.assertRedirects(self.client.get(reverse('directeur:liste_maquettes')),
+                             reverse('matiere:liste_matieres') + '?tab=modules')
+        self.s5.delete()
+        r = self.client.get(fiche)
+        self.assertContains(r, 'Aucun semestre défini')
+        self.assertNotContains(r, 'Configurer les semestres')
+        self.assertNotContains(r, 'onglet=programme')
+        self.assertContains(r, 'Parcours et groupes de TD / TP')
+
+    def test_modifier_module_conserve_les_choix_etudiants(self):
+        self.client.force_login(self.etab)
+        lien = self.mc['OPTA']
+        inscription = InscriptionPedagogique.objects.create(eleve=self.awa, classe=self.classe,
+                                                           annee_scolaire=self.annee)
+        inscription.ues_optionnelles.add(lien)
+        url = reverse('matiere:detail_module', args=[lien.module_id])
+        niveau = f'dep_{self.dept.id}__L3'
+        r = self.client.post(url, {
+            'action': 'modifier_module', 'nom': 'Option renommée',
+            'departments_ids': [self.dept.id], 'niveaux': [niveau],
+            f'credits_{niveau}': '6', f'periode_{niveau}': str(self.s5.id),
+        })
+        self.assertRedirects(r, url)
+        lien.refresh_from_db()
+        self.assertTrue(lien.optionnelle)
+        self.assertEqual(lien.groupe_options, 'Option S5')
+        self.assertEqual(list(inscription.ues_optionnelles.all()), [lien])
+
+    def test_module_et_matieres_mutualises_sur_classes_choisies(self):
+        self.client.force_login(self.etab)
+        autre_filiere = Department.objects.create(nom='Informatique', sigle='INF', etablissement=self.etab)
+        autre_classe = Classe.objects.create(
+            nom='INF L3 A', niveau='superieur', niveau_lmd='L3', code_classe='INF-L3-A',
+            capacite_max=30, etablissement=self.etab, department=autre_filiere,
+        )
+        non_choisie = Classe.objects.create(
+            nom='GES L3 B', niveau='superieur', niveau_lmd='L3', code_classe='GES-L3-B',
+            capacite_max=30, etablissement=self.etab, department=self.dept,
+        )
+        niveaux = [f'dep_{dep.pk}__L3' for dep in (self.dept, autre_filiere)]
+        post = {'nom': 'Anglais professionnel', 'choix_classes': '1',
+                'departments_ids': [self.dept.pk, autre_filiere.pk], 'niveaux': niveaux}
+        for niveau, classe in zip(niveaux, (self.classe, autre_classe)):
+            post.update({f'classes_{niveau}': [classe.pk], f'credits_{niveau}': '3',
+                         f'periode_{niveau}': self.s5.pk})
+        creer = reverse('matiere:ajouter_module')
+        r = self.client.post(creer, post)
+        self.assertEqual(r.status_code, 302)
+        module = Module.objects.get(etablissement=self.etab, nom='Anglais professionnel')
+        self.assertEqual(set(module.classes.all()), {self.classe, autre_classe})
+        url = reverse('matiere:detail_module', args=[module.pk])
+        self.assertContains(self.client.get(url), 'Matière commune')
+
+        selection = {'action': 'creer_matiere_hybride', 'nom_matiere': 'Anglais oral',
+                     'niveau_key': 'L3', 'filiere_scope': 'common', 'choix_classes_matiere': '1',
+                     'coef_dep_commun': '2', 'classes_matiere': [self.classe.pk, autre_classe.pk]}
+        r = self.client.post(url, {**selection, 'classes_matiere': [non_choisie.pk]})
+        self.assertContains(r, 'Sélectionnez au moins une classe')
+        self.assertFalse(module.matieres.exists())
+        self.assertRedirects(self.client.post(url, selection), url)
+        commune = module.matieres.get()
+        self.assertIsNone(commune.department_id)
+        self.assertEqual(commune.coefficient, D('2'))
+        self.assertEqual(set(commune.classes.all()), {self.classe, autre_classe})
+        detail = reverse('matiere:detail_matiere', args=[commune.pk])
+        self.assertContains(self.client.get(detail), 'Classes concernées par la matière commune')
+        self.assertRedirects(self.client.post(detail, {
+            'nom': 'Expression orale', 'type_matiere': commune.type_matiere,
+            'classes_ids': [self.classe.pk, autre_classe.pk],
+        }), detail)
+        commune.refresh_from_db()
+        self.assertEqual(commune.nom, 'Expression orale')
+        self.assertEqual(set(commune.classes.all()), {self.classe, autre_classe})
+        self.assertRedirects(self.client.post(url, {
+            **selection, 'nom_matiere': 'Anglais écrit', 'filiere_scope': 'all',
+            f'coef_dep_{self.dept.pk}': '1', f'coef_dep_{autre_filiere.pk}': '3',
+        }), url)
+        self.assertRedirects(self.client.post(url, {
+            **selection, 'nom_matiere': 'Atelier informatique', 'classes_matiere': [autre_classe.pk],
+        }), url)
+        atelier = module.matieres.get(nom='Atelier informatique')
+        self.assertEqual(set(atelier.classes.all()), {autre_classe})
+        lignes = dlb.lignes_eleve(self.awa, self.classe, [self.s5], self.annee)[self.s5.pk]
+        self.assertNotIn(atelier.pk, {ligne['matiere'].pk for ligne in lignes})
+        from school_admin.controllers.emploi_du_temps_controller import EmploiDuTempsController
+        from school_admin.model.affectation_model import AffectationProfesseur
+        self.assertFalse(atelier.classe_est_compatible_affectation_superieur(self.classe))
+        self.assertTrue(atelier.classe_est_compatible_affectation_superieur(autre_classe))
+        self.assertNotIn(atelier, Matiere.pour_classe_superieur(self.classe))
+        self.assertNotIn(atelier, EmploiDuTempsController._matieres_pour_emploi_du_temps_classe(
+            self.etab, self.classe,
+        ))
+        prof = Professeur.objects.create(
+            username='mutualisation-prof', numero_employe='MUT-001', nom='Test', prenom='Prof',
+            etablissement=self.etab, niveau_enseignement='superieur', matiere_principale=commune,
+        )
+        verifier = EmploiDuTempsController._verifier_affectation_creneau_superieur
+        self.assertIn('Affectez', verifier(self.classe, self.annee, commune, prof.pk, self.s5))
+        AffectationProfesseur.objects.create(professeur=prof, classe=self.classe, matiere=commune,
+                                            annee_scolaire=self.annee)
+        self.assertIsNone(verifier(self.classe, self.annee, commune, prof.pk, self.s5))
+        onglets = self.client.get(reverse('matiere:liste_matieres') + '?tab=modules')
+        self.assertContains(onglets, 'Classes du niveau')
+        self.assertContains(onglets, 'Gérer le module (UE)')
+        self.assertNotContains(onglets, 'Tout déplier')
+        variantes = module.matieres.filter(nom='Anglais écrit')
+        self.assertEqual(dict(variantes.values_list('department_id', 'coefficient')),
+                         {self.dept.pk: D('1'), autre_filiere.pk: D('3')})
+
     def test_pages(self):
         self.client.force_login(self.etab)
-        r = self.client.get(reverse('directeur:liste_maquettes'))
-        self.assertContains(r, 'GES L3 A')
-        url = reverse('directeur:maquette_classe', args=[self.classe.id])
-        r = self.client.get(url)
-        self.assertContains(r, "Unités d'enseignement")
-        post = {'action': 'maquette', 'semestre': self.s5.id}
-        for code, mc in self.mc.items():
-            post.update({f'mc_{mc.id}_credits': str(mc.credits), f'mc_{mc.id}_type': 'transversale' if code == 'UE2' else 'fondamentale'})
-            if mc.optionnelle:
-                post.update({f'mc_{mc.id}_optionnelle': 'on', f'mc_{mc.id}_groupe': 'Option S5', f'mc_{mc.id}_choix': '1'})
-        for code, m in self.ec.items():
-            post.update({f'ec_{m.id}_cm': '24', f'ec_{m.id}_td': '12', f'ec_{m.id}_tp': '0', f'ec_{m.id}_tpe': '30'})
-        self.client.post(url, post)
-        self.ec['UE1'].refresh_from_db()
-        self.mc['UE2'].refresh_from_db()
-        self.assertEqual((self.ec['UE1'].volume_cm, self.ec['UE1'].volume_tpe), (24, 30))
-        self.assertEqual(self.mc['UE2'].type_ue, 'transversale')
+        url = reverse('directeur:gerer_groupes_parcours', args=[self.classe.id])
+        lien = self.mc['UE2']
+        module = reverse('matiere:detail_module', args=[lien.module_id])
+        self.assertContains(self.client.get(module), 'Type de module (UE), options et parcours par classe')
+        self.client.post(module, {
+            'action': 'regler_ue', 'lien': lien.id, 'type_ue': 'transversale', 'choix_requis': '1',
+        })
+        cours = self.ec['UE1']
+        matiere = reverse('matiere:detail_matiere', args=[cours.id])
+        self.assertContains(self.client.get(matiere), 'Crédits, coefficient et heures du cours')
+        self.client.post(matiere, {
+            'action': 'regler_cours', 'credits': '12', 'coefficient': '2.5',
+            'volume_cm': '24', 'volume_td': '12', 'volume_tp': '0', 'volume_tpe': '30',
+        })
+        cours.refresh_from_db()
+        lien.refresh_from_db()
+        self.assertEqual((cours.volume_cm, cours.volume_tpe, cours.coefficient), (24, 30, D('2.5')))
+        self.assertEqual(lien.type_ue, 'transversale')
         self.client.post(url, {'action': 'groupe_ajouter', 'nom': 'g1', 'type_groupe': 'td', 'capacite': '30'})
         self.client.post(url, {'action': 'groupe_ajouter', 'nom': 'g2', 'type_groupe': 'td', 'capacite': '30'})
         self.client.post(url, {'action': 'groupes_repartir', 'type_groupe': 'td'})

@@ -221,65 +221,80 @@ def tool_moyennes_classe(ctx, args):
 
 
 def tool_bulletin_eleve(ctx, args):
-    args = args if isinstance(args, dict) else {}
-    query = (args.get('query') or args.get('eleve') or '').strip()
-    eleve = _find_eleve(ctx, query)
-    if not eleve:
-        return {'erreur': f'Aucun {ctx.libelle_eleve} trouvé pour « {query} ».'}
-    if not eleve.classe_id:
-        return {'erreur': f'{eleve.nom_complet} n’est pas affecté à une classe.'}
-    periode = _find_periode(ctx, args.get('periode'))
+    from school_admin.services.assistant_actions import _cible_bulletins
     from school_admin.model.moyenne_periode_model import MoyennePeriode
 
-    moy = None
-    if periode:
-        moy_qs = MoyennePeriode.objects.filter(
-            eleve=eleve,
-            etablissement=ctx.etablissement,
-            periode=periode,
-            est_moyenne_generale=True,
-        )
-        if ctx.annee_scolaire:
-            moy_qs = moy_qs.filter(
-                Q(annee_scolaire=ctx.annee_scolaire) | Q(annee_scolaire__isnull=True)
-            )
-        moy = moy_qs.first()
-    ouvrir = args.get('ouvrir')
-    if ouvrir is None:
-        ouvrir = True
-    url = _reverse('directeur:voir_bulletin_eleve', args=[eleve.classe_id, eleve.id])
-    impression = _reverse('directeur:imprimer_bulletin_eleve', args=[eleve.classe_id, eleve.id])
+    cible = _cible_bulletins(ctx, args, 'get_bulletin_eleve', eleve=True)
+    if 'statut' in cible or 'erreur' in cible:
+        return {'erreur': cible.get('erreur') or cible['message']}
+    moy = MoyennePeriode.objects.filter(
+        etablissement=ctx.etablissement, eleve_id=cible['eleve_id'],
+        periode_id=cible['periode_id'], annee_scolaire=ctx.annee_scolaire, est_moyenne_generale=True,
+    ).first()
+    ids = [cible['classe_id'], cible['eleve_id']]
+    suffixe = f"?periode={cible['periode_id']}"
+    impression = _reverse('directeur:imprimer_bulletin_eleve', args=ids) + suffixe
+    url = _reverse('directeur:voir_bulletin_eleve', args=ids) + suffixe
+    imprimer = args.get('imprimer', False)
     return {
-        'eleve': eleve.nom_complet,
-        'classe': eleve.classe.nom,
-        'periode': periode.nom_periode if periode else None,
+        'eleve': cible['eleve'],
+        'classe': cible['classe'],
+        'periode': cible['periode'],
         'moyenne': _safe(moy.moyenne_generale) if moy else None,
         'rang': moy.rang if moy else None,
         'publie': moy.est_publie if moy else False,
-        'url': url,
+        'visible': moy.afficher_bulletin if moy else False,
+        'url': impression if imprimer else url,
         'url_impression': impression,
-        'ouvrir': bool(ouvrir),
-        'titre': f'Bulletin de {eleve.nom_complet}',
-        'message': None if moy else 'Aucune moyenne de période : le bulletin peut être vide.',
+        'ouvrir': args.get('ouvrir', True),
+        'titre': f"Bulletin de {cible['eleve']}",
+        'message': None if moy else 'Aucune moyenne de période enregistrée.',
     }
 
 
 def tool_imprimer_bulletins_classe(ctx, args):
-    args = args if isinstance(args, dict) else {}
-    classe = _find_classe(ctx, args.get('classe') or args.get('query') or '')
-    if not classe:
-        return {'erreur': 'Indique la classe dont tu veux imprimer les bulletins.'}
-    ouvrir = args.get('ouvrir')
-    if ouvrir is None:
-        ouvrir = True
-    url = _reverse('directeur:imprimer_bulletins_classe', args=[classe.id])
+    from school_admin.services.assistant_actions import _cible_bulletins
+
+    cible = _cible_bulletins(ctx, args, 'imprimer_bulletins_classe')
+    if 'statut' in cible or 'erreur' in cible:
+        return {'erreur': cible.get('erreur') or cible['message']}
+    url = _reverse('directeur:imprimer_bulletins_classe', args=[cible['classe_id']])
     return {
-        'classe': classe.nom,
-        'url': url,
-        'ouvrir': bool(ouvrir),
-        'titre': f'Impression des bulletins — {classe.nom}',
-        'message': 'J’ouvre la page d’impression déjà existante. Aucun PDF n’est généré ici.',
+        'classe': cible['classe'],
+        'periode': cible['periode'],
+        'url': f"{url}?periode={cible['periode_id']}",
+        'ouvrir': args.get('ouvrir', True),
+        'titre': f"Impression des bulletins — {cible['classe']}",
+        'message': 'J’ouvre la page d’impression des bulletins.',
     }
+
+
+def tool_configuration_bulletins(ctx, args):
+    from school_admin.model.standards_reussite_model import StandardsReussite
+    from school_admin.services.bulletins import ponderation_bulletin
+
+    if not ctx.annee_scolaire:
+        return {'erreur': 'Aucune année scolaire sélectionnée.'}
+    ponderation = ponderation_bulletin(ctx.etablissement, ctx.annee_scolaire.libelle)
+    standards = StandardsReussite.objects.filter(etablissement=ctx.etablissement).first()
+    return {
+        'annee': ctx.annee_scolaire.libelle,
+        'ponderation': {
+            'methode': ponderation.type_calcul,
+            'poids_classe': ponderation.poids_classe,
+            'poids_examen': ponderation.poids_examen,
+        } if ponderation else None,
+        'moyenne_passage': _safe(standards.moyenne_passage) if standards else None,
+        'appreciations_matieres': [
+            {'min': _safe(p.note_min), 'max': _safe(p.note_max), 'label': p.appreciation}
+            for p in standards.appreciations_matieres.all()
+        ] if standards else [],
+        'appreciations_conseil': [
+            {'min': _safe(p.note_min), 'label': p.appreciation}
+            for p in standards.appreciations_conseil.all()
+        ] if standards else [],
+    }
+
 
 
 def tool_eleves_difficulte(ctx, args):
@@ -414,7 +429,17 @@ def tool_coefficients(ctx, args):
             'coefficient': _safe(matiere.coefficient),
         }
         if ctx.est_superieur:
-            item['credits'] = _safe(matiere.credits)
+            # Le champ « credits » d'une matière (EC) est son poids dans le module (UE) ; les crédits
+            # réels se lisent classe par classe (crédits du module partagés selon les poids).
+            from school_admin.model.module_model import ModuleClasse
+            from school_admin.services.credits_lmd import credits_ec
+            item['module'] = matiere.module.nom if matiere.module_id else None
+            item['poids_dans_le_module'] = _safe(matiere.credits)
+            item['credits_par_classe'] = [
+                {'classe': mc.classe.nom, 'credits': _safe(credits_ec(matiere, mc.classe))}
+                for mc in (ModuleClasse.objects.filter(module_id=matiere.module_id).select_related('classe')
+                           if matiere.module_id else [])
+            ]
         if est_lycee_groupes:
             item['groupes'] = groupes.get(matiere.id, [])
         items.append(item)
@@ -679,41 +704,6 @@ def apply_configurer_coefficient(ctx, draft):
     )
 
 
-def prepare_calculer_moyenne_annuelle(ctx, args):
-    args = args if isinstance(args, dict) else {}
-    classe = _find_classe(ctx, args.get('classe') or args.get('query') or '')
-    if not classe:
-        return _incomplete(
-            'calculer_moyenne_annuelle',
-            ['classe'],
-            'Pour quelle classe dois-je calculer la moyenne annuelle ?',
-        )
-    periode = _find_periode(ctx, args.get('periode'))
-    url = _reverse('directeur:calculer_moyenne_annuelle', args=[classe.id])
-    if periode and url:
-        url = f'{url}?periode={periode.id}'
-    return _pending(
-        'calculer_moyenne_annuelle',
-        f'lance le calcul de la moyenne annuelle de {classe.nom}',
-        classe_id=classe.id,
-        classe=classe.nom,
-        periode_id=periode.id if periode else None,
-        url=url,
-        ouvrir=True,
-    )
-
-
-def apply_calculer_moyenne_annuelle(ctx, draft):
-    url = _reverse('directeur:calculer_moyenne_annuelle', args=[draft.get('classe_id')])
-    if draft.get('periode_id') and url:
-        url = f'{url}?periode={draft["periode_id"]}'
-    return _ok(
-        f'J’ouvre le calcul de la moyenne annuelle pour {draft.get("classe")}.',
-        url=url,
-        ouvrir=True,
-    )
-
-
 _STR = {'type': 'string'}
 _CLASSE = {'type': 'string', 'description': CLASSE_PARAM_DESCRIPTION}
 
@@ -742,13 +732,7 @@ register_action(ActionSpec(
     prepare=prepare_configurer_coefficient,
     apply=apply_configurer_coefficient,
 ))
-register_action(ActionSpec(
-    'calculer_moyenne_annuelle',
-    'Ouvre le calcul de la moyenne annuelle d’une classe (même route que le bouton directeur).',
-    {'classe': _CLASSE, 'periode': _STR},
-    prepare=prepare_calculer_moyenne_annuelle,
-    apply=apply_calculer_moyenne_annuelle,
-))
+
 
 
 VAGUE3_READ_SCHEMA = [
@@ -789,15 +773,25 @@ VAGUE3_READ_SCHEMA = [
     {
         'type': 'function',
         'function': {
+            'name': 'get_configuration_bulletins',
+            'description': 'Consulte la méthode de pondération, le seuil de passage et les deux barèmes d’appréciations actuellement enregistrés.',
+            'parameters': {'type': 'object', 'properties': {}},
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
             'name': 'get_bulletin_eleve',
             'description': (
-                'Résume et ouvre le bulletin d’un élève (URL existante, pas de PDF magique).'
+                'Consulte un bulletin (y compris sur « affiche le bulletin »), son statut et sa visibilité. Utilise imprimer=true pour la version imprimable.'
             ),
             'parameters': {
                 'type': 'object',
                 'properties': {
                     'query': {'type': 'string', 'description': 'Nom ou matricule'},
                     'periode': _STR,
+                    'classe': _CLASSE,
+                    'imprimer': {'type': 'boolean'},
                     'ouvrir': {'type': 'boolean'},
                 },
                 'required': ['query'],
@@ -811,7 +805,7 @@ VAGUE3_READ_SCHEMA = [
             'description': 'Ouvre la page d’impression des bulletins d’une classe.',
             'parameters': {
                 'type': 'object',
-                'properties': {'classe': _CLASSE, 'ouvrir': {'type': 'boolean'}},
+                'properties': {'classe': _CLASSE, 'periode': _STR, 'ouvrir': {'type': 'boolean'}},
                 'required': ['classe'],
             },
         },
@@ -887,6 +881,7 @@ VAGUE3_READ_SCHEMA = [
 VAGUE3_READ_HANDLERS = {
     'get_notes_classe': tool_notes_classe,
     'get_moyennes_classe': tool_moyennes_classe,
+    'get_configuration_bulletins': tool_configuration_bulletins,
     'get_bulletin_eleve': tool_bulletin_eleve,
     'imprimer_bulletins_classe': tool_imprimer_bulletins_classe,
     'get_eleves_difficulte': tool_eleves_difficulte,

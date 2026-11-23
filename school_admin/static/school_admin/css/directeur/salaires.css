@@ -1,0 +1,178 @@
+/* ==========================================================================
+
+   Socle visuel (jetons --srv-*, boutons, pastilles, champs, fenêtres) — repris de l’ancienne page
+
+   « Service des enseignants », supprimée. Utilisé par Salaires et paiements.
+
+   ========================================================================== */
+
+.srv, .srv-modal {
+    --srv-ink: var(--ax-ink, #101828);
+    --srv-ink-2: var(--ax-ink-2, #344054);
+    --srv-muted: var(--ax-muted, #667085);
+    --srv-line: var(--ax-line, #e4e7ec);
+    --srv-soft: #f8fafc;
+    --srv-brand: var(--ax-brand, #2563eb);
+    --srv-brand-ink: var(--ax-brand-ink, #1d47b3);
+    --srv-brand-soft: #eef4ff;
+    --srv-ok: #067647;
+    --srv-ok-soft: #e7f6ec;
+    --srv-warn: #b54708;
+    --srv-warn-soft: #fef4e6;
+    --srv-plus: #1d47b3;
+    --srv-plus-soft: #e8efff;
+    --srv-vac: #6d28d9;
+    --srv-vac-soft: #f1ecfe;
+    --srv-shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 10px 28px -18px rgba(16, 24, 40, .28);
+}
+
+/* En-tête : explication en une phrase + actions */
+.srv .hb-head { align-items: flex-start; }
+.srv .srv-intro { margin: .35rem 0 0; max-width: 760px; font-size: .9rem; line-height: 1.5; color: rgba(255, 255, 255, .92); }
+.srv .hb-head__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Indicateurs : légende sous le chiffre */
+.srv .fe-kpi__caption { display: block; margin-top: 4px; font-size: .72rem; font-weight: 600; opacity: .9; }
+
+/* Champs */
+.srv-champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.srv-champ { display: flex; flex-direction: column; gap: 5px; }
+.srv-champ label { font-size: .82rem; font-weight: 700; color: var(--srv-ink-2); }
+.srv-champ small { font-size: .74rem; line-height: 1.35; color: var(--srv-muted); }
+.srv-champ input, .srv-champ select, .srv-modal select, .srv-modal input[type="number"] {
+    width: 100%; min-height: 42px; padding: 0 12px; box-sizing: border-box;
+    border: 1.5px solid var(--srv-line); border-radius: 10px; background: #fff;
+    font: 600 .9rem var(--ax-font, inherit); color: var(--srv-ink);
+}
+.srv-champ input:focus, .srv-modal select:focus, .srv-modal input:focus { outline: none; border-color: var(--srv-brand); box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
+.srv-unite { position: relative; }
+.srv-unite input { padding-right: 58px; }
+.srv-unite span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: .78rem; font-weight: 700; color: var(--srv-muted); pointer-events: none; }
+
+/* Éléments communs */
+.srv-liste { margin: 0 0 18px; background: #fff; border: 1px solid var(--srv-line); border-radius: 16px; box-shadow: var(--srv-shadow); overflow: hidden; }
+.srv-liste__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 16px 18px; border-bottom: 1px solid var(--srv-line); }
+.srv-liste__head h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1rem; color: var(--srv-ink); }
+.srv-liste__head h2 i { color: var(--srv-brand); }
+.srv-filtres { display: flex; flex-wrap: wrap; gap: 6px; }
+.srv-filtre { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--srv-line); background: #fff; color: var(--srv-ink-2); font-size: .78rem; font-weight: 600; text-decoration: none; }
+.srv-filtre b { min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 999px; background: var(--srv-soft); font-size: .7rem; }
+.srv-filtre:hover { border-color: var(--srv-brand); color: var(--srv-brand-ink); }
+.srv-filtre.is-active { background: var(--srv-brand); border-color: var(--srv-brand); color: #fff; }
+.srv-filtre.is-active b { background: rgba(255, 255, 255, .25); }
+.srv-avatar { flex: 0 0 auto; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, #dbeafe, #ede9fe); color: var(--srv-brand-ink); font-size: .78rem; font-weight: 800; }
+.srv-sous--warn { color: var(--srv-warn); font-weight: 600; }
+.srv-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: .76rem; font-weight: 700; white-space: nowrap; }
+.srv-pill--complementaires { background: var(--srv-plus-soft); color: var(--srv-plus); }
+.srv-pill--equilibre { background: var(--srv-ok-soft); color: var(--srv-ok); }
+.srv-pill--sous_service { background: var(--srv-warn-soft); color: var(--srv-warn); }
+.srv-pill--vacataire { background: var(--srv-vac-soft); color: var(--srv-vac); }
+.srv-pill--vide { background: #f2f4f7; color: var(--srv-muted); }
+.srv-montant { font-weight: 800; color: var(--srv-ink); white-space: nowrap; }
+.srv-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.srv-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 34px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--srv-line); background: #fff; color: var(--srv-ink-2); font: 700 .8rem var(--ax-font, inherit); text-decoration: none; cursor: pointer; white-space: nowrap; }
+.srv-btn:hover { border-color: var(--srv-brand); color: var(--srv-brand-ink); }
+.srv-btn--primary { background: var(--srv-brand); border-color: var(--srv-brand); color: #fff; }
+.srv-btn--primary:hover { background: var(--srv-brand-ink); color: #fff; }
+.srv-btn--clair { background: rgba(255, 255, 255, .15); border-color: rgba(255, 255, 255, .45); color: #fff; }
+.srv-btn--clair:hover { background: rgba(255, 255, 255, .25); color: #fff; border-color: #fff; }
+.srv-vide { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 12px; text-align: center; color: var(--srv-muted); }
+.srv-vide i { font-size: 1.4rem; }
+.srv-note { margin: 0; padding: 12px 18px; border-top: 1px solid var(--srv-line); background: var(--srv-soft); font-size: .8rem; color: var(--srv-muted); }
+.srv-note a { color: var(--srv-brand-ink); font-weight: 700; }
+
+/* Fenêtres */
+.srv-modal { position: fixed; inset: 0; z-index: 1160; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 23, 42, .55); backdrop-filter: blur(2px); }
+.srv-modal.is-open { display: flex; }
+.srv-modal__panel { width: 100%; max-width: 480px; max-height: calc(100vh - 32px); overflow: auto; background: #fff; border-radius: 18px; box-shadow: 0 30px 60px -20px rgba(15, 23, 42, .45); }
+.srv-modal__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; background: #3b82f6; color: #fff; }
+.srv-modal__head h2 { margin: 0; font-size: 1.05rem; color: #fff; }
+.srv-modal__head p { margin: 2px 0 0; font-size: .8rem; opacity: .9; }
+.srv-modal__close { width: 36px; height: 36px; border: 0; border-radius: 10px; background: rgba(255, 255, 255, .18); color: #fff; cursor: pointer; }
+.srv-modal__body { display: flex; flex-direction: column; gap: 16px; padding: 18px 20px; }
+.srv-modal__body label.srv-titre { font-size: .84rem; font-weight: 700; color: var(--srv-ink-2); }
+.srv-choix { display: flex; flex-direction: column; gap: 8px; }
+.srv-choix label { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid var(--srv-line); border-radius: 12px; cursor: pointer; font-size: .86rem; color: var(--srv-ink); }
+.srv-choix label:has(input:checked) { border-color: var(--srv-brand); background: var(--srv-brand-soft); }
+.srv-choix input[type="radio"] { margin-top: 3px; accent-color: var(--srv-brand); }
+.srv-choix small { display: block; font-size: .76rem; color: var(--srv-muted); }
+.srv-modal__foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--srv-line); }
+
+@media (max-width: 760px) {
+    .srv .hb-kpis { grid-template-columns: 1fr 1fr !important; grid-auto-flow: row !important; overflow: visible !important; }
+}
+
+/* Salaires et paiements — onglets Enseignants / Personnel, une carte par personne, fenêtres de paiement et d'historique.
+   S'appuie sur service_enseignants.css (jetons --srv-*, boutons, pastilles, fenêtres). */
+.sal .sal-mois { display: flex; align-items: center; gap: 8px; }
+.sal .sal-mois strong { min-width: 150px; text-align: center; font-size: 1.05rem; color: #fff; }
+.sal .sal-devise { font-size: .85rem; font-weight: 600; }
+
+.sal-zone { margin: 0 0 18px; }
+.sal-barre { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0 0 14px; padding: 12px 14px; background: #fff; border: 1px solid var(--srv-line); border-radius: 16px; box-shadow: var(--srv-shadow); }
+.sal-onglets { display: inline-flex; padding: 4px; border-radius: 12px; background: #f1f4f9; }
+.sal-onglet { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 16px; border: 0; border-radius: 9px; background: transparent; color: var(--srv-ink-2); font: 700 .86rem var(--ax-font, inherit); cursor: pointer; }
+.sal-onglet b { min-width: 22px; height: 22px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 999px; background: #fff; font-size: .72rem; }
+.sal-onglet.is-active { background: #fff; color: var(--srv-brand-ink); box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
+.sal-onglet.is-active b { background: var(--srv-brand); color: #fff; }
+.sal-onglet:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }
+.sal-barre .srv-filtres button { font-family: inherit; cursor: pointer; }
+.sal-tout { margin-left: auto; }
+
+.sal-cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 14px; align-items: stretch; }
+.sal-carte { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: #fff; border: 1px solid var(--srv-line); border-radius: 18px; box-shadow: var(--srv-shadow); }
+.sal-carte[hidden] { display: none; }
+.sal-carte--paye { background: linear-gradient(180deg, #f6fcf8 0%, #fff 60%); border-color: #c6ebd3; }
+.sal-carte--a_renseigner, .sal-carte--a_verifier { border-color: #fcd9a8; }
+.sal-carte__head { display: flex; align-items: center; gap: 10px; }
+.sal-carte__nom { flex: 1 1 auto; min-width: 0; }
+.sal-carte__nom strong { display: block; font-size: .95rem; color: var(--srv-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sal-carte__nom small { display: block; font-size: .75rem; color: var(--srv-muted); }
+.sal-carte__head .srv-pill { flex: 0 0 auto; }
+.srv-pill--paye { background: var(--srv-ok-soft); color: var(--srv-ok); }
+.srv-pill--a_payer { background: var(--srv-plus-soft); color: var(--srv-plus); }
+.srv-pill--a_renseigner, .srv-pill--a_verifier { background: var(--srv-warn-soft); color: var(--srv-warn); }
+.srv-pill--rien { background: #f2f4f7; color: var(--srv-muted); }
+.sal-carte__montant small { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--srv-muted); }
+.sal-carte__montant strong { display: block; margin-top: 2px; font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; color: var(--srv-ink); }
+.sal-carte__montant strong span { font-size: .85rem; font-weight: 700; color: var(--srv-muted); }
+.sal-carte--paye .sal-carte__montant strong { color: var(--srv-ok); }
+.sal-carte__montant .sal-carte__vide { font-size: 1.05rem; color: var(--srv-muted); }
+.sal-carte__calcul { margin: 0; padding: 10px 12px; list-style: none; border-radius: 12px; background: #f8f9fc; font-size: .8rem; line-height: 1.5; color: var(--srv-ink-2); }
+.sal-carte__calcul li + li { margin-top: 2px; }
+.sal-carte__bloque { margin: 0; display: flex; gap: 8px; align-items: flex-start; font-size: .8rem; font-weight: 600; color: var(--srv-warn); }
+.sal-carte__bloque i { margin-top: 3px; }
+.sal-carte__actions { display: flex; gap: 8px; margin-top: auto; }
+.sal-carte__actions .srv-btn { flex: 1 1 0; }
+.srv-btn--warn { background: var(--srv-warn); border-color: var(--srv-warn); color: #fff; }
+.srv-btn--warn:hover { filter: brightness(.95); color: #fff; }
+.sal-vide { grid-column: 1 / -1; background: #fff; border: 1px dashed var(--srv-line); border-radius: 16px; }
+.sal-vide[hidden] { display: none; }
+.sal-zone > .srv-note { margin-top: 14px; border: 1px solid var(--srv-line); border-radius: 14px; }
+
+/* Fenêtres */
+.sal-recap { margin: 0; padding: 10px 12px; list-style: none; border-radius: 12px; background: #f8f9fc; font-size: .84rem; line-height: 1.55; color: var(--srv-ink-2); }
+.sal-recap:empty { display: none; }
+.sal-total { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--srv-ok-soft); color: var(--srv-ok); font-weight: 600; }
+.sal-total strong { font-size: 1.2rem; }
+.srv-modal [hidden] { display: none !important; }
+.sal-liste-tout { margin: 0; padding: 0; list-style: none; max-height: 260px; overflow: auto; border: 1px solid var(--srv-line); border-radius: 12px; }
+.sal-liste-tout li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 12px; font-size: .86rem; }
+.sal-liste-tout li + li { border-top: 1px solid var(--srv-line); }
+.sal-liste-tout small { color: var(--srv-muted); }
+.sal-detail { max-width: 560px; }
+.sal-histo__total { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #f8f9fc; font-size: .88rem; color: var(--srv-ink-2); }
+.sal-histo__total strong { color: var(--srv-ink); }
+.sal-histo__mois h3 { margin: 6px 0 6px; font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--srv-muted); }
+.sal-histo__ligne { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--srv-line); border-radius: 12px; }
+.sal-histo__ligne + .sal-histo__ligne { margin-top: 6px; }
+.sal-histo__ligne strong { display: block; color: var(--srv-ok); }
+.sal-histo__ligne small { display: block; font-size: .76rem; color: var(--srv-muted); }
+
+@media (max-width: 760px) {
+    .sal-barre { padding: 10px; }
+    .sal-onglets { width: 100%; }
+    .sal-onglet { flex: 1 1 0; justify-content: center; }
+    .sal-tout { width: 100%; margin-left: 0; }
+    .sal .sal-mois strong { min-width: 0; }
+}

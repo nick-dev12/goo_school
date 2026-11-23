@@ -2,10 +2,11 @@ from django.urls import path
 from ..personal_views.directeur_view import *
 from ..controllers.examen_controller import *
 from ..controllers import (admission_controller, inscription_masse_controller, deliberation_controller, diplome_controller,
-                           maquette_controller, service_enseignant_controller)
+                           maquette_controller, salaires_controller)
 from ..controllers.preinscription_controller import PreinscriptionController
 
 from ..controllers.rappels_controller import RappelsController
+from ..controllers.courrier_controller import CourrierController
 
 app_name = 'directeur'  # ← Changement du namespace pour éviter le conflit
 
@@ -129,8 +130,10 @@ urlpatterns = [
     path('diplomes/', diplome_controller.liste_diplomes, name='liste_diplomes'),
     path('diplomes/classe/<int:classe_id>/', diplome_controller.diplomes_classe, name='diplomes_classe'),
     path('diplomes/<int:diplome_id>/attestation/', diplome_controller.imprimer_diplome, name='imprimer_diplome'),
-    path('service-enseignants/', service_enseignant_controller.service_enseignants, name='service_enseignants'),
-    path('service-enseignants/<int:professeur_id>/', service_enseignant_controller.service_enseignant_detail, name='service_enseignant_detail'),
+    path('salaires/', salaires_controller.salaires, name='salaires'),
+    path('salaires/historique/<str:type_personne>/<int:personne_id>/', salaires_controller.historique_salaires,
+         name='historique_salaires'),
+    path('classes/<int:classe_id>/groupes-parcours/', maquette_controller.gerer_groupes_parcours, name='gerer_groupes_parcours'),
     path('maquette/classe/<int:classe_id>/', maquette_controller.maquette_classe, name='maquette_classe'),
     path('maquette/classe/<int:classe_id>/inscriptions/', maquette_controller.inscriptions_pedagogiques, name='inscriptions_pedagogiques'),
     path('deliberations/<int:deliberation_id>/', deliberation_controller.detail_deliberation, name='detail_deliberation'),
@@ -201,6 +204,9 @@ urlpatterns = [
     path('volume-horaire/controle/', pointage_controle, name='pointage_controle'),
     path('cahiers-de-texte/', cahiers_texte_directeur, name='cahiers_texte'),
     path('rappels-automatiques/', RappelsController.parametres, name='rappels_automatiques'),
+    path('courriers/', CourrierController.liste, name='courriers'),
+    path('courriers/<int:courrier_id>/', CourrierController.detail, name='courrier_detail'),
+    path('courriers/<int:courrier_id>/supprimer/', CourrierController.supprimer, name='courrier_supprimer'),
     path('pointage/borne/<int:borne_id>/', pointage_borne, name='pointage_borne'),
     path('pointage/borne/<int:borne_id>/code/', pointage_borne_code, name='pointage_borne_code'),
     path('volume-horaire/<int:professeur_id>/', detail_volume_horaire_directeur, name='detail_volume_horaire'),

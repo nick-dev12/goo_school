@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
+from urllib.parse import urlencode
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -675,7 +676,95 @@ register_action(ActionSpec(
 ))
 
 
+def tool_preparation_jury(ctx, args):
+    from school_admin.controllers.parcours_examens_controller import construire_etapes
+    from school_admin.model.deliberation_model import Deliberation
+    from school_admin.model.periode_model import PeriodeScolaire
+    from school_admin.services.assistant_search import find_classe
+
+    classe = find_classe(ctx, args.get('classe') or '')
+    if not classe or classe.niveau != 'superieur':
+        return {'statut': 'a_preciser', 'message': 'Pour quelle classe préparez-vous le jury ?'}
+    annee = ctx.annee_scolaire
+    if annee is None:
+        return _err('Sélectionnez d’abord une année scolaire.')
+    url = reverse('directeur:parcours_examens')
+    periodes = PeriodeScolaire.objects.filter(
+        etablissement=ctx.etablissement, annee_scolaire_fk=annee,
+        type_periode='semestre', niveau_lmd=classe.niveau_lmd,
+    ).order_by('date_debut', 'pk')
+    portee = args.get('portee') or 'semestre'
+    session = args.get('session') or Deliberation.SESSION_NORMALE
+    if portee not in ('semestre', 'annuelle') or session not in dict(Deliberation.SESSION_CHOICES):
+        return _err('Choisissez une portée semestrielle ou annuelle et une session normale ou de rattrapage.')
+    contexte = {'classe_id': classe.pk, 'annee_id': annee.pk, 'portee': portee, 'session': session}
+    options = list(periodes)
+    if not options:
+        return {
+            'statut': 'a_completer', 'classe': classe.nom, 'annee_scolaire': annee.libelle,
+            'message': 'Aucun semestre n’est configuré pour le niveau de cette classe sur cette année.',
+            'url': url + '?' + urlencode(contexte),
+        }
+    selection = options
+    if portee == 'semestre':
+        semestre = (args.get('semestre') or '').strip()
+        nom = f'Semestre {semestre}' if semestre.isdecimal() else semestre
+        selection = [p for p in options if p.nom_periode.casefold() == nom.casefold()]
+        if len(selection) != 1:
+            return {
+                'statut': 'a_preciser', 'classe': classe.nom, 'annee_scolaire': annee.libelle,
+                'message': 'Quel semestre voulez-vous vérifier, ou s’agit-il du jury annuel ?',
+                'semestres': [p.nom_periode for p in options],
+                'url': url + '?' + urlencode(contexte),
+            }
+        contexte['periode_id'] = selection[0].pk
+
+    url += '?' + urlencode(contexte)
+    guide = construire_etapes(classe, selection, annee, portee, session)
+    etapes = [
+        {key: etape[key] for key in ('titre', 'etat', 'pret', 'explication', 'action')}
+        for etape in guide['etapes']
+    ]
+    suivante = next((e for e in etapes if not e['pret']), None)
+    return {
+        'statut': 'ok',
+        'source': 'Examens et jury',
+        'classe': classe.nom,
+        'classe_id': classe.pk,
+        'annee_scolaire': annee.libelle,
+        'portee': portee,
+        'session': dict(Deliberation.SESSION_CHOICES)[session],
+        'semestres': [p.nom_periode for p in selection],
+        'historique': not annee.est_active,
+        'etapes': etapes,
+        'prochaine_etape': suivante['action'] if suivante else None,
+        'documents_prets': guide['documents_prets'],
+        'url': url,
+        'suggestions': [{'label': 'Ouvrir Examens et jury', 'intent': 'open', 'url': url}],
+    }
+
+
 VAGUE6_READ_SCHEMA = [
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_preparation_jury',
+            'description': (
+                'Contrôle en lecture seule les étapes d’Examens et jury du supérieur, '
+                'y compris la préparation des moyennes, du PV et des attestations. '
+                'Demande la classe ou le semestre si nécessaire.'
+            ),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'classe': {'type': 'string', 'description': 'Nom ou code de la classe'},
+                    'portee': {'type': 'string', 'enum': ['semestre', 'annuelle']},
+                    'semestre': {'type': 'string', 'description': 'Nom ou numéro du semestre'},
+                    'session': {'type': 'string', 'enum': ['normale', 'rattrapage']},
+                },
+            },
+        },
+    },
     {
         'type': 'function',
         'function': {
@@ -718,6 +807,7 @@ VAGUE6_READ_SCHEMA = [
 
 VAGUE6_READ_HANDLERS = {
     'get_examens': tool_examens,
+    'get_preparation_jury': tool_preparation_jury,
     'get_emploi_examens': tool_emploi_examens,
     'get_notes_examen': tool_notes_examen,
 }

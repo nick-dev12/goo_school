@@ -13,20 +13,14 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 DEFAULT_ASSISTANT_TOOL_TTL = int(
-    getattr(settings, 'ASSISTANT_TOOL_CACHE_TTL', 900) or 900
+    getattr(settings, 'ASSISTANT_TOOL_CACHE_TTL', 60)
 )
 
 CACHEABLE_ASSISTANT_TOOLS = frozenset({
-    'get_bilan_scolarite',
-    'get_statistiques_pilotage',
-    'get_impayes',
     'get_taux_reussite',
     'get_taux_presence',
     'get_comparatif_periodes',
     'get_repartition_cycles',
-    'get_fiche_scolarite',
-    'get_moratoires',
-    # Directeur — lectures lourdes hors Vague 2
     'get_effectifs',
     'get_notes_classe',
     'get_moyennes_classe',
@@ -45,6 +39,11 @@ CACHEABLE_ASSISTANT_TOOLS = frozenset({
     # Enseignant prim / sec
     'get_evaluations_classe',
     'get_notes_examen',
+})
+
+
+LECTURES_DIRECTION_EN_DIRECT = frozenset({
+    'get_effectifs', 'get_notes_classe', 'get_moyennes_classe', 'get_bulletin_eleve', 'get_notes_examen',
 })
 
 
@@ -70,7 +69,7 @@ def assistant_tool_cache_key(ctx, tool_name: str, arguments: dict | None) -> str
     args_hash = _stable_args_hash(arguments)
     actor = _actor_scope(ctx)
     return (
-        f'aria:assistant-tool:v1:{persona}:{etab_id}:{annee_id}:'
+        f'aria:assistant-tool:v2:{persona}:{etab_id}:{annee_id}:'
         f'{actor}:{tool_name}:{args_hash}'
     )
 
@@ -104,7 +103,9 @@ def cached_assistant_tool(
 
         @wraps(handler)
         def wrapper(ctx, arguments=None):
-            if name not in CACHEABLE_ASSISTANT_TOOLS:
+            if (name not in CACHEABLE_ASSISTANT_TOOLS
+                    or (getattr(ctx, 'persona', 'directeur') == 'directeur'
+                        and name in LECTURES_DIRECTION_EN_DIRECT)):
                 return handler(ctx, arguments)
             key = assistant_tool_cache_key(ctx, name, arguments)
             hit, _ok = _cache_get(key)
@@ -112,7 +113,8 @@ def cached_assistant_tool(
                 logger.info('assistant.tool_cache hit %s', name)
                 return hit
             result = handler(ctx, arguments)
-            _cache_set(key, result, ttl or DEFAULT_ASSISTANT_TOOL_TTL)
+            if not isinstance(result, dict) or not result.get('erreur'):
+                _cache_set(key, result, ttl if ttl is not None else DEFAULT_ASSISTANT_TOOL_TTL)
             logger.info('assistant.tool_cache miss %s', name)
             return result
 

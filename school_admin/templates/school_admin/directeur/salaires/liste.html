@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+{% load i18n static %}
+<html lang="fr">
+<head>
+    <title>{% trans "Salaires et paiements" %} — {{ etablissement.nom }}</title>
+    {% include 'school_admin/directeur/maquette/_head.html' %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/salaires.css' %}?v=1.1.0">
+</head>
+<body class="dlb-page-body">
+    {% include 'school_admin/directeur/partials/header_directeur.html' %}
+    <div class="content-container dlb srv sal">
+        {% include 'school_admin/partials/messages.html' %}
+        <div class="page-header page-header-minimal">{% include 'school_admin/directeur/partials/page_header_back.html' %}</div>
+
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-green"><i class="fas fa-money-check-dollar" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <h1 class="hb-head__title">{% trans "Salaires et paiements" %}</h1>
+                <p class="srv-intro">{% blocktrans %}Ce que l’école doit verser à chacun pour le mois choisi, et ce qui est déjà payé. Les heures des enseignants viennent de l’emploi du temps et du pointage : une absence non justifiée n’est pas payée.{% endblocktrans %}</p>
+            </div>
+            <div class="hb-head__actions sal-mois">
+                <a class="srv-btn srv-btn--clair" href="?mois={{ mois_precedent|date:'Y-m' }}&onglet={{ onglet }}" aria-label="{% trans 'Mois précédent' %}" data-sal-garde-onglet><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+                <strong>{{ paie.libelle_mois|capfirst }}</strong>
+                <a class="srv-btn srv-btn--clair" href="?mois={{ mois_suivant|date:'Y-m' }}&onglet={{ onglet }}" aria-label="{% trans 'Mois suivant' %}" data-sal-garde-onglet><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
+            </div>
+        </header>
+
+        <section class="fe-kpis hb-kpis hb-kpis--4 cg3" aria-label="{% trans 'Indicateurs' %}">
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Reste à verser" %}</span><span class="fe-kpi__icon"><i class="fas fa-hourglass-half"></i></span></div><p class="fe-kpi__value">{{ paie.reste_a_verser|floatformat:"0g" }} <small class="sal-devise">{{ devise }}</small></p><span class="fe-kpi__caption">{% blocktrans with n=paie.compteurs.a_payer %}{{ n }} personne(s) pas encore payée(s){% endblocktrans %}</span></div>
+            <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Déjà versé" %}</span><span class="fe-kpi__icon"><i class="fas fa-circle-check"></i></span></div><p class="fe-kpi__value">{{ paie.deja_verse|floatformat:"0g" }} <small class="sal-devise">{{ devise }}</small></p><span class="fe-kpi__caption">{% blocktrans with n=paie.compteurs.paye %}{{ n }} personne(s) payée(s){% endblocktrans %}</span></div>
+            <div class="fe-kpi {% if paie.compteurs.a_renseigner %}fe-tone-orange{% else %}fe-tone-teal{% endif %}"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Salaire à renseigner" %}</span><span class="fe-kpi__icon"><i class="fas fa-pen"></i></span></div><p class="fe-kpi__value">{{ paie.compteurs.a_renseigner }}</p><span class="fe-kpi__caption">{% trans "montant manquant sur leur fiche" %}</span></div>
+            <div class="fe-kpi fe-tone-violet"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Agents de l’État" %}</span><span class="fe-kpi__icon"><i class="fas fa-building-columns"></i></span></div><p class="fe-kpi__value">{{ paie.agents_etat }}</p><span class="fe-kpi__caption">{% trans "payés par l’État, hors de cette paie" %}</span></div>
+        </section>
+
+        <section class="sal-zone" aria-label="{% trans 'Paie du mois' %}">
+            <div class="sal-barre">
+                <div class="sal-onglets" role="tablist" aria-label="{% trans 'Catégorie' %}">
+                    <button type="button" role="tab" class="sal-onglet {% if onglet == 'enseignant' %}is-active{% endif %}" aria-selected="{% if onglet == 'enseignant' %}true{% else %}false{% endif %}" data-sal-onglet="enseignant"><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{% trans "Enseignants" %} <b>{{ paie.compteurs.enseignant }}</b></button>
+                    <button type="button" role="tab" class="sal-onglet {% if onglet == 'personnel' %}is-active{% endif %}" aria-selected="{% if onglet == 'personnel' %}true{% else %}false{% endif %}" data-sal-onglet="personnel"><i class="fas fa-user-tie" aria-hidden="true"></i>{% trans "Personnel" %} <b>{{ paie.compteurs.personnel }}</b></button>
+                </div>
+                <div class="srv-filtres" aria-label="{% trans 'Filtrer' %}">
+                    <button type="button" class="srv-filtre is-active" data-sal-filtre="">{% trans "Tous" %}</button>
+                    <button type="button" class="srv-filtre" data-sal-filtre="a_payer">{% trans "Pas encore payés" %}</button>
+                    <button type="button" class="srv-filtre" data-sal-filtre="paye">{% trans "Payés" %}</button>
+                </div>
+                {% if paie.pretes %}
+                <button type="button" class="srv-btn srv-btn--primary sal-tout" data-sal-ouvrir="salModalTout"><i class="fas fa-layer-group" aria-hidden="true"></i>{% blocktrans with n=paie.pretes|length %}Payer tous les salaires prêts ({{ n }}){% endblocktrans %}</button>
+                {% endif %}
+            </div>
+
+            <div class="sal-cartes">
+                {% for l in paie.lignes %}
+                <article class="sal-carte sal-carte--{{ l.statut }}" data-sal-type="{{ l.type }}" data-sal-etat="{% if l.statut == 'paye' %}paye{% else %}a_payer{% endif %}" {% if l.type != onglet %}hidden{% endif %}>
+                    <header class="sal-carte__head">
+                        <span class="srv-avatar" aria-hidden="true">{{ l.initiales }}</span>
+                        <div class="sal-carte__nom"><strong>{{ l.nom }}</strong><small>{{ l.role }}</small></div>
+                        {% if l.statut == 'paye' %}<span class="srv-pill srv-pill--paye"><i class="fas fa-check" aria-hidden="true"></i>{% blocktrans with d=l.paye_le|date:"d/m" %}Payé le {{ d }}{% endblocktrans %}</span>
+                        {% elif l.statut == 'a_renseigner' %}<span class="srv-pill srv-pill--a_renseigner">{% trans "Salaire à renseigner" %}</span>
+                        {% elif l.statut == 'a_verifier' %}<span class="srv-pill srv-pill--a_verifier">{% trans "Séances à vérifier" %}</span>
+                        {% elif l.statut == 'rien' %}<span class="srv-pill srv-pill--rien">{% trans "Rien à payer" %}</span>
+                        {% else %}<span class="srv-pill srv-pill--a_payer">{% trans "Pas encore payé" %}</span>{% endif %}
+                    </header>
+                    <div class="sal-carte__montant">
+                        <small>{% if l.statut == 'paye' %}{% trans "Versé" %}{% else %}{% trans "À payer ce mois" %}{% endif %}</small>
+                        {% if l.statut == 'paye' %}<strong>{{ l.montant_paye|floatformat:"0g" }} <span>{{ devise }}</span></strong>
+                        {% elif l.statut == 'a_saisir' %}<strong class="sal-carte__vide">{% trans "Heures à saisir" %}</strong>
+                        {% elif l.montant != None %}<strong>{{ l.montant|floatformat:"0g" }} <span>{{ devise }}</span></strong>
+                        {% else %}<strong class="sal-carte__vide">—</strong>{% endif %}
+                    </div>
+                    {% if l.explication %}<ul class="sal-carte__calcul">{% for e in l.explication %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                    {% if l.bloque and l.statut != 'rien' %}<p class="sal-carte__bloque"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>{{ l.bloque }}</p>{% endif %}
+                    <footer class="sal-carte__actions">
+                        {% if l.statut == 'a_payer' or l.statut == 'a_saisir' %}
+                        <button type="button" class="srv-btn srv-btn--primary" data-sal-payer
+                                data-type="{{ l.type }}" data-id="{{ l.personne.id }}" data-nom="{{ l.nom }}" data-mode="{% if l.statut == 'a_saisir' %}heures{% elif l.type == 'enseignant' %}calcule{% else %}fixe{% endif %}"
+                                data-montant="{% if l.montant != None %}{{ l.montant|floatformat:'0' }}{% endif %}" data-taux="{% if l.taux != None %}{{ l.taux|floatformat:'0' }}{% endif %}"
+                                data-calcul="{{ l.explication|join:'|' }}"><i class="fas fa-money-bill-wave" aria-hidden="true"></i>{% trans "Payer" %}</button>
+                        {% elif l.lien_bloque %}
+                        <a class="srv-btn srv-btn--warn" href="{{ l.lien_bloque }}"><i class="fas fa-pen" aria-hidden="true"></i>{% if l.statut == 'a_verifier' %}{% trans "Vérifier les séances" %}{% else %}{% trans "Renseigner" %}{% endif %}</a>
+                        {% endif %}
+                        <button type="button" class="srv-btn" data-sal-detail data-url="{% url 'directeur:historique_salaires' l.type l.personne.id %}" data-nom="{{ l.nom }}"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i>{% trans "Détail" %}</button>
+                    </footer>
+                </article>
+                {% endfor %}
+                <p class="srv-vide sal-vide" data-sal-vide hidden><i class="fas fa-users" aria-hidden="true"></i>{% trans "Personne à afficher pour ce choix." %}</p>
+            </div>
+            <p class="srv-note"><i class="fas fa-circle-info" aria-hidden="true"></i> {% blocktrans %}Le montant d’un enseignant suit ses séances pointées : seules les heures faites (ou remplacées) sont payées. Pour sortir quelqu’un de cette paie, indiquez « Salaire versé par : l’État » sur sa fiche.{% endblocktrans %}</p>
+        </section>
+    </div>
+
+    {# ---------------------------------------------------------------- fenêtre « Payer » #}
+    <div class="srv-modal" id="salModalPayer" role="dialog" aria-modal="true" aria-labelledby="salPayerTitre">
+        <form method="post" class="srv-modal__panel">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="payer">
+            <input type="hidden" name="mois" value="{{ paie.mois|date:'Y-m' }}">
+            <input type="hidden" name="onglet" value="{{ onglet }}" data-sal-onglet-champ>
+            <input type="hidden" name="type" id="salPayerType">
+            <input type="hidden" name="id" id="salPayerId">
+            <div class="srv-modal__head">
+                <div><h2 id="salPayerTitre">{% blocktrans with m=paie.libelle_mois %}Payer — {{ m }}{% endblocktrans %}</h2><p id="salPayerNom"></p></div>
+                <button type="button" class="srv-modal__close" data-sal-fermer aria-label="{% trans 'Fermer' %}"><i class="fas fa-times" aria-hidden="true"></i></button>
+            </div>
+            <div class="srv-modal__body">
+                <ul class="sal-recap" id="salPayerCalcul"></ul>
+                <div class="srv-champ" data-sal-si="heures">
+                    <label for="salPayerHeures">{% trans "Heures faites ce mois" %}</label>
+                    <div class="srv-unite"><input type="text" inputmode="decimal" name="heures" id="salPayerHeures"><span>h</span></div>
+                    <small id="salPayerTaux"></small>
+                </div>
+                <div class="srv-champ" data-sal-si="fixe">
+                    <label for="salPayerMontant">{% trans "Montant versé" %}</label>
+                    <div class="srv-unite"><input type="text" inputmode="decimal" name="montant" id="salPayerMontant"><span>{{ devise }}</span></div>
+                    <small>{% trans "Prérempli avec son salaire. Modifiez-le en cas de prime ou de retenue." %}</small>
+                </div>
+                <div class="srv-champ" data-sal-si="calcule">
+                    <label for="salPayerRetenue">{% trans "Charges retenues sur la paie" %}</label>
+                    <div class="srv-unite"><input type="number" min="0" max="100" step="0.5" name="retenue_pct" id="salPayerRetenue" value="0"><span>%</span></div>
+                    <small>{% trans "0 si rien n’est retenu (impôt, cotisations…)." %}</small>
+                </div>
+                <p class="sal-total">{% trans "Montant versé" %} : <strong id="salPayerTotal">—</strong> {{ devise }}</p>
+                <div class="srv-champs">
+                    <div class="srv-champ">
+                        <label for="salPayerCompte">{% trans "Payé depuis" %}</label>
+                        <select name="compte_tresorerie_id" id="salPayerCompte">{% for t in comptes_tresorerie %}<option value="{{ t.pk }}">{{ t.libelle }}</option>{% endfor %}</select>
+                    </div>
+                    <div class="srv-champ" data-sal-si="fixe heures">
+                        <label for="salPayerDate">{% trans "Date du versement" %}</label>
+                        <input type="date" name="date" id="salPayerDate" value="{{ aujourd_hui|date:'Y-m-d' }}">
+                    </div>
+                </div>
+            </div>
+            <div class="srv-modal__foot">
+                <button type="button" class="srv-btn" data-sal-fermer>{% trans "Annuler" %}</button>
+                <button type="submit" class="srv-btn srv-btn--primary"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Marquer comme payé" %}</button>
+            </div>
+        </form>
+    </div>
+
+    {# ---------------------------------------------------------------- fenêtre « Payer tout » #}
+    {% if paie.pretes %}
+    <div class="srv-modal" id="salModalTout" role="dialog" aria-modal="true" aria-labelledby="salToutTitre">
+        <form method="post" class="srv-modal__panel">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="payer_tout">
+            <input type="hidden" name="mois" value="{{ paie.mois|date:'Y-m' }}">
+            <input type="hidden" name="onglet" value="{{ onglet }}" data-sal-onglet-champ>
+            <div class="srv-modal__head">
+                <div><h2 id="salToutTitre">{% blocktrans with m=paie.libelle_mois %}Payer tous les salaires prêts — {{ m }}{% endblocktrans %}</h2>
+                    <p>{% blocktrans with n=paie.pretes|length %}{{ n }} personne(s){% endblocktrans %} · {{ paie.total_pretes|floatformat:"0g" }} {{ devise }}</p></div>
+                <button type="button" class="srv-modal__close" data-sal-fermer aria-label="{% trans 'Fermer' %}"><i class="fas fa-times" aria-hidden="true"></i></button>
+            </div>
+            <div class="srv-modal__body">
+                <ul class="sal-liste-tout">{% for l in paie.pretes %}<li><span>{{ l.nom }} <small>{% if l.type == 'enseignant' %}{% trans "enseignant" %}{% else %}{{ l.role|lower }}{% endif %}</small></span><strong>{{ l.montant|floatformat:"0g" }}</strong></li>{% endfor %}</ul>
+                <p class="srv-sous">{% trans "Les personnes à qui il manque une information (salaire, heures à saisir, séances à vérifier) ne sont pas payées : réglez-les une par une." %}</p>
+                <div class="srv-champs">
+                    <div class="srv-champ"><label for="salToutCompte">{% trans "Payé depuis" %}</label>
+                        <select name="compte_tresorerie_id" id="salToutCompte">{% for t in comptes_tresorerie %}<option value="{{ t.pk }}">{{ t.libelle }}</option>{% endfor %}</select></div>
+                    <div class="srv-champ"><label for="salToutRetenue">{% trans "Charges retenues (enseignants)" %}</label>
+                        <div class="srv-unite"><input type="number" min="0" max="100" step="0.5" name="retenue_pct" id="salToutRetenue" value="0"><span>%</span></div></div>
+                </div>
+            </div>
+            <div class="srv-modal__foot">
+                <button type="button" class="srv-btn" data-sal-fermer>{% trans "Annuler" %}</button>
+                <button type="submit" class="srv-btn srv-btn--primary"><i class="fas fa-check" aria-hidden="true"></i>{% blocktrans with t=paie.total_pretes|floatformat:"0g" %}Payer {{ t }}{% endblocktrans %} {{ devise }}</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    {# ---------------------------------------------------------------- fenêtre « Détail » (historique) #}
+    <div class="srv-modal" id="salModalDetail" role="dialog" aria-modal="true" aria-labelledby="salDetailTitre">
+        <div class="srv-modal__panel sal-detail">
+            <div class="srv-modal__head">
+                <div><h2 id="salDetailTitre">{% trans "Historique des paiements" %}</h2><p id="salDetailNom"></p></div>
+                <button type="button" class="srv-modal__close" data-sal-fermer aria-label="{% trans 'Fermer' %}"><i class="fas fa-times" aria-hidden="true"></i></button>
+            </div>
+            <div class="srv-modal__body" id="salDetailCorps" aria-live="polite"></div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        var cartes = Array.prototype.slice.call(document.querySelectorAll('.sal-carte'));
+        var vide = document.querySelector('[data-sal-vide]');
+        var etat = { onglet: '{{ onglet|escapejs }}', filtre: '' };
+        function maj() {
+            var n = 0;
+            cartes.forEach(function (c) {
+                var ok = c.getAttribute('data-sal-type') === etat.onglet && (!etat.filtre || c.getAttribute('data-sal-etat') === etat.filtre);
+                c.hidden = !ok; if (ok) n++;
+            });
+            vide.hidden = n > 0;
+            document.querySelectorAll('[data-sal-onglet]').forEach(function (b) {
+                var a = b.getAttribute('data-sal-onglet') === etat.onglet;
+                b.classList.toggle('is-active', a); b.setAttribute('aria-selected', a ? 'true' : 'false');
+            });
+            document.querySelectorAll('[data-sal-filtre]').forEach(function (b) { b.classList.toggle('is-active', b.getAttribute('data-sal-filtre') === etat.filtre); });
+            document.querySelectorAll('[data-sal-onglet-champ]').forEach(function (i) { i.value = etat.onglet; });
+            document.querySelectorAll('[data-sal-garde-onglet]').forEach(function (a) { a.href = a.href.replace(/onglet=[a-z]*/, 'onglet=' + etat.onglet); });
+            try { var u = new URL(location.href); u.searchParams.set('onglet', etat.onglet); history.replaceState(null, '', u.pathname + u.search); } catch (e) {}
+        }
+        function ouvrir(id) { var m = document.getElementById(id); if (m) { m.classList.add('is-open'); document.body.style.overflow = 'hidden'; } }
+        function fermer() { document.querySelectorAll('.srv-modal.is-open').forEach(function (m) { m.classList.remove('is-open'); }); document.body.style.overflow = ''; }
+        function nombre(t) { var v = parseFloat(String(t || '').replace(/\s/g, '').replace(',', '.')); return isNaN(v) ? 0 : v; }
+        function fmt(v) { return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+
+        var payer = { mode: '', base: 0, taux: 0 };
+        function total() {
+            var v = 0;
+            if (payer.mode === 'heures') v = nombre(document.getElementById('salPayerHeures').value) * payer.taux;
+            else if (payer.mode === 'fixe') v = nombre(document.getElementById('salPayerMontant').value);
+            else v = payer.base * (1 - nombre(document.getElementById('salPayerRetenue').value) / 100);
+            document.getElementById('salPayerTotal').textContent = v > 0 ? fmt(v) : '—';
+        }
+        function ouvrirPayer(b) {
+            payer.mode = b.getAttribute('data-mode');
+            payer.base = nombre(b.getAttribute('data-montant'));
+            payer.taux = nombre(b.getAttribute('data-taux'));
+            document.getElementById('salPayerType').value = b.getAttribute('data-type');
+            document.getElementById('salPayerId').value = b.getAttribute('data-id');
+            document.getElementById('salPayerNom').textContent = b.getAttribute('data-nom');
+            var recap = document.getElementById('salPayerCalcul');
+            recap.replaceChildren();
+            (b.getAttribute('data-calcul') || '').split('|').filter(Boolean).forEach(function (t) { var li = document.createElement('li'); li.textContent = t; recap.appendChild(li); });
+            document.querySelectorAll('#salModalPayer [data-sal-si]').forEach(function (z) {
+                var visible = z.getAttribute('data-sal-si').split(' ').indexOf(payer.mode) >= 0;
+                z.hidden = !visible;
+                z.querySelectorAll('input').forEach(function (i) { i.disabled = !visible; });
+            });
+            document.getElementById('salPayerMontant').value = payer.mode === 'fixe' ? b.getAttribute('data-montant') : '';
+            document.getElementById('salPayerHeures').value = '';
+            document.getElementById('salPayerRetenue').value = '0';
+            document.getElementById('salPayerTaux').textContent = payer.taux ? '× ' + fmt(payer.taux) + ' {{ devise|escapejs }} par heure (prix de sa fiche)' : '';
+            document.getElementById('salPayerHeures').required = payer.mode === 'heures';
+            total();
+            ouvrir('salModalPayer');
+            var premier = document.querySelector('#salModalPayer [data-sal-si]:not([hidden]) input');
+            if (premier) premier.focus();
+        }
+        function ligneTexte(tag, cls, texte) { var e = document.createElement(tag); if (cls) e.className = cls; e.textContent = texte; return e; }
+        function ouvrirDetail(b) {
+            var corps = document.getElementById('salDetailCorps');
+            document.getElementById('salDetailNom').textContent = b.getAttribute('data-nom');
+            corps.replaceChildren(ligneTexte('p', 'srv-sous', 'Chargement…'));
+            ouvrir('salModalDetail');
+            fetch(b.getAttribute('data-url'), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+                .then(function (d) {
+                    corps.replaceChildren();
+                    var tete = document.createElement('div'); tete.className = 'sal-histo__total';
+                    tete.appendChild(ligneTexte('span', '', d.nb + ' paiement(s)'));
+                    tete.appendChild(ligneTexte('strong', '', 'Total versé : ' + d.total + ' ' + d.devise));
+                    corps.appendChild(tete);
+                    if (!d.mois.length) { corps.appendChild(ligneTexte('p', 'srv-vide', 'Aucun paiement enregistré pour le moment.')); return; }
+                    d.mois.forEach(function (m) {
+                        var bloc = document.createElement('section'); bloc.className = 'sal-histo__mois';
+                        bloc.appendChild(ligneTexte('h3', '', m.mois.charAt(0).toUpperCase() + m.mois.slice(1)));
+                        m.paiements.forEach(function (p) {
+                            var l = document.createElement('div'); l.className = 'sal-histo__ligne';
+                            var g = document.createElement('div');
+                            g.appendChild(ligneTexte('strong', '', p.montant + ' ' + d.devise));
+                            g.appendChild(ligneTexte('small', '', 'Payé le ' + p.paye_le + ' · ' + p.moyen + (p.detail ? ' · ' + p.detail : '')));
+                            l.appendChild(g);
+                            if (p.fiche) { var a = ligneTexte('a', 'srv-btn', 'Fiche de paie'); a.href = p.fiche; a.target = '_blank'; a.rel = 'noopener'; l.appendChild(a); }
+                            bloc.appendChild(l);
+                        });
+                        corps.appendChild(bloc);
+                    });
+                })
+                .catch(function () { corps.replaceChildren(ligneTexte('p', 'srv-sous srv-sous--warn', 'Historique indisponible. Réessayez.')); });
+        }
+        document.addEventListener('click', function (e) {
+            var t;
+            if ((t = e.target.closest('[data-sal-onglet]'))) { etat.onglet = t.getAttribute('data-sal-onglet'); maj(); return; }
+            if ((t = e.target.closest('[data-sal-filtre]'))) { etat.filtre = t.getAttribute('data-sal-filtre'); maj(); return; }
+            if ((t = e.target.closest('[data-sal-payer]'))) { ouvrirPayer(t); return; }
+            if ((t = e.target.closest('[data-sal-detail]'))) { ouvrirDetail(t); return; }
+            if ((t = e.target.closest('[data-sal-ouvrir]'))) { ouvrir(t.getAttribute('data-sal-ouvrir')); return; }
+            if (e.target.classList.contains('srv-modal') || e.target.closest('[data-sal-fermer]')) fermer();
+        });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fermer(); });
+        ['salPayerHeures', 'salPayerMontant', 'salPayerRetenue'].forEach(function (id) { document.getElementById(id).addEventListener('input', total); });
+        maj();
+    })();
+    </script>
+    {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
+    {% include 'school_admin/partials/directeur_live_scripts.html' %}
+</body>
+</html>

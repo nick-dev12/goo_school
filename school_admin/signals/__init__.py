@@ -12,6 +12,7 @@ from . import push_lifecycle  # noqa: F401
 from . import family_events  # noqa: F401
 from . import context_popup  # noqa: F401
 from . import mots_de_passe  # noqa: F401 — efface le mot de passe provisoire une fois remplacé
+from . import credits_signals  # noqa: F401 — crédits LMD enregistrés tenus à jour
 
 __all__ = [
     'creer_notes_examen_automatiques_classes',

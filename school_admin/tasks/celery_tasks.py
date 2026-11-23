@@ -81,6 +81,14 @@ def verifier_moratoires_task() -> int:
 
 
 @shared_task
+def envoyer_rappels_personnels_task() -> int:
+    """Rappels demandés à l'assistant (« rappelle-moi lundi à 9 h… ») : envoyés à l'heure dite."""
+    from school_admin.services.rappels.personnels import envoyer_rappels_personnels
+
+    return envoyer_rappels_personnels()
+
+
+@shared_task
 def generer_rappels_task() -> dict:
     """Rappels automatiques : notification persistante + push pour chaque action à faire."""
     from school_admin.services.rappels import generer

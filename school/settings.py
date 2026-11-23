@@ -324,6 +324,10 @@ try:
             'task': 'school_admin.tasks.celery_tasks.envoyer_relances_impayes_task',
             'schedule': crontab(hour=8, minute=0),
         },
+        'rappels-personnels': {
+            'task': 'school_admin.tasks.celery_tasks.envoyer_rappels_personnels_task',
+            'schedule': 60.0,
+        },
         'rappels-automatiques': {
             'task': 'school_admin.tasks.celery_tasks.generer_rappels_task',
             'schedule': crontab(minute='5,35'),

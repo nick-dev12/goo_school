@@ -4,7 +4,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from school_admin.model.affectation_model import AffectationProfesseur
@@ -163,6 +163,10 @@ class MoteurExamenTests(BaseExamens):
         self.assertIsNone(mx.moyenne_matiere(D('12'), {'valeur': None}, D('0.4'), D('0.6'), superieur=True))
 
 
+@override_settings(STORAGES={
+    'default': {'BACKEND': 'django.core.files.storage.InMemoryStorage'},
+    'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+})
 class BulletinSansDoubleComptageTests(BaseExamens):
     def test_calcul_bulletin_compte_l_examen_une_seule_fois(self):
         # CC enregistré par l'enseignant : 10 (contrôle continu seul) ; composition : 15/20.

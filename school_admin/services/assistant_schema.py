@@ -41,9 +41,11 @@ SUPERIEUR_ONLY_TOOLS = frozenset({
     'supprimer_filiere',
     'creer_module',
     'supprimer_module',
+    'retirer_module_classe',
     'get_ects_etudiant',
     'get_ects_classe',
     'get_modules_classe',
+    'get_preparation_jury',
     'affecter_module_classe',
     'fixer_credits_module',
     'get_releve_ects',
@@ -94,7 +96,26 @@ CG_TOOLS = frozenset({
     'get_clients_411',
 })
 
-SUPERIEUR_PAGE_KEYS = frozenset({'filieres', 'modules'})
+SUPERIEUR_PAGE_KEYS = frozenset({'filieres', 'modules', 'examens_et_jury', 'deliberations', 'diplomes'})
+DIRECTEUR_PAGE_PERMISSIONS = {
+    'finances': 'comptabilite_voir',
+    'finances_entrees': 'comptabilite_voir',
+    'finances_sorties': 'comptabilite_voir',
+    'finances_tresorerie': 'comptabilite_voir',
+    'finances_financements': 'comptabilite_voir',
+    'impayes': 'comptabilite_voir',
+    'salaires': 'comptabilite_paiements',
+    'controle_cours': 'pointage_controle',
+    'cahiers_texte': 'professeurs_detail',
+    'rappels_automatiques': 'config_modifier',
+    'courriers': 'administrative_voir',
+    'bulletins': 'bulletins_voir',
+    'config_moyennes': 'config_modifier',
+    'config_standards': 'config_modifier',
+    'examens_et_jury': 'examens_voir',
+    'deliberations': 'examens_voir',
+    'diplomes': 'eleves_liste',
+}
 CG_PAGE_KEYS = frozenset({'comptabilite_generale'})
 
 # None = autorisé pour tout personnel connecté (navigation / session).
@@ -110,6 +131,7 @@ TOOL_PERMISSIONS = {
     'rechercher_eleves': 'eleves_liste',
     'inscrire_eleve': 'eleves_inscrire',
     'modifier_eleve': 'eleves_modifier',
+    'transferer_eleve': 'eleves_transferer',
     'reinscrire_eleve': 'eleves_reinscrire',
     'activer_eleve': 'eleves_modifier',
     'desactiver_eleve': 'eleves_modifier',
@@ -139,7 +161,9 @@ TOOL_PERMISSIONS = {
     'get_matieres': 'classes_liste',
     'creer_matiere': 'classes_modifier',
     'desactiver_matiere': 'classes_modifier',
+    'modifier_matiere': 'classes_modifier',
     'get_notes_eleve': 'notes_detail',
+    'get_moyenne_matiere': 'notes_detail',
     'get_notes_classe': 'notes_liste',
     'get_moyennes_classe': 'notes_liste',
     'get_bulletin_eleve': 'bulletins_voir',
@@ -150,11 +174,14 @@ TOOL_PERMISSIONS = {
     'get_coefficients': 'notes_liste',
     'configurer_coefficient': 'classes_modifier',
     'get_evaluations': 'notes_liste',
-    'calculer_moyenne_annuelle': 'notes_liste',
-    'publier_bulletins': 'bulletins_voir',
-    'calculer_moyennes_classe': 'notes_liste',
-    'configurer_visibilite_bulletins': 'bulletins_voir',
+    'publier_bulletins': 'bulletins_gerer',
+    'calculer_moyennes_classe': 'bulletins_gerer',
+    'configurer_visibilite_bulletins': 'bulletins_gerer',
     'configurer_moyennes': 'config_modifier',
+    'calculer_moyenne_annuelle': 'bulletins_gerer',
+    'calculer_moyenne_eleve': 'bulletins_gerer',
+    'get_configuration_bulletins': 'config_modifier',
+    'configurer_appreciations_bulletins': 'config_modifier',
     'configurer_standards': 'config_modifier',
     'get_periodes': 'config_voir',
     'creer_periode': 'config_modifier',
@@ -175,7 +202,7 @@ TOOL_PERMISSIONS = {
     'affecter_professeur': 'professeurs_modifier',
     'enregistrer_absence_professeur': 'professeurs_modifier',
     'get_volume_horaire': 'professeurs_liste',
-    'marquer_paie': 'professeurs_modifier',
+    'marquer_paie': 'comptabilite_paiements',
     'get_dossier_employe': ('professeurs_liste', 'personnel_liste'),
     'modifier_dossier_employe': ('professeurs_modifier', 'personnel_modifier'),
     'get_absences_professeur': 'professeurs_liste',
@@ -223,7 +250,41 @@ TOOL_PERMISSIONS = {
     'relancer_impaye': 'comptabilite_paiements',
     'get_caisse': 'comptabilite_voir',
     'ajouter_depense': 'comptabilite_paiements',
-    'supprimer_depense': 'comptabilite_paiements',
+    'supprimer_depense': 'comptabilite_bilans',
+    # Finances (pages Finances : consulter = comptabilité ; charges et prêts = bilans, comme les boutons de la page)
+    'get_situation_financiere': 'comptabilite_voir',
+    'enregistrer_recette': 'comptabilite_paiements',
+    'enregistrer_charge': 'comptabilite_bilans',
+    'payer_charge': 'comptabilite_paiements',
+    'transfert_comptes': 'comptabilite_paiements',
+    'enregistrer_pret': 'comptabilite_bilans',
+    'rembourser_pret': 'comptabilite_bilans',
+    # Salaires et paiements
+    'get_paie_du_mois': 'comptabilite_paiements',
+    'get_historique_salaire': 'comptabilite_paiements',
+    'payer_salaire': 'comptabilite_paiements',
+    'payer_tous_salaires': 'comptabilite_paiements',
+    # Contrôle des cours et cahiers de texte
+    'get_controle_cours': 'pointage_controle',
+    'decider_seance': 'pointage_controle',
+    'get_cahiers_texte': ('professeurs_detail', 'pointage_controle'),
+    # Rappels automatiques : réservés au directeur (voir DIRECTEUR_ONLY_TOOLS)
+    'get_parametres_rappels': 'config_modifier',
+    'configurer_rappels': 'config_modifier',
+    # Assistant personnel : ses propres rappels et notifications (aucune donnée d'autrui)
+    'get_mes_rappels': None,
+    'creer_rappel': None,
+    'supprimer_rappel': None,
+    'marquer_notifications_lues': None,
+    # Communication et documents
+    'envoyer_message': 'annonces_voir',
+    'get_courriers': 'administrative_voir',
+    'rediger_courrier': 'administrative_voir',
+    # Le document précis est vérifié dans l'outil (liste, présences, notes, bulletins, impayés…)
+    'imprimer_document': ('eleves_liste', 'presences_liste', 'classes_detail', 'notes_liste', 'bulletins_voir',
+                          'comptabilite_voir'),
+    'lever_sanction': 'sanctions_modifier',
+    'supprimer_sanction': 'sanctions_modifier',
     'get_structure_superieur': 'classes_liste',
     'creer_filiere': 'classes_modifier',
     'modifier_filiere': 'classes_modifier',
@@ -233,8 +294,10 @@ TOOL_PERMISSIONS = {
     'get_ects_etudiant': 'notes_detail',
     'get_ects_classe': 'notes_liste',
     'get_modules_classe': 'classes_detail',
+    'get_preparation_jury': 'examens_voir',
     'affecter_module_classe': 'classes_modifier',
     'fixer_credits_module': 'classes_modifier',
+    'retirer_module_classe': 'classes_modifier',
     'get_releve_ects': 'notes_detail',
 }
 
@@ -282,6 +345,7 @@ CHERCHER_EN_BASE_SOURCES = {
     'ects': 'get_ects_etudiant',
     'ects_classe': 'get_ects_classe',
     'modules_classe': 'get_modules_classe',
+    'preparation_jury': 'get_preparation_jury',
     'releve_ects': 'get_releve_ects',
     'affectations': 'get_affectations',
     'professeurs': 'rechercher_professeurs',
@@ -458,10 +522,15 @@ def _add_niveau_lmd_param(item, required=False):
 def tools_schema_for_context(ctx, master_schema):
     """Sous-ensemble de TOOLS_SCHEMA adapté au type d’établissement."""
     hidden = hidden_tools_for(ctx)
+    personnel = getattr(ctx, 'personnel', None)
+    if personnel is not None:
+        personnel.refresh_from_db(fields=['permissions'])
     schema = []
     for item in master_schema:
         name = (item.get('function') or {}).get('name')
         if not name or name in hidden:
+            continue
+        if _personnel_tool_denied(personnel, name):
             continue
         cloned = copy.deepcopy(item)
         if getattr(ctx, 'est_college_lycee', False) and name in (
@@ -484,6 +553,17 @@ def pages_visibles(ctx, pages):
         hidden_keys.update(SUPERIEUR_PAGE_KEYS)
     if not cg_visible():
         hidden_keys.update(CG_PAGE_KEYS)
+    personnel = getattr(ctx, 'personnel', None)
+    if personnel is not None:
+        # Page réservée au directeur : le personnel n'y a pas accès.
+        hidden_keys.add('rappels_automatiques')
+    if personnel is not None and any(page['key'] in DIRECTEUR_PAGE_PERMISSIONS for page in pages):
+        from school_admin.utils.permissions_personnel import has_permission
+        personnel.refresh_from_db(fields=['permissions'])
+        hidden_keys.update(
+            key for key, permission in DIRECTEUR_PAGE_PERMISSIONS.items()
+            if not has_permission(personnel, permission)
+        )
     if not hidden_keys:
         return pages
     return [page for page in pages if page.get('key') not in hidden_keys]
@@ -509,8 +589,19 @@ def prompt_addendum_for(ctx):
             "inscrits = maquette, validés seulement s’ils sont déjà calculés.\n"
             "- Maquette : get_modules_classe, get_structure_superieur "
             "(crédits, UE, semestre, classes liées).\n"
-            "- Affecter un module : affecter_module_classe. "
-            "Fixer les crédits : fixer_credits_module. Confirmation obligatoire.\n"
+            "- Vocabulaire : dis toujours « module (UE) » et « matière (EC) ».\n"
+            "- Structure : une classe a une filière et un niveau LMD (creer_classe). Un module (UE) est "
+            "rattaché à des classes, avec ses crédits, son semestre et son numéro pour chacune "
+            "(creer_module, affecter_module_classe, retirer_module_classe, fixer_credits_module). "
+            "Une matière (EC) se crée DANS un module (UE), pour des classes de ce module (creer_matiere) ; "
+            "son « poids » partage les crédits du module entre ses matières ; modifier_matiere change le nom, "
+            "le coefficient, le poids, les heures ou le module. Affecter un enseignant : affecter_professeur "
+            "(la matière doit être une matière (EC) de la classe). Confirmation obligatoire.\n"
+            "- Jury, PV ou attestations : appelle get_preparation_jury. Demande la classe et le semestre "
+            "ou la portée annuelle si la demande est ambiguë. Identifie la session normale ou de rattrapage. "
+            "Signale le premier prérequis à compléter et propose le lien Examens et jury fourni par l’outil. "
+            "Distingue une note saisie d’un résultat publié et un PV provisoire d’un PV définitif. "
+            "La clôture du jury et la délivrance d’attestations se font dans leurs écrans.\n"
             "- Relevé : get_releve_ects (ouvre le bulletin / relevé existant).\n"
             "- creer_periode exige le niveau LMD et un semestre officiel "
             "(Semestre 1–2 pour L1, 3–4 pour L2, etc.).\n"
@@ -558,6 +649,16 @@ def prompt_addendum_for(ctx):
             "si tes outils la proposent.\n"
             "- N’ouvre pas et ne promets pas le hub de comptabilité générale.\n"
         )
+    else:
+        parts.append(
+            "\nComptabilité générale : disponible selon vos autorisations. "
+            "Vérifie le catalogue et distingue cette comptabilité des frais de scolarité.\n"
+        )
+    parts.append(
+        "- Pour tout chiffre de pilotage, indique le périmètre (établissement ou classe), "
+        "l’année ou la période et la source renvoyés par l’outil. Rends les données manquantes explicites. "
+        "Un chiffre absent est inconnu. Un zéro renvoyé est un résultat.\n"
+    )
     return ''.join(parts)
 
 
@@ -570,7 +671,23 @@ def _permission_denied_payload():
     }
 
 
-def tool_permission_error(ctx, name, source=None):
+# Outils réservés au directeur, comme leurs pages (aucun membre du personnel).
+DIRECTEUR_ONLY_TOOLS = frozenset({'supprimer_session_examen', 'get_parametres_rappels', 'configurer_rappels'})
+
+
+def _personnel_tool_denied(personnel, name):
+    from school_admin.utils.permissions_personnel import has_permission
+
+    if personnel is None:
+        return False
+    if name in DIRECTEUR_ONLY_TOOLS:
+        return True
+    perm = TOOL_PERMISSIONS.get(name)
+    keys = perm if isinstance(perm, (list, tuple)) else (perm,)
+    return bool(perm) and not any(has_permission(personnel, key) for key in keys)
+
+
+def tool_permission_error(ctx, name, source=None, *, permissions_fresh=False):
     """None si autorisé, sinon dict d’erreur. Le directeur (sans personnel) passe toujours."""
     if getattr(ctx, 'persona', 'directeur') != 'directeur':
         return None
@@ -580,15 +697,15 @@ def tool_permission_error(ctx, name, source=None):
             return {'erreur': 'La comptabilité générale n’est pas disponible.'}
         return {'erreur': 'Cet outil n’est pas proposé pour ce type d’établissement.'}
     personnel = getattr(ctx, 'personnel', None)
-    if personnel is None:
-        return None
-    perm = TOOL_PERMISSIONS.get(name)
-    if perm is None:
-        return None
-    from school_admin.utils.decorators_permissions import check_permission
-
-    keys = perm if isinstance(perm, (list, tuple)) else (perm,)
-    if any(check_permission(personnel, key) for key in keys):
+    if personnel is not None and name in TOOL_PERMISSIONS and not permissions_fresh:
+        from django.core.exceptions import ObjectDoesNotExist
+        try:
+            personnel.refresh_from_db(fields=['permissions', 'actif', 'is_active'])
+        except ObjectDoesNotExist:
+            return _permission_denied_payload()
+        if not personnel.actif or not personnel.is_active:
+            return _permission_denied_payload()
+    if not _personnel_tool_denied(personnel, name):
         return None
     logger.info(
         "Assistant: refus permission tool=%s source=%s personnel=%s",

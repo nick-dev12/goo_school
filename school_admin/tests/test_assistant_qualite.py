@@ -2,7 +2,8 @@
 Qualité assistant — Vagues A+B (voix, sujet) et C+D (Gemini, polish).
 """
 import asyncio
-from unittest.mock import AsyncMock, patch
+import logging
+from unittest.mock import AsyncMock, Mock, patch
 
 from django.test import SimpleTestCase
 
@@ -31,6 +32,7 @@ from school_admin.services.assistant_stream_text import (
     finalize_assistant_turn_text,
     merge_stream_delta,
     split_spoken_and_suggestions,
+    stream_spoken_prefix,
 )
 from school_admin.services.gemini_assistant_service import (
     CONVERSATION_TEMPERATURE,
@@ -70,6 +72,89 @@ def _pending_edt():
 
 
 class AssistantStreamTextTests(SimpleTestCase):
+    def test_marqueur_de_la_capture_retenu_des_le_premier_fragment(self):
+        prefix = "Bonjour ! Comment puis-je vous aider aujourd'hui ?"
+        fragments = ['\n[[', 'A', 'RIA', '_', 'SUG', 'GESTIONS',
+                     '{"intent":"open","label":"Classes","url":"/classes/"}Bonjour']
+        accumulated = prefix
+        for fragment in fragments:
+            accumulated += fragment
+            self.assertEqual(stream_spoken_prefix(accumulated), prefix, msg=fragment)
+        spoken, suggestions = split_spoken_and_suggestions(accumulated)
+        self.assertEqual(spoken, prefix)
+        self.assertEqual([item['label'] for item in suggestions], ['Classes'])
+
+    def test_audio_exclut_le_marqueur_sans_deux_points(self):
+        from school_admin.services.tts_service import prepare_spoken_text
+
+        spoken = prepare_spoken_text('Bonjour ! ARIASUGGESTIONS{"label":"Classes"}Bonjour')
+        self.assertEqual(spoken, 'Bonjour!')
+
+    def test_un_audio_vide_ne_compte_pas_comme_premier_clip(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        async def run():
+            consumer = AssistantConsumer()
+            consumer._send_json = AsyncMock()
+            consumer._mark_first_audio = Mock()
+            await consumer._emit_sentence('Première phrase.', 0, audio=b'')
+            self.assertTrue(consumer._send_json.call_args.args[0]['voice_failed'])
+            consumer._mark_first_audio.assert_not_called()
+            await consumer._emit_sentence('Deuxième phrase.', 1, audio=b'WAV')
+            self.assertFalse(consumer._send_json.call_args.args[0]['voice_failed'])
+            consumer._mark_first_audio.assert_called_once()
+
+        asyncio.run(run())
+
+    def test_stream_affiche_et_lit_la_meme_phrase_une_seule_fois(self):
+        from school_admin.consumers.assistant_consumer import AssistantConsumer
+
+        fragments = [
+            'Bonjour,', ' je suis', ' prête à vous aider', '.', '\nARIA', 'SUGGEST',
+            'IONS{"label":"Voir les classes","url":"/classes/"}Bonjour',
+        ]
+        expected = 'Bonjour, je suis prête à vous aider.'
+        followup = 'Vous pouvez aussi me demander : Voir les classes.'
+
+        async def fake_model(_ctx, _messages, *, on_text_delta, **_options):
+            for fragment in fragments:
+                await on_text_delta(fragment)
+            return [], ''.join(fragments)
+
+        async def run():
+            consumer = AssistantConsumer()
+            consumer.persona = 'directeur'
+            consumer._cancel_requested = False
+            consumer.pending_action = None
+            consumer.history = []
+            consumer._followup_choices = []
+            consumer._followup_suggestions = []
+            consumer._tts_tasks = []
+            consumer._tts_index = 0
+            consumer._spoken_sentence_buffer = SentenceAssembler()
+            consumer._last_tool_memory = ''
+            consumer._build_context = AsyncMock()
+            consumer._handle_local_intent = AsyncMock(return_value=False)
+            consumer._send_json = AsyncMock()
+            consumer._log_turn_stats = Mock()
+            consumer._mark_first_audio = Mock()
+            with (
+                patch('school_admin.consumers.assistant_consumer.build_system_message', return_value={}),
+                patch('school_admin.consumers.assistant_consumer.run_assistant_turn', new=fake_model),
+                patch('school_admin.consumers.assistant_consumer.synthesize_audio',
+                      new=AsyncMock(return_value=(b'WAV', 'audio/wav'))) as synth,
+            ):
+                await consumer._handle_chat('Pouvez-vous vous présenter ?')
+            payloads = [call.args[0] for call in consumer._send_json.call_args_list]
+            self.assertEqual(''.join(p['text'] for p in payloads if p['type'] == 'text_delta'), expected)
+            self.assertEqual([p['text'] for p in payloads if p['type'] == 'text_replace'], [f'{expected} {followup}'])
+            self.assertEqual([p['text'] for p in payloads if p['type'] == 'audio_sentence'], [expected, followup])
+            self.assertEqual([p['items'][0]['label'] for p in payloads if p['type'] == 'suggestions'],
+                             ['Voir les classes'])
+            self.assertEqual([call.args[0] for call in synth.await_args_list], [expected, followup])
+
+        asyncio.run(run())
+
     def test_merge_stream_delta_skips_full_resend(self):
         first = 'Bonjour! Comment puis-je vous aider?'
         acc, emit = merge_stream_delta('', first)
@@ -819,7 +904,7 @@ class GeminiG3RegexTests(SimpleTestCase):
 class GeminiG4SuggestionTests(SimpleTestCase):
     """G4 : propositions cliquables, pas un « Ouvre… » forcé."""
 
-    def test_normalize_suggestions_borne_a_trois_et_chat_par_defaut(self):
+    def test_normalize_suggestions_borne_a_cinq_et_chat_par_defaut(self):
         from school_admin.services.assistant_tools import (
             normalize_suggestions,
             tool_proposer_actions,
@@ -829,10 +914,12 @@ class GeminiG4SuggestionTests(SimpleTestCase):
             {'label': 'Relancer les familles', 'value': 'Relance les impayés de la 6e A'},
             {'titre': 'Fiche Diallo', 'url': '/eleve/1', 'intent': 'open'},
             {'label': 'Créer un moratoire', 'value': 'Crée un moratoire pour Diallo'},
-            {'label': 'Trop', 'value': 'ignore'},
+            {'label': 'Les notes'},
+            {'label': 'La fiche'},
+            {'label': 'Sixième suggestion'},
         ]
         cleaned = normalize_suggestions(raw)
-        self.assertEqual(len(cleaned), 3)
+        self.assertEqual(len(cleaned), 5)
         self.assertEqual(cleaned[0]['intent'], 'chat')
         self.assertEqual(cleaned[0]['value'], 'Relance les impayés de la 6e A')
         self.assertEqual(cleaned[1]['intent'], 'open')
@@ -840,7 +927,7 @@ class GeminiG4SuggestionTests(SimpleTestCase):
         self.assertNotIn('Ouvre ', cleaned[1]['value'])
 
         result = tool_proposer_actions(object(), {'suggestions': raw})
-        self.assertEqual(result['nb'], 3)
+        self.assertEqual(result['nb'], 5)
         self.assertEqual(result['suggestions'][0]['label'], 'Relancer les familles')
 
     def test_open_sans_url_devient_chat(self):
@@ -997,7 +1084,7 @@ class GeminiG4SuggestionTests(SimpleTestCase):
             replace = next(item for item in sent if item.get('type') == 'text_replace')
             self.assertIn('ouvre', replace['text'].lower())
             self.assertNotIn('ARIA_SUGGESTIONS', replace['text'])
-            self.assertNotIn('Notes', replace['text'])
+            self.assertIn('Vous pouvez aussi me demander : Notes.', replace['text'])
 
         asyncio.run(_run())
 
@@ -1307,7 +1394,9 @@ class GeminiG6PromptTests(SimpleTestCase):
         self.assertNotIn('get_dossier_employe', primaire)
         self.assertIn('N’invente aucun crédit', superieur)
         self.assertIn('niveau LMD', superieur)
-        self.assertIn('Comptabilité générale : indisponible', superieur)
+        self.assertIn('Comptabilité générale : disponible selon vos autorisations', superieur)
+        with patch('school_admin.services.assistant_schema.AFFICHER_MODULE_COMPTABILITE_GENERALE', False):
+            self.assertIn('Comptabilité générale : indisponible', prompt_addendum_for(Superieur()))
 
 
 class GeminiG7TelemetryTests(SimpleTestCase):
@@ -1609,16 +1698,16 @@ class AssistantToolCacheTests(SimpleTestCase):
         calls = {'n': 0}
 
         @cached_assistant_tool(ttl=60)
-        def get_impayes(ctx, args):
+        def get_taux_reussite(ctx, args):
             calls['n'] += 1
             return {'statut': 'ok', 'nb': calls['n']}
 
-        key = assistant_tool_cache_key(ctx, 'get_impayes', {'statut': 'actif'})
+        key = assistant_tool_cache_key(ctx, 'get_taux_reussite', {'statut': 'actif'})
         with patch('school_admin.services.assistant_tool_cache.cache') as mock_cache:
             mock_cache.get.side_effect = [{'statut': 'ok', 'nb': 99}, None]
             mock_cache.set.return_value = True
-            first = get_impayes(ctx, {'statut': 'actif'})
-            second = get_impayes(ctx, {'statut': 'actif'})
+            first = get_taux_reussite(ctx, {'statut': 'actif'})
+            second = get_taux_reussite(ctx, {'statut': 'actif'})
         self.assertEqual(first, {'statut': 'ok', 'nb': 99})
         self.assertEqual(second, {'statut': 'ok', 'nb': 1})
         self.assertEqual(calls['n'], 1)
@@ -1672,17 +1761,18 @@ class AssistantToolCacheTests(SimpleTestCase):
             calls['n'] += 1
             return {'statut': 'ok', 'nb': calls['n']}
 
-        wrapped = wrap_cacheable_tool_handlers({'get_impayes': tool_impayes})
-        key = assistant_tool_cache_key(ctx, 'get_impayes', {'statut': 'actif'})
+        wrapped = wrap_cacheable_tool_handlers({'get_taux_reussite': tool_impayes})
+        key = assistant_tool_cache_key(ctx, 'get_taux_reussite', {'statut': 'actif'})
         with patch('school_admin.services.assistant_tool_cache.cache') as mock_cache:
             mock_cache.get.side_effect = [None, {'statut': 'ok', 'nb': 1}]
             mock_cache.set.return_value = True
-            with self.assertLogs(
-                'school_admin.services.assistant_tool_cache',
+            cache_logger = logging.getLogger('school_admin.services.assistant_tool_cache')
+            with patch.object(cache_logger, 'disabled', False), self.assertLogs(
+                cache_logger,
                 level='INFO',
             ) as logs:
-                first = wrapped['get_impayes'](ctx, {'statut': 'actif'})
-                second = wrapped['get_impayes'](ctx, {'statut': 'actif'})
+                first = wrapped['get_taux_reussite'](ctx, {'statut': 'actif'})
+                second = wrapped['get_taux_reussite'](ctx, {'statut': 'actif'})
         self.assertEqual(first, {'statut': 'ok', 'nb': 1})
         self.assertEqual(second, {'statut': 'ok', 'nb': 1})
         self.assertEqual(calls['n'], 1)
@@ -1692,8 +1782,8 @@ class AssistantToolCacheTests(SimpleTestCase):
             timeout=DEFAULT_ASSISTANT_TOOL_TTL,
         )
         joined = '\n'.join(logs.output)
-        self.assertIn('assistant.tool_cache miss get_impayes', joined)
-        self.assertIn('assistant.tool_cache hit get_impayes', joined)
+        self.assertIn('assistant.tool_cache miss get_taux_reussite', joined)
+        self.assertIn('assistant.tool_cache hit get_taux_reussite', joined)
         self.assertNotIn('tool_impayes', joined)
 
     def _dummy_ctx(self, persona, **actors):
@@ -1725,8 +1815,9 @@ class AssistantToolCacheTests(SimpleTestCase):
         with patch('school_admin.services.assistant_tool_cache.cache') as mock_cache:
             mock_cache.get.side_effect = [None, {'statut': 'ok', 'n': 1, 'tool': tool_name}]
             mock_cache.set.return_value = True
-            with self.assertLogs(
-                'school_admin.services.assistant_tool_cache',
+            cache_logger = logging.getLogger('school_admin.services.assistant_tool_cache')
+            with patch.object(cache_logger, 'disabled', False), self.assertLogs(
+                cache_logger,
                 level='INFO',
             ) as logs:
                 first = wrapped[tool_name](ctx, payload)
@@ -1806,138 +1897,20 @@ class AssistantToolCacheTests(SimpleTestCase):
         ):
             self.assertNotIn(name, CACHEABLE_ASSISTANT_TOOLS)
 
-    def test_c2_directeur_effectifs_et_vague3_wrap(self):
+    def test_c2_direction_lectures_sensibles_restent_fraiches(self):
         from school_admin.services.assistant_tools import TOOL_HANDLERS, tool_ouvrir_page
+        from school_admin.services.assistant_tool_cache import wrap_cacheable_tool_handlers
 
-        personnel = type('P', (), {'pk': 7})()
-        for name in (
-            'get_effectifs',
-            'get_notes_classe',
-            'get_moyennes_classe',
-            'get_bulletin_eleve',
-        ):
-            self._assert_wrap_hit_miss_redis_down(
-                name, 'directeur', personnel=personnel,
-            )
-            self._assert_production_cache_hit(
-                TOOL_HANDLERS, name, 'directeur', personnel=personnel,
-            )
-        self.assertIs(TOOL_HANDLERS['ouvrir_page'], tool_ouvrir_page)
-        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_page')
-        self._assert_production_not_cached(TOOL_HANDLERS, 'imprimer_bulletins_classe')
-
-    def test_c3_parent_lectures_lourdes_wrap(self):
-        from school_admin.services.assistant_parent_tools import TOOL_HANDLERS
-
-        parent = type('P', (), {'pk': 12})()
-        for name in (
-            'get_scolarite_enfant',
-            'get_scolarite_famille',
-            'get_notes_enfant',
-            'get_bulletin_enfant',
-            'get_absences_enfant',
-        ):
-            self._assert_wrap_hit_miss_redis_down(name, 'parent', parent=parent)
-            self._assert_production_cache_hit(
-                TOOL_HANDLERS, name, 'parent', parent=parent,
-            )
-        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_page')
-        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_recu')
-
-    def test_c4_eleve_lectures_lourdes_wrap(self):
-        from school_admin.services.assistant_eleve_tools import TOOL_HANDLERS
-
-        eleve = type('El', (), {'pk': 44})()
-        for name in (
-            'get_mes_notes',
-            'get_mon_bulletin',
-            'get_mes_devoirs',
-            'get_mon_emploi',
-        ):
-            self._assert_wrap_hit_miss_redis_down(name, 'eleve', eleve=eleve)
-            self._assert_production_cache_hit(
-                TOOL_HANDLERS, name, 'eleve', eleve=eleve,
-            )
-        self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_page')
-
-    def test_c5_enseignant_prim_sec_lectures_lourdes_wrap(self):
-        from school_admin.services.assistant_enseignant_primaire_tools import (
-            ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS,
-        )
-        from school_admin.services.assistant_enseignant_secondaire_tools import (
-            ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS,
-        )
-
-        prof = type('Pr', (), {'pk': 21})()
-        prim_names = (
-            'get_notes_classe',
-            'get_effectifs',
-            'get_evaluations_classe',
-        )
-        for name in prim_names:
-            self._assert_wrap_hit_miss_redis_down(
-                name, 'enseignant_primaire', professeur=prof,
-            )
-            self._assert_production_cache_hit(
-                ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS,
-                name,
-                'enseignant_primaire',
-                professeur=prof,
-            )
-        self._assert_production_not_cached(
-            ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS, 'ouvrir_page',
-        )
-        self._assert_production_not_cached(
-            ENSEIGNANT_PRIMAIRE_TOOL_HANDLERS, 'ouvrir_classe',
-        )
-
-        sec_names = prim_names + ('get_notes_examen',)
-        for name in sec_names:
-            self._assert_wrap_hit_miss_redis_down(
-                name, 'enseignant', professeur=prof,
-            )
-            self._assert_production_cache_hit(
-                ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS,
-                name,
-                'enseignant',
-                professeur=prof,
-            )
-        self._assert_production_not_cached(
-            ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS, 'ouvrir_page',
-        )
-        self._assert_production_not_cached(
-            ENSEIGNANT_SECONDAIRE_TOOL_HANDLERS, 'ouvrir_noter_examen',
-        )
-        from school_admin.services.assistant_tool_cache import CACHEABLE_ASSISTANT_TOOLS
-
-        for name in (
-            'ouvrir_page',
-            'ouvrir_classe',
-            'ouvrir_recu',
-            'ouvrir_noter_examen',
-            'enregistrer_note',
-            'enregistrer_paiement',
-            'enregistrer_note_examen',
-            'imprimer_bulletins_classe',
-        ):
-            self.assertNotIn(name, CACHEABLE_ASSISTANT_TOOLS)
-
-    def test_c2_directeur_effectifs_et_vague3_wrap(self):
-        from school_admin.services.assistant_tools import TOOL_HANDLERS, tool_ouvrir_page
-
-        personnel = type('P', (), {'pk': 7})()
-        for name in (
-            'get_effectifs',
-            'get_notes_classe',
-            'get_moyennes_classe',
-            'get_bulletin_eleve',
-        ):
-            self._assert_wrap_hit_miss_redis_down(
-                name, 'directeur', personnel=personnel,
-            )
-            self._assert_production_cache_hit(
-                TOOL_HANDLERS, name, 'directeur', personnel=personnel,
-            )
+        ctx = self._dummy_ctx('directeur', personnel=type('P', (), {'pk': 7})())
+        for name in ('get_effectifs', 'get_notes_classe', 'get_moyennes_classe',
+                     'get_bulletin_eleve', 'get_fiche_scolarite', 'get_impayes'):
+            with self.subTest(name=name), patch('school_admin.services.assistant_tool_cache.cache') as cache:
+                handler = Mock(side_effect=[{'nb': 30}, {'nb': 25}])
+                wrapped = wrap_cacheable_tool_handlers({name: handler})[name]
+                self.assertEqual(wrapped(ctx, {}), {'nb': 30})
+                self.assertEqual(wrapped(ctx, {}), {'nb': 25})
+                cache.get.assert_not_called()
+                cache.set.assert_not_called()
         self.assertIs(TOOL_HANDLERS['ouvrir_page'], tool_ouvrir_page)
         self._assert_production_not_cached(TOOL_HANDLERS, 'ouvrir_page')
         self._assert_production_not_cached(TOOL_HANDLERS, 'imprimer_bulletins_classe')

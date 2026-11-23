@@ -146,7 +146,7 @@ class FinancesScenariosTests(TestCase):
         self.assertEqual(RecetteEtablissement.objects.filter(etablissement=self.etab).count(), 0)
         response = self.client.get(reverse('directeur:finances_entrees'), {'vue': 'scolarite'})
         self.assertContains(response, 'SOW')
-        self.assertContains(response, '1500')
+        self.assertRegex(response.content.decode(), '1[\\s\u00a0\u202f.]?500')
 
     def test_02_depense(self):
         enregistrer_sortie(

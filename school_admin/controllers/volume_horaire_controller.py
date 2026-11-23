@@ -2,7 +2,7 @@
 Contrôleur directeur : volume horaire EDT × tarif → montant à payer.
 """
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
@@ -245,7 +245,22 @@ class VolumeHoraireController:
             'devise_monnaie': VolumeHoraireController._get_devise(etablissement),
             'note_absences': None,
             'absences_disponibles': False,
+            'navigation': VolumeHoraireController._navigation(kind, reference),
         }
+
+    @staticmethod
+    def _navigation(kind, reference):
+        """Liens « précédent / suivant » de la période affichée (semaine ou mois)."""
+        if kind == 'semaine':
+            avant, apres = reference - timedelta(days=7), reference + timedelta(days=7)
+            return {'precedent': f"?periode=semaine&date={avant.isoformat()}",
+                    'suivant': f"?periode=semaine&date={apres.isoformat()}"}
+        if kind == 'mois':
+            total = reference.year * 12 + reference.month - 1
+            avant, apres = divmod(total - 1, 12), divmod(total + 1, 12)
+            return {'precedent': f"?periode=mois&mois={avant[0]:04d}-{avant[1] + 1:02d}",
+                    'suivant': f"?periode=mois&mois={apres[0]:04d}-{apres[1] + 1:02d}"}
+        return None
 
     # ------------------------------------------------------------------ accès
     @staticmethod
@@ -287,20 +302,20 @@ class VolumeHoraireController:
                            .select_related('matiere_principale').order_by('nom', 'prenom'))
         activation, calculs = VolumeHoraireController._calculs(etablissement, annee_scolaire, periode, professeurs)
         lignes = []
-        totaux = {'prevues': Decimal('0'), 'validees': Decimal('0'), 'montant': Decimal('0'), 'a_verifier': 0,
-                  'absentes': 0, 'payes': 0}
+        totaux = {'prevues': Decimal('0'), 'validees': Decimal('0'), 'a_verifier': 0, 'absentes': 0,
+                  'avec_absences': 0}
         for prof in professeurs:
             c = calculs[prof.id]
             if not c.minutes_prevues and not c.minutes_remplacements:
                 continue
-            paie = VolumeHoraireController._paie_periode(prof, periode)
-            lignes.append({'professeur': prof, 'calcul': c, 'paie': paie})
+            lignes.append({'professeur': prof, 'calcul': c,
+                           'absentes_h': minutes_vers_heures(c.minutes_absentes),
+                           'a_verifier_h': minutes_vers_heures(c.minutes_a_verifier)})
             totaux['prevues'] += c.heures_prevues
             totaux['validees'] += c.heures_validees
-            totaux['montant'] += c.brut or Decimal('0')
             totaux['a_verifier'] += 1 if c.minutes_a_verifier else 0
             totaux['absentes'] += c.minutes_absentes
-            totaux['payes'] += 1 if paie else 0
+            totaux['avec_absences'] += 1 if c.minutes_absentes else 0
         totaux['absentes_h'] = minutes_vers_heures(totaux['absentes'])
         totaux['taux'] = round(totaux['validees'] / totaux['prevues'] * 100) if totaux['prevues'] else None
         context.update({
@@ -340,6 +355,8 @@ class VolumeHoraireController:
             'professeur': professeur, 'calcul': calculs[professeur.id], 'seances': seances,
             'activation': activation, 'periode_vide': periode.est_vide,
             'paie': VolumeHoraireController._paie_periode(professeur, periode),
+            'minutes': {cle: minutes_vers_heures(getattr(calculs[professeur.id], cle)) for cle in (
+                'minutes_a_verifier', 'minutes_absentes', 'minutes_absentes_justifiees', 'minutes_remplacements')},
             'creneaux_lignes': VolumeHoraireController._lignes_creneaux(creneaux, periode),
             'autres_profs': Professeur.objects.filter(etablissement=etablissement).exclude(pk=professeur.id)
                                               .order_by('nom', 'prenom'),

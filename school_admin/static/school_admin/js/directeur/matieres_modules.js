@@ -4,51 +4,32 @@
 (function () {
   /* Onglets filière/niveau : matieres_liste_tabs.js */
 
-  function shouldAutoSelectNiveauCard(card) {
-    if (card.getAttribute('data-niveau-selected') === '1') return true;
-    var initialCredits = (card.getAttribute('data-initial-credits') || '').trim();
-    if (initialCredits !== '' && parseFloat(initialCredits) > 0) return true;
-    if ((card.getAttribute('data-initial-periode') || '').trim()) return true;
-    return (card.getAttribute('data-initial-numero') || '').trim() !== '';
+  function syncNiveau(card, visible) {
+    var checkbox = card.querySelector('.mam-niveau-select');
+    var fields = card.querySelector('.niveau-credits-block');
+    if (!checkbox || !fields) return;
+
+    checkbox.disabled = !visible;
+    var selected = visible && checkbox.checked;
+    fields.hidden = !selected;
+    fields.querySelectorAll('input, select').forEach(function (field) {
+      field.disabled = !selected;
+    });
+    card.classList.toggle('niveau-selected', selected);
   }
 
-  function setNiveauOpen(card, open) {
-    var toggle = card.querySelector('.niveau-card-header');
-    var block = card.querySelector('.niveau-credits-block');
-    var hiddenInput = card.querySelector('.niveau-hidden-input');
-    var creditsInput = card.querySelector('.credits-niveau-input');
-    var periodeInput = card.querySelector('.periode-niveau-input');
-    var numeroInput = card.querySelector('.numero-ue-input');
-    var filiereBlock = card.closest('[data-department-id]');
-    var filiereVisible = !filiereBlock || !filiereBlock.hidden;
-
-    if (!block) return;
-
-    if (open && filiereVisible) {
-      block.hidden = false;
-      if (hiddenInput) hiddenInput.disabled = false;
-      if (creditsInput) creditsInput.disabled = false;
-      if (periodeInput) periodeInput.disabled = false;
-      if (numeroInput) numeroInput.disabled = false;
-      card.classList.add('niveau-selected');
-      if (toggle) toggle.setAttribute('aria-expanded', 'true');
+  function updateSelectionSummary(root) {
+    var summary = root.querySelector('[data-module-selection-summary]');
+    if (!summary) return;
+    var filieres = getSelectedDepIds(root).length;
+    var classes = root.querySelectorAll('.mam-classes input:checked:not(:disabled)').length;
+    if (!filieres) {
+      summary.textContent = 'Choisissez une filière pour commencer.';
+    } else if (!classes) {
+      summary.textContent = 'Choisissez au moins une classe dans les niveaux proposés.';
     } else {
-      block.hidden = true;
-      if (hiddenInput) hiddenInput.disabled = true;
-      if (creditsInput) {
-        if (!open) creditsInput.value = '0';
-        creditsInput.disabled = true;
-      }
-      if (periodeInput) {
-        if (!open) periodeInput.value = '';
-        periodeInput.disabled = true;
-      }
-      if (numeroInput) {
-        if (!open) numeroInput.value = '';
-        numeroInput.disabled = true;
-      }
-      card.classList.remove('niveau-selected');
-      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      summary.textContent = filieres + (filieres > 1 ? ' filières' : ' filière')
+        + ' · ' + classes + (classes > 1 ? ' classes' : ' classe');
     }
   }
 
@@ -92,22 +73,16 @@
         el.hidden = !multi;
       });
 
-      if (!show) {
-        block.querySelectorAll('.niveau-card').forEach(function (card) {
-          setNiveauOpen(card, false);
-        });
-      } else {
-        block.querySelectorAll('.niveau-card').forEach(function (card) {
-          var isOpen = card.classList.contains('niveau-selected');
-          setNiveauOpen(card, isOpen);
-        });
-      }
+      block.querySelectorAll('.niveau-card').forEach(function (card) {
+        syncNiveau(card, show);
+      });
     });
 
     if (emptyPlaceholder) {
       emptyPlaceholder.hidden = selected.length > 0 && anyVisible;
     }
     updateSpecCount(root);
+    updateSelectionSummary(root);
   }
 
   function initModuleFormRoot(root) {
@@ -125,20 +100,12 @@
 
     syncFiliereBlocks(root);
 
-    root.querySelectorAll('.niveau-card').forEach(function (card) {
-      var toggle = card.querySelector('.niveau-card-header');
-      if (shouldAutoSelectNiveauCard(card)) {
-        setNiveauOpen(card, true);
+    root.addEventListener('change', function (event) {
+      if (event.target.matches('.mam-niveau-select')) {
+        syncNiveau(event.target.closest('.niveau-card'), true);
       }
-      if (toggle) {
-        toggle.addEventListener('click', function () {
-          var isOpen = card.classList.contains('niveau-selected');
-          setNiveauOpen(card, !isOpen);
-          if (!isOpen) {
-            var creditsInput = card.querySelector('.credits-niveau-input');
-            if (creditsInput) creditsInput.focus();
-          }
-        });
+      if (event.target.matches('.mam-niveau-select, .mam-classes input')) {
+        updateSelectionSummary(root);
       }
     });
   }
@@ -149,20 +116,24 @@
 
     var addModuleHeader = document.getElementById('addModuleBtnHeader');
     var addModuleEmpty = document.getElementById('addModuleBtnEmpty');
+    var opener = null;
 
     function setBodyModalOpen(on) {
       document.body.classList.toggle('module-modal-open', !!on);
     }
 
-    function openModuleModal() {
+    function openModuleModal(event) {
+      opener = event.currentTarget;
       modal.classList.add('is-open');
       setBodyModalOpen(true);
       initModuleFormRoot(modal);
+      modal.querySelector('#modal_nom_module').focus();
     }
 
     function closeModuleModal() {
       modal.classList.remove('is-open');
       setBodyModalOpen(false);
+      if (opener) opener.focus();
     }
 
     if (modal.classList.contains('is-open')) {
@@ -187,9 +158,24 @@
       });
     });
 
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+    document.addEventListener('keydown', function (event) {
+      if (!modal.classList.contains('is-open')) return;
+      if (event.key === 'Escape') {
         closeModuleModal();
+      } else if (event.key === 'Tab') {
+        var controls = Array.from(modal.querySelectorAll('button, input, select, a[href]')).filter(function (el) {
+          return !el.disabled && el.type !== 'hidden' && el.getClientRects().length > 0;
+        });
+        var first = controls[0];
+        var last = controls[controls.length - 1];
+        if (!first) return;
+        if (!modal.contains(document.activeElement) || (event.shiftKey && document.activeElement === first)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
       }
     });
   }

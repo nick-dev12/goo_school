@@ -140,7 +140,7 @@ def _parse_credits(raw):
         value = Decimal(text)
     except (InvalidOperation, ValueError, TypeError):
         return None
-    if value < 0 or value > 60:
+    if not value.is_finite() or value < 0 or value > 60:
         return None
     return value.quantize(Decimal('0.01'))
 
@@ -423,10 +423,18 @@ def tool_modules_classe(ctx, args):
     classe = _find_classe(ctx, args.get('classe') or args.get('query') or '')
     if not classe:
         return {'erreur': 'Indique la classe dont tu veux les modules.'}
-    items = [
-        _serialize_module_classe(mc)
-        for mc in _maquette_qs(classe).order_by('numero_ue', 'module__nom')[:MODULES_LIMIT]
-    ]
+    from school_admin.services.credits_lmd import credits_ec, matieres_de_ue
+
+    items = []
+    cache = {}
+    for mc in _maquette_qs(classe).order_by('numero_ue', 'module__nom')[:MODULES_LIMIT]:
+        item = _serialize_module_classe(mc)
+        item['matieres'] = [
+            {'nom': m.nom, 'coefficient': _safe(m.coefficient), 'poids': _safe(m.credits),
+             'credits_dans_la_classe': _safe(credits_ec(m, classe, cache))}
+            for m in matieres_de_ue(mc.module_id, classe)
+        ]
+        items.append(item)
     return {
         'classe': classe.nom,
         'niveau_lmd': classe.niveau_lmd or None,
@@ -500,7 +508,6 @@ def tool_structure_superieur(ctx, args):
     module_items = []
     for module in modules.order_by('nom')[:20]:
         liaisons = list(module.module_classes.all())
-        credits_total = sum((mc.credits or Decimal('0')) for mc in liaisons)
         ues = sorted({(mc.numero_ue or '').strip() for mc in liaisons if (mc.numero_ue or '').strip()})
         semestres = sorted({
             mc.periode.nom_periode for mc in liaisons if mc.periode_id
@@ -510,7 +517,13 @@ def tool_structure_superieur(ctx, args):
             'nom': module.nom,
             'code': module.code,
             'niveau_lmd': module.niveau_lmd or None,
-            'credits_totaux': _safe(credits_total) if liaisons else _safe(module.total_credits),
+            # Les crédits se règlent classe par classe : pas de total tous classes confondues.
+            'credits_par_classe': [
+                {'classe': mc.classe.nom, 'credits': _safe(mc.credits),
+                 'semestre': mc.periode.nom_periode if mc.periode_id else None}
+                for mc in liaisons if mc.classe_id
+            ],
+            'nb_matieres': module.matieres.filter(actif=True).count(),
             'ues': ues,
             'semestres': semestres,
             'classes': classes,
@@ -831,3 +844,9 @@ VAGUE4_READ_HANDLERS = {
     'get_releve_ects': tool_releve_ects,
     'get_structure_superieur': tool_structure_superieur,
 }
+
+
+# Actions de structure (modules, matières, classes) à jour des règles LMD : remplacent les versions ci-dessus.
+from school_admin.services.assistant_structure import enregistrer as _enregistrer_structure  # noqa: E402
+
+_enregistrer_structure()

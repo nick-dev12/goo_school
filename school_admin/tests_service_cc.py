@@ -1,5 +1,6 @@
-"""Supérieur (LMD) — étape 4 : contrôle continu pondéré, service des enseignants en équivalent TD,
-emploi du temps de l'étudiant (groupe, semestre, options)."""
+"""Supérieur (LMD) — étape 4 : contrôle continu pondéré, emploi du temps de l'étudiant (groupe, semestre,
+options). Le service des enseignants en équivalent TD a été retiré : la paie suit le contrat de chaque
+enseignant (Salaires et paiements)."""
 import json
 from datetime import date, time
 from decimal import Decimal
@@ -18,11 +19,9 @@ from school_admin.model.moyenne_model import Moyenne
 from school_admin.model.module_model import Module, ModuleClasse
 from school_admin.model.periode_model import PeriodeScolaire
 from school_admin.model.professeur_model import Professeur
-from school_admin.model.service_enseignant_model import ReglesService
 from school_admin.services import controle_continu as cc
 from school_admin.services import examens as mx
 from school_admin.services import maquette as mq
-from school_admin.services import service_enseignant as srv
 from school_admin.tests.test_assistant_directeur_tools import (
     _make_annee,
     _make_eleve_simple,
@@ -102,67 +101,6 @@ class ControleContinuTests(Base):
         self.client.force_login(self.td)
         r = self.client.get(reverse('enseignant:creer_evaluation', args=[self.classe.id]) + '?partial=1')
         self.assertContains(r, "Type d'évaluation")
-
-
-class ServiceEnseignantTests(Base):
-    def setUp(self):
-        super().setUp()
-        self.edt = EmploiDuTemps.objects.create(classe=self.classe, annee_scolaire=self.annee.libelle,
-                                                annee_scolaire_fk=self.annee, est_actif=True)
-        self.edt2 = EmploiDuTemps.objects.create(classe=self.classe2, annee_scolaire=self.annee.libelle,
-                                                 annee_scolaire_fk=self.annee, est_actif=True)
-        for edt in (self.edt, self.edt2):  # CM mutualisé 2 h / semaine dans deux classes
-            CreneauEmploiDuTemps.objects.create(emploi_du_temps=edt, jour='lundi', heure_debut=time(8), heure_fin=time(10),
-                                                matiere=self.ec, professeur=self.cm, type_cours='cours',
-                                                periode_scolaire=self.s1)
-        g1 = GroupeEnseignement.objects.create(classe=self.classe, nom='G1')
-        g2 = GroupeEnseignement.objects.create(classe=self.classe, nom='G2')
-        for g in (g1, g2):  # 2 groupes de TD de 1 h 30 assurés par le même enseignant
-            CreneauEmploiDuTemps.objects.create(emploi_du_temps=self.edt, jour='mardi' if g == g1 else 'mercredi',
-                                                heure_debut=time(10), heure_fin=time(11, 30), matiere=self.ec,
-                                                professeur=self.cm, type_cours='td', groupe=g, periode_scolaire=self.s1)
-
-    def test_equivalent_td_et_complementaires(self):
-        regles = ReglesService.pour(self.etab)
-        regles.taux_heure_complementaire = D('5000')
-        regles.save()
-        self.cm.grade_universitaire = 'maitre_assistant'
-        self.cm.service_statutaire = 60
-        self.cm.save()
-        b = srv.bilan_enseignant(self.cm, self.annee)
-        self.assertEqual((b['cm'], b['td']), (D('32.00'), D('48.00')))  # CM compté une fois ; 2 groupes × 1,5 h × 16
-        self.assertEqual(b['eqtd'], D('96.00'))                         # 32 × 1,5 + 48
-        self.assertEqual((b['du'], b['complementaires'], b['montant']), (D('60.00'), D('36.00'), D('180000.00')))
-        self.assertEqual(b['statut'], 'complementaires')
-
-    def test_vacataire_et_sous_service(self):
-        self.td.type_contrat = 'vacataire'
-        self.td.prix_volume_horaire = D('8000')
-        self.td.save()
-        CreneauEmploiDuTemps.objects.create(emploi_du_temps=self.edt, jour='jeudi', heure_debut=time(8), heure_fin=time(9),
-                                            matiere=self.ec, professeur=self.td, type_cours='tp', periode_scolaire=self.s1)
-        b = srv.bilan_enseignant(self.td, self.annee)
-        self.assertEqual((b['tp'], b['eqtd'], b['complementaires']), (D('16.00'), D('10.72'), D('10.72')))
-        self.assertEqual(b['montant'], D('85760.00'))
-        self.cm.grade_universitaire = 'professeur_titulaire'
-        self.cm.save()
-        self.assertEqual(srv.bilan_enseignant(self.cm, self.annee)['statut'], 'sous_service')  # 96 < 192
-
-    def test_pages(self):
-        self.client.force_login(self.etab)
-        url = reverse('directeur:service_enseignants')
-        r = self.client.get(url)
-        self.assertContains(r, 'Service des enseignants')
-        self.client.post(url, {'action': 'grades', f'grade_{self.cm.id}': 'maitre_conferences', f'service_{self.cm.id}': '0',
-                               f'grade_{self.td.id}': '', f'service_{self.td.id}': '0'})
-        self.cm.refresh_from_db()
-        self.assertEqual(self.cm.grade_universitaire, 'maitre_conferences')
-        post = {'action': 'regles', 'coef_cm': '1,5', 'coef_td': '1', 'coef_tp': '0,75', 'taux': '6000', 'semaines_annee': '28'}
-        post.update({f'service_{g}': '200' for g, _ in Professeur.GRADE_CHOICES})
-        self.client.post(url, post)
-        self.assertEqual(ReglesService.pour(self.etab).coef_tp, D('0.75'))
-        r = self.client.get(reverse('directeur:service_enseignant_detail', args=[self.cm.id]))
-        self.assertContains(r, 'Cours mutualisé')
 
 
 class EmploiEtudiantTests(Base):

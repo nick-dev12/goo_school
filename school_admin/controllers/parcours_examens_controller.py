@@ -13,6 +13,8 @@ from ..model.classe_model import Classe
 from ..model.creneau_examen_model import CreneauExamen
 from ..model.deliberation_model import DecisionJury, Deliberation
 from ..model.matiere_model import Matiere
+from django.db.models import Q
+
 from ..model.module_model import ModuleClasse
 from ..model.note_examen_model import NoteExamen
 from ..model.periode_model import PeriodeScolaire, semestres_choices_pour_niveau
@@ -20,7 +22,7 @@ from ..model.session_examen_model import SessionExamen
 from ..services import deliberations
 from ..services.deliberations import controle_resultats
 from ..services.diplomes import diplome_de
-from ..services.maquette import module_ids_exclus
+from ..services.maquette import maquette_classe, module_ids_exclus
 from ..utils.decorators_permissions import _get_user_etablissement, require_permission
 
 
@@ -50,7 +52,8 @@ def construire_etapes(classe, periodes, annee, portee, session):
         classe=classe, periode__in=periodes, module__etablissement=classe.etablissement,
         module__actif=True).select_related('module', 'periode'))
     ecs = list(Matiere.objects.filter(module_id__in=[m.module_id for m in programme],
-                                      etablissement=classe.etablissement, actif=True))
+                                      etablissement=classe.etablissement, actif=True
+                                      ).filter(Q(classes=classe) | Q(classes__isnull=True)).distinct())
     par_module = {mc.module_id: {m.id for m in ecs if m.module_id == mc.module_id}
                   for mc in programme}
     programme_ok = annuel_complet and bool(periodes) and all(
@@ -69,7 +72,7 @@ def construire_etapes(classe, periodes, annee, portee, session):
     couverts = set()
     planning_ok = programme_ok and bool(sessions)
     for s in sessions:
-        matieres = set(s.matieres.values_list('id', flat=True))
+        matieres = {matiere.id for matiere in s.matieres.all()}
         prevues = {mid for pid, mid in attendus if pid == s.periode_id}
         planifiees = set(CreneauExamen.objects.filter(session_examen=s).values_list('matiere_id', flat=True))
         planning_ok = planning_ok and bool(matieres) and matieres <= prevues and matieres <= planifiees and s.est_publie
@@ -77,9 +80,10 @@ def construire_etapes(classe, periodes, annee, portee, session):
     planning_ok = planning_ok and attendus <= couverts
 
     etudiants = deliberations.etudiants(classe, annee)
+    exclusions = {eleve.id: module_ids_exclus(eleve, classe, annee) for eleve in etudiants}
     credits_attendus = []
     for eleve in etudiants:
-        exclus = module_ids_exclus(eleve, classe, annee)
+        exclus = exclusions[eleve.id]
         credits_attendus.append({'eleve': eleve, 'credits': sum(
             mc.credits for mc in programme if mc.module_id not in exclus)})
     enseignants = {}
@@ -92,7 +96,7 @@ def construire_etapes(classe, periodes, annee, portee, session):
         eleve_id__in=[e.id for e in etudiants]).select_related('professeur')}
     manquants, nb_attendus, nb_saisis, nb_soumis, nb_absents = [], 0, 0, 0, 0
     for eleve in etudiants:
-        exclus = module_ids_exclus(eleve, classe, annee)
+        exclus = exclusions[eleve.id]
         suivies = {m.id for m in ecs if m.module_id not in exclus}
         for s in sessions:
             for m in s.matieres.all():
@@ -147,10 +151,15 @@ def construire_etapes(classe, periodes, annee, portee, session):
         return reverse('directeur:' + nom, args=args) + '?' + query
 
     jury_url = lien('detail_deliberation', [d.id]) if d else lien('liste_deliberations')
+    controles_programme = [
+        {'semestre': bilan['periode'].nom_periode, 'points': bilan['controles']}
+        for bilan in maquette_classe(classe, periodes) if bilan['controles']
+    ]
+    url_modules = (reverse('matiere:liste_matieres') + '?tab=modules') if annee.est_active else '#ep-historique'
     etapes = [
         ('Préparer le programme', programme_ok, 'Prêt',
-         f'{len(programme)} blocs de matières (UE), {len(ecs)} matières/cours (EC). Les crédits sont ceux de la maquette ; les options et parcours sont contrôlés dans les résultats.',
-         'Compléter le programme', lien('maquette_classe', [classe.id])),
+         f'{len(programme)} blocs de matières (UE), {len(ecs)} matières/cours (EC). Vérifiez les crédits, les matières et les réglages de chaque UE.',
+         'Ouvrir les modules et UE', url_modules),
         ('Organiser les examens', planning_ok, 'Terminé',
          f'{len(sessions)} sessions : vérifier la couverture des matières, les épreuves planifiées et la publication du calendrier.',
          'Voir les sessions et le calendrier', lien('gestion_examens')),
@@ -171,7 +180,7 @@ def construire_etapes(classe, periodes, annee, portee, session):
     return {'etapes': [{'titre': t, 'etat': ok_label if ok else ('À recalculer' if perimes and i >= 3 else 'À compléter'),
                         'pret': bool(ok), 'explication': exp, 'action': action, 'url': url}
                        for i, (t, ok, ok_label, exp, action, url) in enumerate(etapes)],
-            'controle': controle, 'problemes': problemes, 'saisies_manquantes': manquants,
+            'controle': controle, 'problemes': problemes, 'controles_programme': controles_programme, 'saisies_manquantes': manquants,
             'credits_attendus': credits_attendus,
             'documents_prets': final_ok and portee == 'annuelle' and bool(diplome_de(classe)),
             'attestations_url': lien('diplomes_classe', [classe.id])}

@@ -10,7 +10,7 @@
     <div class="content-container dlb">
         {% include 'school_admin/partials/messages.html' %}
         <div class="page-header page-header-minimal">
-            {% url 'directeur:maquette_classe' classe.id as back_url %}
+            {% url 'administrateur_etablissement:detail_classe' classe.id as back_url %}
             {% include 'school_admin/directeur/partials/page_header_back.html' with back_url=back_url %}
         </div>
         <header class="hb-head">
@@ -18,7 +18,7 @@
             <div class="hb-head__text">
                 <h1 class="hb-head__title">{{ classe.nom }}</h1>
             </div>
-            <div class="hb-head__actions"><a href="{% url 'directeur:maquette_classe' classe.id %}" class="cg3-btn"><i class="fas fa-sitemap" aria-hidden="true"></i>{% trans "Maquette" %}</a></div>
+            <div class="hb-head__actions"><a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="cg3-btn"><i class="fas fa-sitemap" aria-hidden="true"></i>{% trans "Fiche de classe" %}</a></div>
         </header>
 
         <section class="fe-kpis hb-kpis hb-kpis--3 cg3">
@@ -28,7 +28,7 @@
         </section>
 
         {% if not options and not parcours and not groupes %}
-        <div class="dlb-card"><div class="dlb-vide"><i class="fas fa-circle-info"></i>{% trans "Cette classe n'a ni parcours, ni UE optionnelle, ni groupe : tous les étudiants suivent la même maquette." %}<br><a href="{% url 'directeur:maquette_classe' classe.id %}" class="cg3-btn" style="margin-top:.8rem">{% trans "Configurer la maquette" %}</a></div></div>
+        <div class="dlb-card"><div class="dlb-vide"><i class="fas fa-circle-info"></i>{% trans "Cette classe n'a ni parcours, ni UE optionnelle, ni groupe : tous les étudiants suivent la même maquette." %}<br><a href="{% url 'administrateur_etablissement:detail_classe' classe.id %}" class="cg3-btn" style="margin-top:.8rem">{% trans "Ouvrir la fiche de classe" %}</a></div></div>
         {% else %}
         <form method="post" class="dlb-card">
             {% csrf_token %}

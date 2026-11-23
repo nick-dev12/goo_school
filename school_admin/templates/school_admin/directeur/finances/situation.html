@@ -6,67 +6,136 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% trans "Finances" %} — {{ etablissement.nom }}</title>
-    <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
-    <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    {% include 'school_admin/directeur/finances/partials/fin_assets_head.html' %}
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    {% include 'school_admin/directeur/finances/partials/fin_head_v3.html' %}
 </head>
-<body class="cg-page-body">
+<body class="axd-page cg3-body" data-devise="{{ devise_monnaie }}">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
-    <div class="content-container cg-page">
+    <main class="axd cg3 fs-page" id="contenu">
         {% include 'school_admin/partials/messages.html' %}
-        {% include 'school_admin/directeur/finances/partials/fin_nav.html' %}
-        <header class="cg-hero">
-            <a href="{% url 'directeur:gestion_etablissement' %}" class="cg-hero-back" aria-label="{% trans 'Retour à la gestion de l\'établissement' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
-            <div class="cg-hero-main">
-                <h1 class="cg-hero-title"><i class="fas fa-wallet"></i> {% trans "Situation" %}</h1>
-                <p class="cg-hero-sub">{{ bornes.label }} · {% trans "Régime" %} {{ regime }} · {% trans "Aucune saisie ici." %}</p>
+
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-green"><i class="fas fa-wallet" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <h1 class="hb-head__title">{% trans "Finances" %}</h1>
+                <p class="cg3-head__sub">{% trans "Ce qui est entré, ce qui est sorti et ce qu’il reste, mois par mois. Rien à saisir sur cette page." %}</p>
+            </div>
+            <div class="hb-head__actions">
+                <a class="cg3-btn" href="{% url 'directeur:finances_sorties' %}?mois={{ bornes.valeur }}"><i class="fas fa-arrow-up" aria-hidden="true"></i>{% trans "Enregistrer une sortie" %}</a>
+                <a class="cg3-btn cg3-btn--primary" href="{% url 'directeur:finances_entrees' %}?mois={{ bornes.valeur }}"><i class="fas fa-arrow-down" aria-hidden="true"></i>{% trans "Enregistrer une entrée" %}</a>
             </div>
         </header>
-        {% include 'school_admin/directeur/finances/partials/fin_filters.html' %}
-        <div class="fin-kpis">
-            <article class="fin-kpi fin-kpi--entree" title="{{ indicateurs.encaisse.definition }}">
-                <span class="fin-kpi-num">{{ indicateurs.encaisse.valeur|floatformat:0 }} {{ devise_monnaie }}</span>
-                <span class="fin-kpi-lbl">{% trans "Entrées" %}</span>
-                <span class="fin-kpi-def">{{ indicateurs.encaisse.definition }}</span>
-            </article>
-            <article class="fin-kpi fin-kpi--sortie" title="{{ indicateurs.paye.definition }}">
-                <span class="fin-kpi-num">{{ indicateurs.paye.valeur|floatformat:0 }} {{ devise_monnaie }}</span>
-                <span class="fin-kpi-lbl">{% trans "Sorties" %}</span>
-                <span class="fin-kpi-def">{{ indicateurs.paye.definition }}</span>
-            </article>
-            <article class="fin-kpi {% if indicateurs.resultat.valeur >= 0 %}fin-kpi--resultat-pos{% else %}fin-kpi--resultat-neg{% endif %}" title="{{ indicateurs.resultat.definition }}">
-                <span class="fin-kpi-num">{{ indicateurs.resultat.valeur|floatformat:0 }} {{ devise_monnaie }}</span>
-                <span class="fin-kpi-lbl">{% trans "Résultat" %}</span>
-                <span class="fin-kpi-def">{{ indicateurs.resultat.definition }}</span>
-            </article>
-            <article class="fin-kpi fin-kpi--dispo" title="{{ indicateurs.disponible.definition }}">
-                <span class="fin-kpi-num">{{ indicateurs.disponible.valeur|floatformat:0 }} {{ devise_monnaie }}</span>
-                <span class="fin-kpi-lbl">{% trans "Disponible" %}</span>
-                <span class="fin-kpi-def">{{ indicateurs.disponible.definition }}</span>
-            </article>
+
+        {% include 'school_admin/directeur/finances/partials/fin_nav.html' %}
+
+        <nav class="fs-periode" aria-label="{% trans 'Mois affiché' %}">
+            <div class="fs-nav">
+                <a href="?mois={{ mois_precedent }}" aria-label="{% trans 'Mois précédent' %}"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+                <strong>{{ bornes.label }}</strong>
+                <a href="?mois={{ mois_suivant }}" aria-label="{% trans 'Mois suivant' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
+            </div>
+            <form method="get" class="fs-choix">
+                <label for="fs-mois">{% trans "Aller au mois" %}</label>
+                <input id="fs-mois" type="month" name="mois" value="{{ bornes.valeur }}" onchange="this.form.submit()" />
+                {% if bornes.valeur != mois_courant %}<a class="fs-auj" href="?mois={{ mois_courant }}">{% trans "Ce mois-ci" %}</a>{% endif %}
+                <noscript><button class="cg3-btn cg3-btn--sm" type="submit">{% trans "Afficher" %}</button></noscript>
+            </form>
+        </nav>
+
+        {% with r=indicateurs.resultat.valeur d=indicateurs.disponible.valeur %}
+        <section class="fe-kpis hb-kpis hb-kpis--4 fs-kpis" aria-label="{% trans 'Indicateurs du mois' %}">
+            <div class="fe-kpi fe-tone-green" title="{{ indicateurs.encaisse.definition }}">
+                <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Entrées" %}</span><span class="fe-kpi__icon"><i class="fas fa-arrow-down" aria-hidden="true"></i></span></div>
+                <p class="fe-kpi__value">{{ indicateurs.encaisse.valeur|floatformat:"0g" }} <small>{{ devise_monnaie }}</small></p>
+                <span class="fe-kpi__caption">{% trans "argent reçu ce mois" %}</span>
+            </div>
+            <div class="fe-kpi fe-tone-red" title="{{ indicateurs.paye.definition }}">
+                <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Sorties" %}</span><span class="fe-kpi__icon"><i class="fas fa-arrow-up" aria-hidden="true"></i></span></div>
+                <p class="fe-kpi__value">{{ indicateurs.paye.valeur|floatformat:"0g" }} <small>{{ devise_monnaie }}</small></p>
+                <span class="fe-kpi__caption">{% trans "argent payé ce mois" %}</span>
+            </div>
+            <div class="fe-kpi {% if r < 0 %}fe-tone-orange{% else %}fe-tone-blue{% endif %}" title="{{ indicateurs.resultat.definition }}">
+                <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Résultat du mois" %}</span><span class="fe-kpi__icon"><i class="fas {% if r < 0 %}fa-arrow-trend-down{% else %}fa-arrow-trend-up{% endif %}" aria-hidden="true"></i></span></div>
+                <p class="fe-kpi__value">{% if r > 0 %}+{% endif %}{{ r|floatformat:"0g" }} <small>{{ devise_monnaie }}</small></p>
+                <span class="fe-kpi__caption">{% if r < 0 %}{% trans "les charges dépassent les recettes" %}{% elif r > 0 %}{% trans "les recettes dépassent les charges" %}{% else %}{% trans "recettes et charges à l’équilibre" %}{% endif %}</span>
+            </div>
+            <div class="fe-kpi fe-tone-violet" title="{{ indicateurs.disponible.definition }}">
+                <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Disponible" %}</span><span class="fe-kpi__icon"><i class="fas fa-building-columns" aria-hidden="true"></i></span></div>
+                <p class="fe-kpi__value">{{ d|floatformat:"0g" }} <small>{{ devise_monnaie }}</small></p>
+                <span class="fe-kpi__caption">{% trans "dans les caisses et comptes" %} · <a href="{% url 'directeur:finances_tresorerie' %}?mois={{ bornes.valeur }}">{% trans "Voir" %}</a></span>
+            </div>
+        </section>
+        {% if d < 0 %}
+        <p class="fs-alerte" role="status"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span>{% trans "Le disponible est négatif : des sorties ont été enregistrées sur une caisse ou un compte qui n’avait pas assez d’argent. Vérifiez les soldes dans Trésorerie." %}</span><a href="{% url 'directeur:finances_tresorerie' %}?mois={{ bornes.valeur }}">{% trans "Ouvrir Trésorerie" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a></p>
+        {% endif %}
+        {% endwith %}
+
+        <div class="fs-grille">
+            <section class="fs-carte" aria-labelledby="fs-ops-titre">
+                <header class="fs-carte__head">
+                    <h2 id="fs-ops-titre"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i>{% trans "Dernières opérations du mois" %}</h2>
+                </header>
+                <ul class="fs-ops">
+                    {% for op in operations %}
+                    <li class="fs-op fs-op--{{ op.sens }}{% if op.statut == 'annulee' %} is-annulee{% endif %}">
+                        <span class="fs-op__icone" aria-hidden="true"><i class="fas {% if op.sens == 'entree' %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i></span>
+                        <span class="fs-op__texte"><strong>{{ op.libelle }}</strong><small>{{ op.date|date:"d/m/Y" }}{% if op.statut == 'annulee' %} · {% trans "Annulée" %}{% endif %}</small></span>
+                        <span class="fs-op__montant"><span class="sr-only">{% if op.sens == 'entree' %}{% trans "Entrée" %}{% else %}{% trans "Sortie" %}{% endif %}</span>{% if op.sens == 'entree' %}+{% else %}−{% endif %} {{ op.montant|floatformat:"0g" }} {{ devise_monnaie }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="fs-vide"><i class="fas fa-receipt" aria-hidden="true"></i><strong>{% trans "Aucune opération ce mois-ci" %}</strong><span>{% trans "Les paiements de scolarité, recettes et dépenses apparaîtront ici." %}</span></li>
+                    {% endfor %}
+                </ul>
+                <footer class="fs-carte__pied">
+                    <a href="{% url 'directeur:finances_entrees' %}?mois={{ bornes.valeur }}">{% trans "Toutes les entrées" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                    <a href="{% url 'directeur:finances_sorties' %}?mois={{ bornes.valeur }}">{% trans "Toutes les sorties" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                </footer>
+            </section>
+
+            <section class="fs-carte" aria-labelledby="fs-suivi-titre">
+                <header class="fs-carte__head">
+                    <h2 id="fs-suivi-titre"><i class="fas fa-scale-balanced" aria-hidden="true"></i>{% trans "À suivre" %}</h2>
+                </header>
+                <ul class="fs-suivi">
+                    <li title="{{ indicateurs.creances.definition }}">
+                        <span class="fs-suivi__icone fe-tone-green" aria-hidden="true"><i class="fas fa-hand-holding-dollar"></i></span>
+                        <span class="fs-suivi__texte"><strong>{% trans "Reste à recevoir" %}</strong><small>{% trans "Scolarité que les familles doivent encore sur l’année" %}</small></span>
+                        <span class="fs-suivi__val">{{ indicateurs.creances.valeur|floatformat:"0g" }} {{ devise_monnaie }}</span>
+                    </li>
+                    <li title="{{ indicateurs.engagements.definition }}">
+                        <span class="fs-suivi__icone fe-tone-orange" aria-hidden="true"><i class="fas fa-file-invoice"></i></span>
+                        <span class="fs-suivi__texte"><strong>{% trans "Charges à payer" %}</strong><small>{% trans "Factures fournisseurs du mois pas encore réglées" %} · <a href="{% url 'directeur:finances_sorties' %}?mois={{ bornes.valeur }}&amp;statut=a_payer">{% trans "Voir" %}</a></small></span>
+                        <span class="fs-suivi__val">{{ indicateurs.engagements.valeur|floatformat:"0g" }} {{ devise_monnaie }}</span>
+                    </li>
+                    <li title="{{ indicateurs.dettes.definition }}">
+                        <span class="fs-suivi__icone fe-tone-red" aria-hidden="true"><i class="fas fa-landmark"></i></span>
+                        <span class="fs-suivi__texte"><strong>{% trans "Dettes" %}</strong><small>{% trans "Factures restantes et prêts à rembourser" %} · <a href="{% url 'directeur:finances_financements' %}?mois={{ bornes.valeur }}">{% trans "Voir" %}</a></small></span>
+                        <span class="fs-suivi__val">{{ indicateurs.dettes.valeur|floatformat:"0g" }} {{ devise_monnaie }}</span>
+                    </li>
+                    <li>
+                        <span class="fs-suivi__icone fe-tone-blue" aria-hidden="true"><i class="fas fa-box-open"></i></span>
+                        <span class="fs-suivi__texte"><strong>{% trans "Subventions d’équipement" %}</strong><small>{% trans "Reçues ce mois pour acheter du matériel" %}</small></span>
+                        <span class="fs-suivi__val">{{ subventions.equipement|floatformat:"0g" }} {{ devise_monnaie }}</span>
+                    </li>
+                </ul>
+            </section>
         </div>
-        <div class="cg-mini-row">
-            <article class="cg-mini cg-mini--warn" title="{{ indicateurs.creances.definition }}"><span class="cg-mini-num">{{ indicateurs.creances.valeur|floatformat:0 }}</span><span class="cg-mini-lbl">{% trans "Créances" %} ({{ devise_monnaie }})</span></article>
-            <article class="cg-mini cg-mini--warn" title="{{ indicateurs.engagements.definition }}"><span class="cg-mini-num">{{ indicateurs.engagements.valeur|floatformat:0 }}</span><span class="cg-mini-lbl">{% trans "Reste des charges" %}</span></article>
-            <article class="cg-mini cg-mini--dette" title="{{ indicateurs.dettes.definition }}"><span class="cg-mini-num">{{ indicateurs.dettes.valeur|floatformat:0 }}</span><span class="cg-mini-lbl">{% trans "Dettes" %}</span></article>
-            <article class="cg-mini"><span class="cg-mini-num">{{ subventions.equipement|floatformat:0 }}</span><span class="cg-mini-lbl">{% trans "Équipement (destination)" %}</span></article>
-        </div>
+
         {% if subventions.lignes %}
-        <section class="cg-section">
-            <h2>{% trans "Subventions à côté du résultat" %}</h2>
-            <p class="cg-form-help">{% trans "La destination n'est pas retirée du résultat. Seul un compte hors classe 7 sort du total." %}</p>
-            <div class="table-responsive">
-                <table class="cg-table">
-                    <thead><tr><th>{% trans "Destination" %}</th><th>{% trans "Net" %}</th><th>{% trans "Dans le résultat" %}</th><th>{% trans "Hors classe 7" %}</th></tr></thead>
+        <section class="fs-carte" aria-labelledby="fs-sub-titre">
+            <header class="fs-carte__head">
+                <h2 id="fs-sub-titre"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i>{% trans "Subventions du mois" %}</h2>
+                <p>{% trans "Par destination. La part « hors résultat » n’est pas comptée dans le résultat du mois." %}</p>
+            </header>
+            <div class="fs-table">
+                <table>
+                    <thead><tr><th scope="col">{% trans "Destination" %}</th><th scope="col">{% trans "Montant" %}</th><th scope="col">{% trans "Dans le résultat" %}</th><th scope="col">{% trans "Hors résultat" %}</th></tr></thead>
                     <tbody>
                         {% for ligne in subventions.lignes %}
                         <tr>
-                            <td>{{ ligne.label }}</td>
-                            <td>{{ ligne.net|floatformat:0 }} {{ devise_monnaie }}</td>
-                            <td>{{ ligne.dans_resultat|floatformat:0 }} {{ devise_monnaie }}</td>
-                            <td>{{ ligne.hors_resultat|floatformat:0 }} {{ devise_monnaie }}</td>
+                            <th scope="row">{{ ligne.label }}</th>
+                            <td>{{ ligne.net|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                            <td>{{ ligne.dans_resultat|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                            <td>{{ ligne.hors_resultat|floatformat:"0g" }} {{ devise_monnaie }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -74,25 +143,21 @@
             </div>
         </section>
         {% endif %}
-        <section class="cg-section">
-            <h2>{% trans "Trois dernières opérations" %}</h2>
-            <ul class="fin-ops">
-                {% for op in operations %}
-                <li>
-                    <span>
-                        <span class="fin-dot fin-dot--{{ op.sens }}"></span>
-                        {{ op.date|date:"d/m/Y" }} — {{ op.libelle }}
-                        {% if op.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulée" %}</span>{% endif %}
-                    </span>
-                    <strong>{{ op.montant|floatformat:0 }} {{ devise_monnaie }}</strong>
-                </li>
-                {% empty %}
-                <li>{% trans "Aucune opération sur ce mois." %}</li>
-                {% endfor %}
-            </ul>
-        </section>
-    </div>
-    {% include 'school_admin/directeur/finances/partials/fin_assets_scripts.html' %}
+
+        <details class="fs-calcul">
+            <summary><i class="fas fa-circle-info" aria-hidden="true"></i>{% trans "Comment ces chiffres sont calculés" %}</summary>
+            <dl>
+                <div><dt>{% trans "Entrées" %}</dt><dd>{{ indicateurs.encaisse.definition }}</dd></div>
+                <div><dt>{% trans "Sorties" %}</dt><dd>{{ indicateurs.paye.definition }}</dd></div>
+                <div><dt>{% trans "Résultat" %}</dt><dd>{{ indicateurs.resultat.definition }} {% blocktrans %}Régime comptable de l’établissement : {{ regime }}.{% endblocktrans %}</dd></div>
+                <div><dt>{% trans "Disponible" %}</dt><dd>{{ indicateurs.disponible.definition }}</dd></div>
+                <div><dt>{% trans "Reste à recevoir" %}</dt><dd>{{ indicateurs.creances.definition }}</dd></div>
+                <div><dt>{% trans "Charges à payer" %}</dt><dd>{{ indicateurs.engagements.definition }}</dd></div>
+                <div><dt>{% trans "Dettes" %}</dt><dd>{{ indicateurs.dettes.definition }}</dd></div>
+            </dl>
+        </details>
+    </main>
+    <script src="{% static 'school_admin/js/directeur/tabs_nav_overflow.js' %}?v=2.0.5"></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>
 </html>

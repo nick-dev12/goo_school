@@ -113,18 +113,11 @@ class EmploiDuTempsController:
         - Supérieur : uniquement les matières liées à la classe (M2M ``matiere.classes``
           ou classes du module via ``module.classes``), comme pour les affectations.
         """
-        from django.db.models import Q
         from ..model.matiere_model import Matiere
 
-        base = Matiere.objects.filter(etablissement=etablissement, actif=True)
-        if getattr(etablissement, 'type_etablissement', None) != 'superieur':
-            return base.order_by('nom')
-
-        return (
-            base.filter(Q(classes=classe) | Q(module__classes=classe))
-            .distinct()
-            .order_by('nom')
-        )
+        if getattr(etablissement, 'type_etablissement', None) == 'superieur':
+            return Matiere.pour_classe_superieur(classe).order_by('nom')
+        return Matiere.objects.filter(etablissement=etablissement, actif=True).order_by('nom')
 
     @staticmethod
     def _matiere_est_autorisee_emploi_superieur(etablissement, classe, matiere):
@@ -136,6 +129,25 @@ class EmploiDuTempsController:
         return EmploiDuTempsController._matieres_pour_emploi_du_temps_classe(
             etablissement, classe
         ).filter(pk=matiere.pk).exists()
+
+    @staticmethod
+    def _verifier_affectation_creneau_superieur(classe, annee, matiere, professeur_id, periode):
+        from django.db.models import Q
+        from ..model.affectation_model import AffectationProfesseur
+        from ..model.module_model import ModuleClasse
+
+        if classe.etablissement.type_etablissement != 'superieur':
+            return None
+        if matiere.module_id and periode and not ModuleClasse.objects.filter(
+            Q(periode=periode) | Q(periode__isnull=True), classe=classe, module_id=matiere.module_id,
+        ).exists():
+            return "Cette matière ne figure pas au programme du semestre sélectionné."
+        if professeur_id and not AffectationProfesseur.objects.filter(
+            professeur_id=professeur_id, classe=classe, matiere=matiere, annee_scolaire=annee,
+            actif=True, professeur__actif=True, professeur__etablissement_id=classe.etablissement_id,
+        ).exists():
+            return "Affectez d’abord cet enseignant à cette matière dans cette classe."
+        return None
 
     @staticmethod
     @login_required
@@ -1009,6 +1021,14 @@ class EmploiDuTempsController:
                             "Liez la matière à la classe (ou au module) dans la gestion pédagogique."
                         )
                         is_valid = False
+                    elif etablissement.type_etablissement == 'superieur':
+                        periode = EmploiDuTempsController._semestre_groupe(etablissement, classe_edt, form_data)['periode_scolaire']
+                        message = EmploiDuTempsController._verifier_affectation_creneau_superieur(
+                            classe_edt, annee_scolaire_active, matiere_tmp, form_data.get('professeur_id'), periode,
+                        )
+                        if message:
+                            field_errors['non_field_errors'] = message
+                            is_valid = False
                 except (Matiere.DoesNotExist, ValueError, TypeError):
                     field_errors['matiere'] = "Matière invalide."
                     is_valid = False
@@ -1221,6 +1241,14 @@ class EmploiDuTempsController:
                         "Liez la matière à la classe (ou au module) dans la gestion pédagogique."
                     )
                     is_valid = False
+                elif etablissement.type_etablissement == 'superieur':
+                    periode = EmploiDuTempsController._semestre_groupe(etablissement, classe_edt, form_data)['periode_scolaire']
+                    message = EmploiDuTempsController._verifier_affectation_creneau_superieur(
+                        classe_edt, annee_scolaire_active, matiere_tmp, form_data.get('professeur_id'), periode,
+                    )
+                    if message:
+                        field_errors['non_field_errors'] = message
+                        is_valid = False
             except (Matiere.DoesNotExist, ValueError, TypeError):
                 field_errors['matiere'] = "Matière invalide."
                 is_valid = False

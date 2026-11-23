@@ -1,82 +1,88 @@
 {% extends 'school_admin/directeur/volume_horaire/_base.html' %}
 {% load static i18n %}
-{% block title %}{% trans "Heures et paie des enseignants" %}{% endblock %}
-{% block icon %}fa-money-check-dollar{% endblock %}
-{% block heading %}{% trans "Heures et paie des enseignants" %}{% endblock %}
-{% block subheading %}<p class="cg3-head__sub">{{ periode.label }} · {% if activation %}{% blocktrans with d=activation|date:"d/m/Y" %}seuls les cours pointés et validés sont payés (pointage actif depuis le {{ d }}){% endblocktrans %}{% else %}{% trans "pointage pas encore activé : heures de l’emploi du temps moins absences saisies" %}{% endif %}</p>{% endblock %}
+{% block title %}{% trans "Heures des enseignants" %}{% endblock %}
+{% block icon %}fa-user-clock{% endblock %}
+{% block heading %}{% trans "Heures des enseignants" %}{% endblock %}
+{% block subheading %}<p class="cg3-head__sub">{% trans "Heures prévues dans l’emploi du temps et heures réellement faites. Les paiements se font dans Salaires et paiements." %}</p>{% endblock %}
+{% block actions %}<a class="cg3-btn cg3-btn--primary" href="{% url 'directeur:salaires' %}?mois={{ periode_mois_value }}&amp;onglet=enseignant"><i class="fas fa-money-check-dollar" aria-hidden="true"></i>{% trans "Salaires et paiements" %}</a>{% endblock %}
 
 {% block content %}
-  <form method="get" class="cg3-filters" id="vh-filtres">
-    <label class="cg3-field"><span>{% trans "Période" %}</span>
-      <select name="periode" data-periode>
-        <option value="semaine"{% if periode_kind == 'semaine' %} selected{% endif %}>{% trans "Semaine" %}</option>
-        <option value="mois"{% if periode_kind == 'mois' %} selected{% endif %}>{% trans "Mois" %}</option>
-        <option value="annee"{% if periode_kind == 'annee' %} selected{% endif %}>{% trans "Année scolaire" %}</option>
-      </select>
-    </label>
-    <label class="cg3-field" data-show="semaine"><span>{% trans "Semaine du" %}</span><input type="date" name="date" value="{{ periode_date_value }}"></label>
-    <label class="cg3-field" data-show="mois"><span>{% trans "Mois" %}</span><input type="month" name="mois" value="{{ periode_mois_value }}"></label>
-    <button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-filter" aria-hidden="true"></i>{% trans "Afficher" %}</button>
-  </form>
+<div class="vh">
+  <nav class="vh-periode" aria-label="{% trans 'Période' %}">
+    <div class="vh-segments">
+      <a href="?periode=semaine&amp;date={{ periode_date_value }}" class="{% if periode_kind == 'semaine' %}is-active{% endif %}">{% trans "Semaine" %}</a>
+      <a href="?periode=mois&amp;mois={{ periode_mois_value }}" class="{% if periode_kind == 'mois' %}is-active{% endif %}">{% trans "Mois" %}</a>
+      <a href="?periode=annee" class="{% if periode_kind == 'annee' %}is-active{% endif %}">{% trans "Année" %}</a>
+    </div>
+    <div class="vh-nav">
+      {% if navigation %}<a href="{{ navigation.precedent }}" aria-label="{% trans 'Période précédente' %}"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>{% endif %}
+      <strong>{{ periode.label }}</strong>
+      {% if navigation %}<a href="{{ navigation.suivant }}" aria-label="{% trans 'Période suivante' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>{% endif %}
+    </div>
+  </nav>
 
   {% if not activation %}
-  <div class="cg3-hint"><i class="fas fa-circle-info" aria-hidden="true"></i><span>{% trans "Activez le pointage par QR pour ne payer que les cours réellement faits :" %} <a href="{% url 'directeur:pointage_controle' %}">{% trans "créer une borne" %}</a>.</span></div>
+  <p class="vh-bandeau"><i class="fas fa-circle-info" aria-hidden="true"></i><span>{% trans "Le pointage par QR code n’est pas encore en service : les heures comptées sont celles de l’emploi du temps, moins les absences déclarées." %}</span><a href="{% url 'directeur:pointage_controle' %}">{% trans "Mettre en service le pointage" %} <i class="fas fa-arrow-right" aria-hidden="true"></i></a></p>
   {% endif %}
 
-  <section class="cg3-kpis">
-    <article class="cg3-kpi">
-      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Heures dues à ce jour" %}</p><span class="cg3-kpi__icon ax-tone-blue"><i class="fas fa-calendar-week" aria-hidden="true"></i></span></div>
-      <p class="cg3-kpi__value">{{ totaux.prevues|floatformat:"-1g" }}<small>h</small></p>
-      <p class="cg3-kpi__caption">{% blocktrans count n=nb_professeurs %}{{ n }} enseignant à l’emploi du temps{% plural %}{{ n }} enseignants à l’emploi du temps{% endblocktrans %}</p>
-    </article>
-    <article class="cg3-kpi">
-      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Heures validées" %}</p><span class="cg3-kpi__icon ax-tone-green"><i class="fas fa-circle-check" aria-hidden="true"></i></span></div>
-      <p class="cg3-kpi__value is-pos">{{ totaux.validees|floatformat:"-1g" }}<small>h</small></p>
-      {% if totaux.taux != None %}<div class="cg3-kpi__bar" role="img" aria-label="{{ totaux.taux }} %"><span style="width: {{ totaux.taux }}%"></span></div><p class="cg3-kpi__caption">{{ totaux.taux }} % {% trans "des heures prévues" %}</p>{% endif %}
-    </article>
-    <article class="cg3-kpi">
-      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Cours non faits" %}</p><span class="cg3-kpi__icon ax-tone-red"><i class="fas fa-user-xmark" aria-hidden="true"></i></span></div>
-      <p class="cg3-kpi__value {% if totaux.absentes %}is-neg{% endif %}">{{ totaux.absentes_h|floatformat:"-1g" }}<small>h</small></p>
-      <p class="cg3-kpi__caption">{% if totaux.a_verifier %}{% blocktrans count n=totaux.a_verifier %}{{ n }} enseignant avec des séances à vérifier{% plural %}{{ n }} enseignants avec des séances à vérifier{% endblocktrans %}{% else %}{% trans "Aucune séance en attente" %}{% endif %}</p>
-    </article>
-    <article class="cg3-kpi">
-      <div class="cg3-kpi__top"><p class="cg3-kpi__label">{% trans "Montant brut" %}</p><span class="cg3-kpi__icon ax-tone-violet"><i class="fas fa-coins" aria-hidden="true"></i></span></div>
-      <p class="cg3-kpi__value">{{ totaux.montant|floatformat:"0g" }}<small>{{ devise_monnaie }}</small></p>
-      <p class="cg3-kpi__caption">{{ totaux.payes }} / {{ nb_professeurs }} {% trans "déjà payés" %}</p>
-    </article>
+  <section class="fe-kpis hb-kpis hb-kpis--4 vh-kpis-charte" aria-label="{% trans 'Indicateurs' %}">
+    <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Heures prévues" %}</span><span class="fe-kpi__icon"><i class="fas fa-calendar-week" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ totaux.prevues|floatformat:"-1g" }} h</p><span class="fe-kpi__caption">{% blocktrans count n=nb_professeurs %}{{ n }} enseignant à l’emploi du temps{% plural %}{{ n }} enseignants à l’emploi du temps{% endblocktrans %}</span></div>
+    <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Heures faites" %}</span><span class="fe-kpi__icon"><i class="fas fa-circle-check" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ totaux.validees|floatformat:"-1g" }} h</p>{% if totaux.taux != None %}<div class="fe-bar"><span style="width: {% if totaux.taux > 100 %}100{% else %}{{ totaux.taux }}{% endif %}%"></span></div>{% endif %}<span class="fe-kpi__caption">{% if totaux.taux != None %}{{ totaux.taux }} % {% trans "des heures prévues" %}{% endif %}</span></div>
+    <div class="fe-kpi fe-tone-red"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Cours non faits" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-xmark" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ totaux.absentes_h|floatformat:"-1g" }} h</p><span class="fe-kpi__caption">{% trans "absences non justifiées, non payées" %}</span></div>
+    <div class="fe-kpi fe-tone-orange"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Séances à vérifier" %}</span><span class="fe-kpi__icon"><i class="fas fa-magnifying-glass" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ totaux.a_verifier }}</p><span class="fe-kpi__caption">{% if totaux.a_verifier %}{% trans "enseignant(s) concerné(s)" %} · <a href="{% url 'directeur:pointage_controle' %}#a-verifier">{% trans "Traiter" %}</a>{% else %}{% trans "Rien en attente" %}{% endif %}</span></div>
   </section>
 
-  {% if lignes %}
-  <div class="cg3-table-wrap">
-    <table class="cg3-table">
-      <thead><tr><th>{% trans "Enseignant" %}</th><th>{% trans "Contrat" %}</th><th class="num">{% trans "Dues" %}</th><th class="num">{% trans "Validées" %}</th><th>{% trans "Réalisation" %}</th><th>{% trans "À traiter" %}</th><th class="num">{% trans "Brut" %}</th><th>{% trans "Paie" %}</th></tr></thead>
-      <tbody>
-        {% for l in lignes %}{% with c=l.calcul %}
-        <tr>
-          <td><a class="pt-name" href="{% url 'directeur:detail_volume_horaire' l.professeur.id %}{{ query_periode }}"><span class="axd-avatar-sm">{{ l.professeur.prenom|slice:":1" }}{{ l.professeur.nom|slice:":1" }}</span><span><strong>{{ l.professeur.nom_complet }}</strong><small>{{ l.professeur.matiere_principale.nom|default:"" }}</small></span></a></td>
-          <td>{% if c.type_contrat == 'permanent' %}<span class="cg3-chip cg3-chip--muted">{% trans "Permanent" %}</span>{% else %}<span class="cg3-chip">{% trans "Vacataire" %}</span>{% endif %}</td>
-          <td class="num">{{ c.heures_prevues|floatformat:"-1g" }} h</td>
-          <td class="num"><b>{{ c.heures_validees|floatformat:"-1g" }} h</b></td>
-          <td>{% if c.taux_realisation != None %}<span class="pt-bar" role="img" aria-label="{{ c.taux_realisation }} %"><span class="{% if c.taux_realisation < 90 %}is-bad{% endif %}" style="width: {% if c.taux_realisation > 100 %}100{% else %}{{ c.taux_realisation }}{% endif %}%"></span></span><small class="pt-bar__pct">{{ c.taux_realisation }} %</small>{% else %}—{% endif %}</td>
-          <td>{% if c.minutes_a_verifier %}<span class="cg3-chip cg3-chip--warn"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>{% trans "À vérifier" %}</span>{% endif %}{% if c.minutes_absentes %}<span class="cg3-chip cg3-chip--bad">{{ c.minutes_absentes }} min {% trans "non faites" %}</span>{% endif %}{% if not c.minutes_a_verifier and not c.minutes_absentes %}<span class="muted">—</span>{% endif %}</td>
-          <td class="num">{% if c.brut != None %}<b>{{ c.brut|floatformat:"0g" }}</b>{% else %}<span class="cg3-chip cg3-chip--warn" title="{% trans 'Tarif ou salaire manquant' %}">{% trans "Tarif ?" %}</span>{% endif %}</td>
-          <td>{% if l.paie %}<a class="cg3-chip cg3-chip--ok" href="{% url 'directeur:fiche_paie_directeur' l.professeur.id %}{{ query_periode }}"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Payé" %}</a>{% else %}<a class="cg3-btn cg3-btn--sm" href="{% url 'directeur:detail_volume_horaire' l.professeur.id %}{{ query_periode }}">{% trans "Détail" %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>{% endif %}</td>
-        </tr>
-        {% endwith %}{% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="axd-card"><div class="cg3-empty"><i class="fas fa-user-clock" aria-hidden="true"></i><strong>{% trans "Aucun enseignant sur cette période" %}</strong><span>{% trans "Les heures viennent de l’emploi du temps publié." %}</span></div></div>
-  {% endif %}
+  <section class="vh-liste" aria-labelledby="vh-liste-titre">
+    <div class="vh-liste__head">
+      <h2 id="vh-liste-titre"><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{% trans "Enseignants" %}</h2>
+      {% if lignes %}
+      <div class="vh-filtres" data-vh-filtres>
+        <button type="button" class="vh-filtre is-active" data-vh-filtre="">{% trans "Tous" %} <b>{{ lignes|length }}</b></button>
+        <button type="button" class="vh-filtre" data-vh-filtre="verifier">{% trans "À vérifier" %} <b>{{ totaux.a_verifier }}</b></button>
+        <button type="button" class="vh-filtre" data-vh-filtre="absences">{% trans "Cours non faits" %} <b>{{ totaux.avec_absences }}</b></button>
+      </div>
+      {% endif %}
+    </div>
+    <ul class="vh-lignes">
+      {% for l in lignes %}{% with c=l.calcul p=l.professeur %}
+      <li class="vh-ligne" data-verifier="{% if c.minutes_a_verifier %}1{% endif %}" data-absences="{% if c.minutes_absentes %}1{% endif %}">
+        <a href="{% url 'directeur:detail_volume_horaire' p.id %}{{ query_periode }}">
+          <span class="vh-avatar" aria-hidden="true">{{ p.prenom|slice:":1"|upper }}{{ p.nom|slice:":1"|upper }}</span>
+          <span class="vh-nom"><strong>{{ p.nom_complet }}</strong><small>{{ p.matiere_principale.nom|default:"" }}</small></span>
+          <span class="vh-chip vh-contrat-chip">{% if c.type_contrat == 'permanent' %}{% trans "Permanent" %}{% else %}{% trans "Vacataire" %}{% endif %}</span>
+          <span class="vh-heures"><b>{{ c.heures_validees|floatformat:"-1g" }} h</b> <span>{% blocktrans with h=c.heures_prevues|floatformat:"-1g" %}faites sur {{ h }} h prévues{% endblocktrans %}</span>
+            {% if c.taux_realisation != None %}<span class="vh-barre" style="display:block" role="img" aria-label="{{ c.taux_realisation }} %"><span class="{% if c.taux_realisation < 90 %}is-bas{% endif %}" style="width: {% if c.taux_realisation > 100 %}100{% else %}{{ c.taux_realisation }}{% endif %}%"></span></span>{% endif %}</span>
+          <span class="vh-etat">
+            {% if c.minutes_a_verifier %}<span class="vh-chip vh-chip--warn"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>{{ l.a_verifier_h|floatformat:"-1g" }} h {% trans "à vérifier" %}</span>{% endif %}
+            {% if c.minutes_absentes %}<span class="vh-chip vh-chip--bad"><i class="fas fa-user-xmark" aria-hidden="true"></i>{{ l.absentes_h|floatformat:"-1g" }} h {% trans "non faites" %}</span>{% endif %}
+            {% if not c.minutes_a_verifier and not c.minutes_absentes %}<span class="vh-chip vh-chip--ok"><i class="fas fa-check" aria-hidden="true"></i>{% trans "En ordre" %}</span>{% endif %}
+          </span>
+          <i class="fas fa-chevron-right vh-go" aria-hidden="true"></i>
+        </a>
+      </li>
+      {% endwith %}{% endfor %}
+      <li class="vh-vide" data-vh-vide {% if lignes %}hidden{% endif %}><i class="fas fa-user-clock" aria-hidden="true"></i><strong>{% if lignes %}{% trans "Aucun enseignant pour ce filtre." %}{% else %}{% trans "Aucun enseignant sur cette période" %}{% endif %}</strong>{% if not lignes %}<span>{% trans "Les heures viennent de l’emploi du temps publié." %}</span>{% endif %}</li>
+    </ul>
+    <p class="vh-note"><i class="fas fa-circle-info" aria-hidden="true"></i> {% trans "Ouvrez un enseignant pour voir ses séances, déclarer une absence ou modifier son contrat." %}</p>
+  </section>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
   (function () {
-    var sel = document.querySelector('[data-periode]');
-    function maj() { document.querySelectorAll('#vh-filtres [data-show]').forEach(function (el) { el.hidden = el.getAttribute('data-show') !== sel.value; }); }
-    sel.addEventListener('change', maj); maj();
+    var barre = document.querySelector('[data-vh-filtres]');
+    if (!barre) return;
+    var lignes = Array.prototype.slice.call(document.querySelectorAll('.vh-ligne'));
+    var vide = document.querySelector('[data-vh-vide]');
+    barre.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-vh-filtre]');
+      if (!b) return;
+      var f = b.getAttribute('data-vh-filtre'), n = 0;
+      lignes.forEach(function (li) { var ok = !f || li.getAttribute('data-' + f) === '1'; li.hidden = !ok; if (ok) n++; });
+      vide.hidden = n > 0;
+      barre.querySelectorAll('[data-vh-filtre]').forEach(function (x) { x.classList.toggle('is-active', x === b); });
+    });
   })();
 </script>
 {% endblock %}

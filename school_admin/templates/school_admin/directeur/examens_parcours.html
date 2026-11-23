@@ -5,31 +5,55 @@
 <link rel="stylesheet" href="/static/school_admin/vendor/fonts/poppins.css?v=1">
 <link rel="stylesheet" href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0">
 <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}">
-<link rel="stylesheet" href="{% static 'school_admin/css/directeur/examens_parcours.css' %}?v=1.0.1">
-</head><body>
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0">
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1">
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5">
+<link rel="stylesheet" href="{% static 'school_admin/css/directeur/examens_parcours.css' %}?v=2.0.0">
+</head><body class="ep-page-body">
 {% include 'school_admin/directeur/partials/header_directeur.html' %}
-<main class="examens-parcours">
-<nav aria-label="Retour"><a href="{% url 'directeur:gestion_pedagogique' %}">Retour à la pédagogie</a> · <a href="{% url 'directeur:gestion_examens' %}">Examens</a> · <a href="{% url 'directeur:liste_deliberations' %}">Délibérations</a></nav>
-<h1>Examens et jury</h1>
-{% if not periodes %}<p role="status">Aucun semestre compatible disponible. <a href="{% url 'directeur:gestion_periodes_scolaires' %}">Configurer les semestres</a> pour commencer.</p>{% endif %}<p>Choisissez le contexte, puis suivez les six étapes. Cette consultation ne calcule ni ne publie de résultats.</p>
-<p>Le contexte est conservé dans les liens du guide. Les actions de préparation concernent l’année active ; les autres années sont consultables sans ouvrir un calcul sur une autre année.</p>
-{% if annee and not annee.est_active %}<p id="ep-historique" role="status">Consultation historique : sélectionnez l’année active pour préparer un programme, calculer les moyennes ou délivrer des attestations. Les délibérations identifiées restent consultables dans leur propre année.</p>{% endif %}
+<main class="content-container examens-parcours">
+<nav class="ep-breadcrumb" aria-label="Retour"><a href="{% url 'directeur:gestion_pedagogique' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Pédagogie</a><span aria-hidden="true">/</span><span>Examens et jury</span></nav>
+<header class="ep-hero">
+  <div class="ep-hero-main"><span class="ep-hero-icon"><i class="fas fa-graduation-cap" aria-hidden="true"></i></span><div><span class="ep-eyebrow">VOTRE PARCOURS PÉDAGOGIQUE</span><h1>Examens et jury</h1><p>De la préparation du programme à la validation des documents, avancez étape par étape.</p></div></div>
+  <div class="ep-hero-actions"><a href="{% url 'directeur:gestion_examens' %}"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Examens</a><a href="{% url 'directeur:liste_deliberations' %}"><i class="fas fa-gavel" aria-hidden="true"></i> Délibérations</a></div>
+</header>
+{% if not periodes %}<aside class="ep-alert" role="status"><span class="ep-alert-icon"><i class="fas fa-calendar-plus" aria-hidden="true"></i></span><div><strong>Un semestre à configurer</strong><p>Aucun semestre compatible disponible. <a href="{% url 'directeur:gestion_periodes_scolaires' %}">Configurer les semestres</a> pour commencer.</p></div></aside>{% endif %}
+{% if annee and not annee.est_active %}<aside class="ep-alert" id="ep-historique" role="status"><i class="fas fa-history" aria-hidden="true"></i><p>Consultation historique : sélectionnez l’année active pour préparer un programme, calculer les moyennes ou délivrer des attestations. Les délibérations identifiées restent consultables dans leur propre année.</p></aside>{% endif %}
+<section class="ep-panel ep-context-panel" aria-labelledby="ep-contexte-titre">
+<div class="ep-panel-heading"><div><span class="ep-kicker">COMMENCER ICI</span><h2 id="ep-contexte-titre">Choisissez votre contexte</h2><p>Une classe, une période, un parcours adapté à votre situation.</p></div><span class="ep-readonly"><i class="fas fa-shield-alt" aria-hidden="true"></i> Consultation sans publication</span></div>
 <form method="get" class="ep-contexte">
 <label>Année académique<select name="annee_id" required><option value="">Choisir…</option>{% for a in annees %}<option value="{{ a.id }}" {% if a.id == annee.id %}selected{% endif %}>{{ a.libelle }}</option>{% endfor %}</select></label>
 <label>Classe — Filière<select name="classe_id" required><option value="">Choisir…</option>{% for c in classes %}<option value="{{ c.id }}" {% if c.id == classe.id %}selected{% endif %}>{{ c.nom }}{% if c.department %} — {{ c.department.nom }}{% endif %}</option>{% endfor %}</select></label>
 <label>Portée<select name="portee" id="ep-portee"><option value="semestre" {% if portee == 'semestre' %}selected{% endif %}>Semestre</option><option value="annuelle" {% if portee == 'annuelle' %}selected{% endif %}>Année entière</option></select></label>
 <label id="ep-semestre" {% if portee == 'annuelle' %}hidden{% endif %}>Semestre<select name="periode_id" id="ep-periode"><option value="">Choisir…</option>{% for p in periodes %}<option value="{{ p.id }}" {% if p.id == periode.id %}selected{% endif %}>{{ p.nom_periode }}</option>{% endfor %}</select></label>
 <label>Session<select name="session">{% for code, label in sessions %}<option value="{{ code }}" {% if session == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-<button type="submit">Afficher le parcours</button></form>
-{% if classe %}<p><strong>{{ classe.nom }}</strong> · Filière : {{ classe.department.nom|default:"À renseigner" }} · {{ annee.libelle }} · {% if portee == 'annuelle' %}Année entière{% else %}{{ periode.nom_periode|default:"Semestre à choisir" }}{% endif %}</p>{% endif %}
+<button type="submit" class="ep-submit"><span>Afficher le parcours</span><i class="fas fa-arrow-right" aria-hidden="true"></i></button></form>
+<p class="ep-form-help"><i class="fas fa-info-circle" aria-hidden="true"></i> Après un changement de classe ou d’année, affichez le parcours pour charger les semestres disponibles. La consultation ne calcule ni ne publie de résultats.</p>
+</section>
+{% if classe %}<div class="ep-context-summary" aria-label="Contexte sélectionné"><span><i class="fas fa-chalkboard" aria-hidden="true"></i><strong>{{ classe.nom }}</strong></span><span>{{ classe.department.nom|default:"Filière à renseigner" }}</span><span><i class="far fa-calendar" aria-hidden="true"></i>{{ annee.libelle }}</span><span>{% if portee == 'annuelle' %}Année entière{% else %}{{ periode.nom_periode|default:"Semestre à choisir" }}{% endif %}</span></div>{% endif %}
 {% if etapes %}
-<ol class="ep-etapes">{% for e in etapes %}<li><article><div class="ep-titre"><h2>{{ forloop.counter }}. {{ e.titre }}</h2><span class="ep-etat {% if e.pret %}ep-pret{% endif %}">{{ e.etat }}</span></div><p>{{ e.explication }}</p><a href="{{ e.url }}">{{ e.action }}</a></article></li>{% endfor %}</ol>
-<details><summary>Crédits attendus par étudiant dans ce contexte</summary><p>Programme selon les options et le parcours enregistrés, à confirmer par le contrôle de complétude.</p><ul>{% for ligne in credits_attendus %}<li>{{ ligne.eleve }} : {{ ligne.credits }} crédits</li>{% empty %}<li>Aucun étudiant inscrit.</li>{% endfor %}</ul></details>
-<section aria-labelledby="ep-controle"><h2 id="ep-controle">Contrôle des résultats</h2>{% for p in problemes %}<p>{{ p }}</p>{% endfor %}{% if controle.manquants %}<p>Des résultats sont manquants.</p>{% endif %}{% if controle.perimes %}<p>Des résultats sont périmés : recalcul requis.</p>{% endif %}</section>
-<section id="saisies"><h2>Saisies manquantes ou non soumises</h2><ul>{% for ligne in saisies_manquantes %}<li>{{ ligne.eleve }} — {{ ligne.matiere.nom }} — {{ ligne.session.nom_examen }} : {{ ligne.motif }}. Enseignant : {{ ligne.enseignant|default:"Non identifié sur une ligne de note" }}.</li>{% empty %}<li>Aucune ligne manquante identifiée dans les sessions du contexte. Cela ne certifie pas la complétude du programme ni des résultats.</li>{% endfor %}</ul></section>
-{% if documents_prets %}<p><a href="{{ attestations_url }}">Attestations provisoires de diplôme</a> : fin de cursus uniquement, après vérification des crédits acquis/requis et du dernier bilan, avec sélection volontaire des étudiants.</p>{% endif %}
-{% else %}<p role="status">Choisissez une année, une classe puis un semestre compatible, ou explicitement l’année entière. Après changement de classe ou d’année, rechargez les semestres disponibles.</p>{% endif %}
-<p>Capitalisation : une UE validée reste acquise selon les règles du cursus. Compensation : application des règles de l’établissement. Les UE à repasser concernent les résultats pédagogiques.</p>
+<div class="ep-section-heading"><div><span class="ep-kicker">VOTRE FEUILLE DE ROUTE</span><h2>Les étapes de votre parcours</h2></div><span class="ep-step-count">6 étapes</span></div>
+<ol class="ep-etapes">{% for e in etapes %}<li><article class="ep-step {% if e.pret %}ep-step-ready{% elif e.etat == 'À recalculer' %}ep-step-refresh{% endif %}">
+<div class="ep-titre"><span class="ep-step-number" aria-hidden="true">{% if e.pret %}<i class="fas fa-check"></i>{% else %}{{ forloop.counter|stringformat:"02d" }}{% endif %}</span><span class="ep-etat {% if e.pret %}ep-pret{% endif %}"><i class="fas {% if e.pret %}fa-check-circle{% elif e.etat == 'À recalculer' %}fa-sync-alt{% else %}fa-clock{% endif %}" aria-hidden="true"></i>{{ e.etat }}</span></div>
+<h3><span class="ep-sr-only">Étape {{ forloop.counter }} : </span>{{ e.titre }}</h3><p>{{ e.explication }}</p><a class="ep-step-action" href="{{ e.url }}"><span>{{ e.action }}</span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+</article></li>{% endfor %}</ol>
+<div class="ep-support-grid">
+<details class="ep-panel ep-credits"><summary><i class="fas fa-layer-group" aria-hidden="true"></i> Crédits attendus par étudiant dans ce contexte <i class="fas fa-chevron-down ep-chevron" aria-hidden="true"></i></summary><div class="ep-details-body"><p>Programme selon les options et le parcours enregistrés, à confirmer par le contrôle de complétude.</p><ul>{% for ligne in credits_attendus %}<li>{{ ligne.eleve }} : {{ ligne.credits }} crédits</li>{% empty %}<li>Aucun étudiant inscrit.</li>{% endfor %}</ul></div></details>
+<section class="ep-panel ep-checks" aria-labelledby="ep-controle"><div class="ep-panel-heading"><h2 id="ep-controle"><i class="fas fa-tasks" aria-hidden="true"></i> Contrôle des résultats</h2><span class="ep-count">{{ problemes|length }}</span></div><ul class="ep-check-list">{% for p in problemes %}<li><i class="fas fa-exclamation-circle" aria-hidden="true"></i><span>{{ p }}</span></li>{% empty %}<li><i class="fas fa-check-circle" aria-hidden="true"></i><span>Aucun problème signalé dans ce contexte.</span></li>{% endfor %}</ul>{% if controle.manquants %}<p>Des résultats sont manquants.</p>{% endif %}{% if controle.perimes %}<p>Des résultats sont périmés : recalcul requis.</p>{% endif %}</section>
+{% if controles_programme %}
+<details class="ep-panel ep-missing">
+  <summary>Points à vérifier dans le programme</summary>
+  {% for bilan in controles_programme %}
+  <h3>{{ bilan.semestre }}</h3>
+  <ul>{% for point in bilan.points %}<li>{{ point }}</li>{% endfor %}</ul>
+  {% endfor %}
+</details>
+{% endif %}
+<section class="ep-panel ep-missing" id="saisies"><div class="ep-panel-heading"><h2><i class="fas fa-pen" aria-hidden="true"></i> Saisies manquantes ou non soumises</h2></div><ul>{% for ligne in saisies_manquantes %}<li>{{ ligne.eleve }} — {{ ligne.matiere.nom }} — {{ ligne.session.nom_examen }} : {{ ligne.motif }}. Enseignant : {{ ligne.enseignant|default:"Non identifié sur une ligne de note" }}.</li>{% empty %}<li>Aucune ligne manquante identifiée dans les sessions du contexte. Cela ne certifie pas la complétude du programme ni des résultats.</li>{% endfor %}</ul></section>
+</div>
+{% if documents_prets %}<p class="ep-panel ep-documents"><a href="{{ attestations_url }}">Attestations provisoires de diplôme</a> : fin de cursus uniquement, après vérification des crédits acquis/requis et du dernier bilan, avec sélection volontaire des étudiants.</p>{% endif %}
+{% else %}<section class="ep-panel ep-empty" aria-labelledby="ep-empty-title"><span class="ep-empty-icon"><i class="fas fa-route" aria-hidden="true"></i></span><h2 id="ep-empty-title">Votre parcours commence ici</h2><p role="status">Choisissez une année, une classe puis un semestre compatible, ou explicitement l’année entière. Après changement de classe ou d’année, rechargez les semestres disponibles.</p><div class="ep-preview" aria-label="Aperçu des six étapes"><span>01 Programme</span><span>02 Examens</span><span>03 Notes</span><span>04 Résultats</span><span>05 Jury</span><span>06 Documents</span></div></section>{% endif %}
+<details class="ep-glossary"><summary><i class="far fa-question-circle" aria-hidden="true"></i> Comprendre les termes du parcours</summary><p>Capitalisation : une UE validée reste acquise selon les règles du cursus. Compensation : application des règles de l’établissement. Les UE à repasser concernent les résultats pédagogiques.</p><p>Les liens conservent le contexte choisi. Les actions de préparation concernent l’année active ; les autres années sont consultables sans ouvrir un calcul sur une autre année.</p></details>
 </main>
 <script>(function(){var p=document.getElementById('ep-portee'),s=document.getElementById('ep-periode'),w=document.getElementById('ep-semestre');function sync(){var annuel=p.value==='annuelle';w.hidden=annuel;s.disabled=annuel;}p.addEventListener('change',sync);sync();document.querySelectorAll('[name=classe_id],[name=annee_id]').forEach(function(e){e.addEventListener('change',function(){s.value='';});});})();</script>
 {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}

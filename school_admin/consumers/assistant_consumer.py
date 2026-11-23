@@ -7,9 +7,14 @@ import json
 import logging
 import re
 import time
+from importlib import import_module
+from uuid import uuid4
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.conf import settings
+from django.contrib.auth import SESSION_KEY
+from django.core.cache import cache
 
 from school_admin.services.assistant_emploi import (
     apply_creneau_draft,
@@ -64,6 +69,7 @@ from school_admin.services.assistant_stream_text import (
     finalize_assistant_turn_text,
     merge_stream_delta,
     split_spoken_and_suggestions,
+    stream_spoken_prefix,
 )
 from school_admin.services.tts_service import strip_assistant_markup, synthesize_audio
 
@@ -72,7 +78,9 @@ logger = logging.getLogger(__name__)
 MAX_HISTORY_MESSAGES = 24
 # Phrases synthétisées en parallèle (Gemini TTS ~1,5–3,5 s par phrase).
 TTS_PARALLEL_SYNTH = 4
+TTS_SENTENCE_TIMEOUT = 12
 MAX_QUESTION_LENGTH = 8000
+CONFIRMATION_TTL = 15 * 60
 AFFIRM_RE = re.compile(
     r'^\s*(oui|ouais|ok|okay|yes|d[\'’ ]?accord|je confirme|confirme[rz]?|'
     r'vas[- ]y|publie[rz]?|c[\'’ ]est bon|cest bon|parfait|go|valide[rz]?|'
@@ -250,11 +258,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         await self._launch_turn(lambda: self._execute_user_message(question, lang_pref))
 
     async def _confirm_from_ui(self, payload):
-        await self._send_working_ack('Oui, publier.')
+        await self._send_working_ack('Confirmer.')
         await self._ensure_pending_loaded()
-        if payload.get('publier') is True and self.pending_action:
-            self.pending_action.setdefault('draft', {})['publier'] = True
-        await self._confirm_pending()
+        await self._confirm_pending(confirmation_id=payload.get('confirmation_id'))
 
     async def _cancel_from_ui(self):
         await self._send_working_ack('Annuler.')
@@ -347,7 +353,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             self._busy = True
             self._turn_has_output = False
             self._stream_accumulated = ''
-            self._stream_spoken_len = 0
+            self._stream_spoken_text = ''
             self._spoken_sentence_buffer = SpokenSentenceBuffer(quick_first=True)
             self._tts_chain = None
             self._reset_turn_stats()
@@ -491,26 +497,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 'url': result['url'],
                 'titre': result.get('titre') or result.get('nom') or '',
             })
-        suggestions = result.get('suggestions') or []
-        if suggestions or (name == 'ouvrir_classe' and not result.get('ouvrir')):
-            items = list(suggestions)
-            if result.get('url') and not result.get('ouvrir'):
-                items.insert(0, {
-                    'titre': result.get('titre') or result.get('nom'),
-                    'url': result.get('url'),
-                })
-            choices = [
-                {
-                    'label': item.get('titre') or item.get('nom') or '',
-                    'value': f"Ouvre {item.get('titre') or item.get('nom')}",
-                    'url': item.get('url'),
-                    'intent': 'open',
-                }
-                for item in items
-                if item.get('titre') or item.get('nom')
-            ]
-            if choices:
-                await self._send_suggestions(choices)
+        if not result.get('ouvrir'):
+            self._followup_suggestions = normalize_suggestions(result.get('suggestions') or [])
 
     def _is_enseignant_primaire(self):
         return getattr(self, 'persona', 'directeur') == 'enseignant_primaire'
@@ -558,7 +546,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return is_parent_write_action(name)
         return name in self._pending_action_names() or name in GUIDED_ACTIONS
 
-    async def _on_live_tool_result(self, name, result):
+    async def _on_live_tool_result(self, name, result, ctx=None):
         """Carte / nav si besoin, mais ne jamais arrêter Gemini (G1)."""
         if self._is_parent():
             if isinstance(result, dict):
@@ -594,10 +582,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._dispatch_navigation(name, result)
             return False
         if self._is_write_tool_name(name):
-            await self._remember_write_pending(name, result)
+            await self._remember_write_pending(name, result, ctx=ctx)
         return False
 
-    async def _remember_write_pending(self, name, result):
+    async def _remember_write_pending(self, name, result, ctx=None):
         """Persiste le brouillon + carte de confirmation. Ne parle pas, n'applique pas."""
         data = dict(result or {})
         statut = data.get('statut')
@@ -621,7 +609,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             return False
 
         self.pending_action = {'name': name, 'draft': data}
-        await self._persist_pending()
+        await self._persist_pending(ctx)
 
         if data.get('url') and (
             data.get('ouvrir')
@@ -702,6 +690,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         return True
 
     async def _handle_chat(self, question):
+        if (getattr(self, 'persona', '') == 'directeur'
+                and re.fullmatch(r'\s*(bonjour|bonsoir|salut)[.!\s]*', question, re.IGNORECASE)):
+            await self._speak_and_finish(
+                user_text=question, spoken="Bonjour ! Comment puis-je vous aider ?", choices=[],
+            )
+            return
         ctx = await self._build_context()
         if await self._handle_local_intent(question, ctx):
             return
@@ -720,18 +714,17 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         async def on_text_delta(delta):
             if self._cancel_requested:
                 return
-            clean = strip_assistant_markup(delta)
-            if not clean:
-                return
-            acc = getattr(self, '_stream_accumulated', '') or ''
-            new_acc, _emit = merge_stream_delta(acc, clean)
+            acc = getattr(self, '_stream_accumulated', '')
+            new_acc, _ = merge_stream_delta(acc, delta)
             self._stream_accumulated = new_acc
-            spoken_acc, _ = split_spoken_and_suggestions(new_acc)
-            prev_len = getattr(self, '_stream_spoken_len', 0) or 0
-            emit = spoken_acc[prev_len:]
-            self._stream_spoken_len = len(spoken_acc)
+            text = strip_assistant_markup(stream_spoken_prefix(new_acc))
+            previous = getattr(self, '_stream_spoken_text', '')
+            if not text.startswith(previous):
+                return
+            emit = text[len(previous):]
             if not emit:
                 return
+            self._stream_spoken_text = text
             await self._send_json({'type': 'text_delta', 'text': emit})
             self._schedule_spoken_chunks_for_tts(emit)
 
@@ -744,7 +737,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         async def on_tool_result(name, _arguments, result):
             if isinstance(result, dict):
                 last_tool_results.append((name, result))
-            should_stop = await self._on_live_tool_result(name, result)
+            should_stop = await self._on_live_tool_result(name, result, ctx=ctx)
             if should_stop:
                 turn_stats['takeover'] = turn_stats.get('takeover', 0) + 1
             return should_stop
@@ -768,16 +761,17 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 spoken_from_tool_results(last_tool_results, ctx=ctx) or ''
             )
             if spoken:
-                await self._send_json({'type': 'text_delta', 'text': spoken})
-                await self._flush_tts_queue([spoken])
                 fallback_sugg = suggestions_after_read(
                     last_tool_results,
                     getattr(self, '_working_refs', None),
                     ctx=ctx,
                 )
-                if fallback_sugg and not (
-                    self.pending_action and self._pending_is_ready()
-                ):
+                if self.pending_action and self._pending_is_ready():
+                    fallback_sugg = []
+                spoken = self._with_spoken_suggestions(spoken, fallback_sugg)
+                await self._send_json({'type': 'text_replace', 'text': spoken})
+                await self._flush_tts_queue([spoken])
+                if fallback_sugg:
                     await self._send_suggestions(fallback_sugg)
                 if last_tool_results and not turn_stats.get('tools'):
                     turn_stats['tools'] = [name for name, _result in last_tool_results]
@@ -821,7 +815,10 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             self._last_tool_memory = compact_tool_memory(*last_tool_results[-1])
 
         streamed = getattr(self, '_stream_accumulated', '') or ''
-        spoken, parsed_suggestions = finalize_assistant_turn_text(streamed, spoken or '')
+        spoken, parsed_suggestions = finalize_assistant_turn_text(spoken or streamed)
+        if not parsed_suggestions:
+            _, parsed_suggestions = split_spoken_and_suggestions(streamed)
+        spoken = strip_assistant_markup(spoken)
         if parsed_suggestions and not (
             self.pending_action and self._pending_is_ready()
         ):
@@ -841,12 +838,30 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 else "J’ai les informations. Que souhaitez-vous que je fasse ?"
             )
 
-        if spoken and not self._stream_spoken_len:
-            await self._flush_tts_queue([spoken])
-        elif spoken and self._stream_spoken_len < len(spoken):
-            await self._flush_tts_queue([spoken[self._stream_spoken_len:]])
+        suggestions = []
+        if not self._followup_choices and not (self.pending_action and self._pending_is_ready()):
+            suggestions = self._followup_suggestions
+            if not suggestions and last_tool_results:
+                suggestions = suggestions_after_read(last_tool_results, self._working_refs, ctx=ctx)
+        if spoken:
+            spoken = self._with_spoken_suggestions(spoken, suggestions)
+
+        previous = getattr(self, '_stream_spoken_text', '')
+        if spoken:
+            await self._send_json({'type': 'text_replace', 'text': spoken})
+        if spoken.startswith(previous):
+            remaining = spoken[len(previous):]
         else:
-            await self._flush_tts_queue([])
+            # Une synthèse de repli peut remplacer le texte déjà reçu en streaming.
+            # Arrêter la file précédente avant de lire cette nouvelle réponse.
+            await self._cancel_tts_tasks()
+            self._tts_chain = None
+            self._spoken_sentence_buffer.flush()
+            await self._send_json({'type': 'audio_reset'})
+            remaining = spoken
+        if remaining:
+            self._schedule_spoken_chunks_for_tts(remaining)
+        await self._flush_tts_queue([])
         if self._cancel_requested:
             return
 
@@ -858,20 +873,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 self.history = self.history[overflow:]
             if self._followup_choices:
                 await self._send_choices(self._followup_choices)
-            elif self._followup_suggestions:
-                await self._send_suggestions(self._followup_suggestions)
-            elif last_tool_results and not (
-                self.pending_action and self._pending_is_ready()
-            ):
-                fallback_sugg = suggestions_after_read(
-                    last_tool_results,
-                    getattr(self, '_working_refs', None),
-                    ctx=ctx,
-                )
-                if fallback_sugg:
-                    await self._send_suggestions(fallback_sugg)
-                else:
-                    await self._send_choices(self._infer_choices(spoken))
+            elif suggestions:
+                await self._send_suggestions(suggestions)
             else:
                 await self._send_choices(self._infer_choices(spoken))
             self._followup_choices = []
@@ -886,8 +889,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             turn_stats['tools'] = [name for name, _result in last_tool_results]
         await self._await_stream_tts_tasks()
         self._log_turn_stats()
-        if spoken:
-            await self._send_json({'type': 'text_replace', 'text': spoken})
         await self._send_json({'type': 'done'})
 
     async def _handle_stt(self, payload):
@@ -967,9 +968,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             # seule l’émission reste ordonnée par la chaîne.
             async with semaphore:
                 tts_lang = self._parent_tts_language(sentence)
-                if tts_lang:
-                    return await synthesize_audio(sentence, language=tts_lang)
-                return await synthesize_audio(sentence)
+                params = {'language': tts_lang} if tts_lang else {}
+                try:
+                    return await asyncio.wait_for(
+                        synthesize_audio(sentence, **params), timeout=TTS_SENTENCE_TIMEOUT,
+                    )
+                except TimeoutError:
+                    logger.info('Aria : délai de synthèse dépassé pour une phrase.')
+                    return b'', None
 
         synth_task = asyncio.create_task(_synth())
         self._track_tts(synth_task)
@@ -995,7 +1001,6 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 return
             index = self._tts_index
             self._tts_index += 1
-            self._mark_first_audio()
             await self._emit_sentence(
                 sentence,
                 index,
@@ -1019,8 +1024,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             logger.exception('File TTS assistant interrompue.')
 
     async def _emit_sentence(self, sentence, index, audio=None, audio_mime='audio/wav'):
+        tts_lang = self._parent_tts_language(sentence)
         if audio is None:
-            tts_lang = self._parent_tts_language(sentence)
             if tts_lang:
                 audio, audio_mime = await synthesize_audio(sentence, language=tts_lang)
             else:
@@ -1028,11 +1033,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if not audio_mime:
             audio_mime = 'audio/wav'
         voice_failed = not audio
+        if audio:
+            self._mark_first_audio()
         payload = {
             'type': 'audio_sentence',
             'index': index,
             'text': sentence,
             'audio_mime': audio_mime,
+            'language': tts_lang or 'fr',
             'audio_base64': base64.b64encode(audio).decode('ascii') if audio else '',
             'voice_failed': voice_failed,
         }
@@ -1092,15 +1100,17 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         from school_admin.model.personnel_administratif_model import PersonnelAdministratif
 
         if isinstance(user, Etablissement):
-            self.etablissement = Etablissement.objects.get(pk=user.pk)
+            self.etablissement = Etablissement.objects.filter(pk=user.pk, actif=True).first()
             self.personnel = None
             self.professeur = None
             self.persona = 'directeur'
-            return True
+            return bool(self.etablissement)
         if isinstance(user, PersonnelAdministratif):
-            personnel = PersonnelAdministratif.objects.select_related('etablissement').get(
-                pk=user.pk
-            )
+            personnel = PersonnelAdministratif.objects.select_related('etablissement').filter(
+                pk=user.pk, actif=True, is_active=True, etablissement__actif=True,
+            ).first()
+            if personnel is None:
+                return False
             self.etablissement = personnel.etablissement
             self.personnel = personnel
             self.persona = 'directeur'
@@ -1259,6 +1269,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         from school_admin.services.assistant_tools import build_assistant_context
 
         session_store = self.scope.get('session')
+        if getattr(self, 'persona', 'directeur') == 'directeur':
+            session_store = self._direction_session_store() or session_store
         if session_store is None:
             session_store = {}
         return build_assistant_context(
@@ -1320,7 +1332,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         cleaned = []
         widget = 'buttons'
         placeholder = ''
-        for item in choices or []:
+        for item in self._bind_pending_choices(choices or []):
             if not isinstance(item, dict):
                 continue
             label = (item.get('label') or item.get('titre') or '').strip()
@@ -1338,6 +1350,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 'widget': item.get('widget') or '',
                 'placeholder': item.get('placeholder') or '',
                 'mode': item.get('mode') or '',
+                'confirmation_id': item.get('confirmation_id'),
             })
         if not cleaned:
             return
@@ -1349,8 +1362,19 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         }
         await self._send_json(payload)
 
+    @staticmethod
+    def _with_spoken_suggestions(spoken, suggestions):
+        labels = [finalize_assistant_spoken(item['label']).rstrip('.!?…')
+                  for item in normalize_suggestions(suggestions)]
+        labels = [label for label in labels if label]
+        if not labels:
+            return spoken
+        options = ' ou '.join(labels) if len(labels) < 3 else ', '.join(labels[:-1]) + ' ou ' + labels[-1]
+        pause = '' if spoken.endswith(('.', '!', '?', '…')) else '.'
+        return f'{spoken}{pause} Vous pouvez aussi me demander : {options}.'
+
     async def _send_suggestions(self, items):
-        cleaned = normalize_suggestions(items, limit=3)
+        cleaned = normalize_suggestions(items)
         if not cleaned:
             return
         stats = getattr(self, '_turn_stats', None)
@@ -1396,12 +1420,12 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_working_ack(value)
         if intent == 'confirm':
             await self._ensure_pending_loaded()
-            if payload.get('publier') is True and self.pending_action:
-                self.pending_action.setdefault('draft', {})['publier'] = True
-            if payload.get('mode') in ('brouillon', 'valider') and self.pending_action:
+            if (payload.get('mode') in ('brouillon', 'valider') and self.pending_action
+                    and self._action_spec(self.pending_action.get('name'))
+                    and (self._is_enseignant_primaire() or self._is_enseignant_secondaire())):
                 # Cahier de texte : le bouton choisi décide entre brouillon et validation définitive.
                 self.pending_action.setdefault('draft', {})['mode'] = payload['mode']
-            await self._run_guarded(self._confirm_pending)
+            await self._run_guarded(lambda: self._confirm_pending(confirmation_id=payload.get('confirmation_id')))
             return
         if intent == 'cancel':
             await self._ensure_pending_loaded()
@@ -1509,6 +1533,11 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._run_guarded(self._cancel_pending)
             return True
         if is_affirmative(question):
+            segments = [segment.strip(' .!') for segment in question.strip().rstrip('.,! ').split(',')]
+            if (getattr(self, 'persona', 'directeur') == 'directeur'
+                    and not all(AFFIRM_RE.fullmatch(segment) for segment in segments)):
+                await self._clear_pending(silent=True)
+                return False
             if self._pending_is_ready():
                 await self._run_guarded(self._confirm_pending)
                 return True
@@ -1585,8 +1614,9 @@ class AssistantConsumer(AsyncWebsocketConsumer):
                 {'label': 'Parents', 'value': 'les parents', 'intent': 'chat'},
                 {'label': 'Élèves', 'value': 'les élèves', 'intent': 'chat'},
             ]
+        label = 'Oui, publier' if draft.get('publier', True) else 'Enregistrer le brouillon'
         return [
-            {'label': 'Oui, publier', 'value': 'Oui, c’est bon.', 'intent': 'confirm'},
+            {'label': label, 'value': 'Oui, c’est bon.', 'intent': 'confirm'},
             {'label': 'Modifier', 'value': 'Je veux modifier.', 'intent': 'modify'},
             {'label': 'Annuler', 'value': 'Annuler.', 'intent': 'cancel'},
         ]
@@ -1615,10 +1645,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         draft = dict(draft or {})
         if draft.get('destinataires') and not draft.get('destinataires_libelle'):
             draft['destinataires_libelle'] = _destinataires_libelle(draft['destinataires'])
-        self.pending_action = {
-            'name': name,
-            'draft': draft,
-        }
+        self.pending_action = {**(self.pending_action or {}), 'name': name, 'draft': draft}
         self._mark_pending_shown()
         await self._send_json({
             'type': 'action.pending',
@@ -1627,22 +1654,78 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'contenu': draft.get('contenu') or '',
             'destinataires_libelle': draft.get('destinataires_libelle') or 'Tous',
             'publier': bool(draft.get('publier', True)),
-            'choices': self._choices_for_annonce(),
+            'choices': self._bind_pending_choices(self._choices_for_annonce()),
         })
         await self._persist_pending()
 
-    async def _persist_pending(self):
+    def _bind_pending_choices(self, choices):
+        confirmation_id = (self.pending_action or {}).get('confirmation', {}).get('id')
+        return [
+            {**choice, 'confirmation_id': confirmation_id}
+            if isinstance(choice, dict) and choice.get('intent') in ('confirm', 'cancel') else choice
+            for choice in choices
+        ]
+
+    async def _persist_pending(self, ctx=None):
         session = self.scope.get('session')
         if session is None:
             return
         try:
-            session['aria_pending'] = self.pending_action
-            if hasattr(session, 'asave'):
-                await session.asave()
+            pending = self.pending_action
+            if (pending and pending.get('name') != 'choisir_classe'
+                    and getattr(self, 'persona', 'directeur') == 'directeur'
+                    and 'confirmation' not in pending):
+                ctx = ctx or await self._build_context()
+                pending['confirmation'] = {
+                    'id': uuid4().hex,
+                    'expire': time.time() + CONFIRMATION_TTL,
+                    'etablissement': ctx.etablissement.pk,
+                    'personnel': getattr(ctx.personnel, 'pk', None),
+                    'annee': getattr(ctx.annee_scolaire, 'pk', None),
+                }
+            if getattr(self, 'persona', 'directeur') == 'directeur':
+                await self._save_direction_pending(pending)
             else:
-                await database_sync_to_async(session.save)()
+                session['aria_pending'] = pending
+                if hasattr(session, 'asave'):
+                    await session.asave()
+                else:
+                    await database_sync_to_async(session.save)()
         except Exception:
             logger.exception("Impossible d’enregistrer l’action Aria en session.")
+
+    def _direction_session_store(self):
+        session = self.scope.get('session')
+        session_key = getattr(session, 'session_key', None)
+        if not session_key:
+            return None
+        session_class = import_module(settings.SESSION_ENGINE).SessionStore
+        return session_class(session_key=session_key)
+
+    def _direction_session_matches(self, session):
+        if session is None:
+            return False
+        acteur = self.personnel or self.etablissement
+        type_acteur = 'personnel' if self.personnel is not None else 'etablissement'
+        return (
+            str(session.get(SESSION_KEY)) == str(acteur.pk)
+            and session.get('_auth_user_type') in (type_acteur, None)
+        )
+
+    @database_sync_to_async
+    def _save_direction_pending(self, pending):
+        session = self.scope['session']
+        fresh_session = self._direction_session_store()
+        if not self._direction_session_matches(fresh_session):
+            return
+        if pending is None:
+            previous = session.get('aria_pending') or {}
+            current = fresh_session.get('aria_pending') or {}
+            if current.get('confirmation') != previous.get('confirmation'):
+                return
+        fresh_session['aria_pending'] = pending
+        fresh_session.save()
+        session['aria_pending'] = pending
 
     async def _load_pending(self):
         session = self.scope.get('session')
@@ -1667,7 +1750,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             'titre': draft.get('nom') or draft.get('resume') or name.replace('_', ' '),
             'contenu': default_prompt(draft),
             'destructive': bool(draft.get('destructive')),
-            'choices': self._choices_for_pending_action(name, draft),
+            'choices': self._bind_pending_choices(self._choices_for_pending_action(name, draft)),
         })
 
     async def _clear_pending(self, silent=False):
@@ -1727,11 +1810,62 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         pending = self.pending_action or {}
         return choices_for_emploi(pending.get('draft') or {}, pending.get('name'))
 
-    async def _confirm_emploi_action(self):
+    @database_sync_to_async
+    def _authorize_direction_confirmation(self, pending):
+        from school_admin.model.etablissement_model import Etablissement
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+        from school_admin.services.assistant_schema import tool_permission_error
+        from school_admin.services.assistant_tools import build_assistant_context
+
+        stamp = pending.get('confirmation') or {}
+        expired = "Cette confirmation n’est plus valable. Reformulez votre demande pour préparer une nouvelle action."
+        if not stamp.get('id') or stamp['expire'] <= time.time():
+            return None, expired
+        fresh_session = self._direction_session_store()
+        if not self._direction_session_matches(fresh_session):
+            return None, expired
+        saved = fresh_session.get('aria_pending') or {}
+        if saved.get('confirmation', {}).get('id') != stamp['id'] or saved.get('name') != pending.get('name'):
+            return None, expired
+
+        etablissement = Etablissement.objects.filter(pk=self.etablissement.pk, actif=True).first()
+        if etablissement is None or etablissement.pk != stamp.get('etablissement'):
+            return None, expired
+        personnel = None
+        if self.personnel is not None:
+            personnel = PersonnelAdministratif.objects.filter(
+                pk=self.personnel.pk, etablissement=etablissement, actif=True, is_active=True,
+            ).first()
+            if personnel is None:
+                return None, "Votre accès à cet établissement n’est plus actif."
+        if getattr(personnel, 'pk', None) != stamp.get('personnel'):
+            return None, expired
+
+        ctx = build_assistant_context(etablissement, fresh_session, personnel=personnel)
+        if getattr(ctx.annee_scolaire, 'pk', None) != stamp.get('annee'):
+            return None, "L’année scolaire consultée a changé. Préparez de nouveau votre action."
+        name = pending['name']
+        if name == 'annonce_guidee':
+            name = 'creer_publier_annonce'
+        denied = tool_permission_error(ctx, name, source='confirmation', permissions_fresh=True)
+        if denied:
+            return None, denied['erreur']
+
+        try:
+            claimed = cache.add(f"aria:confirmation:{stamp['id']}", True, timeout=CONFIRMATION_TTL)
+        except Exception:
+            logger.exception("Impossible de réserver la confirmation Aria.")
+            return None, "La confirmation est indisponible pour le moment. Réessayez dans un instant."
+        if not claimed:
+            return None, "Cette action a déjà été confirmée."
+        pending['draft'] = saved['draft']
+        return ctx, None
+
+    async def _confirm_emploi_action(self, ctx=None):
         pending = self.pending_action or {}
         name = pending.get('name')
         draft = dict(pending.get('draft') or {})
-        ctx = await self._build_context()
+        ctx = ctx or await self._build_context()
         if name == 'ajouter_creneau_emploi':
             result = await database_sync_to_async(apply_creneau_draft)(ctx, draft)
         else:
@@ -1782,7 +1916,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         })
         await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
 
-    async def _confirm_generic_action(self):
+    async def _confirm_generic_action(self, ctx=None):
         pending = self.pending_action or {}
         name = pending.get('name')
         draft = dict(pending.get('draft') or {})
@@ -1799,7 +1933,7 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             spoken = default_prompt(draft) or "Il me manque encore des informations."
             await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
             return
-        ctx = await self._build_context()
+        ctx = ctx or await self._build_context()
         result = await database_sync_to_async(spec.apply)(ctx, draft)
         if result.get('statut') == 'incomplet' or (
             result.get('erreur') and result.get('manquants')
@@ -1834,17 +1968,35 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         spoken = f"C’est fait. {message}"
         await self._speak_and_finish(user_text='Confirmer', spoken=spoken)
 
-    async def _confirm_pending(self):
+    async def _confirm_pending(self, confirmation_id=None):
         await self._ensure_pending_loaded()
         pending = self.pending_action
+        ctx = None
+        if (pending and pending.get('name') != 'choisir_classe'
+                and getattr(self, 'persona', 'directeur') == 'directeur'):
+            if (confirmation_id is not None
+                    and (pending.get('confirmation') or {}).get('id') != confirmation_id):
+                message = "Ce bouton correspond à une ancienne action. Vérifiez le brouillon affiché."
+                await self._send_action_result('error', 'Action refusée', message)
+                await self._speak_and_finish(user_text='Confirmer', spoken=message)
+                return
+            if not self._pending_is_ready():
+                message = default_prompt(pending.get('draft') or {})
+                await self._speak_and_finish(user_text='Confirmer', spoken=message)
+                return
+            ctx, error = await self._authorize_direction_confirmation(pending)
+            if error:
+                await self._send_action_result('error', 'Action refusée', error)
+                await self._speak_and_finish(user_text='Confirmer', spoken=error)
+                return
         if pending and pending.get('name') in self._pending_action_names():
-            await self._confirm_generic_action()
+            await self._confirm_generic_action(ctx)
             return
         if pending and pending.get('name') in (
             'creer_emploi_du_temps',
             'ajouter_creneau_emploi',
         ):
-            await self._confirm_emploi_action()
+            await self._confirm_emploi_action(ctx)
             return
         if not pending or pending.get('name') not in (
             'creer_publier_annonce',
@@ -1858,9 +2010,8 @@ class AssistantConsumer(AsyncWebsocketConsumer):
             await self._send_json({'type': 'done'})
             return
 
-        ctx = await self._build_context()
+        ctx = ctx or await self._build_context()
         draft = dict(pending['draft'])
-        draft['publier'] = True
         result = await self._apply_annonce(ctx, draft)
         self.pending_action = None
         await self._persist_pending()
@@ -1911,10 +2062,14 @@ class AssistantConsumer(AsyncWebsocketConsumer):
         if self._cancel_requested:
             return
         spoken, native_sugg = finalize_assistant_turn_text(spoken or '')
-        if native_sugg and not suggestions and not (
-            self.pending_action and self._pending_is_ready()
-        ):
-            suggestions = native_sugg
+        pending_ready = self.pending_action and self._pending_is_ready()
+        if pending_ready or choices is not None:
+            suggestions = []
+        elif suggestions is None:
+            suggestions = native_sugg or getattr(self, '_followup_suggestions', [])
+        self._followup_suggestions = []
+        if spoken:
+            spoken = self._with_spoken_suggestions(spoken, suggestions)
         await self._send_json({'type': 'status', 'phase': 'speaking'})
         if spoken:
             await self._send_json({'type': 'text_delta', 'text': spoken})

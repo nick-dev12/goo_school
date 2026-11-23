@@ -162,6 +162,7 @@ def detail_deliberation(request, deliberation_id):
         'filtre': filtre,
         'decision_choices': DecisionJury.DECISION_CHOICES,
         'controle_resultats': controle if not d.est_cloturee else None,
+        'ecarts_credits': svc.ecarts_credits(d),
     }
     return render(request, 'school_admin/directeur/deliberations/detail.html', context)
 

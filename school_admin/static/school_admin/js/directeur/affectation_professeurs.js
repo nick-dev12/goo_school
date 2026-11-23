@@ -186,7 +186,9 @@
                         return;
                     }
                     var mdep = opt.getAttribute('data-department-id') || '';
-                    var show = depId && mdep === depId;
+                    // Matière commune : rattachée à plusieurs filières (data-department-ids).
+                    var mdeps = (opt.getAttribute('data-department-ids') || mdep).split(',');
+                    var show = !!depId && mdeps.indexOf(depId) >= 0;
                     opt.hidden = !show;
                     opt.disabled = !show;
                     if (!show && opt.selected) opt.selected = false;

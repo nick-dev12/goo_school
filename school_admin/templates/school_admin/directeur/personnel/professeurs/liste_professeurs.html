@@ -44,12 +44,6 @@
                     <option value="oui">{% trans "Avec classes" %}</option>
                     <option value="non">{% trans "Sans classe" %}</option>
                 </select>
-                {% if sx_grades %}
-                <select data-sx-f="grade" aria-label="{% trans 'Grade' %}">
-                    <option value="">{% trans "Tous les grades" %}</option>
-                    {% for g in sx_grades %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
-                </select>
-                {% endif %}
                 <select data-sx-f="statut" aria-label="{% trans 'Statut' %}">
                     <option value="">{% trans "Actifs et inactifs" %}</option>
                     <option value="actif">{% trans "Actifs" %}</option>
@@ -70,7 +64,7 @@
                     <tbody>
                         {% for l in sx_lignes_profs %}{% with p=l.prof %}
                         <tr data-sx-item data-sx-text="{{ l.texte }}" data-sx-mat="{{ l.mat_ids }}" data-sx-affecte="{% if l.affecte %}oui{% else %}non{% endif %}"
-                            data-sx-grade="{{ l.grade }}" data-sx-statut="{% if p.actif %}actif{% else %}inactif{% endif %}">
+                            data-sx-statut="{% if p.actif %}actif{% else %}inactif{% endif %}">
                             <td class="sx-cell-main">
                                 <div class="sx-name"><span class="sx-name__ico sx-avatar">{{ p.prenom|slice:":1"|upper }}{{ p.nom|slice:":1"|upper }}</span>
                                     <div class="sx-name__txt"><a href="{% url 'professeur:detail_professeur' p.id %}">{{ p.prenom }} {{ p.nom }}</a><small>{{ p.telephone|default:"" }}{% if p.telephone and p.email %} · {% endif %}{{ p.email|default:"" }}</small></div></div>

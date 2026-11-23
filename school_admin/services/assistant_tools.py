@@ -205,13 +205,11 @@ def _inscrits_ids(ctx):
 
     if not ctx.annee_scolaire:
         return None
-    return list(
-        InscriptionEleve.objects.filter(
-            annee_scolaire=ctx.annee_scolaire,
-            etablissement=ctx.etablissement,
-            eleve_id__isnull=False,
-        ).values_list('eleve_id', flat=True)
-    )
+    return InscriptionEleve.objects.filter(
+        annee_scolaire=ctx.annee_scolaire,
+        etablissement=ctx.etablissement,
+        eleve_id__isnull=False,
+    ).order_by().values_list('eleve_id', flat=True)
 
 
 def _eleves_qs(ctx):
@@ -255,6 +253,20 @@ def _find_eleve(ctx, query):
     ).filter(name_q).select_related('classe').first()
 
 
+def _find_eleve_unique(ctx, query):
+    from school_admin.model.eleve_model import Eleve
+
+    query = query.strip()
+    if not query:
+        return None
+    eleves = Eleve.objects.filter(etablissement=ctx.etablissement).select_related('classe')
+    exacts = eleves.filter(Q(matricule_eleve__iexact=query) | Q(numero_eleve__iexact=query))
+    correspondances = list(exacts[:2])
+    if not correspondances:
+        correspondances = list(eleves.filter(_eleve_name_filter(query))[:2])
+    return correspondances[0] if len(correspondances) == 1 else None
+
+
 def _find_classe(ctx, query):
     from school_admin.services.assistant_search import find_classe
 
@@ -282,10 +294,28 @@ def tool_effectifs(ctx, args):
     from school_admin.model.professeur_model import Professeur
 
     args = args if isinstance(args, dict) else {}
-    classe = _find_classe(ctx, (args.get('classe') or args.get('query') or '').strip())
+    classe_label = (args.get('classe') or '').strip()
+    classe = _find_classe(ctx, classe_label or (args.get('query') or '').strip())
+    if classe_label and classe is None:
+        return {'erreur': f'Classe introuvable ou ambiguë pour « {classe_label} ».'}
+    annee = ctx.annee_scolaire
+    classe_champ = 'classe'
+    historique = bool(annee and not annee.est_active)
     eleves = _eleves_qs(ctx)
+    if historique:
+        from school_admin.model.eleve_model import Eleve
+        from school_admin.model.inscription_eleve_model import InscriptionEleve
+        from django.db.models import OuterRef, Subquery
+
+        inscriptions = InscriptionEleve.objects.filter(
+            etablissement=ctx.etablissement, annee_scolaire=annee, eleve_id=OuterRef('pk'),
+        ).order_by('-date_inscription', '-pk')
+        eleves = Eleve.objects.filter(
+            etablissement=ctx.etablissement, pk__in=_inscrits_ids(ctx),
+        ).annotate(classe_historique=Subquery(inscriptions.values('classe_id')[:1]))
+        classe_champ = 'classe_historique'
     if classe:
-        eleves = eleves.filter(classe=classe)
+        eleves = eleves.filter(**{classe_champ: classe.pk})
     sexes = _count_by_sexe(eleves)
 
     classes = Classe.objects.filter(etablissement=ctx.etablissement, actif=True)
@@ -298,11 +328,13 @@ def tool_effectifs(ctx, args):
             'effectif': sexes['total'],
             'filles': sexes['filles'],
             'garcons': sexes['garcons'],
-            'capacite_max': capacite,
-            'places_libres': max(0, capacite - (sexes['total'] or 0)),
+            'capacite_max': capacite if not historique else None,
+            'places_libres': max(0, capacite - (sexes['total'] or 0)) if not historique else None,
         })
         capacite_totale = capacite
         places_libres = max(0, capacite - (sexes['total'] or 0))
+    elif historique:
+        capacite_totale = places_libres = None
     else:
         capacite_totale = classes.aggregate(cap=Sum('capacite_max'))['cap'] or 0
         places_libres = max(0, capacite_totale - (sexes['total'] or 0))
@@ -328,21 +360,24 @@ def tool_effectifs(ctx, args):
             })
 
     payload = {
-        'session': ctx.annee_scolaire.libelle if ctx.annee_scolaire else None,
+        'session': annee.libelle if annee else None,
+        'source': 'Inscriptions de l’année consultée' if annee else 'Élèves actifs',
         'perimetre': classe.nom if classe else 'etablissement',
-        'nb_eleves_actifs': sexes['total'],
+        'historique': historique,
+        'nb_eleves_actifs': None if historique else sexes['total'],
+        'nb_eleves_inscrits': sexes['total'] if annee else None,
         'nb_filles': sexes['filles'],
         'nb_garcons': sexes['garcons'],
         'nb_sexe_non_renseigne': sexes['non_renseigne'],
-        'nb_classes': classes.count(),
+        'nb_classes': 1 if classe else (classes.count() if not historique else None),
         'nb_professeurs': Professeur.objects.filter(
             etablissement=ctx.etablissement, actif=True
-        ).count(),
+        ).count() if not historique else None,
         'nb_personnel': PersonnelAdministratif.objects.filter(
             etablissement=ctx.etablissement, actif=True
-        ).count(),
-        'capacite_totale': capacite_totale,
-        'places_libres': places_libres,
+        ).count() if not historique else None,
+        'capacite_totale': capacite_totale if not historique else None,
+        'places_libres': places_libres if not historique else None,
         'classes': par_classe,
     }
     if classe:
@@ -818,11 +853,11 @@ def _suggestions_after_read_enseignant(tool_results, refs=None, ctx=None):
             {'label': 'Crédits', 'value': 'Crédits d’un étudiant.'},
             {'label': 'Évaluation', 'value': f'Créer une évaluation en {classe}.' if classe else 'Créer une évaluation.'},
         ]
-    return normalize_suggestions(items, limit=3)
+    return normalize_suggestions(items, limit=5)
 
 
 def suggestions_after_read(tool_results, refs=None, ctx=None):
-    """2–3 puces de suite, même si Gemini n’a pas appelé proposer_actions."""
+    """Jusqu’à cinq puces de suite, même si Gemini n’a pas appelé proposer_actions."""
     if ctx and getattr(ctx, 'persona', 'directeur') == 'parent':
         from school_admin.services.assistant_parent_tools import suggestions_after_parent_read
 
@@ -842,6 +877,36 @@ def suggestions_after_read(tool_results, refs=None, ctx=None):
         for item in (tool_results or [])
         if isinstance(item, (tuple, list)) and item
     }
+    for name, result in reversed(tool_results or []):
+        if (isinstance(result, dict) and result.get('url')
+                and (name == 'get_preparation_jury' or result.get('source') == 'preparation_jury')):
+            return normalize_suggestions([
+                {'label': 'Ouvrir Examens et jury', 'intent': 'open', 'url': result['url']},
+            ])
+    for name, result in reversed(tool_results or []):
+        if name not in ('get_notes_eleve', 'get_moyenne_matiere', 'get_fiche_scolarite') or not isinstance(result, dict):
+            continue
+        eleve = result.get('matricule') or result.get('eleve')
+        if not isinstance(eleve, str) or not eleve or result.get('erreur'):
+            continue
+        from school_admin.services.assistant_schema import TOOL_PERMISSIONS
+        from school_admin.utils.permissions_personnel import has_permission
+
+        personnel = getattr(ctx, 'personnel', None)
+        suites = [
+            ('Détails de la scolarité', 'get_fiche_scolarite', f'Détaille la scolarité de {eleve}.'),
+            ('Résultats et périodes', 'get_notes_eleve', f'Donne les résultats de {eleve} par période.'),
+            ('Moyenne par matière', 'get_moyenne_matiere', f'Je veux vérifier une moyenne par matière pour {eleve}.'),
+            ('Assiduité', 'get_presences', f'Vérifie les absences et retards de {eleve}.'),
+            ('Ouvrir la fiche', 'rechercher_eleves', f'Ouvre la fiche de {eleve}.'),
+        ]
+        suggestions = [
+            {'label': label, 'value': value, 'intent': 'chat'}
+            for label, outil, value in suites
+            if personnel is None or has_permission(personnel, TOOL_PERMISSIONS[outil])
+        ]
+        if suggestions:
+            return normalize_suggestions(suggestions)
     classe = ((refs or {}).get('classe') or '').strip()
     items = []
     if 'get_eleves_difficulte' in names or any(
@@ -899,7 +964,7 @@ def suggestions_after_read(tool_results, refs=None, ctx=None):
             {'label': 'Ouvrir une fiche', 'value': 'Ouvre la fiche du plus élevé.'},
             {'label': 'Caisse', 'value': 'Et la caisse du mois ?'},
         ]
-    return normalize_suggestions(items, limit=3)
+    return normalize_suggestions(items, limit=5)
 
 
 def spoken_from_tool_result(name, result, ctx=None):
@@ -1004,7 +1069,29 @@ def _spoken_read_summary(name, result):
     """Repli chiffré si Gemini se tait après un outil de lecture réussi."""
     if not isinstance(result, dict):
         return ''
+    if name == 'get_moyenne_matiere':
+        if result.get('message'):
+            return result['message']
+        lignes = [
+            f"{ligne['periode']} : {ligne['moyenne_sur_20']} sur 20"
+            if ligne['moyenne_sur_20'] is not None else f"{ligne['periode']} : moyenne non calculée"
+            for ligne in result.get('moyennes', [])
+        ]
+        if lignes:
+            return f"{result['eleve']}, {result['matiere']}, année {result['annee']}. " + '. '.join(lignes) + '.'
+    if name == 'get_preparation_jury':
+        if result.get('message'):
+            return result['message']
+        if result.get('statut') == 'ok':
+            classe, annee = result['classe'], result['annee_scolaire']
+            suite = result.get('prochaine_etape')
+            return (f'Pour {classe}, année {annee}, Examens et jury indique : {suite}.' if suite
+                    else f'Pour {classe}, année {annee}, les étapes du jury sont complètes.')
     if name == 'get_effectifs':
+        if result.get('historique') and result.get('nb_eleves_inscrits') is not None:
+            perimetre = result.get('classe') or 'l’établissement'
+            return (f"Le registre de l’année {result['session']} compte "
+                    f"{result['nb_eleves_inscrits']} inscrits pour {perimetre}.")
         total = result.get('nb_eleves_actifs')
         if total is None:
             return ''
@@ -1190,6 +1277,58 @@ def tool_notes_eleve(ctx, args):
         'classe': eleve.classe.nom if eleve.classe_id else None,
         'notes': notes,
         'moyennes_periode': moyennes,
+    }
+
+
+def tool_moyenne_matiere(ctx, args):
+    from school_admin.model.moyenne_periode_model import MoyennePeriode
+
+    eleve = _find_eleve_unique(ctx, args.get('query') or '')
+    if not eleve:
+        return {'statut': 'a_preciser', 'message': 'Quel élève ? Donnez son nom complet ou son matricule.'}
+    matiere = (args.get('matiere') or '').strip()
+    if not matiere:
+        return {'statut': 'a_preciser', 'message': 'Pour quelle matière souhaitez-vous la moyenne ?'}
+    if ctx.annee_scolaire is None:
+        return {'erreur': 'Sélectionnez d’abord l’année scolaire.'}
+    if ctx.est_primaire:
+        from school_admin.model.note_primaire_model import MoyenneMatierePrimaire
+
+        qs = MoyenneMatierePrimaire.objects.filter(
+            eleve=eleve, classe__etablissement=ctx.etablissement, annee_scolaire=ctx.annee_scolaire,
+        )
+        periode_champ, moyenne_champ = 'periode_scolaire', 'moyenne'
+    else:
+        qs = MoyennePeriode.objects.filter(
+            etablissement=ctx.etablissement, eleve=eleve, annee_scolaire=ctx.annee_scolaire,
+            est_moyenne_generale=False, matiere__isnull=False,
+        )
+        periode_champ, moyenne_champ = 'periode', 'moyenne_matiere'
+    qs = qs.select_related('matiere', periode_champ).order_by(f'{periode_champ}__date_debut', 'pk')
+    periode = (args.get('periode') or '').strip()
+    if periode:
+        qs = qs.filter(**{f'{periode_champ}__nom_periode__iexact': periode})
+    exact = qs.filter(Q(matiere__nom__iexact=matiere) | Q(matiere__code__iexact=matiere))
+    lignes = list(exact[:41]) or list(qs.filter(matiere__nom__icontains=matiere)[:41])
+    matieres = {ligne.matiere_id: ligne.matiere for ligne in lignes}
+    if len(matieres) > 1:
+        return {'statut': 'a_preciser', 'message': 'Plusieurs matières correspondent. Quel est le code exact ?',
+                'matieres': [{'nom': m.nom, 'code': m.code} for m in matieres.values()]}
+    return {
+        'statut': 'ok',
+        'eleve': eleve.nom_complet,
+        'matricule': eleve.matricule_eleve or eleve.numero_eleve,
+        'matiere': next(iter(matieres.values())).nom if matieres else matiere,
+        'annee': ctx.annee_scolaire.libelle,
+        'periode_demandee': periode or None,
+        'source': 'Moyennes enregistrées (sur 20)',
+        'moyennes': [
+            {'periode': getattr(ligne, periode_champ).nom_periode,
+             'moyenne_sur_20': _safe_decimal(getattr(ligne, moyenne_champ))}
+            for ligne in lignes[:40]
+        ],
+        'tronque': len(lignes) > 40,
+        'message': 'Aucune moyenne trouvée pour cette matière et cette période.' if not lignes else '',
     }
 
 
@@ -1565,8 +1704,9 @@ def _sanctions_queryset(ctx, args=None):
     classe_label = (args.get('classe') or '').strip()
     if classe_label:
         classe = _find_classe(ctx, classe_label)
-        if classe:
-            qs = qs.filter(classe=classe)
+        if not classe:
+            return None
+        qs = qs.filter(classe=classe)
     return qs
 
 
@@ -1576,7 +1716,10 @@ def tool_sanctions(ctx, args):
 
     args = args if isinstance(args, dict) else {}
     query = (args.get('query') or '').strip()
-    qs = _sanctions_queryset(ctx, args).select_related('eleve', 'classe')
+    qs = _sanctions_queryset(ctx, args)
+    if qs is None:
+        return {'erreur': f'Classe introuvable ou ambiguë pour « {args["classe"]} ».'}
+    qs = qs.select_related('eleve', 'classe')
     session = ctx.annee_scolaire.libelle if ctx.annee_scolaire else None
 
     if query:
@@ -1654,6 +1797,24 @@ def tool_chercher_en_base(ctx, args):
         'classe': (args.get('classe') or '').strip(),
     }
 
+    if getattr(ctx, 'est_superieur', False) and re.search(
+        r"\b(?:jury|d[ée]lib[ée]rations?|proc[èe]s-verbaux|proc[èe]s-verbal|pv|dipl[ôo]mes?|attestations?)\b",
+        lowered,
+    ):
+        from school_admin.services.assistant_examens import tool_preparation_jury
+        from school_admin.services.assistant_schema import tool_permission_error
+
+        found = tool_permission_error(ctx, 'get_preparation_jury', source='preparation_jury')
+        if found is None:
+            semestre = re.search(r'\bsemestre\s+(\d+)\b', lowered)
+            found = tool_preparation_jury(ctx, {
+                'classe': payload['classe'],
+                'semestre': semestre.group(1) if semestre else '',
+                'portee': 'annuelle' if re.search(r'\b(?:annuel(?:le)?|ann[ée]e enti[èe]re)\b', lowered) else 'semestre',
+                'session': 'rattrapage' if 'rattrapage' in lowered else 'normale',
+            })
+        return {'trouve': found.get('statut') == 'ok', **found, 'source': 'preparation_jury'}
+
     if any(
         token in lowered
         for token in (
@@ -1662,7 +1823,7 @@ def tool_chercher_en_base(ctx, args):
         )
     ):
         found = tool_effectifs(ctx, payload)
-        return {'trouve': True, 'source': 'effectifs', **found}
+        return {'trouve': not bool(found.get('erreur')), **found, 'source': 'effectifs'}
     if any(
         token in lowered
         for token in (
@@ -1842,7 +2003,15 @@ def tool_chercher_en_base(ctx, args):
         token in lowered
         for token in ('sanction', 'sanctions', 'blâme', 'blame', 'disciplinaire')
     ) or re.search(r'\bsanctionn', lowered):
-        found = tool_sanctions(ctx, payload)
+        target = args.get('eleve') or ''
+        if not target:
+            match = re.search(
+                r"\b(?:sanctions?|bl[âa]mes?)\s+(?:de|pour|concernant)\s+(.+?)[?.!]*$",
+                question, flags=re.IGNORECASE,
+            )
+            if match and not re.search(r'\b(combien|nombre|classe)\b', lowered):
+                target = match.group(1)
+        found = tool_sanctions(ctx, {**payload, 'query': target})
         return {'trouve': 'erreur' not in found, 'source': 'sanctions', **found}
     if any(token in lowered for token in ('caisse', 'dépense', 'depense', 'solde du mois', 'sorties')):
         found = tool_caisse(ctx, payload)
@@ -2034,8 +2203,7 @@ def tool_liaisons(ctx, args):
     from school_admin.model.demande_liaison_model import DemandeLiaisonParent
 
     qs = DemandeLiaisonParent.objects.filter(
-        Q(etablissement=ctx.etablissement)
-        | Q(eleve_valide__etablissement=ctx.etablissement)
+        eleve_valide__etablissement=ctx.etablissement
     ).select_related('parent_demandeur', 'eleve_valide')
     statut = (args.get('statut') or '').strip()
     if statut:
@@ -2115,10 +2283,19 @@ def tool_matieres(ctx, args):
     query = (args.get('query') or '').strip()
     if query:
         qs = qs.filter(Q(nom__icontains=query) | Q(code__icontains=query))
-    items = [
-        {'id': m.id, 'nom': m.nom, 'code': getattr(m, 'code', None)}
-        for m in qs.order_by('nom')[:SEARCH_LIMIT]
-    ]
+    superieur = getattr(ctx.etablissement, 'type_etablissement', None) == 'superieur'
+    items = []
+    for m in qs.select_related('module').prefetch_related('classes').order_by('nom')[:SEARCH_LIMIT]:
+        item = {'id': m.id, 'nom': m.nom, 'code': getattr(m, 'code', None),
+                'coefficient': float(m.coefficient) if m.coefficient is not None else None,
+                'classes': [c.nom for c in m.classes.all()]}
+        if superieur:
+            item['module'] = m.module.nom if m.module_id else None
+            item['filieres'] = [f.nom for f in m.filieres]
+            item['poids_dans_le_module'] = float(m.credits) if m.credits is not None else None
+            if not m.module_id:
+                item['attention'] = 'Matière (EC) hors module (UE) : elle ne compte pas dans les crédits.'
+        items.append(item)
     return {'matieres': items}
 
 
@@ -2194,16 +2371,17 @@ def tool_ouvrir_page(ctx, args):
         'titre': page['titre'],
         'url': page['url'],
         'ouvrir': bool(ouvrir),
-        'suggestions': related_pages(page['key']),
+        'suggestions': pages_visibles(ctx, related_pages(page['key'])),
     }
 
 
 SUGGESTION_INTENTS = frozenset({'chat', 'open'})
 
 
-def normalize_suggestions(raw_items, limit=3):
-    """Puces de suite (G4) : 1 à 3, intent chat ou open. Rien n’est écrit."""
+def normalize_suggestions(raw_items, limit=5):
+    """Puces de suite (G4) : 1 à 5, intent chat ou open. Rien n’est écrit."""
     cleaned = []
+    seen = set()
     for item in raw_items or []:
         if not isinstance(item, dict):
             continue
@@ -2217,6 +2395,10 @@ def normalize_suggestions(raw_items, limit=3):
         if intent == 'open' and not url:
             intent = 'chat'
         value = (item.get('value') or item.get('text') or label).strip()
+        key = label.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
         cleaned.append({
             'label': label[:80],
             'value': value[:200],
@@ -2229,11 +2411,11 @@ def normalize_suggestions(raw_items, limit=3):
 
 
 def tool_proposer_actions(ctx, args):
-    """Lecture seule : valide et renvoie jusqu’à 3 suggestions cliquables."""
+    """Lecture seule : valide et renvoie jusqu’à 5 suggestions cliquables."""
     items = args.get('suggestions') or args.get('actions') or []
     if not isinstance(items, list):
         items = []
-    suggestions = normalize_suggestions(items, limit=3)
+    suggestions = normalize_suggestions(items, limit=5)
     return {
         'statut': 'ok',
         'suggestions': suggestions,
@@ -2251,6 +2433,7 @@ TOOL_HANDLERS = {
     'get_affectations': tool_affectations,
     'rechercher_personnel': tool_rechercher_personnel,
     'get_notes_eleve': tool_notes_eleve,
+    'get_moyenne_matiere': tool_moyenne_matiere,
     'get_emploi_du_temps': tool_emploi_du_temps,
     'get_presences': tool_presences,
     'get_sanctions': tool_sanctions,
@@ -2307,6 +2490,17 @@ from school_admin.services.assistant_examens import (  # noqa: E402
     VAGUE6_READ_HANDLERS,
     VAGUE6_READ_SCHEMA,
 )
+# Finances, Salaires, Contrôle des cours, Cahiers de texte, Rappels. Remplace aussi les anciennes versions de
+# ajouter_depense, supprimer_depense et marquer_paie (elles passent désormais par les services des pages).
+from school_admin.services.assistant_gestion import (  # noqa: E402
+    GESTION_READ_HANDLERS,
+    GESTION_READ_SCHEMA,
+)
+# Assistant personnel : rappels programmés, messages ciblés, courriers, notifications, impressions, sanctions.
+from school_admin.services.assistant_communication import (  # noqa: E402
+    COMMUNICATION_READ_HANDLERS,
+    COMMUNICATION_READ_SCHEMA,
+)
 
 from school_admin.services.assistant_tool_cache import wrap_cacheable_tool_handlers  # noqa: E402
 
@@ -2318,6 +2512,8 @@ TOOL_HANDLERS.update(wrap_cacheable_tool_handlers(VAGUE3_READ_HANDLERS))
 TOOL_HANDLERS.update(VAGUE4_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE5_READ_HANDLERS)
 TOOL_HANDLERS.update(VAGUE6_READ_HANDLERS)
+TOOL_HANDLERS.update(GESTION_READ_HANDLERS)
+TOOL_HANDLERS.update(COMMUNICATION_READ_HANDLERS)
 
 for _name, _spec in ACTION_SPECS.items():
     TOOL_HANDLERS[_name] = _spec.prepare
@@ -2440,6 +2636,23 @@ TOOLS_SCHEMA = [
                     },
                 },
                 'required': ['query'],
+            },
+        },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'get_moyenne_matiere',
+            'description': ('Vérifie la moyenne sur 20 déjà calculée pour un élève dans une matière '
+                            'sur l’année consultée. Une absence de moyenne se distingue de 0.'),
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'query': {'type': 'string', 'description': 'Nom complet ou matricule de l’élève'},
+                    'matiere': {'type': 'string', 'description': 'Nom ou code de la matière'},
+                    'periode': {'type': 'string', 'description': 'Nom exact du trimestre ou du semestre'},
+                },
+                'required': ['query', 'matiere'],
             },
         },
     },
@@ -2744,7 +2957,7 @@ TOOLS_SCHEMA = [
                 'ajouter_salle, matieres, ajouter_matiere, modules, emplois_du_temps, '
                 'pedagogie, professeurs, ajouter_professeur, personnel, ajouter_personnel, '
                 'eleves, inscription_eleves, gestion_eleves, reinscription, notes, '
-                'justifications_notes, presences, periodes, bulletins, config_moyennes, '
+                'justifications_notes, presences, periodes, bulletins, config_moyennes, config_standards, '
                 'annonces, creer_annonce, examens, emploi_examens, comptabilite, '
                 'bilan_comptable, parametres_comptabilite, administration, convocations, '
                 'certificats, attestations_reussite, fiches_inscription, preinscriptions, '
@@ -2923,6 +3136,8 @@ TOOLS_SCHEMA.extend(VAGUE3_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE4_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE5_READ_SCHEMA)
 TOOLS_SCHEMA.extend(VAGUE6_READ_SCHEMA)
+TOOLS_SCHEMA.extend(GESTION_READ_SCHEMA)
+TOOLS_SCHEMA.extend(COMMUNICATION_READ_SCHEMA)
 TOOLS_SCHEMA.extend(build_action_tool_schemas())
 
 

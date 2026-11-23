@@ -72,27 +72,22 @@ class Professeur(AbstractUser):
     salaire_mensuel = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Salaire mensuel brut",
     )
+    # Qui verse le salaire : l'établissement (paie gérée ici) ou l'État (agent public, hors paie de l'école).
+    PRISE_EN_CHARGE_CHOICES = [
+        ('etablissement', "Payé par l’établissement"),
+        ('etat', "Agent de l’État (payé par l’État)"),
+    ]
+    prise_en_charge = models.CharField(
+        max_length=14, choices=PRISE_EN_CHARGE_CHOICES, default='etablissement',
+        verbose_name="Salaire versé par",
+    )
+
     heures_contrat_semaine = models.DecimalField(
         max_digits=5, decimal_places=2, null=True, blank=True,
         verbose_name="Heures prévues au contrat (par semaine)",
     )
 
     # Informations professionnelles
-    # Supérieur : grade universitaire (référentiel CAMES) et service statutaire en heures équivalent TD
-    GRADE_CHOICES = [
-        ('professeur_titulaire', 'Professeur titulaire'),
-        ('maitre_conferences', 'Maître de conférences'),
-        ('maitre_assistant', 'Maître-assistant'),
-        ('assistant', 'Assistant'),
-        ('charge_cours', 'Chargé de cours / enseignant associé'),
-        ('vacataire', 'Vacataire'),
-    ]
-    grade_universitaire = models.CharField(max_length=24, choices=GRADE_CHOICES, blank=True, default='',
-                                           verbose_name="Grade universitaire")
-    service_statutaire = models.PositiveSmallIntegerField(
-        default=0, verbose_name="Service statutaire (heures éq. TD / an)",
-        help_text="0 = valeur par défaut du grade (règles de service de l'établissement).",
-    )
     numero_employe = models.CharField(max_length=20, unique=True, verbose_name="Numéro d'employé")
     matiere_principale = models.ForeignKey(
         'Matiere',

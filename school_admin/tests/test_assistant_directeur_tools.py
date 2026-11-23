@@ -6,7 +6,7 @@ préparent un brouillon et n’écrivent qu’après apply.
 from datetime import date, time as datetime_time, timedelta
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import NoReverseMatch, reverse
 
 from school_admin.model.annee_scolaire_model import AnneeScolaire
@@ -129,6 +129,12 @@ class AssistantDirecteurToolsTests(TestCase):
         self.assertFalse(manquants, f'Outils absents du schéma : {manquants}')
         handler_manquants = attendus - set(TOOL_HANDLERS)
         self.assertFalse(handler_manquants, f'Handlers absents : {handler_manquants}')
+
+    def test_liaisons_parent_sans_erreur(self):
+        # Les demandes de liaison n’ont pas de champ établissement : filtre par l’école de l’élève.
+        for outil in ('get_liaisons', 'approuver_liaison', 'rejeter_liaison', 'desapprouver_liaison'):
+            resultat = execute_tool(self.ctx, outil, {})
+            self.assertNotIn('Impossible', str(resultat.get('erreur', '')), outil)
 
     def test_pages_directeur_resolvent(self):
         pages = list_pages()
@@ -538,8 +544,8 @@ class AssistantDirecteurToolsTests(TestCase):
         )
         self.assertEqual(draft['statut'], 'en_attente_confirmation')
         self.assertFalse(draft.get('auto_appliquer'))
-        self.assertIn('Abega', draft['description'])
-        self.assertIn('Ngo', draft['description'])
+        self.assertIn(premier.nom.casefold(), draft['description'].casefold())
+        self.assertIn(second.nom.casefold(), draft['description'].casefold())
         self.assertEqual(set(draft['eleves_ids']), {premier.id, second.id})
         with patch('school_admin.services.realtime_helpers.emit_live'):
             result = ACTION_SPECS['donner_sanction'].apply(self.ctx, draft)
@@ -554,6 +560,7 @@ class AssistantDirecteurToolsTests(TestCase):
 
         from school_admin.services.assistant_intents import (
             annonce_field_request,
+            decide_pending_reply,
             is_vague_annonce_modify,
         )
         self.assertTrue(is_vague_annonce_modify('Je veux modifier.'))
@@ -678,7 +685,8 @@ class AssistantDirecteurVague1Tests(TestCase):
         self.assertIn('ects', p_prompt.lower())
         self.assertIn('cycle', d_prompt.lower())
         self.assertIn('étudiants', s_prompt.lower())
-        self.assertIn('comptabilité générale : indisponible', d_prompt.lower())
+        self.assertIn('comptabilité générale : disponible selon vos autorisations', d_prompt.lower())
+        self.assertIn('get_preparation_jury', s_prompt)
 
     def test_creer_classe_dual_exige_le_cycle(self):
         etab = _make_etablissement_type('collège_lycée', 'cyc')
@@ -1004,6 +1012,34 @@ class AssistantDirecteurVague2Tests(TestCase):
         self.assertEqual(cycles.get('college'), 1)
         self.assertEqual(cycles.get('lycee'), 1)
 
+    def test_paiement_applique_uniquement_au_frais_confirme(self):
+        from decimal import Decimal
+
+        from school_admin.model.comptabilite_eleve_model import ComptabiliteEleve, FraisInscription, PaiementEleve
+
+        fiche = ComptabiliteEleve.objects.create(eleve=self.eleve, etablissement=self.etab,
+                                                annee_scolaire=self.annee)
+        frais = FraisInscription.objects.create(eleve=self.eleve, etablissement=self.etab,
+            annee_scolaire=self.annee, comptabilite_eleve=fiche, montant=Decimal('50000'),
+            date_echeance=date(2026, 8, 1), type_frais='inscription')
+        draft = execute_tool(self.ctx, 'enregistrer_paiement', {
+            'query': 'Ba', 'type_paiement': 'frais_inscription', 'montant': '25000',
+        })
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.assertIn(self.annee.libelle, draft['resume'])
+        self.assertIn(self.eleve.nom_complet, draft['resume'])
+        apply = ACTION_SPECS['enregistrer_paiement'].apply
+        self.assertIn('introuvable', apply(self.ctx, {**draft, 'frais_inscription_id': frais.pk + 1})['erreur'])
+        self.assertFalse(PaiementEleve.objects.filter(eleve=self.eleve).exists())
+        with patch('school_admin.services.realtime_helpers.emit_live'):
+            result = apply(self.ctx, draft)
+        self.assertEqual(result['statut'], 'ok')
+        paiement = PaiementEleve.objects.get(eleve=self.eleve)
+        self.assertEqual(paiement.frais_inscription_id, frais.pk)
+        self.assertEqual(paiement.montant, Decimal('25000'))
+        frais.refresh_from_db()
+        self.assertEqual(frais.montant_paye, Decimal('25000'))
+
     def test_fiche_bilan_impayes_recu_moratoire(self):
         from decimal import Decimal
 
@@ -1163,6 +1199,8 @@ class AssistantDirecteurVague3Tests(TestCase):
         )
         cls.eleve = _make_eleve_simple(cls.etab, cls.classe, 'Sy', 'Awa', 'F', 'p')
         cls.faible = _make_eleve_simple(cls.etab, cls.classe, 'Kane', 'Ibra', 'M', 'q')
+        _make_inscription(cls.eleve, cls.classe, cls.annee, cls.etab)
+        _make_inscription(cls.faible, cls.classe, cls.annee, cls.etab)
         suffix = str(cls.etab.pk)
         cls.matiere = Matiere.objects.create(
             nom=f'Mathématiques {suffix}',
@@ -1265,6 +1303,144 @@ class AssistantDirecteurVague3Tests(TestCase):
         for name in CG_TOOLS:
             self.assertNotIn(name, names)
 
+    @override_settings(STORAGES={
+        'default': {'BACKEND': 'django.core.files.storage.InMemoryStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    })
+    def test_calculs_bulletins_enregistrent_les_moyennes_apres_confirmation(self):
+        from school_admin.model.moyenne_model import Moyenne
+        from school_admin.model.moyenne_periode_model import MoyenneAnnuelle, MoyennePeriode
+        from school_admin.model.ponderation_model import Ponderation
+
+        self.classe.matieres.add(self.matiere)
+        Ponderation.get_or_create_for_year(self.etab, self.annee.libelle)
+        Moyenne.objects.create(
+            eleve=self.eleve, classe=self.classe, matiere=self.matiere, professeur=self.prof,
+            periode=str(self.periode.id), moyenne=14, soumis=True, annee_scolaire=self.annee,
+        )
+        qs = MoyennePeriode.objects.filter(eleve=self.eleve, est_moyenne_generale=True)
+        for action, arguments in (
+            ('calculer_moyennes_classe', {'classe': self.classe.nom}),
+            ('calculer_moyenne_eleve', {'eleve': self.eleve.numero_eleve}),
+            ('calculer_moyenne_annuelle', {'classe': self.classe.nom}),
+        ):
+            with self.subTest(action=action):
+                qs.update(moyenne_generale='13.50')
+                draft = execute_tool(self.ctx, action, {**arguments, 'periode': self.periode.nom_periode})
+                self.assertEqual(draft['statut'], 'en_attente_confirmation', draft)
+                self.assertEqual(float(qs.get().moyenne_generale), 13.5)
+                if action == 'calculer_moyenne_annuelle':
+                    MoyenneAnnuelle.objects.filter(eleve=self.eleve).delete()
+                result = ACTION_SPECS[action].apply(self.ctx, draft)
+                self.assertEqual(result['statut'], 'ok', result)
+                if action == 'calculer_moyenne_annuelle':
+                    self.assertTrue(MoyenneAnnuelle.objects.filter(eleve=self.eleve).exists())
+                else:
+                    self.assertEqual(float(qs.get().moyenne_generale), 14.0)
+
+    def test_assistant_refuse_le_recalcul_apres_cloture_du_jury(self):
+        from school_admin.model.deliberation_model import Deliberation
+        from school_admin.model.moyenne_periode_model import MoyennePeriode
+
+        draft = execute_tool(self.ctx, 'calculer_moyennes_classe', {'classe': self.classe.nom})
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        Deliberation.objects.create(
+            etablissement=self.etab, classe=self.classe, annee_scolaire=self.annee,
+            periode=self.periode, statut=Deliberation.STATUT_CLOTUREE,
+        )
+        result = ACTION_SPECS[draft['action']].apply(self.ctx, draft)
+        self.assertIn('clôturée', result['erreur'])
+        moyenne = MoyennePeriode.objects.get(eleve=self.eleve, est_moyenne_generale=True)
+        self.assertEqual(float(moyenne.moyenne_generale), 13.5)
+
+    def test_ne_choisit_pas_une_periode_au_hasard(self):
+        autre_periode = PeriodeScolaire.objects.create(
+            etablissement=self.etab, annee_scolaire=self.annee.libelle,
+            annee_scolaire_fk=self.annee, nom_periode='3e Trimestre', type_periode='trimestre',
+            date_debut=date(2027, 4, 1), date_fin=date(2027, 6, 30), est_active=True,
+        )
+        args = {'classe': self.classe.nom}
+        draft = execute_tool(self.ctx, 'publier_bulletins', args)
+        self.assertEqual(draft['manquants'], ['periode'])
+        draft = execute_tool(self.ctx, 'publier_bulletins', {**args, 'periode': autre_periode.nom_periode})
+        self.assertEqual(draft['periode_id'], autre_periode.pk)
+
+    def test_publication_et_visibilite_sur_la_periode_confirmee(self):
+        from school_admin.model.moyenne_periode_model import MoyennePeriode
+
+        qs = MoyennePeriode.objects.filter(periode=self.periode, est_moyenne_generale=True)
+        qs.update(afficher_bulletin=True)
+        etudiant = {'eleve': self.faible.numero_eleve, 'periode': self.periode.nom_periode}
+        draft = execute_tool(self.ctx, 'configurer_visibilite_bulletins', {**etudiant, 'visible': False})
+        self.assertEqual(draft['statut'], 'en_attente_confirmation', draft)
+        self.assertEqual(ACTION_SPECS[draft['action']].apply(self.ctx, draft)['statut'], 'ok')
+        self.assertFalse(qs.get(eleve=self.faible).afficher_bulletin)
+        mauvais = execute_tool(self.ctx, 'publier_bulletins', {'classe': self.classe.nom, 'periode': 'absente'})
+        self.assertEqual(mauvais['statut'], 'incomplet')
+        draft = execute_tool(self.ctx, 'publier_bulletins', {'classe': self.classe.nom})
+        self.assertEqual(draft['statut'], 'en_attente_confirmation', draft)
+        self.assertFalse(qs.filter(est_publie=True).exists())
+        with patch('school_admin.services.notification_tasks.schedule_bulletin_publication') as notifier:
+            for _ in range(2):
+                result = ACTION_SPECS[draft['action']].apply(self.ctx, draft)
+                self.assertEqual(result['statut'], 'ok', result)
+            notifier.assert_called_once_with(
+                classe_id=self.classe.id, periode_id=self.periode.id, etablissement_id=self.etab.id,
+                eleve_ids=(self.eleve.id,),
+            )
+            republier = execute_tool(self.ctx, 'publier_bulletins', {
+                'classe': self.classe.nom, 'republier': True,
+            })
+            self.assertIn('republie', republier['resume'])
+            result = ACTION_SPECS[republier['action']].apply(self.ctx, republier)
+            self.assertEqual(result['statut'], 'ok', result)
+            self.assertEqual(notifier.call_count, 2)
+        self.assertEqual(qs.filter(est_publie=True).count(), 2)
+
+    def test_configuration_lit_et_enregistre_les_deux_baremes(self):
+        action = 'configurer_appreciations_bulletins'
+        for section, paliers in (
+            ('matieres', [{'min': 10, 'max': 16, 'label': 'Satisfaisant'}]),
+            ('conseil', [{'min': 12, 'label': 'Encouragements'}]),
+        ):
+            with self.subTest(section=section):
+                draft = execute_tool(self.ctx, action, {'section': section, 'paliers': paliers})
+                self.assertEqual(draft['statut'], 'en_attente_confirmation', draft)
+                self.assertEqual(execute_tool(self.ctx, 'get_configuration_bulletins', {})[f'appreciations_{section}'], [])
+                self.assertEqual(ACTION_SPECS[action].apply(self.ctx, draft)['statut'], 'ok')
+                self.assertEqual(execute_tool(self.ctx, 'get_configuration_bulletins', {})[f'appreciations_{section}'], paliers)
+        invalide = execute_tool(self.ctx, action, {'section': 'matieres', 'paliers': [
+            {'min': 10, 'max': 16, 'label': 'A'}, {'min': 12, 'max': 18, 'label': 'B'},
+        ]})
+        self.assertEqual(invalide['statut'], 'incomplet')
+
+    def test_permission_consulter_ne_permet_pas_de_gerer(self):
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+
+        personnel = PersonnelAdministratif.objects.create(
+            username='bulletins.lecture', email='bulletins.lecture@aria-test.local',
+            nom='Lecture', prenom='Test', telephone='770000082', fonction='secretaire',
+            etablissement=self.etab, actif=True, permissions={'bulletins_voir': True, 'config_modifier': False},
+        )
+        ctx = build_assistant_context(self.etab, personnel=personnel)
+        for action in ('publier_bulletins', 'calculer_moyennes_classe', 'configurer_visibilite_bulletins',
+                       'configurer_standards', 'configurer_appreciations_bulletins'):
+            self.assertIn('autorisation', execute_tool(ctx, action, {}).get('erreur', '').lower())
+        result = execute_tool(ctx, 'get_bulletin_eleve', {'query': self.eleve.numero_eleve, 'imprimer': True})
+        self.assertIn('/imprimer/', result['url'])
+        self.client.force_login(personnel, backend='school_admin.authentication_backends.MultiUserBackend')
+        imprimer = self.client.get(result['url'])
+        self.assertEqual(imprimer.status_code, 200)
+        publier = reverse('directeur:publier_bulletins_classe', args=[self.classe.pk])
+        self.assertRedirects(
+            self.client.post(publier, {'periode': self.periode.id}),
+            reverse('school_admin:connexion_compte_user'), fetch_redirect_response=False,
+        )
+        personnel.permissions['bulletins_gerer'] = True
+        personnel.save(update_fields=['permissions'])
+        result = execute_tool(ctx, 'publier_bulletins', {'classe': self.classe.nom})
+        self.assertEqual(result['statut'], 'en_attente_confirmation')
+
     def test_notes_moyennes_bulletin_evaluations(self):
         notes = execute_tool(self.ctx, 'get_notes_classe', {'classe': '1ère S'})
         self.assertEqual(notes['nb'], 1)
@@ -1326,14 +1502,6 @@ class AssistantDirecteurVague3Tests(TestCase):
         self.assertEqual(result['statut'], 'ok')
         self.note.refresh_from_db()
         self.assertEqual(float(self.note.note), 16.0)
-        refuse_draft = execute_tool(
-            self.ctx,
-            'calculer_moyenne_annuelle',
-            {'classe': '1ère S'},
-        )
-        self.assertEqual(refuse_draft['statut'], 'en_attente_confirmation')
-        applied = ACTION_SPECS['calculer_moyenne_annuelle'].apply(self.ctx, refuse_draft)
-        self.assertTrue(applied.get('ouvrir'))
 
     def test_personnel_sans_droit_notes(self):
         from school_admin.model.personnel_administratif_model import PersonnelAdministratif
@@ -1634,6 +1802,52 @@ class AssistantDirecteurVague4Tests(TestCase):
         mc.refresh_from_db()
         self.assertEqual(mc.credits, Decimal('6.00'))
 
+    def test_rattachement_refuse_un_semestre_d_un_autre_niveau(self):
+        from school_admin.model.module_model import Module, ModuleClasse
+
+        module = Module.objects.create(nom='Réseaux', code='RES', etablissement=self.etab)
+        draft = execute_tool(self.ctx, 'affecter_module_classe', {
+            'module': module.nom, 'classe': self.classe.nom, 'credits': '5', 'periode': 'Semestre 1',
+        })
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        PeriodeScolaire.objects.filter(pk=self.periode.pk).update(niveau_lmd='L2')
+        result = ACTION_SPECS['affecter_module_classe'].apply(self.ctx, draft)
+        self.assertIn('semestre', result['erreur'].lower())
+        self.assertFalse(ModuleClasse.objects.filter(module=module, classe=self.classe).exists())
+
+    def test_credits_refuses_si_le_jury_cloture_apres_la_preparation(self):
+        from school_admin.model.deliberation_model import Deliberation
+        from school_admin.model.module_model import ModuleClasse
+
+        lien = ModuleClasse.objects.get(module=self.module_algo, classe=self.classe, periode=self.periode)
+        draft = execute_tool(self.ctx, 'fixer_credits_module', {
+            'module': lien.module.nom, 'classe': self.classe.nom, 'credits': '5',
+        })
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        Deliberation.objects.create(etablissement=self.etab, classe=self.classe,
+            annee_scolaire=self.annee, statut=Deliberation.STATUT_CLOTUREE)
+        result = ACTION_SPECS['fixer_credits_module'].apply(self.ctx, draft)
+        self.assertIn('verrouillé', result['erreur'])
+        self.assertEqual(ModuleClasse.objects.get(pk=lien.pk).credits, lien.credits)
+
+    def test_lecture_jury_annuel_rattrapage_et_liens(self):
+        sans_classe = execute_tool(self.ctx, 'get_preparation_jury', {})
+        self.assertEqual(sans_classe['statut'], 'a_preciser')
+        sans_semestre = execute_tool(self.ctx, 'get_preparation_jury', {'classe': self.classe.nom})
+        self.assertEqual(sans_semestre['semestres'], ['Semestre 1', 'Semestre 2'])
+        resultat = execute_tool(self.ctx, 'get_preparation_jury', {
+            'classe': self.classe.nom, 'portee': 'annuelle', 'session': 'rattrapage',
+        })
+        self.assertEqual(resultat['statut'], 'ok')
+        self.assertEqual(len(resultat['etapes']), 6)
+        self.assertIn('rattrapage', resultat['session'])
+        self.assertIn('portee=annuelle', resultat['url'])
+        self.assertIn('session=rattrapage', resultat['url'])
+        self.assertFalse(resultat['documents_prets'])
+        self.assertTrue(resultat['prochaine_etape'])
+        pages = {page['key'] for page in execute_tool(self.ctx, 'lister_pages', {})['pages']}
+        self.assertTrue({'examens_et_jury', 'deliberations', 'diplomes'} <= pages)
+
     def test_creer_module_credits_et_releve(self):
         from school_admin.model.module_model import Module, ModuleClasse
 
@@ -1660,7 +1874,7 @@ class AssistantDirecteurVague4Tests(TestCase):
         self.assertEqual(mc.numero_ue, 'UE2.1')
         structure = execute_tool(self.ctx, 'get_structure_superieur', {'query': 'Algo'})
         self.assertTrue(structure['modules'])
-        self.assertIn('credits_totaux', structure['modules'][0])
+        self.assertIn('credits_par_classe', structure['modules'][0])
         releve = execute_tool(self.ctx, 'get_releve_ects', {'query': 'Ndoye'})
         self.assertTrue(releve['ouvrir'])
         self.assertIn(str(self.etudiant.id), releve['url'] or '')

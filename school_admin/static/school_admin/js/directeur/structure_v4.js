@@ -61,6 +61,8 @@
         var filtres = Array.prototype.map.call(bar.querySelectorAll('[data-sx-f]'), function (s) {
             return { champ: s.getAttribute('data-sx-f'), val: s.value, onglet: s.hidden };
         }).filter(function (f) { return f.val !== ''; });
+        var classe = bar.querySelector('[data-sx-f="classe"]');
+        var classeId = classe ? classe.value : '';
         var visibles = 0;
         var items = cible.querySelectorAll('[data-sx-item]');
         items.forEach(function (el) {
@@ -71,6 +73,11 @@
                 // Valeur multiple « |3|5| » (ex. plusieurs matières) : on cherche l'élément dans la liste.
                 ok = v.charAt(0) === '|' ? v.indexOf('|' + f.val + '|') !== -1 : v === f.val;
             });
+            if (el.classList.contains('sx-ue--visible')) {
+                el.querySelectorAll('[data-sx-for-classe]').forEach(function (etiquette) {
+                    etiquette.hidden = !!classeId && etiquette.dataset.sxForClasse !== classeId;
+                });
+            }
             el.hidden = !ok;
             if (ok) { visibles += 1; }
         });
@@ -144,9 +151,9 @@
     //   data-sx-set="#select|valeur"  → règle un filtre de la barre d'outils (onglets qui filtrent un tableau).
     // Le dernier onglet choisi est retenu pour la page (confort, sans conséquence s'il est perdu).
     function activerOnglet(btn, memoriser) {
-        var barre = btn.closest('.sx-tabs');
+        var barre = btn.closest('[data-sx-tabs], .sx-tabs');
         if (!barre) { return; }
-        barre.querySelectorAll('.sx-tab').forEach(function (b) {
+        barre.querySelectorAll('.sx-tab, [data-sx-tab]').forEach(function (b) {
             var actif = b === btn;
             b.classList.toggle('active', actif);
             b.setAttribute('aria-selected', actif ? 'true' : 'false');
@@ -174,17 +181,17 @@
         }
     }
     document.addEventListener('click', function (event) {
-        var btn = event.target.closest('.sx-tab');
+        var btn = event.target.closest('.sx-tab, [data-sx-tab]');
         if (btn) {
             event.preventDefault();
             activerOnglet(btn, true);
         }
     });
     function initOnglets() {
-        document.querySelectorAll('.sx-tabs[data-sx-tabs]').forEach(function (barre) {
+        document.querySelectorAll('[data-sx-tabs]').forEach(function (barre) {
             var cle = null;
             try { cle = window.sessionStorage.getItem('sx-tab:' + location.pathname + ':' + barre.getAttribute('data-sx-tabs')); } catch (e) { cle = null; }
-            var btn = (cle && barre.querySelector('.sx-tab[data-sx-key="' + CSS.escape(cle) + '"]')) || barre.querySelector('.sx-tab.active') || barre.querySelector('.sx-tab');
+            var btn = (cle && barre.querySelector('[data-sx-key="' + CSS.escape(cle) + '"]')) || barre.querySelector('.sx-tab.active, [data-sx-tab].active') || barre.querySelector('.sx-tab, [data-sx-tab]');
             if (btn) { activerOnglet(btn, false); }
         });
     }

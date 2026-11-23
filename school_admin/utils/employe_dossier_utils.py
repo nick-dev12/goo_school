@@ -45,8 +45,19 @@ def get_or_create_dossier(professeur=None, personnel=None):
     return None
 
 
+def appliquer_prise_en_charge(employe, post_data):
+    """« Salaire versé par » : l'établissement (paie gérée ici) ou l'État. Champ des formulaires employé."""
+    if employe is None or post_data is None:
+        return
+    valeur = (post_data.get('prise_en_charge') or '').strip()
+    if valeur in ('etablissement', 'etat') and getattr(employe, 'prise_en_charge', None) != valeur:
+        employe.prise_en_charge = valeur
+        employe.save(update_fields=['prise_en_charge'])
+
+
 def update_dossier_from_post(dossier, post_data):
     """Met à jour le dossier avec les champs fournis (tous optionnels)."""
+    appliquer_prise_en_charge(dossier.professeur or dossier.personnel_administratif, post_data)
     dossier.date_naissance = parse_optional_date(post_data.get('date_naissance'))
     dossier.lieu_naissance = (post_data.get('lieu_naissance') or '').strip()
     dossier.nationalite = (post_data.get('nationalite') or '').strip()
@@ -131,7 +142,9 @@ def dossier_form_data_from_dossier(dossier):
     """Préremplit un dict formulaire à partir d'un dossier existant."""
     if not dossier:
         return {field: '' for field in DOSSIER_FORM_FIELDS}
+    employe = dossier.professeur or dossier.personnel_administratif
     return {
+        'prise_en_charge': getattr(employe, 'prise_en_charge', '') or '',
         'date_naissance': dossier.date_naissance.strftime('%Y-%m-%d') if dossier.date_naissance else '',
         'lieu_naissance': dossier.lieu_naissance or '',
         'nationalite': dossier.nationalite or '',
@@ -154,7 +167,9 @@ def dossier_form_data_from_dossier(dossier):
 
 def dossier_form_data_from_post(post_data):
     """Extrait les champs dossier depuis un POST."""
-    return {field: (post_data.get(field) or '').strip() for field in DOSSIER_FORM_FIELDS}
+    data = {field: (post_data.get(field) or '').strip() for field in DOSSIER_FORM_FIELDS}
+    data['prise_en_charge'] = (post_data.get('prise_en_charge') or '').strip()
+    return data
 
 
 def dossier_has_post_data(post_data):
@@ -167,6 +182,7 @@ def dossier_has_post_data(post_data):
 
 def save_dossier_from_post_if_any(professeur=None, personnel=None, post_data=None):
     """Crée ou met à jour le dossier si des champs complémentaires sont fournis."""
+    appliquer_prise_en_charge(professeur or personnel, post_data)
     if post_data is None or not dossier_has_post_data(post_data):
         return None
     dossier = get_or_create_dossier(professeur=professeur, personnel=personnel)

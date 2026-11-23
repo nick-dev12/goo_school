@@ -170,7 +170,7 @@ def controle_matieres(etab, annee):
                                _url('professeur:liste_professeurs'), 'Voir les enseignants', [m.nom for m in sans_prof[:8]]))
 
     kpis = [
-        {'label': 'Matières', 'value': nb, 'icon': 'fa-book-open', 'tone': 'violet', 'caption': 'actives'},
+        {'label': 'Matières (EC)' if sup else 'Matières', 'value': nb, 'icon': 'fa-book-open', 'tone': 'violet', 'caption': 'actives'},
         {'label': 'Rattachées à une classe', 'value': f"{nb - len(non_rattachees)}/{nb}", 'icon': 'fa-link', 'tone': 'blue', 'texte': True,
          'pct': round(100 * (nb - len(non_rattachees)) / nb) if nb else None, 'caption': 'utilisables pour les notes'},
     ]
@@ -185,14 +185,14 @@ def controle_matieres(etab, annee):
             alertes.append(_alerte('warn', 'fa-cubes', f"{len(sans_module)} matière(s) hors module (UE) : elles ne comptent pas dans les crédits ECTS.",
                                    details=[m.nom for m in sans_module[:8]]))
         if sans_credits:
-            alertes.append(_alerte('warn', 'fa-coins', f"{len(sans_credits)} module(s) sans crédits ECTS définis pour leurs classes.",
+            alertes.append(_alerte('warn', 'fa-coins', f"{len(sans_credits)} module(s) (UE) sans crédits ECTS définis pour leurs classes.",
                                    details=[m.nom for m in sans_credits[:8]]))
         if modules_vides:
-            alertes.append(_alerte('info', 'fa-box-open', f"{len(modules_vides)} module(s) sans aucune matière.",
+            alertes.append(_alerte('info', 'fa-box-open', f"{len(modules_vides)} module(s) (UE) sans aucune matière (EC).",
                                    details=[m.nom for m in modules_vides[:8]]))
         kpis += [
             {'label': 'Modules (UE)', 'value': nb_mod, 'icon': 'fa-cubes', 'tone': 'teal', 'caption': f"{len(sans_credits)} sans crédits"},
-            {'label': 'Matières hors module', 'value': len(sans_module), 'icon': 'fa-cube', 'tone': 'orange', 'caption': 'à rattacher', 'bad': bool(sans_module)},
+            {'label': 'Matières (EC) hors module (UE)', 'value': len(sans_module), 'icon': 'fa-cube', 'tone': 'orange', 'caption': 'à rattacher', 'bad': bool(sans_module)},
         ]
     else:
         kpis += [
@@ -272,7 +272,12 @@ def controle_classe(classe, annee):
     primaire = etab.type_etablissement == 'primary'
     effectif = Eleve.objects.filter(classe=classe, actif=True).count()
     filles = Eleve.objects.filter(classe=classe, actif=True, sexe='F').count()
-    matieres = list(classe.matieres.filter(actif=True))
+    if sup:
+        # Supérieur : une matière (EC) sans classes précisées suit les classes de son module (UE).
+        from school_admin.model.matiere_model import Matiere as _Matiere
+        matieres = list(_Matiere.pour_classe_superieur(classe))
+    else:
+        matieres = list(classe.matieres.filter(actif=True))
     aff = AffectationProfesseur.objects.filter(classe=classe, actif=True)
     if annee:
         aff = aff.filter(Q(annee_scolaire=annee) | Q(annee_scolaire__isnull=True))
@@ -351,7 +356,7 @@ def controle_module(module):
     if sans_coef:
         alertes.append(_alerte('info', 'fa-scale-unbalanced', f"{len(sans_coef)} matière(s) sans coefficient ni crédit.", details=sans_coef))
     kpis = [
-        {'label': 'Matières', 'value': len(matieres), 'icon': 'fa-book-open', 'tone': 'violet', 'caption': 'dans le module'},
+        {'label': 'Matières (EC)', 'value': len(matieres), 'icon': 'fa-book-open', 'tone': 'violet', 'caption': 'dans le module'},
         {'label': 'Crédits ECTS', 'value': getattr(module, 'total_credits', None) or 0, 'icon': 'fa-coins', 'tone': 'orange', 'caption': 'total'},
         {'label': 'Classes', 'value': len(sup_classes), 'icon': 'fa-chalkboard', 'tone': 'blue', 'caption': 'concernées'},
     ]
@@ -376,12 +381,30 @@ def controle_matiere(matiere):
         if not _sur(lambda: CoefficientMatiereGroupe.objects.filter(matiere=matiere).exists(), False):
             alertes.append(_alerte('warn', 'fa-scale-unbalanced', "Coefficient non défini."))
     if sup and not matiere.module_id:
-        alertes.append(_alerte('warn', 'fa-cubes', "Matière hors module : elle ne compte pas dans les crédits ECTS."))
+        alertes.append(_alerte('warn', 'fa-cubes', "Matière (EC) hors module (UE) : elle ne compte pas dans les crédits ECTS."))
+    if sup:
+        # Crédits réellement obtenus : part des crédits de l'UE, classe par classe (le champ « credits »
+        # de la matière n'est que son poids dans l'UE).
+        from django.template.defaultfilters import floatformat
+
+        from school_admin.services.credits_lmd import credits_ec
+        cache = {}
+        valeurs = sorted({v for v in (_sur(lambda c=c: credits_ec(matiere, c, cache)) for c in classes) if v is not None})
+        if not valeurs:
+            valeur = '—'
+        elif len(valeurs) == 1:
+            valeur = floatformat(valeurs[0], -2)
+        else:
+            valeur = f"{floatformat(valeurs[0], -2)} à {floatformat(valeurs[-1], -2)}"
+        indicateur = {'label': 'Crédits', 'value': valeur, 'icon': 'fa-award', 'tone': 'orange', 'caption': 'ECTS',
+                      'texte': len(valeurs) > 1}
+    else:
+        indicateur = {'label': 'Coefficient', 'value': matiere.coefficient or '—', 'icon': 'fa-scale-balanced',
+                      'tone': 'orange', 'caption': 'dans la moyenne'}
     kpis = [
         {'label': 'Classes', 'value': len(classes), 'icon': 'fa-chalkboard', 'tone': 'blue', 'caption': 'concernées'},
         {'label': 'Enseignants', 'value': len(profs), 'icon': 'fa-chalkboard-user', 'tone': 'teal', 'caption': 'affectés'},
-        {'label': 'Crédits' if sup else 'Coefficient', 'value': (matiere.credits if sup else matiere.coefficient) or '—',
-         'icon': 'fa-scale-balanced', 'tone': 'orange', 'caption': 'ECTS' if sup else 'dans la moyenne'},
+        indicateur,
     ]
     return {'kpis': kpis, 'alertes': alertes}
 
@@ -407,6 +430,6 @@ def enrichir(request, context, quoi, objet=None):
     if quoi == 'matiere' and objet is not None:
         morceaux = [objet.code, getattr(objet, 'type_display', ''), getattr(objet, 'niveau_display', '')]
         if objet.module_id:
-            morceaux.append(f"Module {objet.module.nom}")
+            morceaux.append(f"Module (UE) : {objet.module.nom}")
         context['v3_sous_titre_matiere'] = ' · '.join(str(m) for m in morceaux if m)
     return context

@@ -209,14 +209,41 @@ class Matiere(models.Model):
         """Retourne le nombre de classes assignées"""
         return self.classes.count()
 
+    @classmethod
+    def pour_classe_superieur(cls, classe):
+        """Les classes explicites de la matière priment sur celles du module."""
+        return cls.objects.filter(etablissement_id=classe.etablissement_id, actif=True).filter(
+            Q(classes=classe) | Q(classes__isnull=True, module__classes=classe)
+        ).distinct()
+
+    @property
+    def filieres(self):
+        """Filières de la matière : la sienne, sinon celles de ses classes, sinon celles de son module.
+
+        Une matière d'une UE commune à plusieurs filières n'a pas de filière unique : on les affiche toutes.
+        """
+        if self.department_id:
+            return [self.department]
+        from .academic_structure_model import Department
+        filieres = list(Department.objects.filter(classes__in=self.classes.all()).distinct().order_by('nom'))
+        if not filieres and self.module_id:
+            filieres = list(self.module.departments.all().order_by('nom'))
+            if not filieres and self.module.department_id:
+                filieres = [self.module.department]
+        return filieres
+
+    def get_filieres_ids_csv(self):
+        """Filières de la matière pour les attributs data-* : plusieurs pour une matière commune."""
+        return ','.join(str(f.pk) for f in self.filieres)
+
     def get_classe_ids_pour_affectation_superieur(self):
         """
         Identifiants des classes cibles pour une affectation (supérieur) :
         classes liées à la matière, ou au module (ModuleClasse) si la matière n'en définit pas.
-        Liste vide = aucune restriction fine (cohérence filière / établissement gérée côté contrôleurs).
+        Liste vide = aucun rattachement de la matière à une classe.
         """
         ids = {c.id for c in self.classes.all()}
-        if self.module_id:
+        if not ids and self.module_id:
             ids.update(c.id for c in self.module.classes.all())
         return sorted(ids)
 
@@ -227,9 +254,7 @@ class Matiere(models.Model):
     def classe_est_compatible_affectation_superieur(self, classe):
         """True si la classe peut recevoir cette matière selon les liaisons matière/module-classes."""
         ids = self.get_classe_ids_pour_affectation_superieur()
-        if not ids:
-            return True
-        return classe.id in ids
+        return classe.etablissement_id == self.etablissement_id and self.actif and classe.id in ids
 
     def save(self, *args, **kwargs):
         # Générer le code si pas défini

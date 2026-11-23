@@ -431,14 +431,64 @@ def _repartir_echeances(reste, nombre, debut=None):
 # Dossier élève
 # ---------------------------------------------------------------------------
 
+def _eleve_identifie(ctx, args):
+    from school_admin.services.assistant_tools import _find_eleve_unique
+
+    return _find_eleve_unique(ctx, args.get('query') or args.get('eleve') or '')
+
+
+def prepare_transferer_eleve(ctx, args):
+    from school_admin.services.transfert_eleve import TransfertInvalide, inscription_a_transferer
+
+    eleve = _eleve_identifie(ctx, args)
+    if not eleve:
+        return _incomplete('transferer_eleve', ['query'], 'Quel élève ? Donnez son nom complet ou son matricule.')
+    destination = _find_classe(ctx, args.get('classe'))
+    if not destination:
+        return _incomplete('transferer_eleve', ['classe'], f'Vers quelle classe transférer {eleve.nom_complet} ?',
+                           query=eleve.nom_complet)
+    try:
+        inscription = inscription_a_transferer(ctx.etablissement, ctx.annee_scolaire, eleve.pk)
+    except TransfertInvalide as exc:
+        return _err(str(exc))
+    if inscription.classe_id == destination.pk or destination.places_disponibles < 1:
+        return _err('L’élève est déjà dans cette classe ou la classe est complète.')
+    return _pending(
+        'transferer_eleve',
+        f'transfère {eleve.nom_complet} de {inscription.classe.nom} vers {destination.nom} '
+        f'pour {ctx.annee_scolaire.libelle}',
+        id=eleve.pk, origine_id=inscription.classe_id, destination_id=destination.pk,
+    )
+
+
+def apply_transferer_eleve(ctx, draft):
+    from school_admin.model.eleve_model import Eleve
+    from school_admin.services.assistant_schema import tool_permission_error
+    from school_admin.services.transfert_eleve import TransfertInvalide, transferer
+
+    denied = tool_permission_error(ctx, 'transferer_eleve')
+    if denied:
+        return denied
+    eleve = Eleve.objects.filter(pk=draft.get('id'), etablissement=ctx.etablissement).first()
+    if not eleve:
+        return _err('Élève introuvable.')
+    try:
+        origine, destination = transferer(
+            eleve, ctx.annee_scolaire, draft.get('destination_id'), origine_attendue=draft.get('origine_id'),
+        )
+    except TransfertInvalide as exc:
+        return _err(str(exc))
+    _emit(ctx, 'eleve.inscrit', {'id': eleve.pk, 'action': 'modifie'})
+    return _ok(f'{eleve.nom_complet} a été transféré de {origine.nom} vers {destination.nom}.',
+               url=_reverse('secretaire:detail_eleve', args=[eleve.pk]))
+
+
 def prepare_modifier_eleve(ctx, args):
     args = _parse_champs_libres(args)
-    eleve = _eleve_from_args(ctx, args)
+    eleve = _eleve_identifie(ctx, args)
     if not eleve:
         return _incomplete(
-            'modifier_eleve',
-            ['query'],
-            'Quel élève dois-je modifier ? Donnez le nom ou le matricule.',
+            'modifier_eleve', ['query'], 'Quel élève dois-je modifier ? Donnez son nom complet ou son matricule.',
         )
     picked = _picked(args, _ELEVE_FIELDS)
     lookup = (args.get('query') or '').strip().lower()
@@ -458,12 +508,7 @@ def prepare_modifier_eleve(ctx, args):
         else:
             return _incomplete('modifier_eleve', ['sexe'], 'Sexe : M ou F ?')
     if 'classe' in picked:
-        classe = _find_classe(ctx, picked['classe'])
-        if not classe:
-            return _incomplete('modifier_eleve', ['classe'], 'Quelle classe ?')
-        picked['classe_id'] = classe.id
-        picked['classe_nom'] = classe.nom
-        picked.pop('classe', None)
+        return _err('Pour modifier la classe, préparez un transfert. Les autres champs se modifient séparément.')
     if args.get('date_naissance'):
         naissance = _parse_date(args.get('date_naissance'))
         if not naissance:
@@ -478,7 +523,7 @@ def prepare_modifier_eleve(ctx, args):
             'modifier_eleve',
             ['champs'],
             f'Que dois-je changer pour {eleve.nom_complet} ? '
-            'Dictez tous les champs : nom, prénom, classe, adresse, téléphone, '
+            'Dictez tous les champs : nom, prénom, adresse, téléphone, '
             'email, naissance, nationalité ou infos du parent.',
             id=eleve.id,
             query=eleve.nom_complet,
@@ -495,26 +540,18 @@ def prepare_modifier_eleve(ctx, args):
 
 
 def apply_modifier_eleve(ctx, draft):
-    from school_admin.model.classe_model import Classe
     from school_admin.model.eleve_model import Eleve
 
     eleve = Eleve.objects.filter(pk=draft.get('id'), etablissement=ctx.etablissement).first()
     if not eleve:
         return _err('Élève introuvable.')
     changes = dict(draft.get('changements') or {})
-    if changes.get('classe_id'):
-        classe = Classe.objects.filter(
-            pk=changes['classe_id'], etablissement=ctx.etablissement, actif=True
-        ).first()
-        if not classe:
-            return _err('Classe introuvable.')
-        eleve.classe = classe
-        changes.pop('classe_id', None)
-        changes.pop('classe_nom', None)
+    if {'classe_id', 'classe'} & changes.keys():
+        return _err('Utilisez le transfert pour changer la classe.')
     if changes.get('date_naissance'):
         eleve.date_naissance = _parse_date(changes.pop('date_naissance'))
     for field, value in changes.items():
-        if hasattr(eleve, field):
+        if field in _ELEVE_FIELDS and field != 'classe':
             setattr(eleve, field, value if value != '' else None)
     eleve.save()
     _emit(ctx, 'eleve.inscrit', {'id': eleve.id, 'action': 'modifie'})
@@ -977,7 +1014,8 @@ def prepare_creer_moratoire(ctx, args):
     detail = ' ; '.join(f'{l["date"].isoformat()} : {l["montant"]}' for l in lignes)
     return _pending(
         'creer_moratoire',
-        f'crée un moratoire de {nombre} échéances pour {eleve.nom_complet} ({detail})',
+        f'crée un moratoire de {nombre} échéances pour {eleve.nom_complet}, '
+        f'année {ctx.annee_scolaire.libelle} ({detail})',
         id=eleve.id,
         motif=motif,
         nombre=nombre,
@@ -1027,10 +1065,17 @@ def prepare_payer_echeance_moratoire(ctx, args):
     echeance = next((item for item in echeances if item.get_reste_a_payer() > 0), None)
     if not echeance:
         return _err(f'Aucune échéance de moratoire à payer pour {eleve.nom_complet}.')
-    montant = _parse_money(args.get('montant')) or echeance.get_reste_a_payer()
+    from school_admin.services.recouvrement import devise_etablissement
+
+    montant = (_parse_money(args['montant']) if args.get('montant') is not None
+               else echeance.get_reste_a_payer())
+    if not montant:
+        return _err('Montant invalide.')
+    devise = devise_etablissement(ctx.etablissement)
     return _pending(
         'payer_echeance_moratoire',
-        f'paie l’échéance de {eleve.nom_complet} ({montant})',
+        f'paie {montant} {devise} pour {eleve.nom_complet}, échéance du '
+        f'{echeance.date_echeance:%d/%m/%Y}, année {ctx.annee_scolaire.libelle}',
         id=eleve.id,
         echeance_id=echeance.id,
         montant=str(montant),
@@ -1045,10 +1090,14 @@ def apply_payer_echeance_moratoire(ctx, draft):
     echeance = EcheanceMoratoire.objects.filter(
         pk=draft.get('echeance_id'),
         moratoire__etablissement=ctx.etablissement,
+        moratoire__annee_scolaire=ctx.annee_scolaire,
+        moratoire__eleve_id=draft.get('id'),
     ).select_related('moratoire').first()
     if not echeance:
         return _err('Échéance introuvable.')
-    montant = _parse_money(draft.get('montant')) or echeance.get_reste_a_payer()
+    montant = _parse_money(draft.get('montant'))
+    if not montant:
+        return _err('Montant invalide.')
     try:
         payer_echeance_moratoire(echeance, montant)
     except Exception as exc:
@@ -1117,56 +1166,50 @@ def apply_relancer_impaye(ctx, draft):
 
 
 def prepare_configurer_visibilite_bulletins(ctx, args):
-    classe = _find_classe(ctx, args.get('classe') or args.get('query'))
-    if not classe:
-        return _incomplete(
-            'configurer_visibilite_bulletins',
-            ['classe'],
-            'Pour quelle classe dois-je changer la visibilité des bulletins ?',
-        )
-    visible_raw = str(args.get('visible') or args.get('afficher') or '').strip().lower()
-    if visible_raw in ('1', 'true', 'oui', 'afficher', 'publier', 'visible'):
+    from school_admin.services.assistant_actions import _cible_bulletins
+
+    action = 'configurer_visibilite_bulletins'
+    cible = _cible_bulletins(ctx, args, action, eleve=bool(args.get('eleve')))
+    if 'statut' in cible or 'erreur' in cible:
+        return cible
+    visible_raw = args.get('visible', args.get('afficher'))
+    visible_raw = str(visible_raw).strip().lower()
+    if visible_raw in ('1', 'true', 'oui', 'afficher', 'visible'):
         visible = True
     elif visible_raw in ('0', 'false', 'non', 'masquer', 'cacher', 'invisible'):
         visible = False
     else:
-        return _incomplete(
-            'configurer_visibilite_bulletins',
-            ['visible'],
-            f'Afficher ou masquer les bulletins de {classe.nom} ?',
-            classe=classe.nom,
-        )
+        return _incomplete(action, ['visible'], 'Afficher ou masquer les bulletins ?', **cible)
+    nom = cible.get('eleve', cible['classe'])
     return _pending(
-        'configurer_visibilite_bulletins',
-        f'{"affiche" if visible else "masque"} les bulletins de {classe.nom}',
-        classe_id=classe.id,
-        visible=visible,
-        url=_reverse('directeur:bulletins_notes'),
+        action,
+        f'{"rends visible" if visible else "masque"} le bulletin de {nom} pour {cible["periode"]}'
+        if 'eleve' in cible else
+        f'{"rends visibles" if visible else "masque"} tous les bulletins de {nom} pour {cible["periode"]}',
+        visible=visible, **cible,
     )
 
 
 def apply_configurer_visibilite_bulletins(ctx, draft):
-    from school_admin.model.classe_model import Classe
-    from school_admin.model.moyenne_periode_model import MoyennePeriode
-    from school_admin.model.periode_model import PeriodeScolaire
+    from django.utils import timezone
+    from school_admin.personal_views.directeur_view import _emit_bulletin_live
+    from school_admin.services.assistant_actions import _recharger_cible_bulletins
+    from school_admin.services.bulletins import bulletins_classe
 
-    classe = Classe.objects.filter(pk=draft.get('classe_id'), etablissement=ctx.etablissement).first()
-    periode = PeriodeScolaire.get_periode_active(ctx.etablissement)
-    if not classe or not periode:
-        return _err('Classe ou période introuvable.')
-    qs = MoyennePeriode.objects.filter(
-        etablissement=ctx.etablissement,
-        periode=periode,
-        est_moyenne_generale=True,
-        eleve__classe=classe,
-    )
-    if ctx.annee_scolaire:
-        qs = qs.filter(annee_scolaire=ctx.annee_scolaire)
-    visible = bool(draft.get('visible'))
-    updated = qs.update(afficher_bulletin=visible)
-    _emit(ctx, 'bulletin.mise_a_jour', {'classe_id': classe.id, 'action': 'visibilite'})
-    etat = 'affichés' if visible else 'masqués'
-    return _ok(f'Bulletins de {classe.nom} {etat} ({updated} élève(s)).')
+    classe, periode = _recharger_cible_bulletins(ctx, draft)
+    if not periode:
+        return _err('La classe, la période ou l’année a changé. Reformulez la demande.')
+    qs = bulletins_classe(classe, periode, ctx.annee_scolaire)
+    if draft.get('eleve_id'):
+        qs = qs.filter(eleve_id=draft['eleve_id'])
+    if not qs.exists():
+        return _err('Aucun bulletin calculé pour cette sélection.')
+    visible = draft['visible']
+    updated = qs.exclude(afficher_bulletin=visible).update(afficher_bulletin=visible, updated_at=timezone.now())
+    _emit_bulletin_live(ctx.etablissement.id, 'visibilite', classe_id=classe.id, periode_id=periode.id)
+    if not updated:
+        return _ok('La visibilité demandée est déjà appliquée.')
+    return _ok(f'{updated} bulletin(s) {"rendu(s) visible(s)" if visible else "masqué(s)"} pour {periode.nom_periode}.')
 
 
 # ---------------------------------------------------------------------------
@@ -1174,6 +1217,8 @@ def apply_configurer_visibilite_bulletins(ctx, draft):
 # ---------------------------------------------------------------------------
 
 def prepare_configurer_moyennes(ctx, args):
+    if not ctx.annee_scolaire:
+        return _err('Aucune année scolaire sélectionnée.')
     methode = _normalize_methode(args.get('methode') or args.get('query') or args.get('champs'))
     if not methode:
         return _incomplete(
@@ -1186,31 +1231,34 @@ def prepare_configurer_moyennes(ctx, args):
     labels = dict(Ponderation.TYPE_CALCUL_CHOICES)
     return _pending(
         'configurer_moyennes',
-        f'applique la pondération {labels.get(methode, methode)}',
-        methode=methode,
+        f'applique la pondération {labels[methode]} pour {ctx.annee_scolaire.libelle}',
+        methode=methode, annee_id=ctx.annee_scolaire.id,
         url=_reverse('directeur:configuration_moyennes_generales'),
     )
 
 
 def apply_configurer_moyennes(ctx, draft):
+    from school_admin.personal_views.directeur_view import _emit_bulletin_live
     from school_admin.model.ponderation_model import Ponderation
 
-    if not ctx.annee_scolaire:
-        return _err('Aucune année scolaire active.')
+    if not ctx.annee_scolaire or draft.get('annee_id') != ctx.annee_scolaire.id:
+        return _err('L’année scolaire a changé. Reformulez la demande.')
     ponderation = Ponderation.get_or_create_for_year(ctx.etablissement, ctx.annee_scolaire.libelle)
     ponderation.appliquer_methode(draft.get('methode'))
     ponderation.save()
-    _emit(ctx, 'bulletin.mise_a_jour', {'action': 'config_moyennes'})
+    _emit_bulletin_live(ctx.etablissement.id, 'config_moyennes')
     return _ok('Pondération des moyennes enregistrée.')
 
 
 def prepare_configurer_standards(ctx, args):
-    raw = args.get('moyenne_passage') or args.get('moyenne') or args.get('seuil') or args.get('champs')
+    if not ctx.annee_scolaire:
+        return _err('Aucune année scolaire sélectionnée.')
+    raw = next((args[k] for k in ('moyenne_passage', 'moyenne', 'seuil', 'champs') if args.get(k) is not None), None)
     try:
         moyenne = Decimal(str(raw).replace(',', '.')).quantize(Decimal('0.01'))
     except (InvalidOperation, TypeError, ValueError, AttributeError):
         moyenne = None
-    if moyenne is None or moyenne < 0 or moyenne > 20:
+    if moyenne is None or not moyenne.is_finite() or not 0 <= moyenne <= 20:
         return _incomplete(
             'configurer_standards',
             ['moyenne_passage'],
@@ -1218,15 +1266,19 @@ def prepare_configurer_standards(ctx, args):
         )
     return _pending(
         'configurer_standards',
-        f'fixe la moyenne de passage à {moyenne}',
+        f'fixe la moyenne de passage de l’établissement à {moyenne}/20',
+        annee_id=ctx.annee_scolaire.id,
         moyenne_passage=str(moyenne),
         url=_reverse('directeur:configuration_standards_reussite'),
     )
 
 
 def apply_configurer_standards(ctx, draft):
+    from school_admin.personal_views.directeur_view import _emit_bulletin_live
     from school_admin.model.standards_reussite_model import StandardsReussite
 
+    if not ctx.annee_scolaire or draft.get('annee_id') != ctx.annee_scolaire.id:
+        return _err('L’année scolaire a changé. Reformulez la demande.')
     moyenne = Decimal(str(draft.get('moyenne_passage')))
     standards, _ = StandardsReussite.objects.get_or_create(
         etablissement=ctx.etablissement,
@@ -1236,8 +1288,49 @@ def apply_configurer_standards(ctx, draft):
     if ctx.annee_scolaire:
         standards.annee_scolaire = ctx.annee_scolaire
     standards.save()
-    _emit(ctx, 'bulletin.mise_a_jour', {'action': 'config_standards'})
+    _emit_bulletin_live(ctx.etablissement.id, 'config_standards', section='general')
     return _ok(f'Moyenne de passage fixée à {moyenne}/20.')
+
+
+def prepare_configurer_appreciations_bulletins(ctx, args):
+    from school_admin.services.bulletins import valider_bareme
+
+    action = 'configurer_appreciations_bulletins'
+    section = args.get('section')
+    if not ctx.annee_scolaire:
+        return _err('Aucune année scolaire sélectionnée.')
+    if section not in ('matieres', 'conseil'):
+        return _incomplete(action, ['section'], 'Appréciations des matières ou du conseil ?')
+    try:
+        lignes = valider_bareme(section, args.get('paliers'))
+    except ValueError as exc:
+        return _incomplete(action, ['paliers'], str(exc), section=section)
+    bareme = '; '.join(
+        (f'{p["min"]} à {p["max"]}' if 'max' in p else f'à partir de {p["min"]}') + f' — {p["label"]}'
+        for p in lignes
+    )
+    cible = 'des matières' if section == 'matieres' else 'du conseil'
+    return _pending(
+        action, f'remplace tout le barème {cible} de l’établissement par {bareme}',
+        section=section, paliers=lignes, annee_id=ctx.annee_scolaire.id,
+    )
+
+
+def apply_configurer_appreciations_bulletins(ctx, draft):
+    from school_admin.personal_views.directeur_view import _emit_bulletin_live
+    from school_admin.services.bulletins import enregistrer_bareme
+
+    if not ctx.annee_scolaire or draft.get('annee_id') != ctx.annee_scolaire.id:
+        return _err('L’année scolaire a changé. Reformulez la demande.')
+    try:
+        enregistrer_bareme(ctx.etablissement, ctx.annee_scolaire, draft['section'], draft['paliers'])
+    except ValueError as exc:
+        return _err(str(exc))
+    _emit_bulletin_live(ctx.etablissement.id, 'config_standards', section=draft['section'])
+    return _ok(
+        f'{len(draft["paliers"])} palier(s) enregistré(s).',
+        url=_reverse('directeur:configuration_standards_reussite'),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1386,14 +1479,15 @@ def apply_desactiver_personnel(ctx, draft):
 
 
 def _affectation_action(args):
-    explicit = str(args.get('action') or '').strip().lower()
+    # « operation » : add / remove (« action » désigne le nom de l'action dans les brouillons).
+    explicit = str(args.get('operation') or args.get('action') or '').strip().lower()
     if explicit in ('add', 'ajouter', 'affecter'):
         return 'add'
     if explicit in ('remove', 'retirer', 'enlever', 'supprimer'):
         return 'remove'
     raw = ' '.join(
         str(args.get(key) or '')
-        for key in ('action', 'query', 'professeur', 'classe')
+        for key in ('operation', 'query', 'professeur', 'classe')
     ).lower()
     if re.search(r'\b(retir|enlev|supprim|remove)\w*', raw):
         return 'remove'
@@ -1442,7 +1536,7 @@ def prepare_affecter_professeur(ctx, args):
             'affecter_professeur',
             ['professeur'],
             'Quel professeur faut-il affecter ou retirer ?',
-            action=action,
+            operation=action,
         )
     if not classe:
         qs, primaire = _queryset_affectations(ctx, prof=prof)
@@ -1454,7 +1548,7 @@ def prepare_affecter_professeur(ctx, args):
                 f"{prof.nom_complet} a {len(rows)} affectation{'s' if len(rows) > 1 else ''}. "
                 "Laquelle retirer ?",
                 professeur_id=prof.id,
-                action='remove',
+                operation='remove',
                 choix_affectations=_choix_affectations(rows),
             )
         verbe = 'retirer' if action == 'remove' else 'affecter'
@@ -1463,7 +1557,7 @@ def prepare_affecter_professeur(ctx, args):
             ['classe'],
             f'Dans quelle classe {verbe} {prof.nom_complet} ?',
             professeur_id=prof.id,
-            action=action,
+            operation=action,
         )
     matiere = _find_matiere(ctx, args.get('matiere')) or getattr(prof, 'matiere_principale', None)
     if ctx.etablissement.type_etablissement != 'primary' and not matiere:
@@ -1480,7 +1574,7 @@ def prepare_affecter_professeur(ctx, args):
                     f"Quelle matière retirer pour {prof.nom_complet} en {classe.nom} ?",
                     professeur_id=prof.id,
                     classe_id=classe.id,
-                    action='remove',
+                    operation='remove',
                     choix_affectations=_choix_affectations(rows),
                 )
         if not matiere:
@@ -1490,7 +1584,7 @@ def prepare_affecter_professeur(ctx, args):
                 'Quelle matière enseigner ?',
                 professeur_id=prof.id,
                 classe_id=classe.id,
-                action=action,
+                operation=action,
             )
     verbe = 'retire' if action == 'remove' else 'affecte'
     return _pending(
@@ -1499,8 +1593,8 @@ def prepare_affecter_professeur(ctx, args):
         professeur_id=prof.id,
         classe_id=classe.id,
         matiere_id=matiere.id if matiere else None,
-        action=action,
-        statut=(args.get('statut') or 'classique'),
+        operation=action,
+        statut_affectation=(args.get('statut') or 'classique'),
         url=_reverse('affectation:affectation_professeurs'),
     )
 
@@ -1521,7 +1615,7 @@ def apply_affecter_professeur(ctx, draft):
     if ctx.etablissement.type_etablissement == 'primary':
         from school_admin.model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
 
-        if draft.get('action') == 'remove':
+        if draft.get('operation') == 'remove':
             aff = AffectationProfesseurPrimaire.objects.filter(
                 professeur=prof, classe=classe, actif=True, annee_scolaire=ctx.annee_scolaire
             ).first()
@@ -1547,7 +1641,7 @@ def apply_affecter_professeur(ctx, draft):
             aff.matieres.set(matieres)
         _emit(ctx, 'affectation.mise_a_jour', {'action': 'add'})
         return _ok(f'{prof.nom_complet} est affecté à {classe.nom}.')
-    if draft.get('action') == 'remove':
+    if draft.get('operation') == 'remove':
         qs = AffectationProfesseur.objects.filter(
             professeur=prof, classe=classe, annee_scolaire=ctx.annee_scolaire, actif=True
         )
@@ -1567,11 +1661,11 @@ def apply_affecter_professeur(ctx, draft):
         classe=classe,
         matiere=matiere,
         annee_scolaire=ctx.annee_scolaire,
-        defaults={'statut': draft.get('statut') or 'classique', 'actif': True},
+        defaults={'statut': draft.get('statut_affectation') or 'classique', 'actif': True},
     )
     if not created:
         aff.actif = True
-        aff.statut = draft.get('statut') or aff.statut
+        aff.statut = draft.get('statut_affectation') or aff.statut
         aff.save()
     _emit(ctx, 'affectation.mise_a_jour', {'action': 'add'})
     return _ok(f'{prof.nom_complet} enseigne {matiere.nom} en {classe.nom}.')
@@ -1914,9 +2008,16 @@ def apply_supprimer_module(ctx, draft):
 
 _DOSSIER_ACTIONS = (
     ActionSpec(
+        'transferer_eleve',
+        'Transfère un élève ou étudiant vers une autre classe pour l’année active. Demande confirmation.',
+        {'query': _STR, 'classe': _STR},
+        prepare=prepare_transferer_eleve,
+        apply=apply_transferer_eleve,
+    ),
+    ActionSpec(
         'modifier_eleve',
         'Modifie le dossier d’un élève (nom, classe, adresse, téléphone, parent, naissance…). Dictez tous les champs utiles.',
-        {key: _STR for key in ('query', 'champs') + _ELEVE_FIELDS},
+        {key: _STR for key in ('query', 'champs') + _ELEVE_FIELDS if key != 'classe'},
         prepare=prepare_modifier_eleve,
         apply=apply_modifier_eleve,
     ),
@@ -1976,8 +2077,8 @@ _DOSSIER_ACTIONS = (
     ),
     ActionSpec(
         'configurer_visibilite_bulletins',
-        'Affiche ou masque les bulletins d’une classe.',
-        {'classe': _STR, 'query': _STR, 'visible': _STR, 'afficher': _STR},
+        'Rend visibles aux familles ou masque les bulletins d’une classe ou d’un élève, sur demande explicite. Pour une simple consultation, utiliser get_bulletin_eleve.',
+        {'classe': _STR, 'eleve': _STR, 'periode': _STR, 'query': _STR, 'visible': _STR, 'afficher': _STR},
         prepare=prepare_configurer_visibilite_bulletins,
         apply=apply_configurer_visibilite_bulletins,
     ),
@@ -1994,6 +2095,19 @@ _DOSSIER_ACTIONS = (
         {'moyenne_passage': _STR, 'moyenne': _STR, 'seuil': _STR, 'champs': _STR},
         prepare=prepare_configurer_standards,
         apply=apply_configurer_standards,
+    ),
+    ActionSpec(
+        'configurer_appreciations_bulletins',
+        'Remplace le barème complet des appréciations de matières ou du conseil. '
+        'Si la demande porte sur un seul palier, consulter le barème existant et conserver les autres paliers.',
+        {
+            'section': {'type': 'string', 'enum': ['matieres', 'conseil']},
+            'paliers': {'type': 'array', 'items': {'type': 'object', 'properties': {
+                'min': {'type': 'number'}, 'max': {'type': 'number'}, 'label': _STR,
+            }, 'required': ['min', 'label']}},
+        },
+        prepare=prepare_configurer_appreciations_bulletins,
+        apply=apply_configurer_appreciations_bulletins,
     ),
     ActionSpec(
         'modifier_professeur',
@@ -2092,3 +2206,9 @@ _DOSSIER_ACTIONS = (
 
 for _spec in _DOSSIER_ACTIONS:
     register_action(_spec)
+
+
+# Actions de structure (modules, matières, classes) à jour des règles LMD : remplacent les versions ci-dessus.
+from school_admin.services.assistant_structure import enregistrer as _enregistrer_structure  # noqa: E402
+
+_enregistrer_structure()

@@ -432,14 +432,14 @@ def _send_emploi_publication(emploi_id: int) -> None:
     )
 
 
-def schedule_bulletin_publication(classe_id: int, periode_id: int, etablissement_id: int) -> None:
+def schedule_bulletin_publication(classe_id: int, periode_id: int, etablissement_id: int, *, eleve_ids=None) -> None:
     """
     Programme l'envoi asynchrone des notifications de publication de bulletins.
     """
 
     def _run_async() -> None:
         try:
-            _send_bulletin_publication(classe_id, periode_id, etablissement_id)
+            _send_bulletin_publication(classe_id, periode_id, etablissement_id, eleve_ids=eleve_ids)
         except Exception as exc:  # pragma: no cover
             logger.exception(
                 "Erreur lors de l'envoi des notifications de publication des bulletins (classe %s, période %s): %s",
@@ -457,7 +457,7 @@ def schedule_bulletin_publication(classe_id: int, periode_id: int, etablissement
     )
 
 
-def _send_bulletin_publication(classe_id: int, periode_id: int, etablissement_id: int) -> None:
+def _send_bulletin_publication(classe_id: int, periode_id: int, etablissement_id: int, *, eleve_ids=None) -> None:
     """
     Envoie les notifications suite à la publication des bulletins d'une classe.
     """
@@ -495,7 +495,18 @@ def _send_bulletin_publication(classe_id: int, periode_id: int, etablissement_id
     message_eleve = f"Les bulletins de {periode_nom} sont disponibles dans votre espace."
     redirect_eleves = reverse("eleve:notes_evaluations")
 
-    eleves = list(eleves_inscrits_classe(classe, periode.annee_scolaire_fk))
+    from school_admin.services.bulletins import bulletins_classe
+
+    visibles = bulletins_classe(classe, periode, periode.annee_scolaire_fk).filter(
+        est_publie=True, afficher_bulletin=True,
+    )
+    if eleve_ids is not None:
+        visibles = visibles.filter(eleve_id__in=eleve_ids)
+    eleves = list(eleves_inscrits_classe(classe, periode.annee_scolaire_fk).filter(
+        pk__in=visibles.values('eleve_id'),
+    ))
+    if not eleves:
+        return
     _notify_users_push(
         eleves,
         titre=titre_general,

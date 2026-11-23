@@ -88,6 +88,26 @@ def _date(valeur):
     return datetime.strptime(valeur, '%Y-%m-%d').date()
 
 
+STATUTS_FILTRE = {
+    'entrees': (('validee', 'Validée'), ('annulee', 'Annulée')),
+    'sorties': (('validee', 'Validée'), ('a_payer', 'À payer'), ('partiel', 'Payée en partie'),
+                ('payee', 'Payée'), ('annulee', 'Annulée')),
+    'tresorerie': (('validee', 'Validé'), ('annulee', 'Annulé')),
+    'financements': (('en_cours', 'En cours'), ('solde', 'Soldé'), ('annulee', 'Annulé')),
+}
+
+
+def _qs_sans_mois(filtres):
+    """Filtres de l'adresse sans le mois, pour les flèches mois précédent / suivant."""
+    from urllib.parse import urlencode
+
+    data = {}
+    for cle, nom in (('vue', 'vue'), ('compte_id', 'compte'), ('statut', 'statut'), ('q', 'q'), ('releve_id', 'releve')):
+        if filtres.get(cle):
+            data[nom] = filtres[cle]
+    return urlencode(data)
+
+
 def _contexte(request, etablissement, is_directeur, personnel, annee, filtres, fin_nav):
     if not CompteTresorerie.objects.filter(etablissement=etablissement, actif=True).exists():
         assurer_comptes_defaut(etablissement)
@@ -109,6 +129,12 @@ def _contexte(request, etablissement, is_directeur, personnel, annee, filtres, f
         'filtre_qs': query_filtres(filtres),
         'filtre_nav': query_filtres(nav_filtres),
         'fin_nav': fin_nav,
+        'mois_precedent': _decaler_mois(filtres['bornes'].debut, -1),
+        'mois_suivant': _decaler_mois(filtres['bornes'].debut, 1),
+        'mois_courant': timezone.now().date().strftime('%Y-%m'),
+        'qs_sans_mois': _qs_sans_mois(filtres),
+        'statuts_filtre': STATUTS_FILTRE.get(fin_nav, ()),
+        'filtre_actif': bool(filtres['compte_id'] or filtres['statut'] or filtres['q']),
         'peut_annuler': _peut_annuler(request, is_directeur),
         'devise_monnaie': devise_etablissement(etablissement),
         'date_defaut': timezone.now().date(),
@@ -116,6 +142,12 @@ def _contexte(request, etablissement, is_directeur, personnel, annee, filtres, f
             etablissement=etablissement, actif=True, statut='ouvert',
         ),
     }
+
+
+def _decaler_mois(debut, pas):
+    """Valeur AAAA-MM du mois décalé de `pas` mois (navigation de la page Situation)."""
+    total = debut.year * 12 + (debut.month - 1) + pas
+    return f"{total // 12:04d}-{total % 12 + 1:02d}"
 
 
 class FinancesController:
@@ -136,7 +168,7 @@ class FinancesController:
         contexte.update({
             'indicateurs': indicateurs,
             'regime': data['regime'],
-            'operations': dernieres_operations(etablissement, bornes.debut, bornes.fin),
+            'operations': dernieres_operations(etablissement, bornes.debut, bornes.fin, limite=6),
             'subventions': subventions,
         })
         return render(request, 'school_admin/directeur/finances/situation.html', contexte)
@@ -290,12 +322,23 @@ class FinancesController:
 
         preparer_referentiels(etablissement)
         contexte = _contexte(request, etablissement, is_directeur, personnel, annee, filtres, 'sorties')
+        depenses = list(filtrer_sorties(etablissement, filtres))
+        factures = list(filtrer_factures(etablissement, filtres).prefetch_related(
+                Prefetch('paiements', queryset=PaiementCharge.objects.select_related('compte_tresorerie'))
+            ))
+        ZERO_D = Decimal('0')
+        totaux_sorties = {
+            'depenses': sum((d.montant or ZERO_D for d in depenses if d.statut == 'validee'), ZERO_D),
+            'nb_depenses': sum(1 for d in depenses if d.statut == 'validee'),
+            'prevu': sum((f.montant or ZERO_D for f in factures if f.statut != 'annulee'), ZERO_D),
+            'reste': sum((f.reste_a_payer() for f in factures if f.statut != 'annulee'), ZERO_D),
+            'nb_a_payer': sum(1 for f in factures if f.statut in ('a_payer', 'partiel')),
+        }
         contexte.update({
             'liens_vue': {code: query_filtres(filtres, vue=code) for code in VUES_SORTIES},
-            'depenses': filtrer_sorties(etablissement, filtres),
-            'factures': filtrer_factures(etablissement, filtres).prefetch_related(
-                Prefetch('paiements', queryset=PaiementCharge.objects.select_related('compte_tresorerie'))
-            ),
+            'depenses': depenses,
+            'factures': factures,
+            'totaux_sorties': totaux_sorties,
             'factures_historiques': list(factures_historique_sans_lignes(etablissement)[:50]),
             'fournisseurs': FournisseurEtablissement.objects.filter(etablissement=etablissement, actif=True),
             'categories': CategorieFinanciere.objects.filter(
@@ -662,6 +705,12 @@ class FinancesController:
             prets = prets.filter(statut=filtres['statut'])
         contexte = _contexte(request, etablissement, is_directeur, personnel, annee, filtres, 'financements')
         contexte['prets'] = list(prets.order_by('-date_reception', '-id')[:80])
+        en_cours = [p for p in contexte['prets'] if p.statut == 'en_cours']
+        contexte['totaux_prets'] = {
+            'nb_en_cours': len(en_cours),
+            'capital_restant': sum((p.capital_restant() for p in en_cours), Decimal('0')),
+            'recu': sum((p.montant or Decimal('0') for p in contexte['prets'] if p.statut != 'annulee'), Decimal('0')),
+        }
         return render(request, 'school_admin/directeur/finances/financements.html', contexte)
 
     @staticmethod

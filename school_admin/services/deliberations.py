@@ -17,6 +17,9 @@ from decimal import ROUND_HALF_UP, Decimal
 from types import SimpleNamespace
 
 from django.db import transaction
+from django.db.models import Q
+
+from school_admin.services.credits_lmd import matieres_de_ue, repartir
 from django.utils import timezone
 
 from school_admin.model.deliberation_model import DecisionJury, Deliberation, UECapitalisee
@@ -111,22 +114,15 @@ def lignes_eleve(eleve, classe, periodes, annee, exclure_deliberation=None, cach
             continue
         cle_ecs = ('ecs',classe.pk,mc.module_id)
         if cle_ecs not in cache:
-            ecs = list(Matiere.objects.filter(module_id=mc.module_id, actif=True,
-                       etablissement_id=classe.etablissement_id, classes=classe).distinct().order_by('pk'))
-            if not ecs:
-                ecs = list(Matiere.objects.filter(module_id=mc.module_id, actif=True,
-                           etablissement_id=classe.etablissement_id).order_by('pk'))
-            cache[cle_ecs] = ecs
+            cache[cle_ecs] = matieres_de_ue(mc.module_id, classe)
         ecs = cache[cle_ecs]
         if not ecs:
             ecs = [SimpleNamespace(pk=f'vide-{mc.module_id}', id=f'vide-{mc.module_id}',
                    module_id=mc.module_id,module=mc.module,nom=mc.module.nom,credits=mc.credits,coefficient=1)]
-        poids = sum((Decimal(str(m.credits or 0)) for m in ecs),D0)
-        restant = mc.credits
-        for i,m in enumerate(ecs):
-            credit = (restant if i == len(ecs)-1 else
-                      mc.credits * Decimal(str(m.credits or 0)) / poids if poids else mc.credits / len(ecs))
-            restant -= credit
+        # Même règle que les bulletins et la maquette (services/credits_lmd.py).
+        repartition = repartir(mc.credits, ecs)
+        for m in ecs:
+            credit = repartition[m.pk]
             r = moyennes.get((mc.periode_id,m.pk))
             # Moyenne calculée avant l'ajout de l'empreinte (migration 0256) : à recalculer une fois.
             ancienne = bool(r and not r.empreinte_sources)
@@ -464,3 +460,35 @@ def statistiques(deliberation):
         'moyenne_promo': _q(sum(moyennes) / len(moyennes)) if moyennes else None,
         'avec_points': sum(1 for d in decisions if d.points_jury),
     }
+
+
+def ecarts_credits(deliberation):
+    """Modules (UE) dont les crédits ont changé depuis la clôture de la délibération.
+
+    Une délibération close garde les crédits du jour du jury (valeur officielle). Si les crédits d'un
+    module pour la classe ont été modifiés depuis, on le signale pour que la direction décide de rouvrir.
+    Renvoie [{'module': nom, 'avant': Decimal|None, 'maintenant': Decimal|None}].
+    """
+    if not deliberation.est_cloturee:
+        return []
+    from school_admin.model.module_model import ModuleClasse
+    figes = {}
+    for detail in deliberation.decisions.values_list('detail_ues', flat=True):
+        for ue in detail or []:
+            mid = ue.get('module_id')
+            if mid and mid not in figes and ue.get('mode') != 'capitalisee':
+                figes[mid] = (ue.get('titre') or '', Decimal(str(ue.get('credits') or 0)))
+    actuels = {}
+    for mc in ModuleClasse.objects.filter(classe=deliberation.classe,
+                                          periode__in=periodes_de(deliberation)).select_related('module'):
+        actuels[mc.module_id] = (mc.module.nom, Decimal(str(mc.credits or 0)))
+    if not figes:
+        return []
+    ecarts = []
+    for mid in sorted(set(figes) | set(actuels), key=lambda m: (figes.get(m) or actuels.get(m))[0]):
+        avant = figes.get(mid, (None, None))[1]
+        maintenant = actuels.get(mid, (None, None))[1]
+        if avant != maintenant:
+            nom = (figes.get(mid) or actuels.get(mid))[0]
+            ecarts.append({'module': nom, 'avant': avant, 'maintenant': maintenant})
+    return ecarts

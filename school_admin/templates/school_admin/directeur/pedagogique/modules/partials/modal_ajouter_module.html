@@ -7,8 +7,8 @@
       <div class="mam-header-brand">
         <span class="mam-header-icon" aria-hidden="true"><i class="fas fa-cube"></i></span>
         <div class="mam-header-text">
-          <h2 id="moduleAddModalTitle" class="mam-title">{% trans "Nouveau module" %}</h2>
-          <p class="mam-subtitle">{% trans "Nom, spécialités et niveaux LMD — le code MOD-xxxx est généré automatiquement." %}</p>
+          <h2 id="moduleAddModalTitle" class="mam-title">{% trans "Créer un module (UE)" %}</h2>
+          <p class="mam-subtitle">{% trans "Le code du module est généré automatiquement." %}</p>
         </div>
       </div>
       <button type="button" class="mam-close" data-module-modal-close aria-label="{% trans 'Fermer' %}">
@@ -22,11 +22,14 @@
         {% include 'school_admin/directeur/pedagogique/modules/partials/module_form_unified_body.html' with module_form_data=modal_form_data module_field_errors=modal_field_errors module_nom_field_id='modal_nom_module' %}
       </div>
       <footer class="mam-footer">
+        <p class="mam-selection-summary" data-module-selection-summary aria-live="polite"></p>
+        <div class="mam-footer-actions">
         <button type="button" class="mam-btn mam-btn--ghost" data-module-modal-close>{% trans "Annuler" %}</button>
         <button type="submit" class="mam-btn mam-btn--primary">
           <i class="fas fa-check" aria-hidden="true"></i>
           {% trans "Créer le module" %}
         </button>
+        </div>
       </footer>
     </form>
   </div>

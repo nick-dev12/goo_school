@@ -15,6 +15,11 @@ from school_admin.services.finances.tresorerie import assurer_comptes_defaut, co
 from school_admin.tests_comptabilite_generale import _make_annee, _make_etablissement
 
 
+
+def _mois_decale(debut, pas):
+    total = debut.year * 12 + debut.month - 1 + pas
+    return f'{total // 12:04d}-{total % 12 + 1:02d}'
+
 class FinancesInterfaceTests(TestCase):
     PASSWORD = 'Pce@Test1!'
 
@@ -74,7 +79,11 @@ class FinancesInterfaceTests(TestCase):
         self.assertNotIn('kpis', response.context)
         self.assertEqual(response.context['indicateurs']['encaisse']['valeur'], Decimal('600'))
         self.assertEqual(response.context['indicateurs']['paye']['valeur'], Decimal('75'))
-        self.assertIn('fin-kpi--sortie', html)
+        # Charte : en-tête bleu et cartes colorées (sorties en rouge).
+        self.assertIn('hb-head', html)
+        self.assertIn('fe-kpi fe-tone-red', html)
+        self.assertEqual(response.context['mois_precedent'], _mois_decale(response.context['bornes'].debut, -1))
+        self.assertEqual(response.context['mois_suivant'], _mois_decale(response.context['bornes'].debut, 1))
         self.assertNotIn('cg-pill--danger', html)
 
     def test_filtre_mois_reste_dans_ladresse(self):

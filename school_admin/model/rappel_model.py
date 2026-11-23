@@ -81,3 +81,46 @@ class NotificationPersonnel(models.Model):
             self.statut = 'lu'
             self.date_lecture = timezone.now()
             self.save(update_fields=['lu', 'statut', 'date_lecture', 'date_modification'])
+
+
+class RappelPersonnel(models.Model):
+    """Rappel demandé à l'assistant (« rappelle-moi lundi à 9 h… ») : notification + push à l'heure dite."""
+
+    etablissement = models.ForeignKey('Etablissement', on_delete=models.CASCADE, related_name='rappels_personnels')
+    # Vide : le rappel est pour le directeur (compte de l'établissement).
+    personnel = models.ForeignKey('PersonnelAdministratif', on_delete=models.CASCADE, null=True, blank=True,
+                                  related_name='rappels_personnels')
+    texte = models.CharField(max_length=300)
+    echeance = models.DateTimeField(db_index=True)
+    envoye = models.BooleanField(default=False)
+    date_envoi = models.DateTimeField(null=True, blank=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['echeance']
+        indexes = [models.Index(fields=['envoye', 'echeance'], name='rappel_perso_du_idx')]
+
+    def __str__(self):
+        return f"{self.echeance:%d/%m/%Y %H:%M} — {self.texte}"
+
+
+class CourrierEtablissement(models.Model):
+    """Courrier libre rédigé avec l'assistant (lettre, note de service, compte rendu), imprimable avec l'en-tête."""
+
+    TYPES = [('lettre', 'Lettre'), ('note_service', 'Note de service'), ('compte_rendu', 'Compte rendu'),
+             ('autre', 'Autre')]
+
+    etablissement = models.ForeignKey('Etablissement', on_delete=models.CASCADE, related_name='courriers')
+    type_courrier = models.CharField(max_length=20, choices=TYPES, default='lettre')
+    objet = models.CharField(max_length=200)
+    destinataire = models.CharField(max_length=200, blank=True, default='')
+    contenu = models.TextField()
+    signataire = models.CharField(max_length=160, blank=True, default='')
+    redige_par = models.CharField(max_length=160, blank=True, default='')
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date_creation']
+
+    def __str__(self):
+        return self.objet

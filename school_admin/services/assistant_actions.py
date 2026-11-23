@@ -180,7 +180,7 @@ def _parse_money(raw):
         value = Decimal(text)
     except (InvalidOperation, ValueError):
         return None
-    if value <= 0:
+    if not value.is_finite() or value <= 0:
         return None
     return value
 
@@ -246,8 +246,7 @@ def _find_liaison(ctx, query):
     from school_admin.model.demande_liaison_model import DemandeLiaisonParent
 
     qs = DemandeLiaisonParent.objects.filter(
-        Q(etablissement=ctx.etablissement)
-        | Q(eleve_valide__etablissement=ctx.etablissement)
+        eleve_valide__etablissement=ctx.etablissement
     ).select_related('parent_demandeur', 'eleve_valide')
     raw = (query or '').strip()
     if raw.isdigit():
@@ -891,13 +890,9 @@ def apply_approuver_liaison(ctx, draft):
 
     demande = DemandeLiaisonParent.objects.select_related(
         'parent_demandeur', 'eleve_valide'
-    ).filter(pk=draft.get('id')).first()
-    if not demande or (
-        demande.etablissement_id not in (None, ctx.etablissement.id)
-        and getattr(demande.eleve_valide, 'etablissement_id', None) != ctx.etablissement.id
-    ):
-        if not demande:
-            return _err('Demande de liaison introuvable.')
+    ).filter(pk=draft.get('id'), eleve_valide__etablissement=ctx.etablissement).first()
+    if not demande:
+        return _err('Demande de liaison introuvable.')
     parent, eleve = _liaison_resume(demande)
     if demande.eleve_valide_id:
         lien = LienFamilial.objects.filter(
@@ -940,7 +935,7 @@ def apply_rejeter_liaison(ctx, draft):
 
     demande = DemandeLiaisonParent.objects.select_related(
         'parent_demandeur', 'eleve_valide'
-    ).filter(pk=draft.get('id')).first()
+    ).filter(pk=draft.get('id'), eleve_valide__etablissement=ctx.etablissement).first()
     if not demande:
         return _err('Demande de liaison introuvable.')
     motif = draft.get('motif') or 'Demande refusée par l’établissement'
@@ -976,7 +971,7 @@ def apply_desapprouver_liaison(ctx, draft):
 
     demande = DemandeLiaisonParent.objects.select_related(
         'parent_demandeur', 'eleve_valide'
-    ).filter(pk=draft.get('id')).first()
+    ).filter(pk=draft.get('id'), eleve_valide__etablissement=ctx.etablissement).first()
     if not demande:
         return _err('Demande de liaison introuvable.')
     if demande.statut not in ('reussie', 'approuvee'):
@@ -1130,85 +1125,170 @@ def apply_toggle_lien_preinscription(ctx, draft):
 # Bulletins
 # ---------------------------------------------------------------------------
 
-def prepare_publier_bulletins(ctx, args):
-    classe = _find_classe(ctx, args.get('classe') or args.get('query'))
-    if not classe:
-        return _incomplete('publier_bulletins', ['classe'], 'Pour quelle classe dois-je publier les bulletins ?')
-    periode = _find_periode(ctx, args.get('periode'))
+def periode_bulletin(ctx, classe, recherche=None):
+    from school_admin.services.bulletins import periodes_bulletins
+
+    if not ctx.annee_scolaire:
+        return None
+    periodes = periodes_bulletins(ctx.etablissement, ctx.annee_scolaire, classe)
+    recherche = str(recherche or '').strip()
+    if recherche.isdecimal():
+        periodes = periodes.filter(pk=int(recherche))
+    elif recherche:
+        exactes = periodes.filter(nom_periode__iexact=recherche)
+        periodes = exactes if exactes.exists() else periodes.filter(nom_periode__icontains=recherche)
+    choix = list(periodes[:2])
+    return choix[0] if len(choix) == 1 else None
+
+
+def _cible_bulletins(ctx, args, action, *, eleve=False):
+    from school_admin.model.inscription_eleve_model import InscriptionEleve
+    from school_admin.services.assistant_tools import _find_eleve_unique
+
+    if not ctx.annee_scolaire:
+        return _err('Aucune année scolaire sélectionnée.')
+    identite = {}
+    if eleve:
+        personne = _find_eleve_unique(ctx, str(args.get('eleve') or args.get('query') or ''))
+        if not personne or not personne.actif:
+            return _incomplete(action, ['eleve'], 'Quel élève ou étudiant ? Indiquez son nom complet ou son matricule.')
+        inscriptions = InscriptionEleve.objects.filter(
+            eleve=personne, etablissement=ctx.etablissement, annee_scolaire=ctx.annee_scolaire,
+            classe__actif=True,
+        ).select_related('classe')
+        classes = {inscription.classe_id: inscription.classe for inscription in inscriptions}
+        classe_demandee = _find_classe(ctx, str(args['classe'])) if args.get('classe') else None
+        classe = classes.get(classe_demandee.id) if classe_demandee else (
+            next(iter(classes.values())) if len(classes) == 1 and not args.get('classe') else None
+        )
+        identite = {'eleve': personne.nom_complet, 'eleve_id': personne.id}
+    else:
+        classe = _find_classe(ctx, str(args.get('classe') or args.get('query') or ''))
+    if not classe or not classe.actif:
+        return _incomplete(action, ['classe'], 'Pour quelle classe ?', **identite)
+    periode = periode_bulletin(ctx, classe, args.get('periode'))
     if not periode:
-        return _err('Aucune période scolaire active.')
+        from school_admin.services.bulletins import periodes_bulletins
+
+        noms = list(periodes_bulletins(ctx.etablissement, ctx.annee_scolaire, classe).values_list('nom_periode', flat=True))
+        if not noms:
+            return _err(f'Aucune période active configurée pour {classe.nom} cette année.')
+        return _incomplete(
+            action, ['periode'],
+            'Quelle période ? ' + ', '.join(noms) + '.',
+            classe=classe.nom, **identite,
+        )
+    return {
+        'classe': classe.nom, 'classe_id': classe.id,
+        'periode': periode.nom_periode, 'periode_id': periode.id,
+        'annee_id': ctx.annee_scolaire.id, **identite,
+    }
+
+
+def _recharger_cible_bulletins(ctx, draft):
+    from school_admin.model.classe_model import Classe
+
+    if not ctx.annee_scolaire or draft.get('annee_id') != ctx.annee_scolaire.id:
+        return None, None
+    classe = Classe.objects.filter(pk=draft.get('classe_id'), etablissement=ctx.etablissement, actif=True).first()
+    periode = periode_bulletin(ctx, classe, draft['periode_id']) if classe and draft.get('periode_id') else None
+    return classe, periode
+
+
+def _url_bulletins(classe, periode):
+    return f"{_reverse('directeur:bulletins_notes')}?classe_id={classe.id}&periode_{classe.id}={periode.id}"
+
+
+def prepare_publier_bulletins(ctx, args):
+    cible = _cible_bulletins(ctx, args, 'publier_bulletins')
+    if 'statut' in cible or 'erreur' in cible:
+        return cible
+    republier = args.get('republier') is True
     return _pending(
         'publier_bulletins',
-        f'publie les bulletins de {classe.nom} pour {periode.nom_periode}',
-        classe_id=classe.id,
-        classe=classe.nom,
-        periode_id=periode.id,
-        periode=periode.nom_periode,
-        url=_reverse('directeur:bulletins_notes'),
+        f'{"republie" if republier else "publie"} les bulletins de {cible["classe"]} pour {cible["periode"]} '
+        'et lance la notification des destinataires concernés',
+        republier=republier,
+        **cible,
     )
 
 
 def apply_publier_bulletins(ctx, draft):
-    from school_admin.model.moyenne_periode_model import MoyennePeriode
+    from school_admin.personal_views.directeur_view import _emit_bulletin_live
+    from school_admin.services.bulletins import bulletins_classe, publier_bulletins
 
-    qs = MoyennePeriode.objects.filter(
-        etablissement=ctx.etablissement,
-        periode_id=draft.get('periode_id'),
-        est_moyenne_generale=True,
-        eleve__classe_id=draft.get('classe_id'),
-    )
-    if ctx.annee_scolaire:
-        qs = qs.filter(annee_scolaire=ctx.annee_scolaire)
+    classe, periode = _recharger_cible_bulletins(ctx, draft)
+    if not periode:
+        return _err('La classe, la période ou l’année a changé. Reformulez la demande.')
+    qs = bulletins_classe(classe, periode, ctx.annee_scolaire)
     if not qs.exists():
-        return _err(
-            'Aucune moyenne générale calculée pour cette classe. '
-            'Calculez d’abord les moyennes.'
-        )
-    publies = qs.update(est_publie=True, date_publication=timezone.now())
-    _emit(ctx, 'bulletin.mise_a_jour', {
-        'classe_id': draft.get('classe_id'),
-        'periode_id': draft.get('periode_id'),
-        'action': 'publie',
-    })
+        return _err('Aucune moyenne générale calculée pour cette classe. Calculez d’abord les moyennes.')
+    republier = draft.get('republier') is True
+    publies = publier_bulletins(classe, periode, qs, republier=republier)
+    if not publies:
+        return _ok('Les bulletins de cette classe sont déjà publiés pour cette période.')
+    _emit_bulletin_live(ctx.etablissement.id, 'publier', classe_id=classe.id, periode_id=periode.id, count=publies)
     return _ok(
-        f'{publies} bulletin(s) publié(s) pour {draft.get("classe")} ({draft.get("periode")}).',
-        url=_reverse('directeur:bulletins_notes'),
+        f'{publies} bulletin(s) {"republié(s)" if republier else "publié(s)"} pour {classe.nom} ({periode.nom_periode}).',
+        url=_url_bulletins(classe, periode),
     )
+
+
+def _prepare_calcul_bulletin(ctx, args, action, libelle, *, eleve=False):
+    cible = _cible_bulletins(ctx, args, action, eleve=eleve)
+    if 'statut' in cible or 'erreur' in cible:
+        return cible
+    destinataire = cible.get('eleve', cible['classe'])
+    return _pending(action, f'{libelle} de {destinataire} pour {cible["periode"]}', **cible)
 
 
 def prepare_calculer_moyennes_classe(ctx, args):
-    classe = _find_classe(ctx, args.get('classe') or args.get('query'))
-    if not classe:
-        return _incomplete(
-            'calculer_moyennes_classe',
-            ['classe'],
-            'Pour quelle classe dois-je calculer les moyennes ?',
-        )
-    periode = _find_periode(ctx, args.get('periode'))
-    url = _reverse('directeur:calculer_moyennes_periode', args=[classe.id])
-    if periode and url:
-        url = f'{url}?periode={periode.id}'
-    return _pending(
-        'calculer_moyennes_classe',
-        f'lance le calcul des moyennes de {classe.nom}',
-        classe_id=classe.id,
-        classe=classe.nom,
-        periode_id=periode.id if periode else None,
-        url=url,
-        ouvrir=True,
-    )
+    return _prepare_calcul_bulletin(ctx, args, 'calculer_moyennes_classe', 'calcule les moyennes')
+
+
+def prepare_calculer_moyenne_annuelle(ctx, args):
+    return _prepare_calcul_bulletin(ctx, args, 'calculer_moyenne_annuelle', 'calcule la moyenne annuelle à partir des résultats')
+
+
+def prepare_calculer_moyenne_eleve(ctx, args):
+    return _prepare_calcul_bulletin(ctx, args, 'calculer_moyenne_eleve', 'recalcule la moyenne', eleve=True)
 
 
 def apply_calculer_moyennes_classe(ctx, draft):
-    """Ouvre la même action que le bouton directeur (calcul côté vue)."""
-    url = _reverse('directeur:calculer_moyennes_periode', args=[draft.get('classe_id')])
-    if draft.get('periode_id') and url:
-        url = f'{url}?periode={draft["periode_id"]}'
-    return _ok(
-        f'J’ouvre le calcul des moyennes pour {draft.get("classe")}.',
-        url=url,
-        ouvrir=True,
-    )
+    from django.conf import settings
+    from django.contrib import messages
+    from school_admin.personal_views import directeur_view as bulletins
+
+    classe, periode = _recharger_cible_bulletins(ctx, draft)
+    if not periode:
+        return _err('La classe, la période ou l’année a changé. Reformulez la demande.')
+    retours = []
+
+    def report(level, text):
+        retours.append((level, text))
+
+    annee = ctx.annee_scolaire
+    etablissement = ctx.etablissement
+    verification = settings.SITE_URL.rstrip('/') + reverse('school_admin:verifier_bulletin_qr')
+    if draft.get('action') == 'calculer_moyenne_annuelle':
+        eleves = bulletins._get_eleves_classe_par_inscription(classe, etablissement, annee)
+        if not eleves.exists():
+            return _err('Aucun élève inscrit dans cette classe pour l’année sélectionnée.')
+        bulletins._appliquer_moyenne_annuelle_complementaire(
+            report, etablissement, classe, periode, eleves, annee,
+            afficher_info_premier_semestre_lmd=True,
+        )
+    elif draft.get('action') == 'calculer_moyenne_eleve':
+        eleve = bulletins._get_eleves_classe_par_inscription(classe, etablissement, annee).filter(pk=draft.get('eleve_id')).first()
+        if not eleve:
+            return _err('Cet élève n’est plus inscrit dans cette classe pour l’année sélectionnée.')
+        bulletins.enregistrer_moyenne_eleve(etablissement, classe, eleve, periode, annee, verification, report)
+    else:
+        bulletins.enregistrer_moyennes_periode(etablissement, classe, periode, annee, verification, report)
+    detail = ' '.join(text.replace('✅ ', '') for _, text in retours)
+    if not any(level == messages.SUCCESS for level, _ in retours):
+        return _err(detail or 'Aucune moyenne n’a pu être calculée pour cette période.')
+    return _ok(detail, url=_url_bulletins(classe, periode))
 
 
 # ---------------------------------------------------------------------------
@@ -1216,8 +1296,10 @@ def apply_calculer_moyennes_classe(ctx, draft):
 # ---------------------------------------------------------------------------
 
 def prepare_enregistrer_paiement(ctx, args):
-    from school_admin.model.comptabilite_eleve_model import FraisAnnexe, FraisInscription, Mensualite
+    from school_admin.model.comptabilite_eleve_model import FraisAnnexe, FraisInscription, Mensualite, PaiementEleve
 
+    if ctx.annee_scolaire is None:
+        return _err('Sélectionnez une année scolaire avant d’enregistrer un paiement.')
     eleve = _find_eleve(ctx, args.get('query') or args.get('eleve'))
     if not eleve:
         return _incomplete('enregistrer_paiement', ['query'], 'Pour quel élève dois-je enregistrer un paiement ?')
@@ -1241,8 +1323,13 @@ def prepare_enregistrer_paiement(ctx, args):
     }
     type_paiement = aliases.get(type_paiement.lower(), type_paiement or 'mensualite')
     mode = (args.get('mode_paiement') or 'especes').strip()
+    if type_paiement not in {'mensualite', 'frais_inscription', 'frais_annexe', 'autre'}:
+        return _err('Choisissez un type de paiement reconnu. Pour un moratoire, utilisez son échéance.')
+    modes = dict(PaiementEleve.MODE_PAIEMENT_CHOICES)
+    if mode not in modes:
+        return _err('Mode de paiement inconnu.')
     extra = {}
-    libelle = type_paiement
+    libelle = dict(PaiementEleve.TYPE_PAIEMENT_CHOICES)[type_paiement]
     if type_paiement == 'frais_annexe':
         code = (args.get('frais_annexe_code') or args.get('code') or args.get('frais') or type_paiement).strip()
         qs = FraisAnnexe.objects.filter(
@@ -1253,8 +1340,12 @@ def prepare_enregistrer_paiement(ctx, args):
         frais = None
         if args.get('frais_annexe_id'):
             frais = qs.filter(pk=args['frais_annexe_id']).first()
+            if frais is None:
+                return _err('Ce frais annexe est introuvable pour cet élève et cette année.')
         if frais is None and code and code not in ('frais_annexe', 'annexe'):
             frais = qs.filter(code__iexact=code).first() or qs.filter(libelle__icontains=code).first()
+            if frais is None:
+                return _err(f'Frais annexe « {code} » introuvable pour cet élève.')
         if frais is None:
             frais = qs.exclude(statut='paye').order_by('libelle').first()
         if not frais:
@@ -1266,20 +1357,22 @@ def prepare_enregistrer_paiement(ctx, args):
         frais = FraisInscription.objects.filter(
             eleve=eleve, etablissement=ctx.etablissement, annee_scolaire=ctx.annee_scolaire,
         ).first()
-        if frais:
-            extra['frais_inscription_id'] = frais.id
-            libelle = 'frais d’inscription'
+        if frais is None:
+            return _err('Aucun frais d’inscription trouvé pour cet élève et cette année.')
+        extra['frais_inscription_id'] = frais.id
     elif type_paiement == 'mensualite':
         periode = (args.get('periode') or args.get('mois') or '').strip()
         qs = Mensualite.objects.filter(
             eleve=eleve, etablissement=ctx.etablissement, annee_scolaire=ctx.annee_scolaire,
         )
-        mensualite = qs.filter(periode__icontains=periode).first() if periode else None
-        if mensualite is None:
+        if periode:
+            mensualite = qs.filter(periode__icontains=periode).first()
+        else:
             mensualite = qs.exclude(statut='paye').order_by('annee', 'mois').first()
-        if mensualite:
-            extra['mensualite_id'] = mensualite.id
-            libelle = mensualite.periode
+        if mensualite is None:
+            return _err('Aucune mensualité correspondante pour cet élève et cette année.')
+        extra['mensualite_id'] = mensualite.id
+        libelle = mensualite.periode
     if not montant:
         return _incomplete(
             'enregistrer_paiement',
@@ -1291,9 +1384,13 @@ def prepare_enregistrer_paiement(ctx, args):
             mode_paiement=mode,
             **extra,
         )
+    from school_admin.services.recouvrement import devise_etablissement
+
+    devise = devise_etablissement(ctx.etablissement)
     return _pending(
         'enregistrer_paiement',
-        f'enregistre un paiement de {montant} ({libelle}) pour {eleve.nom_complet}',
+        f'enregistre {montant} {devise} par {modes[mode]} pour {eleve.nom_complet}, '
+        f'{libelle}, année {ctx.annee_scolaire.libelle}',
         eleve_id=eleve.id,
         eleve=eleve.nom_complet,
         montant=str(montant),
@@ -1331,67 +1428,39 @@ def apply_enregistrer_paiement(ctx, draft):
         etablissement=ctx.etablissement,
         annee_scolaire=ctx.annee_scolaire,
     ).first()
-    frais = None
-    mensualite = None
-    frais_annexe = None
-    if type_paiement == 'frais_annexe':
-        qs = FraisAnnexe.objects.filter(
-            eleve=eleve, etablissement=ctx.etablissement, annee_scolaire=ctx.annee_scolaire,
-        )
-        if draft.get('frais_annexe_id'):
-            frais_annexe = qs.filter(pk=draft['frais_annexe_id']).first()
-        if frais_annexe is None:
-            frais_annexe = qs.exclude(statut='paye').order_by('libelle').first()
-        if not frais_annexe:
-            return _err('Aucun frais annexe à payer pour cet élève.')
-        reste = frais_annexe.get_reste_a_payer()
-        if montant > reste:
-            return _err(f'Le montant dépasse le reste à payer ({reste}).')
-        frais_annexe.ajouter_paiement(montant)
-        type_paiement = 'frais_annexe'
-    elif type_paiement == 'frais_inscription' and fiche:
-        frais = FraisInscription.objects.filter(
-            comptabilite_eleve=fiche,
-            annee_scolaire=ctx.annee_scolaire,
-            statut__in=['en_attente', 'en_retard'],
-        ).order_by('date_echeance').first()
-        if draft.get('frais_inscription_id'):
-            frais = FraisInscription.objects.filter(
-                pk=draft['frais_inscription_id'], eleve=eleve, etablissement=ctx.etablissement,
-            ).first() or frais
-        if frais:
-            reste = frais.get_reste_a_payer()
-            if montant > reste:
-                return _err(f'Le montant dépasse le reste à payer ({reste}).')
-            frais.ajouter_paiement(montant)
-    elif fiche:
-        mensualite = Mensualite.objects.filter(
-            comptabilite_eleve=fiche,
-            annee_scolaire=ctx.annee_scolaire,
-            statut__in=['en_attente', 'en_retard', 'impaye'],
-        ).order_by('date_echeance').first()
-        if draft.get('mensualite_id'):
-            mensualite = Mensualite.objects.filter(
-                pk=draft['mensualite_id'], eleve=eleve, etablissement=ctx.etablissement,
-            ).first() or mensualite
-        if mensualite:
-            reste = mensualite.get_reste_a_payer()
-            if montant > reste:
-                return _err(f'Le montant dépasse le reste à payer ({reste}).')
-            mensualite.ajouter_paiement(montant)
-            type_paiement = 'mensualite'
+    cibles = {
+        'frais_inscription': (FraisInscription, 'frais_inscription_id'),
+        'mensualite': (Mensualite, 'mensualite_id'),
+        'frais_annexe': (FraisAnnexe, 'frais_annexe_id'),
+    }
+    if mode not in dict(PaiementEleve.MODE_PAIEMENT_CHOICES):
+        return _err('Mode de paiement inconnu.')
+    if type_paiement not in cibles and type_paiement != 'autre':
+        return _err('Type de paiement invalide.')
     with transaction.atomic():
+        lien = {}
+        if type_paiement in cibles:
+            modele, cle = cibles[type_paiement]
+            cible = modele.objects.select_for_update().filter(
+                pk=draft.get(cle), eleve=eleve, etablissement=ctx.etablissement,
+                annee_scolaire=ctx.annee_scolaire,
+            ).first()
+            if cible is None:
+                return _err('Le frais confirmé est introuvable pour cet élève et cette année.')
+            reste = cible.get_reste_a_payer()
+            if montant > reste:
+                return _err(f'Le montant dépasse le reste à payer ({reste}).')
+            cible.ajouter_paiement(montant)
+            lien[type_paiement] = cible
         PaiementEleve.objects.create(
             eleve=eleve,
             etablissement=ctx.etablissement,
             annee_scolaire=ctx.annee_scolaire,
             type_paiement=type_paiement,
-            frais_inscription=frais,
-            mensualite=mensualite,
-            frais_annexe=frais_annexe,
             montant=montant,
             mode_paiement=mode,
             notes='Enregistré par l’assistante vocale Aria',
+            **lien,
         )
         if fiche:
             fiche.verifier_statut_paiement()
@@ -1789,12 +1858,31 @@ def apply_creer_session_examen(ctx, draft):
 
 
 def prepare_supprimer_session_examen(ctx, args):
-    session = _find_session_examen(ctx, args.get('query') or args.get('nom'))
-    if not session:
+    from school_admin.services.examen_suppression import notes_protegees, notes_session
+
+    if getattr(ctx, 'personnel', None) is not None or not ctx.annee_scolaire:
+        return _err('Seul le directeur peut supprimer une session dans l’année sélectionnée.')
+    from school_admin.model.session_examen_model import SessionExamen
+
+    query = (args.get('query') or args.get('nom') or '').strip()
+    if not query:
         return _incomplete('supprimer_session_examen', ['query'], 'Quelle session d’examen dois-je supprimer ?')
+    sessions = SessionExamen.objects.filter(
+        etablissement=ctx.etablissement, annee_scolaire=ctx.annee_scolaire,
+    )
+    correspondances = list(
+        (sessions.filter(pk=query) if query.isascii() and query.isdecimal() and len(query) < 19
+         else sessions.filter(nom_examen__iexact=query))[:2]
+    )
+    if len(correspondances) != 1:
+        return _incomplete('supprimer_session_examen', ['query'],
+                           'Indiquez le nom exact ou le numéro de la session de cette année.')
+    session = correspondances[0]
+    if notes_protegees(notes_session(session)).exists():
+        return _err('Suppression interdite : des résultats ou des absences sont enregistrés.')
     return _pending(
         'supprimer_session_examen',
-        f'supprime la session « {session.nom_examen} » et ses créneaux',
+        f'supprime la session « {session.nom_examen} » ({ctx.annee_scolaire.libelle}), ses créneaux et ses seules lignes de notes vides',
         id=session.id,
         nom=session.nom_examen,
         destructive=True,
@@ -1803,16 +1891,17 @@ def prepare_supprimer_session_examen(ctx, args):
 
 def apply_supprimer_session_examen(ctx, draft):
     from school_admin.model.session_examen_model import SessionExamen
+    from school_admin.services.examen_suppression import SessionProtegee, supprimer_session_sans_resultats
 
-    session = SessionExamen.objects.filter(
-        pk=draft.get('id'), etablissement=ctx.etablissement
-    ).first()
-    if not session:
-        return _err('Session d’examen introuvable.')
-    nom = session.nom_examen
-    session_id = session.id
-    nb = session.creneaux.count()
-    session.delete()
+    if getattr(ctx, 'personnel', None) is not None or not ctx.annee_scolaire:
+        return _err('Seul le directeur peut supprimer une session dans l’année sélectionnée.')
+    session_id = draft.get('id')
+    try:
+        nom, nb = supprimer_session_sans_resultats(ctx.etablissement, session_id, ctx.annee_scolaire)
+    except SessionExamen.DoesNotExist:
+        return _err('Session d’examen introuvable dans cette année.')
+    except SessionProtegee as exc:
+        return _err(str(exc))
     _emit(ctx, 'examen.mise_a_jour', {'id': session_id, 'action': 'supprimee'})
     return _ok(f'Session « {nom} » et {nb} créneau(x) supprimé(s).')
 
@@ -2422,18 +2511,32 @@ _ACTIONS = (
     ),
     ActionSpec(
         'publier_bulletins',
-        'Publie les bulletins d’une classe pour une période.',
-        {'classe': _CLASSE, 'periode': {'type': 'string'}},
+        'Publie les bulletins d’une classe pour une période. Utiliser republier=true sur demande explicite.',
+        {'classe': _CLASSE, 'periode': {'type': 'string'}, 'republier': {'type': 'boolean'}},
         required=('classe',),
         prepare=prepare_publier_bulletins,
         apply=apply_publier_bulletins,
     ),
     ActionSpec(
         'calculer_moyennes_classe',
-        'Lance le calcul des moyennes d’une classe (ouvre l’action directeur).',
+        'Calcule et enregistre les moyennes d’une classe pour une période explicite.',
         {'classe': _CLASSE, 'periode': {'type': 'string'}},
         required=('classe',),
         prepare=prepare_calculer_moyennes_classe,
+        apply=apply_calculer_moyennes_classe,
+    ),
+    ActionSpec(
+        'calculer_moyenne_annuelle',
+        'Calcule et enregistre les moyennes annuelles d’une classe à partir d’une période de référence.',
+        {'classe': _QUERY, 'periode': _QUERY},
+        prepare=prepare_calculer_moyenne_annuelle,
+        apply=apply_calculer_moyennes_classe,
+    ),
+    ActionSpec(
+        'calculer_moyenne_eleve',
+        'Calcule et enregistre la moyenne d’un élève ou étudiant identifié pour une période.',
+        {'eleve': _QUERY, 'classe': _QUERY, 'periode': _QUERY},
+        prepare=prepare_calculer_moyenne_eleve,
         apply=apply_calculer_moyennes_classe,
     ),
     ActionSpec(

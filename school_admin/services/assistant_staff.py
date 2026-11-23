@@ -138,9 +138,15 @@ def prepare_inscrire_eleve(ctx, args):
     )
     if asked:
         return asked
+    if not classe:
+        return _incomplete('inscrire_eleve', ['classe'], 'Quelle classe exactement ?', **extras)
+    if not naissance:
+        return _incomplete('inscrire_eleve', ['date_naissance'], 'Quelle date de naissance valide ?', **extras)
+    if not ctx.annee_scolaire or not ctx.annee_scolaire.est_active:
+        return _err('Sélectionnez l’année scolaire active pour inscrire cet élève.')
     return _pending(
         'inscrire_eleve',
-        f'inscrit {prenom} {nom} en {classe.nom}',
+        f'inscrit {prenom} {nom} en {classe.nom} pour {ctx.annee_scolaire.libelle}',
         nom=nom,
         prenom=prenom,
         classe_id=classe.id,
@@ -166,8 +172,8 @@ def apply_inscrire_eleve(ctx, draft):
     from school_admin.services.live_serializers import serialize_eleve_inscrit_item
     from school_admin.utils.formatting_utils import formater_nom, formater_prenom
 
-    if not ctx.annee_scolaire:
-        return _err('Aucune année scolaire active.')
+    if not ctx.annee_scolaire or not ctx.annee_scolaire.est_active:
+        return _err('Sélectionnez l’année scolaire active pour inscrire cet élève.')
     classe = Classe.objects.filter(
         pk=draft.get('classe_id'), etablissement=ctx.etablissement, actif=True
     ).first()
@@ -177,6 +183,9 @@ def apply_inscrire_eleve(ctx, draft):
     if not naissance:
         return _err('Date de naissance invalide.')
     with transaction.atomic():
+        classe = Classe.objects.select_for_update().filter(pk=classe.pk, actif=True).first()
+        if classe is None or classe.places_disponibles <= 0:
+            return _err('Cette classe est indisponible ou complète.')
         matricule = Eleve.generer_matricule_eleve(ctx.etablissement)
         mot_de_passe = Eleve.generer_mot_de_passe()
         eleve = Eleve(

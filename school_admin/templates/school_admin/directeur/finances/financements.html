@@ -6,87 +6,89 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% trans "Financements" %} — {{ etablissement.nom }}</title>
-    <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
-    <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.3" />
-    {% include 'school_admin/directeur/finances/partials/fin_assets_head.html' %}
-    <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
+    {% include 'school_admin/directeur/finances/partials/fin_head_v3.html' %}
 </head>
-<body class="cg-page-body">
+<body class="axd-page cg3-body" data-devise="{{ devise_monnaie }}">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
-    <div class="content-container cg-page">
+    <main class="axd cg3 fs-page" id="contenu">
         {% include 'school_admin/partials/messages.html' %}
-        {% include 'school_admin/directeur/finances/partials/fin_nav.html' %}
-        <header class="cg-hero">
-            <a href="{% url 'directeur:gestion_etablissement' %}" class="cg-hero-back" aria-label="{% trans 'Retour à la gestion de l\'établissement' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
-            <div class="cg-hero-main">
-                <h1 class="cg-hero-title"><i class="fas fa-landmark"></i> {% trans "Financements" %}</h1>
+        <header class="hb-head">
+            <span class="hb-head__icon fe-tone-orange"><i class="fas fa-landmark" aria-hidden="true"></i></span>
+            <div class="hb-head__text">
+                <h1 class="hb-head__title">{% trans "Financements" %}</h1>
+                <p class="cg3-head__sub">{% trans "Les prêts reçus par l’école : échéances prévues et remboursements." %}</p>
             </div>
+            <div class="hb-head__actions">{% if peut_annuler %}<button type="button" class="cg3-btn cg3-btn--primary" data-cg-open="sheet-pret"><i class="fas fa-plus" aria-hidden="true"></i>{% trans "Nouveau prêt" %}</button>{% endif %}</div>
         </header>
-        {% include 'school_admin/directeur/finances/partials/fin_filters.html' %}
-        <section class="cg-section">
-            <div class="cg-panel-head">
-                <h2>{% trans "Prêts" %}</h2>
-                {% if peut_annuler %}<button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-pret"><i class="fas fa-plus"></i> {% trans "Nouveau prêt" %}</button>{% endif %}
-            </div>
+        {% include 'school_admin/directeur/finances/partials/fin_nav.html' %}
+        {% include 'school_admin/directeur/finances/partials/fin_barre.html' with sans_mois=True %}
+        <section class="fe-kpis hb-kpis hb-kpis--3 fs-kpis" aria-label="{% trans 'Indicateurs' %}">
+            <div class="fe-kpi fe-tone-orange"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Reste à rembourser" %}</span><span class="fe-kpi__icon"><i class="fas fa-landmark" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ totaux_prets.capital_restant|floatformat:"0g" }} <small>{{ devise_monnaie }}</small></p><span class="fe-kpi__caption">{% trans "capital des prêts en cours" %}</span></div>
+            <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Total emprunté" %}</span><span class="fe-kpi__icon"><i class="fas fa-hand-holding-dollar" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ totaux_prets.recu|floatformat:"0g" }} <small>{{ devise_monnaie }}</small></p><span class="fe-kpi__caption">{% trans "tous les prêts non annulés" %}</span></div>
+            <div class="fe-kpi fe-tone-violet"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Prêts en cours" %}</span><span class="fe-kpi__icon"><i class="fas fa-file-contract" aria-hidden="true"></i></span></div><p class="fe-kpi__value">{{ totaux_prets.nb_en_cours }}</p><span class="fe-kpi__caption">{% trans "pas encore soldés" %}</span></div>
+        </section>
+
+        <section class="fs-carte" aria-labelledby="fs-liste-titre">
+            <header class="fs-carte__head fs-carte__head--action">
+                <h2 id="fs-liste-titre"><i class="fas fa-landmark" aria-hidden="true"></i>{% trans "Prêts" %}</h2>
+                {% if peut_annuler %}<div class="fs-carte__btns"><button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-pret"><i class="fas fa-plus" aria-hidden="true"></i> {% trans "Nouveau prêt" %}</button></div>{% endif %}
+            </header>
+            <p class="fs-carte__aide"><i class="fas fa-circle-info" aria-hidden="true"></i>{% trans "Un prêt fait entrer de l’argent mais ce n’est pas une recette. Les échéances prévues et les remboursements s’affichent sous chaque prêt." %}</p>
             <div class="table-responsive">
                 <table class="cg-table">
                     <thead>
                         <tr>
-                            <th>{% trans "Date" %}</th><th>{% trans "Référence" %}</th><th>{% trans "Compte" %}</th>
-                            <th>{% trans "Objet" %}</th><th>{% trans "Montant" %}</th><th>{% trans "Capital restant" %}</th>
-                            <th>{% trans "Statut" %}</th><th>{% trans "Actions" %}</th>
+                            <th scope="col">{% trans "Prêt" %}</th><th scope="col">{% trans "Reçu le" %}</th><th scope="col">{% trans "Compte" %}</th>
+                            <th scope="col" class="fs-num">{% trans "Montant" %}</th><th scope="col" class="fs-num">{% trans "Reste à rembourser" %}</th>
+                            <th scope="col">{% trans "Statut" %}</th><th scope="col" class="fs-actions"><span class="sr-only">{% trans "Actions" %}</span></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for pret in prets %}
                         <tr class="{% if pret.statut == 'annulee' %}fin-row--muted{% endif %}">
+                            <td class="fs-titre-ligne"><strong>{{ pret.objet }}</strong><small>{% trans "Réf." %} {{ pret.reference }}</small></td>
                             <td>{{ pret.date_reception|date:"d/m/Y" }}</td>
-                            <td>{{ pret.reference }}</td>
                             <td>{{ pret.compte_tresorerie.libelle }}</td>
-                            <td>{{ pret.objet }}</td>
-                            <td>{{ pret.montant|floatformat:0 }} {{ devise_monnaie }}</td>
-                            <td><span class="cg-pill cg-pill--dette">{{ pret.capital_restant|floatformat:0 }} {{ devise_monnaie }}</span></td>
+                            <td class="fs-num">{{ pret.montant|floatformat:"0g" }} {{ devise_monnaie }}</td>
+                            <td class="fs-num"><strong>{{ pret.capital_restant|floatformat:"0g" }} {{ devise_monnaie }}</strong></td>
                             <td>
                                 {% if pret.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulé" %}</span>
                                 {% elif pret.statut == 'solde' %}<span class="cg-pill cg-pill--ok">{% trans "Soldé" %}</span>
-                                {% else %}<span class="cg-pill cg-pill--dette">{% trans "En cours" %}</span>{% endif %}
+                                {% else %}<span class="cg-pill cg-pill--warn">{% trans "En cours" %}</span>{% endif %}
                             </td>
-                            <td>
-                                {% if pret.statut != 'annulee' and peut_annuler %}
-                                <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-echeance" data-cg-bind="pret_id" data-cg-value="{{ pret.id }}">{% trans "Échéance" %}</button>
-                                {% endif %}
+                            <td class="fs-actions">
                                 {% if pret.statut == 'en_cours' and peut_annuler %}
                                 <button type="button" class="cg-btn cg-btn--primary" data-cg-open="sheet-rembourser" data-cg-bind="pret_id" data-cg-value="{{ pret.id }}">{% trans "Rembourser" %}</button>
-                                {% if pret.capital_rembourse == 0 %}
-                                <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-pret" data-cg-bind="pret_id" data-cg-value="{{ pret.id }}">{% trans "Annuler" %}</button>
                                 {% endif %}
+                                {% if pret.statut != 'annulee' and peut_annuler %}
+                                <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-echeance" data-cg-bind="pret_id" data-cg-value="{{ pret.id }}">{% trans "Prévoir une échéance" %}</button>
+                                {% endif %}
+                                {% if pret.statut == 'en_cours' and peut_annuler and pret.capital_rembourse == 0 %}
+                                <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-pret" data-cg-bind="pret_id" data-cg-value="{{ pret.id }}">{% trans "Annuler" %}</button>
                                 {% endif %}
                             </td>
                         </tr>
                         {% for ech in pret.echeances.all %}
-                        <tr>
-                            <td>{{ ech.date_echeance|date:"d/m/Y" }}</td>
-                            <td colspan="4">{% trans "Prévu" %} — {% trans "capital" %} {{ ech.capital_prevu|floatformat:0 }}, {% trans "intérêts" %} {{ ech.interets_prevus|floatformat:0 }}, {% trans "frais" %} {{ ech.frais_prevus|floatformat:0 }}</td>
-                            <td>{{ ech.total_prevu|floatformat:0 }} {{ devise_monnaie }}</td>
-                            <td><span class="cg-pill cg-pill--warn">{% trans "Prévision" %}</span></td>
+                        <tr class="fs-sous-ligne">
+                            <td colspan="3"><i class="fas fa-calendar-day" aria-hidden="true"></i> {% trans "Échéance prévue le" %} {{ ech.date_echeance|date:"d/m/Y" }}</td>
+                            <td colspan="2" class="fs-num">{{ ech.total_prevu|floatformat:"0g" }} {{ devise_monnaie }}<br /><small>{% trans "capital" %} {{ ech.capital_prevu|floatformat:"0g" }} · {% trans "intérêts" %} {{ ech.interets_prevus|floatformat:"0g" }} · {% trans "frais" %} {{ ech.frais_prevus|floatformat:"0g" }}</small></td>
+                            <td><span class="cg-pill cg-pill--info">{% trans "Prévue" %}</span></td>
                             <td></td>
                         </tr>
                         {% endfor %}
                         {% for remb in pret.remboursements.all %}
-                        <tr class="{% if remb.statut == 'annulee' %}fin-row--muted{% endif %}">
-                            <td>{{ remb.date_remboursement|date:"d/m/Y" }}</td>
-                            <td colspan="4">{% trans "Remboursement" %} — {% trans "capital" %} {{ remb.capital|floatformat:0 }}, {% trans "intérêts" %} {{ remb.interets|floatformat:0 }}, {% trans "frais" %} {{ remb.frais|floatformat:0 }}</td>
-                            <td>{{ remb.total|floatformat:0 }} {{ devise_monnaie }}</td>
-                            <td>{% if remb.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulé" %}</span>{% else %}<span class="cg-pill cg-pill--info">{% trans "Validé" %}</span>{% endif %}</td>
-                            <td>
+                        <tr class="fs-sous-ligne{% if remb.statut == 'annulee' %} fin-row--muted{% endif %}">
+                            <td colspan="3"><i class="fas fa-rotate-left" aria-hidden="true"></i> {% trans "Remboursé le" %} {{ remb.date_remboursement|date:"d/m/Y" }}</td>
+                            <td colspan="2" class="fs-num"><span class="fs-montant-moins">− {{ remb.total|floatformat:"0g" }} {{ devise_monnaie }}</span><br /><small>{% trans "capital" %} {{ remb.capital|floatformat:"0g" }} · {% trans "intérêts" %} {{ remb.interets|floatformat:"0g" }} · {% trans "frais" %} {{ remb.frais|floatformat:"0g" }}</small></td>
+                            <td>{% if remb.statut == 'annulee' %}<span class="cg-pill cg-pill--muted">{% trans "Annulé" %}</span>{% else %}<span class="cg-pill cg-pill--ok">{% trans "Payé" %}</span>{% endif %}</td>
+                            <td class="fs-actions">
                                 {% if remb.statut == 'validee' and peut_annuler %}
                                 <button type="button" class="cg-btn cg-btn--ghost" data-cg-open="sheet-annuler-remb" data-cg-bind="remboursement_id" data-cg-value="{{ remb.id }}">{% trans "Annuler" %}</button>
                                 {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
-                        {% empty %}<tr><td colspan="8">{% trans "Aucun prêt." %}</td></tr>{% endfor %}
+                        {% empty %}<tr><td colspan="7" class="fs-vide-cell">{% trans "Aucun prêt enregistré." %}</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -174,7 +176,7 @@
                 </form>
             </div>
         </div>
-    </div>
+    </main>
     {% include 'school_admin/directeur/finances/partials/fin_assets_scripts.html' %}
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
 </body>

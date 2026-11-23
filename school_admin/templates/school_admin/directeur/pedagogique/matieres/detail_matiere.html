@@ -14,228 +14,123 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.3">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.5.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres_v5.css' %}?v=1.4.1">
 </head>
-<body class="gv3 cg3" data-live-page="matiere-detail">
+<body class="gv3 cg3 mm5" data-live-page="matiere-detail">
     <!-- Header -->
   {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <!-- Main Content -->
 <div class="main-content-container">
     <!-- Page Header -->
-    <p class="fe-crumbs" style="margin-bottom:10px"><a href="{% url 'matiere:liste_matieres' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{% trans "Matières" %}</a></p>
+    <p class="fe-crumbs" style="margin-bottom:10px">{% if matiere.module %}<a href="{% url 'matiere:detail_module' matiere.module.pk %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{{ matiere.module.nom }}</a>{% else %}<a href="{% url 'matiere:liste_matieres' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i>{% trans "Matières" %}</a>{% endif %}</p>
     {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=matiere.nom v3_sous_titre=v3_sous_titre_matiere v3_icone='fa-book-open' v3_tone='violet' v3_actions_tpl='school_admin/directeur/partials/v3_actions/matiere.html' %}
-    <div class="matiere-info-container">
-        <div class="info-card">
-            <div class="card-header">
-                <div class="matiere-icon">
-                    <i class="fas fa-book"></i>
-                </div>
-                <div class="matiere-details">
-                    <h2>{{ matiere.nom }}</h2>
-                    <p class="matiere-type">{{ matiere.type_display }}</p>
-                    <div class="matiere-badges">
-                        <span class="badge badge-level">{{ matiere.niveau_display }}</span>
-                        {% if est_lycee and coefficients_existants %}
-                            <span class="badge badge-coefficient">{% trans "Coeff: Variable par groupe" %}</span>
-                        {% else %}
-                            <span class="badge badge-coefficient">Coeff: {{ matiere.coefficient }}</span>
-                        {% endif %}
-                        <span class="badge badge-status {% if matiere.actif %}active{% else %}inactive{% endif %}">
-                            {% if matiere.actif %}Active{% else %}Inactive{% endif %}
-                        </span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card-content">
-                <div class="info-grid">
-                    <div class="info-item">
-                        <i class="fas fa-code"></i>
-                        <div>
-                            <strong>{% trans "Code" %}</strong>
-                            <span>{{ matiere.code }}</span>
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-calendar"></i>
-                        <div>
-                            <strong>{% trans "Créée le" %}</strong>
-                            <span>{{ matiere.date_creation|date:"d/m/Y à H:i" }}</span>
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-graduation-cap"></i>
-                        <div>
-                            <strong>{% trans "Niveau" %}</strong>
-                            <span>{{ matiere.niveau_display }}</span>
-                        </div>
-                    </div>
-                    {% if matiere.department %}
-                        <div class="info-item">
-                            <i class="fas fa-building"></i>
-                            <div>
-                                <strong>{% trans "Filière" %}</strong>
-                                <span>{{ matiere.department.nom }}</span>
-                            </div>
-                        </div>
-                    {% endif %}
-                    {% if est_lycee and coefficients_existants %}
-                        <div class="info-item" style="grid-column: 1 / -1;">
-                            <i class="fas fa-weight-hanging"></i>
-                            <div style="width: 100%;">
-                                <strong>{% trans "Coefficients par groupe" %}</strong>
-                                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
-                                    {% for groupe_nom, classes_groupe in classes_par_groupe.items %}
-                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f5f5f5; border-radius: 6px;">
-                                            <span><strong>{{ groupe_nom }}</strong> ({{ classes_groupe|length }} classe{{ classes_groupe|length|pluralize }})</span>
-                                            <span style="background: var(--primary); color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;">
-                                                <i class="fas fa-weight-hanging"></i>
-                                                {% if groupe_nom in coefficients_existants %}
-                                                    {{ coefficients_existants|get_item:groupe_nom }}
-                                                {% else %}
-                                                    {{ matiere.coefficient }}
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="info-item">
-                            <i class="fas fa-weight-hanging"></i>
-                            <div>
-                                <strong>{% trans "Coefficient" %}</strong>
-                                <span>{{ matiere.coefficient }}</span>
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
+    <ul class="mm-facts" aria-label="{% trans 'Fiche de la matière' %}">
+        {% if matiere.module %}
+        <li class="mm-fact"><i class="fas fa-cubes" aria-hidden="true"></i><div><small>{% if est_superieur %}{% trans "Module (UE)" %}{% else %}{% trans "Module" %}{% endif %}</small><a href="{% url 'matiere:detail_module' matiere.module.pk %}">{{ matiere.module.nom }}</a></div></li>
+        {% endif %}
+        <li class="mm-fact"><i class="fas fa-hashtag" aria-hidden="true"></i><div><small>{% trans "Code" %}</small><strong>{{ matiere.code|default:"—" }}</strong></div></li>
+        <li class="mm-fact"><i class="fas fa-graduation-cap" aria-hidden="true"></i><div><small>{% trans "Niveau" %}</small><strong>{{ matiere.niveau_display }}</strong></div></li>
+        {% with filieres=matiere.filieres %}{% if filieres %}
+        <li class="mm-fact"><i class="fas fa-building-columns" aria-hidden="true"></i><div><small>{% if filieres|length > 1 %}{% trans "Filières" %}{% else %}{% trans "Filière" %}{% endif %}</small><strong title="{% for f in filieres %}{{ f.nom }}{% if not forloop.last %}, {% endif %}{% endfor %}">{% for f in filieres %}{{ f.nom }}{% if not forloop.last %}, {% endif %}{% endfor %}</strong></div></li>
+        {% endif %}{% endwith %}
+        <li class="mm-fact"><i class="fas fa-scale-balanced" aria-hidden="true"></i><div><small>{% trans "Coefficient" %}</small><strong>{% if est_lycee and coefficients_existants %}{% trans "Variable par groupe" %}{% else %}{{ matiere.coefficient|floatformat:"-2" }}{% endif %}</strong></div></li>
+        <li class="mm-fact {% if matiere.actif %}mm-fact--ok{% else %}mm-fact--off{% endif %}"><i class="fas {% if matiere.actif %}fa-circle-check{% else %}fa-circle-pause{% endif %}" aria-hidden="true"></i><div><small>{% trans "Statut" %}</small><strong>{% if matiere.actif %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}</strong></div></li>
+    </ul>
 
-    <!-- Classes et Professeurs -->
-    <div class="content-grid">
-        <!-- Classes associées -->
-        <div class="content-card">
-            <div class="card-header">
-                <h3>
-                    <i class="fas fa-users"></i>
-                    {% trans "Classes associées" %}
-                </h3>
-                <span class="count-badge">{{ classes_associees.count }}</span>
+    {% if reglages_cours %}
+    <section class="mm-card" id="reglages-cours">
+        <header class="mm-card__head">
+            <h2><i class="fas fa-award" aria-hidden="true"></i>{% trans "Crédits, coefficient et heures du cours" %}</h2>
+            <p>{% trans "Les crédits viennent du module (UE), classe par classe." %}</p>
+        </header>
+        <div class="mm-card__body mm-split">
+            <div>
+                {% if credits_par_classe %}
+                <table class="mm-credits-table">
+                    <thead><tr><th>{% trans "Classe" %}</th><th>{% trans "Semestre" %}</th><th class="mm-num">{% trans "Crédits du module (UE)" %}</th><th class="mm-num">{% trans "Crédits de ce cours (EC)" %}</th></tr></thead>
+                    <tbody>{% for ligne in credits_par_classe %}
+                        <tr><td><strong>{{ ligne.classe.nom }}</strong></td><td>{{ ligne.periode.nom_periode|default:"—" }}</td>
+                            <td class="mm-num">{{ ligne.credits_ue|floatformat:"-2" }}</td>
+                            <td class="mm-num"><span class="mm-big">{% if ligne.credits != None %}{{ ligne.credits|floatformat:"-2" }}{% else %}—{% endif %}</span></td></tr>
+                    {% endfor %}</tbody>
+                </table>
+                {% else %}
+                <div class="mm-empty"><i class="fas fa-award" aria-hidden="true"></i>{% trans "Aucune classe du module (UE) n’a encore de crédits." %}{% if matiere.module %} <a href="{% url 'matiere:detail_module' matiere.module.pk %}">{% trans "Régler les crédits du module (UE)" %}</a>{% endif %}</div>
+                {% endif %}
+                <details class="mm-howto">
+                    <summary>{% trans "Comment les crédits sont-ils calculés ?" %}</summary>
+                    <p>{% trans "Les crédits viennent du module (UE), classe par classe : un module commun à plusieurs classes peut valoir 4 crédits dans l’une et 3 dans l’autre. Le nombre saisi ici est le poids de cette matière (EC) dans son module : les crédits du module sont partagés entre ses matières selon ces poids (à parts égales si aucun n’est renseigné). Exemple : un module de 6 crédits avec une matière de poids 4 et une matière de poids 2 donne 4 et 2 crédits ; le même module à 3 crédits donne 2 et 1." %}</p>
+                </details>
             </div>
-            <div class="card-content">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="regler_cours">
+                <div class="mm-form-grid">{{ reglages_cours.as_div }}</div>
+                <div class="mm-form-actions"><button type="submit" class="cg3-btn cg3-btn--primary"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Enregistrer" %}</button></div>
+            </form>
+        </div>
+    </section>
+    {% endif %}
+
+    <div class="mm-grid2">
+        <section class="mm-card">
+            <header class="mm-card__head">
+                <h2><i class="fas fa-users" aria-hidden="true"></i>{% trans "Classes qui suivent ce cours" %}</h2>
+                <span class="mm-count">{{ classes_associees.count }}</span>
+            </header>
+            <div class="mm-card__body">
                 {% if classes_associees %}
-                    <div class="classes-list-grouped">
-                        {% for groupe_nom, classes_groupe in classes_par_groupe.items %}
-                            <div class="classe-groupe-item">
-                                <div class="groupe-header" style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <i class="fas fa-layer-group"></i>
-                                        <strong>{{ groupe_nom }}</strong>
-                                        <span class="groupe-count">({{ classes_groupe|length }} classe{{ classes_groupe|length|pluralize }})</span>
-                                    </div>
-                                    {% if est_lycee and coefficients_existants %}
-                                        <span class="coefficient-badge-detail" style="background: var(--primary); color: white; padding: 6px 14px; border-radius: 16px; font-weight: 600; font-size: 0.9rem;">
-                                            <i class="fas fa-weight-hanging"></i>
-                                            {% if groupe_nom in coefficients_existants %}
-                                                Coeff: {{ coefficients_existants|get_item:groupe_nom }}
-                                            {% else %}
-                                                Coeff: {{ matiere.coefficient }}
-                                            {% endif %}
-                                        </span>
-                                    {% endif %}
-                                </div>
-                                <div class="groupe-classes">
-                                    {% for classe in classes_groupe %}
-                                        <span class="class-badge">{{ classe.nom }}{% if est_superieur %} — {{ classe.get_libelle_niveau_superieur_complet }}{% endif %}</span>
-                                    {% endfor %}
-                                </div>
-                            </div>
+                    {% for groupe_nom, classes_groupe in classes_par_groupe.items %}
+                        {% if classes_par_groupe|length > 1 or est_lycee and coefficients_existants %}
+                        <p class="mm-sub">{{ groupe_nom }}{% if est_lycee and coefficients_existants %} · {% trans "Coeff." %} {% if groupe_nom in coefficients_existants %}{{ coefficients_existants|get_item:groupe_nom }}{% else %}{{ matiere.coefficient }}{% endif %}{% endif %}</p>
+                        {% endif %}
+                        <ul class="mm-list">
+                        {% for classe in classes_groupe %}
+                            <li><span class="mm-avatar mm-avatar--classe" aria-hidden="true"><i class="fas fa-users"></i></span>
+                                <div><strong>{{ classe.nom }}</strong>{% if est_superieur %}<small>{{ classe.get_libelle_niveau_superieur_complet }}</small>{% endif %}</div></li>
                         {% endfor %}
-                    </div>
+                        </ul>
+                    {% endfor %}
                 {% else %}
-                    <div class="empty-state">
-                        <i class="fas fa-users"></i>
-                        <p>{% trans "Aucune classe associée" %}</p>
-                    </div>
+                    <div class="mm-empty"><i class="fas fa-users" aria-hidden="true"></i>{% trans "Aucune classe ne suit encore ce cours." %}</div>
                 {% endif %}
             </div>
-        </div>
+        </section>
 
-        <!-- Professeurs principaux -->
-        <div class="content-card">
-            <div class="card-header">
-                <h3>
-                    <i class="fas fa-chalkboard-teacher"></i>
-                    {% trans "Professeurs principaux" %}
-                </h3>
-                <span class="count-badge">{{ professeurs_principaux.count }}</span>
-            </div>
-            <div class="card-content">
-                {% if professeurs_principaux %}
-                    <div class="professeurs-list">
+        <section class="mm-card">
+            <header class="mm-card__head">
+                <h2><i class="fas fa-chalkboard-user" aria-hidden="true"></i>{% trans "Enseignants" %}</h2>
+                <span class="mm-count">{{ professeurs_principaux.count|add:professeurs_secondaires.count }}</span>
+            </header>
+            <div class="mm-card__body">
+                {% if professeurs_principaux or professeurs_secondaires %}
+                    {% if professeurs_principaux %}
+                    {% if professeurs_secondaires %}<p class="mm-sub">{% trans "Principaux" %}</p>{% endif %}
+                    <ul class="mm-list">
                         {% for professeur in professeurs_principaux %}
-                            <div class="professeur-item">
-                                <div class="professeur-avatar">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="professeur-info">
-                                    <h4>{{ professeur.nom_complet }}</h4>
-                                    <p>{{ professeur.niveau_display }}</p>
-                                </div>
-                                <div class="professeur-status">
-                                    <span class="status-dot {% if professeur.actif %}active{% else %}inactive{% endif %}"></span>
-                                </div>
-                            </div>
+                        <li><span class="mm-avatar" aria-hidden="true">{{ professeur.prenom|slice:":1"|upper }}{{ professeur.nom|slice:":1"|upper }}</span>
+                            <div><strong>{{ professeur.nom_complet }}</strong><small>{{ professeur.niveau_display }}</small></div>
+                            {% if not professeur.actif %}<span class="sx-pill sx-pill--off mm-tag">{% trans "Inactif" %}</span>{% endif %}</li>
                         {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty-state">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                        <p>{% trans "Aucun professeur principal" %}</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Professeurs secondaires -->
-        <div class="content-card">
-            <div class="card-header">
-                <h3>
-                    <i class="fas fa-user-graduate"></i>
-                    {% trans "Professeurs secondaires" %}
-                </h3>
-                <span class="count-badge">{{ professeurs_secondaires.count }}</span>
-            </div>
-            <div class="card-content">
-                {% if professeurs_secondaires %}
-                    <div class="professeurs-list">
+                    </ul>
+                    {% endif %}
+                    {% if professeurs_secondaires %}
+                    <p class="mm-sub">{% trans "Secondaires" %}</p>
+                    <ul class="mm-list">
                         {% for professeur in professeurs_secondaires %}
-                            <div class="professeur-item">
-                                <div class="professeur-avatar">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="professeur-info">
-                                    <h4>{{ professeur.nom_complet }}</h4>
-                                    <p>{{ professeur.matiere_display }} ({{ professeur.niveau_display }})</p>
-                                </div>
-                                <div class="professeur-status">
-                                    <span class="status-dot {% if professeur.actif %}active{% else %}inactive{% endif %}"></span>
-                                </div>
-                            </div>
+                        <li><span class="mm-avatar" aria-hidden="true">{{ professeur.prenom|slice:":1"|upper }}{{ professeur.nom|slice:":1"|upper }}</span>
+                            <div><strong>{{ professeur.nom_complet }}</strong><small>{{ professeur.matiere_display }} ({{ professeur.niveau_display }})</small></div>
+                            {% if not professeur.actif %}<span class="sx-pill sx-pill--off mm-tag">{% trans "Inactif" %}</span>{% endif %}</li>
                         {% endfor %}
-                    </div>
+                    </ul>
+                    {% endif %}
                 {% else %}
-                    <div class="empty-state">
-                        <i class="fas fa-user-graduate"></i>
-                        <p>{% trans "Aucun professeur secondaire" %}</p>
-                    </div>
+                    <div class="mm-empty"><i class="fas fa-user-clock" aria-hidden="true"></i>{% trans "Aucun enseignant pour ce cours." %} <a href="{% url 'affectation:affectation_professeurs' %}">{% trans "Affecter un enseignant" %}</a></div>
                 {% endif %}
             </div>
-        </div>
+        </section>
     </div>
 
     <!-- Formulaire de modification (caché par défaut) -->
@@ -295,8 +190,19 @@
                         {% endif %}
                     </div>
 
-                {% if est_superieur %}
-                    <!-- Pour les établissements supérieurs : filière, module, crédits, classes -->
+                {% if matiere_commune %}
+                    <fieldset class="form-group">
+                        <legend class="form-label">{% trans "Classes concernées par la matière commune" %}</legend>
+                        <p>{{ matiere.module.nom }}</p>
+                        {% for classe in classes_communes %}
+                        <label style="display:block"><input type="checkbox" name="classes_ids" value="{{ classe.id }}"
+                            {% if classe.id|stringformat:"s" in form_data.classes_ids %}checked{% endif %}>
+                            {{ classe.nom }} · {{ classe.department.nom }}</label>
+                        {% endfor %}
+                        {% if field_errors.classes_ids %}<p class="invalid-feedback">{{ field_errors.classes_ids }}</p>{% endif %}
+                    </fieldset>
+                {% elif est_superieur %}
+                    <!-- Filière, module et classes -->
                     <div class="form-group">
                         <label class="form-label" for="department">
                             <i class="fas fa-building"></i>
@@ -326,7 +232,7 @@
                     </div>
 
                     <div class="form-group" id="module-superieur-container">
-                        <label class="form-label" for="module">{% trans "Module *" %}</label>
+                        <label class="form-label" for="module">{% trans "Module (UE) *" %}</label>
                         <div id="module-select-hint" class="classes-select-hint" style="padding: 12px; background: #f5f5f5; border-radius: 8px; color: #666;">{% trans "Sélectionnez d'abord une filière." %}</div>
                         <div id="modules-by-department" style="display: none;">
                             {% for dep_id, modules_list in modules_by_department.items %}
@@ -345,11 +251,7 @@
                         {% if field_errors.module %}<div class="invalid-feedback">{{ field_errors.module }}</div>{% endif %}
                     </div>
 
-                    <div class="form-group" id="credits-superieur-container" style="display: none;">
-                        <label class="form-label" for="credits">{% trans "Crédits de la matière *" %}</label>
-                        <input type="number" class="form-control {% if field_errors.credits %}is-invalid{% endif %}" id="credits" name="credits" value="{{ form_data.credits }}" min="0" step="0.5" placeholder="Ex: 3">
-                        {% if field_errors.credits %}<div class="invalid-feedback">{{ field_errors.credits }}</div>{% endif %}
-                    </div>
+
 
                     <div class="form-group" id="classes-superieur-container">
                         <label class="form-label">
@@ -580,6 +482,19 @@
                         cb.disabled = !isMatch;
                     });
                 });
+                // Module (UE) : seule la liste de la filière choisie est visible et envoyée.
+                const moduleHint = document.getElementById('module-select-hint');
+                const modulesByDept = document.getElementById('modules-by-department');
+                const moduleBlocks = document.querySelectorAll('.module-department-block');
+                let moduleTrouve = false;
+                moduleBlocks.forEach(function(block) {
+                    const isMatch = block.getAttribute('data-department-id') === depId;
+                    moduleTrouve = moduleTrouve || isMatch;
+                    block.style.display = isMatch ? 'block' : 'none';
+                    block.querySelectorAll('select').forEach(function(sel) { sel.disabled = !isMatch; });
+                });
+                if (moduleHint) moduleHint.style.display = depId && moduleTrouve ? 'none' : 'block';
+                if (modulesByDept) modulesByDept.style.display = depId && moduleTrouve ? 'block' : 'none';
             }
             
             if (departmentSelect) {

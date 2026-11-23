@@ -61,8 +61,49 @@
     .mqt-ec td.mqt-ec-nom::before { display: none; }
 }
 /* Colonnes alignées d'une UE à l'autre */
+.mqt-configure { margin-top: 1rem; }
+.mqt-advanced { padding: 1rem; }
+.mqt-advanced summary { cursor: pointer; font-weight: 600; padding: .4rem 0; }
+.mqt-advanced summary:focus-visible { outline: 2px solid #4f46e5; outline-offset: 4px; }
+@media (max-width: 760px) { .mqt-configure { white-space: normal; } }
 .mqt-ec { table-layout: fixed; }
 .mqt-ec th:nth-child(1), .mqt-ec td:nth-child(1) { width: 34%; }
 .mqt-ec th:nth-child(2), .mqt-ec td:nth-child(2) { width: 9%; }
 .mqt-ec th:nth-child(7), .mqt-ec td:nth-child(7) { width: 17%; }
 @media (max-width: 760px) { .mqt-ec { table-layout: auto; } .mqt-ec td { width: auto !important; } }
+
+.mqt-summary-alerts { margin-top: .8rem; color: #92400e; font-size: .85rem; }
+.mqt-summary-alerts summary { cursor: pointer; font-weight: 600; }
+.mqt-summary-alerts li { margin: .4rem 0; }
+.mqt-programme { min-width: 0; }
+.mqt-programme .mqt-advanced { margin-bottom: 0; }
+
+.mqt-settings {
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    background: #fff;
+}
+.mqt-settings summary { cursor: pointer; font-weight: 650; }
+.mqt-settings p { color: #475569; font-size: .875rem; }
+.mqt-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: .75rem;
+    margin: .75rem 0;
+}
+.mqt-settings-grid label { display: block; font-size: .85rem; }
+.mqt-settings-grid input:not([type=checkbox]),
+.mqt-settings-grid select {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2.5rem;
+    padding: .4rem .6rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .5rem;
+    font: inherit;
+}
+.mqt-ue-settings { padding: .8rem 0; border-top: 1px solid #e2e8f0; }
+.mqt-ue-settings h2 { font-size: 1rem; margin: 0; }
+.mqt-advanced:target { scroll-margin-top: 6rem; }

@@ -24,7 +24,6 @@ from ..model.moyenne_periode_model import MoyennePeriode
 from collections import defaultdict
 from ..services.parent_notification_service import ParentNotificationService
 from ..services.eleve_notification_service import EleveNotificationService
-from ..services.notification_tasks import schedule_bulletin_publication
 from ..model.notification_directeur_model import NotificationDirecteur
 from ..model.justification_note_model import JustificationNote
 from ..model.note_primaire_model import MoyenneMatierePrimaire
@@ -620,10 +619,13 @@ def _matieres_table_superieur_depuis_moyennes_periode(eleve, classe, periode, et
             _mod_ord=Coalesce(F('matiere__module__ordre'), 999999)
         ).order_by('_mod_ord', 'matiere__module_id', 'matiere__nom')
 
+    from ..services.credits_lmd import credits_ec
+    cache_credits = {}
     matieres_table = []
     for mp in moyennes_periode:
         if not mp.matiere:
             continue
+        credits_actuels = credits_ec(mp.matiere, classe, cache_credits)
         coefficient_value = float(mp.coefficient) if mp.coefficient else 1
         note_examen_value = float(mp.note_examen) if mp.note_examen is not None else None
         moyenne_avec_coeff_value = None
@@ -642,7 +644,8 @@ def _matieres_table_superieur_depuis_moyennes_periode(eleve, classe, periode, et
             'note_examen': note_examen_value,
             'note_rattrapage': note_rattrap_val,
             'coefficient': coefficient_value,
-            'credits': float(mp.credits) if hasattr(mp, 'credits') and mp.credits is not None else None,
+            'credits': (float(credits_actuels) if credits_actuels is not None
+                        else float(mp.credits) if getattr(mp, 'credits', None) is not None else None),
             'moyenne_eleve': float(mp.moyenne_matiere) if mp.moyenne_matiere is not None else None,
             'moyenne_avec_coefficient': moyenne_avec_coeff_value,
             'professeur': None,
@@ -792,7 +795,12 @@ def _coef_et_credits_ec_superieur(matiere, etablissement, classe):
     poids = matiere.get_poids_calcul(etablissement, classe)
     c_m = matiere.coefficient
     coef = Decimal(str(c_m)) if c_m is not None and Decimal(str(c_m)) > 0 else poids
-    cr = matiere.credits
+    # Crédits de l'EC dans CETTE classe : part des crédits de l'UE pour la classe (services/credits_lmd),
+    # comme en délibération. Une UE mutualisée peut valoir 4 crédits en L1 et 3 en L2.
+    from ..services.credits_lmd import credits_ec
+    cr = credits_ec(matiere, classe)
+    if cr is None:
+        cr = matiere.credits
     credits = Decimal(str(cr)) if cr is not None and Decimal(str(cr)) > 0 else coef
     return coef, credits
 
@@ -3438,21 +3446,13 @@ def calculer_moyennes_periode(request, classe_id):
     """
     Calcule et enregistre les moyennes de période selon la pondération configurée.
     """
-    if not isinstance(request.user, Etablissement):
+    etablissement, _, _ = _get_user_etablissement(request, 'bulletins_gerer')
+    if not etablissement:
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
     selected_periode_id = request.GET.get('periode')
     from ..model.classe_model import Classe
-    from ..model.eleve_model import Eleve
     from ..model.periode_model import PeriodeScolaire
-    from ..model.matiere_model import Matiere
-    from ..model.moyenne_periode_model import MoyennePeriode
-    from ..services.notification_tasks import schedule_bulletin_publication
-    from ..model.note_examen_model import NoteExamen
-    from django.db import transaction
-    from ..utils.session_utils import get_session_active
 
     # Récupérer l'année scolaire active
     annee_scolaire_active = _get_session_directeur(request, etablissement)
@@ -3487,24 +3487,43 @@ def calculer_moyennes_periode(request, classe_id):
             redirect_url = f"{redirect_url}?periode={selected_periode_id}"
         return redirect(redirect_url)
 
+    enregistrer_moyennes_periode(
+        etablissement, classe, periode, annee_scolaire_active,
+        request.build_absolute_uri(reverse('school_admin:verifier_bulletin_qr')),
+        lambda level, text: messages.add_message(request, level, text),
+    )
+    return redirect(
+        _redirect_bulletins_notes_apres_action(
+            request,
+            classe_id,
+            str(periode.id) if periode else None,
+        )
+    )
+
+
+@transaction.atomic
+def enregistrer_moyennes_periode(etablissement, classe, periode, annee_scolaire_active, verification_base_url, report):
+    from ..model.matiere_model import Matiere
+    from ..model.moyenne_periode_model import MoyennePeriode
+    from ..model.note_examen_model import NoteExamen
+
     # Délibération clôturée : les moyennes de ce semestre sont figées.
+    from ..model.classe_model import Classe
+
+    Classe.objects.select_for_update().get(pk=classe.pk)
     from ..services.deliberations import message_verrou, periode_verrouillee
     verrou = periode_verrouillee(classe, periode)
     if verrou:
-        messages.error(request, message_verrou(verrou))
-        return redirect(f"{reverse('directeur:bulletins_notes')}?periode={periode.id}")
+        report(messages.ERROR, message_verrou(verrou))
+        return
 
     # Récupérer la pondération configurée
-    annee_scolaire = getattr(periode, 'annee_scolaire', None) or Ponderation.default_school_year()
-    ponderation = Ponderation.objects.filter(
-        etablissement=etablissement,
-        annee_scolaire=annee_scolaire,
-        actif=True
-    ).first()
+    from ..services.bulletins import ponderation_bulletin
 
+    ponderation = ponderation_bulletin(etablissement, annee_scolaire_active.libelle)
     if not ponderation:
-        messages.error(request, "Aucune pondération n'est configurée pour cette année scolaire.")
-        return redirect('directeur:bulletins_notes')
+        report(messages.ERROR, "Aucune pondération n'est configurée pour cette année scolaire.")
+        return
 
     poids_classe = Decimal(str(ponderation.poids_classe)) / Decimal('100')
     poids_examen = Decimal(str(ponderation.poids_examen)) / Decimal('100')
@@ -3516,21 +3535,18 @@ def calculer_moyennes_periode(request, classe_id):
     est_primaire = etablissement.type_etablissement == 'primary'
     est_superieur = etablissement.type_etablissement == 'superieur'
     standards_bundle = _get_standards_bundle(etablissement)
-    verification_base_url = request.build_absolute_uri(
-        reverse('school_admin:verifier_bulletin_qr')
-    )
     
     # Récupérer les élèves depuis InscriptionEleve pour l'année scolaire active
     eleves = _get_eleves_classe_par_inscription(classe, etablissement, annee_scolaire_active)
     
     if not eleves.exists():
-        messages.warning(request, "Cette classe ne contient aucun élève pour l'année scolaire active.")
-        return redirect('directeur:bulletins_notes')
+        report(messages.WARNING, "Cette classe ne contient aucun élève pour l'année scolaire active.")
+        return
 
     # Récupérer les matières
     module_ids_autorises = set()
     matieres = classe.matieres.filter(actif=True).order_by('nom')
-    if not matieres.exists():
+    if not est_superieur and not matieres.exists():
         matieres = Matiere.objects.filter(
             niveau__in=[classe.niveau, 'tous'],
             etablissement=etablissement,
@@ -3538,6 +3554,7 @@ def calculer_moyennes_periode(request, classe_id):
         ).order_by('nom')
 
     if est_superieur:
+        matieres = Matiere.pour_classe_superieur(classe).order_by('nom')
         module_ids_autorises = _module_ids_autorises_superieur(classe, periode)
         if module_ids_autorises:
             matieres = matieres.filter(module_id__in=module_ids_autorises)
@@ -3545,8 +3562,8 @@ def calculer_moyennes_periode(request, classe_id):
             matieres = matieres.none()
 
     if not matieres.exists():
-        messages.warning(request, "Aucune matière n'est configurée pour cette classe.")
-        return redirect('directeur:bulletins_notes')
+        report(messages.WARNING, "Aucune matière n'est configurée pour cette classe.")
+        return
 
     try:
         with transaction.atomic():
@@ -3789,9 +3806,11 @@ def calculer_moyennes_periode(request, classe_id):
                         moyenne_periode.rang = rang_matiere
                         moyenne_periode.save(update_fields=['rang'])
 
-        messages.success(
-            request,
-            f"✅ Moyennes de période enregistrées pour la classe {classe.nom}.",
+        if not eleves_moyennes_generales:
+            report(messages.WARNING, "Aucune moyenne générale n’a pu être calculée pour cette classe. Vérifiez les notes de la période.")
+            return
+
+        report(messages.SUCCESS, f"✅ Moyennes de période enregistrées pour la classe {classe.nom}.",
         )
         _emit_bulletin_live(
             etablissement.id,
@@ -3801,7 +3820,7 @@ def calculer_moyennes_periode(request, classe_id):
             periode_id=periode.id,
         )
         _appliquer_moyenne_annuelle_complementaire(
-            request,
+            report,
             etablissement,
             classe,
             periode,
@@ -3811,15 +3830,7 @@ def calculer_moyennes_periode(request, classe_id):
         )
     except Exception as e:
         logger.error(f"Erreur lors du calcul des moyennes: {str(e)}", exc_info=True)
-        messages.error(request, f"❌ Erreur lors du calcul des moyennes: {str(e)}")
-
-    return redirect(
-        _redirect_bulletins_notes_apres_action(
-            request,
-            classe_id,
-            str(periode.id) if periode else None,
-        )
-    )
+        report(messages.ERROR, "Le calcul des moyennes a échoué.")
 
 
 def _redirect_bulletins_notes_apres_action(request, classe_id, periode_id_fallback=None):
@@ -3850,11 +3861,12 @@ def _emit_bulletin_live(etablissement_id, action, **extra):
     for key, value in extra.items():
         if value is not None:
             payload[key] = value
-    emit_live(etablissement_id, 'bulletin.mise_a_jour', payload)
+    transaction.on_commit(lambda: emit_live(etablissement_id, 'bulletin.mise_a_jour', payload))
 
 
+@transaction.atomic
 def _appliquer_moyenne_annuelle_complementaire(
-    request,
+    report,
     etablissement,
     classe,
     periode_calcul,
@@ -3875,6 +3887,16 @@ def _appliquer_moyenne_annuelle_complementaire(
     )
     from ..model.moyenne_periode_model import MoyenneAnnuelle
 
+    from ..model.classe_model import Classe
+
+    Classe.objects.select_for_update().get(pk=classe.pk)
+    from ..services.deliberations import message_verrou, periode_verrouillee
+
+    verrou = periode_verrouillee(classe, periode_calcul)
+    if verrou:
+        report(messages.ERROR, message_verrou(verrou))
+        return
+
     est_superieur = getattr(etablissement, 'type_etablissement', None) == 'superieur'
 
     try:
@@ -3885,9 +3907,7 @@ def _appliquer_moyenne_annuelle_complementaire(
                 nl = classe.niveau_lmd.strip()
                 if est_premier_semestre_annee_universitaire(periode_calcul.nom_periode, nl):
                     if afficher_info_premier_semestre_lmd:
-                        messages.info(
-                            request,
-                            "Pour le 1er semestre de l'année universitaire, la moyenne générale du semestre "
+                        report(messages.INFO, "Pour le 1er semestre de l'année universitaire, la moyenne générale du semestre "
                             "est calculée via « Calculer les moyennes de la période ». "
                             "La moyenne annuelle universitaire (moyenne des deux semestres) est calculée ici "
                             "uniquement lorsque la période affichée est le 2e semestre (ex. Semestre 2, 4, 6…).",
@@ -3897,9 +3917,7 @@ def _appliquer_moyenne_annuelle_complementaire(
                         etablissement, classe, annee_scolaire_active, periode_calcul
                     )
                     if not periode_s1:
-                        messages.error(
-                            request,
-                            "Impossible de trouver le semestre pair (ex. Semestre 1) pour la même année et ce niveau. "
+                        report(messages.ERROR, "Impossible de trouver le semestre pair (ex. Semestre 1) pour la même année et ce niveau. "
                             "Vérifiez les périodes dans la gestion des semestres.",
                         )
                     else:
@@ -3944,22 +3962,16 @@ def _appliquer_moyenne_annuelle_complementaire(
                                 )
                                 moyennes_calculees += 1
                         if moyennes_calculees:
-                            messages.success(
-                                request,
-                                f"✅ Moyenne annuelle universitaire (moyenne des semestres « {periode_s1.nom_periode} » et "
+                            report(messages.SUCCESS, f"✅ Moyenne annuelle universitaire (moyenne des semestres « {periode_s1.nom_periode} » et "
                                 f"« {periode_calcul.nom_periode} ») enregistrée pour {moyennes_calculees} élève(s) "
                                 f"de la classe {classe.nom}.",
                             )
                         else:
-                            messages.warning(
-                                request,
-                                "Aucune moyenne annuelle enregistrée : calculez d'abord les moyennes générales des deux "
+                            report(messages.WARNING, "Aucune moyenne annuelle enregistrée : calculez d'abord les moyennes générales des deux "
                                 "semestres via le calcul automatique pour chaque semestre.",
                             )
                 else:
-                    messages.warning(
-                        request,
-                        "La période sélectionnée n'est pas reconnue comme 1er ou 2e semestre officiel pour ce niveau LMD.",
+                    report(messages.WARNING, "La période sélectionnée n'est pas reconnue comme 1er ou 2e semestre officiel pour ce niveau LMD.",
                     )
             else:
                 periodes_queryset = PeriodeScolaire.objects.filter(
@@ -3971,7 +3983,7 @@ def _appliquer_moyenne_annuelle_complementaire(
                 periodes = list(periodes_queryset.order_by('date_debut'))
 
                 if not periodes:
-                    messages.error(request, "Aucune période trouvée pour le calcul de la moyenne annuelle.")
+                    report(messages.ERROR, "Aucune période trouvée pour le calcul de la moyenne annuelle.")
                 else:
                     for eleve in eleves:
                         moyennes_periodes_list = []
@@ -4011,15 +4023,13 @@ def _appliquer_moyenne_annuelle_complementaire(
                             moyennes_calculees += 1
 
                     if moyennes_calculees:
-                        messages.success(
-                            request,
-                            f"✅ Les moyennes annuelles ont été calculées et enregistrées avec succès pour "
+                        report(messages.SUCCESS, f"✅ Les moyennes annuelles ont été calculées et enregistrées avec succès pour "
                             f"{moyennes_calculees} élève(s) de la classe {classe.nom}. "
                             f"Période de référence : {periode_calcul.nom_periode}.",
                         )
     except Exception as e:
         logger.error(f"Erreur lors du calcul des moyennes annuelles: {str(e)}", exc_info=True)
-        messages.error(request, f"❌ Erreur lors du calcul des moyennes annuelles: {str(e)}")
+        report(messages.ERROR, "Le calcul des moyennes annuelles a échoué.")
 
 
 @login_required
@@ -4027,11 +4037,10 @@ def calculer_moyenne_annuelle(request, classe_id):
     """
     Enregistre la « moyenne annuelle » pour la classe (URL conservée ; le flux principal passe par calculer_moyennes_periode).
     """
-    if not isinstance(request.user, Etablissement):
+    etablissement, _, _ = _get_user_etablissement(request, 'bulletins_gerer')
+    if not etablissement:
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
     from ..model.classe_model import Classe
     from ..model.periode_model import PeriodeScolaire
 
@@ -4078,7 +4087,7 @@ def calculer_moyenne_annuelle(request, classe_id):
         return redirect(_redirect_bulletins_notes_apres_action(request, classe_id, str(periode_calcul.id)))
 
     _appliquer_moyenne_annuelle_complementaire(
-        request,
+        lambda level, text: messages.add_message(request, level, text),
         etablissement,
         classe,
         periode_calcul,
@@ -4159,11 +4168,11 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
             return None, redirect_notes_eval
         annee_scolaire_active = get_session_active(request, etablissement)
     else:
-        if not isinstance(request.user, Etablissement):
+        etablissement, _, _ = _get_user_etablissement(request, 'bulletins_voir')
+        if not etablissement:
             messages.error(request, "Accès non autorisé.")
             return None, redirect('school_admin:connexion_compte_user')
 
-        etablissement = request.user
         annee_scolaire_active = _get_session_directeur(request, etablissement)
 
     from ..model.classe_model import Classe
@@ -4230,7 +4239,7 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
     module_ids_autorises = set()
     matieres = classe.matieres.filter(actif=True).order_by('nom')
 
-    if not matieres.exists():
+    if not est_superieur and not matieres.exists():
         matieres = Matiere.objects.filter(
             niveau__in=[classe.niveau, 'tous'],
             etablissement=etablissement,
@@ -4238,6 +4247,7 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
         ).order_by('nom')
 
     if est_superieur:
+        matieres = Matiere.pour_classe_superieur(classe).order_by('nom')
         module_ids_autorises = _module_ids_autorises_superieur(classe, periode)
         if module_ids_autorises:
             matieres = matieres.filter(module_id__in=module_ids_autorises)
@@ -4360,6 +4370,8 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
                     premier_prenom = prenom_parts[0] if prenom_parts else affectation.professeur.prenom
                     professeurs_par_matiere[affectation.matiere.id] = f"{premier_prenom} {premier_nom}"
         
+        from ..services.credits_lmd import credits_ec as _credits_ec
+        cache_credits = {}
         matieres_table = []
         has_note_examen = False
         for mp in moyennes_periode:
@@ -4398,7 +4410,9 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
                     'note_examen': note_examen_value,
                     'note_rattrapage': note_rattrap_val,
                     'coefficient': coefficient_value,
-                    'credits': float(mp.credits) if hasattr(mp, 'credits') and mp.credits is not None else None,
+                    'credits': (lambda c: float(c) if c is not None else (
+                        float(mp.credits) if getattr(mp, 'credits', None) is not None else None))(
+                        _credits_ec(mp.matiere, classe, cache_credits)),
                     'moyenne_eleve': float(mp.moyenne_matiere) if mp.moyenne_matiere is not None else None,
                     'moyenne_avec_coefficient': moyenne_avec_coeff_value,
                     'professeur': professeur_nom,
@@ -4565,7 +4579,8 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
                 # Récupérer le coefficient selon le type d'établissement
                 est_lycee = etablissement.type_etablissement in TYPES_ETABLISSEMENT_SECONDAIRE
                 coefficient_value = float(matiere.get_poids_calcul(etablissement, classe))
-                credits_value = coefficient_value if etablissement.type_etablissement == 'superieur' else None
+                credits_value = (float(_coef_et_credits_ec_superieur(matiere, etablissement, classe)[1])
+                                 if etablissement.type_etablissement == 'superieur' else None)
                 moyenne_avec_coeff_value = None
                 if moyenne_value is not None:
                     moyenne_avec_coeff_value = float(moyenne_value * Decimal(str(coefficient_value)))
@@ -4719,7 +4734,8 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
 
                 # Récupérer le coefficient selon le type d'établissement pour l'affichage
                 coefficient_display = float(matiere.get_poids_calcul(etablissement, classe))
-                credits_display = coefficient_display if etablissement.type_etablissement == 'superieur' else None
+                credits_display = (float(_coef_et_credits_ec_superieur(matiere, etablissement, classe)[1])
+                                   if etablissement.type_etablissement == 'superieur' else None)
                 note_examen_value = examens_map.get(matiere.id)
                 moyenne_avec_coeff_value = None
                 if moyenne_value is not None:
@@ -5314,19 +5330,13 @@ def _build_bulletin_context(request, classe_id, eleve_id, portal_eleve=None, for
 @login_required
 def calculer_moyenne_eleve(request, classe_id, eleve_id):
     """Calcule et met à jour la moyenne générale d'un élève spécifique pour la période active."""
-    if not isinstance(request.user, Etablissement):
+    etablissement, _, _ = _get_user_etablissement(request, 'bulletins_gerer')
+    if not etablissement:
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
     from ..model.classe_model import Classe
     from ..model.eleve_model import Eleve
     from ..model.periode_model import PeriodeScolaire
-    from ..model.matiere_model import Matiere
-    from ..model.moyenne_periode_model import MoyennePeriode
-    from ..model.note_examen_model import NoteExamen
-    from django.db import transaction
-    from ..utils.session_utils import get_session_active
 
     # Récupérer l'année scolaire active
     annee_scolaire_active = _get_session_directeur(request, etablissement)
@@ -5359,17 +5369,42 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
             redirect_url = f"{redirect_url}?periode={periode_param}"
         return redirect(redirect_url)
 
+    enregistrer_moyenne_eleve(
+        etablissement, classe, eleve, periode, annee_scolaire_active,
+        request.build_absolute_uri(reverse('school_admin:verifier_bulletin_qr')),
+        lambda level, text: messages.add_message(request, level, text),
+    )
+    # Rediriger vers le bulletin en conservant le paramètre période
+    redirect_url = reverse('directeur:voir_bulletin_eleve', args=[classe_id, eleve_id])
+    periode_param = request.GET.get('periode')
+    if periode_param:
+        redirect_url = f"{redirect_url}?periode={periode_param}"
+    return redirect(redirect_url)
+
+
+@transaction.atomic
+def enregistrer_moyenne_eleve(etablissement, classe, eleve, periode, annee_scolaire_active, verification_base_url, report):
+    from ..model.matiere_model import Matiere
+    from ..model.moyenne_periode_model import MoyennePeriode
+    from ..model.note_examen_model import NoteExamen
+
+    from ..model.classe_model import Classe
+
+    Classe.objects.select_for_update().get(pk=classe.pk)
     from ..services.deliberations import message_verrou, periode_verrouillee
     verrou = periode_verrouillee(classe, periode)
     if verrou:
-        messages.error(request, message_verrou(verrou))
-        return redirect(f"{reverse('directeur:voir_bulletin_eleve', args=[classe_id, eleve_id])}?periode={periode.id}")
+        report(messages.ERROR, message_verrou(verrou))
+        return
 
     # Récupérer la pondération
-    ponderation = Ponderation.objects.filter(etablissement=etablissement).first()
+    from ..services.bulletins import ponderation_bulletin
+
+    libelle_annee = annee_scolaire_active.libelle if annee_scolaire_active else periode.annee_scolaire
+    ponderation = ponderation_bulletin(etablissement, libelle_annee)
     if not ponderation:
-        messages.error(request, "La configuration de pondération n'est pas définie. Veuillez la configurer d'abord.")
-        return redirect('directeur:voir_bulletin_eleve', classe_id=classe_id, eleve_id=eleve_id)
+        report(messages.ERROR, "La configuration de pondération n'est pas définie. Veuillez la configurer d'abord.")
+        return
 
     poids_classe = Decimal(str(ponderation.poids_classe)) / Decimal('100')
     poids_examen = Decimal(str(ponderation.poids_examen)) / Decimal('100')
@@ -5379,14 +5414,11 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
     est_primaire = etablissement.type_etablissement == 'primary'
     est_superieur = etablissement.type_etablissement == 'superieur'
     standards_bundle = _get_standards_bundle(etablissement)
-    verification_base_url = request.build_absolute_uri(
-        reverse('school_admin:verifier_bulletin_qr')
-    )
 
     # Récupérer les matières
     module_ids_autorises = set()
     matieres = classe.matieres.filter(actif=True).order_by('nom')
-    if not matieres.exists():
+    if not est_superieur and not matieres.exists():
         matieres = Matiere.objects.filter(
             niveau__in=[classe.niveau, 'tous'],
             etablissement=etablissement,
@@ -5394,6 +5426,7 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
         ).order_by('nom')
 
     if est_superieur:
+        matieres = Matiere.pour_classe_superieur(classe).order_by('nom')
         module_ids_autorises = _module_ids_autorises_superieur(classe, periode)
         if module_ids_autorises:
             matieres = matieres.filter(module_id__in=module_ids_autorises)
@@ -5401,8 +5434,8 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
             matieres = matieres.none()
 
     if not matieres.exists():
-        messages.warning(request, "Aucune matière n'est configurée pour cette classe.")
-        return redirect('directeur:voir_bulletin_eleve', classe_id=classe_id, eleve_id=eleve_id)
+        report(messages.WARNING, "Aucune matière n'est configurée pour cette classe.")
+        return
 
     try:
         with transaction.atomic():
@@ -5644,7 +5677,11 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
                         moyenne_periode.rang = rang_matiere
                         moyenne_periode.save(update_fields=['rang'])
 
-        messages.success(request, f"✅ La moyenne générale de {eleve.nom_complet} a été calculée et mise à jour avec succès. Les rangs de la classe ont également été recalculés.")
+        if moyenne_generale is None:
+            report(messages.WARNING, "Aucune moyenne générale n’a pu être calculée pour cet élève. Vérifiez ses notes.")
+            return
+
+        report(messages.SUCCESS, f"✅ La moyenne générale de {eleve.nom_complet} a été calculée et mise à jour avec succès. Les rangs de la classe ont également été recalculés.")
         _emit_bulletin_live(
             etablissement.id,
             'calculer_eleve',
@@ -5655,14 +5692,7 @@ def calculer_moyenne_eleve(request, classe_id, eleve_id):
         )
     except Exception as e:
         logger.error(f"Erreur lors du calcul de la moyenne de l'élève: {str(e)}", exc_info=True)
-        messages.error(request, f"❌ Erreur lors du calcul de la moyenne: {str(e)}")
-
-    # Rediriger vers le bulletin en conservant le paramètre période
-    redirect_url = reverse('directeur:voir_bulletin_eleve', args=[classe_id, eleve_id])
-    periode_param = request.GET.get('periode')
-    if periode_param:
-        redirect_url = f"{redirect_url}?periode={periode_param}"
-    return redirect(redirect_url)
+        report(messages.ERROR, f"❌ Erreur lors du calcul de la moyenne: {str(e)}")
 
 
 @login_required
@@ -5674,45 +5704,30 @@ def mettre_a_jour_visibilite_bulletins(request, classe_id):
             redirect_url = f"{redirect_url}?periode={request.GET.get('periode')}"
         return redirect(redirect_url)
 
-    if not isinstance(request.user, Etablissement):
+    etablissement, _, _ = _get_user_etablissement(request, 'bulletins_gerer')
+    if not etablissement:
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
     selected_periode_id = request.POST.get('periode') or request.GET.get('periode')
 
     from ..model.classe_model import Classe
-    from ..model.periode_model import PeriodeScolaire
-    from ..model.moyenne_periode_model import MoyennePeriode
-    from ..utils.session_utils import get_session_active
 
     # Récupérer l'année scolaire active
     annee_scolaire_active = _get_session_directeur(request, etablissement)
 
     classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, actif=True)
 
-    periode_qs = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True).order_by('date_debut')
+    from ..services.bulletins import bulletins_classe, periodes_bulletins
+    periodes = periodes_bulletins(etablissement, annee_scolaire_active, classe)
     if selected_periode_id:
-        periode = periode_qs.filter(id=selected_periode_id).first()
+        periode = periodes.filter(pk=int(selected_periode_id)).first() if str(selected_periode_id).isdecimal() else None
     else:
-        periode = periode_qs.first()
+        periode = periodes.first()
+    if not periode or not annee_scolaire_active:
+        messages.error(request, "Aucune période scolaire active n'est configurée pour cette classe.")
+        return redirect('directeur:bulletins_notes')
 
-    if not periode:
-        messages.error(request, "Aucune période scolaire active n'est configurée.")
-        redirect_url = reverse('directeur:bulletins_notes')
-        if selected_periode_id:
-            redirect_url = f"{redirect_url}?periode={selected_periode_id}"
-        return redirect(redirect_url)
-
-    moyennes_generales_qs = MoyennePeriode.objects.filter(
-        etablissement=etablissement,
-        periode=periode,
-        est_moyenne_generale=True,
-        eleve__classe=classe
-    )
-    if annee_scolaire_active:
-        moyennes_generales_qs = moyennes_generales_qs.filter(annee_scolaire=annee_scolaire_active)
-
+    moyennes_generales_qs = bulletins_classe(classe, periode, annee_scolaire_active)
     if not moyennes_generales_qs.exists():
         messages.warning(
             request,
@@ -5778,56 +5793,35 @@ def publier_bulletins_classe(request, classe_id):
             redirect_url = f"{redirect_url}?periode={request.GET.get('periode')}"
         return redirect(redirect_url)
 
-    if not isinstance(request.user, Etablissement):
+    etablissement, _, _ = _get_user_etablissement(request, 'bulletins_gerer')
+    if not etablissement:
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
     selected_periode_id = request.POST.get('periode') or request.GET.get('periode')
     from ..model.classe_model import Classe
-    from ..model.eleve_model import Eleve
-    from ..model.periode_model import PeriodeScolaire
-    from ..model.moyenne_periode_model import MoyennePeriode
-    from ..utils.session_utils import get_session_active
 
     # Récupérer l'année scolaire active
     annee_scolaire_active = _get_session_directeur(request, etablissement)
 
     classe = get_object_or_404(Classe, id=classe_id, etablissement=etablissement, actif=True)
 
-    periode_qs = PeriodeScolaire.objects.filter(etablissement=etablissement, est_active=True)
-    if annee_scolaire_active:
-        periode_qs = periode_qs.filter(annee_scolaire_fk=annee_scolaire_active)
-    periode_qs = periode_qs.order_by('date_debut')
+    from ..services.bulletins import bulletins_classe, periodes_bulletins
+    periodes = periodes_bulletins(etablissement, annee_scolaire_active, classe)
     if selected_periode_id:
-        periode = periode_qs.filter(id=selected_periode_id).first()
+        periode = periodes.filter(pk=int(selected_periode_id)).first() if str(selected_periode_id).isdecimal() else None
     else:
-        periode = periode_qs.first()
-    if not periode:
-        messages.error(request, "Aucune période scolaire active n'est configurée.")
-        redirect_url = reverse('directeur:bulletins_notes')
-        if selected_periode_id:
-            redirect_url = f"{redirect_url}?periode={selected_periode_id}"
-        return redirect(redirect_url)
+        periode = periodes.first()
+    if not periode or not annee_scolaire_active:
+        messages.error(request, "Aucune période scolaire active n'est configurée pour cette classe.")
+        return redirect('directeur:bulletins_notes')
 
-    moyennes_generales_qs = MoyennePeriode.objects.filter(
-        etablissement=etablissement,
-        periode=periode,
-        est_moyenne_generale=True,
-        eleve__classe=classe
-    )
-    if annee_scolaire_active:
-        moyennes_generales_qs = moyennes_generales_qs.filter(annee_scolaire=annee_scolaire_active)
-    moyennes_generales_qs = moyennes_generales_qs.select_related('eleve')
-
+    moyennes_generales_qs = bulletins_classe(classe, periode, annee_scolaire_active)
     if not moyennes_generales_qs.exists():
         messages.warning(request, "Aucune moyenne générale n'a été calculée pour cette classe. Veuillez d'abord calculer les moyennes avant de publier.")
         redirect_url = reverse('directeur:bulletins_notes')
         if selected_periode_id:
             redirect_url = f"{redirect_url}?periode={selected_periode_id}"
         return redirect(redirect_url)
-
-    moyennes_generales_list = list(moyennes_generales_qs)
 
     if request.POST.get('visibility_form_submitted'):
         eleves_visibles_ids = set()
@@ -5837,33 +5831,14 @@ def publier_bulletins_classe(request, classe_id):
             except (TypeError, ValueError):
                 continue
 
-        for moyenne in moyennes_generales_list:
+        for moyenne in moyennes_generales_qs:
             doit_afficher = moyenne.eleve_id in eleves_visibles_ids
             if moyenne.afficher_bulletin != doit_afficher:
                 moyenne.afficher_bulletin = doit_afficher
                 moyenne.save(update_fields=['afficher_bulletin', 'updated_at'])
 
-    now = timezone.now()
-    moyennes_ids = [moyenne.id for moyenne in moyennes_generales_list]
-    publies = MoyennePeriode.objects.filter(id__in=moyennes_ids).update(est_publie=True, date_publication=now)
-
-    if publies > 0:
-        try:
-            schedule_bulletin_publication(
-                classe_id=classe.id,
-                periode_id=periode.id,
-                etablissement_id=etablissement.id,
-            )
-        except Exception as scheduling_error:
-            logger.error(
-                "Erreur lors de la planification des notifications de publication des bulletins: %s",
-                scheduling_error,
-                exc_info=True,
-            )
-            messages.warning(
-                request,
-                "Les bulletins ont été publiés, mais la planification des notifications a échoué. Consultez les journaux.",
-            )
+    from ..services.bulletins import publier_bulletins
+    publies = publier_bulletins(classe, periode, moyennes_generales_qs, republier=True)
 
     if publies > 0:
         messages.success(
@@ -5936,11 +5911,10 @@ def imprimer_bulletin_eleve(request, classe_id, eleve_id):
 @login_required
 def imprimer_bulletins_classe(request, classe_id):
     """Affiche tous les bulletins d'une classe pour l'impression."""
-    if not isinstance(request.user, Etablissement):
+    etablissement, _, _ = _get_user_etablissement(request, 'bulletins_voir')
+    if not etablissement:
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
     from ..model.classe_model import Classe
 
     # Récupérer l'année scolaire active
@@ -6129,11 +6103,10 @@ def verifier_bulletin_qr(request):
 @login_required
 def configuration_moyennes_generales(request):
     """Configuration des paramètres de calcul des moyennes générales."""
-    if not isinstance(request.user, Etablissement):
+    etablissement, _, _ = _get_user_etablissement(request, 'config_modifier')
+    if not etablissement:
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
     est_primaire = etablissement.type_etablissement == 'primary'
 
     from ..model.periode_model import PeriodeScolaire
@@ -6206,11 +6179,10 @@ def configuration_moyennes_generales(request):
 @login_required
 def configuration_standards_reussite(request):
     """Configuration des standards de réussite pour l'établissement."""
-    if not isinstance(request.user, Etablissement):
+    etablissement, _, _ = _get_user_etablissement(request, 'config_modifier')
+    if not etablissement:
         messages.error(request, "Accès non autorisé.")
         return redirect('school_admin:connexion_compte_user')
-
-    etablissement = request.user
     from ..utils.session_utils import get_session_active
 
     annee_scolaire_active = _get_session_directeur(request, etablissement)
@@ -6283,94 +6255,30 @@ def configuration_standards_reussite(request):
                     redirect_url = f"{redirect_url}?periode={periode_active_id}"
                 return redirect(redirect_url)
 
-        elif section == 'conseil':
-            conseil_ranges = []
-            index = 0
-            while True:
-                min_key = f"conseil-{index}-min"
-                label_key = f"conseil-{index}-label"
-                if min_key not in request.POST or label_key not in request.POST:
-                    break
-                try:
-                    note_min = Decimal(request.POST[min_key].strip()).quantize(Decimal('0.01'))
-                    label = request.POST[label_key].strip()
-                    if note_min < 0 or note_min > 20:
-                        raise ValueError
-                    if not label:
-                        raise ValueError
-                    conseil_ranges.append((note_min, label))
-                except Exception:
-                    messages.error(request, f"Valeurs invalides pour l'appréciation conseil n°{index + 1}.")
-                index += 1
+        elif section in ('conseil', 'matieres'):
+            from ..services.bulletins import enregistrer_bareme
 
-            if conseil_ranges:
-                standards.appreciations_conseil.all().delete()
-                AppreciationConseilStandard.objects.bulk_create([
-                    AppreciationConseilStandard(
-                        standards=standards,
-                        note_min=note_min,
-                        appreciation=label,
-                    )
-                    for note_min, label in conseil_ranges
-                ])
-                standards.annee_scolaire = annee_scolaire_active
-                standards.save(update_fields=['annee_scolaire', 'date_modification'])
-                _emit_bulletin_live(etablissement.id, 'config_standards', section='conseil')
+            prefixe = 'conseil' if section == 'conseil' else 'ranges'
+            champs = ('min', 'label') if section == 'conseil' else ('min', 'max', 'label')
+            lignes = []
+            while any(f"{prefixe}-{len(lignes)}-{champ}" in request.POST for champ in champs):
+                index = len(lignes)
+                lignes.append({champ: request.POST.get(f"{prefixe}-{index}-{champ}", "") for champ in champs})
+            try:
+                enregistrer_bareme(etablissement, annee_scolaire_active, section, lignes)
+            except ValueError as exc:
+                messages.error(request, str(exc))
+            else:
+                _emit_bulletin_live(etablissement.id, 'config_standards', section=section)
                 from ..services.realtime_helpers import wants_json_response, json_ok
+                message = "Paliers d’appréciation enregistrés avec succès."
                 if wants_json_response(request):
-                    return json_ok(message="Appréciations du conseil enregistrées avec succès.")
-                messages.success(request, "Appréciations du conseil enregistrées avec succès.")
+                    return json_ok(message=message)
+                messages.success(request, message)
                 redirect_url = reverse('directeur:configuration_standards_reussite')
                 if periode_active_id:
                     redirect_url = f"{redirect_url}?periode={periode_active_id}"
                 return redirect(redirect_url)
-            else:
-                messages.error(request, "Ajoutez au moins une appréciation du conseil.")
-
-        elif section == 'matieres':
-            ranges = []
-            index = 0
-            while True:
-                min_key = f"ranges-{index}-min"
-                max_key = f"ranges-{index}-max"
-                label_key = f"ranges-{index}-label"
-                if min_key not in request.POST or max_key not in request.POST or label_key not in request.POST:
-                    break
-                try:
-                    note_min = Decimal(request.POST[min_key].strip()).quantize(Decimal('0.01'))
-                    note_max = Decimal(request.POST[max_key].strip()).quantize(Decimal('0.01'))
-                    label = request.POST[label_key].strip()
-                    if note_min < 0 or note_max > 20 or note_min >= note_max or not label:
-                        raise ValueError
-                    ranges.append((note_min, note_max, label))
-                except Exception:
-                    messages.error(request, f"Valeurs invalides pour le palier n°{index + 1}.")
-                index += 1
-
-            if ranges:
-                standards.appreciations_matieres.all().delete()
-                AppreciationMatiereStandard.objects.bulk_create([
-                    AppreciationMatiereStandard(
-                        standards=standards,
-                        note_min=note_min,
-                        note_max=note_max,
-                        appreciation=label,
-                    )
-                    for note_min, note_max, label in ranges
-                ])
-                standards.annee_scolaire = annee_scolaire_active
-                standards.save(update_fields=['annee_scolaire', 'date_modification'])
-                _emit_bulletin_live(etablissement.id, 'config_standards', section='matieres')
-                from ..services.realtime_helpers import wants_json_response, json_ok
-                if wants_json_response(request):
-                    return json_ok(message="Paliers d'appréciation enregistrés avec succès.")
-                messages.success(request, "Paliers d'appréciation enregistrés avec succès.")
-                redirect_url = reverse('directeur:configuration_standards_reussite')
-                if periode_active_id:
-                    redirect_url = f"{redirect_url}?periode={periode_active_id}"
-                return redirect(redirect_url)
-            else:
-                messages.error(request, "Ajoutez au moins un palier d'appréciation.")
 
         else:
             messages.error(request, "Section de formulaire inconnue.")

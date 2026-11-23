@@ -86,6 +86,31 @@ class SecuriteSessionsTests(BaseExamens):
         self.assertEqual(self.client.post(self.url('supprimer')).status_code, 403)
         self.assertTrue(SessionExamen.objects.filter(pk=self.compo.pk).exists())
 
+    def test_assistant_recontrole_les_notes_apres_preparation(self):
+        from school_admin.services.assistant_actions import ACTION_SPECS
+        from school_admin.services.assistant_tools import build_assistant_context, execute_tool
+
+        ctx = build_assistant_context(self.etab)
+        draft = execute_tool(ctx, 'supprimer_session_examen', {'query': self.compo.nom_examen})
+        self.assertEqual(draft['statut'], 'en_attente_confirmation')
+        self.note(self.awa, self.compo, note=Decimal('0'), soumis=False)
+        result = ACTION_SPECS['supprimer_session_examen'].apply(ctx, draft)
+        self.assertIn('interdite', result['erreur'])
+        self.assertTrue(SessionExamen.objects.filter(pk=self.compo.pk).exists())
+
+    def test_assistant_refuse_le_personnel_meme_si_il_voit_les_examens(self):
+        from school_admin.model.personnel_administratif_model import PersonnelAdministratif
+        from school_admin.services.assistant_tools import build_assistant_context, directeur_tools_schema, execute_tool
+
+        personnel = PersonnelAdministratif.objects.create(
+            username='lecteur.aria', email='lecteur-aria@example.test',
+            nom='Fall', prenom='Ali', fonction='secretaire', telephone='770000091',
+            etablissement=self.etab, permissions={'examens_voir': True},
+        )
+        ctx = build_assistant_context(self.etab, personnel=personnel)
+        self.assertNotIn('supprimer_session_examen', {x['function']['name'] for x in directeur_tools_schema(ctx)})
+        self.assertIn('autorisation', execute_tool(ctx, 'supprimer_session_examen', {'query': self.compo.nom_examen})['erreur'])
+
     def test_calendrier_publie_non_modifiable_sans_retrait(self):
         SessionExamen.objects.filter(pk=self.compo.pk).update(est_publie=True)
         self.client.post(reverse('directeur:modifier_session_examen', args=[self.compo.pk]), {

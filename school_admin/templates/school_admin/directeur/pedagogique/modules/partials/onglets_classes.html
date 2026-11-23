@@ -1,0 +1,21 @@
+{% load i18n %}
+<div class="gml-filter-level">
+  <p class="gml-filter-label"><i class="fas fa-door-open" aria-hidden="true"></i> {% trans "Classe" %}</p>
+  <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'classe' %}" data-overflow-items-label="{% trans 'classes' %}">
+    <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Classes du niveau' %}" data-sx-tabs="classes-{{ cle_onglets }}">
+      {% for classe in classes_onglets %}
+      <button type="button" role="tab" class="matiere-tab-btn{% if forloop.first %} active{% endif %}" data-sx-tab data-sx-key="{{ classe.id }}"
+              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+              {% if filtrer %}data-sx-set="#sxClasse-{{ cle_onglets }}|{{ classe.id }}"{% else %}data-sx-panel="{{ cle_onglets }}-{{ classe.id }}"{% endif %}>
+        <i class="fas fa-door-open" aria-hidden="true"></i><span>{{ classe.nom }}</span>
+      </button>
+      {% endfor %}
+    </div>
+    <div class="matiere-tabs-more-wrap" hidden>
+      <button type="button" class="matiere-tabs-more-btn" aria-expanded="false" aria-haspopup="true" aria-label="{% trans 'Autres classes' %}">
+        <i class="fas fa-chevron-down" aria-hidden="true"></i><span class="matiere-tabs-more-label">{% trans "Autres classes" %}</span>
+      </button>
+      <div class="matiere-tabs-overflow-menu" role="menu" hidden></div>
+    </div>
+  </div>
+</div>

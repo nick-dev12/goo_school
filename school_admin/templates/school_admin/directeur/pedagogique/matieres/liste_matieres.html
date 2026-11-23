@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=2.0.5" />
     {% if est_superieur %}
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/modules_ajout_modal.css' %}?v=2.3.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/modules_ajout_modal.css' %}?v=2.5.0" />
     {% else %}
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres.css' %}?v=2.1.0" />
     {% endif %}
@@ -31,9 +31,10 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.3">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.1.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.5.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres_v5.css' %}?v=1.4.1">
 </head>
-<body class="gml-page-body mat-page-body gv3 cg3 sx" data-live-page="matieres">
+<body class="gml-page-body mat-page-body gv3 cg3 sx{% if est_superieur %} mm5{% endif %}" data-live-page="matieres">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container gml-page mat-page">
@@ -41,8 +42,8 @@
             {% include 'school_admin/directeur/partials/page_header_back.html' %}
         </div>
 
-        {% if est_superieur %}{% trans "Modules (UE) et matières (EC)" as t %}{% else %}{% trans "Matières" as t %}{% endif %}
-        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_icone='fa-book-open' v3_tone='violet' v3_actions_tpl='school_admin/directeur/partials/v3_actions/matieres.html' %}
+        {% if est_superieur %}{% trans "Modules (UE) et matières (EC)" as t %}{% trans "Chaque module (UE) regroupe des matières (EC). Ses crédits se règlent classe par classe : ouvrez un module pour y ajouter ou modifier ses matières." as st %}{% else %}{% trans "Matières" as t %}{% endif %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=t v3_sous_titre=st v3_icone='fa-book-open' v3_tone='violet' v3_actions_tpl='school_admin/directeur/partials/v3_actions/matieres.html' %}
 
         {% if est_superieur %}
             {% include 'school_admin/directeur/pedagogique/matieres/partials/gml_modules_list_panel.html' %}
@@ -147,7 +148,7 @@
                             </label>
                             <p class="form-hint" style="font-size: 12px; color: #666; margin-bottom: 8px;">
                                 <i class="fas fa-info-circle"></i>
-                                {% trans "Sélectionnez un ou plusieurs modules parmi les filières choisies." %}
+                                {% trans "Une fiche sera créée par module sélectionné, avec toutes ses classes. Pour choisir des classes précises ou définir des réglages différents par filière, ouvrez la fiche du module." %}
                             </p>
                             <div id="modules-multi-select" class="multi-select-grid">
                                 {% for dep_id, modules_list in modules_by_department.items %}
@@ -156,7 +157,9 @@
                                         <input type="checkbox" name="modules_ids" value="{{ mod.id }}" class="module-multi-checkbox" {% if mod.id|stringformat:"s" in form_data.modules_ids %}checked{% endif %}>
                                         <div class="checkbox-content">
                                             <i class="fas fa-cube"></i>
-                                            <span>{{ mod.nom }}{% if mod.niveau_lmd %} [{{ mod.niveau_lmd|libelle_niveau_lmd_key }}]{% endif %}{% if mod.credits and mod.credits > 0 %} ({{ mod.credits }} cr.){% endif %}</span>
+                                            <span>{{ mod.nom }}{% if mod.niveau_lmd %} [{{ mod.niveau_lmd|libelle_niveau_lmd_key }}]{% endif %}
+                                                <small style="display:block">{% for classe in mod.classes.all %}{% if not forloop.first %}, {% endif %}{{ classe.nom }}{% empty %}{% trans "Aucune classe rattachée" %}{% endfor %}</small>
+                                            </span>
                                         </div>
                                         <div class="checkbox-check"><i class="fas fa-check"></i></div>
                                     </label>
@@ -458,7 +461,7 @@
     <script src="{% static 'school_admin/js/directeur/matieres.js' %}?v=2.0.1"></script>
     <script src="{% static 'school_admin/js/directeur/matieres_liste_tabs.js' %}?v=2.0.0"></script>
     {% if est_superieur %}
-    <script src="{% static 'school_admin/js/directeur/matieres_modules.js' %}?v=2.4.0"></script>
+    <script src="{% static 'school_admin/js/directeur/matieres_modules.js' %}?v=2.5.0"></script>
     {% endif %}
     <script>
         {% if est_superieur and field_errors %}
@@ -651,6 +654,7 @@
     {% include 'school_admin/partials/directeur_live_scripts.html' %}
     <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.2.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
-    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.5.0"></script>
+    <script src="{% static 'school_admin/js/directeur/matieres_v5.js' %}?v=1.0.1"></script>
 </body>
 </html>

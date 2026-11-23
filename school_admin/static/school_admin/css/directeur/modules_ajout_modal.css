@@ -972,3 +972,65 @@ body.module-modal-open {
   color: #4b5563;
   margin-bottom: 0.2rem;
 }
+
+.mam-classes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  margin: 0 0 .8rem;
+  padding: .5rem .75rem;
+  border: 1px solid #dbe3ef;
+  border-radius: .6rem;
+}
+.mam-classes label { display: inline-flex; align-items: center; gap: .35rem; }
+.mam-classes legend { font-weight: 600; padding: 0 .25rem; }
+
+/* Création d’une UE */
+#moduleAddModal .mam-panel {
+  max-height: min(92dvh, 860px);
+  --mam-primary: #264dc0;
+}
+#moduleAddModal .mam-header {
+  padding: clamp(.8rem, 2vw, 1.2rem) clamp(.9rem, 3vw, 1.5rem);
+  background: linear-gradient(115deg, #203c9a, #345cce 75%, #4960bd);
+}
+#moduleAddModal .mam-body {
+  gap: .85rem;
+  padding: clamp(.8rem, 3vw, 1.35rem);
+  overscroll-behavior: contain;
+}
+#moduleAddModal .mam-field--nom,
+#moduleAddModal .mam-block {
+  padding: clamp(.8rem, 2vw, 1.1rem);
+  margin: 0;
+  border: 1px solid #dfe7f4;
+  border-radius: 1rem;
+  background: #fff;
+}
+#moduleAddModal .mam-block-title { color: #172d60; font-size: 1rem; }
+#moduleAddModal .mam-block-desc { margin-top: .3rem; }
+#moduleAddModal .mam-empty-state { padding: .8rem; }
+#moduleAddModal .mam-empty-state .mam-empty-icon { display: none; }
+#moduleAddModal .mam-footer {
+  align-items: center;
+  justify-content: space-between;
+  padding: .65rem clamp(.8rem, 3vw, 1.35rem) max(.7rem, env(safe-area-inset-bottom));
+  box-shadow: 0 -6px 20px rgba(26, 51, 112, .06);
+}
+.mam-footer-actions { display: flex; flex-wrap: wrap; gap: .45rem; }
+.mam-selection-summary { color: #415578; font-size: .82rem; margin: 0; }
+.mam-niveau-choice { justify-content: flex-start; gap: .65rem; }
+.mam-niveau-select, .mam-classes input { accent-color: #264dc0; flex: 0 0 auto; width: 1.15rem; height: 1.15rem; }
+.mam-niveau-select:focus-visible { outline: 2px solid #264dc0; outline-offset: 3px; }
+#moduleAddModal .mam-classes label { min-height: 2.75rem; padding: .25rem .45rem; border-radius: .55rem; }
+#moduleAddModal .mam-classes label:has(:checked) { background: #edf3ff; color: #193b9e; }
+@media (max-width: 520px) {
+  #moduleAddModal .mam-panel { max-height: 96dvh; }
+  #moduleAddModal .mam-footer-actions { display: grid; grid-template-columns: 1fr 1.35fr; width: 100%; }
+  #moduleAddModal .mam-btn { min-width: 0; padding: .55rem .3rem; font-size: .82rem; }
+  #moduleAddModal .mam-input { font-size: 1rem; }
+  #moduleAddModal .mam-classes label { padding-inline: .25rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #moduleAddModal, #moduleAddModal .mam-panel, #moduleAddModal .mam-btn { transition: none; }
+}

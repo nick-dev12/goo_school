@@ -59,6 +59,7 @@ from .caisse_etablissement_model import (
     AbsenceEnseignant,
     DepenseEtablissement,
     PaieProfesseurPeriode,
+    PaiePersonnelMois,
 )
 from .finances_model import (
     CategorieFinanciere,
@@ -95,8 +96,7 @@ from .pointage_model import BornePointage, SeanceCours
 from .cahier_texte_model import CahierTexte
 from .deliberation_model import Deliberation, DecisionJury, UECapitalisee
 from .maquette_model import Parcours, GroupeEnseignement, InscriptionPedagogique
-from .service_enseignant_model import ReglesService
 from .push_delivery_model import PushDelivery
 from .context_popup_model import ContextPopupState, ContextPopupVisit
 from .admission_model import Concours, EpreuveConcours, Candidature, NoteConcours, Diplome
-from .rappel_model import RappelEnvoye, ParametresRappels, NotificationPersonnel
+from .rappel_model import RappelEnvoye, ParametresRappels, NotificationPersonnel, RappelPersonnel, CourrierEtablissement

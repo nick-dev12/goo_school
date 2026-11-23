@@ -102,9 +102,9 @@ def hub_etablissement(user, etab, annee):
             structure and _lien('Périodes scolaires', f"Découpage de l’année en {lib['periodes']}", _url('directeur:gestion_periodes_scolaires'),
                                 'fa-calendar-days', 'orange', nb_periodes, 'période(s)',
                                 None if nb_periodes else 'À créer'),
-            structure and _lien(lib['classes'].capitalize(), f"Niveaux, effectifs et capacités", _url('administrateur_etablissement:liste_classes'),
+            structure and _lien('Filières et classes' if etab.type_etablissement == 'superieur' else lib['classes'].capitalize(), f"Niveaux, effectifs et capacités", _url('administrateur_etablissement:liste_classes'),
                                 'fa-chalkboard', 'blue', nb_classes, f"classe(s) · {nb_eleves} {lib['eleves']}"),
-            structure and _lien('Matières', 'Programme, coefficients et rattachement aux classes', _url('matiere:liste_matieres'),
+            structure and _lien('Modules et matières' if etab.type_etablissement == 'superieur' else 'Matières', 'Programme, coefficients et rattachement aux classes', _url('matiere:liste_matieres'),
                                 'fa-book-open', 'violet', nb_matieres, 'matière(s)', None if nb_matieres else 'À créer'),
             structure and _lien('Salles', 'Salles de cours et capacités', _url('salle:liste_salles'),
                                 'fa-door-open', 'teal', nb_salles, 'salle(s)'),
@@ -175,6 +175,9 @@ def hub_pedagogique(user, etab, annee):
                         'url': _url('directeur:liste_volume_horaire'), 'action': 'Contrôler'})
 
     perso = _peut(user, 'professeurs_liste')
+    nb_etat = _sur(lambda: profs.filter(prise_en_charge='etat').count()
+                   + PersonnelAdministratif.objects.filter(etablissement=etab, actif=True, prise_en_charge='etat').count(), 0)
+    nb_payes = _sur(lambda: (nb_profs or 0) + (nb_perso or 0) - nb_etat, None)
     sections = [
         {'titre': 'Équipe', 'desc': 'Enseignants, personnel et répartition des classes.', 'liens': [
             perso and _lien('Enseignants', 'Fiches, matières, contrats et dossiers', _url('professeur:liste_professeurs'),
@@ -187,12 +190,6 @@ def hub_pedagogique(user, etab, annee):
                             f"{sans_prof} sans enseignant" if sans_prof else None),
         ]},
         {'titre': 'Organisation des cours', 'desc': 'Emplois du temps, présence des enseignants et suivi des séances.', 'liens': [
-            etab.type_etablissement == 'superieur' and _peut(user, 'config_voir') and _lien(
-                'Maquettes LMD', 'UE, EC, crédits, volumes CM / TD / TP, options, parcours, groupes',
-                _url('directeur:liste_maquettes'), 'fa-sitemap', 'violet', nb_classes, 'classe(s)'),
-            etab.type_etablissement == 'superieur' and perso and _lien(
-                'Service des enseignants', 'Grades, service dû, équivalent TD, heures complémentaires',
-                _url('directeur:service_enseignants'), 'fa-scale-balanced', 'orange', nb_profs, 'enseignant(s)'),
             _peut(user, 'classes_liste') and _lien('Emplois du temps', 'Créneaux par classe, publication', _url('administrateur_etablissement:liste_emplois_du_temps'),
                                                                       'fa-calendar-week', 'green', nb_edt_publies, f"/ {nb_classes} publiés"),
             _peut(user, 'pointage_controle', 'professeurs_detail') and _lien('Pointage des enseignants', 'QR code en classe, validation et anomalies',
@@ -201,6 +198,12 @@ def hub_pedagogique(user, etab, annee):
             _peut(user, 'professeurs_detail', 'pointage_controle') and _lien('Cahiers de texte', 'Leçons validées par les enseignants',
                                                                               _url('directeur:cahiers_texte'), 'fa-book-open', 'teal',
                                                                               f"{cahier} %" if cahier is not None else None, 'renseignés (14 j)'),
+        ]},
+        {'titre': 'Salaires et paiements', 'desc': 'Paie de tout le personnel payé par l’établissement : enseignants et administratifs.', 'liens': [
+            _peut(user, 'comptabilite_paiements') and _lien(
+                'Salaires et paiements', 'Qui payer ce mois, versements enregistrés dans la caisse',
+                _url('directeur:salaires'), 'fa-money-check-dollar', 'green', nb_payes, 'payé(s) par l’école',
+                f"{nb_etat} agent(s) de l’État" if nb_etat else None, nouveau=True),
         ]},
     ]
     kpis = [
@@ -311,6 +314,7 @@ def hub_administratif(user, etab, annee):
             peut and _lien('Attestations de réussite', 'Passage en classe supérieure', _url('directeur:attestation_reussite_liste'), 'fa-award', 'orange'),
             peut and _lien('Attestations de conduite', 'Certificat de bonne conduite', _url('directeur:attestation_conduite_liste'), 'fa-medal', 'teal'),
             peut and _lien('Radiation / transfert', 'Certificat de départ de l’établissement', _url('directeur:certificat_radiation_liste'), 'fa-right-from-bracket', 'red'),
+            peut and _lien('Courriers', 'Lettres et notes de service rédigées avec Aria', _url('directeur:courriers'), 'fa-envelope', 'blue', nouveau=True),
         ]},
         {'titre': 'Relations avec les familles', 'desc': 'Convocations et accès des parents.', 'liens': [
             peut and _lien('Convocations', 'Parents et élèves convoqués', _url('directeur:convocation_liste'), 'fa-envelope-open-text', 'orange',

@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% trans "Module" %} {{ module.nom }} - {{ etablissement.nom }}</title>
+    <title>{% trans "Module (UE)" %} · {{ module.nom }} - {{ etablissement.nom }}</title>
     <link href="/static/school_admin/vendor/fonts/poppins.css?v=1" rel="stylesheet" />
     <link href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/header_directeur.css' %}?v=1.0.4" />
@@ -14,15 +14,17 @@
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/modules_detail.css' %}?v=2.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matiere_tabs_overflow.css' %}?v=1.0.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/tabs_nav_overflow.css' %}?v=2.0.5" />
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/modules_ajout_modal.css' %}?v=2.3.0" />
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/modules_ajout_modal.css' %}?v=2.5.0" />
     <link rel="stylesheet" href="{% static 'school_admin/css/partials/messages.css' %}" />
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5">
     <link rel="stylesheet" href="{% static 'school_admin/css/directeur/gestion_v3.css' %}?v=1.3.3">
-    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.1.1">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/structure_v4.css' %}?v=1.4.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/maquette.css' %}?v=1.3.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/matieres_v5.css' %}?v=1.4.1">
 </head>
-<body class="gml-page-body gmd-page gv3 cg3 sx">
+<body class="gml-page-body gmd-page gv3 cg3 sx mm5">
     {% include 'school_admin/directeur/partials/header_directeur.html' %}
 
     <div class="content-container gml-page">
@@ -34,82 +36,121 @@
             {% if linked_departments|length == 1 %}<span>{{ linked_departments.0.nom }}</span><i class="fas fa-chevron-right" aria-hidden="true"></i>{% endif %}
             <span>{{ module.nom }}</span>
         </nav>
-        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=module.nom v3_sous_titre=sx_sous_titre_module v3_icone='fa-cube' v3_tone='teal' v3_actions_tpl='school_admin/directeur/partials/v3_actions/module.html' %}
+        {% include 'school_admin/directeur/partials/v3_entete.html' with v3_titre=titre_module v3_sous_titre=sx_sous_titre_module v3_icone='fa-cube' v3_tone='teal' v3_actions_tpl='school_admin/directeur/partials/v3_actions/module.html' %}
         {% if is_module_shared %}<p class="fe-alert fe-alert--info" style="margin-bottom:14px"><i class="fas fa-building" aria-hidden="true"></i><span>{% if is_module_shared %}{% trans "Module mutualisé" %} — {% for dep in linked_departments %}{{ dep.nom }}{% if dep.sigle %} ({{ dep.sigle }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}{% trans "Spécialité" %} : {{ linked_departments.0.nom }}{% if linked_departments.0.sigle %} ({{ linked_departments.0.sigle }}){% endif %}{% endif %}</span></p>{% endif %}
 
         {% include 'school_admin/directeur/pedagogique/modules/partials/gmd_module_detail_panel.html' %}
+        {% if reglages_ue %}
+        <details class="mqt-settings" id="reglages-ue">
+          <summary>{% trans "Type de module (UE), options et parcours par classe" %}</summary>
+          {% for lien in reglages_ue %}
+          <form method="post" class="mqt-ue-settings">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="regler_ue">
+            <input type="hidden" name="lien" value="{{ lien.id }}">
+            <h2>{{ lien.classe.nom }}{% if lien.periode %} · {{ lien.periode.nom_periode }}{% endif %}</h2>
+            <div class="mqt-settings-grid">
+              <label>{% trans "Type de module (UE)" %}<select name="type_ue">{% for valeur, libelle in types_ue %}<option value="{{ valeur }}"{% if lien.type_ue == valeur %} selected{% endif %}>{{ libelle }}</option>{% endfor %}</select></label>
+              <label class="mqt-setting-check"><input name="optionnelle" type="checkbox"{% if lien.optionnelle %} checked{% endif %}> {% trans "Module (UE) au choix" %}</label>
+              <label>{% trans "Groupe d’options" %}<input name="groupe_options" maxlength="60" value="{{ lien.groupe_options }}"></label>
+              <label>{% trans "Nombre de modules (UE) à choisir" %}<input name="choix_requis" type="number" min="1" max="10" value="{{ lien.choix_requis }}" required></label>
+              <label>{% trans "Parcours" %}<select name="parcours"><option value="">{% trans "Tronc commun" %}</option>{% for parcours in lien.classe.parcours.all %}<option value="{{ parcours.id }}"{% if lien.parcours_id == parcours.id %} selected{% endif %}>{{ parcours.nom }}</option>{% endfor %}</select></label>
+            </div>
+            <button type="submit" class="cg3-btn cg3-btn--primary">{% trans "Enregistrer pour cette classe" %}</button>
+          </form>
+          {% endfor %}
+        </details>
+        {% endif %}
     </div>
 
     <!-- Modal — Nouvelle matière (hybride multi-filières) -->
-    <div class="modal-overlay-fullscreen{% if matiere_modal.errors %} active{% endif %}" id="modalMatiereClasse">
-        <div class="modal-container-fullscreen modal-matiere-classe-box modal-matiere-hybride-box">
-            <div class="modal-header-fullscreen">
-                <h2 class="modal-title-fullscreen">
-                    <i class="fas fa-book-medical"></i>
-                    {% trans "Nouvelle matière" %}
-                </h2>
-                <button type="button" class="modal-close-fullscreen" id="closeModalMatiereClasse" aria-label="{% trans 'Fermer' %}">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form method="post" action="{% url 'matiere:detail_module' module.id %}" class="modal-form-fullscreen" id="formMatiereClasse" data-matiere-hybride-form>
-                {% csrf_token %}
-                <input type="hidden" name="action" value="creer_matiere_hybride">
-                {% if matiere_modal.errors %}
-                <div class="alert alert-error">
-                    {% for key, msg in matiere_modal.errors.items %}<div>{{ msg }}</div>{% endfor %}
-                </div>
-                {% endif %}
-                <div class="form-group">
-                    <label class="form-label" for="nom_matiere_modal">{% trans "Nom de la matière *" %}</label>
-                    <input type="text" class="form-control {% if matiere_modal.errors.nom_matiere %}is-invalid{% endif %}" id="nom_matiere_modal" name="nom_matiere" value="{{ matiere_modal.nom }}" required maxlength="100" placeholder="{% trans "Ex: Statistiques, Algèbre" %}">
-                </div>
-                <div class="form-group">
-                    <span class="form-label">{% trans "Filière(s) concernée(s) *" %}</span>
-                    <div class="matiere-hybride-scope" role="radiogroup">
-                        <label class="matiere-hybride-radio">
-                            <input type="radio" name="filiere_scope" value="single" {% if matiere_modal.filiere_scope != 'all' %}checked{% endif %}>
-                            <span>{% trans "Une filière" %}</span>
-                        </label>
-                        {% if is_module_shared %}
-                        <label class="matiere-hybride-radio">
-                            <input type="radio" name="filiere_scope" value="all" {% if matiere_modal.filiere_scope == 'all' %}checked{% endif %}>
-                            <span>{% trans "Toutes les filières du module" %}</span>
-                        </label>
-                        {% endif %}
+    <div class="mam-overlay mm-modal{% if matiere_modal.errors %} is-open active{% endif %}" id="modalMatiereClasse" role="dialog" aria-modal="true" aria-labelledby="modalMatiereTitre">
+        <div class="mam-backdrop" data-mm-close aria-hidden="true"></div>
+        <div class="mam-panel">
+            <header class="mam-header">
+                <div class="mam-header-brand">
+                    <span class="mam-header-icon" aria-hidden="true"><i class="fas fa-book-medical"></i></span>
+                    <div class="mam-header-text">
+                        <h2 id="modalMatiereTitre" class="mam-title">{% trans "Nouvelle matière (EC)" %}</h2>
+                        <p class="mam-subtitle">{% blocktrans with ue=module.nom %}Elle sera ajoutée au module (UE) « {{ ue }} ».{% endblocktrans %}</p>
                     </div>
                 </div>
-                <div class="form-group" id="matiereHybrideDepWrap">
-                    <label class="form-label" for="matiere_hybride_department">{% trans "Filière *" %}</label>
-                    <select class="form-control {% if matiere_modal.errors.department_id %}is-invalid{% endif %}" id="matiere_hybride_department" name="department_id">
-                        <option value="">{% trans "— Choisir —" %}</option>
-                        {% for block in matiere_niveaux_par_filiere %}
-                        <option value="{{ block.department.id }}" {% if matiere_modal.department_id|stringformat:'s' == block.department.id|stringformat:'s' %}selected{% endif %}>{{ block.department.nom }}{% if block.department.sigle %} ({{ block.department.sigle }}){% endif %}</option>
-                        {% endfor %}
-                    </select>
+                <button type="button" class="mam-close" id="closeModalMatiereClasse" aria-label="{% trans 'Fermer' %}"><i class="fas fa-times" aria-hidden="true"></i></button>
+            </header>
+            <form method="post" action="{% url 'matiere:detail_module' module.id %}" class="mam-form" id="formMatiereClasse" data-matiere-hybride-form>
+                {% csrf_token %}
+                <input type="hidden" name="action" value="creer_matiere_hybride">
+                <input type="hidden" name="choix_classes_matiere" value="1">
+                <div class="mam-body">
+                    {% if matiere_modal.errors %}
+                    <div class="alert-error" role="alert">{% for key, msg in matiere_modal.errors.items %}<div>{{ msg }}</div>{% endfor %}</div>
+                    {% endif %}
+
+                    <fieldset class="mm-step">
+                        <legend class="mm-step__title"><span class="mm-step__num">1</span><label for="nom_matiere_modal">{% trans "Nom de la matière (EC)" %}</label></legend>
+                        <div class="mm-field">
+                            <input type="text" class="{% if matiere_modal.errors.nom_matiere %}is-invalid{% endif %}" id="nom_matiere_modal" name="nom_matiere" value="{{ matiere_modal.nom }}" required maxlength="100" placeholder="{% trans 'Ex. : Statistiques, Droit des contrats' %}" autocomplete="off">
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="mm-step">
+                        <legend class="mm-step__title"><span class="mm-step__num">2</span>{% trans "Pour quelles classes ?" %}</legend>
+                        {% if is_module_shared %}
+                        <div class="mm-choices matiere-hybride-scope" role="radiogroup" aria-label="{% trans 'Filières concernées' %}" style="margin-bottom:12px">
+                            <label class="mm-choice"><input type="radio" name="filiere_scope" value="single" {% if matiere_modal.filiere_scope != 'all' and matiere_modal.filiere_scope != 'common' %}checked{% endif %}><span>{% trans "Une seule filière" %}<small>{% trans "La matière ne concerne qu’une filière." %}</small></span></label>
+                            <label class="mm-choice"><input type="radio" name="filiere_scope" value="common" {% if matiere_modal.filiere_scope == 'common' %}checked{% endif %}><span>{% trans "Matière commune" %}<small>{% trans "Un seul cours partagé par toutes les filières." %}</small></span></label>
+                            <label class="mm-choice"><input type="radio" name="filiere_scope" value="all" {% if matiere_modal.filiere_scope == 'all' %}checked{% endif %}><span>{% trans "Une par filière" %}<small>{% trans "Un cours distinct par filière, coefficient propre." %}</small></span></label>
+                        </div>
+                        {% else %}
+                        <input type="radio" name="filiere_scope" value="single" checked hidden>
+                        {% endif %}
+                        <div class="mm-row">
+                            <div class="mm-field" id="matiereHybrideDepWrap">
+                                <label for="matiere_hybride_department">{% trans "Filière" %}</label>
+                                <select class="{% if matiere_modal.errors.department_id %}is-invalid{% endif %}" id="matiere_hybride_department" name="department_id">
+                                    <option value="">{% trans "— Choisir —" %}</option>
+                                    {% for block in matiere_niveaux_par_filiere %}
+                                    <option value="{{ block.department.id }}" {% if matiere_modal.department_id|stringformat:'s' == block.department.id|stringformat:'s' %}selected{% endif %}>{{ block.department.nom }}{% if block.department.sigle %} ({{ block.department.sigle }}){% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mm-field">
+                                <label for="matiere_hybride_niveau">{% trans "Niveau" %}</label>
+                                <select class="{% if matiere_modal.errors.niveau_key %}is-invalid{% endif %}" id="matiere_hybride_niveau" name="niveau_key" required>
+                                    <option value="">{% trans "— Choisir —" %}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mm-field" style="margin-top:12px">
+                            <span class="mm-label" id="matiereHybrideClassesLabel">{% trans "Classes qui suivent cette matière" %}</span>
+                            <div id="matiereHybrideClasses" role="group" aria-labelledby="matiereHybrideClassesLabel"></div>
+                            <p id="matiereHybrideResume" class="mm-resume" aria-live="polite"></p>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="mm-step">
+                        <legend class="mm-step__title"><span class="mm-step__num">3</span>{% trans "Coefficient et poids" %}</legend>
+                        <p class="mm-step__hint">{% trans "Le poids sert à partager les crédits du module (UE) entre ses matières (EC) ; vide : partage égal." %}</p>
+                        <div class="mm-row">
+                            <div class="mm-field" id="matiereHybrideCoefsWrap">
+                                <div id="matiereHybrideCoefsList" class="matiere-hybride-coefs-list"></div>
+                            </div>
+                            <div class="mm-field">
+                                <label for="poids_matiere_modal">{% trans "Poids dans le module (UE), en crédits" %}</label>
+                                <input type="number" id="poids_matiere_modal" name="poids_matiere" min="0" max="60" step="0.5" value="{{ matiere_modal.poids|default:'' }}" placeholder="{% trans 'Facultatif' %}" class="{% if matiere_modal.errors.poids_matiere %}is-invalid{% endif %}">
+                            </div>
+                        </div>
+                    </fieldset>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="matiere_hybride_niveau">{% trans "Niveau LMD *" %}</label>
-                    <select class="form-control {% if matiere_modal.errors.niveau_key %}is-invalid{% endif %}" id="matiere_hybride_niveau" name="niveau_key" required>
-                        <option value="">{% trans "— Choisir —" %}</option>
-                    </select>
-                    <small class="form-hint">{% trans "Seuls les niveaux configurés pour ce module sont proposés." %}</small>
-                </div>
-                <div class="form-group" id="matiereHybrideCoefsWrap">
-                    <span class="form-label">{% trans "Coefficient par filière et niveau *" %}</span>
-                    <div id="matiereHybrideCoefsList" class="matiere-hybride-coefs-list"></div>
-                    <small class="form-hint">{% trans "Un coefficient distinct par filière (entre 0 et 10)." %}</small>
-                </div>
-                <div class="modal-actions-fullscreen">
-                    <button type="button" class="btn-cancel" id="cancelModalMatiereClasse">{% trans "Annuler" %}</button>
-                    <button type="submit" class="btn-submit">
-                        <i class="fas fa-save"></i> {% trans "Enregistrer" %}
-                    </button>
-                </div>
+                <footer class="mam-footer">
+                    <button type="button" class="mam-btn mam-btn--ghost" id="cancelModalMatiereClasse">{% trans "Annuler" %}</button>
+                    <button type="submit" class="mam-btn mam-btn--primary"><i class="fas fa-check" aria-hidden="true"></i>{% trans "Créer la matière (EC)" %}</button>
+                </footer>
             </form>
         </div>
     </div>
-    <script type="application/json" id="matiereNiveauxParFiliereData">{{ matiere_niveaux_par_filiere_json|safe }}</script>
+    {{ matiere_modal_classes|json_script:"matiereClassesChoisies" }}
+    {{ matiere_niveaux_par_filiere_data|json_script:"matiereNiveauxParFiliereData" }}
 
     <!-- Modale modification module -->
     <div class="mam-overlay{% if open_modal_modifier %} is-open{% endif %}" id="moduleEditModal" role="dialog" aria-modal="true" aria-labelledby="moduleEditModalTitle" data-module-form-root>
@@ -119,8 +160,8 @@
                 <div class="mam-header-brand">
                     <span class="mam-header-icon" aria-hidden="true"><i class="fas fa-edit"></i></span>
                     <div class="mam-header-text">
-                        <h2 id="moduleEditModalTitle" class="mam-title">{% trans "Modifier le module" %}</h2>
-                        <p class="mam-subtitle">{% trans "Nom, spécialités et niveaux LMD — les paramètres UE s'appliquent à toutes les classes du niveau." %}</p>
+                        <h2 id="moduleEditModalTitle" class="mam-title">{% trans "Modifier le module (UE)" %}</h2>
+                        <p class="mam-subtitle">{% trans "Choisissez les filières, les niveaux et les classes qui suivent ce module (UE)." %}</p>
                     </div>
                 </div>
                 <button type="button" class="mam-close" data-module-edit-close aria-label="{% trans 'Fermer' %}">
@@ -146,13 +187,14 @@
 
     <script src="{% static 'school_admin/js/directeur/tables_v3.js' %}?v=1.2.0" defer></script>
     {% include 'school_admin/directeur/partials/bottom_nav_directeur.html' %}
-    <script src="{% static 'school_admin/js/directeur/matieres_modules.js' %}?v=2.4.0"></script>
+    <script src="{% static 'school_admin/js/directeur/matieres_modules.js' %}?v=2.5.0"></script>
     <script src="{% static 'school_admin/js/directeur/matieres_liste_tabs.js' %}?v=2.0.0"></script>
     <script src="{% static 'school_admin/js/directeur/detail_module_tabs.js' %}?v=2.0.0"></script>
-    <script src="{% static 'school_admin/js/directeur/detail_module_matiere.js' %}?v=1.0.0"></script>
-    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.1.0"></script>
+    <script src="{% static 'school_admin/js/directeur/detail_module_matiere.js' %}?v=1.2.2"></script>
+    <script src="{% static 'school_admin/js/directeur/structure_v4.js' %}?v=1.4.0"></script>
+    <script src="{% static 'school_admin/js/directeur/matieres_v5.js' %}?v=1.0.1"></script>
     <script>
-        // Lien « Ajouter un EC » depuis la liste des UE : ouvre directement le formulaire.
+        // Lien « Ajouter une matière (EC) » depuis la liste des UE : ouvre directement le formulaire.
         window.addEventListener('load', function () {
             if (window.location.hash === '#ajouter-ec') {
                 var b = document.getElementById('btnAjouterMatiereModule');

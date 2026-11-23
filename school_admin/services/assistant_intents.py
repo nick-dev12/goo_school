@@ -188,6 +188,8 @@ ACTION_INTENT_RES = (
     ), 'enregistrer_absence_professeur'),
     (re.compile(r'supprime[rz]?.{0,40}absence.{0,30}(?:professeur|enseignant)', re.I), 'supprimer_absence_professeur'),
     (re.compile(r'(modifie[rz]?|mets? [àa] jour).{0,40}dossier.{0,20}(?:employ|prof|personnel)', re.I), 'modifier_dossier_employe'),
+    (re.compile(r'(modifie[rz]?|renomme[rz]?|change[rz]?).{0,30}mati[eè]re', re.I), 'modifier_matiere'),
+    (re.compile(r'(retire[rz]?|d[ée]tache[rz]?|enl[eè]ve[rz]?).{0,40}module', re.I), 'retirer_module_classe'),
     (re.compile(r'(modifie[rz]?).{0,30}classe', re.I), 'modifier_classe'),
     (re.compile(r'(modifie[rz]?).{0,30}salle', re.I), 'modifier_salle'),
     (re.compile(r'(modifie[rz]?).{0,40}(?:fili[eè]re|sp[ée]cialit)', re.I), 'modifier_filiere'),
@@ -197,8 +199,11 @@ ACTION_INTENT_RES = (
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}(?:professeur|enseignant)', re.I), 'creer_professeur'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,40}personnel', re.I), 'creer_personnel'),
     (re.compile(r'(enregistre[rz]?|ajoute[rz]?).{0,30}d[ée]pense', re.I), 'ajouter_depense'),
-    (re.compile(r'supprime[rz]?.{0,30}d[ée]pense', re.I), 'supprimer_depense'),
-    (re.compile(r'(marque[rz]?|enregistre[rz]?).{0,30}paie', re.I), 'marquer_paie'),
+    (re.compile(r'(supprime[rz]?|annule[rz]?).{0,30}d[ée]pense', re.I), 'supprimer_depense'),
+    (re.compile(r'(paye[rz]?|paie[rz]?|verse[rz]?).{0,20}(tous|tout le monde).{0,30}salaires?', re.I), 'payer_tous_salaires'),
+    (re.compile(r'(paye[rz]?|paie[rz]?|verse[rz]?|r[eè]gle[rz]?).{0,30}(salaire|\bpaie\b)', re.I), 'payer_salaire'),
+    (re.compile(r'(marque[rz]?|enregistre[rz]?).{0,30}\bpaie\b', re.I), 'payer_salaire'),
+    (re.compile(r'(transf[eè]re[rz]?|d[ée]pose[rz]?|vire[rz]?).{0,40}(caisse|banque|compte|mobile)', re.I), 'transfert_comptes'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}(?:fili[eè]re|sp[ée]cialit[ée])', re.I), 'creer_filiere'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}classe', re.I), 'creer_classe'),
     (re.compile(r'(cr[ée]e[rz]?|ajoute[rz]?).{0,30}salle', re.I), 'creer_salle'),
@@ -238,6 +243,7 @@ PERSON_QUERY_ACTIONS = (
     'supprimer_absence_professeur',
     'modifier_dossier_employe',
     'marquer_paie',
+    'payer_salaire',
     'supprimer_depense',
 )
 _PERSON_VERB_RE = re.compile(
@@ -371,7 +377,7 @@ def extract_action_args(name, text):
     ):
         args.setdefault('classe', _clean_class_query(en_classe.group(1)))
     montant = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:f|fcfa|xof|euros?)?', raw, re.I)
-    if montant and name in ('enregistrer_paiement', 'ajouter_depense'):
+    if montant and name in ('enregistrer_paiement', 'ajouter_depense', 'transfert_comptes'):
         args['montant'] = montant.group(1)
     if name in (
         'creer_parametres_comptabilite',
@@ -451,6 +457,13 @@ PAGE_ALIASES = {
     'matieres': 'matieres',
     'modules': 'matieres',
     'examens': 'examens',
+    'examens et jury': 'examens_et_jury',
+    'jury': 'examens_et_jury',
+    'délibérations': 'deliberations',
+    'deliberations': 'deliberations',
+    'diplômes': 'diplomes',
+    'diplomes': 'diplomes',
+    'attestations': 'diplomes',
     'scolarité': 'comptabilite',
     'scolarite': 'comptabilite',
     'comptabilité': 'comptabilite',

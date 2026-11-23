@@ -9,6 +9,7 @@ import re
 import uuid
 
 from asgiref.sync import sync_to_async
+from channels.db import database_sync_to_async
 from django.conf import settings
 
 from school_admin.services.assistant_tools import (
@@ -37,6 +38,7 @@ def _client_spoken(text: str) -> str:
     return spoken
 
 
+ASSISTANT_RESPONSE_TOKENS = 4096
 MAX_TOOL_ROUNDS = 8
 TOOL_TEMPERATURE = 0.5
 CONVERSATION_TEMPERATURE = 0.7
@@ -235,7 +237,11 @@ Assistante :
 - Si la demande est claire, enchaîne les outils Django puis parle.
 - Si un détail manque vraiment, pose UNE question. Jamais « champ 1, champ 2,
   champ 3 ». Jamais un questionnaire vocal.
-- Après une lecture, propose 1 à 3 suites utiles (puces UI, une phrase orale).
+- Après une lecture, propose jusqu’à 5 suites distinctes liées à la demande, sous forme de boutons.
+- Donne une réponse courte à une question simple. Pour une demande de détail, structure les résultats,
+  précise les périodes, explique les écarts et indique les données manquantes.
+- Dossier élève : propose les suites pertinentes selon les outils disponibles (scolarité, résultats,
+  assiduité, fiche ou moyenne par matière). Transfert de classe : utiliser transferer_eleve.
 - Le schéma d'outils est ton catalogue. N'énumère pas les outils à l'oral.
 - Sois chaleureuse, claire, conversationnelle. Pas de « Je cherche ça »,
   « Voici la réponse », « Un instant ».
@@ -266,10 +272,10 @@ Outils :
 - Réutilise les ids déjà vus (classe_id, eleve_id) plutôt que de redemander
   le nom (« relance-le », « ouvre sa fiche »).
 - À la fin de ta réponse (après le texte oral), ajoute exactement une ligne
-  [[ARIA_SUGGESTIONS:[...]]] avec 1 à 3 suggestions pertinentes (label court).
+  [[ARIA_SUGGESTIONS:[...]]] avec 1 à 5 suggestions pertinentes (label court).
   intent open + url seulement si tu connais une URL outil. Pas de suggestions
   pour simple bonjour ni quand une carte de confirmation d'écriture est active.
-  Ne lis jamais cette ligne à voix haute — c'est pour l'UI.
+  Le serveur annonce les suggestions après la réponse. Garde-les dans cette ligne.
 - Ne propose pas de créer ce que tes outils ne savent pas créer.
 
 Après une action :
@@ -283,6 +289,10 @@ Après une action :
 Rédaction :
 - Annonce, message, titre : rédige toi-même à partir du sujet. On n'a pas
   besoin de tout dicter. 8000 caractères maximum.
+
+Argent : scolarité d'un élève = enregistrer_paiement ; autre entrée =
+enregistrer_recette ; dépense payée = ajouter_depense ; facture à payer plus tard =
+enregistrer_charge. Cite toujours le compte (caisse, banque, mobile money).
 
 Pièges :
 - Destinataires d'annonce : tous, enseignants, parents, eleves,
@@ -311,7 +321,7 @@ Réponds directement, chaleureusement, en français oral naturel (ou wolof dakar
 si le professeur s'exprime en wolof — consignes wolof en fin de prompt).
 Pas de markdown, pas d'URL, pas de listes à puces lues à voix haute.
 À la fin de ta réponse (après le texte oral), ajoute exactement une ligne
-[[ARIA_SUGGESTIONS:[...]]] avec 1 à 3 suggestions pertinentes (label court).
+[[ARIA_SUGGESTIONS:[...]]] avec 1 à 5 suggestions pertinentes (label court).
 intent open + url seulement si tu connais une URL outil. Pas de suggestions
 pour simple bonjour ni quand une carte de confirmation d'écriture est active.
 Ne lis jamais cette ligne à voix haute — c'est pour l'UI.
@@ -352,7 +362,7 @@ Réponds directement, chaleureusement, en français oral naturel (ou wolof dakar
 si le professeur s'exprime en wolof — consignes wolof en fin de prompt).
 Pas de markdown, pas d'URL, pas de listes à puces lues à voix haute.
 À la fin de ta réponse (après le texte oral), ajoute exactement une ligne
-[[ARIA_SUGGESTIONS:[...]]] avec 1 à 3 suggestions pertinentes (label court).
+[[ARIA_SUGGESTIONS:[...]]] avec 1 à 5 suggestions pertinentes (label court).
 intent open + url seulement si tu connais une URL outil. Pas de suggestions
 pour simple bonjour ni quand une carte de confirmation d'écriture est active.
 Ne lis jamais cette ligne à voix haute — c'est pour l'UI.
@@ -402,7 +412,7 @@ Pour une question combinée (ex. notes et absences), appelle plusieurs outils de
 dans le même tour si nécessaire — sans wizard ni action d’établissement.
 
 À la fin de ta réponse (après le texte oral), ajoute exactement une ligne
-[[ARIA_SUGGESTIONS:[...]]] avec 1 à 3 suggestions pertinentes (label court).
+[[ARIA_SUGGESTIONS:[...]]] avec 1 à 5 suggestions pertinentes (label court).
 intent open + url seulement si tu connais une URL outil. Pas de suggestions
 pour simple bonjour ni quand une carte de confirmation d'écriture est active.
 Ne lis jamais cette ligne à voix haute — c'est pour l'UI.
@@ -425,7 +435,7 @@ Interdit : effectifs, caisse, RH, outils directeur ou professeur, scolarité/pai
 données d’autres élèves, modification de mot de passe ou photo par la voix.
 
 À la fin de ta réponse (après le texte oral), ajoute exactement une ligne
-[[ARIA_SUGGESTIONS:[...]]] avec 1 à 3 suggestions pertinentes (label court).
+[[ARIA_SUGGESTIONS:[...]]] avec 1 à 5 suggestions pertinentes (label court).
 intent open + url seulement si tu connais une URL outil. Pas de suggestions
 pour simple bonjour ni quand une carte de confirmation d'écriture est active.
 Ne lis jamais cette ligne à voix haute — c'est pour l'UI.
@@ -1155,6 +1165,7 @@ async def _stream_chat_completion(
         client,
         messages=messages,
         stream=True,
+        max_tokens=ASSISTANT_RESPONSE_TOKENS,
         **extra,
     )
     content_parts = []
@@ -1209,6 +1220,7 @@ def _cached_generate_config(cache_name, temperature):
     return types.GenerateContentConfig(
         cached_content=cache_name,
         temperature=temperature,
+        max_output_tokens=ASSISTANT_RESPONSE_TOKENS,
         automatic_function_calling=types.AutomaticFunctionCallingConfig(
             disable=True,
         ),
@@ -1324,11 +1336,12 @@ async def _run_assistant_turn_cached(
     from school_admin.services.assistant_schema import schema_profile
 
     # Appels réseau synchrones (list/create cache) : hors de la boucle async.
+    schema = await database_sync_to_async(tools_schema_for)(ctx)
     cached = await asyncio.to_thread(
         ensure_tools_cache,
         prompt_static,
         model,
-        tools_schema=tools_schema_for(ctx),
+        tools_schema=schema,
         persona=persona,
         profile=(
             schema_profile(ctx)
@@ -1535,7 +1548,7 @@ async def run_assistant_turn(
     extra = {
         'temperature': TOOL_TEMPERATURE if use_tools else CONVERSATION_TEMPERATURE,
     }
-    schema = tools_schema_for(ctx) if use_tools else None
+    schema = await database_sync_to_async(tools_schema_for)(ctx) if use_tools else None
     if use_tools:
         extra['tools'] = schema
         extra['tool_choice'] = 'auto'

@@ -1298,12 +1298,11 @@ class ClasseController:
                 actif=True
             ).order_by('nom'))
         elif etablissement.type_etablissement == 'superieur':
+            # Matières (EC) de CETTE classe : les siennes, ou celles de ses modules (UE) sans classes
+            # précisées — même règle que le calcul des moyennes et des crédits.
             from ..model.matiere_model import Matiere
-            matieres_classe = list(Matiere.objects.filter(
-                etablissement=etablissement,
-                niveau__in=['superieur', 'tous'],
-                actif=True
-            ).order_by('nom'))
+            matieres_classe = list(Matiere.pour_classe_superieur(classe).select_related('module')
+                                   .order_by('module__ordre', 'module__nom', 'nom'))
         else:
             # Pour les autres établissements (ancien système)
             for affectation in affectations:
@@ -1460,6 +1459,26 @@ class ClasseController:
             'sx_effectif_pct': min(100, round(100 * classe.nombre_eleves / classe.capacite_max)) if classe.capacite_max else 0,
         }
         
+        if est_superieur_ctx:
+            from ..utils.decorators_permissions import check_permission
+            from ..utils.session_utils import get_session_active
+            from ..services.deliberations import periodes_annee
+
+            annee = get_session_active(request, etablissement)
+            context['semestres_manquants'] = not (
+                annee and any(p.type_periode == 'semestre' for p in periodes_annee(classe, annee))
+            )
+            if check_permission(request.user, 'config_modifier'):
+                from ..model.module_model import ModuleClasse
+                context.update(
+                    gerer_groupes_parcours=True,
+                    ouvrir_groupes=request.GET.get('groupes') == '1',
+                    parcours=classe.parcours.all(),
+                    groupes=classe.groupes_enseignement.prefetch_related('etudiants'),
+                    a_des_options=ModuleClasse.objects.filter(classe=classe, optionnelle=True).exists(),
+                    annee_groupes=annee,
+                )
+
         from ..services.structure_etablissement import enrichir as _enrichir_structure
         _enrichir_structure(request, context, 'classe', classe)
         return render(request, 'school_admin/directeur/administrateur_etablissement/classes/detail_classe.html', context)

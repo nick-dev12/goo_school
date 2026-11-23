@@ -4,6 +4,7 @@ from school_admin.tasks.celery_tasks import (  # noqa: F401
     deliver_push_task,
     envoyer_relances_impayes_task,
     generer_rappels_task,
+    envoyer_rappels_personnels_task,
     retry_pending_push,
     verifier_moratoires_task,
     emit_realtime_event_task,

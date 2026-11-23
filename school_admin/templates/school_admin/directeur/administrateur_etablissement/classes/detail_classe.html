@@ -29,6 +29,8 @@
       href="{% static 'school_admin/css/directeur/releve_notes_classe.css' %}"
     />
     {% if est_superieur %}
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/deliberations.css' %}?v=1.0.0">
+    <link rel="stylesheet" href="{% static 'school_admin/css/directeur/maquette.css' %}?v=1.3.0">
     <link
       rel="stylesheet"
       href="{% static 'school_admin/css/directeur/classe_add_modal.css' %}"
@@ -252,6 +254,7 @@
           <div class="tabs-content">
             <!-- Vue d'ensemble -->
             <div class="tab-panel active" id="overview">
+              {% if semestres_manquants %}<p class="dlb-help">{% trans "Aucun semestre défini pour ce niveau sur l’année sélectionnée. Les semestres se renseignent dans Périodes scolaires." %}</p>{% endif %}
               <div class="sx-overview">
                 <section class="sx-overview__info">
                   <h3 class="sx-card__title"><i class="fas fa-id-card" aria-hidden="true"></i>{% trans "Identité de la classe" %}</h3>
@@ -276,7 +279,6 @@
                   <div class="sx-quick">
                     <a class="sx-quick__item" href="{% url 'administrateur_etablissement:detail_emploi_du_temps' classe.id %}"><i class="fas fa-calendar-week" aria-hidden="true"></i><span><strong>{% trans "Emploi du temps" %}</strong><small>{% trans "Créneaux, salles et enseignants" %}</small></span></a>
                     {% if est_superieur %}
-                    <a class="sx-quick__item" href="{% url 'directeur:maquette_classe' classe.id %}"><i class="fas fa-layer-group" aria-hidden="true"></i><span><strong>{% trans "Programme de formation" %}</strong><small>{% trans "Matières et unités d’enseignement (UE), cours (EC), crédits et heures" %}</small></span></a>
                     {% endif %}
                     <a class="sx-quick__item" href="{% url 'affectation:affectation_professeurs' %}"><i class="fas fa-user-plus" aria-hidden="true"></i><span><strong>{% trans "Affecter des enseignants" %}</strong><small>{% if maitres_primaire %}{% trans "Maître de la classe" %}{% else %}{% trans "Une matière, un enseignant" %}{% endif %}</small></span></a>
                     <a class="sx-quick__item" href="{% url 'directeur:bulletins_notes' %}?classe={{ classe.id }}"><i class="fas fa-file-lines" aria-hidden="true"></i><span><strong>{% trans "Bulletins" %}</strong><small>{% trans "Calcul, publication, impression" %}</small></span></a>
@@ -285,6 +287,7 @@
                   </div>
                 </section>
               </div>
+              {% if gerer_groupes_parcours %}{% include 'school_admin/directeur/maquette/_groupes_parcours.html' %}{% endif %}
             </div>
 
             <!-- Enseignants -->
@@ -304,11 +307,11 @@
               </table></div>
               {% elif affectations %}
               <div class="sx-table-wrap"><table class="sx-table">
-                <thead><tr><th>{% trans "Enseignant" %}</th><th>{% if est_superieur %}{% trans "Élément (EC)" %}{% else %}{% trans "Matière" %}{% endif %}</th><th>{% trans "Rôle" %}</th><th>{% trans "Contact" %}</th><th>{% trans "Depuis" %}</th></tr></thead>
+                <thead><tr><th>{% trans "Enseignant" %}</th><th>{% if est_superieur %}{% trans "Matière (EC)" %}{% else %}{% trans "Matière" %}{% endif %}</th><th>{% trans "Rôle" %}</th><th>{% trans "Contact" %}</th><th>{% trans "Depuis" %}</th></tr></thead>
                 <tbody>{% for aff in affectations %}<tr>
                   <td class="sx-cell-main"><div class="sx-name"><span class="sx-name__ico"><i class="fas fa-user" aria-hidden="true"></i></span><div class="sx-name__txt"><a href="{% url 'professeur:detail_professeur' aff.professeur.id %}">{{ aff.professeur.nom_complet }}</a>{% if aff.statut == 'principal' %}<small>{% trans "Professeur principal" %}</small>{% endif %}</div></div></td>
-                  <td data-label="{% if est_superieur %}{% trans 'Élément (EC)' %}{% else %}{% trans 'Matière' %}{% endif %}">{% if aff.matiere %}{{ aff.matiere.nom }}{% else %}{{ aff.professeur.matiere_principale.nom }}{% endif %}</td>
-                  <td data-label="{% trans 'Rôle' %}">{% if aff.libelle_role %}<span class="sx-pill sx-pill--info">{{ aff.libelle_role }}</span>{% elif aff.statut == 'principal' %}<span class="sx-pill sx-pill--ok">{% trans "Principal" %}</span>{% else %}<span class="sx-pill sx-pill--off">{% if est_superieur %}{% trans "EC complet" %}{% else %}{% trans "Titulaire" %}{% endif %}</span>{% endif %}</td>
+                  <td data-label="{% if est_superieur %}{% trans 'Matière (EC)' %}{% else %}{% trans 'Matière' %}{% endif %}">{% if aff.matiere %}{{ aff.matiere.nom }}{% else %}{{ aff.professeur.matiere_principale.nom }}{% endif %}</td>
+                  <td data-label="{% trans 'Rôle' %}">{% if aff.libelle_role %}<span class="sx-pill sx-pill--info">{{ aff.libelle_role }}</span>{% elif aff.statut == 'principal' %}<span class="sx-pill sx-pill--ok">{% trans "Principal" %}</span>{% else %}<span class="sx-pill sx-pill--off">{% if est_superieur %}{% trans "Matière (EC) complète" %}{% else %}{% trans "Titulaire" %}{% endif %}</span>{% endif %}</td>
                   <td data-label="{% trans 'Contact' %}">{{ aff.professeur.telephone|default:"—" }}<br><small style="color:var(--ax-muted)">{{ aff.professeur.email }}</small></td>
                   <td data-label="{% trans 'Depuis' %}">{{ aff.date_affectation|date:"d/m/Y" }}</td>
                 </tr>{% endfor %}</tbody>
@@ -317,7 +320,7 @@
               <div class="sx-empty">
                 <i class="fas fa-chalkboard-user" aria-hidden="true"></i>
                 <h3>{% trans "Aucun enseignant affecté" %}</h3>
-                <p>{% if est_superieur %}{% trans "Affectez un enseignant à chaque élément (EC) de la classe : CM, TD ou TP." %}{% else %}{% trans "Affectez un enseignant à chaque matière de la classe." %}{% endif %}</p>
+                <p>{% if est_superieur %}{% trans "Affectez un enseignant à chaque matière (EC) de la classe : CM, TD ou TP." %}{% else %}{% trans "Affectez un enseignant à chaque matière de la classe." %}{% endif %}</p>
                 <a class="sx-btn sx-btn--primary" href="{% url 'affectation:affectation_professeurs' %}"><i class="fas fa-user-plus" aria-hidden="true"></i>{% trans "Affecter des enseignants" %}</a>
               </div>
               {% endif %}
@@ -1269,6 +1272,7 @@
         tabBtns.forEach(btn => {
           btn.addEventListener('click', function() {
             const targetTab = this.getAttribute('data-tab');
+            if (!targetTab) return;
             
             // Remove active class from all buttons and panels
             tabBtns.forEach(b => b.classList.remove('active'));

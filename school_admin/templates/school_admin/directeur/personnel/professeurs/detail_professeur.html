@@ -42,7 +42,7 @@
       </div>
       <div class="fe-hero__actions">
         <button type="button" class="cg3-btn cg3-btn--primary" onclick="openModifierProfesseurModal()"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier" %}</button>
-        <a class="cg3-btn" href="{% url 'directeur:detail_volume_horaire' professeur.id %}"><i class="fas fa-money-check-dollar" aria-hidden="true"></i>{% trans "Paie" %}</a>
+        {% if professeur.prise_en_charge != 'etat' %}<a class="cg3-btn" href="{% url 'directeur:salaires' %}?onglet=enseignant"><i class="fas fa-money-check-dollar" aria-hidden="true"></i>{% trans "Paie" %}</a>{% endif %}
         <form action="{% url 'professeur:toggle_actif' professeur.id %}" method="post" onsubmit="return confirm('{% if professeur.actif %}{% trans "Désactiver ce compte ? L’enseignant ne pourra plus se connecter." %}{% else %}{% trans "Réactiver ce compte ?" %}{% endif %}');">
           {% csrf_token %}
           <button type="submit" class="cg3-btn"><i class="fas fa-{% if professeur.actif %}user-slash{% else %}user-check{% endif %}" aria-hidden="true"></i>{% if professeur.actif %}{% trans "Désactiver" %}{% else %}{% trans "Activer" %}{% endif %}</button>
@@ -60,11 +60,6 @@
       <a class="fe-kpi fe-tone-blue" href="?onglet=enseignement" data-fe-goto="enseignement">
         <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Classes" %}</span><span class="fe-kpi__icon"><i class="fas fa-chalkboard" aria-hidden="true"></i></span></div>
         <p class="fe-kpi__value">{{ fiche.nb_classes }}</p>
-      </a>
-      <a class="fe-kpi fe-tone-violet" href="?onglet=edt" data-fe-goto="edt">
-        <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Heures / semaine" %}</span><span class="fe-kpi__icon"><i class="fas fa-clock" aria-hidden="true"></i></span></div>
-        <p class="fe-kpi__value">{{ fiche.heures_semaine|floatformat:"-1" }}<small>h</small></p>
-        {% if fiche.charge_pct != None %}<div class="fe-bar"><span class="{% if fiche.charge_pct > 110 %}is-bad{% elif fiche.charge_pct < 80 %}is-warn{% endif %}" style="width: {% if fiche.charge_pct > 100 %}100{% else %}{{ fiche.charge_pct }}{% endif %}%"></span></div>{% endif %}
       </a>
       <a class="fe-kpi fe-tone-green" href="?onglet=presence" data-fe-goto="presence">
         <div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Assiduité du mois" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-check" aria-hidden="true"></i></span></div>

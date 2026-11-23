@@ -11,13 +11,22 @@ ARIA_SUGGESTIONS_MARKER = re.compile(
     re.IGNORECASE,
 )
 ARIA_SUGGESTIONS_LOOSE = re.compile(
-    r'(?:\[\[)?ARIA_?SUGGESTIONS:\s*([\s\S]*)$',
+    r'(?:\[\[?\s*)?ARIA[ _-]*SUGGEST(?:IONS?|ES?)?'
+    r'(?=\s*(?:[:\[\]{]|$))\s*:?\s*([\s\S]*)$',
     re.IGNORECASE,
 )
-ARIA_SUGGESTIONS_INCOMPLETE = re.compile(
-    r'(?:\[\[)?ARIA_?SUGGESTIONS:[\s\S]*$',
-    re.IGNORECASE,
-)
+_MARKER_FRAGMENT = re.compile(r'(?<!\w)(?:\[+\s*)?(?:ARIA[ _-]*[A-Z]*|ARI?|A)$', re.IGNORECASE)
+
+
+def stream_spoken_prefix(text: str) -> str:
+    """Conserve le préfixe oral en retenant un marqueur encore fragmenté."""
+    spoken, _ = split_spoken_and_suggestions(text)
+    partial = _MARKER_FRAGMENT.search(spoken)
+    if partial:
+        fragment = re.sub(r'[^A-Z]', '', partial.group().upper())
+        if 'ARIASUGGESTIONS'.startswith(fragment):
+            return spoken[:partial.start()].rstrip()
+    return spoken.rstrip('[').rstrip()
 
 
 def _fold(text: str) -> str:
@@ -35,18 +44,16 @@ def merge_stream_delta(accumulated: str, delta: str) -> tuple[str, str]:
         return prev, ''
     if not prev:
         return piece, piece
-    if piece == prev:
+    if piece == prev and len(piece.strip()) >= 12:
         return prev, ''
-    if prev.endswith(piece):
-        return prev, ''
-    if piece.startswith(prev):
+    if len(prev.strip()) >= 12 and piece.startswith(prev):
         extra = piece[len(prev):]
         if not extra.strip():
             return prev, ''
         return prev + extra, extra
     folded_piece = _fold(piece)
     folded_prev = _fold(prev)
-    if folded_piece == folded_prev:
+    if len(folded_prev) >= 12 and folded_piece == folded_prev:
         return prev, ''
     if (
         len(folded_piece) > len(folded_prev)
@@ -54,7 +61,7 @@ def merge_stream_delta(accumulated: str, delta: str) -> tuple[str, str]:
         and _fold(piece[len(prev):]).startswith(folded_prev[: max(24, len(folded_prev) // 2)])
     ):
         return prev, ''
-    if len(folded_piece) >= 2 * len(folded_prev) and folded_prev and folded_piece == folded_prev * 2:
+    if len(folded_piece) >= 2 * len(folded_prev) and len(folded_prev) >= 12 and folded_piece == folded_prev * 2:
         return prev, ''
     return prev + piece, piece
 
@@ -127,7 +134,7 @@ def _parse_suggestions_payload(payload: str) -> list[dict]:
         if isinstance(parsed, dict):
             parsed = [parsed]
         if isinstance(parsed, list):
-            return normalize_suggestions(parsed, limit=3)
+            return normalize_suggestions(parsed, limit=5)
     # Objets JSON consécutifs sans tableau
     items: list[dict] = []
     decoder = json.JSONDecoder()
@@ -140,7 +147,7 @@ def _parse_suggestions_payload(payload: str) -> list[dict]:
         if isinstance(obj, dict):
             items.append(obj)
         rest = rest[end:].lstrip(' ,')
-    return normalize_suggestions(items, limit=3) if items else []
+    return normalize_suggestions(items, limit=5) if items else []
 
 
 def _strip_suggestions_tail(raw: str) -> tuple[str, list[dict], bool]:
@@ -164,9 +171,6 @@ def _strip_suggestions_tail(raw: str) -> tuple[str, list[dict], bool]:
         suggestions = _parse_suggestions_payload(payload)
         complete = bool(suggestions) and payload.rstrip().endswith('}')
         return spoken, suggestions, complete
-    incomplete = ARIA_SUGGESTIONS_INCOMPLETE.search(text)
-    if incomplete:
-        return text[: incomplete.start()].rstrip(), [], False
     return text, [], False
 
 
@@ -182,8 +186,8 @@ def split_spoken_and_suggestions(text: str) -> tuple[str, list[dict]]:
 def finalize_assistant_turn_text(*parts: str) -> tuple[str, list[dict]]:
     """Texte oral + suggestions natives pour fin de tour."""
     merged = ' '.join((p or '').strip() for p in parts if (p or '').strip())
-    collapsed = collapse_near_duplicate_reply(merged.strip())
-    return split_spoken_and_suggestions(collapsed)
+    spoken, suggestions = split_spoken_and_suggestions(merged)
+    return collapse_near_duplicate_reply(spoken), suggestions
 
 
 def finalize_assistant_spoken(*parts: str) -> str:

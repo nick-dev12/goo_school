@@ -36,6 +36,7 @@
       </div>
       <div class="fe-hero__actions">
         <button type="button" class="cg3-btn cg3-btn--primary" data-fe-open="fe-modifier"><i class="fas fa-pen" aria-hidden="true"></i>{% trans "Modifier" %}</button>
+        {% if personnel.prise_en_charge != 'etat' %}<a class="cg3-btn" href="{% url 'directeur:salaires' %}?onglet=personnel"><i class="fas fa-money-check-dollar" aria-hidden="true"></i>{% trans "Paie" %}</a>{% endif %}
         <form action="{% url 'personnel:toggle_actif' personnel.id %}" method="post" onsubmit="return confirm('{% if personnel.actif %}{% trans "Désactiver ce compte ? La personne ne pourra plus se connecter." %}{% else %}{% trans "Réactiver ce compte ?" %}{% endif %}');">
           {% csrf_token %}
           <button type="submit" class="cg3-btn"><i class="fas fa-{% if personnel.actif %}user-slash{% else %}user-check{% endif %}" aria-hidden="true"></i>{% if personnel.actif %}{% trans "Désactiver" %}{% else %}{% trans "Activer" %}{% endif %}</button>

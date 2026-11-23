@@ -17,7 +17,7 @@
         <div class="mat-card-meta">
             {% if est_superieur %}
                 {% if matiere.credits %}<span><i class="fas fa-coins"></i> {{ matiere.credits }} {% trans "crédits" %}</span>{% endif %}
-                {% if matiere.department %}<span><i class="fas fa-graduation-cap"></i> {{ matiere.department.nom }}</span>{% endif %}
+                {% with filieres=matiere.filieres %}{% if filieres %}<span><i class="fas fa-graduation-cap"></i> {% for f in filieres %}{{ f.nom }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}{% endwith %}
                 {% if matiere.module %}<span><i class="fas fa-cube"></i> {{ matiere.module.nom }}</span>{% endif %}
             {% elif est_lycee and matiere_data and matiere_data.coefficients_par_groupe %}
                 <span><i class="fas fa-weight-hanging"></i> {% trans "Coeff. par groupe" %}</span>

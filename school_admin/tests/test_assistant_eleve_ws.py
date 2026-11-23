@@ -77,7 +77,8 @@ class AssistantEleveWsTests(TransactionTestCase):
             self.assertEqual(payload.get('type'), 'assistant.welcome')
             self.assertEqual(payload.get('persona'), 'eleve')
             self.assertEqual(payload.get('text'), ELEVE_WELCOME_BILINGUAL)
-            self.assertIn('Wolof', payload.get('text', ''))
-            self.assertIn('ton assistante', payload.get('text', ''))
+            self.assertIn('wolof', payload['text'].casefold())
+            self.assertIn('français', payload['text'].casefold())
+            self.assertIn('Aria', payload['text'])
 
         _run(_go())

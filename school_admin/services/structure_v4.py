@@ -137,7 +137,7 @@ def cursus(lignes):
     return colonnes
 
 
-def enrichir_modules(modules):
+def enrichir_modules(modules, annee=None):
     """Ajoute à chaque module (UE) : EC avec enseignants, semestres, classes et points d'attention.
 
     Attributs posés : sx_ec (liste), sx_semestres, sx_classes, sx_credits, sx_nb_ec, sx_alertes, sx_texte.
@@ -152,15 +152,22 @@ def enrichir_modules(modules):
     ids = {m.id for m in modules}
     if not ids:
         return modules
-    matieres = list(Matiere.objects.filter(module_id__in=ids).order_by('nom'))
+    matieres = list(Matiere.objects.filter(module_id__in=ids, actif=True).prefetch_related('classes').order_by('nom'))
     profs = {}
-    for aff in AffectationProfesseur.objects.filter(matiere__in=matieres, actif=True).select_related('professeur'):
+    affectations = AffectationProfesseur.objects.filter(
+        matiere__in=matieres, actif=True, professeur__actif=True,
+    ).select_related('professeur', 'classe')
+    if annee:
+        affectations = affectations.filter(annee_scolaire=annee)
+    par_classe = {}
+    for aff in affectations:
         nom = f"{aff.professeur.prenom} {aff.professeur.nom}"
         role = aff.libelle_role
         profs.setdefault(aff.matiere_id, [])
         etiquette = f"{nom} ({role})" if role else nom
         if etiquette not in profs[aff.matiere_id]:
             profs[aff.matiere_id].append(etiquette)
+        par_classe.setdefault(aff.matiere_id, {}).setdefault(aff.classe_id, set()).add(etiquette)
     par_module = {}
     for m in matieres:
         par_module.setdefault(m.module_id, []).append(m)
@@ -170,8 +177,28 @@ def enrichir_modules(modules):
     for mod in modules:
         ecs = par_module.get(mod.id, [])
         mcs = liens.get(mod.id, [])
-        mod.sx_ec = [{'matiere': m, 'coefficient': m.coefficient, 'credits': m.credits,
-                      'enseignants': profs.get(m.id, [])} for m in ecs]
+        mod.sx_liens = mcs
+        mod.sx_ec = []
+        for m in ecs:
+            classes = list(m.classes.all())
+            classes = classes or [mc.classe for mc in mcs]
+            profs_matiere = par_classe.get(m.pk, {})
+            mod.sx_ec.append({
+                'matiere': m, 'coefficient': m.coefficient, 'credits': m.credits,
+                'enseignants': profs.get(m.id, []), 'classes': classes,
+                'affectations': [
+                    {'classe': c, 'enseignants': sorted(profs_matiere.get(c.pk, []))}
+                    for c in classes
+                ],
+            })
+        enseignants_par_classe = {}
+        for ec in mod.sx_ec:
+            for aff in ec['affectations']:
+                enseignants_par_classe.setdefault(aff['classe'].pk, set()).update(aff['enseignants'])
+        mod.sx_enseignants_classes = [
+            {'classe': mc.classe, 'enseignants': sorted(enseignants_par_classe.get(mc.classe_id, ()))}
+            for mc in mcs
+        ]
         mod.sx_nb_ec = len(ecs)
         mod.sx_semestres = sorted({mc.periode.nom_periode for mc in mcs if mc.periode_id})
         mod.sx_classes = [mc.classe for mc in mcs]
@@ -182,11 +209,12 @@ def enrichir_modules(modules):
         mod.sx_credits = credits
         alertes = []
         if not ecs:
-            alertes.append('Aucun EC')
+            alertes.append('Aucune matière (EC)')
         if not credits:
             alertes.append('Crédits ECTS manquants')
         if ecs and any(not profs.get(m.id) for m in ecs):
-            alertes.append(f"{sum(1 for m in ecs if not profs.get(m.id))} EC sans enseignant")
+            sans_prof = sum(1 for m in ecs if not profs.get(m.id))
+            alertes.append(f"{sans_prof} matière{'s' if sans_prof > 1 else ''} (EC) sans enseignant")
         mod.sx_alertes = alertes
         mod.sx_texte = ' '.join([mod.nom, mod.code or ''] + [m.nom for m in ecs])
     return modules

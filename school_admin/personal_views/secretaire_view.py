@@ -2340,132 +2340,35 @@ def detail_eleve(request, eleve_id):
 
 @login_required
 def transfer_eleve(request, eleve_id):
-    """
-    Transfert d'un élève vers une autre classe (secrétaire ou directeur)
-    Prend en compte l'année scolaire active pour mettre à jour l'InscriptionEleve
-    """
-    # Récupérer l'utilisateur connecté
+    """Transfère l’inscription et le dossier courant vers la même classe."""
+    from django.shortcuts import get_object_or_404
+    from ..services.transfert_eleve import TransfertInvalide, transferer
+
     user = request.user
-    
-    # Vérifier que l'utilisateur est soit un secrétaire soit un directeur
-    if isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire':
-        etablissement = user.etablissement
-    elif isinstance(user, Etablissement):
-        etablissement = user
-    else:
-        messages.error(request, "Accès non autorisé. Vous devez être un secrétaire ou un directeur.")
-        return redirect('school_admin:connexion_compte_user')
-    
-    if not etablissement:
-        messages.error(request, "Aucun établissement associé à votre compte.")
-        return redirect('school_admin:connexion_compte_user')
-    
-    # Récupérer l'année scolaire active ou consultée
     if isinstance(user, Etablissement):
-        annee_scolaire_active = get_session_consultee(request, etablissement)
+        etablissement = user
+    elif (isinstance(user, PersonnelAdministratif) and user.fonction == 'secretaire'
+          and check_permission(user, 'eleves_modifier')):
+        etablissement = user.etablissement
     else:
-        annee_scolaire_active = get_session_active(request, etablissement)
-    
-    if not annee_scolaire_active:
-        messages.error(
-            request,
-            "Aucune année scolaire active n'a été trouvée. Créez ou activez d'abord une session pour continuer."
-        )
-        return redirect('secretaire:detail_eleve', eleve_id=eleve_id)
-    
-    try:
-        # Récupérer l'élève
-        eleve = Eleve.objects.get(id=eleve_id, etablissement=etablissement)
-    except Eleve.DoesNotExist:
-        messages.error(request, "Élève non trouvé.")
-        return redirect('secretaire:liste_eleves')
-    
+        messages.error(request, "Vous n’avez pas l’autorisation de transférer un élève.")
+        return redirect('school_admin:connexion_compte_user')
+    eleve = get_object_or_404(Eleve, id=eleve_id, etablissement=etablissement)
     if request.method == 'POST':
-        nouvelle_classe_id = request.POST.get('new_class')
-        raison_transfert = request.POST.get('transfer_reason', '').strip()
-        
-        if not nouvelle_classe_id:
+        annee = (get_session_consultee(request, etablissement) if isinstance(user, Etablissement)
+                 else get_session_active(request, etablissement))
+        destination_id = request.POST.get('new_class', '')
+        if not destination_id.isascii() or not destination_id.isdecimal() or len(destination_id) > 18:
             messages.error(request, "Veuillez sélectionner une classe de destination.")
-            return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
-        
-        try:
-            nouvelle_classe = Classe.objects.get(id=nouvelle_classe_id, etablissement=etablissement)
-            
-            # Récupérer l'inscription de l'élève pour l'année scolaire active
+        else:
             try:
-                inscription_eleve = InscriptionEleve.objects.get(
-                    eleve=eleve,
-                    annee_scolaire=annee_scolaire_active,
-                    etablissement=etablissement
-                )
-                ancienne_classe_inscription = inscription_eleve.classe
-            except InscriptionEleve.DoesNotExist:
-                messages.error(
-                    request,
-                    f"L'élève n'a pas d'inscription pour l'année scolaire active ({annee_scolaire_active.libelle}). "
-                    "Veuillez d'abord inscrire l'élève pour cette année."
-                )
-                return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
-            
-            # Vérifier si c'est la même classe
-            if nouvelle_classe.id == ancienne_classe_inscription.id:
-                messages.warning(request, f"L'élève est déjà dans la classe {nouvelle_classe.nom} pour cette année scolaire.")
-                return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
-            
-            # Vérifier les places disponibles
-            places_disponibles = nouvelle_classe.places_disponibles
-            if places_disponibles <= 0:
-                messages.error(
-                    request, 
-                    f"[ERREUR] Transfert impossible : La classe {nouvelle_classe.nom} est pleine. "
-                    f"Capacité : {nouvelle_classe.capacite_max}/{nouvelle_classe.capacite_max} élèves. "
-                    f"Aucune place disponible."
-                )
-                return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
-            
-            # Avertissement si il ne reste qu'une place
-            if places_disponibles == 1:
-                messages.warning(
-                    request, 
-                    f"[ATTENTION] Il ne reste qu'une place disponible dans la classe {nouvelle_classe.nom}."
-                )
-            
-            # Effectuer le transfert avec transaction atomique
-            from django.db import transaction
-            
-            with transaction.atomic():
-                # Mettre à jour l'inscription de l'élève pour l'année scolaire active
-                inscription_eleve.classe = nouvelle_classe
-                inscription_eleve.save()
-                
-                # Mettre à jour aussi la classe de l'élève (pour compatibilité)
-                ancienne_classe = eleve.classe
-                eleve.classe = nouvelle_classe
-                eleve.save()
-            
-            # Message de succès
-            messages.success(
-                request, 
-                f"[SUCCES] Transfert réussi : {eleve.nom_complet} a été transféré de {ancienne_classe_inscription.nom} vers {nouvelle_classe.nom} "
-                f"pour l'année scolaire {annee_scolaire_active.libelle}. "
-                f"Places restantes : {nouvelle_classe.places_disponibles - 1}/{nouvelle_classe.capacite_max}"
-            )
-            
-            # Log du transfert (optionnel)
-            if raison_transfert:
-                messages.info(request, f"Raison du transfert: {raison_transfert}")
-            
-            return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
-            
-        except Classe.DoesNotExist:
-            messages.error(request, "La classe sélectionnée n'existe pas.")
-            return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
-        except Exception as e:
-            messages.error(request, f"Une erreur est survenue lors du transfert: {str(e)}")
-            return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
-    
-    # Redirection si accès GET direct
-    return redirect('secretaire:detail_eleve', eleve_id=eleve_id)
+                origine, destination = transferer(eleve, annee, int(destination_id))
+            except TransfertInvalide as exc:
+                messages.error(request, str(exc))
+            else:
+                messages.success(request, f"{eleve.nom_complet} a été transféré de {origine.nom} vers "
+                                          f"{destination.nom} pour l’année {annee.libelle}.")
+    return redirect('secretaire:detail_eleve', eleve_id=eleve.id)
 
 
 @login_required

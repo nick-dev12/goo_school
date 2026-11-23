@@ -1,0 +1,47 @@
+{% load i18n %}
+        <details class="dlb-card mqt-advanced dlb" id="groupes-parcours" {% if ouvrir_groupes %}open{% endif %}>
+            <summary>{% trans "Parcours et groupes de TD / TP" %}</summary>
+            <p class="dlb-help">{% trans "Facultatif : utilisez ces réglages seulement si les étudiants suivent des spécialités différentes ou sont répartis en petits groupes." %}</p>
+        <div class="mqt-side">
+            <section class="dlb-card">
+                <div class="dlb-card__head"><h2><i class="fas fa-route"></i> {% trans "Parcours" %}</h2></div>
+                <div class="dlb-card__body">
+                    <div class="mqt-chips">
+                        {% for p in parcours %}
+                        <form method="post" action="{% url 'directeur:gerer_groupes_parcours' classe.id %}" class="mqt-chip" onsubmit="return confirm('{% trans "Supprimer ce parcours ?" %}')">{% csrf_token %}<input type="hidden" name="action" value="parcours_supprimer"><input type="hidden" name="id" value="{{ p.id }}">{{ p.nom }}{% if p.code %} <small>{{ p.code }}</small>{% endif %}<button type="submit" aria-label="{% trans 'Supprimer' %}"><i class="fas fa-xmark"></i></button></form>
+                        {% empty %}<p class="dlb-help">{% trans "Aucun parcours : tous les modules (UE) sont du tronc commun." %}</p>{% endfor %}
+                    </div>
+                    <form method="post" action="{% url 'directeur:gerer_groupes_parcours' classe.id %}" class="mqt-inline">{% csrf_token %}<input type="hidden" name="action" value="parcours_ajouter">
+                        <input type="text" name="nom" placeholder="{% trans 'Ex. Droit privé' %}" required maxlength="120">
+                        <input type="text" name="code" placeholder="{% trans 'Code' %}" maxlength="20" style="width:6rem">
+                        <button type="submit" class="cg3-btn"><i class="fas fa-plus"></i> {% trans "Ajouter" %}</button>
+                    </form>
+                </div>
+            </section>
+            <section class="dlb-card">
+                <div class="dlb-card__head"><h2><i class="fas fa-users"></i> {% trans "Groupes de TD / TP" %}</h2></div>
+                <div class="dlb-card__body">
+                    <div class="mqt-chips">
+                        {% for g in groupes %}
+                        <form method="post" action="{% url 'directeur:gerer_groupes_parcours' classe.id %}" class="mqt-chip" onsubmit="return confirm('{% trans "Supprimer ce groupe ?" %}')">{% csrf_token %}<input type="hidden" name="action" value="groupe_supprimer"><input type="hidden" name="id" value="{{ g.id }}">{{ g.libelle }} <small>{{ g.etudiants.all|length }}/{{ g.capacite }}</small><button type="submit" aria-label="{% trans 'Supprimer' %}"><i class="fas fa-xmark"></i></button></form>
+                        {% empty %}<p class="dlb-help">{% trans "Aucun groupe : les TD se font en classe entière." %}</p>{% endfor %}
+                    </div>
+                    <form method="post" action="{% url 'directeur:gerer_groupes_parcours' classe.id %}" class="mqt-inline" style="margin-bottom:.6rem">{% csrf_token %}<input type="hidden" name="action" value="groupe_ajouter">
+                        <select name="type_groupe"><option value="td">TD</option><option value="tp">TP</option></select>
+                        <input type="text" name="nom" placeholder="G1" required maxlength="30" style="width:5rem">
+                        <input type="number" name="capacite" value="40" min="1" max="500" style="width:5rem" aria-label="{% trans 'Capacité' %}">
+                        <button type="submit" class="cg3-btn"><i class="fas fa-plus"></i> {% trans "Ajouter" %}</button>
+                    </form>
+                    {% if groupes and annee_groupes %}
+                    <form method="post" action="{% url 'directeur:gerer_groupes_parcours' classe.id %}" class="mqt-inline">{% csrf_token %}<input type="hidden" name="action" value="groupes_repartir">
+                        <select name="type_groupe"><option value="td">TD</option><option value="tp">TP</option></select>
+                        <button type="submit" class="cg3-btn" onclick="return confirm('{% trans "Répartir automatiquement tous les étudiants ? Les groupes actuels de ce type seront remplacés." %}')"><i class="fas fa-shuffle"></i> {% trans "Répartir automatiquement" %}</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+            {% if annee_groupes and parcours or annee_groupes and groupes or annee_groupes and a_des_options %}
+            <a class="cg3-btn" href="{% url 'directeur:inscriptions_pedagogiques' classe.id %}">{% trans "Gérer les choix et groupes des étudiants" %}</a>
+            {% endif %}
+        </details>

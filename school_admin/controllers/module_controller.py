@@ -24,6 +24,7 @@ from ..model.classe_model import Classe, libelle_cle_niveau_superieur
 from ..model.periode_model import PeriodeScolaire
 from ..model.personnel_administratif_model import PersonnelAdministratif
 from ..utils.session_utils import get_session_active
+from ..utils.decorators_permissions import check_permission
 
 logger = logging.getLogger(__name__)
 
@@ -213,6 +214,30 @@ def _validate_niveau_form(niveaux_selectionnes, credits_per_niveau, periodes_per
     return is_valid
 
 
+def _selection_classes_module(request, niveaux, blocks, departments_ids, errors):
+    """Valide les classes choisies dans chaque bloc filière / niveau."""
+    autorisees = {
+        item['field_key']: {str(c.pk) for c in item['classes']}
+        for block in blocks if str(block['department'].pk) in departments_ids
+        for item in block['niveaux_items']
+    }
+    selection = {}
+    for cle in niveaux:
+        if cle not in autorisees:
+            # Les anciens formulaires pouvaient envoyer un niveau sans identifiant de filière.
+            if not cle.startswith('dep_') and not request.POST.get('choix_classes'):
+                continue
+            errors['niveaux'] = "Sélectionnez un niveau appartenant aux filières choisies."
+            continue
+        if not request.POST.get('choix_classes'):
+            continue
+        classes = set(request.POST.getlist(f'classes_{cle}'))
+        selection[cle] = classes
+        if not classes or not classes <= autorisees[cle]:
+            errors['niveaux'] = "Choisissez au moins une classe valide pour chaque niveau sélectionné."
+    return selection
+
+
 def _persist_module_niveaux(
     module,
     etablissement,
@@ -221,7 +246,9 @@ def _persist_module_niveaux(
     credits_per_niveau,
     numeros_per_niveau,
     periodes_per_niveau,
+    classes_par_niveau=None,
 ):
+    liens = set()
     departments_by_id = {d.id: d for d in departments_objs}
     for field_key in niveaux_selectionnes:
         dep_id, niveau_lmd = _parse_niveau_field_key(field_key)
@@ -244,8 +271,11 @@ def _persist_module_niveaux(
             classes_niveau = _classes_pour_department_et_niveau(
                 etablissement, department_obj, niveau_lmd
             )
+            classes_choisies = (classes_par_niveau or {}).get(field_key)
             for classe in classes_niveau:
-                ModuleClasse.objects.update_or_create(
+                if classes_choisies is not None and str(classe.pk) not in classes_choisies:
+                    continue
+                lien, _ = ModuleClasse.objects.update_or_create(
                     module=module,
                     classe=classe,
                     defaults={
@@ -254,6 +284,8 @@ def _persist_module_niveaux(
                         'periode': periode_obj,
                     },
                 )
+                liens.add(lien.pk)
+    return liens
 
 
 def _module_niveau_form_data_from_module(module):
@@ -268,6 +300,7 @@ def _module_niveau_form_data_from_module(module):
             _niveau_groupe_key_classe(classe),
         )
         groups[field_key].append(mc)
+    classes_par_niveau = {}
     niveaux = []
     credits_per_niveau = {}
     numeros_per_niveau = {}
@@ -275,11 +308,13 @@ def _module_niveau_form_data_from_module(module):
     for field_key in sorted(groups.keys()):
         mc0 = groups[field_key][0]
         niveaux.append(field_key)
+        classes_par_niveau[field_key] = {str(mc.classe_id) for mc in groups[field_key]}
         credits_per_niveau[field_key] = mc0.credits
         numeros_per_niveau[field_key] = (mc0.numero_ue or '').strip()
         periodes_per_niveau[field_key] = str(mc0.periode_id) if mc0.periode_id else ''
     return {
         'niveaux': niveaux,
+        'classes_par_niveau': classes_par_niveau,
         'credits_per_niveau': credits_per_niveau,
         'numeros_per_niveau': numeros_per_niveau,
         'periodes_per_niveau': periodes_per_niveau,
@@ -420,7 +455,7 @@ def _modules_par_niveau_panels(modules_ordered):
     panels = []
     for k in _sort_niveau_keys_pour_liste_modules(niveau_to_modules.keys()):
         if k == _SANS_CLASSE_MODULE_KEY:
-            label = _('Sans classe associée')
+            label = _('Modules (UE) à rattacher à une classe')
         else:
             label = libelle_cle_niveau_superieur(k)
         panels.append({
@@ -629,6 +664,7 @@ def _serialize_matiere_niveaux_par_filiere(blocks):
                     'niveau_key': item['niveau_key'],
                     'niveau_label': item['niveau_label'],
                     'field_key': item['field_key'],
+                    'classes': [{'id': c.pk, 'nom': c.nom} for c in item['classes']],
                 }
                 for item in block['niveaux_items']
             ],
@@ -680,11 +716,14 @@ def _creer_matiere_pour_filiere_niveau(
     department,
     niveau_key,
     coef_dec,
+    classes_choisies=None,
 ):
     """Crée une matière pour une filière + niveau LMD dans le module."""
     classes_niveau = _classes_for_department_niveau_in_module(
         module, department.id, niveau_key
     )
+    if classes_choisies is not None:
+        classes_niveau = [c for c in classes_niveau if str(c.pk) in classes_choisies]
     if not classes_niveau:
         return None, f"Aucune classe pour {department.nom} — {libelle_cle_niveau_superieur(niveau_key)}."
     niveau_label = libelle_cle_niveau_superieur(niveau_key)
@@ -707,7 +746,7 @@ def _creer_matiere_pour_filiere_niveau(
         niveau_lmd_key=niveau_key,
         niveau='superieur',
         coefficient=coef_dec,
-        credits=coef_dec,
+        credits=None,
         actif=True,
     )
     matiere.save()
@@ -944,6 +983,13 @@ def ajouter_module(request):
             field_errors['department'] = "Une ou plusieurs spécialités sont invalides."
             is_valid = False
 
+    classes_par_niveau = _selection_classes_module(
+        request, form_data['niveaux'], niveaux_par_filiere, departments_ids, field_errors,
+    )
+    form_data['classes_par_niveau'] = classes_par_niveau
+    if field_errors.get('niveaux'):
+        is_valid = False
+
     if is_valid:
         is_valid = _validate_niveau_form(
             form_data['niveaux'],
@@ -978,6 +1024,7 @@ def ajouter_module(request):
                     credits_per_niveau,
                     numeros_per_niveau,
                     periodes_per_niveau,
+                    classes_par_niveau,
                 )
             if departments_objs.count() > 1:
                 messages.success(
@@ -1024,6 +1071,39 @@ def detail_module(request, module_id):
         id=module_id,
         etablissement=etablissement
     )
+    peut_regler_ue = (
+        etablissement.type_etablissement == 'superieur'
+        and check_permission(request.user, 'config_modifier')
+    )
+    if request.method == 'POST' and request.POST.get('action') == 'regler_ue':
+        if not peut_regler_ue:
+            messages.error(request, "Vous ne pouvez pas modifier ces réglages.")
+            return redirect('matiere:detail_module', module_id=module.id)
+        from ..model.maquette_model import Parcours
+        with transaction.atomic():
+            lien_id = request.POST.get('lien', '')
+            lien = get_object_or_404(ModuleClasse.objects.select_for_update(), module=module,
+                                     pk=int(lien_id) if lien_id.isascii() and lien_id.isdecimal() and len(lien_id) <= 18 else None)
+            parcours_id = request.POST.get('parcours', '')
+            parcours = None
+            if parcours_id:
+                parcours = get_object_or_404(Parcours, classe_id=lien.classe_id,
+                                             pk=int(parcours_id) if parcours_id.isascii() and parcours_id.isdecimal() and len(parcours_id) <= 18 else None)
+            type_ue = request.POST.get('type_ue')
+            optionnelle = request.POST.get('optionnelle') == 'on'
+            choix = request.POST.get('choix_requis', '1')
+            if type_ue not in dict(ModuleClasse.TYPE_UE_CHOICES) or not (choix in {str(n) for n in range(1, 11)}):
+                messages.error(request, "Vérifiez le type de module (UE) et le nombre d’options à choisir (1 à 10).")
+            else:
+                lien.type_ue = type_ue
+                lien.optionnelle = optionnelle
+                lien.groupe_options = request.POST.get('groupe_options', '').strip()[:60] if optionnelle else ''
+                lien.choix_requis = int(choix) if optionnelle else 1
+                lien.parcours = parcours
+                lien.save(update_fields=['type_ue', 'optionnelle', 'groupe_options', 'choix_requis', 'parcours'])
+                messages.success(request, "Réglages du module (UE) enregistrés.")
+        return redirect(reverse('matiere:detail_module', args=[module.id]) + '#reglages-ue')
+
     matieres = list(
         module.matieres.filter(actif=True).order_by('nom').prefetch_related('classes')
     )
@@ -1089,53 +1169,99 @@ def detail_module(request, module_id):
             err['niveau_key'] = "Sélectionnez un niveau LMD."
         linked_deps = list(module.get_linked_departments())
         target_deps = []
-        if filiere_scope == 'all':
-            target_deps = linked_deps
-        elif department_id_raw.isdigit():
-            dep_id = int(department_id_raw)
-            target_deps = [d for d in linked_deps if d.id == dep_id]
-            if not target_deps:
-                err['department_id'] = "Filière invalide pour ce module."
-        else:
-            err['department_id'] = "Sélectionnez une filière ou toutes les filières."
+        commun = filiere_scope == 'common'
+        if filiere_scope in ('all', 'common'):
+            target_deps = [
+                d for d in linked_deps
+                if _classes_for_department_niveau_in_module(module, d.pk, niveau_key)
+            ]
+        elif filiere_scope == 'single' and department_id_raw.isdigit():
+            target_deps = [d for d in linked_deps if str(d.id) == department_id_raw]
+        if not target_deps:
+            err['department_id'] = "Aucune filière du module ne correspond à ce niveau."
+        classes_choisies = None
+        if request.POST.get('choix_classes_matiere'):
+            classes_choisies = set(request.POST.getlist('classes_matiere'))
+            matiere_modal_ctx['classes_choisies'] = sorted(classes_choisies)
+        classes_par_dep = {
+            dep.pk: _classes_for_department_niveau_in_module(module, dep.pk, niveau_key)
+            for dep in target_deps
+        }
+        if classes_choisies is not None:
+            autorisees = {str(c.pk) for classes in classes_par_dep.values() for c in classes}
+            if not classes_choisies or not classes_choisies <= autorisees:
+                err['non_field'] = "Sélectionnez au moins une classe de ce module et de ce niveau."
+            target_deps = [
+                dep for dep in target_deps
+                if any(str(c.pk) in classes_choisies for c in classes_par_dep[dep.pk])
+            ]
         coef_by_dep = {}
-        for dep in target_deps:
-            coef_field = f'coef_dep_{dep.id}'
-            raw_coef = request.POST.get(coef_field, '1.0')
-            coefs_ctx[str(dep.id)] = raw_coef
+        for dep in ([None] if commun else target_deps):
+            cle = 'commun' if dep is None else str(dep.pk)
+            coef_field = f'coef_dep_{cle}'
+            coefs_ctx[cle] = request.POST.get(coef_field, '1.0')
             coef_val, coef_err = _parse_coef_from_post(request, coef_field)
             if coef_err:
-                err[coef_field] = f"{dep.nom} : {coef_err}"
+                err[coef_field] = coef_err
+                err['non_field'] = coef_err
             else:
-                coef_by_dep[dep.id] = coef_val
+                coef_by_dep[cle] = coef_val
         matiere_modal_ctx['coefficients_par_filiere'] = coefs_ctx
+        # Poids facultatif de la matière dans son UE (sert au partage des crédits de l'UE).
+        poids_raw = (request.POST.get('poids_matiere') or '').strip().replace(',', '.')
+        matiere_modal_ctx['poids'] = poids_raw
+        poids = None
+        if poids_raw:
+            try:
+                poids = Decimal(poids_raw)
+                if not (Decimal('0') <= poids <= Decimal('60')):
+                    raise ValueError
+            except (ArithmeticError, ValueError):
+                err['poids_matiere'] = "Le poids doit être un nombre entre 0 et 60."
         if not err and target_deps:
             created = []
             dep_errors = []
             try:
                 with transaction.atomic():
-                    for dep in target_deps:
-                        matiere, dep_err = _creer_matiere_pour_filiere_niveau(
-                            module,
-                            etablissement,
-                            nom_m,
-                            dep,
-                            niveau_key,
-                            coef_by_dep[dep.id],
+                    if commun:
+                        department = target_deps[0] if len(target_deps) == 1 else None
+                        if Matiere.objects.filter(module=module, nom__iexact=nom_m,
+                                                  department=department, niveau_lmd_key=niveau_key).exists():
+                            raise ValueError("Une matière commune de ce nom existe déjà pour ce niveau.")
+                        matiere = Matiere.objects.create(
+                            nom=nom_m[:100], code=_generate_unique_matiere_code(nom_m, etablissement),
+                            etablissement=etablissement, module=module, department=department,
+                            niveau_lmd_key=niveau_key, niveau='superieur',
+                            coefficient=coef_by_dep['commun'], credits=None,
                         )
-                        if dep_err:
-                            dep_errors.append(dep_err)
-                        else:
-                            created.append(matiere)
+                        matiere.classes.add(*(c for dep in target_deps for c in classes_par_dep[dep.pk]
+                                              if classes_choisies is None or str(c.pk) in classes_choisies))
+                        created.append(matiere)
+                    else:
+                        for dep in target_deps:
+                            matiere, dep_err = _creer_matiere_pour_filiere_niveau(
+                                module, etablissement, nom_m, dep, niveau_key,
+                                coef_by_dep[str(dep.pk)], classes_choisies,
+                            )
+                            if dep_err:
+                                dep_errors.append(dep_err)
+                            else:
+                                created.append(matiere)
                     if dep_errors:
                         raise ValueError('; '.join(dep_errors))
+                    if poids is not None and created:
+                        Matiere.objects.filter(pk__in=[m.pk for m in created]).update(credits=poids)
+                        from ..services.credits_lmd import actualiser_credits_enregistres
+                        actualiser_credits_enregistres(module.pk)
             except ValueError as exc:
                 err['non_field'] = str(exc)
             except IntegrityError:
                 err['nom_matiere'] = "Impossible de créer : conflit d'unicité sur le nom."
             else:
                 if created:
-                    if len(created) == 1:
+                    if commun:
+                        messages.success(request, f"La matière commune « {nom_m} » a été créée.")
+                    elif len(created) == 1:
                         m0 = created[0]
                         messages.success(
                             request,
@@ -1383,6 +1509,13 @@ def detail_module(request, module_id):
             if departments_objs.count() != len(departments_ids):
                 field_errors['department'] = "Une ou plusieurs spécialités sont invalides."
                 is_valid = False
+        classes_par_niveau = _selection_classes_module(
+            request, form_data['niveaux'], all_niveaux, departments_ids, field_errors,
+        )
+        form_data['classes_par_niveau'] = classes_par_niveau
+        if field_errors.get('niveaux'):
+            is_valid = False
+
         if is_valid:
             is_valid = _validate_niveau_form(
                 form_data['niveaux'],
@@ -1392,23 +1525,31 @@ def detail_module(request, module_id):
                 field_errors,
             )
         if is_valid:
-            module.nom = form_data['nom']
-            module.niveau_lmd = None
-            module.save(update_fields=['nom', 'niveau_lmd', 'date_modification'])
-            _sync_module_departments(module, departments_ids)
-            ModuleClasse.objects.filter(module=module).delete()
-            if departments_objs.exists() and form_data['niveaux']:
-                _persist_module_niveaux(
-                    module,
-                    etablissement,
-                    departments_objs,
-                    form_data['niveaux'],
-                    credits_per_niveau,
-                    numeros_per_niveau,
-                    periodes_per_niveau,
-                )
-            messages.success(request, "Module modifié.")
-            return redirect('matiere:detail_module', module_id=module.id)
+            try:
+                with transaction.atomic():
+                    Module.objects.select_for_update().get(pk=module.pk)
+                    module.nom = form_data['nom']
+                    module.niveau_lmd = None
+                    module.save(update_fields=['nom', 'niveau_lmd', 'date_modification'])
+                    _sync_module_departments(module, departments_ids)
+                    liens = _persist_module_niveaux(
+                        module, etablissement, departments_objs, form_data['niveaux'],
+                        credits_per_niveau, numeros_per_niveau, periodes_per_niveau,
+                        classes_par_niveau,
+                    )
+                    retires = ModuleClasse.objects.filter(module=module).exclude(pk__in=liens)
+                    if retires.filter(inscriptions_optionnelles__isnull=False).exists():
+                        raise ValueError("Retirez d’abord les choix étudiants associés aux classes retirées.")
+                    if request.POST.get('choix_classes') and Matiere.objects.filter(
+                        module=module, classes__in=retires.values('classe_id'),
+                    ).exists():
+                        raise ValueError("Ajustez d’abord les classes des matières rattachées à ce module.")
+                    retires.delete()
+            except ValueError as exc:
+                messages.error(request, str(exc))
+            else:
+                messages.success(request, "Module modifié.")
+                return redirect('matiere:detail_module', module_id=module.id)
         open_modal_modifier = True
 
     departments = Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
@@ -1451,9 +1592,8 @@ def detail_module(request, module_id):
         'niveaux_cards': niveaux_cards,
         'filiere_panels': filiere_panels,
         'matiere_niveaux_par_filiere': matiere_niveaux_par_filiere,
-        'matiere_niveaux_par_filiere_json': json.dumps(
-            _serialize_matiere_niveaux_par_filiere(matiere_niveaux_par_filiere)
-        ),
+        'matiere_niveaux_par_filiere_data': _serialize_matiere_niveaux_par_filiere(matiere_niveaux_par_filiere),
+        'matiere_modal_classes': matiere_modal_ctx.get('classes_choisies'),
         'matiere_modal_coefs_json': json.dumps(matiere_modal_ctx.get('coefficients_par_filiere') or {}),
         'nb_niveaux_module': nb_niveaux_module,
         'etablissement': etablissement,
@@ -1465,21 +1605,33 @@ def detail_module(request, module_id):
         'modal_niveaux_par_filiere': all_niveaux,
         'modal_periodes_par_niveau': periodes_par_niveau_edit,
     }
-    # Écran v4 : enseignants de chaque EC, semestres et classes de l'UE.
+    if peut_regler_ue:
+        context['reglages_ue'] = module.module_classes.select_related(
+            'classe', 'classe__department', 'periode',
+        ).prefetch_related('classe__parcours').order_by('classe__nom')
+        context['types_ue'] = ModuleClasse.TYPE_UE_CHOICES
     from ..services.structure_v4 import enrichir_modules
-    enrichir_modules([module])
-    context['sx_profs_ec'] = {ec['matiere'].id: ec['enseignants'] for ec in module.sx_ec}
-    morceaux = [module.code or '']
-    if module.sx_semestres:
-        morceaux.append(', '.join(module.sx_semestres))
-    if module.sx_credits:
-        morceaux.append(f"{format(module.sx_credits.normalize(), 'f').replace('.', ',')} ECTS")
-    morceaux.append(f"{module.sx_nb_ec} EC")
-    context['sx_sous_titre_module'] = ' · '.join(m for m in morceaux if m)
+    enrichir_modules([module], annee=get_session_active(request, etablissement))
+    context['titre_module'] = _("Module (UE) · %(nom)s") % {'nom': module.nom}
+    context['sx_sous_titre_module'] = module.code
+    from ..services.credits_lmd import credits_ec
+    cours_par_classe = defaultdict(list)
+    cache_credits = {}
+    for ec in module.sx_ec:
+        for aff in ec['affectations']:
+            cours_par_classe[aff['classe'].pk].append({
+                'matiere': ec['matiere'],
+                'enseignants': aff['enseignants'],
+                # Crédits de la matière dans cette classe (part des crédits de l'UE pour la classe).
+                'credits': credits_ec(ec['matiere'], aff['classe'], cache_credits),
+            })
+    liens_par_classe = {lien.classe_id: lien for lien in module.sx_liens}
     for panel in filiere_panels:
-        for item in panel.get('niveaux_cards') or []:
-            for m in item.get('matieres_pour_niveau') or []:
-                m.sx_profs = context['sx_profs_ec'].get(m.id, [])
+        for item in panel['niveaux_cards']:
+            item['programme_classes'] = [
+                {'classe': classe, 'lien': liens_par_classe[classe.pk], 'cours': cours_par_classe[classe.pk]}
+                for classe in item['classes']
+            ]
     from ..services.structure_etablissement import enrichir as _enrichir_structure
     _enrichir_structure(request, context, 'module', module)
     return render(request, 'school_admin/directeur/pedagogique/modules/detail_module.html', context)

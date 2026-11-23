@@ -5,32 +5,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}{% trans "Volume horaire" %}{% endblock %} — {{ etablissement.nom }}</title>
+  <title>{% block title %}{% trans "Heures des enseignants" %}{% endblock %} — {{ etablissement.nom }}</title>
   <link rel="stylesheet" href="/static/school_admin/vendor/fontawesome/css/all.min.css?v=6.4.0" />
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/dashboard_v3.css' %}?v=20261104c" />
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/cg_v3.css' %}?v=2.3.0" />
+  {# Charte commune : en-tête bleu (hb-head) et cartes indicatives colorées (fe-kpi), comme les autres pages. #}
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/fiche_employe.css' %}?v=1.2.1" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/hub_v3.css' %}?v=1.3.5" />
   <link rel="stylesheet" href="{% static 'school_admin/css/directeur/pointage.css' %}?v=1.0.0" />
+  <link rel="stylesheet" href="{% static 'school_admin/css/directeur/heures_enseignants.css' %}?v=1.1.2" />
   {% block head %}{% endblock %}
 </head>
 <body class="axd-page cg3-body" data-devise="{{ devise_monnaie }}">
   {% include 'school_admin/directeur/partials/header_directeur.html' %}
-  <main class="axd cg3" id="contenu">
-    <header class="cg3-head">
-      <div class="cg3-head__id">
-        <span class="cg3-head__icon ax-tone-{% block tone %}violet{% endblock %}"><i class="fas {% block icon %}fa-user-clock{% endblock %}" aria-hidden="true"></i></span>
-        <div>
-          <h1 class="cg3-head__title">{% block heading %}{% endblock %}</h1>
-          {% block subheading %}{% endblock %}
-        </div>
+  <main class="axd cg3 vh-page" id="contenu">
+    <header class="hb-head">
+      <span class="hb-head__icon fe-tone-{% block tone %}violet{% endblock %}"><i class="fas {% block icon %}fa-user-clock{% endblock %}" aria-hidden="true"></i></span>
+      <div class="hb-head__text">
+        <h1 class="hb-head__title">{% block heading %}{% endblock %}</h1>
+        {% block subheading %}{% endblock %}
       </div>
-      <div class="cg3-head__tools">{% block actions %}{% endblock %}</div>
+      <div class="hb-head__actions">{% block actions %}{% endblock %}</div>
     </header>
 
     {% with nom=request.resolver_match.url_name %}
-    <nav class="cg3-tabs" aria-label="{% trans 'Sections' %}">
+    <nav class="cg3-tabs vh-onglets" aria-label="{% trans 'Sections' %}">
+      <a class="cg3-tab{% if nom == 'liste_volume_horaire' or nom == 'detail_volume_horaire' or nom == 'fiche_paie_directeur' %} is-active{% endif %}" href="{% url 'directeur:liste_volume_horaire' %}"><i class="fas fa-user-clock" aria-hidden="true"></i>{% trans "Heures des enseignants" %}</a>
       <a class="cg3-tab{% if nom == 'pointage_controle' %} is-active{% endif %}" href="{% url 'directeur:pointage_controle' %}"><i class="fas fa-clipboard-check" aria-hidden="true"></i>{% trans "Contrôle des cours" %}</a>
-      <a class="cg3-tab{% if nom == 'liste_volume_horaire' or nom == 'detail_volume_horaire' or nom == 'fiche_paie_directeur' %} is-active{% endif %}" href="{% url 'directeur:liste_volume_horaire' %}"><i class="fas fa-money-check-dollar" aria-hidden="true"></i>{% trans "Heures et paie" %}</a>
-      <a class="cg3-tab" href="{% url 'directeur:cg_paie' %}"><i class="fas fa-book" aria-hidden="true"></i>{% trans "Écritures de paie" %}</a>
     </nav>
     {% endwith %}
 

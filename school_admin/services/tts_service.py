@@ -516,7 +516,10 @@ def strip_assistant_markup(text):
 
 def prepare_spoken_text(text):
     """Adapte le texte à une lecture orale naturelle pour Charline."""
-    spoken = strip_assistant_markup(text)
+    from school_admin.services.assistant_stream_text import split_spoken_and_suggestions
+
+    spoken, _ = split_spoken_and_suggestions(text)
+    spoken = strip_assistant_markup(spoken)
     if not spoken:
         return spoken
     spoken = spoken.replace('’', "'").replace(' ', ' ').replace(' ', ' ')

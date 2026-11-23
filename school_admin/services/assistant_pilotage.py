@@ -371,6 +371,14 @@ def tool_statistiques_pilotage(ctx, args):
 
     args = args if isinstance(args, dict) else {}
     effectifs = tool_effectifs(ctx, args)
+    if effectifs.get('erreur'):
+        return effectifs
+    if effectifs.get('historique'):
+        return {
+            'session': effectifs['session'], 'perimetre': effectifs['perimetre'],
+            'effectifs': effectifs,
+            'message': 'Les indicateurs de présence et de recouvrement récents concernent l’année active.',
+        }
     jours = args.get('jours') or 7
     classe = _find_classe(ctx, (args.get('classe') or '').strip()) if args.get('classe') else None
     presence_qs, jours = _presence_qs(ctx, jours=jours, classe=classe)

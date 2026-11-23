@@ -5,7 +5,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction, IntegrityError
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError
 import logging
@@ -16,7 +16,6 @@ from ..model.professeur_model import Professeur
 from ..model.classe_model import Classe
 from ..model.matiere_model import Matiere
 from ..model.affectation_model import AffectationProfesseur
-from ..model.module_model import Module
 from ..model.academic_structure_model import Department
 from ..model.affectation_professeur_primaire_model import AffectationProfesseurPrimaire
 from ..utils.session_utils import get_session_active
@@ -119,8 +118,10 @@ class AffectationController:
             .order_by('nom')
         )
 
+        # Supérieur : une matière commune à plusieurs filières n'a pas de filière unique mais
+        # appartient à un module (UE) : elle doit aussi avoir son onglet.
         matieres_pour_onglets = (
-            matieres.filter(actif=True, department__isnull=False)
+            matieres.filter(actif=True).filter(Q(department__isnull=False) | Q(module__isnull=False))
             if est_superieur
             else matieres
         )
@@ -227,60 +228,18 @@ class AffectationController:
                 'matieres_enseignables': matieres_enseignables,
             })
         
-        # Supérieur : structure Filière > Module > Matière (pour filtres / cohérence UI)
-        matieres_par_module = None
-        matieres_structure_superieur = []
+        # Supérieur : filières proposées dans la fenêtre d'affectation (filière, puis matière, puis classe).
         departments_affectation = []
         if est_superieur:
             departments_affectation = list(
                 Department.objects.filter(etablissement=etablissement).order_by('ordre', 'nom')
             )
-            for dep in departments_affectation:
-                modules_dep = (
-                    Module.objects.filter(
-                        etablissement=etablissement,
-                        department=dep,
-                        actif=True,
-                    )
-                    .order_by('ordre', 'nom')
-                    .prefetch_related(
-                        Prefetch(
-                            'matieres',
-                            queryset=Matiere.objects.filter(
-                                actif=True, department=dep
-                            ).order_by('nom'),
-                        )
-                    )
-                )
-                for mod in modules_dep:
-                    for m in mod.matieres.all():
-                        matieres_structure_superieur.append(
-                            {'department': dep, 'module': mod, 'matiere': m}
-                        )
-                for m in (
-                    Matiere.objects.filter(
-                        etablissement=etablissement,
-                        department=dep,
-                        module__isnull=True,
-                        actif=True,
-                    )
-                    .order_by('nom')
-                ):
-                    matieres_structure_superieur.append(
-                        {'department': dep, 'module': None, 'matiere': m}
-                    )
-            # Compat : liste (module, matiere) pour anciens fragments éventuels
-            matieres_par_module = [
-                (row['module'], row['matiere']) for row in matieres_structure_superieur
-            ]
 
         context = {
             'etablissement': etablissement,
             'professeurs_with_classes': professeurs_with_classes,
             'classes': classes,
             'matieres': matieres,
-            'matieres_par_module': matieres_par_module,
-            'matieres_structure_superieur': matieres_structure_superieur,
             'departments_affectation': departments_affectation,
             'professeurs_par_matiere': professeurs_par_matiere,
             'stats': stats,

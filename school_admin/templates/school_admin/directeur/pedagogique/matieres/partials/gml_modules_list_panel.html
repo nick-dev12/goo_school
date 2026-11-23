@@ -4,7 +4,8 @@
 
 
     <div class="gml-filiere-zone" data-gml-filiere-zone>
-        <div class="gml-filiere-nav">
+        <div class="gml-filiere-nav gml-filter-level">
+            <p class="gml-filter-label"><i class="fas fa-graduation-cap" aria-hidden="true"></i> {% trans "Filière" %}</p>
             <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'filière' %}" data-overflow-items-label="{% trans 'filières' %}">
                 <div class="matiere-tabs-track" role="tablist" aria-label="{% trans 'Filières' %}">
                     {% for item in modules_par_filiere %}
@@ -36,7 +37,8 @@
              {% if not forloop.first %}hidden{% endif %}>
             {% if item.niveaux %}
             <div class="gml-niveau-zone" data-gml-niveau-zone>
-                <div class="gml-niveau-nav">
+                <div class="gml-niveau-nav gml-filter-level">
+                    <p class="gml-filter-label"><i class="fas fa-layer-group" aria-hidden="true"></i> {% trans "Niveau" %}</p>
                     <div class="matiere-tabs-bar" data-overflow-item-label="{% trans 'niveau' %}" data-overflow-items-label="{% trans 'niveaux' %}">
                         <div class="matiere-tabs-track" role="tablist">
                             {% for niv in item.niveaux %}
@@ -64,7 +66,7 @@
                      data-niveau-idx="{{ forloop.counter0 }}"
                      role="tabpanel"
                      {% if not forloop.first %}hidden{% endif %}>
-                    {% include 'school_admin/directeur/pedagogique/matieres/partials/sx_ue_list.html' with ue_list=niv.modules ue_cle=niv.sx_cle %}
+                    {% include 'school_admin/directeur/pedagogique/matieres/partials/sx_ue_list.html' with ue_list=niv.modules ue_cle=niv.sx_cle onglets_classes=niv.sx_classes %}
                 </div>
                 {% endfor %}
             </div>

@@ -59,7 +59,12 @@ PERMISSIONS_DISPONIBLES = {
         'description': 'Accès aux bulletins scolaires des élèves',
         'category': 'Notes'
     },
-    
+
+    'bulletins_gerer': {
+        'label': 'Gérer les bulletins scolaires',
+        'description': 'Calculer les moyennes, publier les bulletins et gérer leur visibilité',
+        'category': 'Notes'
+    },
     # Gestion des présences
     'presences_liste': {
         'label': 'Voir la liste des présences',

@@ -459,7 +459,6 @@ class ProfesseurController:
             lignes.append({
                 'prof': p, 'matieres': les_mats_affichees, 'affecte': bool(les_classes),
                 'classes': les_classes, 'nb_classes': len(les_classes),
-                'grade': p.get_grade_universitaire_display() if sup and p.grade_universitaire else '',
                 'contrat': p.get_type_contrat_display().split(' (')[0],
                 'contrat_code': p.type_contrat,
                 'mat_ids': '|' + '|'.join(str(i) for i in (list(mats.get(p.id, {}).keys()) or [p.matiere_principale_id or ''])) + '|',
@@ -494,7 +493,6 @@ class ProfesseurController:
             'sx_superieur': sup,
             'sx_primaire': primaire,
             'sx_matieres_filtre': [m for m in matieres if m.id in couvertes or any(m.id == l['prof'].matiere_principale_id for l in lignes)],
-            'sx_grades': [g for g in dict.fromkeys(l['grade'] for l in lignes) if g],
             'controle': {'kpis': kpis, 'alertes': alertes},
         }
 

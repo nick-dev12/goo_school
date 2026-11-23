@@ -66,6 +66,16 @@
         </section>
         {% endif %}
 
+        {% if ecarts_credits %}
+        <section class="dlb-card" id="credits-modifies" aria-labelledby="titre-credits-modifies">
+            <div class="dlb-card__body">
+                <h2 id="titre-credits-modifies"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> {% trans "Crédits modifiés depuis la clôture" %}</h2>
+                <p>{% trans "Cette délibération garde les crédits du jour du jury : c’est la valeur officielle du procès-verbal. Les crédits de ces modules (UE) ont changé depuis. Si la modification doit s’appliquer à cette session, rouvrez la délibération puis recalculez les décisions." %}</p>
+                <ul>{% for e in ecarts_credits %}<li><strong>{{ e.module }}</strong> : {% if e.avant != None %}{{ e.avant|floatformat:"-2" }}{% else %}—{% endif %} → {% if e.maintenant != None %}{{ e.maintenant|floatformat:"-2" }}{% else %}{% trans "retiré de la classe" %}{% endif %} {% trans "crédits" %}</li>{% endfor %}</ul>
+            </div>
+        </section>
+        {% endif %}
+
         <section class="fe-kpis hb-kpis hb-kpis--4 cg3" aria-label="{% trans 'Indicateurs' %}">
             <div class="fe-kpi fe-tone-blue"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Étudiants" %}</span><span class="fe-kpi__icon"><i class="fas fa-user-graduate"></i></span></div><p class="fe-kpi__value">{{ stats.effectif }}</p></div>
             <div class="fe-kpi fe-tone-green"><div class="fe-kpi__top"><span class="fe-kpi__label">{% trans "Admis" %}</span><span class="fe-kpi__icon"><i class="fas fa-circle-check"></i></span></div><p class="fe-kpi__value">{{ stats.admis }} <small style="font-size:.9rem;font-weight:600">({{ stats.taux_admis }} %)</small></p></div>

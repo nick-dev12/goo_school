@@ -55,7 +55,7 @@ def _exiger_periode_ouverte(etablissement, jour):
     return exercice
 
 
-def enregistrer_sortie(etablissement, date_depense, motif, montant, libelle='', annee_scolaire=None, user=None, fichier=None, fournisseur=None):
+def enregistrer_sortie(etablissement, date_depense, motif, montant, libelle='', annee_scolaire=None, user=None, fichier=None, fournisseur=None, compte_tresorerie=None):
     """Sortie validée tout de suite. La période est contrôlée avant l'enregistrement."""
     from school_admin.services.finances.charges import refuser_doublon_facture
 
@@ -64,7 +64,9 @@ def enregistrer_sortie(etablissement, date_depense, motif, montant, libelle='', 
         raise ValueError("Ce fournisseur n'appartient pas à cette école.")
     refuser_doublon_facture(etablissement, fournisseur, montant, date_depense)
     categorie = categorie_pour_motif(etablissement, motif)
-    caisse = compte_principal(etablissement, 'caisse')
+    if compte_tresorerie is not None and compte_tresorerie.etablissement_id != etablissement.id:
+        raise ValueError("Ce compte de paiement n'appartient pas à cette école.")
+    caisse = compte_tresorerie or compte_principal(etablissement, 'caisse')
     with transaction.atomic():
         depense = DepenseEtablissement.objects.create(
             etablissement=etablissement,

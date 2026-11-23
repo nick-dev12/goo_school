@@ -1,0 +1,194 @@
+/* Finances — page Situation (vue d'ensemble du mois). Préfixe fs- ; jetons --ax-* (cg_v3),
+   en-tête bleu hb-head et cartes fe-kpi (hub_v3 / fiche_employe). */
+.fs-page {
+    --fs-ink: var(--ax-ink, #101828);
+    --fs-ink-2: var(--ax-ink-2, #344054);
+    --fs-muted: var(--ax-muted, #667085);
+    --fs-line: var(--ax-line, #e4e7ec);
+    --fs-brand: var(--ax-brand, #2563eb);
+    --fs-brand-ink: var(--ax-brand-ink, #1d47b3);
+    --fs-ok: #067647; --fs-ok-soft: #e7f6ec;
+    --fs-bad: #b42318; --fs-bad-soft: #fef3f2;
+    --fs-warn: #b54708; --fs-warn-soft: #fef4e6;
+    --fs-shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 10px 28px -18px rgba(16, 24, 40, .28);
+}
+.fs-page .hb-head { margin-bottom: 16px; }
+.fs-page .hb-head .cg3-head__sub { margin: 4px 0 0; color: rgba(255, 255, 255, .88) !important; font-size: .9rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* Onglets Finances : sur fond blanc, détachés de l'en-tête et de la barre de mois. */
+.fs-page .cg-nav { margin: 0 0 16px; padding: 6px; background: #fff; border: 1px solid var(--fs-line); border-radius: 14px; box-shadow: 0 1px 2px rgba(16, 24, 40, .05); }
+
+/* Barre du mois */
+.fs-periode { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 0 0 16px; padding: 10px 12px; background: #fff; border: 1px solid var(--fs-line); border-radius: 16px; box-shadow: var(--fs-shadow); }
+.fs-nav { display: flex; align-items: center; gap: 8px; }
+.fs-nav strong { min-width: 150px; text-align: center; font-size: 1rem; color: var(--fs-ink); }
+.fs-nav a { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--fs-line); background: #fff; color: var(--fs-ink-2); text-decoration: none; }
+.fs-nav a:hover, .fs-nav a:focus-visible { border-color: var(--fs-brand); color: var(--fs-brand-ink); }
+.fs-choix { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.fs-choix label { font-size: .82rem; font-weight: 600; color: var(--fs-muted); }
+.fs-choix input[type="month"] { min-height: 36px; padding: 0 10px; border: 1px solid var(--fs-line); border-radius: 10px; background: #fff; color: var(--fs-ink); font: inherit; font-size: .86rem; }
+.fs-auj { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 10px; background: #eef4ff; color: var(--fs-brand-ink); font-size: .82rem; font-weight: 700; text-decoration: none; }
+
+/* Indicateurs */
+.fs-page .fs-kpis { margin: 0 0 16px; }
+.fs-page .fs-kpis .fe-kpi__value small { font-size: .62em; font-weight: 700; opacity: .85; }
+.fs-page .fs-kpis .fe-kpi__caption a { color: #fff; font-weight: 700; text-decoration: underline; }
+.fs-alerte { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 16px; padding: 12px 16px; border-radius: 14px; background: var(--fs-warn-soft); border: 1px solid #fcd9a8; color: #7a2e0e; font-size: .86rem; }
+.fs-alerte i { color: var(--fs-warn); }
+.fs-alerte span { flex: 1 1 280px; }
+.fs-alerte a { font-weight: 700; color: var(--fs-warn); white-space: nowrap; }
+
+/* Cartes */
+.fs-grille { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; margin: 0 0 16px; align-items: start; }
+.fs-carte { background: #fff; border: 1px solid var(--fs-line); border-radius: 16px; box-shadow: var(--fs-shadow); overflow: hidden; }
+.fs-page > .fs-carte { margin: 0 0 16px; }
+.fs-carte__head { padding: 14px 18px; border-bottom: 1px solid var(--fs-line); }
+.fs-carte__head h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1rem; color: var(--fs-ink); }
+.fs-carte__head h2 i { color: var(--fs-brand); }
+.fs-carte__head p { margin: 4px 0 0; font-size: .8rem; color: var(--fs-muted); }
+.fs-carte__pied { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 18px; border-top: 1px solid var(--fs-line); background: #f8f9fc; }
+.fs-carte__pied a { color: var(--fs-brand-ink); font-size: .84rem; font-weight: 700; text-decoration: none; }
+.fs-carte__pied a:hover { text-decoration: underline; }
+
+/* Dernières opérations */
+.fs-ops, .fs-suivi { margin: 0; padding: 0; list-style: none; }
+.fs-op { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px 18px; }
+.fs-op + .fs-op { border-top: 1px solid var(--fs-line); }
+.fs-op__icone { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; font-size: .85rem; }
+.fs-op--entree .fs-op__icone { background: var(--fs-ok-soft); color: var(--fs-ok); }
+.fs-op--sortie .fs-op__icone { background: var(--fs-bad-soft); color: var(--fs-bad); }
+.fs-op__texte strong { display: block; font-size: .88rem; font-weight: 600; color: var(--fs-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-op__texte small { display: block; margin-top: 2px; font-size: .76rem; color: var(--fs-muted); }
+.fs-op__montant { font-size: .9rem; font-weight: 800; white-space: nowrap; }
+.fs-op--entree .fs-op__montant { color: var(--fs-ok); }
+.fs-op--sortie .fs-op__montant { color: var(--fs-bad); }
+.fs-op.is-annulee .fs-op__montant, .fs-op.is-annulee .fs-op__texte strong { color: var(--fs-muted); text-decoration: line-through; }
+.fs-vide { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 16px; text-align: center; color: var(--fs-muted); font-size: .86rem; }
+.fs-vide i { font-size: 1.4rem; }
+.fs-vide strong { color: var(--fs-ink-2); }
+
+/* À suivre */
+.fs-suivi li { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px 18px; }
+.fs-suivi li + li { border-top: 1px solid var(--fs-line); }
+.fs-suivi__icone { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; color: #fff; font-size: .85rem; background: var(--fe-tone, var(--fs-brand)); }
+.fs-suivi__icone.fe-tone-green { background: #12b76a; }
+.fs-suivi__icone.fe-tone-orange { background: #f79009; }
+.fs-suivi__icone.fe-tone-red { background: #f04438; }
+.fs-suivi__icone.fe-tone-blue { background: #2e90fa; }
+.fs-suivi__texte strong { display: block; font-size: .88rem; color: var(--fs-ink); }
+.fs-suivi__texte small { display: block; margin-top: 2px; font-size: .76rem; color: var(--fs-muted); }
+.fs-suivi__texte a { color: var(--fs-brand-ink); font-weight: 700; }
+.fs-suivi__val { font-size: .92rem; font-weight: 800; color: var(--fs-ink); white-space: nowrap; }
+
+/* Subventions */
+.fs-table { overflow-x: auto; }
+.fs-table table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.fs-table th, .fs-table td { padding: 10px 18px; text-align: right; border-bottom: 1px solid var(--fs-line); white-space: nowrap; }
+.fs-table th:first-child { text-align: left; }
+.fs-table thead th { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--fs-muted); background: #f8f9fc; }
+.fs-table tbody th { font-weight: 600; color: var(--fs-ink); }
+.fs-table tbody tr:last-child > * { border-bottom: 0; }
+
+/* Explications */
+.fs-calcul { margin: 0 0 24px; background: #fff; border: 1px solid var(--fs-line); border-radius: 14px; }
+.fs-calcul summary { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; font-size: .86rem; font-weight: 700; color: var(--fs-ink-2); list-style: none; }
+.fs-calcul summary::-webkit-details-marker { display: none; }
+.fs-calcul summary::after { content: ""; margin-left: auto; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform .15s; }
+.fs-calcul[open] summary::after { transform: rotate(-135deg); }
+.fs-calcul summary i { color: var(--fs-brand); }
+.fs-calcul summary:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; border-radius: 14px; }
+.fs-calcul dl { margin: 0; padding: 0 16px 14px; display: grid; gap: 10px; }
+.fs-calcul dl div { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 12px; font-size: .82rem; }
+.fs-calcul dt { font-weight: 700; color: var(--fs-ink); }
+.fs-calcul dd { margin: 0; color: var(--fs-muted); }
+
+@media (max-width: 960px) {
+    .fs-grille { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+    .fs-page .fs-kpis { grid-template-columns: 1fr 1fr !important; grid-auto-flow: row !important; overflow: visible !important; }
+    .fs-periode { padding: 10px; }
+    .fs-nav { width: 100%; justify-content: space-between; }
+    .fs-choix { width: 100%; }
+    .fs-choix input[type="month"] { flex: 1 1 140px; }
+    .fs-op, .fs-suivi li { padding: 12px 14px; gap: 10px; }
+    .fs-op__texte strong { white-space: normal; }
+    .fs-calcul dl div { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* cg_v3 masque l’ancienne barre .cg-nav-shell : on la garde ici, restylée. */
+.fs-page .cg-nav-shell { display: block !important; }
+.fs-page .cg-nav .ovf-bar, .fs-page .cg-nav .matiere-tabs-bar { margin: 0 !important; background: transparent !important; border: 0 !important; box-shadow: none !important; }
+
+/* ---------- Onglets Entrées, Sorties, Trésorerie, Financements ---------- */
+/* Barre : mois + filtres */
+.fs-nav .fs-auj { width: auto; height: 36px; padding: 0 12px; }
+.fs-filtres { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; flex: 1 1 420px; justify-content: flex-end; }
+.fs-filtres select { min-height: 36px; padding: 0 30px 0 10px; border: 1px solid var(--fs-line); border-radius: 10px; background-color: #fff; color: var(--fs-ink); font: inherit; font-size: .84rem; max-width: 190px; }
+.fs-recherche { position: relative; flex: 1 1 220px; max-width: 320px; }
+.fs-recherche i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--fs-muted); font-size: .8rem; }
+.fs-recherche input { width: 100%; min-height: 36px; padding: 0 10px 0 32px; border: 1px solid var(--fs-line); border-radius: 10px; background: #fff; color: var(--fs-ink); font: inherit; font-size: .84rem; box-sizing: border-box; }
+.fs-filtres input:focus-visible, .fs-filtres select:focus-visible { outline: 3px solid rgba(37, 99, 235, .25); border-color: var(--fs-brand); }
+.fs-effacer { font-size: .82rem; font-weight: 700; color: var(--fs-brand-ink); }
+
+/* Sous-vues (Scolarité / Activités… ; Du jour / Du mois) */
+.fs-segments { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin: 0 0 14px; border-radius: 12px; background: #eef1f6; }
+.fs-segments a { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 14px; border-radius: 9px; color: var(--fs-ink-2); font-size: .84rem; font-weight: 700; text-decoration: none; }
+.fs-segments a:hover { color: var(--fs-brand-ink); }
+.fs-segments a.is-active { background: #fff; color: var(--fs-brand-ink); box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
+.fs-segments a small { font-weight: 600; color: var(--fs-muted); }
+
+/* En-tête de carte avec action */
+.fs-carte__head--action { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; }
+.fs-carte__head--action .fs-carte__btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.fs-carte__aide { margin: 0; padding: 10px 18px; font-size: .8rem; color: var(--fs-muted); background: #f8f9fc; border-bottom: 1px solid var(--fs-line); }
+.fs-carte__aide i { color: var(--fs-brand); margin-right: 6px; }
+.fs-page .fs-carte .table-responsive { margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+.fs-page .fs-carte .cg-table { margin: 0; }
+.fs-page .fs-carte .cg-table th, .fs-page .fs-carte .cg-table td { padding: 11px 14px; vertical-align: middle; }
+.fs-page .fs-carte .cg-table th:first-child, .fs-page .fs-carte .cg-table td:first-child { padding-left: 18px; }
+.fs-page .fs-carte .cg-table td.fs-num, .fs-page .fs-carte .cg-table th.fs-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fs-page .fs-carte .cg-table td.fs-actions { text-align: right; white-space: nowrap; }
+.fs-page .fs-carte .cg-table td.fs-actions .cg-btn { margin-left: 4px; }
+.fs-page .fs-carte .cg-table td.fs-vide-cell { padding: 28px 16px; text-align: center; color: var(--fs-muted); }
+.fs-page .fs-carte .cg-table tr.fs-sous-ligne td { background: #fafbfd; font-size: .8rem; color: var(--fs-ink-2); }
+.fs-page .fs-carte .cg-table tr.fs-sous-ligne td:first-child { padding-left: 34px; }
+.fin-row--muted td { color: var(--fs-muted) !important; background: #f9fafb; }
+.fs-montant-plus { color: var(--fs-ok); font-weight: 800; }
+.fs-montant-moins { color: var(--fs-bad); font-weight: 800; }
+.fs-titre-ligne strong { display: block; font-weight: 600; color: var(--fs-ink); }
+.fs-titre-ligne small { display: block; font-size: .76rem; color: var(--fs-muted); }
+
+/* Trésorerie : comptes */
+.fs-comptes { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin: 0 0 16px; }
+.fs-compte { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 4px 12px; align-items: center; padding: 14px 16px; background: #fff; border: 1px solid var(--fs-line); border-radius: 16px; box-shadow: var(--fs-shadow); }
+.fs-compte__icone { grid-row: span 2; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; color: #fff; background: #7a5af8; }
+.fs-compte__icone.is-caisse { background: #12b76a; }
+.fs-compte__icone.is-banque { background: #2e90fa; }
+.fs-compte__icone.is-mobile { background: #f79009; }
+.fs-compte h3 { margin: 0; font-size: .92rem; color: var(--fs-ink); }
+.fs-compte p { margin: 0; font-size: .76rem; color: var(--fs-muted); }
+.fs-compte__solde { grid-column: 1 / -1; margin-top: 8px; padding-top: 10px; border-top: 1px dashed var(--fs-line); font-size: 1.25rem; font-weight: 800; color: var(--fs-ink); letter-spacing: -.01em; }
+.fs-compte__solde small { font-size: .62em; font-weight: 700; color: var(--fs-muted); }
+.fs-compte__solde.is-negatif { color: var(--fs-bad); }
+.fs-compte__solde span { display: block; font-size: .72rem; font-weight: 600; color: var(--fs-muted); letter-spacing: 0; }
+.fs-releve-choix { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 14px 18px; margin: 0; }
+.fs-releve-choix select { min-height: 38px; flex: 1 1 260px; max-width: 420px; padding: 0 10px; border: 1px solid var(--fs-line); border-radius: 10px; font: inherit; font-size: .86rem; }
+.fs-page .cg-pay-form { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.fs-page .cg-pay-form select { min-height: 32px; max-width: 220px; border: 1px solid var(--fs-line); border-radius: 8px; font-size: .8rem; }
+
+@media (max-width: 760px) {
+    .fs-filtres { justify-content: stretch; flex-basis: 100%; }
+    .fs-recherche { max-width: none; flex-basis: 100%; }
+    .fs-filtres label:not(.fs-recherche) { flex: 1 1 140px; }
+    .fs-filtres select { max-width: none; width: 100%; }
+    .fs-segments { display: flex; }
+    .fs-segments a { flex: 1 1 auto; justify-content: center; padding: 0 10px; }
+    .fs-carte__head--action .fs-carte__btns { width: 100%; }
+}
+.fs-muted { color: var(--fs-muted); font-size: .78rem; }
+.fs-periode--seul .fs-filtres { justify-content: flex-start; }
+@media (max-width: 760px) { .fs-page .fs-kpis .fe-kpi:last-child:nth-child(odd) { grid-column: 1 / -1; } }
+.fin-montant-sortie { color: var(--fs-ink); font-weight: 800; }
+.fs-montant-reste { color: var(--fs-warn); font-weight: 800; }
